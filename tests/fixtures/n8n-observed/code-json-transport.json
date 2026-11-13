@@ -1,0 +1,302 @@
+{
+ "note": "observed from n8n 2.47.7 on 2026-11-14 (evals/diff/differential.mjs --save-fixture)",
+ "title": "Code sees and returns items as JSON (undefined keys drop, undefined in lists becomes null)",
+ "label": "code-json-transport",
+ "workflow": {
+  "name": "code-json-transport",
+  "nodes": [
+   {
+    "id": "t",
+    "name": "Trigger",
+    "type": "n8n-nodes-base.manualTrigger",
+    "typeVersion": 1,
+    "position": [
+     0,
+     0
+    ],
+    "parameters": {}
+   },
+   {
+    "id": "n0",
+    "name": "Sum",
+    "type": "n8n-nodes-base.summarize",
+    "typeVersion": 1.1,
+    "position": [
+     240,
+     0
+    ],
+    "parameters": {
+     "fieldsToSummarize": {
+      "values": [
+       {
+        "aggregation": "append",
+        "field": "a"
+       }
+      ]
+     },
+     "fieldsToSplitBy": "missing",
+     "options": {}
+    }
+   },
+   {
+    "id": "n1",
+    "name": "Keys",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     480,
+     0
+    ],
+    "parameters": {
+     "mode": "runOnceForEachItem",
+     "jsCode": "return { json: { keys: Object.keys($json).sort().join(',') } };"
+    }
+   },
+   {
+    "id": "n2",
+    "name": "Names",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     720,
+     200
+    ],
+    "parameters": {
+     "jsCode": "return [{ json: { names: $('Trigger').all().map(i => i.json.name), when: new Date(0) } }];"
+    }
+   },
+   {
+    "id": "n3",
+    "name": "Dedupe",
+    "type": "n8n-nodes-base.removeDuplicates",
+    "typeVersion": 2,
+    "position": [
+     720,
+     200
+    ],
+    "parameters": {
+     "options": {}
+    }
+   }
+  ],
+  "connections": {
+   "Trigger": {
+    "main": [
+     [
+      {
+       "node": "Sum",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Names",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Sum": {
+    "main": [
+     [
+      {
+       "node": "Keys",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Names": {
+    "main": [
+     [
+      {
+       "node": "Dedupe",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1"
+  }
+ },
+ "triggerName": "Trigger",
+ "pinned": [
+  "Trigger"
+ ],
+ "pinData": {
+  "Trigger": [
+   {
+    "json": {
+     "a": 1
+    }
+   },
+   {
+    "json": {
+     "a": 2,
+     "name": "x"
+    }
+   }
+  ]
+ },
+ "fixtures": {
+  "default": {
+   "status": 200,
+   "body": {
+    "ok": true,
+    "id": "mock-1",
+    "data": [
+     {
+      "id": 1,
+      "name": "one"
+     },
+     {
+      "id": 2,
+      "name": "two"
+     }
+    ]
+   }
+  }
+ },
+ "n8n": {
+  "status": "success",
+  "error": null,
+  "lastNode": "Dedupe",
+  "startedAt": "2026-11-13T21:33:32.591Z",
+  "executionId": "856",
+  "workflowId": "PNPnN0Tcl9BHZiwU",
+  "executionData": {
+   "runData": {
+    "Trigger": [
+     {
+      "executionIndex": 0,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "a": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "a": 2,
+           "name": "x"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Sum": [
+     {
+      "executionIndex": 1,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "appended_a": [
+            1,
+            2
+           ]
+          },
+          "pairedItem": [
+           {
+            "item": 0
+           },
+           {
+            "item": 1
+           }
+          ]
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Keys": [
+     {
+      "executionIndex": 2,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "keys": "appended_a"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Names": [
+     {
+      "executionIndex": 3,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "names": [
+            null,
+            "x"
+           ],
+           "when": "1970-01-01T00:00:00.000Z"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Dedupe": [
+     {
+      "executionIndex": 4,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "names": [
+            null,
+            "x"
+           ],
+           "when": "1970-01-01T00:00:00.000Z"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ]
+   }
+  },
+  "effects": []
+ }
+}

@@ -1104,17 +1104,19 @@ function normalizeItems(exec, data) {
   if (data.some((it) => typeof it === "object" && "binary" in it)) throw nodeError(exec, "Inconsistent item format");
   return data.map((json) => ({ json }));
 }
+// n8n's Code ValidationError: an error about one item ends in " [item N]".
+const atItem = (message, itemIndex) => (itemIndex === undefined ? message : `${message} [item ${itemIndex}]`);
 function validateItem(exec, { json, binary }, itemIndex) {
-  if (json === undefined || !isObj(json)) throw nodeError(exec, "A 'json' property isn't an object", { itemIndex, description: "In the returned data, every key named 'json' must point to an object." });
-  if (binary !== undefined && !isObj(binary)) throw nodeError(exec, "A 'binary' property isn't an object", { itemIndex });
+  if (json === undefined || !isObj(json)) throw nodeError(exec, atItem("A 'json' property isn't an object", itemIndex), { itemIndex, description: "In the returned data, every key named 'json' must point to an object." });
+  if (binary !== undefined && !isObj(binary)) throw nodeError(exec, atItem("A 'binary' property isn't an object", itemIndex), { itemIndex });
 }
 function validateTopLevelKeys(exec, item, itemIndex) {
   let reserved = null;
   const unknown = [];
   for (const k of Object.keys(item)) (N8N_ITEM_KEYS.has(k) ? (reserved ??= k) : unknown.push(k));
   if (unknown.length) {
-    if (reserved) throw nodeError(exec, `Please return an array of objects, one for each item you would like to output. A reserved key "${reserved}" was found in item ${itemIndex}.`, { itemIndex });
-    throw nodeError(exec, `Unknown top-level item key: ${unknown[0]}`, { itemIndex, description: "Access the properties of an item under `.json`, e.g. `item.json`" });
+    if (reserved) throw nodeError(exec, atItem("Invalid output format", itemIndex), { itemIndex, description: `An output item contains the reserved key ${reserved}. Wrap each item in an object, under a key called json.` });
+    throw nodeError(exec, atItem(`Unknown top-level item key: ${unknown[0]}`, itemIndex), { itemIndex, description: "Access the properties of an item under `.json`, e.g. `item.json`" });
   }
 }
 // n8n Code node result checks for "Run Once for All Items".
@@ -1129,8 +1131,8 @@ export function validateAllItems(exec, result) {
   return items;
 }
 function validateEachItem(exec, result, itemIndex) {
-  if (typeof result !== "object") throw nodeError(exec, "Code doesn't return an object", { itemIndex, description: `Please return an object representing the output item. ('${result}' was returned instead.)` });
-  if (Array.isArray(result)) throw nodeError(exec, "Code doesn't return a single object", { itemIndex, description: `${result.length ? `An array of ${typeof result[0]}s was returned.` : "An empty array was returned."} If you need to output multiple items, please use the 'Run Once for All Items' mode instead.` });
+  if (typeof result !== "object") throw nodeError(exec, atItem("Code doesn't return an object", itemIndex), { itemIndex, description: `Please return an object representing the output item. ('${result}' was returned instead.)` });
+  if (Array.isArray(result)) throw nodeError(exec, atItem("Code doesn't return a single object", itemIndex), { itemIndex, description: `${result.length ? `An array of ${typeof result[0]}s was returned.` : "An empty array was returned."} If you need to output multiple items, please use the 'Run Once for All Items' mode instead.` });
   const [it] = normalizeItems(exec, [result]);
   validateItem(exec, it, itemIndex);
   validateTopLevelKeys(exec, it, itemIndex);
@@ -1139,9 +1141,14 @@ function validateEachItem(exec, result, itemIndex) {
 
 // Code runs on copies (n8n's task runner gets serialized data), so mutations never reach
 // earlier nodes' run data.
+//
+// The copies follow JSON (as the task runner's transport does): undefined keys drop out,
+// undefined in a list becomes null, a Date or DateTime becomes its ISO string.
+export const jsonCopy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
+const jsonItem = (it) => ({ ...it, json: jsonCopy(it.json), ...(it.binary !== undefined ? { binary: deepCopy(it.binary) } : {}) });
 function codeView(exec) {
   const view = Object.create(exec);
-  view.inputData = { main: (exec.inputData.main || []).map((input) => (input ? deepCopy(input).map((it, i) => ({ ...it, pairedItem: input[i].pairedItem })) : input)) };
+  view.inputData = { main: (exec.inputData.main || []).map((input) => (input ? input.map((it) => jsonItem(it)) : input)) };
   view.connectionInputData = view.inputData.main.find((d) => d?.length) ?? view.inputData.main[0] ?? [];
   view._globals = undefined;
   const copies = new WeakMap();
@@ -1149,7 +1156,7 @@ function codeView(exec) {
     get(t, k) {
       const runs = t[k];
       if (!Array.isArray(runs)) return runs;
-      if (!copies.has(runs)) copies.set(runs, runs.map((task) => ({ ...task, data: deepCopy(task.data) })));
+      if (!copies.has(runs)) copies.set(runs, runs.map((task) => ({ ...task, data: task.data ? { ...task.data, main: (task.data.main ?? []).map((out) => (out ? out.map((it) => jsonItem(it)) : out)) } : task.data })));
       return copies.get(runs);
     },
   });
@@ -1168,8 +1175,40 @@ function codeLocals(exec, extra) {
     },
     helpers: new Proxy({}, { get: (_, k) => unsupportedInCode(`helpers.${String(k)}`) }),
     Promise,
+    // n8n's task runner gives Code its Buffer; the runtime has one only where the host does
+    // (Node), not in a browser.
+    ...(typeof globalThis.Buffer === "function" ? { Buffer: globalThis.Buffer } : {}),
     ...extra,
   };
+}
+
+// The message n8n's JS task runner gives a Code error (its ExecutionError): the first
+// "Type: details" row of the stack, then " [line N]" with N the line in the user's code of
+// the innermost frame there. A thrown value that is not error-like becomes its JSON.
+// compileCode puts the user's first line on line 4 of the generated function.
+const CODE_LINE_OFFSET = 3;
+// Errors from n8n's own code (the $() proxy) are host-realm Errors there and keep their
+// message as is; here those are the runtime's RunnerErrors.
+export function codeErrorMessage(e) {
+  if (e === null || typeof e !== "object" || !("message" in e)) return JSON.stringify(e) ?? String(e);
+  if (e instanceof RunnerError) return e.message;
+  // Node's own errors (Buffer and friends carry an ERR_* code) are host-realm in n8n too.
+  if (typeof e.code === "string" && /^ERR_/.test(e.code)) return e.message;
+  const rows = String(e.stack ?? "").split(/\r?\n/);
+  let line;
+  for (const row of rows) {
+    if (!/eval at compileCode/.test(row)) continue;
+    const m = /<anonymous>:(\d+):\d+\)?\s*$/.exec(row);
+    if (m) {
+      line = Number(m[1]) - CODE_LINE_OFFSET;
+      break;
+    }
+  }
+  const firstFrame = rows.findIndex((r) => /^\s+at\s/.test(r));
+  const header = (firstFrame === -1 ? rows : rows.slice(0, firstFrame)).find((r) => /^\S.*?: .+$/.test(r));
+  const details = header ? header.replace(/^\S.*?: /, "").trim() : "";
+  const message = details || String(e.message || "") || "Unknown error";
+  return line > 0 ? `${message} [line ${line}]` : message;
 }
 
 async function runCode(exec, code, locals, itemIndex) {
@@ -1195,11 +1234,12 @@ const code = {
         result = await runCode(view, src, codeLocals(view, { items }), 0);
       } catch (e) {
         if (e instanceof UnsupportedNode) throw Object.assign(e, { node: exec.name });
-        if (exec.continueOnFail()) return [[{ json: { error: e.message } }]];
-        throw nodeError(exec, e.message ?? String(e));
+        const message = codeErrorMessage(e);
+        if (exec.continueOnFail()) return [[{ json: { error: message } }]];
+        throw nodeError(exec, message);
       }
       if (result === null) return [[]];
-      return [validateAllItems(exec, result)];
+      return [validateAllItems(exec, result).map((it) => ({ ...it, json: jsonCopy(it.json) }))];
     }
     const out = [];
     for (let i = 0; i < items.length; i++) {
@@ -1208,15 +1248,16 @@ const code = {
         result = await runCode(view, src, codeLocals(view, { item: items[i] }), i);
       } catch (e) {
         if (e instanceof UnsupportedNode) throw Object.assign(e, { node: exec.name });
-        if (!exec.continueOnFail()) throw nodeError(exec, e.message ?? String(e), { itemIndex: i });
-        out.push({ json: { error: e.message }, pairedItem: { item: i } });
+        const message = codeErrorMessage(e);
+        if (!exec.continueOnFail()) throw nodeError(exec, message, { itemIndex: i });
+        out.push({ json: { error: message }, pairedItem: { item: i } });
         continue;
       }
       if (result === null || !result) continue;
       const json = !isObj(result) ? result : "json" in result ? result.json : "binary" in result ? result.json ?? {} : result;
       const it = { json, pairedItem: { item: i }, ...(isObj(result) && result.binary ? { binary: result.binary } : {}) };
       const v = validateEachItem(exec, it, i);
-      out.push(v);
+      out.push({ ...v, json: jsonCopy(v.json) });
     }
     return [out];
   },

@@ -158,10 +158,12 @@ test("Code result normalisation and errors mirror n8n", async () => {
   assert.deepEqual(out(await code("return null"), "Code"), []);
   assert.equal((await code("return 'x'")).error.message, "Code doesn't return items properly");
   assert.equal((await code("const x = 1")).error.message, "Code doesn't return items properly");
-  assert.equal((await code("return [{json: {a: 1}}, {b: 2}]")).error.message, "Unknown top-level item key: b");
-  assert.equal((await code("return [{json: 1}]")).error.message, "A 'json' property isn't an object");
-  assert.equal((await code("throw new Error('boom')")).error.message, "boom");
-  assert.deepEqual(out(await code("throw new Error('boom')", "runOnceForAllItems", { onError: "continueRegularOutput" }), "Code"), [{ error: "boom" }]);
+  // An error about one item ends in " [item N]" (n8n's Code ValidationError, observed).
+  assert.equal((await code("return [{json: {a: 1}}, {b: 2}]")).error.message, "Unknown top-level item key: b [item 1]");
+  assert.equal((await code("return [{json: 1}]")).error.message, "A 'json' property isn't an object [item 0]");
+  // n8n's task runner adds the line in the user's code (observed from n8n 2.47.7).
+  assert.equal((await code("throw new Error('boom')")).error.message, "boom [line 1]");
+  assert.deepEqual(out(await code("const a = 1;\nthrow new Error('boom')", "runOnceForAllItems", { onError: "continueRegularOutput" }), "Code"), [{ error: "boom [line 2]" }]);
 });
 
 test("Code each item: $json, item, null/undefined drop the item, arrays are refused", async () => {
@@ -170,7 +172,7 @@ test("Code each item: $json, item, null/undefined drop the item, arrays are refu
   assert.deepEqual(out(r, "Code"), [{ b: 2, i: 0 }, { b: 6, i: 2 }]);
   assert.deepEqual(r.runData.Code[0].data.main[0].map((i) => i.pairedItem), [{ item: 0 }, { item: 2 }]);
   // n8n's task runner wraps the array as the item's json before validating it.
-  assert.equal((await code("return [$json]")).error.message, "A 'json' property isn't an object");
+  assert.equal((await code("return [$json]")).error.message, "A 'json' property isn't an object [item 0]");
 });
 
 test("Code works on copies: mutating input does not change upstream run data", async () => {

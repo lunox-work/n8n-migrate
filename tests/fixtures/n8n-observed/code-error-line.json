@@ -1,0 +1,239 @@
+{
+ "note": "observed from n8n 2.47.7 on 2026-11-14 (evals/diff/differential.mjs --save-fixture)",
+ "title": "Code errors carry n8n's [line N]; proxy errors do not",
+ "label": "code-error-line",
+ "workflow": {
+  "name": "code-error-line",
+  "nodes": [
+   {
+    "id": "t",
+    "name": "Trigger",
+    "type": "n8n-nodes-base.manualTrigger",
+    "typeVersion": 1,
+    "position": [
+     0,
+     0
+    ],
+    "parameters": {}
+   },
+   {
+    "id": "n0",
+    "name": "All",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     240,
+     0
+    ],
+    "parameters": {
+     "jsCode": "const a = 1;\nconst b = 2;\nthrow new Error('boom at three');"
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "n1",
+    "name": "Each",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     480,
+     200
+    ],
+    "parameters": {
+     "mode": "runOnceForEachItem",
+     "jsCode": "if ($json.n === 2) {\n  return { json: { bad: undefined.x } };\n}\nreturn { json: { ok: $json.n } };"
+    },
+    "onError": "continueErrorOutput"
+   },
+   {
+    "id": "n2",
+    "name": "Proxy",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     720,
+     400
+    ],
+    "parameters": {
+     "jsCode": "return [{ json: { v: $('Nope').first() } }];"
+    },
+    "onError": "continueRegularOutput"
+   }
+  ],
+  "connections": {
+   "Trigger": {
+    "main": [
+     [
+      {
+       "node": "All",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Each",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Proxy",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1"
+  }
+ },
+ "triggerName": "Trigger",
+ "pinned": [
+  "Trigger"
+ ],
+ "pinData": {
+  "Trigger": [
+   {
+    "json": {
+     "n": 1
+    }
+   },
+   {
+    "json": {
+     "n": 2
+    }
+   }
+  ]
+ },
+ "fixtures": {
+  "default": {
+   "status": 200,
+   "body": {
+    "ok": true,
+    "id": "mock-1",
+    "data": [
+     {
+      "id": 1,
+      "name": "one"
+     },
+     {
+      "id": 2,
+      "name": "two"
+     }
+    ]
+   }
+  }
+ },
+ "n8n": {
+  "status": "success",
+  "error": null,
+  "lastNode": "Proxy",
+  "startedAt": "2026-11-13T21:33:32.269Z",
+  "executionId": "855",
+  "workflowId": "KDXSC9aFqYjWYdrQ",
+  "executionData": {
+   "runData": {
+    "Trigger": [
+     {
+      "executionIndex": 0,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "n": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "n": 2
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "All": [
+     {
+      "executionIndex": 1,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "error": "boom at three [line 3]"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Each": [
+     {
+      "executionIndex": 2,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "ok": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ],
+        [
+         {
+          "json": {
+           "n": 2,
+           "error": "Cannot read properties of undefined (reading 'x') [line 2]"
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Proxy": [
+     {
+      "executionIndex": 3,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "error": "Referenced node doesn't exist"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ]
+   }
+  },
+  "effects": []
+ }
+}

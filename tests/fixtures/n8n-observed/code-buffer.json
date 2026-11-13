@@ -1,0 +1,175 @@
+{
+ "note": "observed from n8n 2.47.7 on 2026-11-14 (evals/diff/differential.mjs --save-fixture)",
+ "title": "Code has Buffer",
+ "label": "code-buffer",
+ "workflow": {
+  "name": "code-buffer",
+  "nodes": [
+   {
+    "id": "t",
+    "name": "Trigger",
+    "type": "n8n-nodes-base.manualTrigger",
+    "typeVersion": 1,
+    "position": [
+     0,
+     0
+    ],
+    "parameters": {}
+   },
+   {
+    "id": "n0",
+    "name": "B64",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     240,
+     0
+    ],
+    "parameters": {
+     "jsCode": "return $input.all().map(i => ({ json: { b64: Buffer.from(i.json.s).toString('base64'), len: Buffer.byteLength(i.json.s) } }));"
+    }
+   },
+   {
+    "id": "n1",
+    "name": "BadArg",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     480,
+     200
+    ],
+    "parameters": {
+     "jsCode": "const x = 1;\nreturn [{ json: { b: Buffer.from($json.missing).length } }];"
+    },
+    "onError": "continueRegularOutput"
+   }
+  ],
+  "connections": {
+   "Trigger": {
+    "main": [
+     [
+      {
+       "node": "B64",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "BadArg",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1"
+  }
+ },
+ "triggerName": "Trigger",
+ "pinned": [
+  "Trigger"
+ ],
+ "pinData": {
+  "Trigger": [
+   {
+    "json": {
+     "s": "héllo"
+    }
+   }
+  ]
+ },
+ "fixtures": {
+  "default": {
+   "status": 200,
+   "body": {
+    "ok": true,
+    "id": "mock-1",
+    "data": [
+     {
+      "id": 1,
+      "name": "one"
+     },
+     {
+      "id": 2,
+      "name": "two"
+     }
+    ]
+   }
+  }
+ },
+ "n8n": {
+  "status": "success",
+  "error": null,
+  "lastNode": "BadArg",
+  "startedAt": "2026-11-13T21:47:37.720Z",
+  "executionId": "1670",
+  "workflowId": "jEu4KyoJdfVNZZhF",
+  "executionData": {
+   "runData": {
+    "Trigger": [
+     {
+      "executionIndex": 0,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "s": "héllo"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "B64": [
+     {
+      "executionIndex": 1,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "b64": "aMOpbGxv",
+           "len": 6
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "BadArg": [
+     {
+      "executionIndex": 2,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "error": "The first argument must be of type string or an instance of Buffer, ArrayBuffer, or Array or an Array-like Object. Received undefined"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ]
+   }
+  },
+  "effects": []
+ }
+}

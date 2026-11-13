@@ -74,8 +74,8 @@ test("onError: stopWorkflow (default) records the failed node and stops", async 
   const def = wf([start(), node("Code", "code", { jsCode: "throw new Error('nope')" }, { v: 2 }), node("Next", "noOp")], [["Start", "Code"], ["Code", "Next"]]);
   const r = await run(def);
   assert.equal(r.status, "failed");
-  assert.deepEqual(r.error, { name: "NodeError", message: "nope", node: "Code" });
-  assert.equal(r.runData.Code[0].error.message, "nope");
+  assert.deepEqual(r.error, { name: "NodeError", message: "nope [line 1]", node: "Code" });
+  assert.equal(r.runData.Code[0].error.message, "nope [line 1]");
   assert.equal(r.runData.Next, undefined);
 });
 
