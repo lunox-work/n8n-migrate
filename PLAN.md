@@ -215,6 +215,8 @@ A workflow regenerates from its stored export when the runner changes, so a fix 
 
 Done when: the Phase 2 workflow converts from its n8n export to the same definition we hand-wrote, and three more workflows of different shapes convert and run.
 
+Status 2026-11-14: `scripts/convert.mjs` turns an export into one folder per workflow (definition, redacted source, report, overrides, runtime copy, MIGRATION.md) and `--regenerate` rebuilds it from the stored source and overrides. The slice converts to the definition hand-written before the converter (`tests/fixtures/convert/slice.*`); a chat agent, a poll workflow and a self-calling sub-workflow convert and run in-process with mock hosts. Corpus: 6 full, 12 with review steps, 49 with blocked steps, 33 refused, no crash ([convert-coverage.md](evals/convert-coverage.md)). Tool maps: `references/tool-maps.json`; every adapter that reads a tool's output is `unverified` until the bench checks it against real output. Agent tool calls are intents the runner executes (`definition.schema.json`, agent.tools).
+
 ## Phase 4: artifact and unattended runs
 
 - `references/artifact.html`: graph, per-step status, "Run now", history, a dry-run switch.
