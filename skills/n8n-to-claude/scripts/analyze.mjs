@@ -81,6 +81,38 @@ const uniq = (xs) => [...new Set(xs)];
 const round = (x, d = 3) => (x == null ? null : Math.round(x * 10 ** d) / 10 ** d);
 const byOrder = (order) => (a, b) => order.indexOf(a) - order.indexOf(b);
 
+// Untrusted JSON can hold objects that String() cannot convert (an own
+// "toString" key) and keys that name Object.prototype members ("constructor",
+// "__proto__"). txt() never throws; own() reads own properties only.
+export function txt(v, fallback = "") {
+  if (typeof v === "string") return v;
+  if (v === null || v === undefined) return fallback;
+  try {
+    return String(v);
+  } catch {
+    return Object.prototype.toString.call(v);
+  }
+}
+const own = (o, k) => (o !== null && typeof o === "object" && Object.prototype.hasOwnProperty.call(o, k) ? o[k] : undefined);
+const num = (v, fallback) => (typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : fallback);
+
+// Replaces every {{ … }} (up to the first }} after each {{) in linear time;
+// the equivalent lazy regex is quadratic on many unclosed {{.
+export function replaceBetween(s, open, close, fill) {
+  let out = "";
+  let i = 0;
+  for (;;) {
+    const a = s.indexOf(open, i);
+    if (a < 0) break;
+    const b = s.indexOf(close, a + open.length);
+    if (b < 0) break;
+    out += s.slice(i, a) + fill(s.slice(a, b + close.length));
+    i = b + close.length;
+  }
+  return out + s.slice(i);
+}
+const blankExpr = (s, fill) => replaceBetween(s, "{{", "}}", typeof fill === "function" ? fill : () => fill);
+
 export function canonical(v) {
   if (Array.isArray(v)) return `[${v.map(canonical).join(",")}]`;
   if (v && typeof v === "object")
@@ -93,7 +125,7 @@ export function canonical(v) {
 
 // Strips control and bidi-override characters from untrusted text before it
 // reaches a terminal.
-const clean = (s) => String(s).replace(/[\u0000-\u001f\u007f-\u009f‪-‮⁦-⁩]/g, " ");
+const clean = (s) => txt(s).replace(/[\u0000-\u001f\u007f-\u009f‪-‮⁦-⁩]/g, " ");
 
 export function formatDuration(sec) {
   if (sec == null) return "?";
@@ -118,9 +150,9 @@ export function unwrap(data, label) {
   if (Array.isArray(data.data)) return unwrap(data.data, label);
   const t = data.workflow;
   if (isObj(t) && isObj(t.workflow) && Array.isArray(t.workflow.nodes)) {
-    return [{ id: String(t.id ?? t.workflow.id ?? label), name: String(t.name ?? t.workflow.name ?? label), wf: t.workflow }];
+    return [{ id: txt(t.id ?? t.workflow.id, label), name: txt(t.name ?? t.workflow.name, label), wf: t.workflow }];
   }
-  if (Array.isArray(data.nodes)) return [{ id: String(data.id ?? label), name: String(data.name ?? label), wf: data }];
+  if (Array.isArray(data.nodes)) return [{ id: txt(data.id, label), name: txt(data.name, label), wf: data }];
   return null;
 }
 
@@ -203,7 +235,7 @@ function resolveRule(v, params) {
   }
   if (val === undefined) return v.default;
   if (isExpr(val)) return undefined;
-  const hit = v.values?.[String(val)];
+  const hit = own(v.values, txt(val));
   return hit !== undefined ? hit : v.other;
 }
 
@@ -211,18 +243,20 @@ function resolveRule(v, params) {
 // node's own parameters. Resource and operation resolve the way n8n does:
 // the parameter if set, else the package default for that version.
 function describeNode(catalogue, node) {
-  const type = String(node.type ?? "");
+  const type = txt(node.type);
   const params = isObj(node.parameters) ? node.parameters : {};
-  const typeVersion = typeof node.typeVersion === "number" ? node.typeVersion : Number(node.typeVersion ?? 1);
+  // n8n reads a missing typeVersion as 1; an unreadable one is null.
+  const tv = num(node.typeVersion ?? 1, NaN);
+  const typeVersion = Number.isFinite(tv) ? tv : null;
   const d = {
     node,
-    name: String(node.name ?? ""),
+    name: txt(node.name),
     type,
     typeVersion,
     params,
     disabled: node.disabled === true,
     status: "mapped",
-    entry: catalogue[type],
+    entry: own(catalogue, type),
     baseType: type,
     role: null,
     wakeup: undefined,
@@ -254,38 +288,38 @@ function describeNode(catalogue, node) {
     return d;
   }
   const m = e.mapping;
-  if (e.versions && !e.versions.includes(typeVersion)) d.issues.push("unknown-version");
+  if (typeVersion === null || (e.versions && !e.versions.includes(typeVersion))) d.issues.push("unknown-version");
   const opParam = m.operationParam || "operation";
   if (e.ops) {
     const g = e.ops.find((x) => x.versions.includes(typeVersion)) || e.ops.at(-1);
     if (g.resources) {
       const res = params.resource ?? g.resourceDefault;
-      d.resource = res == null ? null : String(res);
+      d.resource = res == null ? null : txt(res);
       if (isExpr(res)) d.issues.push("expression-operation");
       else {
-        const rg = g.resources[res];
+        const rg = own(g.resources, txt(res));
         const op = params[opParam] ?? rg?.default;
-        d.operation = op == null ? null : String(op);
+        d.operation = op == null ? null : txt(op);
         if (isExpr(op)) d.issues.push("expression-operation");
         else {
-          d.opKey = `${res}:${op}`;
-          if (!rg || !rg.operations.includes(String(op))) d.issues.push("unknown-operation");
+          d.opKey = `${txt(res)}:${txt(op)}`;
+          if (!rg || !rg.operations.includes(txt(op))) d.issues.push("unknown-operation");
         }
       }
     } else {
       const op = params[opParam] ?? g.default;
-      d.operation = op == null ? null : String(op);
+      d.operation = op == null ? null : txt(op);
       if (isExpr(op)) d.issues.push("expression-operation");
       else {
-        d.opKey = String(op);
+        d.opKey = txt(op);
         if (!g.operations.includes(d.opKey)) d.issues.push("unknown-operation");
       }
     }
   } else if (e.operations && params[opParam] !== undefined && !isExpr(params[opParam])) {
-    d.operation = String(params[opParam]);
+    d.operation = txt(params[opParam]);
     d.opKey = d.operation;
   }
-  const om = (d.opKey && e.operations?.[d.opKey]) || {};
+  const om = (d.opKey && own(e.operations, d.opKey)) || {};
   const pick = (k) => (om[k] !== undefined ? om[k] : m[k]);
   d.role = resolveRule(m.role, params) ?? "step";
   d.wakeup = resolveRule(m.wakeup, params);
@@ -326,7 +360,7 @@ export function httpTarget(url) {
   if (typeof url !== "string") return null;
   let s = url.trim();
   if (s.startsWith("=")) s = s.slice(1).trim();
-  s = s.replace(/\{\{[\s\S]*?\}\}/g, "{x}");
+  s = blankExpr(s, "{x}");
   const m = s.match(/^https?:\/\/([^/?#\s{}]+)([^?#\s]*)/i);
   if (m) return { host: m[1].toLowerCase().replace(/:\d+$/, "").replace(/^[^@]*@/, ""), path: m[2] || "/" };
   // Base URL from an expression, literal path after it: only host-less rules
@@ -346,7 +380,7 @@ function applyHostRules(d, hosts) {
   const t = httpTarget(d.params.url);
   if (!t) return;
   const method = d.params.method ?? d.params.requestMethod;
-  const model = String(method) === "POST" && t.host ? (hosts.model || []).find((r) => ruleMatches(r, t)) : null;
+  const model = method === "POST" && t.host ? (hosts.model || []).find((r) => ruleMatches(r, t)) : null;
   if (model) {
     d.kind = "model";
     d.effect = "none";
@@ -366,7 +400,7 @@ function applyHostRules(d, hosts) {
   for (const r of hosts.read || []) {
     if (!ruleMatches(r, t)) continue;
     if (r.graphql) {
-      const body = allStrings([d.params.jsonBody, d.params.body, d.params.bodyParameters]).map((x) => (x.startsWith("=") ? x.slice(1) : x).replace(/\{\{[\s\S]*?\}\}/g, " ")).join("\n");
+      const body = allStrings([d.params.jsonBody, d.params.body, d.params.bodyParameters]).map((x) => blankExpr(x.startsWith("=") ? x.slice(1) : x, " ")).join("\n");
       if (/\bmutation\b/i.test(body)) d.effect = "write";
       else if (/\bquery\b|\{\s*[A-Za-z_]/.test(body)) d.effect = "read";
       else continue;
@@ -381,8 +415,8 @@ function applyHostRules(d, hosts) {
 export function sqlEffect(q) {
   if (typeof q !== "string") return undefined;
   let s = q.startsWith("=") ? q.slice(1) : q;
-  s = s.replace(/\{\{[\s\S]*?\}\}/g, " __EXPR__ ");
-  s = s.replace(/--[^\n]*/g, " ").replace(/\/\*[\s\S]*?\*\//g, " ");
+  s = blankExpr(s, " __EXPR__ ");
+  s = replaceBetween(s.replace(/--[^\n]*/g, " "), "/*", "*/", () => " ");
   const stmts = s
     .split(";")
     .map((x) => x.trim())
@@ -436,13 +470,13 @@ function isPlaceholder(v) {
 }
 
 export function redact(v) {
-  return `${String(v).slice(0, 4)}…${String(v).length}`;
+  return `${txt(v).slice(0, 4)}…${txt(v).length}`;
 }
 
 // Finds secret-looking literals in one string. In an expression string
 // (starting with "=") only the literal text outside {{ }} is scanned.
 export function findSecrets(s) {
-  const text = s.startsWith("=") ? s.slice(1).replace(/\{\{[\s\S]*?\}\}/g, (m) => " ".repeat(m.length)) : s;
+  const text = s.startsWith("=") ? blankExpr(s.slice(1), (m) => " ".repeat(m.length)) : s;
   const spans = [];
   const out = [];
   for (const [kind, re] of SECRET_PATTERNS) {
@@ -618,7 +652,7 @@ export function legacyCron(item) {
   if (mode === "everyDay") return `0 ${minute} ${hour} * * *`;
   if (mode === "everyWeek") return `0 ${minute} ${hour} * * ${i.weekday ?? "1"}`;
   if (mode === "everyMonth") return `0 ${minute} ${hour} ${i.dayOfMonth ?? 1} * *`;
-  return String(i.cronExpression ?? "* * * * * *").trim();
+  return txt(i.cronExpression, "* * * * * *").trim();
 }
 
 // Schedule Trigger rule items, after withIntervalDefaults() and
@@ -654,7 +688,7 @@ function scheduleRuleTimes(item) {
       return { fixed: { runsPerDay: 1 / (30.4375 * n), shortestSec: 28 * 86400 * n } };
     }
     case "cronExpression":
-      return { cron: String(i.expression ?? "") };
+      return { cron: txt(i.expression) };
   }
 }
 
@@ -662,7 +696,7 @@ function scheduleRuleTimes(item) {
 // as opposed to every N seconds, minutes or hours. Unreadable settings count
 // as mattering.
 const cronHasTimeOfDay = (c) => {
-  const p = String(c).trim().split(/\s+/);
+  const p = txt(c).trim().split(/\s+/);
   if (p.length === 5) p.unshift("0");
   if (p.length !== 6) return true;
   return !/^\*(\/\d+)?$/.test(p[2]) || [p[3], p[4], p[5]].some((x) => !/^[*?]$/.test(x));
@@ -704,7 +738,7 @@ function triggerTimes(d) {
       }
     } else if (d.type === "n8n-nodes-base.interval") {
       if (hasExpr([p.interval, p.unit])) throw new Error("the interval is set by an expression");
-      const n = Number(p.interval ?? 1);
+      const n = num(p.interval, 1);
       const unit = { seconds: 1, minutes: 60, hours: 3600 }[p.unit ?? "seconds"];
       if (!(n > 0) || !unit) throw new Error("invalid interval");
       out.fixed.push({ runsPerDay: 86400 / (n * unit), shortestSec: n * unit });
@@ -741,7 +775,7 @@ function regularOutputs(d) {
       return d.typeVersion >= 3 ? 2 : 1;
     case "n8n-nodes-base.switch":
       if (d.typeVersion < 3) return 4;
-      if (p.mode === "expression") return Number(p.numberOutputs ?? 4) || 4;
+      if (p.mode === "expression") return num(p.numberOutputs, 4) || 4;
       return ((p.rules?.values ?? []).length || 1) + (p.options?.fallbackOutput === "extra" ? 1 : 0);
     case "@n8n/n8n-nodes-langchain.textClassifier":
       return ((p.categories?.categories ?? []).length || 1) + (p.options?.fallback === "other" ? 1 : 0);
@@ -855,9 +889,9 @@ function surfacesFrom(spec) {
 }
 
 function connectorSurfaces(caps, name, ops) {
-  const c = caps.connectors?.[name];
+  const c = own(caps.connectors, name);
   const base = c ? surfacesFrom(c.surfaces) : { cloudTask: "ok", localTask: "ok", artifact: "ok" };
-  const listed = ({ type, op }) => (c?.operations?.[type]?.ops || []).includes(op);
+  const listed = ({ type, op }) => (own(c?.operations, type)?.ops || []).includes(op);
   const allListed = c && ops.length > 0 && ops.every(listed);
   const out = {};
   for (const s of SURFACES) out[s] = base[s] === "ok" && !allListed ? "needs:connector-operation-check" : base[s];
@@ -871,11 +905,17 @@ function newWorkflow(item, ctx, parent = null, prefix = "") {
   const wf = item.wf;
   const infos = new Map();
   const order = [];
+  const duplicates = new Set();
   for (const node of Array.isArray(wf.nodes) ? wf.nodes : []) {
     if (!isObj(node)) continue;
     const d = describeNode(ctx.catalogue, node);
     applyHostRules(d, ctx.hosts);
-    if (infos.has(d.name)) continue; // n8n keeps names unique; ignore a duplicate
+    // n8n keeps names unique and connections refer to names: a repeated name
+    // makes the export ambiguous. The first node is analysed; a blocker says so.
+    if (infos.has(d.name)) {
+      duplicates.add(d.name);
+      continue;
+    }
     infos.set(d.name, d);
     order.push(d.name);
   }
@@ -888,6 +928,7 @@ function newWorkflow(item, ctx, parent = null, prefix = "") {
     // Inline sub-workflows: "<call node> › " (nested: chained), so their
     // nodes can be named in the top workflow's questions and credentials.
     prefix,
+    duplicates: [...duplicates],
     pendingWrites: [],
     settings: isObj(wf.settings) ? wf.settings : {},
     infos,
@@ -909,7 +950,7 @@ function addReq(W, kind, name, nodeName, extra = {}) {
   const key = `${kind}\u0000${name}`;
   if (!W.req.has(key)) W.req.set(key, { kind, name, nodes: new Set(), ops: [], ...extra });
   const r = W.req.get(key);
-  if (nodeName) r.nodes.add(nodeName);
+  if (nodeName != null) r.nodes.add(nodeName);
   if (extra.ops) for (const o of extra.ops) if (!r.ops.some((x) => x.type === o.type && x.op === o.op)) r.ops.push(o);
   return r;
 }
@@ -917,7 +958,7 @@ function addReq(W, kind, name, nodeName, extra = {}) {
 function addBlocker(W, kind, reason, nodeName) {
   const key = `${kind}\u0000${reason}`;
   if (!W.blockers.has(key)) W.blockers.set(key, { kind, reason, nodes: new Set() });
-  if (nodeName) W.blockers.get(key).nodes.add(nodeName);
+  if (nodeName != null) W.blockers.get(key).nodes.add(nodeName);
 }
 
 function addShared(W, kind, name, nodeName, key = name) {
@@ -958,7 +999,7 @@ function normalizeAnswer(raw, q) {
     const s = typeof raw === "string" ? raw.trim().toLowerCase() : null;
     if (s === "yes" || s === "true" || s === "all") return { ok: true, value: true };
     if (s === "no" || s === "false" || s === "none") return { ok: true, value: false };
-    const names = Array.isArray(raw) ? raw.map((x) => String(x).trim()) : typeof raw === "string" ? raw.split(",").map((x) => x.trim()) : null;
+    const names = Array.isArray(raw) ? raw.map((x) => txt(x).trim()) : typeof raw === "string" ? raw.split(",").map((x) => x.trim()) : null;
     if (!names || !names.length || names.some((n) => !n)) return { ok: false, reason: "expected true, false or a list of the node names" };
     const bad = names.filter((n) => !q.nodes.includes(n));
     if (bad.length) return { ok: false, reason: `not among the listed nodes: ${bad.join(", ")}` };
@@ -966,17 +1007,17 @@ function normalizeAnswer(raw, q) {
   }
   if (q.answerType === "boolean") {
     if (typeof raw === "boolean") return { ok: true, value: raw };
-    const s = String(raw).trim().toLowerCase();
+    const s = txt(raw).trim().toLowerCase();
     if (["yes", "true"].includes(s)) return { ok: true, value: true };
     if (["no", "false"].includes(s)) return { ok: true, value: false };
     return { ok: false, reason: "expected true or false" };
   }
   if (q.answerType === "choice") {
-    if (Object.keys(q.options).includes(String(raw))) return { ok: true, value: String(raw) };
+    if (Object.keys(q.options).includes(txt(raw))) return { ok: true, value: txt(raw) };
     return { ok: false, reason: `expected one of ${Object.keys(q.options).join(", ")}` };
   }
-  if (raw === null || raw === undefined || isObj(raw) || Array.isArray(raw) || String(raw).trim() === "") return { ok: false, reason: "expected text" };
-  return { ok: true, value: String(raw).trim() };
+  if (raw === null || raw === undefined || isObj(raw) || Array.isArray(raw) || txt(raw).trim() === "") return { ok: false, reason: "expected text" };
+  return { ok: true, value: txt(raw).trim() };
 }
 
 // Effect questions and parsing that need the workflow (answers live there).
@@ -1006,7 +1047,7 @@ function settleEffect(W, d, ctx) {
   }
   if (HTTP_QUESTION_TYPES.has(d.baseType)) {
     const method = d.params.method ?? d.params.requestMethod ?? "GET";
-    pending(isExpr(method) ? "method set by an expression" : `${String(method)} request`);
+    pending(isExpr(method) ? "method set by an expression" : `${txt(method)} request`);
   }
 }
 
@@ -1040,7 +1081,7 @@ function askWrites(W, ctx) {
 function credentialNames(d) {
   const c = d.node.credentials;
   if (!isObj(c)) return [];
-  return Object.entries(c).map(([type, v]) => ({ type, name: String((isObj(v) ? v.name : v) ?? type) }));
+  return Object.entries(c).map(([type, v]) => ({ type, name: txt(isObj(v) ? v.name : v, type) }));
 }
 
 function rlValue(v) {
@@ -1060,7 +1101,7 @@ function mcpHost(d) {
 }
 
 function substitutionFor(d, ctx) {
-  const s = ctx.capabilities.substitutions?.[d.baseType];
+  const s = own(ctx.capabilities.substitutions, d.baseType);
   if (!s) return null;
   const ops = s.operations || ["*"];
   if (!ops.includes("*") && !ops.includes(d.opKey) && !ops.includes(d.operation)) return null;
@@ -1141,12 +1182,12 @@ function processNode(W, d, ctx, br) {
     case "db":
       if (d.baseType === "n8n-nodes-base.dataTable") {
         const { value, cached } = rlValue(d.params.dataTableId);
-        const label = cached && !isExpr(cached) ? String(cached) : value != null && !isExpr(value) ? String(value) : "table set by an expression";
-        const key = value != null && !isExpr(value) ? String(value) : label;
+        const label = cached && !isExpr(cached) ? txt(cached) : value != null && !isExpr(value) ? txt(value) : "table set by an expression";
+        const key = value != null && !isExpr(value) ? txt(value) : label;
         addShared(W, "data-table", label, name, key);
         addReq(W, "state", `data-table:${label}`, name, { surfaces: reqSurf("state") });
       } else if (d.baseType === "n8n-nodes-base.removeDuplicates") {
-        const scope = d.params.options?.scope ?? "node";
+        const scope = txt(d.params.options?.scope, "node");
         addShared(W, "dedupe-history", `scope ${scope}`, name);
         addReq(W, "state", `dedupe-history:${scope}`, name, { surfaces: reqSurf("state") });
       } else {
@@ -1157,7 +1198,7 @@ function processNode(W, d, ctx, br) {
     case "vector":
       if (/vectorStoreInMemory/.test(d.baseType)) {
         const { value } = rlValue(d.params.memoryKey);
-        const key = value != null && !isExpr(value) ? String(value) : "vector_store_key";
+        const key = value != null && !isExpr(value) ? txt(value) : "vector_store_key";
         addShared(W, "vector-memory", key, name);
         addReq(W, "state", `vector-memory:${key}`, name, { surfaces: reqSurf("state") });
       } else addReq(W, "vector", shortType(d.baseType), name, { surfaces: reqSurf("vector") });
@@ -1176,7 +1217,7 @@ function processNode(W, d, ctx, br) {
       W.calls.push({ node: name, br, d });
       break;
   }
-  const extra = caps.nodeRequirements?.[d.baseType];
+  const extra = own(caps.nodeRequirements, d.baseType);
   if (extra) addReq(W, extra, extra === "host-disk" ? "n8n host disk" : extra, name, { surfaces: reqSurf(extra) });
   if (d.secrets === true) {
     const proto = d.kind === "db" ? "secret:db" : "secret:http";
@@ -1190,6 +1231,7 @@ function processNode(W, d, ctx, br) {
 function analyzeLocal(item, ctx, parent = null, prefix = "") {
   const W = newWorkflow(item, ctx, parent, prefix);
   computeBranches(W);
+  for (const n of W.duplicates) addBlocker(W, "input-incomplete", `more than one node is named "${n}", so the connections are ambiguous`, n);
   const { infos, order } = W;
   W.disabled = order.filter((n) => infos.get(n).disabled && infos.get(n).role !== "annotation");
   W.triggers = order
@@ -1242,8 +1284,8 @@ function readCallTarget(d) {
   if (source === "localFile") return { status: "file" };
   if (source === "url") return { status: "url" };
   const { value, cached } = rlValue(p.workflowId);
-  if (value === undefined || value === null || String(value).trim() === "") return { status: "empty" };
-  let v = String(value);
+  if (value === undefined || value === null || txt(value).trim() === "") return { status: "empty" };
+  let v = txt(value);
   if (isExpr(v)) {
     if (v.replace(/[={}\s]/g, "") === "$workflow.id") return { status: "self" };
     return { status: "expression" };
@@ -1687,7 +1729,7 @@ function notAnAutomation(W) {
   if (io) return null;
   if (functional.some((d) => (d.role === "step" || d.role === "subnode") && d.effect !== "none" && d.effect !== "read")) return null;
   const notes = W.order.map((n) => W.infos.get(n)).filter((d) => d.role === "annotation");
-  const chars = notes.reduce((a, d) => a + String(d.params.content ?? "").replace(/\s+/g, " ").trim().length, 0);
+  const chars = notes.reduce((a, d) => a + txt(d.params.content).replace(/\s+/g, " ").trim().length, 0);
   if (chars >= TUTORIAL_NOTE_MIN_CHARS && chars >= TUTORIAL_NOTE_CHARS_PER_NODE * Math.max(1, functional.length))
     return { reason: `manual trigger only, no outside effect, ${chars} characters of sticky notes for ${functional.length} nodes`, nodes: [] };
   return null;

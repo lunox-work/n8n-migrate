@@ -246,7 +246,7 @@
             "properties": {
               "node": { "type": "string" },
               "type": { "type": "string" },
-              "typeVersion": { "type": "number" },
+              "typeVersion": { "description": "null when the export's value is not a number", "type": ["number", "null"] },
               "reason": { "enum": ["not-in-catalogue", "unmapped"] },
               "branch": { "enum": ["main", "error", "unreached"] }
             }
@@ -262,7 +262,7 @@
       "properties": {
         "node": { "type": "string" },
         "type": { "type": "string" },
-        "typeVersion": { "type": "number" },
+        "typeVersion": { "description": "null when the export's value is not a number", "type": ["number", "null"] },
         "role": { "enum": ["trigger", "step", "subnode", "n8n-internal", "unknown"] },
         "branch": { "description": "main: runs when an enabled trigger fires; error: only behind an error output or an Error Trigger; unreached: never runs", "enum": ["main", "error", "unreached"] },
         "resource": { "type": ["string", "null"] },
