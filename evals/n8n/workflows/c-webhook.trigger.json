@@ -1,0 +1,1 @@
+{ "request": { "method": "POST", "headers": { "x-source": "bench" }, "query": { "channel": "web" }, "body": { "customer": "c-42", "lines": [{ "qty": 2, "price": 5 }, { "qty": 1, "price": 7.5 }] } } }

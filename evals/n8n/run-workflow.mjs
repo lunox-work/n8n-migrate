@@ -1,0 +1,414 @@
+#!/usr/bin/env node
+// Runs one workflow in the bench's n8n with an injected trigger input, HTTP
+// answered by the mock, and dummy credentials; prints {executionData, effects}.
+// This is the n8n side of the Phase 5 bench. Contract: HEADLESS.md.
+//
+//   node evals/n8n/run-workflow.mjs <workflow.json> [--trigger input.json] [--mock fixtures.json]
+//        [--credentials creds.json] [--via pin|cli|webhook] [--trigger-node name]
+//        [--keep-pin] [--keep] [--stats] [--timeout s] [--now ISO] [--out result.json]
+//
+// --via pin      (default) REST: the trigger's output is pinned to the input and the
+//                workflow runs from that trigger in manual mode. Any trigger kind.
+// --via cli      `n8n execute`: the trigger is replaced by a Code node of the same name
+//                that returns the input, fed by a Manual Trigger. Mode "cli".
+// --via webhook  the workflow is activated and the input is sent to its production
+//                webhook URL. Webhook triggers only; mode "webhook"; gives `response`.
+//
+// Trigger input (--trigger): a list of items ([{...}] or [{json: {...}}]), {items: [...]},
+// or for a webhook {request: {method, path, headers, query, body}}. Without one: manual
+// gets [{}], a schedule gets the item n8n's Schedule Trigger emits at --now.
+// Mock fixtures (--mock): see mock-server.mjs. The workflow must call http://mock:8080.
+// Credentials (--credentials): {"<credential name or type>": {<data>}}; each credential
+// the workflow references is created with that data. Unmatched ones are listed as missing.
+//
+// The container must be up (container.mjs up) with the same work dir (N8N_BENCH_WORK).
+// Exit 0 when n8n reports success, 1 otherwise, 2 on bad usage.
+
+import { readFileSync, writeFileSync, renameSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { spawn } from "node:child_process";
+import { pathToFileURL } from "node:url";
+import { rest, n8nCli, waitHealthy, WORK, BASE, NAME } from "./container.mjs";
+import { unwrap } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
+
+// ---------- flatted (n8n's REST encoding of execution data) ----------
+
+// Port of flatted's parse: every string and object is stored once in a flat
+// array; values that are strings are indices into it.
+export function parseFlatted(text) {
+  const input = JSON.parse(text, (_, v) => (typeof v === "string" ? new String(v) : v)).map((v) => (v instanceof String ? String(v) : v));
+  const parsed = new Set();
+  const revive = (out) => {
+    const lazy = [];
+    for (const k of Object.keys(out)) {
+      const v = out[k];
+      if (v instanceof String) {
+        const tmp = input[v];
+        if (typeof tmp === "object" && tmp !== null && !parsed.has(tmp)) {
+          parsed.add(tmp);
+          out[k] = undefined;
+          lazy.push([k, tmp]);
+        } else out[k] = tmp;
+      }
+    }
+    for (const [k, tmp] of lazy) out[k] = revive(tmp);
+    return out;
+  };
+  const root = input[0];
+  if (typeof root !== "object" || root === null) return root;
+  parsed.add(root);
+  return revive(root);
+}
+
+// ---------- workflow preparation ----------
+
+const isTrigger = (n) => !n.disabled && (/trigger$/i.test(n.type) || n.type === "n8n-nodes-base.webhook");
+const PRIORITY = [/\.webhook$/, /chatTrigger$/, /formTrigger$/, /scheduleTrigger$|\.cron$|\.interval$/, /trigger$/i];
+const LAST = [/manualTrigger$/, /executeWorkflowTrigger$/, /errorTrigger$/];
+
+export function pickTrigger(wf, name) {
+  if (name) {
+    const n = wf.nodes.find((x) => x.name === name);
+    if (!n) throw new Error(`no node named "${name}"`);
+    return n;
+  }
+  const ts = wf.nodes.filter(isTrigger);
+  if (!ts.length) throw new Error("the workflow has no enabled trigger");
+  const rank = (n) => {
+    const last = LAST.findIndex((r) => r.test(n.type));
+    if (last >= 0) return 100 + last;
+    const p = PRIORITY.findIndex((r) => r.test(n.type));
+    return p >= 0 ? p : 50;
+  };
+  return [...ts].sort((a, b) => rank(a) - rank(b))[0];
+}
+
+const pad = (n) => String(n).padStart(2, "0");
+const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const ordinal = (d) => `${d}${d % 10 === 1 && d !== 11 ? "st" : d % 10 === 2 && d !== 12 ? "nd" : d % 10 === 3 && d !== 13 ? "rd" : "th"}`;
+
+// The item n8n 2.47's Schedule Trigger emits, in UTC (the bench's GENERIC_TIMEZONE).
+export function scheduleItem(iso) {
+  const d = new Date(iso);
+  const h12 = d.getUTCHours() % 12 || 12;
+  const ampm = d.getUTCHours() < 12 ? "am" : "pm";
+  const time = `${h12}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())} ${ampm}`;
+  return {
+    timestamp: d.toISOString().replace("Z", "+00:00").replace(/\.\d{3}/, ".000"),
+    "Readable date": `${MONTHS[d.getUTCMonth()]} ${ordinal(d.getUTCDate())} ${d.getUTCFullYear()}, ${time}`,
+    "Readable time": time,
+    "Day of week": DAYS[d.getUTCDay()],
+    Year: String(d.getUTCFullYear()),
+    Month: MONTHS[d.getUTCMonth()],
+    "Day of month": pad(d.getUTCDate()),
+    Hour: pad(d.getUTCHours()),
+    Minute: pad(d.getUTCMinutes()),
+    Second: pad(d.getUTCSeconds()),
+    Timezone: "UTC (UTC+00:00)",
+  };
+}
+
+const asItem = (x) => (x && typeof x === "object" && !Array.isArray(x) && "json" in x ? x : { json: x ?? {} });
+
+// The trigger's output items for pin and cli modes.
+export function triggerItems(node, input, now) {
+  if (Array.isArray(input)) return input.map(asItem);
+  if (input && Array.isArray(input.items)) return input.items.map(asItem);
+  if (input && input.request) {
+    const q = input.request;
+    const path = q.path ?? node.parameters?.path ?? "";
+    return [{ json: { headers: lowerKeys(q.headers ?? {}), params: q.params ?? {}, query: q.query ?? {}, body: q.body ?? {}, webhookUrl: `${BASE}/webhook/${path}`, executionMode: "production" } }];
+  }
+  if (input !== undefined) return [asItem(input)];
+  if (/scheduleTrigger$/.test(node.type)) return [{ json: scheduleItem(now) }];
+  return [{ json: {} }];
+}
+
+const lowerKeys = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k.toLowerCase(), v]));
+
+// Replaces the trigger with a Code node of the same name that returns `items`,
+// fed by a Manual Trigger; other triggers are disabled so `n8n execute` starts there.
+export function swapTrigger(wf, trigger, items) {
+  const start = "__bench_start";
+  const nodes = wf.nodes.map((n) => {
+    if (n.name === trigger.name) {
+      return { id: n.id, name: n.name, type: "n8n-nodes-base.code", typeVersion: 2, position: n.position, parameters: { jsCode: `return ${JSON.stringify(items)};` } };
+    }
+    return isTrigger(n) ? { ...n, disabled: true } : n;
+  });
+  const [x = 0, y = 0] = trigger.position ?? [];
+  nodes.push({ id: "00000000-0000-4000-8000-00000000be0c", name: start, type: "n8n-nodes-base.manualTrigger", typeVersion: 1, position: [x - 240, y], parameters: {} });
+  return { ...wf, nodes, connections: { ...wf.connections, [start]: { main: [[{ node: trigger.name, type: "main", index: 0 }]] } } };
+}
+
+// Credential references: [{node, type, id, name}].
+export function credentialRefs(wf) {
+  const out = [];
+  for (const n of wf.nodes) {
+    for (const [type, ref] of Object.entries(n.credentials ?? {})) {
+      const r = typeof ref === "string" ? { id: null, name: ref } : ref ?? {};
+      out.push({ node: n.name, type, id: r.id ?? null, name: r.name ?? type });
+    }
+  }
+  return out;
+}
+
+// ---------- run ----------
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const DONE = new Set(["success", "error", "crashed", "canceled", "waiting"]);
+
+async function waitExecution(id, timeoutMs) {
+  const t0 = Date.now();
+  for (;;) {
+    const ex = await rest("GET", `/executions/${id}`);
+    if (DONE.has(ex.status) || ex.finished) return ex;
+    if (Date.now() - t0 > timeoutMs) {
+      await rest("POST", `/executions/${id}/stop`, {}).catch(() => {});
+      throw new Error(`execution ${id} still ${ex.status} after ${timeoutMs / 1000}s (stopped)`);
+    }
+    await sleep(100);
+  }
+}
+
+async function latestExecution(workflowId, timeoutMs) {
+  const t0 = Date.now();
+  for (;;) {
+    const list = await rest("GET", `/executions?filter=${encodeURIComponent(JSON.stringify({ workflowId }))}&limit=1`);
+    const first = (list.results ?? list)[0];
+    if (first) return waitExecution(first.id, Math.max(1000, timeoutMs - (Date.now() - t0)));
+    if (Date.now() - t0 > timeoutMs) throw new Error(`no execution of ${workflowId} after ${timeoutMs / 1000}s`);
+    await sleep(100);
+  }
+}
+
+// An execution can outlive its workflow (deleting a workflow does not cancel a
+// run, and a model node keeps retrying), and its late requests would land in the
+// next run's effects. Stop anything still running before a run starts.
+async function stopRunning() {
+  const list = await rest("GET", `/executions?filter=${encodeURIComponent(JSON.stringify({ status: ["running", "new", "waiting"] }))}&limit=50`);
+  for (const e of list.results ?? []) await rest("POST", `/executions/${e.id}/stop`, {}).catch(() => {});
+}
+
+// Streams `docker stats` while a run is in flight; returns the peak MiB.
+export function statsSampler() {
+  let peak = 0;
+  const p = spawn("docker", ["stats", "--format", "{{.MemUsage}}", NAME], { stdio: ["ignore", "pipe", "ignore"] });
+  p.stdout.on("data", (b) => {
+    for (const m of b.toString().matchAll(/([\d.]+)\s*(KiB|MiB|GiB)\s*\//g)) peak = Math.max(peak, Number(m[1]) * { KiB: 1 / 1024, MiB: 1, GiB: 1024 }[m[2]]);
+  });
+  return { stop: () => (p.kill(), Math.round(peak * 10) / 10) };
+}
+
+function readEffects() {
+  const text = readFileSync(join(WORK, "effects.jsonl"), "utf8");
+  return text.split("\n").filter(Boolean).map((l) => JSON.parse(l));
+}
+
+function setMock(fixtures) {
+  const tmp = join(WORK, "fixtures.json.tmp");
+  writeFileSync(tmp, JSON.stringify(fixtures ?? {}, null, 2) + "\n");
+  renameSync(tmp, join(WORK, "fixtures.json"));
+  writeFileSync(join(WORK, "effects.jsonl"), "");
+}
+
+// Every node's runs as {status, executionTime, error, items: {main: [[json, ...], ...]}}.
+export function summariseRunData(runData = {}) {
+  const out = {};
+  for (const [name, runs] of Object.entries(runData)) {
+    out[name] = runs.map((r) => ({
+      status: r.executionStatus,
+      executionTime: r.executionTime,
+      ...(r.error ? { error: r.error.message ?? String(r.error) } : {}),
+      items: Object.fromEntries(Object.entries(r.data ?? {}).map(([k, outputs]) => [k, (outputs ?? []).map((items) => (items ?? []).map((i) => i.json))])),
+    }));
+  }
+  return out;
+}
+
+export async function runWorkflow(workflow, { trigger, mock, credentials = {}, via = "pin", triggerNode, keepPin = false, keep = false, stats = false, timeoutS = 120, now = "2026-11-16T09:00:00Z" } = {}) {
+  await waitHealthy(30_000);
+  const wf = structuredClone(workflow);
+  const t = pickTrigger(wf, triggerNode);
+  const items = triggerItems(t, trigger, now);
+
+  // Credentials first, so node references point at real ids.
+  const created = [];
+  const missing = [];
+  const madeByKey = new Map();
+  for (const ref of credentialRefs(wf)) {
+    const data = credentials[ref.name] ?? credentials[ref.type];
+    if (!data) {
+      missing.push(ref);
+      continue;
+    }
+    const key = `${ref.type}\u0000${ref.name}`;
+    if (!madeByKey.has(key)) {
+      const c = await rest("POST", "/credentials", { name: ref.name, type: ref.type, data });
+      madeByKey.set(key, c.id);
+      created.push({ id: c.id, name: ref.name, type: ref.type });
+    }
+    const node = wf.nodes.find((n) => n.name === ref.node);
+    node.credentials[ref.type] = { id: madeByKey.get(key), name: ref.name };
+  }
+
+  let body = { name: `bench: ${wf.name ?? "workflow"}`, nodes: wf.nodes, connections: wf.connections ?? {}, settings: wf.settings ?? { executionOrder: "v1" }, staticData: wf.staticData ?? undefined, meta: wf.meta ?? undefined };
+  const pin = keepPin ? { ...(wf.pinData ?? {}) } : {};
+  if (via === "pin") pin[t.name] = items;
+  else if (via === "cli") body = { ...body, ...swapTrigger({ nodes: body.nodes, connections: body.connections }, t, items) };
+  else if (via === "webhook") {
+    if (t.type !== "n8n-nodes-base.webhook") throw new Error(`--via webhook needs a Webhook trigger, not ${t.type}`);
+  } else throw new Error(`unknown --via ${via}`);
+  body.pinData = pin;
+
+  await stopRunning();
+  setMock(mock);
+  const res = await rest("POST", "/workflows", body);
+  const wid = res.id;
+  let ex, response, cli, wallMs, peakMiB;
+  const sampler = stats ? statsSampler() : null;
+  const t0 = Date.now();
+  try {
+    try {
+      if (via === "pin") {
+        const r = await rest("POST", `/workflows/${wid}/run`, { triggerToStartFrom: { name: t.name } });
+        if (!r.executionId) throw new Error(`n8n did not start a run: ${JSON.stringify(r)}`);
+        ex = await waitExecution(r.executionId, timeoutS * 1000);
+      } else if (via === "cli") {
+        cli = n8nCli(["execute", `--id=${wid}`, "--rawOutput"]);
+        ex = await latestExecution(wid, timeoutS * 1000);
+      } else {
+        await rest("POST", `/workflows/${wid}/activate`, { versionId: res.versionId });
+        response = await callWebhook(t, trigger?.request ?? {}, timeoutS);
+        ex = await latestExecution(wid, timeoutS * 1000);
+      }
+    } finally {
+      wallMs = Date.now() - t0;
+      peakMiB = sampler?.stop();
+    }
+    const data = typeof ex.data === "string" ? parseFlatted(ex.data) : ex.data;
+    const resultData = data?.resultData ?? {};
+    return {
+      workflow: { id: wid, name: wf.name ?? null },
+      via,
+      trigger: { node: t.name, type: t.type, items: items.map((i) => i.json) },
+      executionId: ex.id,
+      status: ex.status,
+      mode: ex.mode,
+      startedAt: ex.startedAt,
+      stoppedAt: ex.stoppedAt,
+      executionMs: ex.startedAt && ex.stoppedAt ? Date.parse(ex.stoppedAt) - Date.parse(ex.startedAt) : null,
+      wallMs,
+      ...(peakMiB !== undefined ? { peakMiB } : {}),
+      ...(resultData.error ? { error: { message: resultData.error.message, node: resultData.error.node?.name ?? null } } : {}),
+      lastNode: resultData.lastNodeExecuted ?? null,
+      nodes: summariseRunData(resultData.runData),
+      effects: readEffects(),
+      ...(response ? { response } : {}),
+      ...(cli ? { cli: { status: cli.status, ms: cli.ms } } : {}),
+      credentials: { created: created.map(({ name, type }) => ({ name, type })), missing },
+      executionData: resultData,
+    };
+  } finally {
+    if (!keep) {
+      if (via === "webhook") await rest("POST", `/workflows/${wid}/deactivate`, {}).catch(() => {});
+      if (ex) await rest("POST", "/executions/delete", { ids: [ex.id] }).catch(() => {});
+      await rest("POST", `/workflows/${wid}/archive`, {}).catch(() => {});
+      await rest("DELETE", `/workflows/${wid}`).catch(() => {});
+      for (const c of created) await rest("DELETE", `/credentials/${c.id}`).catch(() => {});
+    }
+  }
+}
+
+// Sends the trigger request to the production webhook URL. Retries while n8n
+// still answers "not registered" (activation registers webhooks asynchronously).
+async function callWebhook(t, q, timeoutS) {
+  const path = q.path ?? t.parameters?.path;
+  const method = q.method ?? t.parameters?.httpMethod ?? "GET";
+  const qs = q.query ? `?${new URLSearchParams(q.query)}` : "";
+  const isJson = q.body !== undefined && typeof q.body !== "string";
+  const t0 = Date.now();
+  for (;;) {
+    const r = await fetch(`${BASE}/webhook/${path}${qs}`, {
+      method,
+      headers: { ...(isJson ? { "content-type": "application/json" } : {}), ...(q.headers ?? {}) },
+      body: ["GET", "HEAD"].includes(method) ? undefined : isJson ? JSON.stringify(q.body) : q.body,
+      signal: AbortSignal.timeout(timeoutS * 1000),
+    });
+    const text = await r.text();
+    if (r.status === 404 && /not registered/.test(text)) {
+      if (Date.now() - t0 > 10_000) throw new Error(`webhook ${method} ${path} still not registered after 10 s: ${text.slice(0, 300)}`);
+      await sleep(250);
+      continue;
+    }
+    let body = text;
+    try {
+      body = JSON.parse(text);
+    } catch {}
+    return { status: r.status, headers: Object.fromEntries(r.headers), body };
+  }
+}
+
+// ---------- CLI ----------
+
+function parseArgs(argv) {
+  const a = { file: null };
+  const vals = { "--trigger": "trigger", "--mock": "mock", "--credentials": "credentials", "--via": "via", "--trigger-node": "triggerNode", "--timeout": "timeoutS", "--now": "now", "--out": "out" };
+  for (let i = 0; i < argv.length; i++) {
+    const k = argv[i];
+    if (k in vals) {
+      if (i + 1 >= argv.length) throw new Error(`${k} needs a value`);
+      a[vals[k]] = argv[++i];
+    } else if (k === "--keep-pin") a.keepPin = true;
+    else if (k === "--keep") a.keep = true;
+    else if (k === "--stats") a.stats = true;
+    else if (k.startsWith("--")) throw new Error(`unknown flag ${k}`);
+    else if (!a.file) a.file = k;
+    else throw new Error(`unexpected argument ${k}`);
+  }
+  if (!a.file) throw new Error("usage: run-workflow.mjs <workflow.json> [--trigger f] [--mock f] [--credentials f] [--via pin|cli|webhook] ...");
+  return a;
+}
+
+async function main() {
+  let a;
+  try {
+    a = parseArgs(process.argv.slice(2));
+  } catch (e) {
+    console.error(e.message);
+    process.exit(2);
+  }
+  const read = (p) => JSON.parse(readFileSync(p, "utf8"));
+  const ws = unwrap(read(a.file), a.file);
+  if (!ws || ws.length !== 1) {
+    console.error(`${a.file}: expected exactly one workflow, found ${ws?.length ?? 0}`);
+    process.exit(2);
+  }
+  const wf = { ...ws[0].wf, name: ws[0].name || ws[0].wf.name };
+  try {
+    const r = await runWorkflow(wf, {
+      trigger: a.trigger ? read(a.trigger) : undefined,
+      mock: a.mock ? read(a.mock) : {},
+      credentials: a.credentials ? read(a.credentials) : {},
+      via: a.via ?? "pin",
+      triggerNode: a.triggerNode,
+      keepPin: a.keepPin,
+      keep: a.keep,
+      stats: a.stats,
+      timeoutS: a.timeoutS ? Number(a.timeoutS) : 120,
+      now: a.now ?? "2026-11-16T09:00:00Z",
+    });
+    const text = JSON.stringify(r, null, 2) + "\n";
+    if (a.out) {
+      writeFileSync(a.out, text);
+      console.error(`${r.status} in ${r.wallMs} ms, ${r.effects.length} effects -> ${a.out}`);
+    } else process.stdout.write(text);
+    process.exit(r.status === "success" ? 0 : 1);
+  } catch (e) {
+    console.error(e.message);
+    process.exit(1);
+  }
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) main();

@@ -3,7 +3,7 @@
 // Docker network, plus a small sidecar that is the HTTP mock and the only way
 // in from the host. Zero dependencies; drives the `docker` CLI.
 //
-//   node evals/n8n/container.mjs up [--fresh]     start (fresh: new database volume)
+//   node evals/n8n/container.mjs up [--fresh] [--env K=V]...  start (fresh: new database volume)
 //   node evals/n8n/container.mjs down [--purge]   remove containers and networks (purge: volume too)
 //   node evals/n8n/container.mjs status           state, health, memory
 //   node evals/n8n/container.mjs exec -- <cmd...> run a command in the n8n container
@@ -55,7 +55,8 @@ export const ENV = {
   N8N_TEMPLATES_ENABLED: "false",
   N8N_HIRING_BANNER_ENABLED: "false",
   // 2.x has no N8N_RUNNERS_ENABLED: runners are always on. Internal mode runs the
-  // JS runner as a child process; the image has no Python, so Python Code nodes fail.
+  // JS runner as a child process. The image has no Python: Python Code nodes fail,
+  // and every start logs "Failed to start Python task runner" (harmless).
   N8N_RUNNERS_MODE: "internal",
   N8N_RUNNERS_MAX_OLD_SPACE_SIZE: "256",
   N8N_PYTHON_ENABLED: "false",
@@ -73,6 +74,12 @@ export const ENV = {
   EXECUTIONS_DATA_SAVE_ON_ERROR: "all",
   EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS: "true",
   N8N_LOG_LEVEL: "warn",
+  // Every outbound call goes to the mock, even to a real hostname: plain HTTP is
+  // answered from the fixtures (keyed by origin), HTTPS shows up in the log as
+  // CONNECT host:443 and is refused. The internal network blocks anything else.
+  HTTP_PROXY: `${MOCK_URL}`,
+  HTTPS_PROXY: `${MOCK_URL}`,
+  NO_PROXY: "localhost,127.0.0.1,::1,mock",
 };
 
 // ---------- docker ----------
@@ -109,7 +116,8 @@ export async function waitForMemory(min = 30, { log = console.error } = {}) {
 
 // ---------- lifecycle ----------
 
-export async function up({ fresh = false, log = console.error } = {}) {
+// extraEnv: more -e pairs for the n8n container (e.g. HTTP_PROXY for a probe).
+export async function up({ fresh = false, extraEnv = {}, log = console.error } = {}) {
   if (running(NAME) && running(MOCK_NAME) && !fresh) {
     await waitHealthy();
     return;
@@ -140,7 +148,7 @@ export async function up({ fresh = false, log = console.error } = {}) {
   }
   if (!running(NAME)) {
     docker(["rm", "-f", NAME], { allowFail: true });
-    const env = Object.entries(ENV).flatMap(([k, v]) => ["-e", `${k}=${v}`]);
+    const env = Object.entries({ ...ENV, ...extraEnv }).flatMap(([k, v]) => ["-e", `${k}=${v}`]);
     docker([
       "run", "-d", "--name", NAME,
       "--memory=1g", "--memory-swap=1g",
@@ -279,7 +287,10 @@ export async function rest(method, path, body) {
 async function main() {
   const [cmd, ...rest_] = process.argv.slice(2);
   try {
-    if (cmd === "up") await up({ fresh: rest_.includes("--fresh") });
+    if (cmd === "up") {
+      const extraEnv = Object.fromEntries(rest_.flatMap((a, i) => (a === "--env" && rest_[i + 1]?.includes("=") ? [rest_[i + 1].split(/=(.*)/s).slice(0, 2)] : [])));
+      await up({ fresh: rest_.includes("--fresh"), extraEnv });
+    }
     else if (cmd === "down") down({ purge: rest_.includes("--purge") });
     else if (cmd === "status") console.log(JSON.stringify(status(), null, 2));
     else if (cmd === "exec") {
@@ -288,7 +299,7 @@ async function main() {
       const r = exec(args, { inherit: true });
       process.exit(r.status ?? 1);
     } else {
-      console.error("usage: container.mjs up [--fresh] | down [--purge] | status | exec -- <cmd...>");
+      console.error("usage: container.mjs up [--fresh] [--env K=V]... | down [--purge] | status | exec -- <cmd...>");
       process.exit(2);
     }
   } catch (e) {

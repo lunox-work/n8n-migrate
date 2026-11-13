@@ -6,15 +6,17 @@
 //   node mock-server.mjs [--port 8080] [--log effects.jsonl] [--fixtures fixtures.json]
 //                        [--relay <listenPort>=<host>:<port>]...
 //
-// Fixture map (re-read on every request, so a runner swaps it between runs):
+// Fixture map (re-read on every request; rewriting the file restarts reply lists):
 //   { "POST /v1/messages": {"status": 200, "headers": {...}, "body": {...}},
 //     "GET /items?page=2": {...},             exact path and query first
 //     "GET /items":        [{...}, {...}],    a list replies in turn, the last repeats
 //     "* /health":         {...},             any method
+//     "GET http://api.example.test/v1/x": {...}  a proxied request's origin, tried first
 //     "default":           {...} }            otherwise 404 {"error":"no fixture"}
 // "body" that is not a string is sent as JSON. "delayMs" delays the reply.
 //
-// Log line: {seq, t, method, path, query, headers, body, bodyEncoding, fixture}
+// Log line: {seq, t, method, [proxied], path, query, headers, body, bodyEncoding, fixture}
+// (proxied: the origin, when the client used this mock as its HTTP proxy)
 // where body is parsed JSON when it parses, else text (or base64 when it is
 // not UTF-8), and fixture is the key that answered (null when none did).
 // The log is the ordered list of outgoing effects; truncate it between runs.
@@ -24,7 +26,7 @@
 
 import { createServer } from "node:http";
 import { createServer as createTcpServer, connect } from "node:net";
-import { appendFileSync, readFileSync, existsSync } from "node:fs";
+import { appendFileSync, readFileSync, existsSync, statSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
 
@@ -66,8 +68,14 @@ function decodeBody(buf, contentType) {
 }
 
 // Picks the fixture for a request; `counters` tracks list positions.
-export function pickFixture(map, method, path, query, counters) {
+// `origin` (e.g. "http://api.example.test") is set for proxied requests; keys
+// that name it ("GET http://api.example.test/v1/x") are tried first.
+export function pickFixture(map, method, path, query, counters, origin = null) {
   const keys = [];
+  if (origin) {
+    if (query) keys.push(`${method} ${origin}${path}?${query}`);
+    keys.push(`${method} ${origin}${path}`, `* ${origin}${path}`);
+  }
   if (query) keys.push(`${method} ${path}?${query}`);
   keys.push(`${method} ${path}`);
   if (query) keys.push(`* ${path}?${query}`);
@@ -89,11 +97,15 @@ export function startMock({ port = 8080, log = null, fixtures = null, host = "0.
   let seq = 0;
   const counters = new Map();
   let fixturesStamp = null;
+  // A rewritten fixture file (new inode or mtime) restarts the reply lists,
+  // so a runner that writes the file before each run gets the same replies.
   const readFixtures = () => {
     if (!fixtures || !existsSync(fixtures)) return {};
+    const st = statSync(fixtures);
+    const stamp = `${st.ino}:${st.mtimeMs}:${st.size}`;
+    if (stamp !== fixturesStamp) counters.clear();
+    fixturesStamp = stamp;
     const raw = readFileSync(fixtures, "utf8");
-    if (raw !== fixturesStamp) counters.clear(); // new fixture file: lists restart
-    fixturesStamp = raw;
     return raw.trim() ? JSON.parse(raw) : {};
   };
   const server = createServer((req, res) => {
@@ -108,11 +120,13 @@ export function startMock({ port = 8080, log = null, fixtures = null, host = "0.
       } catch (e) {
         map = { default: { status: 500, body: { error: `fixtures unreadable: ${e.message}` } } };
       }
-      const { key, f } = pickFixture(map, req.method, u.pathname, query, counters);
+      const origin = /^https?:\/\//.test(req.url) ? `${u.protocol}//${u.host}` : null;
+      const { key, f } = pickFixture(map, req.method, u.pathname, query, counters, origin);
       const entry = {
         seq: ++seq,
         t: new Date().toISOString(),
         method: req.method,
+        ...(origin ? { proxied: origin } : {}),
         path: u.pathname,
         query: Object.fromEntries(u.searchParams),
         headers: req.headers,
@@ -130,6 +144,13 @@ export function startMock({ port = 8080, log = null, fixtures = null, host = "0.
       if (f.delayMs) setTimeout(send, f.delayMs);
       else send();
     });
+  });
+  // A client that uses this mock as an HTTPS proxy sends CONNECT host:443. It is
+  // logged and refused: answering HTTPS would need a CA the client trusts.
+  server.on("connect", (req, socket) => {
+    const entry = { seq: ++seq, t: new Date().toISOString(), method: "CONNECT", path: req.url, query: {}, headers: req.headers, body: null, bodyEncoding: null, fixture: null };
+    if (log) appendFileSync(log, JSON.stringify(entry) + "\n");
+    socket.end("HTTP/1.1 502 Bad Gateway\r\n\r\n");
   });
   return new Promise((ok) => server.listen(port, host, () => ok(server)));
 }

@@ -1,0 +1,13 @@
+{
+  "name": "bench f: real hostnames through HTTP(S)_PROXY",
+  "nodes": [
+    { "id": "f1", "name": "Start", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    { "id": "f2", "name": "Plain HTTP", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [220, 0], "parameters": { "url": "http://api.example.test/v1/ping", "options": {} } },
+    { "id": "f3", "name": "HTTPS", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [440, 0], "onError": "continueRegularOutput", "parameters": { "url": "https://api.example.test/v1/secure", "options": {} } }
+  ],
+  "connections": {
+    "Start": { "main": [[{ "node": "Plain HTTP", "type": "main", "index": 0 }]] },
+    "Plain HTTP": { "main": [[{ "node": "HTTPS", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

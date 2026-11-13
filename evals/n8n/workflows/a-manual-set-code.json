@@ -1,0 +1,28 @@
+{
+  "id": "benchA0000000001",
+  "name": "bench a: manual, set, code",
+  "nodes": [
+    { "id": "a1", "name": "Start", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    {
+      "id": "a2", "name": "Set fields", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [220, 0],
+      "parameters": {
+        "mode": "manual",
+        "assignments": { "assignments": [
+          { "id": "s1", "name": "greeting", "value": "hello", "type": "string" },
+          { "id": "s2", "name": "count", "value": 3, "type": "number" }
+        ] },
+        "options": {}
+      }
+    },
+    {
+      "id": "a3", "name": "Expand", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [440, 0],
+      "parameters": { "jsCode": "const out = [];\nfor (const item of $input.all()) {\n  for (let i = 1; i <= item.json.count; i++) out.push({ json: { line: `${item.json.greeting} ${i}`, i } });\n}\nreturn out;" }
+    }
+  ],
+  "connections": {
+    "Start": { "main": [[{ "node": "Set fields", "type": "main", "index": 0 }]] },
+    "Set fields": { "main": [[{ "node": "Expand", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}

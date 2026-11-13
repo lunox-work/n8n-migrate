@@ -1,0 +1,15 @@
+{
+  "name": "bench c2: webhook, code, http, respond",
+  "nodes": [
+    { "id": "w1", "name": "Webhook", "type": "n8n-nodes-base.webhook", "typeVersion": 2.1, "position": [0, 0], "webhookId": "6a3c1d2e-0000-4000-8000-00000000bc02", "parameters": { "httpMethod": "POST", "path": "bench-c2", "responseMode": "responseNode", "options": {} } },
+    { "id": "w2", "name": "Total", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [220, 0], "parameters": { "jsCode": "const b = $input.first().json.body;\nreturn [{ json: { customer: b.customer, total: b.lines.reduce((s, l) => s + l.qty * l.price, 0) } }];" } },
+    { "id": "w3", "name": "Record", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [440, 0], "parameters": { "method": "POST", "url": "http://mock:8080/api/orders", "sendBody": true, "specifyBody": "json", "jsonBody": "={{ JSON.stringify($json) }}", "options": {} } },
+    { "id": "w4", "name": "Reply", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.4, "position": [660, 0], "parameters": { "respondWith": "json", "responseBody": "={{ JSON.stringify({ accepted: true, total: $('Total').item.json.total, ref: $json.ref }) }}", "options": {} } }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Total", "type": "main", "index": 0 }]] },
+    "Total": { "main": [[{ "node": "Record", "type": "main", "index": 0 }]] },
+    "Record": { "main": [[{ "node": "Reply", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "bench c1: schedule, set, http",
+  "nodes": [
+    { "id": "c1", "name": "Every hour", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 0], "parameters": { "rule": { "interval": [{ "field": "hours" }] } } },
+    {
+      "id": "c2", "name": "Describe", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [220, 0],
+      "parameters": { "mode": "manual", "assignments": { "assignments": [{ "id": "s1", "name": "text", "value": "={{ 'tick at ' + $json.timestamp + ' (' + $json['Day of week'] + ')' }}", "type": "string" }] }, "options": {} }
+    },
+    {
+      "id": "c3", "name": "Post tick", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [440, 0],
+      "parameters": { "method": "POST", "url": "http://mock:8080/api/tick", "sendBody": true, "specifyBody": "json", "jsonBody": "={{ JSON.stringify({ text: $json.text, hour: $('Every hour').item.json.Hour }) }}", "options": {} }
+    }
+  ],
+  "connections": {
+    "Every hour": { "main": [[{ "node": "Describe", "type": "main", "index": 0 }]] },
+    "Describe": { "main": [[{ "node": "Post tick", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

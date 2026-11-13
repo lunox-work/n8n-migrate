@@ -1,0 +1,5 @@
+{
+  "GET /api/orders": { "body": [{ "id": 1, "status": "open" }, { "id": 2, "status": "closed" }, { "id": 3, "status": "open" }] },
+  "POST /api/notify": { "body": { "ok": true } },
+  "POST /api/archive": { "status": 204 }
+}
