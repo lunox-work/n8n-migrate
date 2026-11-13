@@ -80,11 +80,18 @@ test("onError: stopWorkflow (default) records the failed node and stops", async 
 });
 
 test("a node that throws while continuing on error passes its input through (n8n quirk)", async () => {
-  const def = wf([start(), node("Stop", "stopAndError", { errorMessage: "x" }, { settings: { onError: "continueRegularOutput" } })], [["Start", "Stop"]]);
+  const def = wf([start(), node("Stop", "stopAndError", { errorMessage: "x" }, { settings: { onError: "continueRegularOutput" } }), node("Next", "noOp")], [["Start", "Stop"], ["Stop", "Next"]]);
   const r = await run(def, { trigger: [{ a: 1 }] });
   assert.equal(r.status, "done");
   assert.deepEqual(out(r, "Stop"), [{ a: 1 }]);
   assert.equal(r.runData.Stop[0].error.message, "x");
+  // When that node is the last to run, n8n still ends the execution as an error with its
+  // message (observed from n8n 2.47.7: tests/fixtures/n8n-observed/code-return-shapes.json).
+  const last = await run(wf([start(), node("Stop", "stopAndError", { errorMessage: "x" }, { settings: { onError: "continueRegularOutput" } })], [["Start", "Stop"]]), { trigger: [{ a: 1 }] });
+  assert.equal(last.status, "failed");
+  assert.equal(last.error.message, "x");
+  assert.equal(last.lastNodeExecuted, "Stop");
+  assert.deepEqual(out(last, "Stop"), [{ a: 1 }]);
 });
 
 test("$('Node').item follows paired items through filters and reorderings", async () => {

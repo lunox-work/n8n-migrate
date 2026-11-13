@@ -1,0 +1,590 @@
+{
+ "note": "observed from n8n 2.47.7 on 2026-11-14 (evals/diff/differential.mjs --save-fixture)",
+ "title": "Code return-shape checks and their messages",
+ "label": "code-return-shapes",
+ "workflow": {
+  "name": "code-return-shapes",
+  "nodes": [
+   {
+    "id": "t",
+    "name": "Trigger",
+    "type": "n8n-nodes-base.manualTrigger",
+    "typeVersion": 1,
+    "position": [
+     0,
+     0
+    ],
+    "parameters": {}
+   },
+   {
+    "id": "n0",
+    "name": "Str",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     240,
+     0
+    ],
+    "parameters": {
+     "jsCode": "return 'x';"
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "n1",
+    "name": "Nums",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     480,
+     150
+    ],
+    "parameters": {
+     "jsCode": "return [1, 2];"
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "n2",
+    "name": "JsonNum",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     720,
+     300
+    ],
+    "parameters": {
+     "jsCode": "return [{ json: 1 }];"
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "n3",
+    "name": "Mixed",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     960,
+     450
+    ],
+    "parameters": {
+     "jsCode": "return [{ json: { a: 1 } }, { b: 2 }];"
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "n4",
+    "name": "Single",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     1200,
+     600
+    ],
+    "parameters": {
+     "jsCode": "return { single: true };"
+    }
+   },
+   {
+    "id": "n5",
+    "name": "Bare",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     1440,
+     750
+    ],
+    "parameters": {
+     "jsCode": "return [{ a: 1 }, { b: { c: 2 } }];"
+    }
+   },
+   {
+    "id": "n6",
+    "name": "EachArr",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     1680,
+     900
+    ],
+    "parameters": {
+     "mode": "runOnceForEachItem",
+     "jsCode": "return [{ json: $json }];"
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "n7",
+    "name": "EachStr",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     1920,
+     1050
+    ],
+    "parameters": {
+     "mode": "runOnceForEachItem",
+     "jsCode": "return 'nope';"
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "n8",
+    "name": "EachNull",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     2160,
+     1200
+    ],
+    "parameters": {
+     "mode": "runOnceForEachItem",
+     "jsCode": "return $json.a === 1 ? null : { json: { kept: $json.a } };"
+    }
+   },
+   {
+    "id": "n9",
+    "name": "Binary",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     2400,
+     1350
+    ],
+    "parameters": {
+     "jsCode": "return [{ json: { x: 1 }, binary: 5 }];"
+    },
+    "onError": "continueRegularOutput"
+   }
+  ],
+  "connections": {
+   "Trigger": {
+    "main": [
+     [
+      {
+       "node": "Str",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Nums",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "JsonNum",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Mixed",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Single",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Bare",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "EachArr",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "EachStr",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "EachNull",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Binary",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1"
+  }
+ },
+ "triggerName": "Trigger",
+ "pinned": [
+  "Trigger"
+ ],
+ "pinData": {
+  "Trigger": [
+   {
+    "json": {
+     "a": 1
+    }
+   },
+   {
+    "json": {
+     "a": 2
+    }
+   }
+  ]
+ },
+ "fixtures": {
+  "default": {
+   "status": 200,
+   "body": {
+    "ok": true,
+    "id": "mock-1",
+    "data": [
+     {
+      "id": 1,
+      "name": "one"
+     },
+     {
+      "id": 2,
+      "name": "two"
+     }
+    ]
+   }
+  }
+ },
+ "n8n": {
+  "status": "error",
+  "error": {
+   "message": "A 'binary' property isn't an object [item 0]",
+   "node": null
+  },
+  "lastNode": "Binary",
+  "startedAt": "2026-11-13T21:42:25.931Z",
+  "executionId": "1481",
+  "workflowId": "waaNaDaDGBfUrCXq",
+  "executionData": {
+   "runData": {
+    "Trigger": [
+     {
+      "executionIndex": 0,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "a": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "a": 2
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Str": [
+     {
+      "executionIndex": 1,
+      "executionStatus": "error",
+      "error": {
+       "message": "Code doesn't return items properly"
+      },
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "a": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "a": 2
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Nums": [
+     {
+      "executionIndex": 2,
+      "executionStatus": "error",
+      "error": {
+       "message": "Code doesn't return items properly"
+      },
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "a": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "a": 2
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "JsonNum": [
+     {
+      "executionIndex": 3,
+      "executionStatus": "error",
+      "error": {
+       "message": "A 'json' property isn't an object [item 0]"
+      },
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "a": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "a": 2
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Mixed": [
+     {
+      "executionIndex": 4,
+      "executionStatus": "error",
+      "error": {
+       "message": "Unknown top-level item key: b [item 1]"
+      },
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "a": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "a": 2
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Single": [
+     {
+      "executionIndex": 5,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "single": true
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Bare": [
+     {
+      "executionIndex": 6,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "a": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "b": {
+            "c": 2
+           }
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "EachArr": [
+     {
+      "executionIndex": 7,
+      "executionStatus": "error",
+      "error": {
+       "message": "A 'json' property isn't an object [item 0]"
+      },
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "a": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "a": 2
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "EachStr": [
+     {
+      "executionIndex": 8,
+      "executionStatus": "error",
+      "error": {
+       "message": "A 'json' property isn't an object [item 0]"
+      },
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "a": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "a": 2
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "EachNull": [
+     {
+      "executionIndex": 9,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "kept": 2
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Binary": [
+     {
+      "executionIndex": 10,
+      "executionStatus": "error",
+      "error": {
+       "message": "A 'binary' property isn't an object [item 0]"
+      },
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "a": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "a": 2
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ]
+   }
+  },
+  "effects": []
+ }
+}

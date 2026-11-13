@@ -536,7 +536,11 @@ export async function runEngine(run, startName, triggerItems, provided = false) 
     }
   };
 
+  // n8n keeps the error of the last loop iteration: when the last node to run failed and
+  // continued (onError), the execution still ends as an error with that message.
+  let lastIterationError;
   while (stack.length) {
+    lastIterationError = undefined;
     const ed = stack.shift();
     const name = ed.node;
     const step = graph.steps[name];
@@ -587,7 +591,9 @@ export async function runEngine(run, startName, triggerItems, provided = false) 
     if (execError !== undefined) {
       task.error = errorJson(execError);
       task.executionStatus = "error";
+      run.lastNodeExecuted = name; // n8n reportNodeExecutionError
       if (exec?.continueOnFail() || step.settings?.continueOnFail === true) {
+        lastIterationError = execError;
         out = inputData.main?.length && inputData.main[0] !== null ? [inputData.main[0]] : out;
       } else {
         run.runData[name].push(task);
@@ -617,6 +623,7 @@ export async function runEngine(run, startName, triggerItems, provided = false) 
     }
     if (!stack.length && Object.keys(waiting).length) releaseWaiting();
   }
+  if (lastIterationError !== undefined) throw new NodeFailure(lastIterationError instanceof Error ? lastIterationError : new NodeError(String(lastIterationError)), undefined);
 }
 
 export class NodeFailure extends Error {
