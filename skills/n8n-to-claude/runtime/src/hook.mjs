@@ -17,7 +17,7 @@
 import { readFileSync, existsSync, writeFileSync, mkdirSync, rmSync, realpathSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { paths, loadTask, outstanding, markHooksActive, toolName, expandArgs, deepEqual, diffPaths, compactArgs, mcpValue, saveResult, hasResult, logEvent, RUNNER_CMD } from "./driver.mjs";
+import { paths, loadTask, outstanding, markHooksActive, overflowResult, toolName, expandArgs, deepEqual, diffPaths, compactArgs, mcpValue, saveResult, hasResult, logEvent, RUNNER_CMD } from "./driver.mjs";
 
 const DIR = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -82,9 +82,12 @@ export function post(P, input) {
   const resp = input.tool_response;
   const isError = resp && typeof resp === "object" && !Array.isArray(resp) && resp.isError === true;
   const value = mcpValue(resp);
-  saveResult(P, handle, isError ? { ok: false, error: { name: "ToolError", message: typeof value === "string" ? value : JSON.stringify(value) }, capturedBy: "hook" } : { ok: true, value, capturedBy: "hook" });
-  const bytes = Buffer.byteLength(typeof resp === "string" ? resp : JSON.stringify(resp ?? null));
-  logEvent(P, { event: "hook-capture", tool: input.tool_name, handle, bytes, responseType: Array.isArray(resp) ? "array" : typeof resp });
+  // An oversized response arrives as Claude Code's note with the path of the full text.
+  const overflow = overflowResult(typeof value === "string" ? value : null);
+  const result = overflow ?? (isError ? { ok: false, error: { name: "ToolError", message: typeof value === "string" ? value : JSON.stringify(value) } } : { ok: true, value });
+  saveResult(P, handle, { ...result, capturedBy: overflow ? "hook-overflow-file" : "hook" });
+  const bytes = overflow?.ok ? Buffer.byteLength(JSON.stringify(overflow.value)) : Buffer.byteLength(typeof resp === "string" ? resp : JSON.stringify(resp ?? null));
+  logEvent(P, { event: "hook-capture", tool: input.tool_name, handle, bytes, responseType: Array.isArray(resp) ? "array" : typeof resp, ...(overflow ? { overflow: overflow.ok ? "read" : "unreadable" } : {}) });
   const note = `Saved as result ${handle} (${bytes} bytes). Now run: ${RUNNER_CMD} next`;
   if (task.hideToolOutput) out({ hookSpecificOutput: { hookEventName: "PostToolUse", updatedMCPToolOutput: [{ type: "text", text: note }] } });
   else out({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: `The runner saved this response as ${handle}; do not retype it. Next: run ${RUNNER_CMD} next` } });

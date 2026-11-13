@@ -157,6 +157,23 @@ export function mcpValue(resp) {
   }
   return resp;
 }
+// Claude Code replaces a connector response over its token limit with a note naming a file
+// that holds the full text ("... exceeds maximum allowed tokens. Output has been saved to
+// <path>.txt."), before the PostToolUse hook runs (observed on 2.1.323 with a 144 KB result).
+const OVERFLOW_RE = /exceeds maximum allowed tokens\. Output has been saved to (\S+?\.(?:txt|json))\b/;
+export function overflowFile(text) {
+  return typeof text === "string" ? OVERFLOW_RE.exec(text)?.[1] ?? null : null;
+}
+// The tool's real response from that file, or an error result when it cannot be read.
+export function overflowResult(text, read = (p) => readFileSync(p, "utf8")) {
+  const file = overflowFile(text);
+  if (!file) return null;
+  try {
+    return { ok: true, value: mcpValue(read(file)) };
+  } catch (e) {
+    return { ok: false, error: { name: "ResponseTooLarge", message: `the tool's response was larger than the session allows and its saved copy could not be read (${e.code ?? e.message})` } };
+  }
+}
 function parseMaybe(text) {
   const t = String(text).trim();
   if (/^[[{"]/.test(t) || /^(true|false|null|-?\d)/.test(t)) {
@@ -431,7 +448,7 @@ async function advance(P, core, task, state, opts = {}) {
     const results = {};
     reqs.forEach((r, i) => {
       const { capturedBy, ...res } = readJson(resultPath(P, handles[i]));
-      if (capturedBy === "hook") drv.hooksSeen = true;
+      if (String(capturedBy).startsWith("hook")) drv.hooksSeen = true;
       results[r.id] = res;
     });
     writeJson(P.driver, drv);
@@ -532,7 +549,9 @@ export async function command(cmd, pos, flags, { core, dir, stdin, fetch } = {})
       const text = stripEnd(readInput(P, handle, flags, stdin));
       let result;
       if (cmd === "result") {
-        result = flags.error ? { ok: false, error: { name: "ToolError", message: text } } : { ok: true, value: mcpValue(text) };
+        // The model cannot transcribe a response the session never showed it: fail the step.
+        if (overflowFile(text)) result = { ok: false, error: { name: "ResponseTooLarge", message: "the tool's response was too large to pass through the model; this step needs the runner's hooks" } };
+        else result = flags.error ? { ok: false, error: { name: "ToolError", message: text } } : { ok: true, value: mcpValue(text) };
         result.capturedBy = "model";
       } else {
         let value = text;

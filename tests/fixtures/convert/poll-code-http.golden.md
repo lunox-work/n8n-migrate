@@ -29,6 +29,12 @@ Store each under its n8n credential name. The value is never written to these fi
 
 - Accounts API key (httpHeaderAuth): sent only to api.accounts.example.com
 
+## Running it
+
+- A scheduled task (cloud or local) opened on this folder runs `task-prompt.md` as its prompt. The runner decides every step; the session only makes the calls it prints.
+- `.claude/settings.json` allows only `node runtime/runner.mjs`, writes to `.n2c/inbox/` and the connector tools listed above, in dontAsk mode, and adds the hooks that refuse any other connector call. A `claude -p` run ignores this allowlist in a folder nobody has trusted (CLI 2.1.323): open the folder once in Claude Code and accept the trust prompt.
+- Secrets on a local task: set `N2C_SECRET_<NAME>` (the credential name in capitals, other characters as `_`). On a cloud task, add them as network secrets for the hosts above.
+
 ## Questions
 
 Answer in answers.json (or overrides.json `answers`) and regenerate.

@@ -1429,6 +1429,13 @@ export function migrationMd(wr, def, { refused, overrides } = {}) {
       L.push("");
     }
   }
+  if (def) {
+    L.push("## Running it", "");
+    L.push("- A scheduled task (cloud or local) opened on this folder runs `task-prompt.md` as its prompt. The runner decides every step; the session only makes the calls it prints.");
+    L.push("- `.claude/settings.json` allows only `node runtime/runner.mjs`, writes to `.n2c/inbox/` and the connector tools listed above, in dontAsk mode, and adds the hooks that refuse any other connector call. A `claude -p` run ignores this allowlist in a folder nobody has trusted (CLI 2.1.323): open the folder once in Claude Code and accept the trust prompt.");
+    if (def.secrets.length) L.push("- Secrets on a local task: set `N2C_SECRET_<NAME>` (the credential name in capitals, other characters as `_`). On a cloud task, add them as network secrets for the hosts above.");
+    L.push("");
+  }
   if (wr.questions?.length) {
     L.push("## Questions", "", "Answer in answers.json (or overrides.json `answers`) and regenerate.", "");
     for (const q of wr.questions) L.push(`- \`${q.id}\`: ${mdEscape(q.text)}${q.answer !== null ? ` Answered: ${mdEscape(JSON.stringify(q.answer))}.` : ` Assumed: ${mdEscape(JSON.stringify(q.assumed))}.`}`);

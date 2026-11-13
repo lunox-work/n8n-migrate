@@ -52,7 +52,7 @@ test("converted folders carry the task files: settings with the minimal allowlis
   }
 });
 
-test("hooks on: pre-hook containment and fidelity, post-hook capture, placeholders after the first capture, DONE once", () => {
+test("hooks on: pre-hook containment and fidelity, post-hook capture, placeholders after the first capture, DONE once", async () => {
   const { dir, folder } = folderFor(join(ROOT, "tests/fixtures/convert/slice.n8n.json"));
   try {
     const a = runner(folder, ["start", "--clock", "2026-11-14T00:00:00Z"]);
@@ -75,6 +75,14 @@ test("hooks on: pre-hook containment and fidelity, post-hook capture, placeholde
     const post = hook(folder, "post", { tool_name: GMAIL, tool_input: { query: "newer_than:1d is:unread", pageSize: 10 }, tool_use_id: "t1", tool_response: content(MAIL) });
     assert.match(post.hookSpecificOutput.updatedMCPToolOutput[0].text, /^Saved as result q1 \(\d+ bytes\)\. Now run: node runtime\/runner\.mjs next$/);
     assert.deepEqual(readJson(join(folder, ".n2c/results/q1.json")), { ok: true, value: MAIL, capturedBy: "hook" });
+    // An oversized response reaches the hook as Claude Code's note naming the saved full text.
+    const saved = join(dir, "tool-results-big.txt");
+    writeFileSync(saved, JSON.stringify(MAIL));
+    const note = `Error: result (144,338 characters across 1 line) exceeds maximum allowed tokens. Output has been saved to ${saved}.\nFormat: Plain text`;
+    const { overflowResult } = await import(pathToFileURL(join(folder, "runtime/driver.mjs")).href);
+    assert.deepEqual(overflowResult(note), { ok: true, value: MAIL });
+    assert.equal(overflowResult(note.replace(saved, join(dir, "gone.txt"))).error.name, "ResponseTooLarge");
+    assert.equal(overflowResult("a normal text response"), null);
     const dup = hook(folder, "pre", { tool_name: GMAIL, tool_input: { query: "newer_than:1d is:unread", pageSize: 10 }, tool_use_id: "t1b" });
     assert.equal(dup.hookSpecificOutput.permissionDecision, "deny", "a second call for a captured request is refused");
 
@@ -115,6 +123,7 @@ test("hooks off: the model saves responses with `result`; a missing hook degrade
     const a = runner(folder, ["start"]);
     assert.match(a.out, /use the Write tool to write its full response, exactly as returned \(every character\), to the file \.n2c\/inbox\/q1\.txt in this folder\. Then run: node runtime\/runner\.mjs result q1/);
     mkdirSync(join(folder, ".n2c/inbox"), { recursive: true });
+    writeFileSync(join(folder, ".n2c/inbox/q1.txt"), JSON.stringify(MAIL) + "\n");
     writeFileSync(join(folder, ".n2c/inbox/q1.txt"), JSON.stringify(MAIL) + "\n");
     const b = runner(folder, ["result", "q1"]);
     assert.match(b.out, /^Saved q1\.\n\nNEXT: write an answer yourself/);
@@ -206,4 +215,20 @@ test("http requests run in the driver: the secret comes from its source, goes on
   assert.deepEqual(expandArgs(compact, "q4", args), args);
   assert.deepEqual(expandArgs({ n2c: "q4" }, "q4", args), args);
   assert.deepEqual(expandArgs(compact, "q5", args), compact, "a placeholder for another request is not expanded");
+});
+
+test("hooks off: a response the session cut for size fails the step instead of passing on the size note", () => {
+  const { dir, folder } = folderFor(join(ROOT, "tests/fixtures/convert/slice.n8n.json"));
+  try {
+    const t = readJson(join(folder, "task.json"));
+    writeFileSync(join(folder, "task.json"), JSON.stringify({ ...t, hooks: false }));
+    runner(folder, ["start"]);
+    mkdirSync(join(folder, ".n2c/inbox"), { recursive: true });
+    writeFileSync(join(folder, ".n2c/inbox/q1.txt"), "Error: result (144,338 characters across 1 line) exceeds maximum allowed tokens. Output has been saved to /tmp/n2c-gone.txt.");
+    const r = runner(folder, ["result", "q1"]);
+    assert.equal(r.code, 1);
+    assert.match(r.out, /FAILED: .*too large to pass through the model; this step needs the runner's hooks/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
