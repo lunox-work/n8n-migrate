@@ -184,6 +184,37 @@ Measured here, because the answers shape everything after:
 
 Done when: the workflow has run unattended on a Pro account for three days, the artifact shows every run, and the four measurements are recorded.
 
+Status 2026-11-14, task driver: built and measured with real `claude -p` (CLI 2.1.323, haiku and sonnet) against mock connectors with the real tool names, in 34 recorded runs ([MEASUREMENTS.md](evals/task-driver/MEASUREMENTS.md)).
+
+How the driver works:
+
+- `runner.mjs start|next|answer|result` hands the model one step at a time.
+- A PreToolUse hook denies any connector call that is not the outstanding request with its exact arguments, and fills in the arguments from `{"n2c": "<q>"}`.
+- A PostToolUse hook saves the response verbatim and hides it from the model.
+- `convert.mjs` writes the minimal allowlist and the hooks into each folder.
+
+The four measurements:
+
+- **Fidelity:** with hooks on, the Slack arguments matched exactly at 1, 50 and 500 items on both models, with 0 transcription diffs in 4,697 leaves. With hooks off it was also exact up to 28.5 KB, but output tokens and cost grew with N. Above Claude Code's MCP output limit (between 28.5 and 57 KB) the model never sees the payload.
+- **Stalls:** none. In `-p` a missing permission is denied at once and the run keeps its resume point.
+- **Hostile read:** 0 calls outside the definition in 5 hostile runs. A session told to post elsewhere was stopped by the hook, even for a tool on the allowlist; with hooks off, that post got through.
+- **Definition location:** a git repo holds the folder; the artifact embeds a copy and its hash; run records, cursors and the ledger go to the artifact `db`.
+
+Cost per run: about $0.006–0.014 on haiku and $0.07–0.18 on sonnet at API prices, in 13–23 s, driven by 8–12 turns rather than by payload size.
+
+Found on the way and fixed:
+
+- An untrusted folder drops the project allowlist.
+- A Bash heredoc holding JSON is denied, so answers go through `.n2c/inbox` files.
+- An oversized connector response reaches the hook as a note naming a saved file; it had produced a silent "done" with 0 posts.
+
+Still needs a real Pro account:
+
+- three days unattended;
+- whether cloud and Desktop tasks trust the repo's settings and run its hooks;
+- the connector names and output shapes in a task;
+- the usage-window share per run.
+
 ## Phase 3: workflow definition and converter
 
 One neutral file per workflow, read by both drivers.

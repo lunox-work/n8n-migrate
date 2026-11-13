@@ -36,7 +36,7 @@ export const RUNNER_CMD = "node runtime/runner.mjs";
 // heredoc that holds JSON in dontAsk mode (observed on 2.1.323), and quoting arbitrary text in
 // a shell argument is where a small model slips.
 // The instructions print the absolute path to copy: models composing it from a long cwd
-// mistyped it in 3 of 40 runs (observed), and the allowlist then refused the write.
+// mistyped it in 4 of 26 eval runs, and the allowlist then refused the write.
 export const inboxFile = (handle) => `.n2c/inbox/${handle}.txt`;
 let INBOX_DIR = ".";
 const inboxPath = (handle) => join(INBOX_DIR, inboxFile(handle));
