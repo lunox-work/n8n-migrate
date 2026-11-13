@@ -1,0 +1,100 @@
+{
+  "id": "form-handoff-local",
+  "name": "Render a report from the form",
+  "active": false,
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-8000-000000002101",
+      "name": "Report form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "authentication": "basicAuth",
+        "formTitle": "Report",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Month",
+              "requiredField": true
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "cred-httpBasicAuth",
+          "name": "Form login"
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000002102",
+      "name": "Render PDF",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "command": "=render-report --month {{ $json.Month }}"
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000002103",
+      "name": "Show result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "done",
+              "value": "true",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Report form": {
+      "main": [
+        [
+          {
+            "node": "Render PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Render PDF": {
+      "main": [
+        [
+          {
+            "node": "Show result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -68,7 +68,7 @@
     "wakeupKind": { "enum": ["endpoint", "mcp-server", "chat", "form", "relay", "poll", "schedule", "subworkflow", "manual", "error"] },
     "outcomeKind": { "enum": ["subscription", "replaced", "hosted", "keep-in-n8n"] },
     "outcomeTarget": {
-      "description": "subscription: cloud-task, local-task, skill, artifact-form, artifact (manual or uncalled sub-workflow, only when every requirement is ok in an artifact, else skill); hosted: key, no-key; otherwise null",
+      "description": "subscription: cloud-task, local-task, skill, artifact-form (with a task-handoff requirement when a step cannot run in an artifact), artifact (manual or uncalled sub-workflow, only when every requirement is ok in an artifact, else skill); hosted: key, no-key; otherwise null",
       "enum": ["cloud-task", "local-task", "skill", "artifact-form", "artifact", "key", "no-key", null]
     },
     "workflow": {
@@ -146,8 +146,8 @@
             "required": ["kind", "name", "nodes", "surfaces"],
             "additionalProperties": false,
             "properties": {
-              "kind": { "enum": ["connector", "model", "http", "secret", "db", "vector", "state", "mcp-server", "poll", "relay", "host-disk", "substitution", "missing-export", "frequency-change", "bundled-server"] },
-              "name": { "description": "connector id, credential name (never a value), inline:<secret kind>, db or vector node type, state key, MCP host, trigger type, or a description", "type": "string" },
+              "kind": { "enum": ["connector", "model", "http", "secret", "db", "vector", "state", "mcp-server", "poll", "relay", "task-handoff", "host-disk", "substitution", "missing-export", "frequency-change", "bundled-server"] },
+              "name": { "description": "connector id, credential name (never a value), inline:<secret kind>, db or vector node type, state key, MCP host, trigger type, the task target (task-handoff: cloud-task or local-task), or a description", "type": "string" },
               "nodes": { "description": "nodes of this workflow that need it; for what a sub-workflow needs, the calling node", "$ref": "#/$defs/nodes" },
               "surfaces": { "$ref": "#/$defs/surfaces" },
               "operations": { "description": "connector only: \"<node type> <resource:operation>\"", "type": "array", "items": { "type": "string" } },

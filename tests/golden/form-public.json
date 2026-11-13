@@ -67,7 +67,7 @@
       "outcome": {
         "kind": "subscription",
         "target": "artifact-form",
-        "reason": "the form trigger becomes an artifact form for people in your organisation",
+        "reason": "the form trigger becomes an artifact form for people in your organisation; its steps run in the artifact",
         "alsoTargets": []
       },
       "calledBy": [],

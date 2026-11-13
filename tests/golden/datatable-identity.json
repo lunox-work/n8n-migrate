@@ -69,7 +69,7 @@
       "outcome": {
         "kind": "subscription",
         "target": "skill",
-        "reason": "run by hand, so a skill in Claude Code or Cowork; an artifact lacks artifact-db, bundled-server",
+        "reason": "run by hand, so a skill in Claude Code or Cowork; an artifact lacks artifact-db",
         "alsoTargets": []
       },
       "calledBy": [],

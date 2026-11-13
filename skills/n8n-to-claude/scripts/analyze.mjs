@@ -48,7 +48,7 @@ const WAKEUP_RANK = ["endpoint", "mcp-server", "chat", "form", "relay", "poll", 
 const OUTCOME_RANK = ["keep-in-n8n", "hosted", "replaced", "subscription"]; // worst first
 const BLOCKING = new Set(["input-incomplete", "unsupported", "unmapped"]);
 const BLOCKER_ORDER = ["input-incomplete", "unsupported", "unmapped", "substitution", "dropped-branch", "not-an-automation"];
-const REQ_ORDER = ["connector", "model", "http", "secret", "db", "vector", "state", "mcp-server", "poll", "relay", "host-disk", "substitution", "missing-export", "frequency-change", "bundled-server"];
+const REQ_ORDER = ["connector", "model", "http", "secret", "db", "vector", "state", "mcp-server", "poll", "relay", "task-handoff", "host-disk", "substitution", "missing-export", "frequency-change", "bundled-server"];
 const SURFACES = ["cloudTask", "localTask", "artifact"];
 const N8N_DEFAULT_TIMEZONE = "America/New_York"; // GENERIC_TIMEZONE default in n8n
 const BRANCH_RANK = ["main", "error-output", "error-trigger", "unreached"];
@@ -1572,6 +1572,34 @@ function triggerNodes(W, kind) {
   return W.triggers.filter((t) => t.kind === kind);
 }
 
+// What an artifact cannot do for these requirements. An artifact page has no
+// backend: its fetch reaches only its own origin (CHECKS.md), so http, stored
+// secrets, the bundled server and the n8n host's disk are "no" there, and
+// connectors work only through its mcp capability (needs:artifact-mcp).
+// Returns {no, needs}: requirements that are no on the artifact, and those
+// that need setup first (mcp, sample, db, a connector operation check).
+//
+// The two run-on-request targets read it differently, on purpose:
+// - manual (and an uncalled sub-workflow) goes to an artifact only when
+//   nothing is missing at all, because a skill is an equal alternative and
+//   needs no setup;
+// - a form has no such alternative: the form itself always lives in the
+//   artifact. Its steps run there too unless one is no on the artifact; then
+//   the artifact collects the submission and a task runs the steps
+//   (requirement task-handoff).
+function artifactGaps(reqs) {
+  const steps = reqs.filter((r) => r.kind !== "task-handoff");
+  return { no: steps.filter((r) => (r.surfaces?.artifact ?? "no") === "no"), needs: steps.filter((r) => r.surfaces?.artifact?.startsWith("needs:")) };
+}
+// What an artifact lacks, by name: the thing a needs: value waits for, or the
+// requirement kind it cannot have at all (a connector operation with no tool:
+// that app's REST API; a substitution: what it substitutes in). The bundled
+// server only follows from the others.
+const lackNames = (rs) => {
+  const names = uniq(rs.map((r) => (r.surfaces?.artifact?.startsWith("needs:") ? r.surfaces.artifact.slice(6) : r.kind === "connector" && r.noTool?.length ? `the ${r.name} REST API` : r.kind === "substitution" ? `the ${r.name.split(" → ").at(-1)}` : r.kind)));
+  return names.length > 1 ? names.filter((n) => n !== "bundled-server") : names;
+};
+
 function outcomeForKind(W, ctx, k) {
   const reqs = [...W.req.values()];
   let o;
@@ -1625,7 +1653,7 @@ function outcomeForKind(W, ctx, k) {
     }
     o = outsiders ? { kind: "hosted", target: "key", reason: "outsiders chat with a model through a public page" } : { kind: "subscription", target: "skill", reason: "the chat trigger becomes a skill" };
   } else if (k === "form") {
-    o = { kind: "subscription", target: "artifact-form", reason: "the form trigger becomes an artifact form for people in your organisation" };
+    o = { kind: "subscription", target: "artifact-form", reason: "the form trigger becomes an artifact form for people in your organisation; its steps run in the artifact" };
     for (const t of triggerNodes(W, "form")) {
       if (!t.d.flags.includes("public-form")) continue;
       const waits = t.d.flags.includes("form-waits-for-result");
@@ -1645,6 +1673,16 @@ function outcomeForKind(W, ctx, k) {
         }
         break;
       }
+    }
+    // The form stays in the artifact; a step the artifact cannot run sends
+    // every step to a task, which picks submissions up from the artifact.
+    const gaps = artifactGaps(reqs);
+    if (o.target === "artifact-form" && gaps.no.length) {
+      const task = reqs.every((r) => r.surfaces?.cloudTask !== "no") ? "cloud-task" : reqs.every((r) => r.surfaces?.localTask !== "no") ? "local-task" : "cloud-task";
+      const forms = triggerNodes(W, "form");
+      const waits = forms.some((t) => t.d.flags.includes("form-waits-for-result"));
+      for (const t of forms) addReq(W, "task-handoff", task, t.name, { surfaces: surfacesFrom(ctx.capabilities.requirements?.["task-handoff"]) });
+      o.reason = `the form collects submissions in an artifact; an artifact lacks ${lackNames(gaps.no).join(", ")}, so a ${TARGET_LABEL[task]} picks each submission up and runs the steps${waits ? "; the form can no longer show the result, the task delivers it later" : ""}`;
     }
   } else if (k === "relay") {
     const cap = ctx.thresholds.apiTriggerFiresPerTaskHour;
@@ -1690,14 +1728,10 @@ function outcomeForKind(W, ctx, k) {
     // otherwise a skill, run in Claude Code or Cowork where secrets and the
     // bundled server are available.
     const what = k === "subworkflow" ? "a sub-workflow with no caller in this export, run on request" : "run by hand";
-    const notOk = reqs.filter((r) => r.surfaces?.artifact !== "ok");
+    const gaps = artifactGaps(reqs);
+    const notOk = reqs.filter((r) => gaps.no.includes(r) || gaps.needs.includes(r));
     if (!notOk.length) o = { kind: "subscription", target: "artifact", reason: `${what}: the artifact's Run now button` };
-    else {
-      // What an artifact lacks: the thing a needs: value waits for, or the
-      // requirement kind an artifact cannot have at all.
-      const lacks = uniq(notOk.map((r) => (r.surfaces?.artifact?.startsWith("needs:") ? r.surfaces.artifact.slice(6) : r.kind)));
-      o = { kind: "subscription", target: "skill", reason: `${what}, so a skill in Claude Code or Cowork; an artifact lacks ${lacks.join(", ")}` };
-    }
+    else o = { kind: "subscription", target: "skill", reason: `${what}, so a skill in Claude Code or Cowork; an artifact lacks ${lackNames(notOk).join(", ")}` };
   }
   if (o.kind === "subscription" && o.target === "cloud-task") {
     const noCloud = reqs.filter((r) => r.surfaces?.cloudTask === "no");
@@ -1993,6 +2027,7 @@ const REQ_LABEL = {
   relay: (n) => `relay (${n})`,
   "host-disk": () => "files on disk",
   "bundled-server": () => "bundled MCP server",
+  "task-handoff": (n) => `hand-off to a ${TARGET_LABEL[n] ?? n}`,
   "frequency-change": (n) => `slower schedule (${n})`,
 };
 
@@ -2018,8 +2053,12 @@ function needsLine(w) {
 function setupLine(w) {
   const o = w.outcome;
   if (o.kind !== "subscription") return null;
-  const surf = SURFACE_OF[o.target];
-  const needs = uniq(w.requires.map((r) => r.surfaces[surf]).filter((v) => v.startsWith("needs:")).map((v) => v.slice(6)));
+  // A form with a task hand-off runs its steps in that task: the hand-off
+  // itself is set up in both places, every other requirement in the task.
+  const handoff = w.requires.find((r) => r.kind === "task-handoff");
+  const surf = handoff ? SURFACE_OF[handoff.name] : SURFACE_OF[o.target];
+  const vals = w.requires.flatMap((r) => (r === handoff ? [r.surfaces.artifact, r.surfaces[surf]] : [r.surfaces[surf]]));
+  const needs = uniq(vals.filter((v) => v.startsWith("needs:")).map((v) => v.slice(6)));
   const no = uniq(w.requires.filter((r) => r.surfaces[surf] === "no").map((r) => `${r.kind} ${clean(r.name)}`));
   const parts = [];
   if (needs.length) parts.push(`to set up: ${needs.join(", ")}`);

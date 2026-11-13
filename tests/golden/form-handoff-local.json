@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 1,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "subscription:artifact-form": 1
+    },
+    "wakeups": {
+      "form": 1
+    },
+    "blockers": {
+      "substitution": 1
+    },
+    "notAnAutomation": 0,
+    "questions": 0,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "form-handoff-local",
+      "name": "Render a report from the form",
+      "file": "form-handoff-local.json",
+      "sourceHash": "55a4fe4c3f653f58454d15d9dbedfa67d45c670c4b34646f9a7a61a9c30ef2e2",
+      "wakeup": {
+        "kind": "form",
+        "nodes": [
+          "Report form"
+        ],
+        "all": [
+          "form"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "artifact-form",
+        "reason": "the form collects submissions in an artifact; an artifact lacks the local task shell, so a local task (computer on) picks each submission up and runs the steps; the form can no longer show the result, the task delivers it later",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "task-handoff",
+          "name": "local-task",
+          "nodes": [
+            "Report form"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:task-reads-artifact-db",
+            "localTask": "needs:task-reads-artifact-db",
+            "artifact": "needs:artifact-db"
+          }
+        },
+        {
+          "kind": "substitution",
+          "name": "n8n host shell → local task shell",
+          "nodes": [
+            "Render PDF"
+          ],
+          "surfaces": {
+            "cloudTask": "no",
+            "localTask": "ok",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [],
+      "blockers": [
+        {
+          "kind": "substitution",
+          "reason": "n8n host shell → local task shell: run the command in a local task's shell on your computer instead of on the n8n host; the tools and paths it uses must exist there",
+          "nodes": [
+            "Render PDF"
+          ]
+        }
+      ],
+      "credentials": [
+        {
+          "type": "httpBasicAuth",
+          "name": "Form login",
+          "nodes": [
+            "Report form"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Report form",
+          "type": "n8n-nodes-base.formTrigger",
+          "typeVersion": 2.2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [
+            "form"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Render PDF",
+          "type": "n8n-nodes-base.executeCommand",
+          "typeVersion": 1,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "blocked",
+          "effect": "unknown",
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Show result",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "logic",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "form"
+      ]
+    }
+  ]
+}
