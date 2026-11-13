@@ -57,6 +57,10 @@ Two findings outside the table:
 - Jira, Confluence, ClickUp and HubSpot nodes are mapped to `http` with a secret, but the account's Atlassian, ClickUp and HubSpot connectors have tools for their common operations (issue create, get, edit, search, transition, comment; task create, get, update, delete, filter, comment; CRM search, get, create, update). Moving them to connector steps is a mapping decision for later.
 - `form-artifact` targets an artifact form while its Sheets append is `no` on the artifact surface; the form target does not check step surfaces.
 
+## Claude Code CLI 2.1.323 (`claude --help`, no prompt run)
+
+For the bench's task driver: `-p/--print`; `--output-format text|json|stream-json`; `--input-format text|stream-json`; `--json-schema <schema>` (structured output, `-p` only); `--mcp-config <configs...>` with `--strict-mcp-config` ("Only use MCP servers from --mcp-config"); `--allowedTools`, `--disallowedTools`, `--tools`; `--permission-mode acceptEdits|auto|bypassPermissions|manual|dontAsk|plan`; `--permission-prompts host|none` (with `none`, "anything that would prompt is denied automatically"); `--model`, `--fallback-model`; `--max-budget-usd` (`-p` only); `--no-session-persistence`; `--plugin-dir`; `--bare` (Anthropic auth "strictly ANTHROPIC_API_KEY or apiKeyHelper"). No `--max-turns` in the help: cap runs with `--max-budget-usd` or a timeout.
+
 ## How to re-run
 
 From this machine, no account needed: re-read the sources above and diff the quotes; reload connector schemas with ToolSearch `select:` and run `node evals/mocks/extract-connectors.mjs <session transcript> evals/mocks/connectors`; re-run `node --test` and the corpus.
