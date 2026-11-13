@@ -1670,6 +1670,30 @@ const lackNames = (rs) => {
 function outcomeForKind(W, ctx, k) {
   const reqs = [...W.req.values()];
   let o;
+  // A relay outcome: each pushed event is one fire of the cloud task's API
+  // trigger. The relay requirements get the trigger's limits as a note, and,
+  // since nothing in an export says how many events arrive, one question asks
+  // the peak rate (assumed under the per-task cap). Over the per-account cap
+  // the workflow stays in n8n. Not asked for a bot only its owner messages,
+  // nor when a blocker keeps the workflow in n8n anyway.
+  const relayVolume = (nodes, ask_ = true) => {
+    const perTask = ctx.thresholds.apiTriggerFiresPerTaskHour;
+    const perAccount = ctx.thresholds.apiTriggerFiresPerAccountHour;
+    // Already staying in n8n for another reason: the rate changes nothing.
+    if (!perTask || !perAccount || [...W.blockers.values()].some((b) => BLOCKING.has(b.kind))) return null;
+    for (const r of W.req.values()) if (r.kind === "relay" && !r.note) r.note = `the cloud task's API trigger takes at most ${perTask} fires per task and ${perAccount} per account an hour, shared with Run now`;
+    if (!ask_) return null;
+    const { value: v } = ask(W, ctx, "event-volume", null, {
+      text: `How many events an hour reach ${nodes.map((n) => `"${n}"`).join(", ")} at peak? Each one fires the cloud task's API trigger, which takes at most ${perTask} an hour per task and ${perAccount} per account.`,
+      nodes,
+      affects: "outcome",
+      answerType: "choice",
+      options: { [`under-${perTask}`]: "subscription:cloud-task", [`${perTask}-${perAccount}`]: "subscription:cloud-task (the forwarder batches events or spreads them over several tasks)", [`over-${perAccount}`]: "keep-in-n8n (event volume over the API trigger cap)" },
+      assumed: `under-${perTask}`,
+    });
+    if (v === `over-${perAccount}`) for (const n of nodes) addBlocker(W, "unsupported", "event volume over the API trigger cap", n);
+    return v === `${perTask}-${perAccount}` ? `; over ${perTask} events an hour, the forwarder batches them or spreads them over several tasks (at most ${perAccount} an hour per account)` : "";
+  };
   if (k === "endpoint") {
     let outsiders = false;
     let key = false;
@@ -1737,6 +1761,7 @@ function outcomeForKind(W, ctx, k) {
         else {
           o = { kind: "subscription", target: "cloud-task", reason: "outsiders fill the form; a hosted form page relays each submission to a cloud task" };
           addReq(W, "relay", "form page", t.name, { surfaces: surfacesFrom(ctx.capabilities.requirements?.relay) });
+          o.reason += relayVolume([t.name]) ?? "";
         }
         break;
       }
@@ -1817,6 +1842,8 @@ function outcomeForKind(W, ctx, k) {
         const which = uniq(relayOnly.map((a) => a.app.label)).join(" and ");
         o.reason = `only you message this ${which} bot, but ${which} has no polling API: a forwarder posts each message to the cloud task's API trigger${cap ? ` (at most ${cap} an hour)` : ""} and each reply waits for a task to start; or keep it in n8n`;
       }
+      const ownerOnly = answers.length > 0 && !others && answers.every((a) => a.v === "only-me");
+      o.reason += relayVolume(triggerNodes(W, "relay").map((t) => t.name), !ownerOnly) ?? "";
     }
   } else if (k === "schedule" || k === "poll") {
     const s = W.schedule;

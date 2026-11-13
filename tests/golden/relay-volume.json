@@ -1,0 +1,555 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 3,
+    "outcomes": {
+      "subscription": 2,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 1
+    },
+    "targets": {
+      "subscription:cloud-task": 2
+    },
+    "wakeups": {
+      "relay": 3
+    },
+    "blockers": {
+      "unsupported": 1
+    },
+    "notAnAutomation": 0,
+    "questions": 1,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 2,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "rv-default",
+      "name": "New payment to Slack",
+      "file": "relay-volume.json",
+      "sourceHash": "da8a2da3d97c812b9c669839c7cd9f54dd084e16fffee3d7a0bafc890d3de1f8",
+      "wakeup": {
+        "kind": "relay",
+        "nodes": [
+          "Stripe Trigger"
+        ],
+        "all": [
+          "relay"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "cloud-task",
+        "reason": "an event is pushed in with no reply expected: a forwarder posts it to the cloud task's API trigger (at most 30 events an hour)",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "connector",
+          "name": "slack",
+          "nodes": [
+            "Tell sales"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:artifact-mcp"
+          },
+          "operations": [
+            "slack message:post"
+          ],
+          "confirmed": false
+        },
+        {
+          "kind": "secret",
+          "name": "Stripe",
+          "nodes": [
+            "Stripe Trigger"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "relay",
+          "name": "stripeTrigger",
+          "nodes": [
+            "Stripe Trigger"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:api-trigger-forwarder",
+            "localTask": "no",
+            "artifact": "no"
+          },
+          "note": "the cloud task's API trigger takes at most 30 fires per task and 100 per account an hour, shared with Run now"
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Stripe Trigger"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "rv-default/event-volume",
+          "text": "How many events an hour reach \"Stripe Trigger\" at peak? Each one fires the cloud task's API trigger, which takes at most 30 an hour per task and 100 per account.",
+          "nodes": [
+            "Stripe Trigger"
+          ],
+          "affects": "outcome",
+          "answerType": "choice",
+          "options": {
+            "under-30": "subscription:cloud-task",
+            "30-100": "subscription:cloud-task (the forwarder batches events or spreads them over several tasks)",
+            "over-100": "keep-in-n8n (event volume over the API trigger cap)"
+          },
+          "assumed": "under-30",
+          "answer": null
+        }
+      ],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "slackOAuth2Api",
+          "name": "Slack",
+          "nodes": [
+            "Tell sales"
+          ]
+        },
+        {
+          "type": "stripeApi",
+          "name": "Stripe",
+          "nodes": [
+            "Stripe Trigger"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Stripe Trigger",
+          "type": "n8n-nodes-base.stripeTrigger",
+          "typeVersion": 1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [
+            "relay"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Tell sales",
+          "type": "n8n-nodes-base.slack",
+          "typeVersion": 2.3,
+          "role": "step",
+          "branch": "main",
+          "resource": "message",
+          "operation": "post",
+          "kind": "connector",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "relay"
+      ]
+    },
+    {
+      "id": "rv-busy",
+      "name": "Survey answers to Slack",
+      "file": "relay-volume.json",
+      "sourceHash": "f8f2ea542273178c2f95b745c34792c2b13c669bd7b452c257f6797da509f077",
+      "wakeup": {
+        "kind": "relay",
+        "nodes": [
+          "Typeform Trigger"
+        ],
+        "all": [
+          "relay"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "cloud-task",
+        "reason": "an event is pushed in with no reply expected: a forwarder posts it to the cloud task's API trigger (at most 30 events an hour); over 30 events an hour, the forwarder batches them or spreads them over several tasks (at most 100 an hour per account)",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "connector",
+          "name": "slack",
+          "nodes": [
+            "Tell sales"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:artifact-mcp"
+          },
+          "operations": [
+            "slack message:post"
+          ],
+          "confirmed": false
+        },
+        {
+          "kind": "secret",
+          "name": "Typeform",
+          "nodes": [
+            "Typeform Trigger"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "relay",
+          "name": "typeformTrigger",
+          "nodes": [
+            "Typeform Trigger"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:api-trigger-forwarder",
+            "localTask": "no",
+            "artifact": "no"
+          },
+          "note": "the cloud task's API trigger takes at most 30 fires per task and 100 per account an hour, shared with Run now"
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Typeform Trigger"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "rv-busy/event-volume",
+          "text": "How many events an hour reach \"Typeform Trigger\" at peak? Each one fires the cloud task's API trigger, which takes at most 30 an hour per task and 100 per account.",
+          "nodes": [
+            "Typeform Trigger"
+          ],
+          "affects": "outcome",
+          "answerType": "choice",
+          "options": {
+            "under-30": "subscription:cloud-task",
+            "30-100": "subscription:cloud-task (the forwarder batches events or spreads them over several tasks)",
+            "over-100": "keep-in-n8n (event volume over the API trigger cap)"
+          },
+          "assumed": "under-30",
+          "answer": "30-100"
+        }
+      ],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "slackOAuth2Api",
+          "name": "Slack",
+          "nodes": [
+            "Tell sales"
+          ]
+        },
+        {
+          "type": "typeformApi",
+          "name": "Typeform",
+          "nodes": [
+            "Typeform Trigger"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Typeform Trigger",
+          "type": "n8n-nodes-base.typeformTrigger",
+          "typeVersion": 1.1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [
+            "relay"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Tell sales",
+          "type": "n8n-nodes-base.slack",
+          "typeVersion": 2.3,
+          "role": "step",
+          "branch": "main",
+          "resource": "message",
+          "operation": "post",
+          "kind": "connector",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "relay"
+      ]
+    },
+    {
+      "id": "rv-flood",
+      "name": "Every order to Slack",
+      "file": "relay-volume.json",
+      "sourceHash": "c1621fbeac89466f6cb5a153729c8e55fac3861d3c0aef2ec5fe32e6d77dd2be",
+      "wakeup": {
+        "kind": "relay",
+        "nodes": [
+          "Shopify Trigger"
+        ],
+        "all": [
+          "relay"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "keep-in-n8n",
+        "target": null,
+        "reason": "event volume over the API trigger cap",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "connector",
+          "name": "slack",
+          "nodes": [
+            "Tell sales"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:artifact-mcp"
+          },
+          "operations": [
+            "slack message:post"
+          ],
+          "confirmed": false
+        },
+        {
+          "kind": "secret",
+          "name": "Shopify",
+          "nodes": [
+            "Shopify Trigger"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "relay",
+          "name": "shopifyTrigger",
+          "nodes": [
+            "Shopify Trigger"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:api-trigger-forwarder",
+            "localTask": "no",
+            "artifact": "no"
+          },
+          "note": "the cloud task's API trigger takes at most 30 fires per task and 100 per account an hour, shared with Run now"
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Shopify Trigger"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "rv-flood/event-volume",
+          "text": "How many events an hour reach \"Shopify Trigger\" at peak? Each one fires the cloud task's API trigger, which takes at most 30 an hour per task and 100 per account.",
+          "nodes": [
+            "Shopify Trigger"
+          ],
+          "affects": "outcome",
+          "answerType": "choice",
+          "options": {
+            "under-30": "subscription:cloud-task",
+            "30-100": "subscription:cloud-task (the forwarder batches events or spreads them over several tasks)",
+            "over-100": "keep-in-n8n (event volume over the API trigger cap)"
+          },
+          "assumed": "under-30",
+          "answer": "over-100"
+        }
+      ],
+      "blockers": [
+        {
+          "kind": "unsupported",
+          "reason": "event volume over the API trigger cap",
+          "nodes": [
+            "Shopify Trigger"
+          ]
+        }
+      ],
+      "credentials": [
+        {
+          "type": "shopifyApi",
+          "name": "Shopify",
+          "nodes": [
+            "Shopify Trigger"
+          ]
+        },
+        {
+          "type": "slackOAuth2Api",
+          "name": "Slack",
+          "nodes": [
+            "Tell sales"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Shopify Trigger",
+          "type": "n8n-nodes-base.shopifyTrigger",
+          "typeVersion": 1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [
+            "relay"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Tell sales",
+          "type": "n8n-nodes-base.slack",
+          "typeVersion": 2.3,
+          "role": "step",
+          "branch": "main",
+          "resource": "message",
+          "operation": "post",
+          "kind": "connector",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "relay"
+      ]
+    }
+  ]
+}

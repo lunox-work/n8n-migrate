@@ -37,7 +37,7 @@
     },
     "blockers": {},
     "notAnAutomation": 0,
-    "questions": 1,
+    "questions": 2,
     "unmappedTypes": [],
     "cloudScheduledRunsPerHour": 0,
     "cloudScheduledRunsPerHourLimit": 100,
@@ -583,7 +583,8 @@
             "cloudTask": "needs:api-trigger-forwarder",
             "localTask": "no",
             "artifact": "no"
-          }
+          },
+          "note": "the cloud task's API trigger takes at most 30 fires per task and 100 per account an hour, shared with Run now"
         },
         {
           "kind": "bundled-server",
@@ -778,7 +779,8 @@
             "cloudTask": "needs:api-trigger-forwarder",
             "localTask": "no",
             "artifact": "no"
-          }
+          },
+          "note": "the cloud task's API trigger takes at most 30 fires per task and 100 per account an hour, shared with Run now"
         },
         {
           "kind": "bundled-server",
@@ -793,7 +795,24 @@
           }
         }
       ],
-      "questions": [],
+      "questions": [
+        {
+          "id": "cw-fixed-chat/event-volume",
+          "text": "How many events an hour reach \"Deploy hook\" at peak? Each one fires the cloud task's API trigger, which takes at most 30 an hour per task and 100 per account.",
+          "nodes": [
+            "Deploy hook"
+          ],
+          "affects": "outcome",
+          "answerType": "choice",
+          "options": {
+            "under-30": "subscription:cloud-task",
+            "30-100": "subscription:cloud-task (the forwarder batches events or spreads them over several tasks)",
+            "over-100": "keep-in-n8n (event volume over the API trigger cap)"
+          },
+          "assumed": "under-30",
+          "answer": null
+        }
+      ],
       "blockers": [],
       "credentials": [
         {

@@ -34,7 +34,7 @@
     },
     "blockers": {},
     "notAnAutomation": 0,
-    "questions": 1,
+    "questions": 2,
     "unmappedTypes": [],
     "cloudScheduledRunsPerHour": 0.04,
     "cloudScheduledRunsPerHourLimit": 100,
@@ -101,10 +101,27 @@
             "cloudTask": "needs:api-trigger-forwarder",
             "localTask": "no",
             "artifact": "no"
-          }
+          },
+          "note": "the cloud task's API trigger takes at most 30 fires per task and 100 per account an hour, shared with Run now"
         }
       ],
       "questions": [
+        {
+          "id": "multiple-triggers/event-volume",
+          "text": "How many events an hour reach \"Webhook\" at peak? Each one fires the cloud task's API trigger, which takes at most 30 an hour per task and 100 per account.",
+          "nodes": [
+            "Webhook"
+          ],
+          "affects": "outcome",
+          "answerType": "choice",
+          "options": {
+            "under-30": "subscription:cloud-task",
+            "30-100": "subscription:cloud-task (the forwarder batches events or spreads them over several tasks)",
+            "over-100": "keep-in-n8n (event volume over the API trigger cap)"
+          },
+          "assumed": "under-30",
+          "answer": null
+        },
         {
           "id": "multiple-triggers/timezone",
           "text": "Which timezone does the schedule of \"Lead intake\" run in? The export does not say; n8n's default is America/New_York unless GENERIC_TIMEZONE is set.",

@@ -1,0 +1,205 @@
+[
+  {
+    "id": "rv-default",
+    "name": "New payment to Slack",
+    "active": false,
+    "nodes": [
+      {
+        "id": "00000000-0000-4000-8000-000000003001",
+        "name": "Stripe Trigger",
+        "type": "n8n-nodes-base.stripeTrigger",
+        "typeVersion": 1,
+        "position": [
+          220,
+          300
+        ],
+        "parameters": {
+          "events": [
+            "charge.succeeded"
+          ]
+        },
+        "credentials": {
+          "stripeApi": {
+            "id": "cred-stripeApi",
+            "name": "Stripe"
+          }
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000003002",
+        "name": "Tell sales",
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 2.3,
+        "position": [
+          440,
+          300
+        ],
+        "parameters": {
+          "select": "channel",
+          "channelId": {
+            "__rl": true,
+            "mode": "name",
+            "value": "#sales"
+          },
+          "text": "=Paid: {{ $json.data.object.amount }}"
+        },
+        "credentials": {
+          "slackOAuth2Api": {
+            "id": "cred-slackOAuth2Api",
+            "name": "Slack"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Stripe Trigger": {
+        "main": [
+          [
+            {
+              "node": "Tell sales",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    }
+  },
+  {
+    "id": "rv-busy",
+    "name": "Survey answers to Slack",
+    "active": false,
+    "nodes": [
+      {
+        "id": "00000000-0000-4000-8000-000000003101",
+        "name": "Typeform Trigger",
+        "type": "n8n-nodes-base.typeformTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          220,
+          300
+        ],
+        "parameters": {
+          "formId": "abc"
+        },
+        "credentials": {
+          "typeformApi": {
+            "id": "cred-typeformApi",
+            "name": "Typeform"
+          }
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000003102",
+        "name": "Tell sales",
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 2.3,
+        "position": [
+          440,
+          300
+        ],
+        "parameters": {
+          "select": "channel",
+          "channelId": {
+            "__rl": true,
+            "mode": "name",
+            "value": "#sales"
+          },
+          "text": "=New answer from {{ $json.email }}"
+        },
+        "credentials": {
+          "slackOAuth2Api": {
+            "id": "cred-slackOAuth2Api",
+            "name": "Slack"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Typeform Trigger": {
+        "main": [
+          [
+            {
+              "node": "Tell sales",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    }
+  },
+  {
+    "id": "rv-flood",
+    "name": "Every order to Slack",
+    "active": false,
+    "nodes": [
+      {
+        "id": "00000000-0000-4000-8000-000000003201",
+        "name": "Shopify Trigger",
+        "type": "n8n-nodes-base.shopifyTrigger",
+        "typeVersion": 1,
+        "position": [
+          220,
+          300
+        ],
+        "parameters": {
+          "topic": "orders/create"
+        },
+        "credentials": {
+          "shopifyApi": {
+            "id": "cred-shopifyApi",
+            "name": "Shopify"
+          }
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000003202",
+        "name": "Tell sales",
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 2.3,
+        "position": [
+          440,
+          300
+        ],
+        "parameters": {
+          "select": "channel",
+          "channelId": {
+            "__rl": true,
+            "mode": "name",
+            "value": "#sales"
+          },
+          "text": "=Order {{ $json.id }}"
+        },
+        "credentials": {
+          "slackOAuth2Api": {
+            "id": "cred-slackOAuth2Api",
+            "name": "Slack"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Shopify Trigger": {
+        "main": [
+          [
+            {
+              "node": "Tell sales",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    }
+  }
+]
