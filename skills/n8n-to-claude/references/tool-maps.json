@@ -1,0 +1,1016 @@
+{
+  "$doc": [
+    "n8n node operation -> connector tool (or an app REST request), read by scripts/convert.mjs. Keyed by n8n type -> typeVersion range -> resource -> operation ('_' when the node has no resource; triggers use operation 'poll'). Tool variants (gmailTool, ...) use the entry of the node they vary (nodes.json toolVariantOf).",
+    "Entry: connector, tool (the real tool name in references/connectors/<connector>.json), effect, args, result, fidelity, missingFields, caveats, understood, review. Or http (a request template for an app REST API without a tool) with credentialType and placement. Or blocked {kind, reason, alternative}.",
+    "args: tool input field -> spec. Specs are resolved at conversion time against the node's parameters; n8n expressions stay expressions and the runner evaluates them per item. Spec forms: \"param.path\" (a resource locator gives its value); {param, default}; {param, map: {n8nValue: toolValue}} (values not in the map are left out); {param, prefix}; {const}; {concat: [spec...], sep}; {if: {param, equals, default}, then, else}; {param, extract: \"googleId\"}; {binary: param, default, field}; {param, json: true} (a JSON text parameter becomes an object).",
+    "caveats: plain-words differences from n8n; an object {text, unless: {param, equals}} is left out when the parameter has that value. result: the declarative result adapter evaluated by the runtime (runtime/src/adapt.mjs), so downstream expressions see n8n's field names. fidelity: exact | adapted | partial | none | unverified. The tool schemas captured on 2026-11-14 carry input schemas only, so no tool output shape is known: every adapter that depends on one is unverified until the bench's emulation check runs it against real output. missingFields: n8n output fields (from n8n's own output schemas, n8n-nodes-base 2.47.5) that the adapter cannot supply.",
+    "understood: parameters this entry reads or accepts; any other parameter set on the node makes the step `review` (it has no counterpart in the tool). review: [{param, equals?, reason}] flags the step when a parameter has that value (any value when equals is absent).",
+    "The converter checks every args field against the tool's input JSON schema: required fields present, no unknown fields."
+  ],
+  "version": "1",
+  "maps": {
+    "n8n-nodes-base.gmail": {
+      ">=2": {
+        "message": {
+          "getAll": {
+            "connector": "gmail",
+            "tool": "search_threads",
+            "effect": "read",
+            "args": {
+              "query": {
+                "concat": [{"param":"filters.q"}, {"param":"filters.sender", "prefix":"from:"}, {"param":"filters.readStatus", "map":{"unread":"is:unread", "read":"is:read"}}],
+                "sep": " "
+              },
+              "pageSize": { "if": { "param": "returnAll", "equals": true, "default": false }, "then": { "const": 50 }, "else": { "param": "limit", "default": 50 } },
+              "includeTrash": { "param": "filters.includeSpamTrash" }
+            },
+            "result": {
+              "items": "threads[*].messages[*]",
+              "fields": { "threadId": "^.id", "From": "sender", "To": { "join": "toRecipients" }, "Cc": { "join": "ccRecipients" }, "Bcc": { "join": "bccRecipients" }, "Subject": "subject" }
+            },
+            "fidelity": "unverified",
+            "missingFields": ["historyId", "internalDate", "labels", "payload", "sizeEstimate"],
+            "caveats": ["The tool returns threads with up to 5 messages each; n8n's limit counts messages."],
+            "understood": ["operation", "resource", "returnAll", "limit", "simple", "filters.q", "filters.sender", "filters.readStatus", "filters.includeSpamTrash"],
+            "review": [
+              { "param": "returnAll", "equals": true, "reason": "n8n returns every message; the tool returns one page of at most 50 threads" },
+              { "param": "simple", "equals": false, "reason": "n8n's raw message format (payload, headers) is not mapped; only the simplified fields are" },
+              { "param": "filters.labelIds", "reason": "label ids filter has no tool argument; add label:<name> to the query" },
+              { "param": "filters.receivedAfter", "reason": "receivedAfter needs translating into an after: query" },
+              { "param": "filters.receivedBefore", "reason": "receivedBefore needs translating into a before: query" },
+              { "param": "options.downloadAttachments", "reason": "attachments are not downloaded by search_threads" }
+            ]
+          },
+          "get": {
+            "connector": "gmail",
+            "tool": "get_message",
+            "effect": "read",
+            "args": { "messageId": "messageId", "messageFormat": { "if": { "param": "simple", "equals": false, "default": true }, "then": { "const": "FULL_CONTENT" }, "else": { "const": "MINIMAL" } } },
+            "result": { "fields": { "From": "sender", "To": { "join": "toRecipients" }, "Cc": { "join": "ccRecipients" }, "Subject": "subject", "text": "plaintextBody", "html": "htmlBody" } },
+            "fidelity": "unverified",
+            "missingFields": ["threadId", "historyId", "internalDate", "labels", "payload", "sizeEstimate"],
+            "understood": ["operation", "resource", "messageId", "simple"],
+            "review": [{"param":"options.downloadAttachments", "reason":"attachments are not downloaded by get_message"}]
+          },
+          "send": {
+            "connector": "gmail",
+            "tool": "send_message",
+            "effect": "write",
+            "args": {
+              "to": "sendTo",
+              "subject": "subject",
+              "body": { "if": { "param": "emailType", "equals": "text", "default": "html" }, "then": { "param": "message" }, "else": { "const": null } },
+              "htmlBody": { "if": { "param": "emailType", "equals": "html", "default": "html" }, "then": { "param": "message" }, "else": { "const": null } },
+              "cc": "options.ccList",
+              "bcc": "options.bccList"
+            },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "threadId", "labelIds"],
+            "caveats": [{"text":"n8n appends 'This email was sent automatically with n8n' unless the option is off; the tool does not.", "unless":{"param":"options.appendAttribution", "equals":false}}],
+            "understood": ["operation", "resource", "sendTo", "subject", "emailType", "message", "options.ccList", "options.bccList", "options.appendAttribution"],
+            "review": [
+              { "param": "options.senderName", "reason": "the tool sends from the account's own name" },
+              { "param": "options.replyTo", "reason": "the tool has no Reply-To argument" },
+              { "param": "options.attachmentsUi", "reason": "attachments from n8n binary data need translating into file references" }
+            ]
+          },
+          "reply": {
+            "connector": "gmail",
+            "tool": "reply",
+            "effect": "write",
+            "args": {
+              "messageId": "messageId",
+              "body": { "if": { "param": "emailType", "equals": "text", "default": "html" }, "then": { "param": "message" }, "else": { "const": null } },
+              "htmlBody": { "if": { "param": "emailType", "equals": "html", "default": "html" }, "then": { "param": "message" }, "else": { "const": null } },
+              "cc": "options.ccList",
+              "bcc": "options.bccList",
+              "replyAll": "options.replyToSenderOnly"
+            },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "threadId", "labelIds"],
+            "caveats": [{"text":"n8n appends 'This email was sent automatically with n8n' unless the option is off; the tool does not.", "unless":{"param":"options.appendAttribution", "equals":false}}],
+            "understood": ["operation", "resource", "messageId", "emailType", "message", "options.ccList", "options.bccList", "options.appendAttribution"],
+            "review": [
+              { "param": "options.replyToSenderOnly", "reason": "n8n's replyToSenderOnly is the opposite of the tool's replyAll; check the mapped value" },
+              { "param": "options.attachmentsUi", "reason": "attachments from n8n binary data need translating into file references" }
+            ]
+          },
+          "markAsRead": {
+            "connector": "gmail",
+            "tool": "unlabel_message",
+            "effect": "write",
+            "args": { "messageId": "messageId", "labelIds": { "const": ["UNREAD"] } },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "threadId", "labelIds"],
+            "understood": ["operation", "resource", "messageId"]
+          },
+          "markAsUnread": {
+            "connector": "gmail",
+            "tool": "label_message",
+            "effect": "write",
+            "args": { "messageId": "messageId", "labelIds": { "const": ["UNREAD"] } },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "threadId", "labelIds"],
+            "understood": ["operation", "resource", "messageId"]
+          },
+          "addLabels": {
+            "connector": "gmail",
+            "tool": "label_message",
+            "effect": "write",
+            "args": { "messageId": "messageId", "labelIds": "labelIds" },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "threadId", "labelIds"],
+            "understood": ["operation", "resource", "messageId", "labelIds"]
+          },
+          "removeLabels": {
+            "connector": "gmail",
+            "tool": "unlabel_message",
+            "effect": "write",
+            "args": { "messageId": "messageId", "labelIds": "labelIds" },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "threadId", "labelIds"],
+            "understood": ["operation", "resource", "messageId", "labelIds"]
+          },
+          "delete": {
+            "blocked": { "kind": "no-tool", "reason": "no tool deletes a message permanently (trash_message only moves it to Trash)", "alternative": "trash_message, if moving to Trash is acceptable" }
+          }
+        },
+        "draft": {
+          "create": {
+            "connector": "gmail",
+            "tool": "create_draft",
+            "effect": "write",
+            "args": {
+              "subject": "subject",
+              "body": { "if": { "param": "emailType", "equals": "text", "default": "text" }, "then": { "param": "message" }, "else": { "const": null } },
+              "htmlBody": { "if": { "param": "emailType", "equals": "html", "default": "text" }, "then": { "param": "message" }, "else": { "const": null } },
+              "to": "options.sendTo",
+              "cc": "options.ccList",
+              "bcc": "options.bccList",
+              "replyToMessageId": "options.threadId"
+            },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "message"],
+            "understood": ["operation", "resource", "subject", "emailType", "message", "options.sendTo", "options.ccList", "options.bccList"],
+            "review": [
+              { "param": "options.threadId", "reason": "n8n threads the draft by thread id; the tool replies to a message id" },
+              { "param": "options.attachmentsUi", "reason": "attachments from n8n binary data need translating into file references" }
+            ]
+          },
+          "get": {
+            "connector": "gmail",
+            "tool": "get_draft",
+            "effect": "read",
+            "args": { "draftId": "messageId" },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "messageId", "subject", "message"],
+            "understood": ["operation", "resource", "messageId", "options.format"]
+          },
+          "getAll": {
+            "connector": "gmail",
+            "tool": "list_drafts",
+            "effect": "read",
+            "args": {},
+            "result": { "items": "drafts[*]" },
+            "fidelity": "unverified",
+            "missingFields": ["id", "message"],
+            "understood": ["operation", "resource", "returnAll", "limit"]
+          },
+          "delete": {
+            "connector": "gmail",
+            "tool": "delete_draft",
+            "effect": "write",
+            "args": { "draftId": "messageId" },
+            "result": { "fields": { "success": { "const": true } } },
+            "fidelity": "unverified",
+            "understood": ["operation", "resource", "messageId"]
+          }
+        },
+        "label": {
+          "getAll": {
+            "connector": "gmail",
+            "tool": "list_labels",
+            "effect": "read",
+            "args": {},
+            "result": { "items": "labels[*]", "fields": { "id": { "first": ["id", "labelId"] } } },
+            "fidelity": "unverified",
+            "missingFields": ["type"],
+            "understood": ["operation", "resource", "returnAll", "limit"]
+          },
+          "get": {
+            "connector": "gmail",
+            "tool": "list_labels",
+            "effect": "read",
+            "args": {},
+            "result": { "items": "labels[*]", "fields": { "id": { "first": ["id", "labelId"] } } },
+            "fidelity": "unverified",
+            "missingFields": ["messagesTotal", "messagesUnread", "threadsTotal", "threadsUnread"],
+            "understood": ["operation", "resource", "labelId"],
+            "review": [{"reason":"the tool lists every label; n8n returns the one with labelId, so a Filter step is needed after it"}]
+          },
+          "create": {
+            "connector": "gmail",
+            "tool": "create_label",
+            "effect": "write",
+            "args": { "displayName": "name" },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "name"],
+            "understood": ["operation", "resource", "name", "options.labelListVisibility", "options.messageListVisibility"]
+          },
+          "delete": {
+            "connector": "gmail",
+            "tool": "delete_label",
+            "effect": "write",
+            "args": { "labelId": "labelId" },
+            "result": { "fields": { "success": { "const": true } } },
+            "fidelity": "unverified",
+            "understood": ["operation", "resource", "labelId"]
+          }
+        },
+        "thread": {
+          "get": {
+            "connector": "gmail",
+            "tool": "get_thread",
+            "effect": "read",
+            "args": { "threadId": "threadId" },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["historyId", "messages"],
+            "understood": ["operation", "resource", "threadId", "simple"]
+          },
+          "getAll": {
+            "connector": "gmail",
+            "tool": "search_threads",
+            "effect": "read",
+            "args": {
+              "query": { "concat": [{ "param": "filters.q" }, { "param": "filters.readStatus", "map": { "unread": "is:unread", "read": "is:read" } }], "sep": " " },
+              "pageSize": { "if": { "param": "returnAll", "equals": true, "default": false }, "then": { "const": 50 }, "else": { "param": "limit", "default": 50 } },
+              "includeTrash": { "param": "filters.includeSpamTrash" }
+            },
+            "result": { "items": "threads[*]", "fields": { "snippet": "messages[0].snippet" } },
+            "fidelity": "unverified",
+            "missingFields": ["historyId"],
+            "understood": ["operation", "resource", "returnAll", "limit", "filters.q", "filters.readStatus", "filters.includeSpamTrash"],
+            "review": [{"param":"returnAll", "equals":true, "reason":"n8n returns every thread; the tool returns one page of at most 50"}]
+          },
+          "addLabels": {
+            "connector": "gmail",
+            "tool": "label_thread",
+            "effect": "write",
+            "args": { "threadId": "threadId", "labelIds": "labelIds" },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "messages"],
+            "understood": ["operation", "resource", "threadId", "labelIds"]
+          },
+          "removeLabels": {
+            "connector": "gmail",
+            "tool": "unlabel_thread",
+            "effect": "write",
+            "args": { "threadId": "threadId", "labelIds": "labelIds" },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "messages"],
+            "understood": ["operation", "resource", "threadId", "labelIds"]
+          },
+          "trash": {
+            "connector": "gmail",
+            "tool": "trash_thread",
+            "effect": "write",
+            "args": { "threadId": "threadId" },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "messages"],
+            "understood": ["operation", "resource", "threadId"]
+          },
+          "untrash": {
+            "connector": "gmail",
+            "tool": "untrash_thread",
+            "effect": "write",
+            "args": { "threadId": "threadId" },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "messages"],
+            "understood": ["operation", "resource", "threadId"]
+          }
+        }
+      }
+    },
+    "n8n-nodes-base.gmailTrigger": {
+      ">=1": {
+        "_": {
+          "poll": {
+            "connector": "gmail",
+            "tool": "search_threads",
+            "effect": "read",
+            "args": {
+              "query": {
+                "concat": [{"param":"filters.q"}, {"param":"filters.sender", "prefix":"from:"}, {"param":"filters.readStatus", "map":{"unread":"is:unread", "read":"is:read"}}],
+                "sep": " "
+              },
+              "pageSize": { "const": 50 },
+              "includeTrash": { "param": "filters.includeSpamTrash" }
+            },
+            "result": { "items": "threads[*].messages[*]", "fields": { "threadId": "^.id", "From": "sender", "To": { "join": "toRecipients" }, "Cc": { "join": "ccRecipients" }, "Subject": "subject" } },
+            "cursor": { "field": "date", "strategy": "max", "idField": "id", "arg": "query", "template": "after:{seconds}" },
+            "fidelity": "unverified",
+            "missingFields": ["historyId", "internalDate", "labels", "payload", "sizeEstimate"],
+            "caveats": ["The cursor reads each message's date; Gmail's after: has one-second resolution, so ids seen at the cursor are remembered."],
+            "understood": ["pollTimes", "simple", "filters.q", "filters.sender", "filters.readStatus", "filters.includeSpamTrash", "options.downloadAttachments", "event"],
+            "review": [
+              { "param": "simple", "equals": false, "reason": "n8n's raw message format is not mapped" },
+              { "param": "filters.labelIds", "reason": "label ids filter has no tool argument; add label:<name> to the query" },
+              { "param": "options.downloadAttachments", "equals": true, "reason": "attachments are not downloaded by search_threads" }
+            ]
+          }
+        }
+      }
+    },
+    "n8n-nodes-base.slack": {
+      ">=2": {
+        "message": {
+          "post": {
+            "connector": "slack",
+            "tool": "slack_send_message",
+            "effect": "write",
+            "args": {
+              "channel_id": { "if": { "param": "select", "equals": "user", "default": "channel" }, "then": { "param": "user" }, "else": { "param": "channelId" } },
+              "message": "text",
+              "thread_ts": "otherOptions.thread_ts.replyValues.thread_ts",
+              "reply_broadcast": "otherOptions.thread_ts.replyValues.reply_broadcast",
+              "unfurl_app_links": "otherOptions.unfurl_links"
+            },
+            "result": { "fields": { "ok": { "const": true } } },
+            "fidelity": "unverified",
+            "missingFields": ["channel", "message", "message_timestamp"],
+            "caveats": [
+              { "text": "n8n appends a link to the workflow unless the option is off; the tool does not.", "unless": { "param": "otherOptions.includeLinkToWorkflow", "equals": false } },
+              "The tool reads standard markdown (**bold**); n8n sends Slack mrkdwn (*bold*)."
+            ],
+            "understood": [
+              "operation",
+              "resource",
+              "authentication",
+              "select",
+              "channelId",
+              "user",
+              "text",
+              "messageType",
+              "otherOptions.includeLinkToWorkflow",
+              "otherOptions.mrkdwn",
+              "otherOptions.thread_ts",
+              "otherOptions.unfurl_links",
+              "otherOptions.link_names",
+              "otherOptions.unfurl_media"
+            ],
+            "review": [
+              { "param": "messageType", "equals": "block", "reason": "Slack blocks have no tool argument; the message would be text only" },
+              { "param": "messageType", "equals": "attachment", "reason": "Slack attachments have no tool argument; the message would be text only" },
+              { "param": "otherOptions.sendAsUser", "reason": "the tool posts as the signed-in user" },
+              { "param": "otherOptions.botProfile", "reason": "the tool posts as the signed-in user, not a bot profile" },
+              { "param": "otherOptions.ephemeral", "reason": "the tool has no ephemeral messages" }
+            ]
+          }
+        },
+        "channel": {
+          "history": {
+            "connector": "slack",
+            "tool": "slack_read_channel",
+            "effect": "read",
+            "args": {
+              "channel_id": "channelId",
+              "limit": { "if": { "param": "returnAll", "equals": true, "default": false }, "then": { "const": 100 }, "else": { "param": "limit", "default": 100 } },
+              "oldest": "filters.oldest",
+              "latest": "filters.latest"
+            },
+            "result": { "items": "messages[*]" },
+            "fidelity": "unverified",
+            "missingFields": ["type", "user", "text", "ts"],
+            "understood": ["operation", "resource", "channelId", "returnAll", "limit", "filters.oldest", "filters.latest", "filters.inclusive"],
+            "review": [{"param":"returnAll", "equals":true, "reason":"n8n reads every message; the tool returns one page of at most 100"}]
+          },
+          "replies": {
+            "connector": "slack",
+            "tool": "slack_read_thread",
+            "effect": "read",
+            "args": { "channel_id": "channelId", "message_ts": "ts" },
+            "result": { "items": "messages[*]" },
+            "fidelity": "unverified",
+            "missingFields": ["type", "user", "text", "ts"],
+            "understood": ["operation", "resource", "channelId", "ts", "returnAll", "limit"]
+          }
+        },
+        "user": {
+          "info": {
+            "connector": "slack",
+            "tool": "slack_read_user_profile",
+            "effect": "read",
+            "args": { "user_id": "user" },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "name", "real_name", "profile"],
+            "understood": ["operation", "resource", "user"]
+          },
+          "getProfile": {
+            "connector": "slack",
+            "tool": "slack_read_user_profile",
+            "effect": "read",
+            "args": { "user_id": "user" },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["real_name", "display_name", "email"],
+            "understood": ["operation", "resource", "user"]
+          }
+        }
+      }
+    },
+    "n8n-nodes-base.googleDrive": {
+      ">=3": {
+        "file": {
+          "download": {
+            "connector": "google-drive",
+            "tool": "download_file_content",
+            "effect": "read",
+            "args": { "fileId": "fileId", "exportMimeType": "options.googleFileConversion.conversion.docsToFormat" },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["binary data"],
+            "caveats": ["n8n puts the file into binary data; the tool returns it as base64 text in the item."],
+            "understood": ["operation", "resource", "fileId", "options.binaryPropertyName", "options.googleFileConversion", "options.fileName"],
+            "review": [{"reason":"the file arrives as base64 text, not as binary data: steps that read $binary need translation"}]
+          },
+          "upload": {
+            "connector": "google-drive",
+            "tool": "create_file",
+            "effect": "write",
+            "args": {
+              "title": "name",
+              "parentId": "folderId",
+              "base64Content": { "binary": "inputDataFieldName", "default": "data", "field": "data" },
+              "contentMimeType": { "binary": "inputDataFieldName", "default": "data", "field": "mimeType" }
+            },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "name", "mimeType", "webViewLink"],
+            "understood": ["operation", "resource", "name", "folderId", "driveId", "inputDataFieldName", "options.simplifyOutput"],
+            "review": [{"reason":"the file comes from n8n binary data; check that the step before it puts the file into the item"}]
+          },
+          "createFromText": {
+            "connector": "google-drive",
+            "tool": "create_file",
+            "effect": "write",
+            "args": {
+              "title": "name",
+              "textContent": "content",
+              "parentId": "folderId",
+              "contentMimeType": { "const": "text/plain" },
+              "disableConversionToGoogleType": { "param": "options.convertToGoogleDocument", "map": { "true": false, "false": true }, "default": true }
+            },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "name"],
+            "understood": ["operation", "resource", "name", "content", "folderId", "driveId", "options.convertToGoogleDocument"]
+          },
+          "share": {
+            "connector": "google-drive",
+            "tool": "share_file",
+            "effect": "write",
+            "args": {
+              "fileId": "fileId",
+              "role": "permissionsUi.permissionsValues.role",
+              "emailAddress": "permissionsUi.permissionsValues.emailAddress",
+              "permissionId": { "param": "permissionsUi.permissionsValues.type", "map": { "anyone": "anyoneWithLink" } }
+            },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["kind", "id", "type", "role"],
+            "understood": [
+              "operation",
+              "resource",
+              "fileId",
+              "permissionsUi.permissionsValues.role",
+              "permissionsUi.permissionsValues.type",
+              "permissionsUi.permissionsValues.emailAddress",
+              "options.emailMessage",
+              "options.sendNotificationEmail"
+            ],
+            "review": [
+              { "param": "permissionsUi.permissionsValues.type", "equals": "domain", "reason": "sharing with a domain has no tool argument" },
+              { "param": "options.transferOwnership", "reason": "the tool cannot transfer ownership" }
+            ]
+          },
+          "update": {
+            "connector": "google-drive",
+            "tool": "update_file",
+            "effect": "write",
+            "args": { "fileId": "fileId", "title": "newUpdatedFileName" },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "name"],
+            "understood": ["operation", "resource", "fileId", "newUpdatedFileName", "options.fields", "options.keepRevisionForever", "options.ocrLanguage", "options.useContentAsIndexableText"],
+            "review": [{"param":"changeFileContent", "equals":true, "reason":"replacing a file's content has no tool (update_file changes metadata only)"}]
+          },
+          "copy": {
+            "connector": "google-drive",
+            "tool": "copy_file",
+            "effect": "write",
+            "args": { "fileId": "fileId", "title": "name", "parentId": "folderId" },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "name"],
+            "understood": ["operation", "resource", "fileId", "name", "folderId", "driveId", "sameFolder"]
+          },
+          "deleteFile": {
+            "connector": "google-drive",
+            "tool": "trash_file",
+            "effect": "write",
+            "args": { "fileId": "fileId" },
+            "result": { "fields": { "success": { "const": true } } },
+            "fidelity": "unverified",
+            "understood": ["operation", "resource", "fileId"],
+            "review": [{"param":"options.deletePermanently", "equals":true, "reason":"the tool only moves the file to Trash"}]
+          }
+        },
+        "fileFolder": {
+          "search": {
+            "connector": "google-drive",
+            "tool": "search_files",
+            "effect": "read",
+            "args": {
+              "query": {
+                "if": { "param": "searchMethod", "equals": "query", "default": "name" },
+                "then": { "param": "queryString" },
+                "else": { "concat": [{ "const": "name contains '" }, { "param": "queryString" }, { "const": "'" }], "sep": "" }
+              },
+              "pageSize": { "if": { "param": "returnAll", "equals": true, "default": false }, "then": { "const": 100 }, "else": { "param": "limit", "default": 50 } }
+            },
+            "result": { "items": "files[*]" },
+            "fidelity": "unverified",
+            "missingFields": ["id", "name"],
+            "caveats": ["n8n adds trashed = false and the folder and file type filters to the query; only the search text is passed."],
+            "understood": ["operation", "resource", "searchMethod", "queryString", "returnAll", "limit", "options.fields"],
+            "review": [
+              { "param": "filter.folderId", "reason": "the folder filter needs adding to the query as '<id>' in parents" },
+              { "param": "filter.whatToSearch", "reason": "the file/folder filter needs adding to the query" },
+              { "param": "filter.fileTypes", "reason": "the file type filter needs adding to the query" },
+              { "param": "returnAll", "equals": true, "reason": "n8n returns every match; the tool returns one page" }
+            ]
+          }
+        },
+        "folder": {
+          "create": {
+            "connector": "google-drive",
+            "tool": "create_file",
+            "effect": "write",
+            "args": { "title": "name", "parentId": "folderId", "contentMimeType": { "const": "application/vnd.google-apps.folder" } },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "name"],
+            "understood": ["operation", "resource", "name", "folderId", "driveId", "options.folderColorRgb", "options.simplifyOutput"]
+          }
+        }
+      }
+    },
+    "n8n-nodes-base.googleDriveTrigger": {
+      ">=1": {
+        "_": {
+          "poll": {
+            "connector": "google-drive",
+            "tool": "search_files",
+            "effect": "read",
+            "args": {
+              "query": {
+                "if": { "param": "triggerOn", "equals": "specificFolder", "default": "specificFolder" },
+                "then": { "concat": [{ "const": "'" }, { "param": "folderToWatch" }, { "const": "' in parents and trashed = false" }], "sep": "" },
+                "else": { "const": "trashed = false" }
+              },
+              "orderBy": { "const": "modifiedTime desc" },
+              "pageSize": { "const": 100 }
+            },
+            "result": { "items": "files[*]" },
+            "cursor": { "field": "createdTime", "strategy": "max", "idField": "id", "arg": "query", "template": "and createdTime > '{iso}'" },
+            "cursorByParam": {
+              "param": "event",
+              "values": {
+                "fileUpdated": { "field": "modifiedTime", "strategy": "max", "idField": "id", "arg": "query", "template": "and modifiedTime > '{iso}'" },
+                "folderUpdated": { "field": "modifiedTime", "strategy": "max", "idField": "id", "arg": "query", "template": "and modifiedTime > '{iso}'" }
+              }
+            },
+            "fidelity": "unverified",
+            "missingFields": ["kind", "mimeType", "parents", "webViewLink"],
+            "understood": ["pollTimes", "triggerOn", "folderToWatch", "event", "options.fileType"],
+            "review": [
+              { "param": "triggerOn", "equals": "specificFile", "reason": "watching one file needs a query on its id" },
+              { "param": "options.fileType", "reason": "the file type filter needs adding to the query" }
+            ]
+          }
+        }
+      }
+    },
+    "n8n-nodes-base.googleDocs": {
+      ">=2": {
+        "document": {
+          "get": {
+            "connector": "google-drive",
+            "tool": "read_file_content",
+            "effect": "read",
+            "args": { "fileId": { "param": "documentURL", "extract": "googleId" } },
+            "result": { "fields": { "content": { "first": ["content", "text"] } } },
+            "fidelity": "unverified",
+            "missingFields": ["documentId"],
+            "caveats": ["The tool gives a natural-language rendering of the document; n8n's simplified content is the plain text."],
+            "understood": ["operation", "resource", "documentURL", "simple"],
+            "review": [{"param":"simple", "equals":false, "reason":"n8n's raw document JSON (body, styles) has no tool"}]
+          },
+          "update": {
+            "blocked": {
+              "kind": "no-tool",
+              "reason": "no tool edits a document in place (update_file changes metadata only)",
+              "alternative": "POST https://docs.googleapis.com/v1/documents/{id}:batchUpdate with the n8n actions as requests, with a Google credential"
+            }
+          },
+          "create": {
+            "connector": "google-drive",
+            "tool": "create_file",
+            "effect": "write",
+            "args": { "title": "title", "parentId": "folderId", "contentMimeType": { "const": "application/vnd.google-apps.document" } },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "title"],
+            "understood": ["operation", "resource", "title", "folderId", "driveId"]
+          }
+        }
+      }
+    },
+    "n8n-nodes-base.googleSheets": {
+      ">=3": {
+        "sheet": {
+          "read": {
+            "connector": "google-drive",
+            "tool": "download_file_content",
+            "effect": "read",
+            "args": { "fileId": "documentId", "exportMimeType": { "const": "text/csv" } },
+            "result": { "parse": "csv", "text": "content", "decode": "base64", "rowNumber": { "field": "row_number", "start": 2 } },
+            "fidelity": "unverified",
+            "caveats": ["The CSV export holds the first tab only.", "Values arrive as text; n8n gives numbers and booleans as such."],
+            "understood": ["operation", "resource", "documentId", "sheetName", "options.dataLocationOnSheet", "options.outputFormatting"],
+            "review": [
+              { "param": "filtersUI", "reason": "row filters need a Filter step after the read" },
+              { "param": "options.returnFirstMatch", "reason": "first-match lookups need a Filter and Limit step after the read" }
+            ],
+            "reviewSheetNotFirstTab": true
+          },
+          "append": {
+            "blocked": {
+              "kind": "no-tool",
+              "reason": "no Sheets tool: rows cannot be appended through the Drive connector",
+              "alternative": "POST https://sheets.googleapis.com/v4/spreadsheets/{id}/values/{range}:append with a Google credential; n8n first reads the header row to place the columns, so it is two requests"
+            }
+          },
+          "appendOrUpdate": {
+            "blocked": {
+              "kind": "no-tool",
+              "reason": "no Sheets tool: rows cannot be written through the Drive connector",
+              "alternative": "Sheets API v4 values.get then values.batchUpdate/append with a Google credential (n8n matches on a column first)"
+            }
+          },
+          "update": {
+            "blocked": {
+              "kind": "no-tool",
+              "reason": "no Sheets tool: rows cannot be updated through the Drive connector",
+              "alternative": "Sheets API v4 values.get then values.batchUpdate with a Google credential (n8n matches on a column first)"
+            }
+          },
+          "upsert": {
+            "blocked": {
+              "kind": "no-tool",
+              "reason": "no Sheets tool: rows cannot be written through the Drive connector",
+              "alternative": "Sheets API v4 values.get then values.batchUpdate/append with a Google credential"
+            }
+          },
+          "clear": {
+            "blocked": {
+              "kind": "no-tool",
+              "reason": "no Sheets tool: a sheet cannot be cleared through the Drive connector",
+              "alternative": "POST https://sheets.googleapis.com/v4/spreadsheets/{id}/values/{range}:clear with a Google credential"
+            }
+          },
+          "delete": {
+            "blocked": {
+              "kind": "no-tool",
+              "reason": "no Sheets tool: rows cannot be deleted through the Drive connector",
+              "alternative": "POST https://sheets.googleapis.com/v4/spreadsheets/{id}:batchUpdate (deleteDimension) with a Google credential"
+            }
+          }
+        },
+        "spreadsheet": {
+          "create": {
+            "connector": "google-drive",
+            "tool": "create_file",
+            "effect": "write",
+            "args": { "title": "title", "contentMimeType": { "const": "application/vnd.google-apps.spreadsheet" } },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["spreadsheetId", "properties", "sheets"],
+            "understood": ["operation", "resource", "title", "options.locale"],
+            "review": [{"param":"sheetsUi", "reason":"named tabs cannot be created through the Drive connector"}]
+          }
+        }
+      }
+    },
+    "n8n-nodes-base.googleSheetsTrigger": {
+      ">=1": {
+        "_": {
+          "poll": {
+            "connector": "google-drive",
+            "tool": "download_file_content",
+            "effect": "read",
+            "args": { "fileId": "documentId", "exportMimeType": { "const": "text/csv" } },
+            "result": { "parse": "csv", "text": "content", "decode": "base64", "rowNumber": { "field": "row_number", "start": 2 } },
+            "cursor": { "field": "row_number", "strategy": "max" },
+            "fidelity": "unverified",
+            "caveats": ["The CSV export holds the first tab only.", "New rows are found by row number; a row inserted above the last one is missed, as with n8n's rowAdded."],
+            "understood": ["pollTimes", "documentId", "sheetName", "event", "options.valueRender", "options.dateTimeRenderMode"],
+            "review": [
+              { "param": "event", "equals": "rowUpdate", "reason": "updated rows need a diff against the last read; only rowAdded maps to a cursor" },
+              { "param": "event", "equals": "anyUpdate", "reason": "updated rows need a diff against the last read; only rowAdded maps to a cursor" }
+            ],
+            "reviewSheetNotFirstTab": true
+          }
+        }
+      }
+    },
+    "n8n-nodes-base.notion": {
+      ">=2": {
+        "database": {
+          "get": {
+            "connector": "notion",
+            "tool": "notion-fetch",
+            "effect": "read",
+            "args": { "id": "databaseId" },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "name", "url"],
+            "understood": ["operation", "resource", "databaseId", "simple"]
+          }
+        },
+        "databasePage": {
+          "getAll": {
+            "connector": "notion",
+            "tool": "notion-query-data-sources",
+            "effect": "read",
+            "args": { "data": { "const": null } },
+            "argsNeedTranslation": "the database id must become the data source's collection:// URL (from notion-fetch) inside the tool's data object, and n8n's filters a rows-mode filter",
+            "result": { "items": "results[*]" },
+            "fidelity": "unverified",
+            "missingFields": ["id", "name", "url", "property_*"],
+            "understood": ["operation", "resource", "databaseId", "returnAll", "limit", "simple", "filterType", "filters", "options"]
+          },
+          "update": {
+            "connector": "notion",
+            "tool": "notion-update-page",
+            "effect": "write",
+            "args": { "page_id": "pageId", "command": { "const": "update_properties" }, "properties": { "const": null } },
+            "argsNeedTranslation": "n8n's propertiesUi list (key 'Name|type' and a value per type) must become the tool's property map (dates split into date:<name>:start, checkboxes __YES__/__NO__)",
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "name", "url", "property_*"],
+            "understood": ["operation", "resource", "pageId", "propertiesUi", "simple", "options"]
+          },
+          "create": {
+            "connector": "notion",
+            "tool": "notion-create-pages",
+            "effect": "write",
+            "args": { "pages": { "const": null }, "parent": { "const": null } },
+            "argsNeedTranslation": "n8n's database id and propertiesUi list must become the tool's parent data source and per-page property map",
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "name", "url", "property_*"],
+            "understood": ["operation", "resource", "databaseId", "propertiesUi", "blockUi", "simple", "options"]
+          }
+        },
+        "page": {
+          "create": {
+            "connector": "notion",
+            "tool": "notion-create-pages",
+            "effect": "write",
+            "args": { "pages": { "const": null }, "parent": { "const": null } },
+            "argsNeedTranslation": "n8n's parent page id, title and blockUi blocks must become the tool's parent and a page with title and Notion-flavoured markdown content",
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "name", "url"],
+            "understood": ["operation", "resource", "pageId", "title", "blockUi", "simple", "options"]
+          },
+          "get": {
+            "connector": "notion",
+            "tool": "notion-fetch",
+            "effect": "read",
+            "args": { "id": "pageId" },
+            "result": {},
+            "fidelity": "unverified",
+            "missingFields": ["id", "name", "url"],
+            "understood": ["operation", "resource", "pageId", "simple"]
+          },
+          "search": {
+            "connector": "notion",
+            "tool": "notion-search",
+            "effect": "read",
+            "args": { "query": "text" },
+            "result": { "items": "results[*]" },
+            "fidelity": "unverified",
+            "missingFields": ["id", "name", "url"],
+            "understood": ["operation", "resource", "text", "returnAll", "limit", "simple", "options"]
+          }
+        }
+      }
+    },
+    "n8n-nodes-base.telegram": {
+      ">=1": {
+        "message": {
+          "sendMessage": {
+            "http": {
+              "method": "POST",
+              "url": "https://api.telegram.org/bot{{secret}}/sendMessage",
+              "body": {
+                "chat_id": "chatId",
+                "text": "text",
+                "parse_mode": "additionalFields.parse_mode",
+                "disable_web_page_preview": "additionalFields.disable_web_page_preview",
+                "disable_notification": "additionalFields.disable_notification",
+                "reply_to_message_id": "additionalFields.reply_to_message_id",
+                "message_thread_id": "additionalFields.message_thread_id"
+              },
+              "coerce": { "chat_id": "string", "text": "string" }
+            },
+            "credentialType": "telegramApi",
+            "placement": "url",
+            "effect": "write",
+            "result": {},
+            "fidelity": "exact",
+            "caveats": [
+              {
+                "text": "n8n appends 'This message was sent automatically with n8n' unless the option is off; the request does not.",
+                "unless": { "param": "additionalFields.appendAttribution", "equals": false }
+              }
+            ],
+            "understood": [
+              "operation",
+              "resource",
+              "chatId",
+              "text",
+              "replyMarkup",
+              "additionalFields.appendAttribution",
+              "additionalFields.parse_mode",
+              "additionalFields.disable_web_page_preview",
+              "additionalFields.disable_notification",
+              "additionalFields.reply_to_message_id",
+              "additionalFields.message_thread_id"
+            ],
+            "review": [{"param":"replyMarkup", "reason":"reply keyboards are not mapped into the request body"}]
+          },
+          "sendChatAction": {
+            "http": { "method": "POST", "url": "https://api.telegram.org/bot{{secret}}/sendChatAction", "body": { "chat_id": "chatId", "action": "action" }, "coerce": { "chat_id": "string" } },
+            "credentialType": "telegramApi",
+            "placement": "url",
+            "effect": "write",
+            "result": {},
+            "fidelity": "exact",
+            "understood": ["operation", "resource", "chatId", "action"]
+          },
+          "sendPhoto": {
+            "http": {
+              "method": "POST",
+              "url": "https://api.telegram.org/bot{{secret}}/sendPhoto",
+              "body": { "chat_id": "chatId", "photo": "file", "caption": "additionalFields.caption", "parse_mode": "additionalFields.parse_mode" },
+              "coerce": { "chat_id": "string" }
+            },
+            "credentialType": "telegramApi",
+            "placement": "url",
+            "effect": "write",
+            "result": {},
+            "fidelity": "exact",
+            "understood": ["operation", "resource", "chatId", "file", "additionalFields.caption", "additionalFields.parse_mode"],
+            "review": [{"param":"binaryData", "equals":true, "reason":"sending a photo from n8n binary data needs a multipart upload"}]
+          }
+        }
+      }
+    },
+    "n8n-nodes-base.whatsApp": {
+      ">=1": {
+        "message": {
+          "send": {
+            "http": {
+              "method": "POST",
+              "url": { "concat": [{ "const": "https://graph.facebook.com/v13.0/" }, { "param": "phoneNumberId" }, { "const": "/messages" }], "sep": "" },
+              "body": { "messaging_product": { "const": "whatsapp" }, "to": "recipientPhoneNumber", "type": { "const": "text" }, "text": { "body": "textBody", "preview_url": "additionalFields.previewUrl" } }
+            },
+            "credentialType": "whatsAppApi",
+            "placement": "header",
+            "effect": "write",
+            "result": {},
+            "fidelity": "exact",
+            "understood": ["operation", "resource", "messageType", "phoneNumberId", "recipientPhoneNumber", "textBody", "additionalFields.previewUrl"],
+            "review": [
+              { "param": "messageType", "equals": "image", "reason": "media messages are not mapped" },
+              { "param": "messageType", "equals": "audio", "reason": "media messages are not mapped" },
+              { "param": "messageType", "equals": "document", "reason": "media messages are not mapped" },
+              { "param": "messageType", "equals": "video", "reason": "media messages are not mapped" },
+              { "param": "messageType", "equals": "location", "reason": "location messages are not mapped" },
+              { "param": "messageType", "equals": "contacts", "reason": "contact messages are not mapped" }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "substitutions": {
+    "smtp-to-gmail": {
+      "from": "n8n-nodes-base.emailSend",
+      "operation": "send",
+      "to": "send through the Gmail connector (send_message) instead of SMTP",
+      "connector": "gmail",
+      "tool": "send_message",
+      "effect": "write",
+      "args": {
+        "to": "toEmail",
+        "subject": "subject",
+        "body": { "if": { "param": "emailFormat", "equals": "text", "default": "html" }, "then": { "param": "text" }, "else": { "const": null } },
+        "htmlBody": { "if": { "param": "emailFormat", "equals": "html", "default": "html" }, "then": { "param": "html" }, "else": { "const": null } },
+        "cc": "options.ccEmail",
+        "bcc": "options.bccEmail"
+      },
+      "result": {},
+      "fidelity": "unverified",
+      "missingFields": ["accepted", "rejected", "envelope", "messageId", "response"],
+      "caveats": ["The mail is sent from the Gmail account, not from the SMTP sender address in fromEmail."],
+      "understood": ["operation", "resource", "fromEmail", "toEmail", "subject", "emailFormat", "text", "html", "options.ccEmail", "options.bccEmail", "options.appendAttribution"],
+      "review": [{"param":"options.attachments", "reason":"attachments from n8n binary data need translating into file references"}]
+    },
+    "imap-to-gmail-poll": {
+      "from": "n8n-nodes-base.emailReadImap",
+      "operation": "poll",
+      "to": "poll the mailbox through the Gmail connector instead of IMAP",
+      "connector": "gmail",
+      "tool": "search_threads",
+      "effect": "read",
+      "args": { "query": { "const": "in:inbox is:unread" }, "pageSize": { "const": 50 } },
+      "result": { "items": "threads[*].messages[*]", "fields": { "threadId": "^.id", "from": "sender", "subject": "subject", "textPlain": "plaintextBody" } },
+      "cursor": { "field": "date", "strategy": "max", "idField": "id", "arg": "query", "template": "after:{seconds}" },
+      "fidelity": "unverified",
+      "missingFields": ["textHtml", "to", "date", "attachments"],
+      "caveats": ["Only a Gmail mailbox can be polled this way.", "IMAP marks messages as read; the poll does not."],
+      "understood": ["mailbox", "postProcessAction", "format", "downloadAttachments", "options"]
+    }
+  },
+  "credentialHosts": {
+    "$doc": "Hosts a credential type may be sent to, when the http steps that use it do not say (n8n credential base URLs).",
+    "telegramApi": ["api.telegram.org"],
+    "whatsAppApi": ["graph.facebook.com"],
+    "slackApi": ["slack.com"],
+    "slackOAuth2Api": ["slack.com"],
+    "notionApi": ["api.notion.com"],
+    "githubApi": ["api.github.com"],
+    "githubOAuth2Api": ["api.github.com"],
+    "openAiApi": ["api.openai.com"],
+    "anthropicApi": ["api.anthropic.com"],
+    "googlePalmApi": ["generativelanguage.googleapis.com"],
+    "googleSheetsOAuth2Api": ["sheets.googleapis.com"],
+    "googleDocsOAuth2Api": ["docs.googleapis.com"],
+    "googleDriveOAuth2Api": ["www.googleapis.com"],
+    "gmailOAuth2": ["gmail.googleapis.com", "www.googleapis.com"],
+    "airtableTokenApi": ["api.airtable.com"],
+    "airtableApi": ["api.airtable.com"],
+    "discordBotApi": ["discord.com"],
+    "discordWebhookApi": ["discord.com"],
+    "hubspotApi": ["api.hubapi.com"],
+    "hubspotAppToken": ["api.hubapi.com"],
+    "hubspotOAuth2Api": ["api.hubapi.com"],
+    "clickUpApi": ["api.clickup.com"],
+    "jiraSoftwareCloudApi": [],
+    "serpApi": ["serpapi.com"],
+    "twitterOAuth2Api": ["api.x.com", "api.twitter.com"],
+    "linkedInOAuth2Api": ["api.linkedin.com"],
+    "facebookGraphApi": ["graph.facebook.com"],
+    "wordpressApi": [],
+    "supabaseApi": [],
+    "pineconeApi": ["api.pinecone.io"],
+    "qdrantApi": [],
+    "perplexityApi": ["api.perplexity.ai"],
+    "mistralCloudApi": ["api.mistral.ai"],
+    "groqApi": ["api.groq.com"],
+    "openRouterApi": ["openrouter.ai"],
+    "deepSeekApi": ["api.deepseek.com"],
+    "apifyApi": ["api.apify.com"],
+    "firecrawlApi": ["api.firecrawl.dev"],
+    "elevenLabsApi": ["api.elevenlabs.io"]
+  }
+}
