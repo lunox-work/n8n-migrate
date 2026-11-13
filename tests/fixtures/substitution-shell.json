@@ -1,0 +1,93 @@
+{
+  "id": "substitution-shell",
+  "name": "Disk usage report",
+  "active": false,
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-8000-000000000661",
+      "name": "Every 2 hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        145420,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000662",
+      "name": "Check disk",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        145640,
+        300
+      ],
+      "parameters": {
+        "command": "df -h /"
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000663",
+      "name": "Post usage",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        145860,
+        300
+      ],
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "#ops"
+        },
+        "text": "={{ $json.stdout }}"
+      },
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "cred-slackOAuth2Api",
+          "name": "Slack bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every 2 hours": {
+      "main": [
+        [
+          {
+            "node": "Check disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check disk": {
+      "main": [
+        [
+          {
+            "node": "Post usage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "UTC"
+  }
+}

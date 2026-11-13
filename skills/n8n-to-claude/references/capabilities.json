@@ -217,6 +217,17 @@
       },
       "to": "poll the mailbox through the Gmail (or Microsoft 365) connector instead of IMAP"
     },
+    "n8n-nodes-base.executeCommand": {
+      "name": "n8n host shell → local task shell",
+      "operations": ["*"],
+      "source": "docs 2026-11-14, untested",
+      "surfaces": {
+        "artifact": { "source": "docs 2026-11-14, untested", "value": "no" },
+        "cloudTask": { "source": "docs 2026-11-14, untested", "value": "no" },
+        "localTask": { "source": "docs 2026-11-14, untested", "value": "ok" }
+      },
+      "to": "run the command in a local task's shell on your computer instead of on the n8n host; the tools and paths it uses must exist there"
+    },
     "n8n-nodes-base.emailSend": {
       "name": "smtp → mail connector",
       "operations": ["send"],

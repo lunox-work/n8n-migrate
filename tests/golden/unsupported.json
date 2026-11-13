@@ -31,7 +31,8 @@
       "schedule": 1
     },
     "blockers": {
-      "unsupported": 1
+      "unsupported": 1,
+      "substitution": 1
     },
     "notAnAutomation": 0,
     "questions": 0,
@@ -67,7 +68,7 @@
       "outcome": {
         "kind": "keep-in-n8n",
         "target": null,
-        "reason": "runs a shell command on the n8n host; resumes when an n8n webhook is called (out of scope v1)",
+        "reason": "resumes when an n8n webhook is called (out of scope v1)",
         "alsoTargets": []
       },
       "calledBy": [],
@@ -88,6 +89,18 @@
             "slack message:post"
           ],
           "confirmed": false
+        },
+        {
+          "kind": "substitution",
+          "name": "n8n host shell → local task shell",
+          "nodes": [
+            "Check disk"
+          ],
+          "surfaces": {
+            "cloudTask": "no",
+            "localTask": "ok",
+            "artifact": "no"
+          }
         }
       ],
       "questions": [],
@@ -100,8 +113,8 @@
           ]
         },
         {
-          "kind": "unsupported",
-          "reason": "runs a shell command on the n8n host",
+          "kind": "substitution",
+          "reason": "n8n host shell → local task shell: run the command in a local task's shell on your computer instead of on the n8n host; the tools and paths it uses must exist there",
           "nodes": [
             "Check disk"
           ]
