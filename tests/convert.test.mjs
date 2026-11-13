@@ -101,7 +101,7 @@ test("(b1) chat agent with two connector tools and buffer memory: tool calls run
       turns.push(p);
       if (p.turn === 0) return { intent: "tool-calls", calls: [{ name: "Search_mail", args: { query: "from:ann is:unread" } }] };
       if (p.turn === 1) return { intent: "tool-calls", calls: [{ name: "Post_to_Slack", args: { message: `Ann wrote: ${p.transcript[0].results[0].value[0].Subject}` } }] };
-      return `Posted. Last tool said ok=${p.transcript[1].results[0].value[0].ok}`;
+      return `Posted. Last tool said ok=${p.transcript[1].results[0].value.ok}`;
     },
   };
   const r = await run(def, { clock: CLOCK, virtualTime: true, trigger: [{ sessionId: "s-1", action: "sendMessage", chatInput: "What did Ann send? Post it." }], host });
@@ -254,4 +254,54 @@ test("CLI: convert writes the folders and regenerate rebuilds one", () => {
   const bad = spawnSync(process.execPath, [cli, join(FIX, "slice.n8n.json")], { encoding: "utf8" });
   assert.equal(bad.status, 2);
   rmSync(dir, { recursive: true, force: true });
+});
+
+test("agent tools from a sub-workflow (self), a Code tool and an HTTP Request tool convert and run through the runner", async () => {
+  const wf = {
+    id: "tools01",
+    name: "Agent with three tool kinds",
+    nodes: [
+      manual,
+      { parameters: { promptType: "define", text: "={{ $json.q }}", options: {} }, name: "Agent", type: "@n8n/n8n-nodes-langchain.agent", typeVersion: 1.7, position: [200, 0] },
+      { parameters: { model: { __rl: true, mode: "list", value: "claude-sonnet-4-5-20250929" }, options: {} }, name: "Claude", type: "@n8n/n8n-nodes-langchain.lmChatAnthropic", typeVersion: 1.3, position: [100, 200] },
+      { parameters: { description: "Doubles a number. Input: the number.", jsCode: "return String(Number(query) * 2);" }, name: "Double", type: "@n8n/n8n-nodes-langchain.toolCode", typeVersion: 1.1, position: [200, 200] },
+      {
+        parameters: { description: "Stock for a SKU", workflowId: { __rl: true, value: "={{ $workflow.id }}", mode: "id" }, workflowInputs: { mappingMode: "defineBelow", value: { sku: "={{ $fromAI('sku', 'The SKU', 'string') }}" }, matchingColumns: [], schema: [] } },
+        name: "Stock lookup",
+        type: "@n8n/n8n-nodes-langchain.toolWorkflow",
+        typeVersion: 2.1,
+        position: [300, 200],
+      },
+      { parameters: { toolDescription: "Weather for a city", url: "https://api.weather.example.com/v1/{city}", placeholderDefinitions: { values: [{ name: "city", description: "City name", type: "string" }] } }, name: "Weather", type: "@n8n/n8n-nodes-langchain.toolHttpRequest", typeVersion: 1.1, position: [400, 200] },
+      { parameters: { inputSource: "passthrough" }, name: "When called", type: "n8n-nodes-base.executeWorkflowTrigger", typeVersion: 1.1, position: [0, 400] },
+      { parameters: { jsCode: "return [{ json: { sku: $input.first().json.sku, units: 12 } }];" }, name: "Stock", type: "n8n-nodes-base.code", typeVersion: 2, position: [200, 400] },
+    ],
+    connections: {
+      ...link("Start", "Agent"),
+      ...link("When called", "Stock"),
+      Claude: { ai_languageModel: [[{ node: "Agent", type: "ai_languageModel", index: 0 }]] },
+      Double: { ai_tool: [[{ node: "Agent", type: "ai_tool", index: 0 }]] },
+      "Stock lookup": { ai_tool: [[{ node: "Agent", type: "ai_tool", index: 0 }]] },
+      Weather: { ai_tool: [[{ node: "Agent", type: "ai_tool", index: 0 }]] },
+    },
+    settings: { executionOrder: "v1" },
+  };
+  const def = convertJson(wf).definition;
+  assert.deepEqual(validate(def, defSchema), []);
+  assert.deepEqual(def.steps.Agent.agent.tools.map((t) => [t.name, t.kind, t.inputSchema.required]), [["Double", "code", ["query"]], ["Stock_lookup", "subflow", ["sku"]], ["Weather", "http", ["city"]]]);
+  assert.deepEqual(def.steps["Stock lookup"].subflow, { self: true, inputs: { sku: "={{ $fromAI('sku', 'The SKU', 'string') }}" } });
+  assert.deepEqual(def.allow.http, [{ method: "GET", host: "api.weather.example.com", pathPrefix: "/v1/" }]);
+  assert.equal(preflight(def).ok, true, JSON.stringify(preflight(def).issues));
+  const http = [];
+  const host = {
+    http: async (q) => (http.push(q.url), { status: 200, headers: { "content-type": "application/json" }, body: '{"temp":12}' }),
+    agent: async (p) =>
+      p.turn === 0
+        ? { intent: "tool-calls", calls: [{ name: "Double", args: { query: "21" } }, { name: "Stock_lookup", args: { sku: "SKU-1" } }, { name: "Weather", args: { city: "Paris" } }] }
+        : p.transcript[0].results.map((r) => JSON.stringify(r.value)).join(" | "),
+  };
+  const r = await run(def, { clock: CLOCK, virtualTime: true, trigger: { node: "Start", items: [{ json: { q: "go" } }] }, host });
+  assert.equal(r.status, "done", JSON.stringify(r.error));
+  assert.deepEqual(r.output, [{ output: '"42" | {"sku":"SKU-1","units":12} | {"temp":12}' }]);
+  assert.deepEqual(http, ["https://api.weather.example.com/v1/Paris"]);
 });

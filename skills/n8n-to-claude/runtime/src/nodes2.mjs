@@ -1100,6 +1100,12 @@ function failedItem(exec, r, i, what) {
 // Memory (buffer window) is a key and a window size; the host keeps the conversation.
 
 const TOOL_INTENT = "tool-calls";
+// What a tool call hands back to the model: the adapted items, as a list when the adapter
+// selects a list (items path or csv), else the single item.
+function toolValue(spec, output) {
+  const items = adaptResult(spec, output);
+  return spec && (spec.items || spec.parse) ? items : items.length === 1 ? items[0] : items;
+}
 const isToolIntent = (v) => isObject(v) && v.intent === TOOL_INTENT && Array.isArray(v.calls);
 
 function checkToolArgs(schema, args) {
@@ -1136,7 +1142,7 @@ export async function executeAgentTool(exec, tools, call, itemIndex) {
       const toolArgsValue = sub?.tool ? toolArgs(exec, t, itemIndex, locals) : args;
       const [r] = await exec.request([{ kind: "tool", itemIndex, connector: t.connector, tool: t.name, args: toolArgsValue, effect: t.effect }]);
       if (!r.ok) return { ok: false, error: { message: r.error?.message ?? "tool call failed" } };
-      return { ok: true, value: t.result ? adaptResult(t.result, r.value) : r.value };
+      return { ok: true, value: t.result ? toolValue(t.result, r.value) : r.value };
     }
     if (kind === "http") {
       const h = sub?.http;
@@ -1147,7 +1153,7 @@ export async function executeAgentTool(exec, tools, call, itemIndex) {
       if (!r.ok) return { ok: false, error: { message: r.error?.message ?? "request failed" } };
       const { status, body } = templateValue(r);
       if (status >= 400) return { ok: false, error: { message: `${status} - ${typeof body === "string" ? body : JSON.stringify(body)}` } };
-      return { ok: true, value: h.result ? adaptResult(h.result, body) : body };
+      return { ok: true, value: h.result ? toolValue(h.result, body) : body };
     }
     if (kind === "code") {
       const p = sub?.params ?? {};
