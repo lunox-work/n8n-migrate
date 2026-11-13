@@ -1,0 +1,726 @@
+{
+ "note": "observed from n8n 2.47.7 on 2026-11-14 (evals/diff/differential.mjs --save-fixture)",
+ "title": "HTTP Request response bodies: explicit json/text parse JSON, empty bodies",
+ "label": "http-empty-bodies",
+ "workflow": {
+  "name": "http-empty-bodies",
+  "nodes": [
+   {
+    "id": "t",
+    "name": "Trigger",
+    "type": "n8n-nodes-base.manualTrigger",
+    "typeVersion": 1,
+    "position": [
+     0,
+     0
+    ],
+    "parameters": {}
+   },
+   {
+    "id": "n0",
+    "name": "JsonEmpty",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     240,
+     0
+    ],
+    "parameters": {
+     "options": {
+      "response": {
+       "response": {
+        "responseFormat": "json"
+       }
+      }
+     },
+     "url": "http://mock:8080/empty-json"
+    }
+   },
+   {
+    "id": "n1",
+    "name": "JsonEmptyOne",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     480,
+     -200
+    ],
+    "parameters": {
+     "options": {
+      "response": {
+       "response": {
+        "responseFormat": "json"
+       }
+      }
+     },
+     "url": "http://mock:8080/empty-json"
+    },
+    "executeOnce": true,
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "n2",
+    "name": "AfterEmpty",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     480,
+     0
+    ],
+    "parameters": {
+     "jsCode": "return $input.all().map(i => ({ json: { hasJson: i.json !== undefined, keys: Object.keys(i.json ?? {}).length } }));"
+    }
+   },
+   {
+    "id": "n3",
+    "name": "TextOfJson",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     960,
+     200
+    ],
+    "parameters": {
+     "options": {
+      "response": {
+       "response": {
+        "responseFormat": "text"
+       }
+      }
+     },
+     "url": "http://mock:8080/spaced-json"
+    }
+   },
+   {
+    "id": "n4",
+    "name": "AutoTextEmpty",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     1200,
+     400
+    ],
+    "parameters": {
+     "options": {},
+     "url": "http://mock:8080/empty-text"
+    }
+   },
+   {
+    "id": "n5",
+    "name": "AutoJsonEmpty",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     1440,
+     600
+    ],
+    "parameters": {
+     "options": {},
+     "url": "http://mock:8080/empty-json"
+    }
+   },
+   {
+    "id": "n6",
+    "name": "JsonFullEmpty",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     1680,
+     800
+    ],
+    "parameters": {
+     "options": {
+      "response": {
+       "response": {
+        "responseFormat": "json",
+        "fullResponse": true
+       }
+      }
+     },
+     "url": "http://mock:8080/empty-json"
+    }
+   },
+   {
+    "id": "n7",
+    "name": "TextEmpty",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     1920,
+     1000
+    ],
+    "parameters": {
+     "options": {
+      "response": {
+       "response": {
+        "responseFormat": "text"
+       }
+      }
+     },
+     "url": "http://mock:8080/empty-text"
+    }
+   }
+  ],
+  "connections": {
+   "Trigger": {
+    "main": [
+     [
+      {
+       "node": "JsonEmpty",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "JsonEmptyOne",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "TextOfJson",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "AutoTextEmpty",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "AutoJsonEmpty",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "JsonFullEmpty",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "TextEmpty",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "JsonEmpty": {
+    "main": [
+     [
+      {
+       "node": "AfterEmpty",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1"
+  }
+ },
+ "triggerName": "Trigger",
+ "pinned": [
+  "Trigger"
+ ],
+ "pinData": {
+  "Trigger": [
+   {
+    "json": {
+     "id": 1
+    }
+   },
+   {
+    "json": {
+     "id": 2
+    }
+   }
+  ]
+ },
+ "fixtures": {
+  "* /empty-json": {
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "date": "Sat, 14 Nov 2026 03:00:00 GMT"
+   },
+   "body": ""
+  },
+  "* /spaced-json": {
+   "status": 200,
+   "headers": {
+    "content-type": "text/plain"
+   },
+   "body": "{ \"a\" : 1,  \"b\": [ 2 ] }"
+  },
+  "* /empty-text": {
+   "status": 200,
+   "headers": {
+    "content-type": "text/plain"
+   },
+   "body": ""
+  }
+ },
+ "n8n": {
+  "status": "success",
+  "error": null,
+  "lastNode": "TextEmpty",
+  "startedAt": "2026-11-13T21:43:13.710Z",
+  "executionId": "1482",
+  "workflowId": "vo74lQYJK3NPY5YU",
+  "executionData": {
+   "runData": {
+    "Trigger": [
+     {
+      "executionIndex": 0,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "id": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "id": 2
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "JsonEmptyOne": [
+     {
+      "executionIndex": 1,
+      "executionStatus": "error",
+      "error": {
+       "message": "Cannot read properties of undefined (reading 'data')"
+      },
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "id": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "id": 2
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "JsonEmpty": [
+     {
+      "executionIndex": 2,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "AfterEmpty": [
+     {
+      "executionIndex": 3,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "hasJson": false,
+           "keys": 0
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "hasJson": false,
+           "keys": 0
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "TextOfJson": [
+     {
+      "executionIndex": 4,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "data": "{\"a\":1,\"b\":[2]}"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "data": "{\"a\":1,\"b\":[2]}"
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "AutoTextEmpty": [
+     {
+      "executionIndex": 5,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {},
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {},
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "AutoJsonEmpty": [
+     {
+      "executionIndex": 6,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {},
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {},
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "JsonFullEmpty": [
+     {
+      "executionIndex": 7,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "headers": {
+            "content-type": "application/json",
+            "date": "Sat, 14 Nov 2026 03:00:00 GMT",
+            "connection": "close",
+            "transfer-encoding": "chunked"
+           },
+           "statusCode": 200,
+           "statusMessage": "OK"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "headers": {
+            "content-type": "application/json",
+            "date": "Sat, 14 Nov 2026 03:00:00 GMT",
+            "connection": "close",
+            "transfer-encoding": "chunked"
+           },
+           "statusCode": 200,
+           "statusMessage": "OK"
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "TextEmpty": [
+     {
+      "executionIndex": 8,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {},
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {},
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ]
+   }
+  },
+  "effects": [
+   {
+    "method": "GET",
+    "path": "/empty-json",
+    "query": {},
+    "headers": {
+     "accept": "application/json,text/*;q=0.99",
+     "user-agent": "n8n",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": null,
+    "bodyEncoding": null,
+    "fixture": "* /empty-json"
+   },
+   {
+    "method": "GET",
+    "path": "/empty-json",
+    "query": {},
+    "headers": {
+     "accept": "application/json,text/*;q=0.99",
+     "user-agent": "n8n",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": null,
+    "bodyEncoding": null,
+    "fixture": "* /empty-json"
+   },
+   {
+    "method": "GET",
+    "path": "/empty-json",
+    "query": {},
+    "headers": {
+     "accept": "application/json,text/*;q=0.99",
+     "user-agent": "n8n",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": null,
+    "bodyEncoding": null,
+    "fixture": "* /empty-json"
+   },
+   {
+    "method": "GET",
+    "path": "/spaced-json",
+    "query": {},
+    "headers": {
+     "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, */*;q=0.1",
+     "user-agent": "n8n",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": null,
+    "bodyEncoding": null,
+    "fixture": "* /spaced-json"
+   },
+   {
+    "method": "GET",
+    "path": "/spaced-json",
+    "query": {},
+    "headers": {
+     "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, */*;q=0.1",
+     "user-agent": "n8n",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": null,
+    "bodyEncoding": null,
+    "fixture": "* /spaced-json"
+   },
+   {
+    "method": "GET",
+    "path": "/empty-text",
+    "query": {},
+    "headers": {
+     "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
+     "user-agent": "n8n",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": null,
+    "bodyEncoding": null,
+    "fixture": "* /empty-text"
+   },
+   {
+    "method": "GET",
+    "path": "/empty-text",
+    "query": {},
+    "headers": {
+     "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
+     "user-agent": "n8n",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": null,
+    "bodyEncoding": null,
+    "fixture": "* /empty-text"
+   },
+   {
+    "method": "GET",
+    "path": "/empty-json",
+    "query": {},
+    "headers": {
+     "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
+     "user-agent": "n8n",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": null,
+    "bodyEncoding": null,
+    "fixture": "* /empty-json"
+   },
+   {
+    "method": "GET",
+    "path": "/empty-json",
+    "query": {},
+    "headers": {
+     "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
+     "user-agent": "n8n",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": null,
+    "bodyEncoding": null,
+    "fixture": "* /empty-json"
+   },
+   {
+    "method": "GET",
+    "path": "/empty-json",
+    "query": {},
+    "headers": {
+     "accept": "application/json,text/*;q=0.99",
+     "user-agent": "n8n",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": null,
+    "bodyEncoding": null,
+    "fixture": "* /empty-json"
+   },
+   {
+    "method": "GET",
+    "path": "/empty-json",
+    "query": {},
+    "headers": {
+     "accept": "application/json,text/*;q=0.99",
+     "user-agent": "n8n",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": null,
+    "bodyEncoding": null,
+    "fixture": "* /empty-json"
+   },
+   {
+    "method": "GET",
+    "path": "/empty-text",
+    "query": {},
+    "headers": {
+     "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, */*;q=0.1",
+     "user-agent": "n8n",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": null,
+    "bodyEncoding": null,
+    "fixture": "* /empty-text"
+   },
+   {
+    "method": "GET",
+    "path": "/empty-text",
+    "query": {},
+    "headers": {
+     "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, */*;q=0.1",
+     "user-agent": "n8n",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": null,
+    "bodyEncoding": null,
+    "fixture": "* /empty-text"
+   }
+  ]
+ }
+}

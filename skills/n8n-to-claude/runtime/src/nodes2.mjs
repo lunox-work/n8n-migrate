@@ -506,60 +506,102 @@ const STATUS_MESSAGES = {
 
 const REASONS = { 200: "OK", 201: "Created", 202: "Accepted", 204: "No Content", 301: "Moved Permanently", 302: "Found", 304: "Not Modified", 400: "Bad Request", 401: "Unauthorized", 403: "Forbidden", 404: "Not Found", 409: "Conflict", 422: "Unprocessable Entity", 429: "Too Many Requests", 500: "Internal Server Error", 502: "Bad Gateway", 503: "Service Unavailable", 504: "Gateway Timeout" };
 
-function keyPairs(list) {
+// n8n HttpRequestV3 builds key-value parameters with updadeQueryParameterConfig: before
+// 4.3 a repeated name keeps the last value, from 4.3 it collects the values in a list.
+function keyPairs(list, version) {
   const out = {};
   for (const p of list ?? []) {
-    if (!p || p.name === undefined || p.name === "") continue;
-    if (out[p.name] !== undefined) out[p.name] = [].concat(out[p.name], p.value);
-    else out[p.name] = p.value;
+    if (!p) continue;
+    if (version < 4.3 || out[p.name] === undefined) out[p.name] = p.value;
+    else if (Array.isArray(out[p.name])) out[p.name].push(p.value);
+    else out[p.name] = [out[p.name], p.value];
   }
   return out;
 }
-const jsonParam = (exec, v, what, i) => {
-  if (typeof v !== "string") return v;
-  if (v.trim() === "") return {};
+// HttpRequestV3's parseJsonParameter: plain JSON.parse with its error message.
+const jsonParam = (exec, v, field, i) => {
   try {
     return JSON.parse(v);
-  } catch {
-    throw err(exec, `JSON parameter needs to be valid JSON`, { itemIndex: i, description: what });
+  } catch (e) {
+    throw err(exec, `The value in the "${field}" field is not valid JSON`, { itemIndex: i, description: e.message });
   }
 };
+const ACCEPT = {
+  json: "application/json,text/*;q=0.99",
+  text: "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, */*;q=0.1",
+  other: "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
+};
+const METHODS_WITHOUT_BODY = ["HEAD", "OPTIONS", "TRACE"];
 
-// HTTP Request v3/v4.x -> an `http` request per item (n8n HttpRequestV3 parameters).
+// HTTP Request v3/v4.x -> an `http` request per item, built as n8n HttpRequestV3 builds
+// its request options: URL checks, query/headers/body from key-value lists or JSON, header
+// names lowercased (option lowercaseHeaders, default on), the default accept header for
+// the response format, raw bodies with their content type.
 export function buildHttpRequest(exec, i) {
+  const v = exec.typeVersion;
   const p = (k, fb) => exec.param(k, i, fb);
+  let url = p("url", "");
+  if (typeof url !== "string") throw err(exec, `URL parameter must be a string, got ${url === null ? "null" : typeof url}`, { itemIndex: i });
+  url = url.trim();
+  if (!url) throw err(exec, "URL parameter cannot be empty", { itemIndex: i });
+  if (!url.startsWith("http://") && !url.startsWith("https://")) throw err(exec, `Invalid URL: ${url}. URL must start with "http" or "https".`, { itemIndex: i });
   const method = String(p("method", "GET")).toUpperCase();
-  const url = p("url", "");
   const options = p("options", {});
   if (options.pagination?.pagination || exec.params.options?.pagination) throw unsupported(exec, "HTTP Request pagination");
-  const req = { kind: "http", itemIndex: i, method, url: String(url), headers: {}, query: {} };
-  if (p("sendQuery", false)) req.query = p("specifyQuery", "keypair") === "json" ? jsonParam(exec, p("jsonQuery", ""), "Query Parameters", i) : keyPairs(p("queryParameters.parameters", []));
-  if (p("sendHeaders", false)) req.headers = p("specifyHeaders", "keypair") === "json" ? jsonParam(exec, p("jsonHeaders", ""), "Headers", i) : keyPairs(p("headerParameters.parameters", []));
-  if (p("sendBody", false)) {
-    const ct = p("contentType", "json");
-    if (ct === "json") req.body = p("specifyBody", "keypair") === "json" ? jsonParam(exec, p("jsonBody", ""), "JSON Body", i) : keyPairs(p("bodyParameters.parameters", []));
-    else if (ct === "form-urlencoded") req.body = p("specifyBody", "keypair") === "string" ? String(p("body", "")) : keyPairs(p("bodyParameters.parameters", []));
-    else if (ct === "multipart-form-data") {
-      const list = p("bodyParameters.parameters", []);
-      if (list.some((x) => x.parameterType === "formBinaryData")) throw unsupported(exec, "HTTP Request binary form fields");
-      req.body = keyPairs(list);
-    } else if (ct === "raw") {
-      req.body = String(p("body", ""));
-      req.headers = { "content-type": p("rawContentType", ""), ...req.headers };
-    } else throw unsupported(exec, `HTTP Request body type "${ct}"`);
+  const r = options.response?.response ?? {};
+  const responseFormat = r.responseFormat || "autodetect";
+  if (responseFormat === "file") throw unsupported(exec, "HTTP Request file responses");
+  const req = { kind: "http", itemIndex: i, method, url, headers: {}, query: {} };
+  const sendBody = p("sendBody", false);
+  const ct = p("contentType", "json");
+  if (sendBody) {
+    const specifyBody = p("specifyBody", "keypair");
+    const list = p("bodyParameters.parameters", []);
+    let body;
+    if (specifyBody === "keypair" || ct === "multipart-form-data") {
+      if (list.some((x) => x?.parameterType === "formBinaryData")) throw unsupported(exec, "HTTP Request binary form fields");
+      if (ct === "json" && v >= 4) {
+        body = {};
+        for (const e of list) setPath(body, e.name, e.value);
+      } else if (ct === "multipart-form-data" && v >= 4.2) body = keyPairs(list, 4.3);
+      else body = keyPairs(list, v);
+    } else if (specifyBody === "json") {
+      const jb = p("jsonBody", "");
+      body = typeof jb !== "object" && jb !== null ? jsonParam(exec, jb, "JSON Body", i) : jb;
+    } else if (specifyBody === "string") body = Object.fromEntries(new URLSearchParams(String(p("body", ""))));
+    if (!METHODS_WITHOUT_BODY.includes(method)) {
+      if (ct === "binaryData") throw unsupported(exec, "HTTP Request binary bodies");
+      if (ct === "raw") body = p("body", "");
+    }
+    if (body !== undefined) req.body = body;
     req.contentType = ct;
   }
+  if (p("sendQuery", false)) {
+    if (p("specifyQuery", "keypair") === "keypair") req.query = keyPairs(p("queryParameters.parameters", []), v);
+    else req.query = jsonParam(exec, p("jsonQuery", ""), "JSON Query Parameters", i);
+  }
+  if (p("sendHeaders", false)) {
+    const extra = p("specifyHeaders", "keypair") === "keypair" ? keyPairs(p("headerParameters.parameters", []).filter((h) => h?.name), v) : jsonParam(exec, p("jsonHeaders", ""), "JSON Headers", i);
+    const lower = options.lowercaseHeaders === undefined || options.lowercaseHeaders;
+    req.headers = lower ? Object.fromEntries(Object.entries(extra ?? {}).map(([k, x]) => [k.toLowerCase(), x])) : { ...extra };
+  }
+  if (sendBody && ct === "raw") req.headers["content-type"] = p("rawContentType", "");
+  // Lists in the query and in a form body are encoded with qs, "indices" by default
+  // (a[0]=1&a[1]=2); the option queryParameterArrays (brackets / repeat) applies to the query
+  // only. Observed from n8n 2.47.7 (tests/fixtures/n8n-observed/http-request-build.json).
+  const hasList = (o) => o && typeof o === "object" && Object.values(o).some(Array.isArray);
+  if (hasList(req.query)) req.queryArrayFormat = options.queryParameterArrays || "indices";
+  if (req.contentType === "form-urlencoded" && hasList(req.body)) req.formArrayFormat = "indices";
   const auth = exec.step.auth;
   const authentication = p("authentication", "none");
   if (authentication !== "none") {
     if (!auth?.secret) throw err(exec, "HTTP Request uses a credential the definition does not name (step.auth)");
     req.auth = { credentialType: auth.credentialType ?? (authentication === "genericCredentialType" ? p("genericAuthType", "") : p("nodeCredentialType", "")), secret: auth.secret };
   }
+  if (req.headers.accept === undefined) req.headers.accept = ACCEPT[responseFormat] ?? ACCEPT.other;
   if (options.timeout) req.timeoutMs = options.timeout;
   if (options.redirect?.redirect?.followRedirects === false) req.followRedirects = false;
-  const r = options.response?.response ?? {};
-  req.response = { format: r.responseFormat || "autodetect", fullResponse: !!r.fullResponse, neverError: !!r.neverError };
-  if (req.response.format === "file") throw unsupported(exec, "HTTP Request file responses");
+  req.response = { format: responseFormat, fullResponse: !!r.fullResponse, neverError: !!r.neverError };
   return req;
 }
 
@@ -574,7 +616,18 @@ function httpItems(exec, req, res, i) {
     const message = res.ok ? STATUS_MESSAGES[status] ?? `${status} - ${typeof body === "string" ? body : JSON.stringify(body)}` : res.error?.message ?? "request failed";
     const e = err(exec, message, { itemIndex: i, httpCode: res.ok ? String(status) : undefined, description: typeof body === "string" ? body : body !== undefined ? JSON.stringify(body) : undefined });
     if (!exec.continueOnFail()) throw e;
-    return [{ json: { error: { message, ...(res.ok ? { httpCode: String(status) } : {}) } }, pairedItem: { item: i } }];
+    if (!res.ok) return [{ json: { error: { message } }, pairedItem: { item: i } }];
+    // With continue-on-fail n8n puts the rejected request's error itself in the item: axios's
+    // AxiosError as n8n's request helper shapes it, "<status> - <body as JSON>" (the body is
+    // the raw text unless the format is json/text, which parse it), minus the server stack.
+    let shown = body;
+    if (fmt.format !== "autodetect" && typeof shown === "string") {
+      try {
+        shown = JSON.parse(shown);
+      } catch {}
+    }
+    const text = status === 429 ? "Try spacing your requests out using the batching settings under 'Options'" : `${status} - ${JSON.stringify(shown ?? "")}`;
+    return [{ json: { error: { message: text, name: "AxiosError", code: status < 500 ? "ERR_BAD_REQUEST" : "ERR_BAD_RESPONSE", status } }, pairedItem: { item: i } }];
   }
   let format = fmt.format;
   if (format === "autodetect") {
@@ -597,11 +650,23 @@ function httpItems(exec, req, res, i) {
     }
   }
   const pi = { item: i };
+  // An explicit json or text format asks for a JSON response (request option json: true):
+  // a JSON body arrives parsed, an empty one as undefined (observed from n8n 2.47.7,
+  // tests/fixtures/n8n-observed/http-empty-bodies.json).
+  if (fmt.format !== "autodetect" && typeof body === "string") {
+    if (body === "") body = undefined;
+    else {
+      try {
+        body = JSON.parse(body);
+      } catch {}
+    }
+  }
   if (format === "text") {
-    const text = body === undefined || body === null ? "" : typeof body === "string" ? body : JSON.stringify(body);
+    const text = body === undefined || body === null ? body : typeof body === "string" ? body : JSON.stringify(body);
     if (fmt.fullResponse) return [{ json: { data: text, headers, statusCode: status, statusMessage }, pairedItem: pi }];
     return [{ json: { data: text }, pairedItem: pi }];
   }
+  if (body === undefined && format === "json" && !fmt.fullResponse) return [{ json: undefined, pairedItem: pi }];
   if (typeof body === "string" && format === "json") {
     try {
       body = body.trim() === "" ? {} : JSON.parse(body);
@@ -645,6 +710,9 @@ const httpRequest = {
         out.push({ json: { error: e.message }, pairedItem: { item: i } });
       }
     });
+    // n8n then checks returnItems[0].json.data for its Split Out hint: a single item without
+    // json (an empty body with an explicit json format) fails the node there.
+    if (out.length === 1 && out[0].json === undefined) throw err(exec, "Cannot read properties of undefined (reading 'data')");
     return [out];
   },
 };

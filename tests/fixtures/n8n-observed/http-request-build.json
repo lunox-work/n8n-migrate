@@ -1,0 +1,658 @@
+{
+ "note": "observed from n8n 2.47.7 on 2026-11-14 (evals/diff/differential.mjs --save-fixture)",
+ "title": "HTTP Request query, header and body encoding by version; accept header; URL checks",
+ "label": "http-request-build",
+ "workflow": {
+  "name": "http-request-build",
+  "nodes": [
+   {
+    "id": "t",
+    "name": "Trigger",
+    "type": "n8n-nodes-base.manualTrigger",
+    "typeVersion": 1,
+    "position": [
+     0,
+     0
+    ],
+    "parameters": {}
+   },
+   {
+    "id": "n0",
+    "name": "V42",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     240,
+     0
+    ],
+    "parameters": {
+     "options": {},
+     "method": "POST",
+     "url": "=http://mock:8080/api/{{ $json.id }}",
+     "sendQuery": true,
+     "queryParameters": {
+      "parameters": [
+       {
+        "name": "q",
+        "value": "a b"
+       },
+       {
+        "name": "arr",
+        "value": "1"
+       },
+       {
+        "name": "arr",
+        "value": "2"
+       },
+       {
+        "name": "",
+        "value": "blank"
+       }
+      ]
+     },
+     "sendHeaders": true,
+     "headerParameters": {
+      "parameters": [
+       {
+        "name": "X-Mixed-Case",
+        "value": "={{ $json.name }}"
+       },
+       {
+        "name": "",
+        "value": "dropped"
+       }
+      ]
+     },
+     "sendBody": true,
+     "bodyParameters": {
+      "parameters": [
+       {
+        "name": "a.b",
+        "value": "={{ $json.n }}"
+       },
+       {
+        "name": "s",
+        "value": "x"
+       },
+       {
+        "name": "s",
+        "value": "y"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "n1",
+    "name": "V43",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.3,
+    "position": [
+     480,
+     200
+    ],
+    "parameters": {
+     "options": {
+      "response": {
+       "response": {
+        "responseFormat": "json"
+       }
+      }
+     },
+     "method": "GET",
+     "url": "http://mock:8080/v43",
+     "sendQuery": true,
+     "queryParameters": {
+      "parameters": [
+       {
+        "name": "arr",
+        "value": "1"
+       },
+       {
+        "name": "arr",
+        "value": "2"
+       }
+      ]
+     },
+     "sendBody": true,
+     "specifyBody": "json",
+     "jsonBody": "={\"get\": \"with body\", \"n\": {{ $json.n }}}"
+    }
+   },
+   {
+    "id": "n2",
+    "name": "Form",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     720,
+     400
+    ],
+    "parameters": {
+     "options": {
+      "response": {
+       "response": {
+        "responseFormat": "text"
+       }
+      }
+     },
+     "method": "POST",
+     "url": "http://api.example.test/form",
+     "sendBody": true,
+     "contentType": "form-urlencoded",
+     "specifyBody": "string",
+     "body": "a=1&b=%C3%BC+x&a=2"
+    }
+   },
+   {
+    "id": "n3",
+    "name": "Raw",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     960,
+     600
+    ],
+    "parameters": {
+     "options": {},
+     "method": "PUT",
+     "url": "http://mock:8080/raw",
+     "sendHeaders": true,
+     "headerParameters": {
+      "parameters": [
+       {
+        "name": "Content-Type",
+        "value": "text/x-user"
+       },
+       {
+        "name": "Accept",
+        "value": "text/plain"
+       }
+      ]
+     },
+     "sendBody": true,
+     "contentType": "raw",
+     "rawContentType": "text/csv",
+     "body": "a,b\n1,2"
+    }
+   },
+   {
+    "id": "n4",
+    "name": "FormArr",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.3,
+    "position": [
+     1200,
+     1400
+    ],
+    "parameters": {
+     "options": {
+      "queryParameterArrays": "repeat"
+     },
+     "method": "POST",
+     "url": "http://mock:8080/formarr",
+     "sendBody": true,
+     "contentType": "form-urlencoded",
+     "bodyParameters": {
+      "parameters": [
+       {
+        "name": "k",
+        "value": "1"
+       },
+       {
+        "name": "k",
+        "value": "2"
+       }
+      ]
+     },
+     "sendQuery": true,
+     "queryParameters": {
+      "parameters": [
+       {
+        "name": "r",
+        "value": "1"
+       },
+       {
+        "name": "r",
+        "value": "2"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "n5",
+    "name": "BadUrl",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     1440,
+     800
+    ],
+    "parameters": {
+     "options": {},
+     "url": "={{ $json.missing }}"
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "n6",
+    "name": "NoScheme",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     1680,
+     1000
+    ],
+    "parameters": {
+     "options": {},
+     "url": "mock:8080/x"
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "n7",
+    "name": "BadJson",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     1920,
+     1200
+    ],
+    "parameters": {
+     "options": {},
+     "method": "POST",
+     "url": "http://mock:8080/bad",
+     "sendBody": true,
+     "specifyBody": "json",
+     "jsonBody": "={ not json }"
+    },
+    "onError": "continueRegularOutput"
+   }
+  ],
+  "connections": {
+   "Trigger": {
+    "main": [
+     [
+      {
+       "node": "V42",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "V43",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Form",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Raw",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "BadUrl",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "NoScheme",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "BadJson",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "FormArr",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1"
+  }
+ },
+ "triggerName": "Trigger",
+ "pinned": [
+  "Trigger"
+ ],
+ "pinData": {
+  "Trigger": [
+   {
+    "json": {
+     "id": 7,
+     "name": "Ann Lee",
+     "n": 3
+    }
+   }
+  ]
+ },
+ "fixtures": {
+  "default": {
+   "status": 200,
+   "body": {
+    "ok": true
+   }
+  }
+ },
+ "n8n": {
+  "status": "success",
+  "error": null,
+  "lastNode": "FormArr",
+  "startedAt": "2026-11-13T21:34:19.989Z",
+  "executionId": "867",
+  "workflowId": "9hzyfnhUydkhHaIz",
+  "executionData": {
+   "runData": {
+    "Trigger": [
+     {
+      "executionIndex": 0,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "id": 7,
+           "name": "Ann Lee",
+           "n": 3
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "V42": [
+     {
+      "executionIndex": 1,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "ok": true
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "V43": [
+     {
+      "executionIndex": 2,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "ok": true
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Form": [
+     {
+      "executionIndex": 3,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "data": "{\"ok\":true}"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Raw": [
+     {
+      "executionIndex": 4,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "ok": true
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "BadUrl": [
+     {
+      "executionIndex": 5,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "error": "URL parameter must be a string, got undefined"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "NoScheme": [
+     {
+      "executionIndex": 6,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "error": "Invalid URL: mock:8080/x. URL must start with \"http\" or \"https\"."
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "BadJson": [
+     {
+      "executionIndex": 7,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "error": "The value in the \"JSON Body\" field is not valid JSON"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "FormArr": [
+     {
+      "executionIndex": 8,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "ok": true
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ]
+   }
+  },
+  "effects": [
+   {
+    "method": "POST",
+    "path": "/api/7",
+    "query": {
+     "q": "a b",
+     "arr": "2",
+     "": "blank"
+    },
+    "rawQuery": "q=a%20b&arr=2&=blank",
+    "headers": {
+     "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
+     "content-type": "application/json",
+     "x-mixed-case": "Ann Lee",
+     "user-agent": "n8n",
+     "content-length": "21",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": {
+     "a": {
+      "b": 3
+     },
+     "s": "y"
+    },
+    "bodyEncoding": "json",
+    "fixture": "default"
+   },
+   {
+    "method": "GET",
+    "path": "/v43",
+    "query": {
+     "arr[0]": "1",
+     "arr[1]": "2"
+    },
+    "rawQuery": "arr%5B0%5D=1&arr%5B1%5D=2",
+    "headers": {
+     "accept": "application/json,text/*;q=0.99",
+     "content-type": "application/json",
+     "user-agent": "n8n",
+     "content-length": "25",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": {
+     "get": "with body",
+     "n": 3
+    },
+    "bodyEncoding": "json",
+    "fixture": "default"
+   },
+   {
+    "method": "POST",
+    "proxied": "http://api.example.test",
+    "path": "/form",
+    "query": {},
+    "headers": {
+     "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, */*;q=0.1",
+     "content-type": "application/x-www-form-urlencoded",
+     "user-agent": "n8n",
+     "content-length": "16",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "api.example.test",
+     "proxy-connection": "close",
+     "connection": "close"
+    },
+    "body": {
+     "a": "2",
+     "b": "ü x"
+    },
+    "bodyEncoding": "form",
+    "fixture": "default"
+   },
+   {
+    "method": "PUT",
+    "path": "/raw",
+    "query": {},
+    "headers": {
+     "accept": "text/plain",
+     "content-type": "text/csv",
+     "user-agent": "n8n",
+     "content-length": "7",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": "a,b\n1,2",
+    "bodyEncoding": "text",
+    "fixture": "default"
+   },
+   {
+    "method": "POST",
+    "path": "/formarr",
+    "query": {
+     "r": "2"
+    },
+    "rawQuery": "r=1&r=2",
+    "headers": {
+     "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
+     "content-type": "application/x-www-form-urlencoded",
+     "user-agent": "n8n",
+     "content-length": "21",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": {
+     "k[0]": "1",
+     "k[1]": "2"
+    },
+    "bodyEncoding": "form",
+    "fixture": "default"
+   }
+  ]
+ }
+}

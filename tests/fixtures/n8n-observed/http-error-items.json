@@ -1,0 +1,282 @@
+{
+ "note": "observed from n8n 2.47.7 on 2026-11-14 (evals/diff/differential.mjs --save-fixture)",
+ "title": "HTTP Request with continue-on-fail: the AxiosError in the item",
+ "label": "http-error-items",
+ "workflow": {
+  "name": "http-error-items",
+  "nodes": [
+   {
+    "id": "t",
+    "name": "Trigger",
+    "type": "n8n-nodes-base.manualTrigger",
+    "typeVersion": 1,
+    "position": [
+     0,
+     0
+    ],
+    "parameters": {}
+   },
+   {
+    "id": "n0",
+    "name": "NotFound",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     240,
+     0
+    ],
+    "parameters": {
+     "options": {},
+     "url": "http://mock:8080/missing"
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "n1",
+    "name": "Boom",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     480,
+     200
+    ],
+    "parameters": {
+     "options": {},
+     "url": "http://mock:8080/boom"
+    },
+    "onError": "continueErrorOutput"
+   },
+   {
+    "id": "n2",
+    "name": "JsonFmt",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     720,
+     400
+    ],
+    "parameters": {
+     "options": {
+      "response": {
+       "response": {
+        "responseFormat": "json"
+       }
+      }
+     },
+     "url": "http://mock:8080/missing"
+    },
+    "onError": "continueRegularOutput"
+   }
+  ],
+  "connections": {
+   "Trigger": {
+    "main": [
+     [
+      {
+       "node": "NotFound",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Boom",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "JsonFmt",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1"
+  }
+ },
+ "triggerName": "Trigger",
+ "pinned": [
+  "Trigger"
+ ],
+ "pinData": {
+  "Trigger": [
+   {
+    "json": {
+     "id": 1
+    }
+   }
+  ]
+ },
+ "fixtures": {
+  "* /missing": {
+   "status": 404,
+   "body": {
+    "error": "not found"
+   }
+  },
+  "* /boom": {
+   "status": 500,
+   "headers": {
+    "content-type": "text/plain"
+   },
+   "body": "boom"
+  }
+ },
+ "n8n": {
+  "status": "success",
+  "error": null,
+  "lastNode": "JsonFmt",
+  "startedAt": "2026-11-13T21:33:33.479Z",
+  "executionId": "859",
+  "workflowId": "yGaAjBGooBMZgfXI",
+  "executionData": {
+   "runData": {
+    "Trigger": [
+     {
+      "executionIndex": 0,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "id": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "NotFound": [
+     {
+      "executionIndex": 1,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "error": {
+            "message": "404 - \"{\\\"error\\\":\\\"not found\\\"}\"",
+            "name": "AxiosError",
+            "code": "ERR_BAD_REQUEST",
+            "status": 404
+           }
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Boom": [
+     {
+      "executionIndex": 2,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [],
+        [
+         {
+          "json": {
+           "id": 1,
+           "error": {
+            "message": "500 - \"boom\"",
+            "name": "AxiosError",
+            "code": "ERR_BAD_RESPONSE",
+            "status": 500
+           }
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "JsonFmt": [
+     {
+      "executionIndex": 3,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "error": {
+            "message": "404 - {\"error\":\"not found\"}",
+            "name": "AxiosError",
+            "code": "ERR_BAD_REQUEST",
+            "status": 404
+           }
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ]
+   }
+  },
+  "effects": [
+   {
+    "method": "GET",
+    "path": "/missing",
+    "query": {},
+    "headers": {
+     "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
+     "user-agent": "n8n",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": null,
+    "bodyEncoding": null,
+    "fixture": "* /missing"
+   },
+   {
+    "method": "GET",
+    "path": "/boom",
+    "query": {},
+    "headers": {
+     "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
+     "user-agent": "n8n",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": null,
+    "bodyEncoding": null,
+    "fixture": "* /boom"
+   },
+   {
+    "method": "GET",
+    "path": "/missing",
+    "query": {},
+    "headers": {
+     "accept": "application/json,text/*;q=0.99",
+     "user-agent": "n8n",
+     "accept-encoding": "gzip, compress, deflate, br",
+     "host": "mock:8080",
+     "connection": "close"
+    },
+    "body": null,
+    "bodyEncoding": null,
+    "fixture": "* /missing"
+   }
+  ]
+ }
+}

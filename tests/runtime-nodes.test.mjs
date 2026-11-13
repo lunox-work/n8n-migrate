@@ -355,7 +355,7 @@ test("HTTP Request 4.2 builds the request from parameters and splits JSON arrays
   );
   const r = await run(def, { trigger: [{ id: 3, q: "x" }], host: { http: async (req, meta) => (seen.push({ req, meta }), { status: 200, headers: { "content-type": "application/json; charset=utf-8" }, body: '[{"a":1},{"a":2}]' }) } });
   assert.equal(r.status, "done");
-  assert.deepEqual(seen[0].req, { method: "POST", url: "https://api.example.com/v1/items/3", headers: { "X-Trace": "t" }, query: { q: "x" }, body: { n: 3 }, contentType: "json", auth: { credentialType: "httpHeaderAuth", secret: "API key" }, step: "Get" });
+  assert.deepEqual(seen[0].req, { method: "POST", url: "https://api.example.com/v1/items/3", headers: { "x-trace": "t", accept: "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7" }, query: { q: "x" }, body: { n: 3 }, contentType: "json", auth: { credentialType: "httpHeaderAuth", secret: "API key" }, step: "Get" });
   assert.equal(seen[0].meta.id, "Get#0#0");
   assert.match(seen[0].meta.effectKey, /^[0-9a-f]{32}$/);
   assert.deepEqual(out(r, "Get"), [{ a: 1 }, { a: 2 }]);
@@ -370,7 +370,8 @@ test("HTTP Request: text, full response, 4xx errors and neverError", async () =>
   assert.equal(nf.status, "failed");
   assert.equal(nf.error.message, "The resource you are requesting could not be found");
   assert.deepEqual(out(await run(mk({ response: { response: { neverError: true } } }), { host: host(404, "nope") }), "Get"), [{ data: "nope" }]);
-  assert.deepEqual(out(await run(mk({}, { onError: "continueRegularOutput" }), { host: host(500, "x") }), "Get"), [{ error: { message: "The service was not able to process your request", httpCode: "500" } }]);
+  // n8n 2.47.7 puts the AxiosError in the item (observed; its stack is left out here).
+  assert.deepEqual(out(await run(mk({}, { onError: "continueRegularOutput" }), { host: host(500, "x") }), "Get"), [{ error: { message: '500 - "x"', name: "AxiosError", code: "ERR_BAD_RESPONSE", status: 500 } }]);
 });
 
 test("tool, model and agent steps hand out requests with evaluated arguments", async () => {
