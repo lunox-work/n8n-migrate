@@ -6084,7 +6084,10 @@ function fromN8n(workflowJson, { nodes, sourceText, file } = {}) {
     name: String(wf.name ?? "workflow"),
     ...(wf.id !== undefined ? { id: String(wf.id) } : {}),
     source: { ...(file ? { file } : {}), sha256: hashHex("sha256", text), ...(sourceText === undefined ? { canonical: true } : {}) },
-    settings: { ...(wf.settings?.timezone ? { timezone: wf.settings.timezone } : {}), executionOrder: wf.settings?.executionOrder ?? "v0" },
+    // A missing executionOrder becomes "v1": n8n's editor saves v1 when a template or file is
+    // imported. (Created through the REST API or CLI without it, n8n runs its legacy v0 order;
+    // on the corpus that changed the order of nodes, not their outputs: evals/diff/REPORT.md.)
+    settings: { ...(wf.settings?.timezone ? { timezone: wf.settings.timezone } : {}), executionOrder: wf.settings?.executionOrder ?? "v1" },
     steps,
     edges,
     subnodes,
