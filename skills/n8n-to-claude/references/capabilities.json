@@ -6,6 +6,7 @@
     "connectors.<name>.operations.<node type>.ops: per n8n operation (resource:operation, or poll for the trigger; tool variants <type>Tool use their base type), the connector tool that does it and how sure that is: confirmed is tool-exists (the tool's schema was seen on a real account, not yet run), no-tool (no tool of the connector can do it), not-captured (connector not attached where the schemas were taken) or observed (ran on a real account). An unlisted operation gives needs:connector-operation-check. A no-tool operation falls back to the app's own REST API with a stored secret: the surfaces of requirements.connector-api, and the report lists it in noTool.",
     "connectors.<name>.alternative: the connector stands in for a node that has its own REST API (Jira, Confluence, ClickUp, HubSpot). requirement names the requirements entry for that path; the report keeps it on the connector requirement as alternative, with the nodes' credential names, so the person can choose it.",
     "requirements.task-handoff: a form whose steps an artifact cannot run. The artifact form stores each submission in its database and a task (named in the requirement) picks it up and runs the steps; an artifact cannot call a task API trigger, since its fetch reaches only its own origin.",
+    "requirements.frequency: a wake-up the analyzer chose that runs every minute (an owner-only Telegram bot polled with getUpdates); only a local task allows it.",
     "substitutions: blocked nodes with an approvable replacement. The outcome stays subscription; the report adds a substitution requirement and blocker.",
     "nodeRequirements: node types that add a requirement of their own, beyond their kind.",
     "httpSubstitutions: optional replacements found by http-hosts.json rules. model: an HTTP call to an LLM API runs as a Claude model step on the subscription instead of with an API key. It adds a substitution requirement, no blocker: keeping the call with its key also works."
@@ -110,6 +111,11 @@
         "source": "not documented for tasks (CHECKS.md: a scheduled run writing the artifact database needs an account; the CLI ArtifactData tool reads and writes it as the person), untested",
         "value": "needs:task-reads-artifact-db"
       }
+    },
+    "frequency": {
+      "artifact": { "source": "docs 2026-11-14 (an artifact runs only while a viewer has it open), untested", "value": "no" },
+      "cloudTask": { "source": "docs 2026-11-14 (code.claude.com/docs/en/routines: cron more often than hourly is rejected), untested", "value": "no" },
+      "localTask": { "source": "docs 2026-11-14 (code.claude.com/docs/en/desktop-scheduled-tasks: 1 minute when Claude sets it, 1 hour in the forms), untested", "value": "ok" }
     }
   },
   "connectors": {

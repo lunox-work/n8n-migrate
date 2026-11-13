@@ -1,0 +1,1061 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 5,
+    "outcomes": {
+      "subscription": 4,
+      "replaced": 0,
+      "hosted": 1,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "hosted:key": 1,
+      "subscription:cloud-task": 2,
+      "subscription:local-task": 1,
+      "subscription:skill": 1
+    },
+    "wakeups": {
+      "relay": 5
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 1,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 3,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "cw-telegram",
+      "name": "Support bot behind a webhook",
+      "file": "chat-app-webhook.json",
+      "sourceHash": "f55ba082a6e906c91addd10a6a75c2aa4f256f5d3fee28a2d216a0e6629f3dcc",
+      "wakeup": {
+        "kind": "relay",
+        "nodes": [
+          "Telegram updates"
+        ],
+        "all": [
+          "relay"
+        ]
+      },
+      "body": {
+        "kind": "script+model",
+        "decidedBy": [
+          "Has text?",
+          "Bot brain",
+          "Answer",
+          "Sorry"
+        ]
+      },
+      "outcome": {
+        "kind": "hosted",
+        "target": "key",
+        "reason": "people wait in a chat app for each reply, which a model writes",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "model",
+          "name": "claude",
+          "nodes": [
+            "Bot brain"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:sample"
+          }
+        },
+        {
+          "kind": "http",
+          "name": "outbound http",
+          "nodes": [
+            "Answer",
+            "Sorry"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "secret",
+          "name": "Support bot",
+          "nodes": [
+            "Answer",
+            "Sorry"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "relay",
+          "name": "webhook",
+          "nodes": [
+            "Telegram updates"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:api-trigger-forwarder",
+            "localTask": "no",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Answer",
+            "Sorry"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "cw-telegram/chat-app-users/Telegram updates",
+          "text": "\"Telegram updates\" is a plain webhook, but \"Sorry\" replies to the Telegram chat named in its body. Who messages \"Telegram updates\" and waits for the replies: outsiders (customers, other people), only you, or nobody waits? A cloud task's start-up time is not measured yet and its API trigger takes at most 30 events an hour.",
+          "nodes": [
+            "Telegram updates"
+          ],
+          "affects": "outcome",
+          "answerType": "choice",
+          "options": {
+            "outsiders": "hosted:key",
+            "only-me": "subscription:local-task (polls Telegram every minute)",
+            "in-claude": "subscription:skill (you message Claude instead of the bot)",
+            "no-reply": "subscription:cloud-task"
+          },
+          "assumed": "outsiders",
+          "answer": null
+        }
+      ],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "anthropicApi",
+          "name": "Anthropic",
+          "nodes": [
+            "Claude"
+          ]
+        },
+        {
+          "type": "telegramApi",
+          "name": "Support bot",
+          "nodes": [
+            "Answer",
+            "Sorry"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Telegram updates",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Has text?",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2.2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "logic",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Bot brain",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1.7,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "agent",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [
+            "agent"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Claude",
+          "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+          "typeVersion": 1.3,
+          "role": "subnode",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "model",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Answer",
+          "type": "n8n-nodes-base.telegram",
+          "typeVersion": 1.2,
+          "role": "step",
+          "branch": "main",
+          "resource": "message",
+          "operation": "sendMessage",
+          "kind": "http",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [
+            "http"
+          ],
+          "mapping": "name",
+          "issues": []
+        },
+        {
+          "node": "Sorry",
+          "type": "n8n-nodes-base.telegram",
+          "typeVersion": 1.2,
+          "role": "step",
+          "branch": "main",
+          "resource": "message",
+          "operation": "sendMessage",
+          "kind": "http",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [
+            "http"
+          ],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "agent",
+        "http",
+        "relay"
+      ]
+    },
+    {
+      "id": "cw-telegram-owner",
+      "name": "My notes bot behind a webhook",
+      "file": "chat-app-webhook.json",
+      "sourceHash": "eea37390ad333d1aaaf9919f1807ed117260775ce4999d4590df87af434e95c6",
+      "wakeup": {
+        "kind": "relay",
+        "nodes": [
+          "Webhook"
+        ],
+        "all": [
+          "relay"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "local-task",
+        "reason": "only you message this Telegram bot: a local task polls Telegram getUpdates every 1 min instead of the webhook, so replies arrive within about a minute while your computer is on",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "http",
+          "name": "outbound http",
+          "nodes": [
+            "Saved"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "secret",
+          "name": "Notes bot",
+          "nodes": [
+            "Saved"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "state",
+          "name": "data-table:notes",
+          "nodes": [
+            "Save note"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:state-store",
+            "localTask": "needs:bundled-server",
+            "artifact": "needs:artifact-db"
+          }
+        },
+        {
+          "kind": "poll",
+          "name": "Telegram getUpdates",
+          "nodes": [
+            "Webhook"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "no"
+          },
+          "note": "getUpdates returns nothing while the bot has a webhook: call deleteWebhook first, and stop the n8n workflow that listens"
+        },
+        {
+          "kind": "frequency",
+          "name": "every 1 min",
+          "nodes": [
+            "Webhook"
+          ],
+          "surfaces": {
+            "cloudTask": "no",
+            "localTask": "ok",
+            "artifact": "no"
+          },
+          "note": "replies arrive within about a minute, only while your computer is on and Claude is open: 1440 task runs a day"
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Save note",
+            "Saved"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "cw-telegram-owner/chat-app-users/Webhook",
+          "text": "\"Webhook\" is a plain webhook, but \"Saved\" replies to the Telegram chat named in its body. Who messages \"Webhook\" and waits for the replies: outsiders (customers, other people), only you, or nobody waits? A cloud task's start-up time is not measured yet and its API trigger takes at most 30 events an hour.",
+          "nodes": [
+            "Webhook"
+          ],
+          "affects": "outcome",
+          "answerType": "choice",
+          "options": {
+            "outsiders": "hosted:no-key",
+            "only-me": "subscription:local-task (polls Telegram every minute)",
+            "in-claude": "subscription:skill (you message Claude instead of the bot)",
+            "no-reply": "subscription:cloud-task"
+          },
+          "assumed": "outsiders",
+          "answer": "only-me"
+        }
+      ],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "telegramApi",
+          "name": "Notes bot",
+          "nodes": [
+            "Saved"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [
+        {
+          "kind": "data-table",
+          "name": "notes",
+          "nodes": [
+            "Save note"
+          ],
+          "sharedWith": []
+        }
+      ],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Webhook",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Save note",
+          "type": "n8n-nodes-base.dataTable",
+          "typeVersion": 1,
+          "role": "step",
+          "branch": "main",
+          "resource": "row",
+          "operation": "insert",
+          "kind": "db",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [
+            "db"
+          ],
+          "mapping": "name",
+          "issues": []
+        },
+        {
+          "node": "Saved",
+          "type": "n8n-nodes-base.telegram",
+          "typeVersion": 1.2,
+          "role": "step",
+          "branch": "main",
+          "resource": "message",
+          "operation": "sendMessage",
+          "kind": "http",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [
+            "http"
+          ],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "db",
+        "http",
+        "poll",
+        "relay"
+      ]
+    },
+    {
+      "id": "cw-whatsapp-owner",
+      "name": "My WhatsApp reminders behind a webhook",
+      "file": "chat-app-webhook.json",
+      "sourceHash": "fb0b0f8d2b1918f863ed0a03174f1a55a826f7a826d9ce2de72d64d4a0bb562a",
+      "wakeup": {
+        "kind": "relay",
+        "nodes": [
+          "Meta webhook"
+        ],
+        "all": [
+          "relay"
+        ]
+      },
+      "body": {
+        "kind": "script+model",
+        "decidedBy": [
+          "Bot brain",
+          "Reply"
+        ]
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "cloud-task",
+        "reason": "only you message this WhatsApp bot, but WhatsApp has no polling API: a forwarder posts each message to the cloud task's API trigger (at most 30 an hour) and each reply waits for a task to start; or keep it in n8n",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "model",
+          "name": "claude",
+          "nodes": [
+            "Bot brain"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:sample"
+          }
+        },
+        {
+          "kind": "http",
+          "name": "outbound http",
+          "nodes": [
+            "Reply"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "secret",
+          "name": "WhatsApp",
+          "nodes": [
+            "Reply"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "relay",
+          "name": "webhook",
+          "nodes": [
+            "Meta webhook"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:api-trigger-forwarder",
+            "localTask": "no",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Reply"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "cw-whatsapp-owner/chat-app-users/Meta webhook",
+          "text": "\"Meta webhook\" is a plain webhook, but \"Reply\" replies to the WhatsApp chat named in its body. Who messages \"Meta webhook\" and waits for the replies: outsiders (customers, other people), only you, or nobody waits? A cloud task's start-up time is not measured yet and its API trigger takes at most 30 events an hour.",
+          "nodes": [
+            "Meta webhook"
+          ],
+          "affects": "outcome",
+          "answerType": "choice",
+          "options": {
+            "outsiders": "hosted:key",
+            "only-me": "subscription:cloud-task (WhatsApp has no polling API, so a relay)",
+            "in-claude": "subscription:skill (you message Claude instead of the bot)",
+            "no-reply": "subscription:cloud-task"
+          },
+          "assumed": "outsiders",
+          "answer": "only-me"
+        }
+      ],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "anthropicApi",
+          "name": "Anthropic",
+          "nodes": [
+            "Claude"
+          ]
+        },
+        {
+          "type": "whatsAppApi",
+          "name": "WhatsApp",
+          "nodes": [
+            "Reply"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Meta webhook",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Bot brain",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1.7,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "agent",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [
+            "agent"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Claude",
+          "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+          "typeVersion": 1.3,
+          "role": "subnode",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "model",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Reply",
+          "type": "n8n-nodes-base.whatsApp",
+          "typeVersion": 1.1,
+          "role": "step",
+          "branch": "main",
+          "resource": "message",
+          "operation": "send",
+          "kind": "http",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [
+            "http"
+          ],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "agent",
+        "http",
+        "relay"
+      ]
+    },
+    {
+      "id": "cw-fixed-chat",
+      "name": "Deploy hook posts to the team chat",
+      "file": "chat-app-webhook.json",
+      "sourceHash": "a763eb897a6c19f6b21f400fa003ed5e6a12f59e4d0b708793ad7f36ca5c4cfc",
+      "wakeup": {
+        "kind": "relay",
+        "nodes": [
+          "Deploy hook"
+        ],
+        "all": [
+          "relay"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "cloud-task",
+        "reason": "an event is pushed in with no reply expected: a forwarder posts it to the cloud task's API trigger (at most 30 events an hour)",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "http",
+          "name": "outbound http",
+          "nodes": [
+            "Announce"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "secret",
+          "name": "Team bot",
+          "nodes": [
+            "Announce"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "relay",
+          "name": "webhook",
+          "nodes": [
+            "Deploy hook"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:api-trigger-forwarder",
+            "localTask": "no",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Announce"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "telegramApi",
+          "name": "Team bot",
+          "nodes": [
+            "Announce"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Deploy hook",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Announce",
+          "type": "n8n-nodes-base.telegram",
+          "typeVersion": 1.2,
+          "role": "step",
+          "branch": "main",
+          "resource": "message",
+          "operation": "sendMessage",
+          "kind": "http",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [
+            "http"
+          ],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "http",
+        "relay"
+      ]
+    },
+    {
+      "id": "cw-sms-in-claude",
+      "name": "SMS assistant",
+      "file": "chat-app-webhook.json",
+      "sourceHash": "5135667629978703823e3388003aa486c13922189acef42b55bcac4f3ab09420",
+      "wakeup": {
+        "kind": "relay",
+        "nodes": [
+          "Twilio Trigger"
+        ],
+        "all": [
+          "relay"
+        ]
+      },
+      "body": {
+        "kind": "script+model",
+        "decidedBy": [
+          "Bot brain",
+          "Text back"
+        ]
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "skill",
+        "reason": "only you message this Twilio SMS bot, and you will message Claude instead: a skill replaces it",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "model",
+          "name": "claude",
+          "nodes": [
+            "Bot brain"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:sample"
+          }
+        },
+        {
+          "kind": "http",
+          "name": "outbound http",
+          "nodes": [
+            "Text back"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "secret",
+          "name": "Twilio",
+          "nodes": [
+            "Twilio Trigger",
+            "Text back"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Twilio Trigger",
+            "Text back"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "cw-sms-in-claude/chat-app-users/Twilio Trigger",
+          "text": "Who messages \"Twilio Trigger\" and waits for the replies: outsiders (customers, other people), only you, or nobody waits? A cloud task's start-up time is not measured yet and its API trigger takes at most 30 events an hour.",
+          "nodes": [
+            "Twilio Trigger"
+          ],
+          "affects": "outcome",
+          "answerType": "choice",
+          "options": {
+            "outsiders": "hosted:key",
+            "only-me": "subscription:cloud-task (Twilio SMS has no polling API, so a relay)",
+            "in-claude": "subscription:skill (you message Claude instead of the bot)",
+            "no-reply": "subscription:cloud-task"
+          },
+          "assumed": "outsiders",
+          "answer": "in-claude"
+        }
+      ],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "anthropicApi",
+          "name": "Anthropic",
+          "nodes": [
+            "Claude"
+          ]
+        },
+        {
+          "type": "twilioApi",
+          "name": "Twilio",
+          "nodes": [
+            "Twilio Trigger",
+            "Text back"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Twilio Trigger",
+          "type": "n8n-nodes-base.twilioTrigger",
+          "typeVersion": 1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [
+            "relay"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Bot brain",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1.7,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "agent",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [
+            "agent"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Claude",
+          "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+          "typeVersion": 1.3,
+          "role": "subnode",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "model",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Text back",
+          "type": "n8n-nodes-base.twilio",
+          "typeVersion": 1,
+          "role": "step",
+          "branch": "main",
+          "resource": "sms",
+          "operation": "send",
+          "kind": "http",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [
+            "http"
+          ],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "agent",
+        "http",
+        "relay"
+      ]
+    }
+  ]
+}

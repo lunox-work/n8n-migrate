@@ -150,7 +150,8 @@
           "answerType": "choice",
           "options": {
             "outsiders": "hosted:key",
-            "only-me": "subscription:skill",
+            "only-me": "subscription:local-task (polls Telegram every minute)",
+            "in-claude": "subscription:skill (you message Claude instead of the bot)",
             "no-reply": "subscription:cloud-task"
           },
           "assumed": "outsiders",

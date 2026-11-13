@@ -27,7 +27,7 @@
       "keep-in-n8n": 0
     },
     "targets": {
-      "subscription:skill": 1
+      "subscription:local-task": 1
     },
     "wakeups": {
       "relay": 1
@@ -66,8 +66,8 @@
       },
       "outcome": {
         "kind": "subscription",
-        "target": "skill",
-        "reason": "only you message this bot: a skill in Claude replaces it",
+        "target": "local-task",
+        "reason": "only you message this Telegram bot: a local task polls Telegram getUpdates every 1 min instead of the webhook, so replies arrive within about a minute while your computer is on",
         "alsoTargets": []
       },
       "calledBy": [],
@@ -111,16 +111,30 @@
           }
         },
         {
-          "kind": "relay",
-          "name": "telegramTrigger",
+          "kind": "poll",
+          "name": "Telegram getUpdates",
           "nodes": [
             "Telegram Trigger"
           ],
           "surfaces": {
-            "cloudTask": "needs:api-trigger-forwarder",
-            "localTask": "no",
+            "cloudTask": "ok",
+            "localTask": "ok",
             "artifact": "no"
-          }
+          },
+          "note": "getUpdates returns nothing while the bot has a webhook: call deleteWebhook first, and stop the n8n workflow that listens"
+        },
+        {
+          "kind": "frequency",
+          "name": "every 1 min",
+          "nodes": [
+            "Telegram Trigger"
+          ],
+          "surfaces": {
+            "cloudTask": "no",
+            "localTask": "ok",
+            "artifact": "no"
+          },
+          "note": "replies arrive within about a minute, only while your computer is on and Claude is open: 1440 task runs a day"
         },
         {
           "kind": "bundled-server",
@@ -147,7 +161,8 @@
           "answerType": "choice",
           "options": {
             "outsiders": "hosted:no-key",
-            "only-me": "subscription:skill",
+            "only-me": "subscription:local-task (polls Telegram every minute)",
+            "in-claude": "subscription:skill (you message Claude instead of the bot)",
             "no-reply": "subscription:cloud-task"
           },
           "assumed": "outsiders",
@@ -257,6 +272,7 @@
       "levers": [
         "db",
         "http",
+        "poll",
         "relay"
       ]
     }

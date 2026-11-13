@@ -1,0 +1,581 @@
+[
+  {
+    "id": "cw-telegram",
+    "name": "Support bot behind a webhook",
+    "active": false,
+    "nodes": [
+      {
+        "id": "00000000-0000-4000-8000-000000002501",
+        "name": "Telegram updates",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          220,
+          300
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "tg",
+          "options": {}
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002502",
+        "name": "Has text?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          440,
+          300
+        ],
+        "parameters": {
+          "conditions": {
+            "combinator": "and",
+            "conditions": [
+              {
+                "leftValue": "={{ $json.body.message.text }}",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002503",
+        "name": "Bot brain",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 1.7,
+        "position": [
+          660,
+          300
+        ],
+        "parameters": {
+          "promptType": "define",
+          "text": "={{ $json.body.message.text }}"
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002504",
+        "name": "Claude",
+        "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "typeVersion": 1.3,
+        "position": [
+          880,
+          300
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "claude-sonnet-4-5"
+          }
+        },
+        "credentials": {
+          "anthropicApi": {
+            "id": "cred-anthropicApi",
+            "name": "Anthropic"
+          }
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002505",
+        "name": "Answer",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1100,
+          300
+        ],
+        "parameters": {
+          "chatId": "={{ $('Telegram updates').item.json.body.message.chat.id }}",
+          "text": "={{ $json.output }}",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "telegramApi": {
+            "id": "cred-telegramApi",
+            "name": "Support bot"
+          }
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002506",
+        "name": "Sorry",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1320,
+          300
+        ],
+        "parameters": {
+          "chatId": "={{ $json.body.message.chat.id }}",
+          "text": "Text only, please.",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "telegramApi": {
+            "id": "cred-telegramApi",
+            "name": "Support bot"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Telegram updates": {
+        "main": [
+          [
+            {
+              "node": "Has text?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Has text?": {
+        "main": [
+          [
+            {
+              "node": "Bot brain",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Sorry",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Bot brain": {
+        "main": [
+          [
+            {
+              "node": "Answer",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Claude": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Bot brain",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    }
+  },
+  {
+    "id": "cw-telegram-owner",
+    "name": "My notes bot behind a webhook",
+    "active": false,
+    "nodes": [
+      {
+        "id": "00000000-0000-4000-8000-000000002601",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          220,
+          300
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "notes",
+          "options": {}
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002602",
+        "name": "Save note",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1,
+        "position": [
+          440,
+          300
+        ],
+        "parameters": {
+          "operation": "insert",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "name",
+            "value": "notes"
+          },
+          "columns": {
+            "mappingMode": "autoMapInputData",
+            "value": {}
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002603",
+        "name": "Saved",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          660,
+          300
+        ],
+        "parameters": {
+          "chatId": "={{ $node[\"Webhook\"].json[\"body\"][\"message\"][\"from\"][\"id\"] }}",
+          "text": "Saved.",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "telegramApi": {
+            "id": "cred-telegramApi",
+            "name": "Notes bot"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Save note",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Save note": {
+        "main": [
+          [
+            {
+              "node": "Saved",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    }
+  },
+  {
+    "id": "cw-whatsapp-owner",
+    "name": "My WhatsApp reminders behind a webhook",
+    "active": false,
+    "nodes": [
+      {
+        "id": "00000000-0000-4000-8000-000000002701",
+        "name": "Meta webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          220,
+          300
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "wa",
+          "options": {}
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002702",
+        "name": "Bot brain",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 1.7,
+        "position": [
+          440,
+          300
+        ],
+        "parameters": {
+          "promptType": "define",
+          "text": "={{ $json.body.entry[0].changes[0].value.messages[0].text.body }}"
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002703",
+        "name": "Claude",
+        "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "typeVersion": 1.3,
+        "position": [
+          660,
+          300
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "claude-sonnet-4-5"
+          }
+        },
+        "credentials": {
+          "anthropicApi": {
+            "id": "cred-anthropicApi",
+            "name": "Anthropic"
+          }
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002704",
+        "name": "Reply",
+        "type": "n8n-nodes-base.whatsApp",
+        "typeVersion": 1.1,
+        "position": [
+          880,
+          300
+        ],
+        "parameters": {
+          "operation": "send",
+          "phoneNumberId": "1",
+          "recipientPhoneNumber": "={{ $('Meta webhook').first().json.body.entry[0].changes[0].value.contacts[0].wa_id }}",
+          "textBody": "={{ $json.output }}",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "whatsAppApi": {
+            "id": "cred-whatsAppApi",
+            "name": "WhatsApp"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Meta webhook": {
+        "main": [
+          [
+            {
+              "node": "Bot brain",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Bot brain": {
+        "main": [
+          [
+            {
+              "node": "Reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Claude": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Bot brain",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    }
+  },
+  {
+    "id": "cw-fixed-chat",
+    "name": "Deploy hook posts to the team chat",
+    "active": false,
+    "nodes": [
+      {
+        "id": "00000000-0000-4000-8000-000000002801",
+        "name": "Deploy hook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          220,
+          300
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "deploy",
+          "options": {}
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002802",
+        "name": "Announce",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          440,
+          300
+        ],
+        "parameters": {
+          "chatId": "-100123456",
+          "text": "=Deployed {{ $json.body.version }} by {{ $json.body.user }}",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "telegramApi": {
+            "id": "cred-telegramApi",
+            "name": "Team bot"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Deploy hook": {
+        "main": [
+          [
+            {
+              "node": "Announce",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    }
+  },
+  {
+    "id": "cw-sms-in-claude",
+    "name": "SMS assistant",
+    "active": false,
+    "nodes": [
+      {
+        "id": "00000000-0000-4000-8000-000000002901",
+        "name": "Twilio Trigger",
+        "type": "n8n-nodes-base.twilioTrigger",
+        "typeVersion": 1,
+        "position": [
+          220,
+          300
+        ],
+        "parameters": {
+          "updates": [
+            "com.twilio.messaging.inbound-message.received"
+          ]
+        },
+        "credentials": {
+          "twilioApi": {
+            "id": "cred-twilioApi",
+            "name": "Twilio"
+          }
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002902",
+        "name": "Bot brain",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 1.7,
+        "position": [
+          440,
+          300
+        ],
+        "parameters": {
+          "promptType": "define",
+          "text": "={{ $json.Body }}"
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002903",
+        "name": "Claude",
+        "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "typeVersion": 1.3,
+        "position": [
+          660,
+          300
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "claude-sonnet-4-5"
+          }
+        },
+        "credentials": {
+          "anthropicApi": {
+            "id": "cred-anthropicApi",
+            "name": "Anthropic"
+          }
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002904",
+        "name": "Text back",
+        "type": "n8n-nodes-base.twilio",
+        "typeVersion": 1,
+        "position": [
+          880,
+          300
+        ],
+        "parameters": {
+          "from": "+15550100",
+          "to": "={{ $('Twilio Trigger').item.json.From }}",
+          "message": "={{ $json.output }}"
+        },
+        "credentials": {
+          "twilioApi": {
+            "id": "cred-twilioApi",
+            "name": "Twilio"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Twilio Trigger": {
+        "main": [
+          [
+            {
+              "node": "Bot brain",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Bot brain": {
+        "main": [
+          [
+            {
+              "node": "Text back",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Claude": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Bot brain",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    }
+  }
+]

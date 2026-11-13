@@ -148,10 +148,11 @@
             "required": ["kind", "name", "nodes", "surfaces"],
             "additionalProperties": false,
             "properties": {
-              "kind": { "enum": ["connector", "model", "http", "secret", "db", "vector", "state", "mcp-server", "poll", "relay", "task-handoff", "host-disk", "substitution", "missing-export", "frequency-change", "bundled-server"] },
+              "kind": { "enum": ["connector", "model", "http", "secret", "db", "vector", "state", "mcp-server", "poll", "relay", "task-handoff", "host-disk", "substitution", "missing-export", "frequency", "frequency-change", "bundled-server"] },
               "name": { "description": "connector id, credential name (never a value), inline:<secret kind>, db or vector node type, state key, MCP host, trigger type, the task target (task-handoff: cloud-task or local-task), or a description", "type": "string" },
               "nodes": { "description": "nodes of this workflow that need it; for what a sub-workflow needs, the calling node", "$ref": "#/$defs/nodes" },
               "surfaces": { "$ref": "#/$defs/surfaces" },
+              "note": { "description": "what to know or do for this requirement (for example: delete the bot's webhook before polling; the API trigger's limits)", "type": "string" },
               "operations": { "description": "connector only: \"<node type> <resource:operation>\"", "type": "array", "items": { "type": "string" } },
               "confirmed": { "description": "connector only: every operation observed working on a real account (Phase 0)", "type": "boolean" },
               "noTool": { "description": "connector only: operations no tool of the connector can do (\"<node type> <resource:operation>\"); they fall back to the app's REST API with a stored secret, which the surfaces reflect", "type": "array", "items": { "type": "string" } },

@@ -48,7 +48,7 @@ const WAKEUP_RANK = ["endpoint", "mcp-server", "chat", "form", "relay", "poll", 
 const OUTCOME_RANK = ["keep-in-n8n", "hosted", "replaced", "subscription"]; // worst first
 const BLOCKING = new Set(["input-incomplete", "unsupported", "unmapped"]);
 const BLOCKER_ORDER = ["input-incomplete", "unsupported", "unmapped", "substitution", "dropped-branch", "not-an-automation"];
-const REQ_ORDER = ["connector", "model", "http", "secret", "db", "vector", "state", "mcp-server", "poll", "relay", "task-handoff", "host-disk", "substitution", "missing-export", "frequency-change", "bundled-server"];
+const REQ_ORDER = ["connector", "model", "http", "secret", "db", "vector", "state", "mcp-server", "poll", "relay", "task-handoff", "host-disk", "substitution", "missing-export", "frequency", "frequency-change", "bundled-server"];
 const SURFACES = ["cloudTask", "localTask", "artifact"];
 const N8N_DEFAULT_TIMEZONE = "America/New_York"; // GENERIC_TIMEZONE default in n8n
 const BRANCH_RANK = ["main", "error-output", "error-trigger", "unreached"];
@@ -965,6 +965,7 @@ function addReq(W, kind, name, nodeName, extra = {}) {
   if (nodeName != null) r.nodes.add(nodeName);
   if (extra.ops) for (const o of extra.ops) if (!r.ops.some((x) => x.type === o.type && x.op === o.op)) r.ops.push(o);
   if (extra.creds) r.creds = uniq([...(r.creds || []), ...extra.creds]);
+  if (extra.note && !r.note) r.note = extra.note;
   return r;
 }
 
@@ -1572,6 +1573,55 @@ function triggerNodes(W, kind) {
   return W.triggers.filter((t) => t.kind === kind);
 }
 
+// Chat apps for the chat-app-users question. poll: the provider has an API to
+// fetch new messages, so an owner-only bot can run in a local task without
+// its webhook. WhatsApp, Twilio, Slack and Discord bots are offered no poll
+// lever: WhatsApp and Twilio have no polling API, and the other two are not
+// mapped here yet.
+const CHAT_APPS = {
+  telegram: { label: "Telegram", poll: true, pollName: "Telegram getUpdates", pollNote: "getUpdates returns nothing while the bot has a webhook: call deleteWebhook first, and stop the n8n workflow that listens" },
+  whatsapp: { label: "WhatsApp", poll: false },
+  twilio: { label: "Twilio SMS", poll: false },
+  slack: { label: "Slack", poll: false },
+  discord: { label: "Discord", poll: false },
+};
+const CHAT_TRIGGERS = { "n8n-nodes-base.telegramTrigger": "telegram", "n8n-nodes-base.whatsAppTrigger": "whatsapp", "n8n-nodes-base.twilioTrigger": "twilio" };
+// Messaging nodes and the parameters that name who gets the message.
+const CHAT_SENDERS = {
+  "n8n-nodes-base.telegram": ["telegram", ["chatId"]],
+  "n8n-nodes-base.whatsApp": ["whatsapp", ["recipientPhoneNumber"]],
+  "n8n-nodes-base.twilio": ["twilio", ["to"]],
+  "n8n-nodes-base.slack": ["slack", ["channelId", "channel", "user"]],
+  "n8n-nodes-base.discord": ["discord", ["channelId", "userId"]],
+};
+const reEscape = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// {provider, via} when a relay trigger is a chat app: a chat-app trigger
+// (mapping flag chat-app), or a plain Webhook trigger whose steps reply
+// through a messaging node to a recipient taken from the webhook's own data.
+// The webhook rule is conservative: the send must be a write on the main
+// path from that webhook, and its recipient parameter an expression that
+// reads the request body or query, through $json or the webhook node by
+// name, at a chat-like key (chat, from, sender, recipient, channel, user,
+// wa_id, contacts, phone). A fixed chat id, a value computed elsewhere, or an
+// HTTP Request to a bot API does not count.
+function chatAppOf(W, t) {
+  if (t.d.flags.includes("chat-app")) return { provider: CHAT_TRIGGERS[t.d.baseType] ?? "telegram", via: null };
+  if (t.d.baseType !== "n8n-nodes-base.webhook") return null;
+  const name = reEscape(t.name);
+  const src = `(?:\\$json|\\$\\(\\s*['"\`]${name}['"\`]\\s*\\)\\s*\\.\\s*(?:item|first\\(\\s*\\)|last\\(\\s*\\)|all\\(\\s*\\)\\s*\\[\\s*\\d+\\s*\\])\\s*\\.\\s*json|\\$node\\[\\s*['"\`]${name}['"\`]\\s*\\]\\s*\\.\\s*json)`;
+  const re = new RegExp(`${src}\\s*(?:\\.\\s*(?:body|query)\\b|\\[\\s*['"](?:body|query)['"]\\s*\\])[\\w.$[\\]'"\\s()]*?\\b(?:chat|from|sender|recipient|channel|user|wa_id|contacts|phone)\\b`, "i");
+  for (const n of reach([t.name], W.graph, W.infos, true)) {
+    const d = W.infos.get(n);
+    const sender = own(CHAT_SENDERS, d.baseType);
+    if (!sender || d.disabled || d.status !== "mapped" || d.effect !== "write") continue;
+    const [provider, params] = sender;
+    const vals = params.flatMap((p) => allStrings(rlValue(d.params[p]).value));
+    if (vals.some((v) => isExpr(v) && re.test(v))) return { provider, via: d.name };
+  }
+  return null;
+}
+
 // What an artifact cannot do for these requirements. An artifact page has no
 // backend: its fetch reaches only its own origin (CHECKS.md), so http, stored
 // secrets, the bundled server and the n8n host's disk are "no" there, and
@@ -1686,32 +1736,70 @@ function outcomeForKind(W, ctx, k) {
     }
   } else if (k === "relay") {
     const cap = ctx.thresholds.apiTriggerFiresPerTaskHour;
-    o = { kind: "subscription", target: "cloud-task", reason: `an event is pushed in with no reply expected: a forwarder posts it to the cloud task's API trigger${cap ? ` (at most ${cap} events an hour)` : ""}` };
-    // A chat app (Telegram, WhatsApp, SMS) is a conversation: someone usually
-    // waits for each reply, which a cloud task cannot promise.
+    const relayReason = `an event is pushed in with no reply expected: a forwarder posts it to the cloud task's API trigger${cap ? ` (at most ${cap} events an hour)` : ""}`;
+    o = { kind: "subscription", target: "cloud-task", reason: relayReason };
+    // A chat app (a Telegram, WhatsApp or SMS trigger, or a plain webhook
+    // whose steps reply to the chat named in its body) is a conversation:
+    // someone usually waits for each reply, which a cloud task cannot promise.
     const answers = [];
     let others = false;
     for (const t of triggerNodes(W, "relay")) {
-      if (!t.d.flags.includes("chat-app")) {
+      const chat = chatAppOf(W, t);
+      if (!chat) {
         others = true;
         continue;
       }
       const tk = modelOnPath(W, t.name) ? "key" : "no-key";
+      const app = CHAT_APPS[chat.provider];
       const { value: v } = ask(W, ctx, "chat-app-users", t.name, {
-        text: `Who messages "${t.name}" and waits for the replies: outsiders (customers, other people), only you, or nobody waits? A cloud task's start-up time is not measured yet${cap ? ` and its API trigger takes at most ${cap} events an hour` : ""}.`,
+        text: `${chat.via ? `"${t.name}" is a plain webhook, but "${chat.via}" replies to the ${app.label} chat named in its body. ` : ""}Who messages "${t.name}" and waits for the replies: outsiders (customers, other people), only you, or nobody waits? A cloud task's start-up time is not measured yet${cap ? ` and its API trigger takes at most ${cap} events an hour` : ""}.`,
         affects: "outcome",
         answerType: "choice",
-        options: { outsiders: `hosted:${tk}`, "only-me": "subscription:skill", "no-reply": "subscription:cloud-task" },
+        options: {
+          outsiders: `hosted:${tk}`,
+          "only-me": app.poll ? `subscription:local-task (polls ${app.label} every minute)` : `subscription:cloud-task (${app.label} has no polling API, so a relay)`,
+          "in-claude": "subscription:skill (you message Claude instead of the bot)",
+          "no-reply": "subscription:cloud-task",
+        },
         assumed: "outsiders",
       });
-      answers.push({ v, tk });
+      answers.push({ v, tk, t, app });
     }
     const out = answers.filter((a) => a.v === "outsiders");
+    const all = (f) => answers.length > 0 && !others && answers.every(f);
+    const labels = uniq(answers.map((a) => a.app.label)).join(" and ");
+    // The bot's webhook is no longer needed once nothing is relayed.
+    const dropRelay = () => {
+      const names = answers.map((a) => a.t.name);
+      for (const [key, r] of W.req) if (r.kind === "relay" && [...r.nodes].every((n) => names.includes(n))) W.req.delete(key);
+    };
     if (out.length) {
       const key = out.some((a) => a.tk === "key");
       o = { kind: "hosted", target: key ? "key" : "no-key", reason: `people wait in a chat app for each reply${key ? ", which a model writes" : ""}` };
-    } else if (answers.length && !others && answers.every((a) => a.v === "only-me")) {
-      o = { kind: "subscription", target: "skill", reason: "only you message this bot: a skill in Claude replaces it" };
+    } else if (all((a) => a.v === "in-claude")) {
+      dropRelay();
+      o = { kind: "subscription", target: "skill", reason: `only you message this ${labels} bot, and you will message Claude instead: a skill replaces it` };
+    } else if (all((a) => a.v === "only-me" && a.app.poll)) {
+      // Owner-only bot on a provider with a polling API (Telegram getUpdates):
+      // a local task polls every minute instead of receiving the webhook.
+      const every = formatDuration(ctx.thresholds.localMinIntervalSec);
+      const within = ctx.thresholds.localMinIntervalSec === 60 ? "a minute" : every;
+      for (const a of answers) {
+        addReq(W, "poll", a.app.pollName, a.t.name, { surfaces: surfacesFrom(ctx.capabilities.requirements?.poll), note: a.app.pollNote });
+        addReq(W, "frequency", `every ${every}`, a.t.name, {
+          surfaces: surfacesFrom(ctx.capabilities.requirements?.frequency),
+          note: `replies arrive within about ${within}, only while your computer is on and Claude is open: ${Math.round(86400 / ctx.thresholds.localMinIntervalSec)} task runs a day`,
+        });
+      }
+      dropRelay();
+      W.levers.add("poll");
+      o = { kind: "subscription", target: "local-task", reason: `only you message this ${labels} bot: a local task polls ${answers[0].app.pollName} every ${every} instead of the webhook, so replies arrive within about ${within} while your computer is on` };
+    } else {
+      const relayOnly = answers.filter((a) => a.v === "only-me" && !a.app.poll);
+      if (relayOnly.length) {
+        const which = uniq(relayOnly.map((a) => a.app.label)).join(" and ");
+        o.reason = `only you message this ${which} bot, but ${which} has no polling API: a forwarder posts each message to the cloud task's API trigger${cap ? ` (at most ${cap} an hour)` : ""} and each reply waits for a task to start; or keep it in n8n`;
+      }
     }
   } else if (k === "schedule" || k === "poll") {
     const s = W.schedule;
@@ -1893,6 +1981,7 @@ function reportOf(W, ctx) {
   const requires = [...W.req.values()]
     .map((r) => {
       const o = { kind: r.kind, name: r.name, nodes: sortNodes(r.nodes), surfaces: r.surfaces ?? surfacesFrom(null) };
+      if (r.note) o.note = r.note;
       if (r.kind === "connector") {
         o.operations = uniq(r.ops.map((x) => `${shortType(x.type)} ${x.op}`)).sort();
         o.confirmed = r.confirmed;
@@ -2071,6 +2160,7 @@ const REQ_LABEL = {
   "bundled-server": () => "bundled MCP server",
   "task-handoff": (n) => `hand-off to a ${TARGET_LABEL[n] ?? n}`,
   "frequency-change": (n) => `slower schedule (${n})`,
+  frequency: (n) => `runs ${n}`,
 };
 
 function listCut(xs, max = 3) {

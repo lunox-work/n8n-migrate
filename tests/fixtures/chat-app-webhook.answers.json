@@ -1,0 +1,5 @@
+{
+  "cw-telegram-owner/chat-app-users/Webhook": "only-me",
+  "cw-whatsapp-owner/chat-app-users/Meta webhook": "only-me",
+  "cw-sms-in-claude/chat-app-users/Twilio Trigger": "in-claude"
+}
