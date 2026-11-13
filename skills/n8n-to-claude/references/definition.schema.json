@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lunox-work/n8n-to-claude/skills/n8n-to-claude/references/definition.schema.json",
+  "title": "n8n-to-claude workflow definition",
+  "description": "One neutral file per migrated workflow, read by the runner (runtime/dist/runner-core.mjs) in both drivers. Steps keep the n8n parameters verbatim; the runner evaluates n8n expressions natively. Secrets are names only.",
+  "type": "object",
+  "required": ["schemaVersion", "name", "steps", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "name": { "type": "string" },
+    "id": { "type": "string", "description": "The n8n workflow id ($workflow.id)." },
+    "source": {
+      "type": "object",
+      "description": "The n8n export this definition was made from. preflight compares sha256 with the stored export.",
+      "additionalProperties": false,
+      "properties": {
+        "file": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "canonical": { "type": "boolean", "description": "true when sha256 is over the canonical JSON (no export text was given)." }
+      }
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "timezone": { "type": "string", "description": "IANA zone; default America/New_York (n8n's default)." },
+        "executionOrder": { "enum": ["v0", "v1"], "description": "n8n's setting; a missing setting in an export means v0. The runner implements v1." },
+        "errorWorkflow": { "type": "string", "description": "Ignored: the runner's failure alert replaces error workflows." }
+      }
+    },
+    "vars": { "type": "object", "description": "Values for $vars." },
+    "steps": {
+      "type": "object",
+      "description": "Keyed by the n8n node name, so $('Node') references keep working.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["kind", "n8n"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": { "enum": ["tool", "http", "code", "model", "agent", "state", "sleep", "subflow", "branch", "loop", "logic", "trigger", "respond", "blocked"] },
+          "n8n": {
+            "type": "object",
+            "required": ["type"],
+            "additionalProperties": false,
+            "properties": {
+              "type": { "type": "string" },
+              "typeVersion": { "type": "number" },
+              "id": { "type": "string" },
+              "position": { "type": "array", "items": { "type": "number" } },
+              "webhookId": { "type": "string" }
+            }
+          },
+          "params": { "type": "object", "description": "The n8n parameters, verbatim, expressions included." },
+          "settings": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "alwaysOutputData": { "type": "boolean" },
+              "executeOnce": { "type": "boolean" },
+              "retryOnFail": { "type": "boolean" },
+              "maxTries": { "type": "number" },
+              "waitBetweenTries": { "type": "number" },
+              "onError": { "enum": ["stopWorkflow", "continueRegularOutput", "continueErrorOutput"] },
+              "continueOnFail": { "type": "boolean" },
+              "disabled": { "type": "boolean" }
+            }
+          },
+          "review": { "type": "boolean" },
+          "reviewReasons": { "type": "array", "items": { "type": "string" } },
+          "subnode": { "type": "boolean", "description": "An ai_* sub-node (model, tool, memory, parser): consumed by its parent step's request, never run on its own." },
+          "notes": { "type": "string" },
+          "credentials": { "type": "object", "additionalProperties": { "type": "string" }, "description": "credential type -> credential name (never a value)." },
+          "connector": { "type": "string" },
+          "auth": {
+            "type": "object",
+            "required": ["secret"],
+            "additionalProperties": false,
+            "properties": { "credentialType": { "type": "string" }, "secret": { "type": "string" } }
+          },
+          "tool": {
+            "type": "object",
+            "required": ["connector", "name"],
+            "additionalProperties": false,
+            "properties": {
+              "connector": { "type": "string" },
+              "name": { "type": "string" },
+              "args": { "type": "object", "description": "String values may be n8n expressions, evaluated per item." },
+              "effect": { "enum": ["read", "write"] }
+            }
+          },
+          "model": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "prompt": { "type": "string" },
+              "system": { "type": "string" },
+              "messages": { "type": "array" },
+              "outputSchema": { "type": "object" },
+              "outputKey": { "type": "string" },
+              "model": { "type": "string" }
+            }
+          },
+          "agent": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "prompt": { "type": "string" },
+              "system": { "type": "string" },
+              "tools": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["name"],
+                  "properties": {
+                    "name": { "type": "string" },
+                    "description": { "type": "string" },
+                    "connector": { "type": "string" },
+                    "tool": { "type": "string" },
+                    "kind": { "type": "string" },
+                    "url": { "type": "string" },
+                    "effect": { "enum": ["read", "write", "none"] },
+                    "inputSchema": { "type": "object" }
+                  }
+                }
+              },
+              "memoryKey": { "type": "string" },
+              "outputSchema": { "type": "object" },
+              "outputKey": { "type": "string" },
+              "maxIterations": { "type": "number" }
+            }
+          },
+          "subflow": {
+            "type": "object",
+            "description": "Execute Workflow target: {self: true} for a self-reference, or an inline definition.",
+            "additionalProperties": false,
+            "properties": { "self": { "type": "boolean" }, "definition": { "type": "object" }, "trigger": { "type": "string" } }
+          },
+          "blocked": { "type": "object", "required": ["reason"], "properties": { "reason": { "type": "string" } } }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "description": "Main connections in n8n's connections order (source node, output index, then list order).",
+      "items": {
+        "type": "object",
+        "required": ["from", "fromOutput", "to", "toInput"],
+        "additionalProperties": false,
+        "properties": { "from": { "type": "string" }, "fromOutput": { "type": "integer" }, "to": { "type": "string" }, "toInput": { "type": "integer" } }
+      }
+    },
+    "subnodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "type"],
+        "additionalProperties": false,
+        "properties": { "from": { "type": "string" }, "to": { "type": "string" }, "type": { "type": "string", "pattern": "^ai_" } }
+      }
+    },
+    "allow": {
+      "type": "object",
+      "description": "The allowlist. A tool or http request outside it is never handed out (ContainmentViolation).",
+      "additionalProperties": false,
+      "properties": {
+        "tools": { "type": "array", "items": { "type": "object", "required": ["connector", "tool"], "additionalProperties": false, "properties": { "connector": { "type": "string" }, "tool": { "type": "string" } } } },
+        "http": { "type": "array", "items": { "type": "object", "required": ["method", "host"], "additionalProperties": false, "properties": { "method": { "type": "string" }, "host": { "type": "string" }, "pathPrefix": { "type": "string" } } } },
+        "sql": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "secrets": {
+      "type": "array",
+      "description": "Names only. A secret is attached by the host, and only for the listed hosts.",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": { "name": { "type": "string" }, "credentialType": { "type": "string" }, "hosts": { "type": "array", "items": { "type": "string" } } }
+      }
+    },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  }
+}
