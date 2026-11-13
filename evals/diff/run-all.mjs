@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Reruns the differential test over every corpus and rewrites the numbers in REPORT.md.
 //
-//   node evals/diff/run-all.mjs [--corpus templates,siblings,generated] [--seed 1] [--count 200]
+//   node evals/diff/run-all.mjs [--corpus templates,siblings,generated] [--seed 1,2,3] [--count 200]
+//        [--tag before]   (summary-<corpus>.<tag>.json; with DIFF_RUNTIME_SRC for another runner)
 //        [--only <label substring>] [--no-report] [--order v0|v1] [--order-check]
 //
 // --order-check: n8n against itself, v0 against v1, for the corpus workflows that have no
@@ -42,7 +43,7 @@ export function loadCorpus(name, { seed = 1, count = 200 } = {}) {
     }
     return out;
   }
-  if (name === "generated") return generate({ seed, count }).map((g) => ({ label: g.label, raw: g.workflow, fixtures: g.fixtures }));
+  if (name === "generated") return String(seed).split(",").flatMap((sd) => generate({ seed: Number(sd), count })).map((g) => ({ label: g.label, raw: g.workflow, fixtures: g.fixtures }));
   throw new Error(`unknown corpus ${name}`);
 }
 
@@ -94,7 +95,7 @@ export async function runCorpus(name, opts = {}) {
   const m = memStats();
   if (m.mib) peak = Math.max(peak, m.mib);
   const summary = { corpus: name, at: new Date().toISOString(), ...(name === "generated" ? { seed: opts.seed, count: opts.count } : {}), tally: tally(results), peakMiB: Math.round(peak), results };
-  if (!opts.only) writeFileSync(join(DIFF_WORK, `summary-${name}.json`), JSON.stringify(summary, null, 2) + "\n");
+  if (!opts.only) writeFileSync(join(DIFF_WORK, `summary-${name}${opts.tag ? `.${opts.tag}` : ""}.json`), JSON.stringify(summary, null, 2) + "\n");
   return summary;
 }
 
@@ -167,7 +168,14 @@ export function rewriteReport(summaries) {
   const end = "<!-- numbers:end -->";
   if (!text.includes(start) || !text.includes(end)) return;
   const peak = Math.max(0, ...summaries.map((s) => s.peakMiB ?? 0));
-  const body = [`Last run ${summaries.map((s) => s.at).sort().pop()?.slice(0, 10)} (\`node evals/diff/run-all.mjs\`), container peak ${peak} MiB.`, "", ...summaries.map((s) => `- ${fmtTally(s.corpus, s)}`)].join("\n");
+  const before = (c) => {
+    const p = join(DIFF_WORK, `summary-${c}.before.json`);
+    if (!existsSync(p)) return "";
+    const t = JSON.parse(readFileSync(p, "utf8")).tally;
+    const cls = Object.entries(t.classes).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(", ");
+    return ` Before the fixes (runner at the harness commit, same corpus): ${t.qualified} qualified, ${t.same} same, ${t.diff} diff${cls ? ` (${cls})` : ""}.`;
+  };
+  const body = [`Last run ${summaries.map((s) => s.at).sort().pop()?.slice(0, 10)} UTC (\`node evals/diff/run-all.mjs\`), container peak ${peak} MiB.`, "", ...summaries.map((s) => `- ${fmtTally(s.corpus, s)}${before(s.corpus)}`)].join("\n");
   writeFileSync(path, text.replace(new RegExp(`${start}[\\s\\S]*?${end}`), `${start}\n${body}\n${end}`));
 }
 
@@ -175,7 +183,7 @@ async function main() {
   const args = process.argv.slice(2);
   const flag = (k, d) => (args.includes(k) ? args[args.indexOf(k) + 1] : d);
   const corpora = flag("--corpus", "templates,siblings,generated").split(",");
-  const opts = { seed: Number(flag("--seed", 1)), count: Number(flag("--count", 200)), only: flag("--only"), order: flag("--order") };
+  const opts = { seed: flag("--seed", "1,2,3"), count: Number(flag("--count", 200)), only: flag("--only"), order: flag("--order"), tag: flag("--tag") };
   mkdirSync(DIFF_WORK, { recursive: true });
   console.error(`memory free ${memoryFree()}%`);
   await up();

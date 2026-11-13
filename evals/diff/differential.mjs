@@ -304,14 +304,14 @@ function deepDiff(a, b, path, ctx, out) {
   }
 }
 
-// Two strings of one length that differ only in hex digits, in several places: values from
-// Math.random, crypto or uuid, which no runner reproduces.
+// Two strings of one length that differ only in letters and digits, in several places:
+// values from Math.random, crypto or uuid, which no runner reproduces.
 function looksRandom(a, b) {
   if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length || a.length < 6) return false;
   let n = 0;
   for (let i = 0; i < a.length; i++) {
     if (a[i] === b[i]) continue;
-    if (!/[0-9a-fA-F]/.test(a[i]) || !/[0-9a-fA-F]/.test(b[i])) return false;
+    if (!/[0-9a-zA-Z]/.test(a[i]) || !/[0-9a-zA-Z]/.test(b[i])) return false;
     n++;
   }
   return n >= 3;
