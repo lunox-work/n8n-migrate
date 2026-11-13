@@ -305,6 +305,10 @@ function build(packages, mappingsFile) {
       const role = b.role === "n8n-internal" ? b.role : "subnode";
       mapping = { ...b, role, levers: uniqSorted([...(b.levers || []), "agent"]), source: "derived", derivedFrom: toolVariantOf };
       delete mapping.displayName;
+      // An operation that sets its own levers (a connector operation of an
+      // otherwise http node) keeps the agent lever too.
+      if (b.operations)
+        mapping.operations = Object.fromEntries(Object.entries(b.operations).map(([k, o]) => [k, o.levers ? { ...o, levers: uniqSorted([...o.levers, "agent"]) } : o]));
     }
     const opParam = mapping?.operationParam || "operation";
     const ops = opsGroups(descs, versions, opParam);
@@ -328,7 +332,11 @@ function build(packages, mappingsFile) {
       const { operations: handOps, ...rest } = mapping;
       e.mapping = rest;
       if (ops.length) {
-        const { operations, stale } = mergeOperations(mapping, opKeys(ops), effectByOperation);
+        const merged = mergeOperations(mapping, opKeys(ops), effectByOperation);
+        const operations = merged.operations;
+        // A tool variant can carry fewer versions than its base (HubSpot v1 is
+        // not usable as a tool); the base entry reports its own stale keys.
+        const stale = mapping.source === "derived" ? [] : merged.stale;
         e.operations = operations;
         if (stale.length) {
           e.staleOperationMappings = stale;

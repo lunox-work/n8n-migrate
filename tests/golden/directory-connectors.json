@@ -1,0 +1,418 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 1,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "subscription:cloud-task": 1
+    },
+    "wakeups": {
+      "schedule": 1
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 0,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0.04,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "directory-connectors",
+      "name": "Morning bug triage",
+      "file": "directory-connectors.json",
+      "sourceHash": "777d8aaf971cd850226e61c4fd07d6f2e14de9a2035e4dfc2f98413d7570bc4c",
+      "wakeup": {
+        "kind": "schedule",
+        "nodes": [
+          "Every morning"
+        ],
+        "all": [
+          "schedule"
+        ]
+      },
+      "body": {
+        "kind": "script+model",
+        "decidedBy": [
+          "Delete duplicates",
+          "Triage agent"
+        ]
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "cloud-task",
+        "reason": "fires every 1 d, within a cloud task's limit of one run per 1 h",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "connector",
+          "name": "atlassian",
+          "nodes": [
+            "Open bugs",
+            "Append report"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:artifact-mcp"
+          },
+          "operations": [
+            "confluence page:append",
+            "jira issue:getAll"
+          ],
+          "confirmed": false,
+          "alternative": {
+            "kind": "http",
+            "secrets": [
+              "Confluence",
+              "Jira work"
+            ],
+            "surfaces": {
+              "cloudTask": "needs:network-secret",
+              "localTask": "needs:bundled-server",
+              "artifact": "no"
+            },
+            "note": "the node's own REST API with its stored n8n credential: acts as that credential's account, not as you, and keeps fields a tool may not expose"
+          }
+        },
+        {
+          "kind": "connector",
+          "name": "clickup",
+          "nodes": [
+            "Create task"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:artifact-mcp"
+          },
+          "operations": [
+            "clickUp task:create"
+          ],
+          "confirmed": false,
+          "alternative": {
+            "kind": "http",
+            "secrets": [
+              "ClickUp"
+            ],
+            "surfaces": {
+              "cloudTask": "needs:network-secret",
+              "localTask": "needs:bundled-server",
+              "artifact": "no"
+            },
+            "note": "the node's own REST API with its stored n8n credential: acts as that credential's account, not as you, and keeps fields a tool may not expose"
+          }
+        },
+        {
+          "kind": "connector",
+          "name": "hubspot",
+          "nodes": [
+            "Find reporter",
+            "Deals"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:artifact-mcp"
+          },
+          "operations": [
+            "hubspot contact:search",
+            "hubspot deal:search"
+          ],
+          "confirmed": false,
+          "alternative": {
+            "kind": "http",
+            "secrets": [
+              "HubSpot app"
+            ],
+            "surfaces": {
+              "cloudTask": "needs:network-secret",
+              "localTask": "needs:bundled-server",
+              "artifact": "no"
+            },
+            "note": "the node's own REST API with its stored n8n credential: acts as that credential's account, not as you, and keeps fields a tool may not expose"
+          }
+        },
+        {
+          "kind": "model",
+          "name": "claude",
+          "nodes": [
+            "Triage agent"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:sample"
+          }
+        },
+        {
+          "kind": "http",
+          "name": "outbound http",
+          "nodes": [
+            "Delete duplicates"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "secret",
+          "name": "Jira work",
+          "nodes": [
+            "Delete duplicates"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Delete duplicates"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "anthropicApi",
+          "name": "Anthropic",
+          "nodes": [
+            "Claude"
+          ]
+        },
+        {
+          "type": "clickUpApi",
+          "name": "ClickUp",
+          "nodes": [
+            "Create task"
+          ]
+        },
+        {
+          "type": "confluenceCloudApi",
+          "name": "Confluence",
+          "nodes": [
+            "Append report"
+          ]
+        },
+        {
+          "type": "hubspotAppToken",
+          "name": "HubSpot app",
+          "nodes": [
+            "Find reporter",
+            "Deals"
+          ]
+        },
+        {
+          "type": "jiraSoftwareCloudApi",
+          "name": "Jira work",
+          "nodes": [
+            "Open bugs",
+            "Delete duplicates"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": 1,
+        "shortestIntervalSec": 86400,
+        "fits": "cloud-task",
+        "timezone": "Europe/Berlin",
+        "timezoneSource": "workflow"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Every morning",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Open bugs",
+          "type": "n8n-nodes-base.jira",
+          "typeVersion": 1,
+          "role": "step",
+          "branch": "main",
+          "resource": "issue",
+          "operation": "getAll",
+          "kind": "connector",
+          "effect": "read",
+          "effectBy": "name",
+          "levers": [],
+          "mapping": "name",
+          "issues": []
+        },
+        {
+          "node": "Delete duplicates",
+          "type": "n8n-nodes-base.jira",
+          "typeVersion": 1,
+          "role": "step",
+          "branch": "main",
+          "resource": "issue",
+          "operation": "delete",
+          "kind": "http",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [
+            "http"
+          ],
+          "mapping": "name",
+          "issues": []
+        },
+        {
+          "node": "Find reporter",
+          "type": "n8n-nodes-base.hubspot",
+          "typeVersion": 2.2,
+          "role": "step",
+          "branch": "main",
+          "resource": "contact",
+          "operation": "search",
+          "kind": "connector",
+          "effect": "read",
+          "effectBy": "name",
+          "levers": [],
+          "mapping": "name",
+          "issues": []
+        },
+        {
+          "node": "Create task",
+          "type": "n8n-nodes-base.clickUp",
+          "typeVersion": 1.1,
+          "role": "step",
+          "branch": "main",
+          "resource": "task",
+          "operation": "create",
+          "kind": "connector",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [],
+          "mapping": "name",
+          "issues": []
+        },
+        {
+          "node": "Triage agent",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1.7,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "agent",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [
+            "agent"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Claude",
+          "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+          "typeVersion": 1.3,
+          "role": "subnode",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "model",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Deals",
+          "type": "n8n-nodes-base.hubspotTool",
+          "typeVersion": 2.2,
+          "role": "subnode",
+          "branch": "main",
+          "resource": "deal",
+          "operation": "search",
+          "kind": "connector",
+          "effect": "read",
+          "effectBy": "name",
+          "levers": [
+            "agent"
+          ],
+          "mapping": "name",
+          "issues": []
+        },
+        {
+          "node": "Append report",
+          "type": "n8n-nodes-base.confluence",
+          "typeVersion": 1,
+          "role": "step",
+          "branch": "main",
+          "resource": "page",
+          "operation": "append",
+          "kind": "connector",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "agent",
+        "http"
+      ]
+    }
+  ]
+}

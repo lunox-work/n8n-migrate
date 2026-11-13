@@ -964,6 +964,7 @@ function addReq(W, kind, name, nodeName, extra = {}) {
   const r = W.req.get(key);
   if (nodeName != null) r.nodes.add(nodeName);
   if (extra.ops) for (const o of extra.ops) if (!r.ops.some((x) => x.type === o.type && x.op === o.op)) r.ops.push(o);
+  if (extra.creds) r.creds = uniq([...(r.creds || []), ...extra.creds]);
   return r;
 }
 
@@ -1173,7 +1174,7 @@ function processNode(W, d, ctx, br) {
   switch (d.kind) {
     case "connector":
       if (d.connector === "custom-mcp") addReq(W, "mcp-server", mcpHost(d), name, { surfaces: reqSurf("mcp-server") });
-      else addReq(W, "connector", d.connector, name, { ops: [{ type: d.baseType, op: d.opKey ?? "?" }] });
+      else addReq(W, "connector", d.connector, name, { ops: [{ type: d.baseType, op: d.opKey ?? "?" }], creds: credentialNames(d).map((c) => c.name) });
       break;
     case "model":
     case "agent":
@@ -1444,7 +1445,7 @@ function propagate(W) {
         if (t.br === "main") addBlocker(W, b.kind, reason, t.node);
         else addBlocker(W, "dropped-branch", `only on an error branch: ${reason}`, t.node);
       }
-      for (const r of C.own.req) if (!SKIP.has(r.kind)) addReq(W, r.kind, r.name, t.node, { surfaces: r.surfaces, ops: r.ops });
+      for (const r of C.own.req) if (!SKIP.has(r.kind)) addReq(W, r.kind, r.name, t.node, { surfaces: r.surfaces, ops: r.ops, creds: r.creds });
       for (const l of C.own.levers) W.levers.add(l);
       if (C.own.hasModel) W.callModelNodes.add(t.node);
       visit(C, t, seen);
@@ -1457,7 +1458,7 @@ function snapshotOwn(W) {
   const steps = W.order.map((n) => W.infos.get(n)).filter((d) => !d.disabled && W.branch.get(d.name) === "main");
   W.own = {
     blockers: [...W.blockers.values()].map((b) => ({ ...b })),
-    req: [...W.req.values()].map((r) => ({ ...r, nodes: new Set(r.nodes), ops: [...r.ops] })),
+    req: [...W.req.values()].map((r) => ({ ...r, nodes: new Set(r.nodes), ops: [...r.ops], creds: r.creds && [...r.creds] })),
     levers: [...W.levers],
     hasModel: steps.some((d) => MODEL_KINDS.has(d.kind) && d.role === "step"),
   };
@@ -1770,6 +1771,10 @@ function finalizeRequires(W, ctx) {
       r.surfaces = surfaces;
       r.confirmed = confirmed;
       r.noTool = noTool;
+      // A connector that stands in for a node with its own REST API keeps
+      // that path as an alternative: the n8n credential, as a stored secret.
+      const alt = own(own(ctx.capabilities.connectors, r.name), "alternative");
+      if (alt) r.alternative = { kind: "http", secrets: [...(r.creds || [])].sort(), surfaces: surfacesFrom(ctx.capabilities.requirements?.[alt.requirement]), note: txt(alt.note) };
     }
   }
   const needsServer = [...W.req.values()].filter((r) => r.kind !== "bundled-server" && r.surfaces?.localTask === "needs:bundled-server");
@@ -1818,6 +1823,7 @@ function reportOf(W, ctx) {
         o.operations = uniq(r.ops.map((x) => `${shortType(x.type)} ${x.op}`)).sort();
         o.confirmed = r.confirmed;
         if (r.noTool?.length) o.noTool = r.noTool;
+        if (r.alternative) o.alternative = r.alternative;
       }
       return o;
     })
@@ -2058,6 +2064,11 @@ export function renderText(report, color = false) {
     if (subs.length) lines.push(`  approve: ${subs.map((b) => `${clean(b.reason.split(":")[0])} (${b.nodes.map(clean).join(", ")})`).join("; ")}`);
     const llm = w.requires.filter((r) => r.kind === "substitution" && !subs.some((b) => b.reason.startsWith(r.name)));
     for (const r of llm) lines.push(`  option: ${clean(r.name)} for ${listCut(r.nodes.map(clean))}: no API key needed`);
+    const alts = w.requires.filter((x) => x.alternative);
+    if (alts.length) {
+      const secrets = uniq(alts.flatMap((r) => r.alternative.secrets)).map((x) => `"${clean(x)}"`);
+      lines.push(`  option: ${listCut(alts.map((r) => clean(r.name)))} through ${alts.length > 1 ? "their" : "its"} REST API${secrets.length ? ` with ${listCut(secrets)}` : ""} instead of the connector${alts.length > 1 ? "s" : ""} (${clean(alts[0].alternative.note)})`);
+    }
     const notes = [];
     for (const b of w.blockers.filter((b) => b.kind === "dropped-branch")) notes.push(`dropped: ${clean(b.reason)}${b.nodes.length ? ` (${listCut(b.nodes.map(clean))})` : ""}`);
     for (const b of w.blockers.filter((b) => b.kind === "not-an-automation")) notes.push(`looks like a tutorial: ${clean(b.reason)}`);

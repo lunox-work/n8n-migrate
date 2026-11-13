@@ -4,6 +4,7 @@
     "Surfaces: cloudTask, localTask, artifact. A value is ok, needs:<thing> (works once <thing> is confirmed or set up) or no.",
     "Every value carries a source. Phase 0 overwrites value and source with what it observed on a real account.",
     "connectors.<name>.operations.<node type>.ops: per n8n operation (resource:operation, or poll for the trigger; tool variants <type>Tool use their base type), the connector tool that does it and how sure that is: confirmed is tool-exists (the tool's schema was seen on a real account, not yet run), no-tool (no tool of the connector can do it), not-captured (connector not attached where the schemas were taken) or observed (ran on a real account). An unlisted operation gives needs:connector-operation-check. A no-tool operation falls back to the app's own REST API with a stored secret: the surfaces of requirements.connector-api, and the report lists it in noTool.",
+    "connectors.<name>.alternative: the connector stands in for a node that has its own REST API (Jira, Confluence, ClickUp, HubSpot). requirement names the requirements entry for that path; the report keeps it on the connector requirement as alternative, with the nodes' credential names, so the person can choose it.",
     "substitutions: blocked nodes with an approvable replacement. The outcome stays subscription; the report adds a substitution requirement and blocker.",
     "nodeRequirements: node types that add a requirement of their own, beyond their kind.",
     "httpSubstitutions: optional replacements found by http-hosts.json rules. model: an HTTP call to an LLM API runs as a Claude model step on the subscription instead of with an API key. It adds a substitution requirement, no blocker: keeping the call with its key also works."
@@ -100,6 +101,75 @@
     }
   },
   "connectors": {
+    "atlassian": {
+      "alternative": {
+        "requirement": "connector-api",
+        "note": "the node's own REST API with its stored n8n credential: acts as that credential's account, not as you, and keeps fields a tool may not expose"
+      },
+      "operations": {
+        "n8n-nodes-base.jira": {
+          "source": "tool schemas on the author's account 2026-11-14 (evals/mocks/connectors), not run",
+          "ops": {
+            "issue:changelog": { "confirmed": "tool-exists", "tool": "getJiraIssue", "note": "expand changelog" },
+            "issue:create": { "confirmed": "tool-exists", "tool": "createJiraIssue" },
+            "issue:get": { "confirmed": "tool-exists", "tool": "getJiraIssue" },
+            "issue:getAll": { "confirmed": "tool-exists", "tool": "searchJiraIssuesUsingJql" },
+            "issue:update": { "confirmed": "tool-exists", "tool": "editJiraIssue", "note": "a status change goes through transitionJiraIssue" },
+            "issueComment:add": { "confirmed": "tool-exists", "tool": "addOrEditJiraIssueComment" },
+            "issueComment:get": { "confirmed": "tool-exists", "tool": "listJiraIssueComments", "note": "lists the issue's comments; the runner picks one by id" },
+            "issueComment:getAll": { "confirmed": "tool-exists", "tool": "listJiraIssueComments" },
+            "issueComment:update": { "confirmed": "tool-exists", "tool": "addOrEditJiraIssueComment", "note": "pass commentId" }
+          }
+        },
+        "n8n-nodes-base.confluence": {
+          "source": "tool schemas on the author's account 2026-11-14 (evals/mocks/connectors), not run",
+          "ops": {
+            "page:append": { "confirmed": "tool-exists", "tool": "updateConfluenceContent", "note": "edits array" },
+            "page:create": { "confirmed": "tool-exists", "tool": "createConfluenceContent" },
+            "page:get": { "confirmed": "tool-exists", "tool": "getConfluenceContent" },
+            "page:update": { "confirmed": "tool-exists", "tool": "updateConfluenceContent" },
+            "search:query": { "confirmed": "tool-exists", "tool": "searchConfluence", "note": "CQL" }
+          }
+        }
+      },
+      "surfaces": {
+        "artifact": { "source": "docs 2026-11-14, untested", "value": "needs:artifact-mcp" },
+        "cloudTask": { "source": "docs 2026-11-14, untested", "value": "ok" },
+        "localTask": { "source": "docs 2026-11-14, untested", "value": "ok" }
+      }
+    },
+    "clickup": {
+      "alternative": {
+        "requirement": "connector-api",
+        "note": "the node's own REST API with its stored n8n credential: acts as that credential's account, not as you, and keeps fields a tool may not expose"
+      },
+      "operations": {
+        "n8n-nodes-base.clickUp": {
+          "source": "tool schemas on the author's account 2026-11-14 (evals/mocks/connectors), not run",
+          "ops": {
+            "comment:create": {
+              "confirmed": "tool-exists",
+              "tool": "clickup_create_task_comment",
+              "note": "task comments only; deprecated alias of clickup_create_comment, whose schema is not captured"
+            },
+            "comment:getAll": { "confirmed": "tool-exists", "tool": "clickup_get_task_comments", "note": "task comments only" },
+            "list:get": { "confirmed": "tool-exists", "tool": "clickup_get_list" },
+            "task:create": { "confirmed": "tool-exists", "tool": "clickup_create_task" },
+            "task:delete": { "confirmed": "tool-exists", "tool": "clickup_delete_task" },
+            "task:get": { "confirmed": "tool-exists", "tool": "clickup_get_task" },
+            "task:getAll": { "confirmed": "tool-exists", "tool": "clickup_filter_tasks" },
+            "task:update": { "confirmed": "tool-exists", "tool": "clickup_update_task" },
+            "taskTag:add": { "confirmed": "tool-exists", "tool": "clickup_add_tag_to_task" },
+            "timeEntry:create": { "confirmed": "tool-exists", "tool": "clickup_add_time_entry" }
+          }
+        }
+      },
+      "surfaces": {
+        "artifact": { "source": "docs 2026-11-14, untested", "value": "needs:artifact-mcp" },
+        "cloudTask": { "source": "docs 2026-11-14, untested", "value": "ok" },
+        "localTask": { "source": "docs 2026-11-14, untested", "value": "ok" }
+      }
+    },
     "custom-mcp": {
       "operations": {},
       "surfaces": {
@@ -233,6 +303,49 @@
         "n8n-nodes-base.googleSheetsTrigger": {
           "source": "tool schemas on the author's account 2026-11-14 (evals/mocks/connectors), not run",
           "ops": { "poll": { "confirmed": "tool-exists", "tool": "download_file_content", "note": "runner diffs the exported first tab against its cursor; other tabs need read_file_content" } }
+        }
+      },
+      "surfaces": {
+        "artifact": { "source": "docs 2026-11-14, untested", "value": "needs:artifact-mcp" },
+        "cloudTask": { "source": "docs 2026-11-14, untested", "value": "ok" },
+        "localTask": { "source": "docs 2026-11-14, untested", "value": "ok" }
+      }
+    },
+    "hubspot": {
+      "alternative": {
+        "requirement": "connector-api",
+        "note": "the node's own REST API with its stored n8n credential: acts as that credential's account, not as you, and keeps fields a tool may not expose"
+      },
+      "operations": {
+        "n8n-nodes-base.hubspot": {
+          "source": "tool schemas on the author's account 2026-11-14 (evals/mocks/connectors), not run",
+          "ops": {
+            "company:create": { "confirmed": "tool-exists", "tool": "manage_crm_objects", "note": "createRequest" },
+            "company:get": { "confirmed": "tool-exists", "tool": "get_crm_objects" },
+            "company:getAll": { "confirmed": "tool-exists", "tool": "search_crm_objects" },
+            "company:getRecentlyCreated": { "confirmed": "tool-exists", "tool": "search_crm_objects", "note": "sorted by create or modified date (node v1)" },
+            "company:getRecentlyCreatedUpdated": { "confirmed": "tool-exists", "tool": "search_crm_objects", "note": "sorted by create or modified date" },
+            "company:getRecentlyModified": { "confirmed": "tool-exists", "tool": "search_crm_objects", "note": "sorted by create or modified date (node v1)" },
+            "company:searchByDomain": { "confirmed": "tool-exists", "tool": "search_crm_objects", "note": "filter on domain" },
+            "company:update": { "confirmed": "tool-exists", "tool": "manage_crm_objects", "note": "updateRequest" },
+            "contact:get": { "confirmed": "tool-exists", "tool": "get_crm_objects" },
+            "contact:getAll": { "confirmed": "tool-exists", "tool": "search_crm_objects" },
+            "contact:getRecentlyCreatedUpdated": { "confirmed": "tool-exists", "tool": "search_crm_objects", "note": "sorted by create or modified date" },
+            "contact:search": { "confirmed": "tool-exists", "tool": "search_crm_objects" },
+            "contact:upsert": { "confirmed": "tool-exists", "tool": "manage_crm_objects", "note": "search_crm_objects by email first, then createRequest or updateRequest" },
+            "deal:create": { "confirmed": "tool-exists", "tool": "manage_crm_objects", "note": "createRequest" },
+            "deal:get": { "confirmed": "tool-exists", "tool": "get_crm_objects" },
+            "deal:getAll": { "confirmed": "tool-exists", "tool": "search_crm_objects" },
+            "deal:getRecentlyCreated": { "confirmed": "tool-exists", "tool": "search_crm_objects", "note": "sorted by create or modified date (node v1)" },
+            "deal:getRecentlyCreatedUpdated": { "confirmed": "tool-exists", "tool": "search_crm_objects", "note": "sorted by create or modified date" },
+            "deal:getRecentlyModified": { "confirmed": "tool-exists", "tool": "search_crm_objects", "note": "sorted by create or modified date (node v1)" },
+            "deal:search": { "confirmed": "tool-exists", "tool": "search_crm_objects" },
+            "deal:update": { "confirmed": "tool-exists", "tool": "manage_crm_objects", "note": "updateRequest" },
+            "ticket:create": { "confirmed": "tool-exists", "tool": "manage_crm_objects", "note": "createRequest" },
+            "ticket:get": { "confirmed": "tool-exists", "tool": "get_crm_objects" },
+            "ticket:getAll": { "confirmed": "tool-exists", "tool": "search_crm_objects" },
+            "ticket:update": { "confirmed": "tool-exists", "tool": "manage_crm_objects", "note": "updateRequest" }
+          }
         }
       },
       "surfaces": {

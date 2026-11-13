@@ -58,7 +58,7 @@ Status: `observed` (seen in this session), `docs-only` (public docs, untested), 
 
 Two findings outside the table:
 
-- Jira, Confluence, ClickUp and HubSpot nodes are mapped to `http` with a secret, but the account's Atlassian, ClickUp and HubSpot connectors have tools for their common operations (issue create, get, edit, search, transition, comment; task create, get, update, delete, filter, comment; CRM search, get, create, update). Moving them to connector steps is a mapping decision for later.
+- Jira, Confluence, ClickUp and HubSpot nodes are mapped to `http` with a secret, but the account's Atlassian, ClickUp and HubSpot connectors have tools for their common operations (issue create, get, edit, search, transition, comment; task create, get, update, delete, filter, comment; CRM search, get, create, update). Since 2026-11-14 the operations with a captured tool schema are connector steps (`capabilities.json` names each tool); the rest stay `http` with a secret, and the REST path stays in the report as `alternative`.
 - `form-artifact` targets an artifact form while its Sheets append is `no` on the artifact surface; the form target does not check step surfaces.
 
 ## Claude Code CLI 2.1.323 (`claude --help`, no prompt run)

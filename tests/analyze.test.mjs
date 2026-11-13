@@ -270,3 +270,22 @@ test("writes question: one per workflow, answers by node list, bad names rejecte
   assert.match(r.summary.answers.invalid[0].reason, /Nope/);
   assert.equal(r.workflows[0].questions[0].answer, null);
 });
+
+test("catalogue: every connector operation names a tool in capabilities.json", () => {
+  // An operation that mappings.json moves to a connector one by one (a node
+  // that is http otherwise) must name a tool in that connector's operation
+  // table: only operations with a tool are moved. Node-wide connector
+  // mappings may leave operations unlisted (they ask for a check). Tool
+  // variants use their base type's table.
+  const missing = [];
+  for (const [type, e] of Object.entries(nodes.nodes)) {
+    if (!e.operations || e.mapping === "unmapped") continue;
+    const base = e.toolVariantOf ?? type;
+    for (const [op, o] of Object.entries(e.operations)) {
+      if (o.kind !== "connector" || !o.connector) continue;
+      const entry = capabilities.connectors[o.connector]?.operations?.[base]?.ops?.[op];
+      if (!entry?.tool) missing.push(`${type} ${op} → ${o.connector}`);
+    }
+  }
+  assert.deepEqual(missing, []);
+});

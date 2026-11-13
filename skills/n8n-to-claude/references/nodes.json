@@ -154,7 +154,7 @@
           "effect": "none",
           "effectBy": "hand",
           "kind": "media",
-          "levers": ["media", "http"],
+          "levers": ["agent", "http", "media"],
           "secrets": true
         },
         "text:message": {
@@ -165,14 +165,14 @@
           "effect": "none",
           "effectBy": "hand",
           "kind": "media",
-          "levers": ["media", "http"],
+          "levers": ["agent", "http", "media"],
           "secrets": true
         },
         "video:textToVideo": {
           "effect": "none",
           "effectBy": "hand",
           "kind": "media",
-          "levers": ["media", "http"],
+          "levers": ["agent", "http", "media"],
           "secrets": true
         }
       },
@@ -322,7 +322,7 @@
           "effect": "write",
           "effectBy": "name",
           "kind": "http",
-          "levers": ["http"],
+          "levers": ["agent", "http"],
           "notes": "Anthropic Files API",
           "secrets": true
         },
@@ -330,7 +330,7 @@
           "effect": "read",
           "effectBy": "name",
           "kind": "http",
-          "levers": ["http"],
+          "levers": ["agent", "http"],
           "notes": "Anthropic Files API",
           "secrets": true
         },
@@ -338,7 +338,7 @@
           "effect": "read",
           "effectBy": "name",
           "kind": "http",
-          "levers": ["http"],
+          "levers": ["agent", "http"],
           "notes": "Anthropic Files API",
           "secrets": true
         },
@@ -346,7 +346,7 @@
           "effect": "write",
           "effectBy": "name",
           "kind": "http",
-          "levers": ["http"],
+          "levers": ["agent", "http"],
           "notes": "Anthropic Files API",
           "secrets": true
         },
@@ -1206,14 +1206,14 @@
           "effect": "none",
           "effectBy": "hand",
           "kind": "media",
-          "levers": ["media", "http"],
+          "levers": ["agent", "http", "media"],
           "secrets": true
         },
         "audio:transcribe": {
           "effect": "none",
           "effectBy": "hand",
           "kind": "media",
-          "levers": ["media", "http"],
+          "levers": ["agent", "http", "media"],
           "secrets": true
         },
         "document:analyze": {
@@ -1224,14 +1224,14 @@
           "effect": "write",
           "effectBy": "name",
           "kind": "http",
-          "levers": ["http"],
+          "levers": ["agent", "http"],
           "secrets": true
         },
         "fileSearch:createStore": {
           "effect": "write",
           "effectBy": "name",
           "kind": "vector",
-          "levers": ["vector", "http"],
+          "levers": ["agent", "http", "vector"],
           "notes": "Gemini file search store",
           "secrets": true
         },
@@ -1239,7 +1239,7 @@
           "effect": "write",
           "effectBy": "name",
           "kind": "vector",
-          "levers": ["vector", "http"],
+          "levers": ["agent", "http", "vector"],
           "notes": "Gemini file search store",
           "secrets": true
         },
@@ -1247,7 +1247,7 @@
           "effect": "read",
           "effectBy": "name",
           "kind": "vector",
-          "levers": ["vector", "http"],
+          "levers": ["agent", "http", "vector"],
           "notes": "Gemini file search store",
           "secrets": true
         },
@@ -1255,7 +1255,7 @@
           "effect": "write",
           "effectBy": "name",
           "kind": "vector",
-          "levers": ["vector", "http"],
+          "levers": ["agent", "http", "vector"],
           "notes": "Gemini file search store",
           "secrets": true
         },
@@ -1267,14 +1267,14 @@
           "effect": "none",
           "effectBy": "hand",
           "kind": "media",
-          "levers": ["media", "http"],
+          "levers": ["agent", "http", "media"],
           "secrets": true
         },
         "image:generate": {
           "effect": "none",
           "effectBy": "hand",
           "kind": "media",
-          "levers": ["media", "http"],
+          "levers": ["agent", "http", "media"],
           "secrets": true
         },
         "text:message": {
@@ -1285,21 +1285,21 @@
           "effect": "none",
           "effectBy": "hand",
           "kind": "media",
-          "levers": ["media", "http"],
+          "levers": ["agent", "http", "media"],
           "secrets": true
         },
         "video:download": {
           "effect": "read",
           "effectBy": "name",
           "kind": "http",
-          "levers": ["http"],
+          "levers": ["agent", "http"],
           "secrets": true
         },
         "video:generate": {
           "effect": "none",
           "effectBy": "hand",
           "kind": "media",
-          "levers": ["media", "http"],
+          "levers": ["agent", "http", "media"],
           "secrets": true
         }
       },
@@ -2187,14 +2187,14 @@
           "effect": "none",
           "effectBy": "hand",
           "kind": "media",
-          "levers": ["media", "http"],
+          "levers": ["agent", "http", "media"],
           "secrets": true
         },
         "image:generate": {
           "effect": "none",
           "effectBy": "hand",
           "kind": "media",
-          "levers": ["media", "http"],
+          "levers": ["agent", "http", "media"],
           "secrets": true
         },
         "text:message": {
@@ -2205,14 +2205,14 @@
           "effect": "none",
           "effectBy": "hand",
           "kind": "media",
-          "levers": ["media", "http"],
+          "levers": ["agent", "http", "media"],
           "secrets": true
         },
         "video:textToVideo": {
           "effect": "none",
           "effectBy": "hand",
           "kind": "media",
-          "levers": ["media", "http"],
+          "levers": ["agent", "http", "media"],
           "secrets": true
         }
       },
@@ -9316,6 +9316,7 @@
       "mapping": {
         "kind": "http",
         "levers": ["http"],
+        "notes": "operations with a connector tool are connector steps; the rest call the REST API with the stored credential",
         "role": "step",
         "secrets": true,
         "source": "hand"
@@ -9346,16 +9347,24 @@
           "effectBy": "name"
         },
         "comment:create": {
+          "connector": "clickup",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "comment:delete": {
           "effect": "write",
           "effectBy": "name"
         },
         "comment:getAll": {
+          "connector": "clickup",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "comment:update": {
           "effect": "write",
@@ -9423,8 +9432,12 @@
           "effectBy": "name"
         },
         "list:get": {
+          "connector": "clickup",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "list:getAll": {
           "effect": "read",
@@ -9452,26 +9465,46 @@
           "effectBy": "name"
         },
         "task:create": {
+          "connector": "clickup",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "task:delete": {
+          "connector": "clickup",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "task:get": {
+          "connector": "clickup",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "task:getAll": {
+          "connector": "clickup",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "task:member": {},
         "task:setCustomField": {},
         "task:update": {
+          "connector": "clickup",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "taskDependency:create": {
           "effect": "write",
@@ -9490,16 +9523,24 @@
           "effectBy": "name"
         },
         "taskTag:add": {
+          "connector": "clickup",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "taskTag:remove": {
           "effect": "write",
           "effectBy": "name"
         },
         "timeEntry:create": {
+          "connector": "clickup",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "timeEntry:delete": {
           "effect": "write",
@@ -9609,6 +9650,7 @@
         "derivedFrom": "n8n-nodes-base.clickUp",
         "kind": "http",
         "levers": ["agent", "http"],
+        "notes": "operations with a connector tool are connector steps; the rest call the REST API with the stored credential",
         "role": "subnode",
         "secrets": true,
         "source": "derived"
@@ -9639,16 +9681,24 @@
           "effectBy": "name"
         },
         "comment:create": {
+          "connector": "clickup",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "comment:delete": {
           "effect": "write",
           "effectBy": "name"
         },
         "comment:getAll": {
+          "connector": "clickup",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "comment:update": {
           "effect": "write",
@@ -9716,8 +9766,12 @@
           "effectBy": "name"
         },
         "list:get": {
+          "connector": "clickup",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "list:getAll": {
           "effect": "read",
@@ -9745,26 +9799,46 @@
           "effectBy": "name"
         },
         "task:create": {
+          "connector": "clickup",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "task:delete": {
+          "connector": "clickup",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "task:get": {
+          "connector": "clickup",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "task:getAll": {
+          "connector": "clickup",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "task:member": {},
         "task:setCustomField": {},
         "task:update": {
+          "connector": "clickup",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "taskDependency:create": {
           "effect": "write",
@@ -9783,16 +9857,24 @@
           "effectBy": "name"
         },
         "taskTag:add": {
+          "connector": "clickup",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "taskTag:remove": {
           "effect": "write",
           "effectBy": "name"
         },
         "timeEntry:create": {
+          "connector": "clickup",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "timeEntry:delete": {
           "effect": "write",
@@ -10876,6 +10958,7 @@
       "mapping": {
         "kind": "http",
         "levers": ["http"],
+        "notes": "operations with a connector tool are connector steps; the rest call the REST API with the stored credential",
         "role": "step",
         "secrets": true,
         "source": "hand"
@@ -10902,12 +10985,20 @@
           "effectBy": "name"
         },
         "page:append": {
+          "connector": "atlassian",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "page:create": {
+          "connector": "atlassian",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "page:delete": {
           "effect": "write",
@@ -10918,8 +11009,12 @@
           "effectBy": "name"
         },
         "page:get": {
+          "connector": "atlassian",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "page:getComments": {
           "effect": "read",
@@ -10938,10 +11033,19 @@
           "effectBy": "name"
         },
         "page:update": {
+          "connector": "atlassian",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
-        "search:query": {},
+        "search:query": {
+          "connector": "atlassian",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
+        },
         "space:get": {
           "effect": "read",
           "effectBy": "name"
@@ -10987,6 +11091,7 @@
         "derivedFrom": "n8n-nodes-base.confluence",
         "kind": "http",
         "levers": ["agent", "http"],
+        "notes": "operations with a connector tool are connector steps; the rest call the REST API with the stored credential",
         "role": "subnode",
         "secrets": true,
         "source": "derived"
@@ -11013,12 +11118,20 @@
           "effectBy": "name"
         },
         "page:append": {
+          "connector": "atlassian",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "page:create": {
+          "connector": "atlassian",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "page:delete": {
           "effect": "write",
@@ -11029,8 +11142,12 @@
           "effectBy": "name"
         },
         "page:get": {
+          "connector": "atlassian",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "page:getComments": {
           "effect": "read",
@@ -11049,10 +11166,19 @@
           "effectBy": "name"
         },
         "page:update": {
+          "connector": "atlassian",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
-        "search:query": {},
+        "search:query": {
+          "connector": "atlassian",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
+        },
         "space:get": {
           "effect": "read",
           "effectBy": "name"
@@ -23329,55 +23455,123 @@
       "mapping": {
         "kind": "http",
         "levers": ["http"],
+        "notes": "operations with a connector tool are connector steps; the rest call the REST API with the stored credential",
         "role": "step",
         "secrets": true,
         "source": "hand"
       },
       "operations": {
         "company:create": {
+          "connector": "hubspot",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "company:delete": {
           "effect": "write",
           "effectBy": "name"
         },
         "company:get": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "company:getAll": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
-        "company:getRecentlyCreated": {},
-        "company:getRecentlyCreatedUpdated": {},
-        "company:getRecentlyModified": {},
-        "company:searchByDomain": {},
+        "company:getRecentlyCreated": {
+          "connector": "hubspot",
+          "effect": "read",
+          "effectBy": "hand",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
+        },
+        "company:getRecentlyCreatedUpdated": {
+          "connector": "hubspot",
+          "effect": "read",
+          "effectBy": "hand",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
+        },
+        "company:getRecentlyModified": {
+          "connector": "hubspot",
+          "effect": "read",
+          "effectBy": "hand",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
+        },
+        "company:searchByDomain": {
+          "connector": "hubspot",
+          "effect": "read",
+          "effectBy": "hand",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
+        },
         "company:update": {
+          "connector": "hubspot",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "contact:delete": {
           "effect": "write",
           "effectBy": "name"
         },
         "contact:get": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "contact:getAll": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
-        "contact:getRecentlyCreatedUpdated": {},
-        "contact:search": {
+        "contact:getRecentlyCreatedUpdated": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "hand",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
+        },
+        "contact:search": {
+          "connector": "hubspot",
+          "effect": "read",
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "contact:upsert": {
+          "connector": "hubspot",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "contactList:add": {
           "effect": "write",
@@ -23388,31 +23582,72 @@
           "effectBy": "name"
         },
         "deal:create": {
+          "connector": "hubspot",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "deal:delete": {
           "effect": "write",
           "effectBy": "name"
         },
         "deal:get": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "deal:getAll": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
-        "deal:getRecentlyCreated": {},
-        "deal:getRecentlyCreatedUpdated": {},
-        "deal:getRecentlyModified": {},
-        "deal:search": {
+        "deal:getRecentlyCreated": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "hand",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
+        },
+        "deal:getRecentlyCreatedUpdated": {
+          "connector": "hubspot",
+          "effect": "read",
+          "effectBy": "hand",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
+        },
+        "deal:getRecentlyModified": {
+          "connector": "hubspot",
+          "effect": "read",
+          "effectBy": "hand",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
+        },
+        "deal:search": {
+          "connector": "hubspot",
+          "effect": "read",
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "deal:update": {
+          "connector": "hubspot",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "engagement:create": {
           "effect": "write",
@@ -23436,24 +23671,40 @@
         },
         "form:submit": {},
         "ticket:create": {
+          "connector": "hubspot",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "ticket:delete": {
           "effect": "write",
           "effectBy": "name"
         },
         "ticket:get": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "ticket:getAll": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "ticket:update": {
+          "connector": "hubspot",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         }
       },
       "ops": [
@@ -23535,53 +23786,107 @@
         "derivedFrom": "n8n-nodes-base.hubspot",
         "kind": "http",
         "levers": ["agent", "http"],
+        "notes": "operations with a connector tool are connector steps; the rest call the REST API with the stored credential",
         "role": "subnode",
         "secrets": true,
         "source": "derived"
       },
       "operations": {
         "company:create": {
+          "connector": "hubspot",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "company:delete": {
           "effect": "write",
           "effectBy": "name"
         },
         "company:get": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "company:getAll": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
-        "company:getRecentlyCreatedUpdated": {},
-        "company:searchByDomain": {},
+        "company:getRecentlyCreatedUpdated": {
+          "connector": "hubspot",
+          "effect": "read",
+          "effectBy": "hand",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
+        },
+        "company:searchByDomain": {
+          "connector": "hubspot",
+          "effect": "read",
+          "effectBy": "hand",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
+        },
         "company:update": {
+          "connector": "hubspot",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "contact:delete": {
           "effect": "write",
           "effectBy": "name"
         },
         "contact:get": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "contact:getAll": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
-        "contact:getRecentlyCreatedUpdated": {},
-        "contact:search": {
+        "contact:getRecentlyCreatedUpdated": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "hand",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
+        },
+        "contact:search": {
+          "connector": "hubspot",
+          "effect": "read",
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "contact:upsert": {
+          "connector": "hubspot",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "contactList:add": {
           "effect": "write",
@@ -23592,29 +23897,56 @@
           "effectBy": "name"
         },
         "deal:create": {
+          "connector": "hubspot",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "deal:delete": {
           "effect": "write",
           "effectBy": "name"
         },
         "deal:get": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "deal:getAll": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
-        "deal:getRecentlyCreatedUpdated": {},
-        "deal:search": {
+        "deal:getRecentlyCreatedUpdated": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "hand",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
+        },
+        "deal:search": {
+          "connector": "hubspot",
+          "effect": "read",
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "deal:update": {
+          "connector": "hubspot",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "engagement:create": {
           "effect": "write",
@@ -23633,24 +23965,40 @@
           "effectBy": "name"
         },
         "ticket:create": {
+          "connector": "hubspot",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "ticket:delete": {
           "effect": "write",
           "effectBy": "name"
         },
         "ticket:get": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "ticket:getAll": {
+          "connector": "hubspot",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "ticket:update": {
+          "connector": "hubspot",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         }
       },
       "ops": [
@@ -24847,33 +25195,57 @@
       "mapping": {
         "kind": "http",
         "levers": ["http"],
+        "notes": "operations with a connector tool are connector steps; the rest call the REST API with the stored credential",
         "role": "step",
         "secrets": true,
         "source": "hand"
       },
       "operations": {
-        "issue:changelog": {},
+        "issue:changelog": {
+          "connector": "atlassian",
+          "effect": "read",
+          "effectBy": "hand",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
+        },
         "issue:create": {
+          "connector": "atlassian",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "issue:delete": {
           "effect": "write",
           "effectBy": "name"
         },
         "issue:get": {
+          "connector": "atlassian",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "issue:getAll": {
+          "connector": "atlassian",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "issue:notify": {},
         "issue:transitions": {},
         "issue:update": {
+          "connector": "atlassian",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "issueAttachment:add": {
           "effect": "write",
@@ -24892,24 +25264,40 @@
           "effectBy": "name"
         },
         "issueComment:add": {
+          "connector": "atlassian",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "issueComment:get": {
+          "connector": "atlassian",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "issueComment:getAll": {
+          "connector": "atlassian",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "issueComment:remove": {
           "effect": "write",
           "effectBy": "name"
         },
         "issueComment:update": {
+          "connector": "atlassian",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": [],
+          "secrets": false
         },
         "user:create": {
           "effect": "write",
@@ -24960,33 +25348,57 @@
         "derivedFrom": "n8n-nodes-base.jira",
         "kind": "http",
         "levers": ["agent", "http"],
+        "notes": "operations with a connector tool are connector steps; the rest call the REST API with the stored credential",
         "role": "subnode",
         "secrets": true,
         "source": "derived"
       },
       "operations": {
-        "issue:changelog": {},
+        "issue:changelog": {
+          "connector": "atlassian",
+          "effect": "read",
+          "effectBy": "hand",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
+        },
         "issue:create": {
+          "connector": "atlassian",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "issue:delete": {
           "effect": "write",
           "effectBy": "name"
         },
         "issue:get": {
+          "connector": "atlassian",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "issue:getAll": {
+          "connector": "atlassian",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "issue:notify": {},
         "issue:transitions": {},
         "issue:update": {
+          "connector": "atlassian",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "issueAttachment:add": {
           "effect": "write",
@@ -25005,24 +25417,40 @@
           "effectBy": "name"
         },
         "issueComment:add": {
+          "connector": "atlassian",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "issueComment:get": {
+          "connector": "atlassian",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "issueComment:getAll": {
+          "connector": "atlassian",
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "issueComment:remove": {
           "effect": "write",
           "effectBy": "name"
         },
         "issueComment:update": {
+          "connector": "atlassian",
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "name",
+          "kind": "connector",
+          "levers": ["agent"],
+          "secrets": false
         },
         "user:create": {
           "effect": "write",

@@ -152,7 +152,19 @@
               "surfaces": { "$ref": "#/$defs/surfaces" },
               "operations": { "description": "connector only: \"<node type> <resource:operation>\"", "type": "array", "items": { "type": "string" } },
               "confirmed": { "description": "connector only: every operation observed working on a real account (Phase 0)", "type": "boolean" },
-              "noTool": { "description": "connector only: operations no tool of the connector can do (\"<node type> <resource:operation>\"); they fall back to the app's REST API with a stored secret, which the surfaces reflect", "type": "array", "items": { "type": "string" } }
+              "noTool": { "description": "connector only: operations no tool of the connector can do (\"<node type> <resource:operation>\"); they fall back to the app's REST API with a stored secret, which the surfaces reflect", "type": "array", "items": { "type": "string" } },
+              "alternative": {
+                "description": "connector only, for connectors that stand in for a node with its own REST API (capabilities.json connectors.<name>.alternative): the same steps over HTTP with the node's stored n8n credential, for the person to choose instead",
+                "type": "object",
+                "required": ["kind", "secrets", "surfaces", "note"],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": { "const": "http" },
+                  "secrets": { "description": "credential names on those nodes (never values)", "type": "array", "items": { "type": "string" } },
+                  "surfaces": { "$ref": "#/$defs/surfaces" },
+                  "note": { "type": "string" }
+                }
+              }
             }
           }
         },
