@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "name": "Price orders with a sub-workflow",
+  "id": "sub01",
+  "converter": {
+    "version": "0.1.0",
+    "toolMaps": "1"
+  },
+  "source": {
+    "file": "source.n8n.json",
+    "sha256": "c885c958f0784bca9f82da057eab5c0bc57866516899cdd040d215d9f80c34e8",
+    "workflowId": "sub01"
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "steps": {
+    "Start": {
+      "kind": "trigger",
+      "n8n": {
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "id": "s1",
+        "position": [
+          0,
+          0
+        ]
+      },
+      "params": {},
+      "settings": {}
+    },
+    "Orders": {
+      "kind": "code",
+      "n8n": {
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "id": "s2",
+        "position": [
+          220,
+          0
+        ]
+      },
+      "params": {
+        "jsCode": "return [{ json: { id: 1, qty: 2 } }, { json: { id: 2, qty: 5 } }, { json: { id: 3, qty: 1 } }];"
+      },
+      "settings": {}
+    },
+    "Price each": {
+      "kind": "subflow",
+      "n8n": {
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "id": "s3",
+        "position": [
+          440,
+          120
+        ]
+      },
+      "params": {
+        "workflowId": {
+          "__rl": true,
+          "value": "={{ $workflow.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "settings": {},
+      "subflow": {
+        "self": true
+      }
+    },
+    "Merge": {
+      "kind": "logic",
+      "n8n": {
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3,
+        "id": "s4",
+        "position": [
+          660,
+          0
+        ]
+      },
+      "params": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "settings": {}
+    },
+    "When called": {
+      "kind": "trigger",
+      "n8n": {
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.1,
+        "id": "s5",
+        "position": [
+          0,
+          400
+        ]
+      },
+      "params": {
+        "inputSource": "passthrough"
+      },
+      "settings": {}
+    },
+    "Add price": {
+      "kind": "logic",
+      "n8n": {
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "id": "s6",
+        "position": [
+          220,
+          400
+        ]
+      },
+      "params": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "price",
+              "value": "={{ $json.qty * 10 }}",
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "settings": {}
+    }
+  },
+  "edges": [
+    {
+      "from": "Start",
+      "fromOutput": 0,
+      "to": "Orders",
+      "toInput": 0
+    },
+    {
+      "from": "Orders",
+      "fromOutput": 0,
+      "to": "Merge",
+      "toInput": 0
+    },
+    {
+      "from": "Orders",
+      "fromOutput": 0,
+      "to": "Price each",
+      "toInput": 0
+    },
+    {
+      "from": "Price each",
+      "fromOutput": 0,
+      "to": "Merge",
+      "toInput": 1
+    },
+    {
+      "from": "When called",
+      "fromOutput": 0,
+      "to": "Add price",
+      "toInput": 0
+    }
+  ],
+  "subnodes": [],
+  "allow": {
+    "tools": [],
+    "http": [],
+    "sql": []
+  },
+  "secrets": []
+}

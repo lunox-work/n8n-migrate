@@ -1,0 +1,32 @@
+{
+  "id": "poll01",
+  "name": "Invoice mail to accounts",
+  "nodes": [
+    {
+      "parameters": { "pollTimes": { "item": [{ "mode": "everyHour", "minute": 5 }] }, "simple": true, "filters": { "q": "subject:invoice" }, "options": {} },
+      "id": "p1", "name": "New invoice email", "type": "n8n-nodes-base.gmailTrigger", "typeVersion": 1.2, "position": [0, 0], "credentials": { "gmailOAuth2": { "id": "c1", "name": "Gmail account" } }
+    },
+    {
+      "parameters": { "mode": "runOnceForEachItem", "jsCode": "const m = /\\$([0-9]+(?:\\.[0-9]+)?)/.exec($json.snippet || '');\nreturn { json: { from: $json.From, subject: $json.Subject, amount: m ? Number(m[1]) : 0 } };" },
+      "id": "p2", "name": "Extract amount", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [220, 0]
+    },
+    {
+      "parameters": { "conditions": { "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 }, "conditions": [{ "id": "k1", "leftValue": "={{ $json.amount }}", "rightValue": 100, "operator": { "type": "number", "operation": "gt" } }], "combinator": "and" }, "options": {} },
+      "id": "p3", "name": "Over 100?", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST", "url": "https://api.accounts.example.com/v1/invoices", "authentication": "genericCredentialType", "genericAuthType": "httpHeaderAuth",
+        "sendBody": true, "bodyParameters": { "parameters": [{ "name": "from", "value": "={{ $json.from }}" }, { "name": "subject", "value": "={{ $json.subject }}" }, { "name": "amount", "value": "={{ $json.amount }}" }] }, "options": {}
+      },
+      "id": "p4", "name": "Notify accounts", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [660, -100], "credentials": { "httpHeaderAuth": { "id": "c4", "name": "Accounts API key" } }
+    },
+    { "parameters": {}, "id": "p5", "name": "Ignore", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [660, 100] }
+  ],
+  "connections": {
+    "New invoice email": { "main": [[{ "node": "Extract amount", "type": "main", "index": 0 }]] },
+    "Extract amount": { "main": [[{ "node": "Over 100?", "type": "main", "index": 0 }]] },
+    "Over 100?": { "main": [[{ "node": "Notify accounts", "type": "main", "index": 0 }], [{ "node": "Ignore", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "timezone": "Europe/Berlin" }
+}

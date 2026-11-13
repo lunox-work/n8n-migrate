@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 1,
+  "name": "Invoice mail to accounts",
+  "id": "poll01",
+  "converter": {
+    "version": "0.1.0",
+    "toolMaps": "1"
+  },
+  "source": {
+    "file": "source.n8n.json",
+    "sha256": "c27ce7836d020eca63b8ebf6ff4b50b79234378934e629c15fb76e185559527c",
+    "workflowId": "poll01"
+  },
+  "settings": {
+    "timezone": "Europe/Berlin",
+    "executionOrder": "v1"
+  },
+  "steps": {
+    "New invoice email": {
+      "kind": "trigger",
+      "n8n": {
+        "type": "n8n-nodes-base.gmailTrigger",
+        "typeVersion": 1.2,
+        "id": "p1",
+        "position": [
+          0,
+          0
+        ]
+      },
+      "params": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyHour",
+              "minute": 5
+            }
+          ]
+        },
+        "simple": true,
+        "filters": {
+          "q": "subject:invoice"
+        },
+        "options": {}
+      },
+      "settings": {},
+      "credentials": {
+        "gmailOAuth2": "Gmail account"
+      },
+      "poll": {
+        "tool": {
+          "connector": "gmail",
+          "name": "search_threads",
+          "args": {
+            "query": "subject:invoice",
+            "pageSize": 50
+          },
+          "coerce": {
+            "query": "string",
+            "pageSize": "integer"
+          }
+        },
+        "result": {
+          "items": "threads[*].messages[*]",
+          "fields": {
+            "threadId": "^.id",
+            "From": "sender",
+            "To": {
+              "join": "toRecipients"
+            },
+            "Cc": {
+              "join": "ccRecipients"
+            },
+            "Subject": "subject"
+          }
+        },
+        "cursor": {
+          "field": "date",
+          "strategy": "max",
+          "idField": "id",
+          "arg": "query",
+          "template": "after:{seconds}"
+        },
+        "fidelity": "unverified",
+        "missingFields": [
+          "historyId",
+          "internalDate",
+          "labels",
+          "payload",
+          "sizeEstimate"
+        ],
+        "caveats": [
+          "The cursor reads each message's date; Gmail's after: has one-second resolution, so ids seen at the cursor are remembered."
+        ],
+        "map": "n8n-nodes-base.gmailTrigger@>=1 poll"
+      },
+      "schedule": {
+        "cron": [
+          "0 5 * * * *"
+        ],
+        "timezone": "Europe/Berlin",
+        "runsPerDay": 24,
+        "shortestIntervalSec": 3600,
+        "fits": "cloud-task"
+      }
+    },
+    "Extract amount": {
+      "kind": "code",
+      "n8n": {
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "id": "p2",
+        "position": [
+          220,
+          0
+        ]
+      },
+      "params": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const m = /\\$([0-9]+(?:\\.[0-9]+)?)/.exec($json.snippet || '');\nreturn { json: { from: $json.From, subject: $json.Subject, amount: m ? Number(m[1]) : 0 } };"
+      },
+      "settings": {}
+    },
+    "Over 100?": {
+      "kind": "branch",
+      "n8n": {
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "id": "p3",
+        "position": [
+          440,
+          0
+        ]
+      },
+      "params": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "k1",
+              "leftValue": "={{ $json.amount }}",
+              "rightValue": 100,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "settings": {}
+    },
+    "Notify accounts": {
+      "kind": "http",
+      "n8n": {
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "id": "p4",
+        "position": [
+          660,
+          -100
+        ]
+      },
+      "params": {
+        "method": "POST",
+        "url": "https://api.accounts.example.com/v1/invoices",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "from",
+              "value": "={{ $json.from }}"
+            },
+            {
+              "name": "subject",
+              "value": "={{ $json.subject }}"
+            },
+            {
+              "name": "amount",
+              "value": "={{ $json.amount }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "settings": {},
+      "credentials": {
+        "httpHeaderAuth": "Accounts API key"
+      },
+      "auth": {
+        "credentialType": "httpHeaderAuth",
+        "secret": "Accounts API key"
+      }
+    },
+    "Ignore": {
+      "kind": "logic",
+      "n8n": {
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "id": "p5",
+        "position": [
+          660,
+          100
+        ]
+      },
+      "params": {},
+      "settings": {}
+    }
+  },
+  "edges": [
+    {
+      "from": "New invoice email",
+      "fromOutput": 0,
+      "to": "Extract amount",
+      "toInput": 0
+    },
+    {
+      "from": "Extract amount",
+      "fromOutput": 0,
+      "to": "Over 100?",
+      "toInput": 0
+    },
+    {
+      "from": "Over 100?",
+      "fromOutput": 0,
+      "to": "Notify accounts",
+      "toInput": 0
+    },
+    {
+      "from": "Over 100?",
+      "fromOutput": 1,
+      "to": "Ignore",
+      "toInput": 0
+    }
+  ],
+  "subnodes": [],
+  "allow": {
+    "tools": [
+      {
+        "connector": "gmail",
+        "tool": "search_threads"
+      }
+    ],
+    "http": [
+      {
+        "method": "POST",
+        "host": "api.accounts.example.com",
+        "pathPrefix": "/v1/invoices"
+      }
+    ],
+    "sql": []
+  },
+  "secrets": [
+    {
+      "name": "Accounts API key",
+      "credentialType": "httpHeaderAuth",
+      "hosts": [
+        "api.accounts.example.com"
+      ]
+    }
+  ]
+}

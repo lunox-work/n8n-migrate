@@ -1,0 +1,343 @@
+{
+  "schemaVersion": 1,
+  "name": "Inbox assistant chat",
+  "id": "chat01",
+  "converter": {
+    "version": "0.1.0",
+    "toolMaps": "1"
+  },
+  "source": {
+    "file": "source.n8n.json",
+    "sha256": "8c8d443d3e87562071b95ea2841a34ec90015f98d386b8fbc67d31d3c22c8f93",
+    "workflowId": "chat01"
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "steps": {
+    "When chat message received": {
+      "kind": "trigger",
+      "n8n": {
+        "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+        "typeVersion": 1.1,
+        "id": "b1",
+        "position": [
+          0,
+          0
+        ],
+        "webhookId": "0f6c1a2e-0000-4000-8000-000000000001"
+      },
+      "params": {
+        "options": {}
+      },
+      "settings": {},
+      "chat": true
+    },
+    "AI Agent": {
+      "kind": "agent",
+      "n8n": {
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 1.7,
+        "id": "b2",
+        "position": [
+          240,
+          0
+        ]
+      },
+      "params": {
+        "options": {
+          "systemMessage": "You help with the user's inbox. Use the tools; never send mail.",
+          "maxIterations": 5
+        }
+      },
+      "settings": {},
+      "agent": {
+        "prompt": "={{ $json.chatInput }}",
+        "system": "You help with the user's inbox. Use the tools; never send mail.",
+        "tools": [
+          {
+            "name": "Search_mail",
+            "description": "Search the user's Gmail. Input: a Gmail search query.",
+            "node": "Search mail",
+            "n8nType": "n8n-nodes-base.gmailTool",
+            "kind": "connector",
+            "effect": "read",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "description": "A Gmail search query, e.g. from:ann is:unread"
+                }
+              },
+              "required": [
+                "query"
+              ]
+            }
+          },
+          {
+            "name": "Post_to_Slack",
+            "description": "Post a short message to the team channel.",
+            "node": "Post to Slack",
+            "n8nType": "n8n-nodes-base.slackTool",
+            "kind": "connector",
+            "effect": "write",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "description": "The message to post"
+                }
+              },
+              "required": [
+                "message"
+              ]
+            }
+          }
+        ],
+        "maxIterations": 5,
+        "hint": {
+          "provider": "lmChatAnthropic",
+          "model": "claude-sonnet-4-5-20250929",
+          "node": "Anthropic Chat Model"
+        },
+        "memory": {
+          "kind": "conversation",
+          "key": "={{ $json.sessionId }}",
+          "window": 8,
+          "node": "Window Buffer Memory"
+        }
+      }
+    },
+    "Anthropic Chat Model": {
+      "kind": "model",
+      "n8n": {
+        "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "typeVersion": 1.3,
+        "id": "b3",
+        "position": [
+          120,
+          220
+        ]
+      },
+      "params": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-5-20250929"
+        },
+        "options": {}
+      },
+      "settings": {},
+      "subnode": true,
+      "credentials": {
+        "anthropicApi": "Anthropic account"
+      }
+    },
+    "Window Buffer Memory": {
+      "kind": "agent",
+      "n8n": {
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "typeVersion": 1.3,
+        "id": "b4",
+        "position": [
+          260,
+          220
+        ]
+      },
+      "params": {
+        "contextWindowLength": 8
+      },
+      "settings": {},
+      "subnode": true
+    },
+    "Search mail": {
+      "kind": "tool",
+      "n8n": {
+        "type": "n8n-nodes-base.gmailTool",
+        "typeVersion": 2.1,
+        "id": "b5",
+        "position": [
+          400,
+          220
+        ]
+      },
+      "params": {
+        "descriptionType": "manual",
+        "toolDescription": "Search the user's Gmail. Input: a Gmail search query.",
+        "operation": "getAll",
+        "limit": 5,
+        "filters": {
+          "q": "={{ $fromAI('query', 'A Gmail search query, e.g. from:ann is:unread', 'string') }}"
+        }
+      },
+      "settings": {},
+      "subnode": true,
+      "connector": "gmail",
+      "credentials": {
+        "gmailOAuth2": "Gmail account"
+      },
+      "tool": {
+        "connector": "gmail",
+        "name": "search_threads",
+        "args": {
+          "query": "={{ $fromAI('query', 'A Gmail search query, e.g. from:ann is:unread', 'string') }}",
+          "pageSize": 5
+        },
+        "effect": "read",
+        "coerce": {
+          "query": "string",
+          "pageSize": "integer"
+        },
+        "result": {
+          "items": "threads[*].messages[*]",
+          "fields": {
+            "threadId": "^.id",
+            "From": "sender",
+            "To": {
+              "join": "toRecipients"
+            },
+            "Cc": {
+              "join": "ccRecipients"
+            },
+            "Bcc": {
+              "join": "bccRecipients"
+            },
+            "Subject": "subject"
+          }
+        },
+        "fidelity": "unverified",
+        "missingFields": [
+          "historyId",
+          "internalDate",
+          "labels",
+          "payload",
+          "sizeEstimate"
+        ],
+        "caveats": [
+          "The tool returns threads with up to 5 messages each; n8n's limit counts messages."
+        ],
+        "argsCheck": {
+          "ok": true,
+          "missing": [],
+          "unknown": []
+        },
+        "map": "n8n-nodes-base.gmail@>=2 message:getAll"
+      }
+    },
+    "Post to Slack": {
+      "kind": "tool",
+      "n8n": {
+        "type": "n8n-nodes-base.slackTool",
+        "typeVersion": 2.3,
+        "id": "b6",
+        "position": [
+          540,
+          220
+        ]
+      },
+      "params": {
+        "descriptionType": "manual",
+        "toolDescription": "Post a short message to the team channel.",
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "C0123456789"
+        },
+        "text": "={{ $fromAI('message', 'The message to post', 'string') }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "settings": {},
+      "subnode": true,
+      "connector": "slack",
+      "credentials": {
+        "slackOAuth2Api": "Slack account"
+      },
+      "tool": {
+        "connector": "slack",
+        "name": "slack_send_message",
+        "args": {
+          "channel_id": "C0123456789",
+          "message": "={{ $fromAI('message', 'The message to post', 'string') }}"
+        },
+        "effect": "write",
+        "coerce": {
+          "channel_id": "string",
+          "message": "string"
+        },
+        "result": {
+          "fields": {
+            "ok": {
+              "const": true
+            }
+          }
+        },
+        "fidelity": "unverified",
+        "missingFields": [
+          "channel",
+          "message",
+          "message_timestamp"
+        ],
+        "caveats": [
+          "The tool reads standard markdown (**bold**); n8n sends Slack mrkdwn (*bold*)."
+        ],
+        "argsCheck": {
+          "ok": true,
+          "missing": [],
+          "unknown": []
+        },
+        "map": "n8n-nodes-base.slack@>=2 message:post"
+      }
+    }
+  },
+  "edges": [
+    {
+      "from": "When chat message received",
+      "fromOutput": 0,
+      "to": "AI Agent",
+      "toInput": 0
+    }
+  ],
+  "subnodes": [
+    {
+      "from": "Anthropic Chat Model",
+      "to": "AI Agent",
+      "type": "ai_languageModel"
+    },
+    {
+      "from": "Window Buffer Memory",
+      "to": "AI Agent",
+      "type": "ai_memory"
+    },
+    {
+      "from": "Search mail",
+      "to": "AI Agent",
+      "type": "ai_tool"
+    },
+    {
+      "from": "Post to Slack",
+      "to": "AI Agent",
+      "type": "ai_tool"
+    }
+  ],
+  "allow": {
+    "tools": [
+      {
+        "connector": "gmail",
+        "tool": "search_threads"
+      },
+      {
+        "connector": "slack",
+        "tool": "slack_send_message"
+      }
+    ],
+    "http": [],
+    "sql": []
+  },
+  "secrets": []
+}

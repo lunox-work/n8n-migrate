@@ -1,0 +1,22 @@
+{
+  "id": "sub01",
+  "name": "Price orders with a sub-workflow",
+  "nodes": [
+    { "parameters": {}, "id": "s1", "name": "Start", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0] },
+    { "parameters": { "jsCode": "return [{ json: { id: 1, qty: 2 } }, { json: { id: 2, qty: 5 } }, { json: { id: 3, qty: 1 } }];" }, "id": "s2", "name": "Orders", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [220, 0] },
+    { "parameters": { "workflowId": { "__rl": true, "value": "={{ $workflow.id }}", "mode": "id" }, "options": {} }, "id": "s3", "name": "Price each", "type": "n8n-nodes-base.executeWorkflow", "typeVersion": 1.2, "position": [440, 120] },
+    { "parameters": { "mode": "combine", "combineBy": "combineByPosition", "options": {} }, "id": "s4", "name": "Merge", "type": "n8n-nodes-base.merge", "typeVersion": 3, "position": [660, 0] },
+    { "parameters": { "inputSource": "passthrough" }, "id": "s5", "name": "When called", "type": "n8n-nodes-base.executeWorkflowTrigger", "typeVersion": 1.1, "position": [0, 400] },
+    {
+      "parameters": { "assignments": { "assignments": [{ "id": "a1", "name": "price", "value": "={{ $json.qty * 10 }}", "type": "number" }] }, "includeOtherFields": true, "options": {} },
+      "id": "s6", "name": "Add price", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [220, 400]
+    }
+  ],
+  "connections": {
+    "Start": { "main": [[{ "node": "Orders", "type": "main", "index": 0 }]] },
+    "Orders": { "main": [[{ "node": "Merge", "type": "main", "index": 0 }, { "node": "Price each", "type": "main", "index": 0 }]] },
+    "Price each": { "main": [[{ "node": "Merge", "type": "main", "index": 1 }]] },
+    "When called": { "main": [[{ "node": "Add price", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}
