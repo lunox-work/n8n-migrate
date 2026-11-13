@@ -1240,15 +1240,29 @@ function resolveCalls(W, ctx) {
       if (!target) {
         const cand = t.cached ? ctx.items.find((x) => x.name === t.cached && x.id !== W.id) : null;
         const label = `"${t.id}"${t.cached ? ` ("${t.cached}")` : ""}`;
+        // A workflow with an Execute Workflow Trigger of its own may be calling
+        // itself (or a sub-flow pasted on the same canvas) by an id it had
+        // elsewhere: offer "self".
+        const owner = W.parent || W;
+        const selfOk = !W.parent && W.triggers.some((x) => x.kind === "subworkflow");
+        const options = cand ? { true: `use workflow "${cand.id}"` } : {};
+        if (selfOk) options.self = "this workflow itself";
+        Object.assign(options, { false: "keep it missing", "<workflow id>": "use that workflow" });
         const { value: v } = ask(W, ctx, "subworkflow-id", call.node, {
           text: cand
-            ? `Does hard-coded workflow id ${label} in "${call.node}" point to "${t.cached}", which this export holds as id "${cand.id}"?`
-            : `Hard-coded workflow id ${label} in "${call.node}" is not in this export. Which workflow in the export is it?`,
+            ? `Is workflow id ${label}, called by "${call.node}", the workflow "${t.cached}" that this export holds as id "${cand.id}"?`
+            : `Which workflow is id ${label}, called by "${call.node}"? It is not in this export.${selfOk ? ` Answer self if it is this workflow (it has its own Execute Workflow Trigger),` : " Answer"} the id of a workflow in the export, or false if it is missing.`,
           affects: "sub-workflow",
           answerType: "text",
-          options: cand ? { true: `use workflow "${cand.id}"`, false: "keep it missing", "<workflow id>": "use that workflow" } : { false: "keep it missing", "<workflow id>": "use that workflow" },
+          options,
           assumed: "false",
         });
+        if (v === "self" && selfOk) {
+          info.status = "self";
+          info.target = owner.id;
+          addShared(W, "self-call", "this workflow", call.node);
+          continue;
+        }
         if (v === "true" && cand) target = ctx.byId.get(cand.id);
         else if (v !== "false" && v !== "true") target = ctx.byId.get(v);
         if (target) info.status = "id-answered";

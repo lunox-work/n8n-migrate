@@ -1,0 +1,255 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 1,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "subscription:skill": 1
+    },
+    "wakeups": {
+      "chat": 1
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 0,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 1,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "subworkflow-id-self",
+      "name": "Records helper",
+      "file": "subworkflow-id-self.json",
+      "sourceHash": "af321e9614af1950df41a621c9d43057b6ebeefdd37c1b8d10d02504a22216d3",
+      "wakeup": {
+        "kind": "chat",
+        "nodes": [
+          "When chat message received"
+        ],
+        "all": [
+          "chat",
+          "subworkflow"
+        ]
+      },
+      "body": {
+        "kind": "script+model",
+        "decidedBy": [
+          "Agent",
+          "Filter by date"
+        ]
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "skill",
+        "reason": "the chat trigger becomes a skill",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [
+        {
+          "node": "Records",
+          "status": "self",
+          "target": "subworkflow-id-self"
+        }
+      ],
+      "requires": [
+        {
+          "kind": "model",
+          "name": "claude",
+          "nodes": [
+            "Agent"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:sample"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "subworkflow-id-self/subworkflow-id/Records",
+          "text": "Which workflow is id \"a2BIIjr2gLBay06M\" (\"Records template\"), called by \"Records\"? It is not in this export. Answer self if it is this workflow (it has its own Execute Workflow Trigger), the id of a workflow in the export, or false if it is missing.",
+          "nodes": [
+            "Records"
+          ],
+          "affects": "sub-workflow",
+          "answerType": "text",
+          "options": {
+            "self": "this workflow itself",
+            "false": "keep it missing",
+            "<workflow id>": "use that workflow"
+          },
+          "assumed": "false",
+          "answer": "self"
+        }
+      ],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "anthropicApi",
+          "name": "Anthropic",
+          "nodes": [
+            "Claude model"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [
+        {
+          "kind": "self-call",
+          "name": "this workflow",
+          "nodes": [
+            "Records"
+          ],
+          "sharedWith": []
+        }
+      ],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "When chat message received",
+          "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+          "typeVersion": 1.1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [
+            "chat"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Agent",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1.7,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "agent",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [
+            "agent"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Claude model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+          "typeVersion": 1.3,
+          "role": "subnode",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "model",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Records",
+          "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+          "typeVersion": 2.2,
+          "role": "subnode",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "subworkflow",
+          "effect": "unknown",
+          "effectBy": null,
+          "levers": [
+            "agent",
+            "subwf"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "When called",
+          "type": "n8n-nodes-base.executeWorkflowTrigger",
+          "typeVersion": 1.1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [
+            "subwf"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Filter by date",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "code",
+          "effect": "none",
+          "effectBy": "parse",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "agent",
+        "chat",
+        "subwf"
+      ]
+    }
+  ]
+}

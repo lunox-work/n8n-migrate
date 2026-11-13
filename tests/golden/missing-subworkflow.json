@@ -95,7 +95,7 @@
       "questions": [
         {
           "id": "missing-subworkflow/subworkflow-id/Enrich",
-          "text": "Hard-coded workflow id \"8Fq2xYkLm3\" (\"Enrich lead\") in \"Enrich\" is not in this export. Which workflow in the export is it?",
+          "text": "Which workflow is id \"8Fq2xYkLm3\" (\"Enrich lead\"), called by \"Enrich\"? It is not in this export. Answer the id of a workflow in the export, or false if it is missing.",
           "nodes": [
             "Enrich"
           ],

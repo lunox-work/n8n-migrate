@@ -390,7 +390,7 @@
       "questions": [
         {
           "id": "ans-parent/subworkflow-id/Call child",
-          "text": "Does hard-coded workflow id \"old-123\" (\"Child flow\") in \"Call child\" point to \"Child flow\", which this export holds as id \"child-9\"?",
+          "text": "Is workflow id \"old-123\" (\"Child flow\"), called by \"Call child\", the workflow \"Child flow\" that this export holds as id \"child-9\"?",
           "nodes": [
             "Call child"
           ],

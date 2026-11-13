@@ -1,0 +1,158 @@
+{
+  "id": "subworkflow-id-self",
+  "name": "Records helper",
+  "active": false,
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-8000-000000000681",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        149820,
+        300
+      ],
+      "parameters": {
+        "options": {}
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000682",
+      "name": "Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        150040,
+        300
+      ],
+      "parameters": {
+        "options": {}
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000683",
+      "name": "Claude model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        150260,
+        300
+      ],
+      "parameters": {
+        "model": "claude-sonnet-4-5"
+      },
+      "credentials": {
+        "anthropicApi": {
+          "id": "cred-anthropicApi",
+          "name": "Anthropic"
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000684",
+      "name": "Records",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        150480,
+        300
+      ],
+      "parameters": {
+        "name": "records",
+        "description": "Records by date",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "a2BIIjr2gLBay06M",
+          "cachedResultName": "Records template"
+        },
+        "workflowInputs": {
+          "value": {
+            "date": "={{ $fromAI('date') }}"
+          }
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000685",
+      "name": "When called",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        150700,
+        300
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "date"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000686",
+      "name": "Filter by date",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        150920,
+        300
+      ],
+      "parameters": {
+        "jsCode": "return $input.all();"
+      }
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Records": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When called": {
+      "main": [
+        [
+          {
+            "node": "Filter by date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
