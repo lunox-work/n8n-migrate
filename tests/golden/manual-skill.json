@@ -67,7 +67,7 @@
       "outcome": {
         "kind": "subscription",
         "target": "skill",
-        "reason": "run by hand, so a skill in Claude Code or Cowork; an artifact lacks arbitrary-hosts, artifact-mcp",
+        "reason": "run by hand, so a skill in Claude Code or Cowork; an artifact lacks http, artifact-mcp",
         "alsoTargets": []
       },
       "calledBy": [],
@@ -98,7 +98,7 @@
           "surfaces": {
             "cloudTask": "ok",
             "localTask": "ok",
-            "artifact": "needs:arbitrary-hosts"
+            "artifact": "no"
           }
         }
       ],

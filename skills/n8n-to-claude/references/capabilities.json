@@ -10,16 +10,17 @@
   ],
   "schemaVersion": 1,
   "thresholds": {
-    "apiTriggerFiresPerTaskHour": { "source": "docs 2026-11-14, untested", "value": 30 },
-    "cloudMinIntervalSec": { "source": "docs 2026-11-14, untested", "value": 3600 },
-    "cloudScheduledRunsPerAccountHour": { "source": "docs 2026-11-14, untested", "value": 100 },
-    "localMinIntervalSec": { "source": "docs 2026-11-14, untested", "value": 60 }
+    "apiTriggerFiresPerTaskHour": { "source": "docs 2026-11-14 (code.claude.com/docs/en/routines: shared with Run now; over the limit the fire fails), untested", "value": 30 },
+    "cloudMinIntervalSec": { "source": "docs 2026-11-14 (code.claude.com/docs/en/routines: cron more often than hourly is rejected), untested", "value": 3600 },
+    "cloudScheduledRunsPerAccountHour": { "source": "docs 2026-11-14 (code.claude.com/docs/en/routines: over the limit the run waits), untested", "value": 100 },
+    "localMinIntervalSec": { "source": "docs 2026-11-14 (code.claude.com/docs/en/desktop-scheduled-tasks: 1 minute when Claude sets it, 1 hour in the forms), untested", "value": 60 },
+    "apiTriggerFiresPerAccountHour": { "source": "docs 2026-11-14 (code.claude.com/docs/en/routines), untested", "value": 100 }
   },
   "requirements": {
     "bundled-server": {
       "artifact": { "source": "docs 2026-11-14, untested", "value": "no" },
-      "cloudTask": { "source": "docs 2026-11-14, untested", "value": "ok" },
-      "localTask": { "source": "docs 2026-11-14, untested", "value": "needs:plugin-mcp-server" }
+      "cloudTask": { "source": "docs 2026-11-14 (code.claude.com/docs/en/routines: a task with one repository can declare a server in a committed .mcp.json), untested", "value": "ok" },
+      "localTask": { "source": "docs 2026-11-14 (support article 13837440: a plugin's local MCP server runs in Cowork and Claude Code, not in chat), untested", "value": "needs:plugin-mcp-server" }
     },
     "db": {
       "artifact": { "source": "docs 2026-11-14, untested", "value": "needs:artifact-mcp" },
@@ -37,13 +38,16 @@
       "localTask": { "source": "docs 2026-11-14, untested", "value": "ok" }
     },
     "http": {
-      "artifact": { "source": "docs 2026-11-14, untested", "value": "needs:arbitrary-hosts" },
-      "cloudTask": { "source": "docs 2026-11-14, untested", "value": "ok" },
+      "artifact": { "source": "docs 2026-11-14 (code.claude.com/docs/en/artifacts: the CSP lets fetch reach only the page's own origin), untested", "value": "no" },
+      "cloudTask": { "source": "docs 2026-11-14 (cloud environment network access: Limited by default, allowed domains or Full), untested", "value": "ok" },
       "localTask": { "source": "docs 2026-11-14, untested", "value": "ok" }
     },
     "mcp-server": {
-      "artifact": { "source": "docs 2026-11-14, untested", "value": "needs:artifact-mcp" },
-      "cloudTask": { "source": "docs 2026-11-14, untested", "value": "needs:custom-connector" },
+      "artifact": { "source": "docs 2026-11-14 (support article 17153992: artifacts reach the viewer's connectors, custom ones included), untested", "value": "needs:artifact-mcp" },
+      "cloudTask": {
+        "source": "docs 2026-11-14 (code.claude.com/docs/en/routines: claude.ai connectors, custom ones included; or a committed .mcp.json), untested",
+        "value": "needs:custom-connector"
+      },
       "localTask": { "source": "docs 2026-11-14, untested", "value": "needs:custom-connector" }
     },
     "missing-export": {
@@ -52,7 +56,7 @@
       "localTask": { "source": "docs 2026-11-14, untested", "value": "no" }
     },
     "model": {
-      "artifact": { "source": "docs 2026-11-14, untested", "value": "needs:sample" },
+      "artifact": { "source": "docs 2026-11-14 (support article 17153992: AI-powered artifacts spend each viewer's own plan limits), untested", "value": "needs:sample" },
       "cloudTask": { "source": "docs 2026-11-14, untested", "value": "ok" },
       "localTask": { "source": "docs 2026-11-14, untested", "value": "ok" }
     },
@@ -63,21 +67,24 @@
     },
     "relay": {
       "artifact": { "source": "docs 2026-11-14, untested", "value": "no" },
-      "cloudTask": { "source": "docs 2026-11-14, untested", "value": "needs:api-trigger-forwarder" },
+      "cloudTask": { "source": "docs 2026-11-14 (code.claude.com/docs/en/routines: API trigger POST /fire with a bearer token), untested", "value": "needs:api-trigger-forwarder" },
       "localTask": { "source": "docs 2026-11-14, untested", "value": "no" }
     },
     "secret:db": {
       "artifact": { "source": "docs 2026-11-14, untested", "value": "no" },
-      "cloudTask": { "source": "docs 2026-11-14, untested", "value": "needs:non-http-secret" },
+      "cloudTask": {
+        "source": "docs 2026-11-14 (cloud-environments: network secrets attach to HTTP requests only; nothing documented for other protocols), untested",
+        "value": "needs:non-http-secret"
+      },
       "localTask": { "source": "docs 2026-11-14, untested", "value": "needs:bundled-server" }
     },
     "secret:http": {
-      "artifact": { "source": "docs 2026-11-14, untested", "value": "no" },
-      "cloudTask": { "source": "docs 2026-11-14, untested", "value": "needs:network-secret" },
+      "artifact": { "source": "docs 2026-11-14 (artifacts: no backend, fetch only to its own origin), untested", "value": "no" },
+      "cloudTask": { "source": "docs 2026-11-14 (cloud-environments: network secrets, Pro and up, the agent proxy adds the key for listed hosts), untested", "value": "needs:network-secret" },
       "localTask": { "source": "docs 2026-11-14, untested", "value": "needs:bundled-server" }
     },
     "state": {
-      "artifact": { "source": "docs 2026-11-14, untested", "value": "needs:artifact-db" },
+      "artifact": { "source": "docs 2026-11-14 (support article 17153992: storage on Pro and up, 100 MB and 25,000 documents), untested", "value": "needs:artifact-db" },
       "cloudTask": { "source": "docs 2026-11-14, untested", "value": "needs:state-store" },
       "localTask": { "source": "docs 2026-11-14, untested", "value": "needs:bundled-server" }
     },
@@ -87,8 +94,8 @@
       "localTask": { "source": "docs 2026-11-14, untested", "value": "needs:vector-connector" }
     },
     "connector-api": {
-      "artifact": { "source": "docs 2026-11-14, untested", "value": "no" },
-      "cloudTask": { "source": "docs 2026-11-14, untested", "value": "needs:network-secret" },
+      "artifact": { "source": "docs 2026-11-14 (artifacts: no backend, fetch only to its own origin), untested", "value": "no" },
+      "cloudTask": { "source": "docs 2026-11-14 (cloud-environments: network secrets, Pro and up, the agent proxy adds the key for listed hosts), untested", "value": "needs:network-secret" },
       "localTask": { "source": "docs 2026-11-14, untested", "value": "needs:bundled-server" }
     }
   },

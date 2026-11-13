@@ -98,7 +98,7 @@
           "surfaces": {
             "cloudTask": "ok",
             "localTask": "ok",
-            "artifact": "needs:arbitrary-hosts"
+            "artifact": "no"
           }
         }
       ],
