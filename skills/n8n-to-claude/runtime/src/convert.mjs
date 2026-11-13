@@ -119,9 +119,9 @@ export function fromN8n(workflowJson, { nodes, sourceText, file } = {}) {
     if (k.kind === null) continue;
     const step = {
       kind: k.kind,
-      n8n: { type: node.type, typeVersion: node.typeVersion ?? 1, id: node.id, position: node.position ?? [0, 0], ...(node.webhookId ? { webhookId: node.webhookId } : {}) },
+      n8n: { type: node.type, typeVersion: node.typeVersion ?? 1, ...(typeof node.id === "string" ? { id: node.id } : {}), position: node.position ?? [0, 0], ...(node.webhookId ? { webhookId: node.webhookId } : {}) },
       params: deepCopy(node.parameters ?? {}),
-      settings: Object.fromEntries(SETTING_KEYS.filter((s) => node[s] !== undefined).map((s) => [s, node[s]])),
+      settings: Object.fromEntries(SETTING_KEYS.filter((s) => node[s] !== undefined && node[s] !== null).map((s) => [s, node[s]])),
     };
     if (k.subnode) step.subnode = true;
     if (k.kind === "blocked") step.blocked = { reason: k.reason };

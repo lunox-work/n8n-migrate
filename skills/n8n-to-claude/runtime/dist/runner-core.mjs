@@ -2484,6 +2484,9 @@ const { isObject, deepCopy } = __m_util_mjs;
 //     wrap: "value",                    key for an element that is not an object.
 //     empty: "none" | "one",            what an output without elements gives: no items
 //                                       (default) or one empty item.
+//     parse: "csv", text: "path",       the elements are the rows of a CSV text at `text`
+//     decode: "base64",                 (base64-decoded first), keyed by the header row;
+//     rowNumber: {field, start},        each row gets its sheet row number (header = 1).
 //   }
 // adaptResult(spec, output) -> [json, ...]. Tool hosts pass the tool's structured result
 // (structuredContent, or JSON-parsed text content); a text result arrives as a string and is
@@ -2610,11 +2613,57 @@ function parseToolOutput(output) {
   return { text: output };
 }
 
+// RFC 4180 CSV: quoted fields, doubled quotes, CRLF or LF.
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') (field += '"'), i++;
+      else if (c === '"') quoted = false;
+      else field += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ",") row.push(field), (field = "");
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      row.push(field), rows.push(row), (row = []), (field = "");
+    } else field += c;
+  }
+  if (field !== "" || row.length) row.push(field), rows.push(row);
+  return rows;
+}
+
+function decodeBase64(b64) {
+  const bin = atob(String(b64).replace(/\s+/g, ""));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+function csvElements(s, root) {
+  let text = s.text === undefined || s.text === "" ? root : getAt(root, s.text);
+  if (isObject(text) && typeof text.text === "string") text = text.text;
+  if (typeof text !== "string") return [];
+  if (s.decode === "base64") text = decodeBase64(text);
+  const [header, ...rows] = parseCsv(text);
+  if (!header) return [];
+  return rows
+    .filter((r) => r.some((x) => x !== ""))
+    .map((r, k) => {
+      const obj = Object.fromEntries(header.map((h, j) => [h, r[j] ?? ""]));
+      if (s.rowNumber?.field) obj[s.rowNumber.field] = (s.rowNumber.start ?? 2) + k;
+      return { value: obj, parents: [] };
+    });
+}
+
 function adaptResult(spec, output) {
   const root = parseToolOutput(output);
   const s = spec ?? {};
   const wrap = s.wrap ?? "value";
-  const els = s.items === undefined || s.items === "" ? (Array.isArray(root) ? root.map((v) => ({ value: v, parents: [root] })) : root === null || root === undefined ? [] : [{ value: root, parents: [] }]) : select(root, s.items);
+  const els = s.parse === "csv" ? csvElements(s, root) : s.items === undefined || s.items === "" ? (Array.isArray(root) ? root.map((v) => ({ value: v, parents: [root] })) : root === null || root === undefined ? [] : [{ value: root, parents: [] }]) : select(root, s.items);
   const out = [];
   for (const el of els) {
     const base = isObject(el.value) ? el.value : el.value === undefined || el.value === null ? {} : { [wrap]: el.value };
@@ -2730,7 +2779,7 @@ function advanceCursor(cursorSpec, items, cursor) {
   return { items: fresh, cursor: max === undefined ? cursor ?? null : next };
 }
 
-return { getAt, parseToolOutput, adaptResult, coerceArgs, applyCursorArg, advanceCursor };
+return { getAt, parseToolOutput, parseCsv, adaptResult, coerceArgs, applyCursorArg, advanceCursor };
 })();
 
 // ---- src/nodes2.mjs ----
@@ -6602,9 +6651,9 @@ function fromN8n(workflowJson, { nodes, sourceText, file } = {}) {
     if (k.kind === null) continue;
     const step = {
       kind: k.kind,
-      n8n: { type: node.type, typeVersion: node.typeVersion ?? 1, id: node.id, position: node.position ?? [0, 0], ...(node.webhookId ? { webhookId: node.webhookId } : {}) },
+      n8n: { type: node.type, typeVersion: node.typeVersion ?? 1, ...(typeof node.id === "string" ? { id: node.id } : {}), position: node.position ?? [0, 0], ...(node.webhookId ? { webhookId: node.webhookId } : {}) },
       params: deepCopy(node.parameters ?? {}),
-      settings: Object.fromEntries(SETTING_KEYS.filter((s) => node[s] !== undefined).map((s) => [s, node[s]])),
+      settings: Object.fromEntries(SETTING_KEYS.filter((s) => node[s] !== undefined && node[s] !== null).map((s) => [s, node[s]])),
     };
     if (k.subnode) step.subnode = true;
     if (k.kind === "blocked") step.blocked = { reason: k.reason };

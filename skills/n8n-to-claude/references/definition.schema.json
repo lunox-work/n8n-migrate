@@ -109,7 +109,8 @@
                 "properties": { "ok": { "type": "boolean" }, "missing": { "type": "array", "items": { "type": "string" } }, "unknown": { "type": "array", "items": { "type": "string" } } },
                 "description": "The converter's check of args against the tool's input JSON schema. Preflight fails on missing required fields."
               },
-              "map": { "type": "string", "description": "The tool-maps.json entry used: <n8n type>@<version range> <resource:operation>." }
+              "map": { "type": "string", "description": "The tool-maps.json entry used: <n8n type>@<version range> <resource:operation>." },
+              "caveats": { "type": "array", "items": { "type": "string" }, "description": "Known differences from what n8n does, in plain words (from tool-maps.json)." }
             }
           },
           "model": {
@@ -227,7 +228,8 @@
                 "enum": ["exact", "adapted", "partial", "none", "unverified"],
                 "description": "exact: the tool returns what n8n returns; adapted: the adapter reshapes, and the fields it lists carry n8n's names; partial: some n8n fields have no source (missingFields); none: no adapter; unverified: the tool's real output shape is not known yet, so the adapter is a best reading of the tool description, to be checked by the bench's emulation run."
               },
-              "map": { "type": "string" }
+              "map": { "type": "string" },
+              "caveats": { "type": "array", "items": { "type": "string" }, "description": "Known differences from what n8n does, in plain words (from tool-maps.json)." }
             }
           },
           "poll": {
@@ -260,7 +262,9 @@
                 "enum": ["exact", "adapted", "partial", "none", "unverified"],
                 "description": "exact: the tool returns what n8n returns; adapted: the adapter reshapes, and the fields it lists carry n8n's names; partial: some n8n fields have no source (missingFields); none: no adapter; unverified: the tool's real output shape is not known yet, so the adapter is a best reading of the tool description, to be checked by the bench's emulation run."
               },
-              "map": { "type": "string" }
+              "map": { "type": "string" },
+              "caveats": { "type": "array", "items": { "type": "string" }, "description": "Known differences from what n8n does, in plain words (from tool-maps.json)." },
+              "missingFields": { "type": "array", "items": { "type": "string" } }
             }
           },
           "schedule": {
@@ -369,9 +373,19 @@
   "$defs": {
     "adapter": {
       "type": "object",
-      "description": "Declarative result adapter (runtime/src/adapt.mjs): turns the tool's output into n8n-shaped items. items: path to the elements ([*] flattens); fields: {outName: \"path\" | \"$.root.path\" | \"^.parent.path\" | {path, default} | {const} | {first: [...]} | {split, sep} | {join, sep} | {headers}}; passthrough: keep the element's own fields (default true); wrap; empty: none|one.",
+      "description": "Declarative result adapter (runtime/src/adapt.mjs): turns the tool's output into n8n-shaped items. items: path to the elements ([*] flattens); fields: {outName: \"path\" | \"$.root.path\" | \"^.parent.path\" | {path, default} | {const} | {first: [...]} | {split, sep} | {join, sep} | {headers}}; passthrough: keep the element's own fields (default true); wrap; empty: none|one. parse: csv turns the text at `text` (decode: base64 first) into one item per row keyed by the header, with rowNumber: {field, start}.",
       "additionalProperties": false,
-      "properties": { "items": { "type": "string" }, "fields": { "type": "object" }, "passthrough": { "type": "boolean" }, "wrap": { "type": "string" }, "empty": { "enum": ["none", "one"] } }
+      "properties": {
+        "items": { "type": "string" },
+        "fields": { "type": "object" },
+        "passthrough": { "type": "boolean" },
+        "wrap": { "type": "string" },
+        "empty": { "enum": ["none", "one"] },
+        "parse": { "const": "csv" },
+        "text": { "type": "string" },
+        "decode": { "const": "base64" },
+        "rowNumber": { "type": "object", "additionalProperties": false, "properties": { "field": { "type": "string" }, "start": { "type": "integer" } } }
+      }
     }
   }
 }
