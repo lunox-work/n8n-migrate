@@ -59,6 +59,7 @@ export function enterRun(run) {
 function pairedItemError(message, extra) {
   return new ExpressionError(message, extra);
 }
+const SCRIPTING_TYPES = new Set(["n8n-nodes-base.code", "n8n-nodes-base.function", "n8n-nodes-base.functionItem", "n8n-nodes-base.aiTransform"]);
 
 // exec: one node execution (see engine.mjs NodeExecution). Returns a lookup(name) function.
 export function createLookup(exec, itemIndex, extras = {}) {
@@ -69,20 +70,34 @@ export function createLookup(exec, itemIndex, extras = {}) {
   const g = (exec._globals ??= runtimeGlobals(run, `${exec.name}#${exec.runIndex}`));
   setExtensionRandom(g.random);
 
-  const taskOf = (src) => runData[src.previousNode]?.[src.previousNodeRun || 0];
-  const outputOf = (task, src) => {
+  // n8n createExpressionError: in a Code node the short message (functionOverrides) is used;
+  // when the node the error is about is pinned in a manual run, the message is
+  // "Unpin 'X' to execute". createMissingPairedItemError has its own pinned wording.
+  const scripting = SCRIPTING_TYPES.has(exec.step?.n8n?.type);
+  const pinnedNode = (name) => run.mode === "manual" && !!run.pinData && name !== undefined && hasOwn(run.pinData, name);
+  const perr = (message, { nodeCause, override, ...extra } = {}) => {
+    if (scripting && override) message = override;
+    if (pinnedNode(nodeCause)) message = `Unpin '${nodeCause}' to execute`;
+    return pairedItemError(message, extra);
+  };
+  const missingPaired = (cause, method) =>
+    pairedItemError(pinnedNode(cause) ? `Using the ${method} method doesn't work with pinned data in this scenario. Please unpin '${cause}' and try again.` : `Paired item data for ${method} from node '${cause}' is unavailable. Ensure '${cause}' is providing the required output.`);
+  // A pinned node that has not run still answers with its pinned items (n8n pinDataToTask).
+  const pinTask = (name) => (pinnedNode(name) ? { data: { main: [run.pinData[name]] }, source: [] } : undefined);
+  const taskOf = (src) => runData[src.previousNode]?.[src.previousNodeRun || 0] ?? pinTask(src.previousNode);
+  const outputOf = (task, src, nodeCause) => {
     const out = task?.data?.main?.[src.previousNodeOutput || 0];
-    if (!out) throw pairedItemError("Can’t get data for expression", { description: `Expected output #${src.previousNodeOutput || 0} from node ${src.previousNode}` });
+    if (!out) throw perr("Can’t get data for expression", { nodeCause, override: "Missing output", description: `Expected output #${src.previousNodeOutput || 0} from node ${src.previousNode}` });
     return out;
   };
   const normPaired = (p) => (p == null ? [] : (Array.isArray(p) ? p : [p]).map((x) => (typeof x === "number" ? { item: x } : x)));
 
   // n8n's $getPairedItem: resolve the item of `dest` that `pairedItem` (an item of the
   // node after `source.previousNode`) descends from.
-  function getPairedItem(dest, source, pairedItem, method = "$getPairedItem", seen = new Map()) {
+  function getPairedItem(dest, source, pairedItem, method = "$getPairedItem", seen = new Map(), before = undefined) {
     if (typeof pairedItem === "number") pairedItem = { item: pairedItem };
     const src = pairedItem.sourceOverwrite || source;
-    if (!src) throw pairedItemError("Paired item resolution failed", { description: `Could not trace back to node '${dest}'` });
+    if (!src) throw perr("Paired item resolution failed", { nodeCause: before, override: "Data not found", description: `Could not trace back to node '${dest}'` });
     const key = `${src.previousNode}|${src.previousNodeRun || 0}|${src.previousNodeOutput || 0}|${pairedItem.item}`;
     if (seen.has(key)) {
       const r = seen.get(key);
@@ -93,15 +108,15 @@ export function createLookup(exec, itemIndex, extras = {}) {
     seen.set(key, null);
     try {
       const task = taskOf(src);
-      const out = outputOf(task, src);
+      const out = outputOf(task, src, before);
       const item = out[pairedItem.item];
       if (src.previousNode === dest) {
-        if (pairedItem.item >= out.length) throw pairedItemError(`Paired item data for ${method} from node '${src.previousNode}' is unavailable`);
+        if (pairedItem.item >= out.length) throw missingPaired(src.previousNode, method);
         seen.set(key, { item });
         return item;
       }
       const next = normPaired(item?.pairedItem);
-      if (!next.length) throw pairedItemError(`Paired item data for ${method} from node '${src.previousNode}' is unavailable. Ensure '${src.previousNode}' is providing the required output.`);
+      if (!next.length) throw missingPaired(src.previousNode, method);
       const sources = task?.source ?? [];
       const links = next.flatMap((p) => {
         const inputIndex = p.input ?? 0;
@@ -112,14 +127,14 @@ export function createLookup(exec, itemIndex, extras = {}) {
       if (!links.length) throw new RunnerError(sources.length === 0 ? "Invalid expression" : "Branch not found");
       const results = links.map((l) => {
         try {
-          return { ok: true, item: getPairedItem(dest, l.source, l.pairedItem, method, seen) };
+          return { ok: true, item: getPairedItem(dest, l.source, l.pairedItem, method, seen, src.previousNode) };
         } catch (e) {
           return { ok: false, error: e };
         }
       });
       if (results.every((r) => !r.ok)) throw results[0].error;
       const ok = results.filter((r) => r.ok).map((r) => r.item);
-      if (ok.some((x) => x !== ok[0])) throw pairedItemError("Multiple matches found", { description: `Multiple matching items for item [${pairedItem.item}]` });
+      if (ok.some((x) => x !== ok[0])) throw perr("Multiple matches found", { nodeCause: dest, override: "Multiple matches", description: `Multiple matching items for item [${pairedItem.item}]` });
       seen.set(key, { item: ok[0] });
       return ok[0];
     } catch (e) {
@@ -131,7 +146,7 @@ export function createLookup(exec, itemIndex, extras = {}) {
   // Node context (n8n getContext("node")): read-only view of what a node stored.
   const contextOf = (name) => Object.freeze({ ...(run.nodeContext?.[name] ?? {}) });
   const nodeExists = (name) => hasOwn(run.definition.steps, name);
-  const executed = (name) => hasOwn(runData, name);
+  const executed = (name) => hasOwn(runData, name) || pinnedNode(name);
   const ensureExecuted = (name) => {
     if (!executed(name)) throw pairedItemError(`Node '${name}' hasn't been executed`, { description: "An expression references this node, but the node is unexecuted." });
   };
@@ -139,7 +154,7 @@ export function createLookup(exec, itemIndex, extras = {}) {
   function nodeOutput(name, outputIndex, runIndex) {
     if (!nodeExists(name)) throw pairedItemError("Referenced node doesn't exist", { node: name });
     ensureExecuted(name);
-    const runs = runData[name];
+    const runs = runData[name] ?? [pinTask(name)];
     const r = runIndex === undefined || runIndex === -1 ? runs.length - 1 : runIndex;
     if (runs.length <= r) throw pairedItemError(`Run ${r} of node "${name}" not found`);
     const main = runs[r].data?.main;
@@ -165,7 +180,7 @@ export function createLookup(exec, itemIndex, extras = {}) {
         if (method === "itemMatching") throw pairedItemError("Missing item index for .itemMatching()");
         idx = itemIndex;
       }
-      if (!graph.ancestors(exec.name).has(name)) throw pairedItemError(`No path back to node '${name}'`, { description: `There is no connection back to the node '${name}', but it's used in an expression here.` });
+      if (!graph.ancestors(exec.name).has(name)) throw perr("Invalid expression", { nodeCause: name, description: `There is no connection back to the node '${name}', but it's used in an expression here.` });
       ensureExecuted(name);
       if (!input.length) {
         const out = nodeOutput(name, undefined, undefined);
@@ -175,9 +190,9 @@ export function createLookup(exec, itemIndex, extras = {}) {
         }
       }
       const it = input[idx];
-      if (!it) throw pairedItemError("Can’t get data for expression", { description: `Some intermediate nodes between ‘${name}‘ and ‘${exec.name}‘ have not executed yet.` });
-      if (it.pairedItem === undefined) throw pairedItemError(`Paired item data for ${method} from node '${exec.name}' is unavailable.`);
-      if (!exec.source) throw pairedItemError("Can’t get data for expression", { description: "Missing sourceData (probably an internal error)" });
+      if (!it) throw perr("Can’t get data for expression", { override: "Can’t get data", description: `Some intermediate nodes between ‘${name}‘ and ‘${exec.name}‘ have not executed yet.` });
+      if (it.pairedItem === undefined) throw missingPaired(exec.name, method);
+      if (!exec.source) throw perr("Can’t get data for expression", { override: "Can’t get data", description: "Missing sourceData (probably an internal error)" });
       const p = typeof it.pairedItem === "number" ? { item: it.pairedItem } : it.pairedItem;
       const src = exec.source.main[p.input || 0] ?? exec.source.main[0];
       return getPairedItem(name, src, p, method);
@@ -185,7 +200,7 @@ export function createLookup(exec, itemIndex, extras = {}) {
     const branchOf = (b) => b ?? graph.connectionIndexes(exec.name, name)?.sourceIndex ?? 0;
     const handle = {
       get isExecuted() {
-        return executed(name);
+        return hasOwn(runData, name);
       },
       get item() {
         return pairedMethod("item")();

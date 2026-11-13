@@ -1,0 +1,263 @@
+{
+ "note": "observed from n8n 2.47.7 on 2026-11-14 (evals/diff/differential.mjs --save-fixture)",
+ "title": "paired-item errors name the pinned node (Unpin) and use the Code short messages",
+ "label": "paired-pinned-trigger",
+ "workflow": {
+  "name": "paired-pinned-trigger",
+  "nodes": [
+   {
+    "id": "t",
+    "name": "Trigger",
+    "type": "n8n-nodes-base.manualTrigger",
+    "typeVersion": 1,
+    "position": [
+     0,
+     0
+    ],
+    "parameters": {}
+   },
+   {
+    "id": "n0",
+    "name": "Agg",
+    "type": "n8n-nodes-base.aggregate",
+    "typeVersion": 1,
+    "position": [
+     240,
+     0
+    ],
+    "parameters": {
+     "aggregate": "aggregateAllItemData",
+     "destinationFieldName": "all",
+     "options": {}
+    }
+   },
+   {
+    "id": "n1",
+    "name": "ViaSet",
+    "type": "n8n-nodes-base.set",
+    "typeVersion": 3.4,
+    "position": [
+     480,
+     0
+    ],
+    "parameters": {
+     "mode": "manual",
+     "assignments": {
+      "assignments": [
+       {
+        "id": "a0",
+        "name": "t",
+        "value": "={{ $('Trigger').item.json.id }}",
+        "type": "number"
+       }
+      ]
+     },
+     "includeOtherFields": true,
+     "include": "all",
+     "options": {},
+     "position": [
+      480,
+      0
+     ]
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "n2",
+    "name": "ViaCode",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     480,
+     200
+    ],
+    "parameters": {
+     "jsCode": "return [{ json: { t: $('Trigger').item.json.id } }];"
+    },
+    "onError": "continueRegularOutput"
+   }
+  ],
+  "connections": {
+   "Trigger": {
+    "main": [
+     [
+      {
+       "node": "Agg",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Agg": {
+    "main": [
+     [
+      {
+       "node": "ViaSet",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "ViaCode",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1"
+  }
+ },
+ "triggerName": "Trigger",
+ "pinned": [
+  "Trigger"
+ ],
+ "pinData": {
+  "Trigger": [
+   {
+    "json": {
+     "id": 1
+    }
+   },
+   {
+    "json": {
+     "id": 2
+    }
+   }
+  ]
+ },
+ "fixtures": {
+  "default": {
+   "status": 200,
+   "body": {
+    "ok": true,
+    "id": "mock-1",
+    "data": [
+     {
+      "id": 1,
+      "name": "one"
+     },
+     {
+      "id": 2,
+      "name": "two"
+     }
+    ]
+   }
+  }
+ },
+ "n8n": {
+  "status": "success",
+  "error": null,
+  "lastNode": "ViaCode",
+  "startedAt": "2026-11-13T21:33:34.073Z",
+  "executionId": "862",
+  "workflowId": "LMbpmG16Iwv1qDb1",
+  "executionData": {
+   "runData": {
+    "Trigger": [
+     {
+      "executionIndex": 0,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "id": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "id": 2
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Agg": [
+     {
+      "executionIndex": 1,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "all": [
+            {
+             "id": 1
+            },
+            {
+             "id": 2
+            }
+           ]
+          },
+          "pairedItem": [
+           {
+            "item": 0
+           },
+           {
+            "item": 1
+           }
+          ]
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "ViaSet": [
+     {
+      "executionIndex": 2,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "error": "Unpin 'Trigger' to execute"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "ViaCode": [
+     {
+      "executionIndex": 3,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "error": "Unpin 'Trigger' to execute"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ]
+   }
+  },
+  "effects": []
+ }
+}

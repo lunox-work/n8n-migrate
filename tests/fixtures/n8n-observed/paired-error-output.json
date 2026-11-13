@@ -1,0 +1,251 @@
+{
+ "note": "observed from n8n 2.47.7 on 2026-11-14 (evals/diff/differential.mjs --save-fixture)",
+ "title": "known difference: n8n reads $('X') through X's error output as null in parameters",
+ "knownDifferences": [
+  "items"
+ ],
+ "label": "paired-error-output",
+ "workflow": {
+  "name": "paired-error-output",
+  "nodes": [
+   {
+    "id": "t",
+    "name": "Trigger",
+    "type": "n8n-nodes-base.manualTrigger",
+    "typeVersion": 1,
+    "position": [
+     0,
+     0
+    ],
+    "parameters": {}
+   },
+   {
+    "id": "n0",
+    "name": "Code",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     240,
+     0
+    ],
+    "parameters": {
+     "mode": "runOnceForEachItem",
+     "jsCode": "if (!$json.name) throw new Error('no name');\nreturn { json: { ok: $json.name } };"
+    },
+    "onError": "continueErrorOutput"
+   },
+   {
+    "id": "n1",
+    "name": "S1",
+    "type": "n8n-nodes-base.set",
+    "typeVersion": 3.4,
+    "position": [
+     480,
+     0
+    ],
+    "parameters": {
+     "mode": "manual",
+     "assignments": {
+      "assignments": [
+       {
+        "id": "a0",
+        "name": "first",
+        "value": "={{ $('Code').first().json.k }}",
+        "type": "string"
+       },
+       {
+        "id": "a1",
+        "name": "item",
+        "value": "={{ $('Code').item.json.k }}",
+        "type": "string"
+       }
+      ]
+     },
+     "includeOtherFields": true,
+     "include": "all",
+     "options": {}
+    }
+   }
+  ],
+  "connections": {
+   "Trigger": {
+    "main": [
+     [
+      {
+       "node": "Code",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Code": {
+    "main": [
+     [],
+     [
+      {
+       "node": "S1",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1"
+  }
+ },
+ "triggerName": "Trigger",
+ "pinned": [
+  "Trigger"
+ ],
+ "pinData": {
+  "Trigger": [
+   {
+    "json": {
+     "tags": [
+      "t0"
+     ],
+     "k": 0
+    }
+   },
+   {
+    "json": {
+     "name": "Ann",
+     "tags": [
+      "t1"
+     ],
+     "k": 1
+    }
+   }
+  ]
+ },
+ "fixtures": {
+  "default": {
+   "status": 200,
+   "body": {
+    "ok": true,
+    "id": "mock-1",
+    "data": [
+     {
+      "id": 1,
+      "name": "one"
+     },
+     {
+      "id": 2,
+      "name": "two"
+     }
+    ]
+   }
+  }
+ },
+ "n8n": {
+  "status": "success",
+  "error": null,
+  "lastNode": "S1",
+  "startedAt": "2026-11-13T21:33:34.316Z",
+  "executionId": "863",
+  "workflowId": "Ns5ZmedBFIeleFDb",
+  "executionData": {
+   "runData": {
+    "Trigger": [
+     {
+      "executionIndex": 0,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "tags": [
+            "t0"
+           ],
+           "k": 0
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "name": "Ann",
+           "tags": [
+            "t1"
+           ],
+           "k": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Code": [
+     {
+      "executionIndex": 1,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "ok": "Ann"
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ],
+        [
+         {
+          "json": {
+           "tags": [
+            "t0"
+           ],
+           "k": 0,
+           "error": "no name [line 1]"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "S1": [
+     {
+      "executionIndex": 2,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "tags": [
+            "t0"
+           ],
+           "k": 0,
+           "error": "no name [line 1]",
+           "first": null,
+           "item": null
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ]
+   }
+  },
+  "effects": []
+ }
+}
