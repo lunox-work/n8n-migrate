@@ -1828,7 +1828,7 @@ function reportOf(W, ctx) {
   const shared = [...W.sharedState.values()]
     .map((s) => {
       const o = { kind: s.kind, name: s.name, nodes: sortNodes(s.nodes), sharedWith: [] };
-      if (["data-table", "vector-memory"].includes(s.kind)) o.sharedWith = (ctx.sharedIndex.get(`${s.kind}\u0000${s.key}`) || []).filter((id) => id !== W.id);
+      if (["data-table", "vector-memory"].includes(s.kind)) o.sharedWith = (ctx.sharedIndex.get(`${s.kind}\u0000${s.key}`) || []).filter((id) => id !== W.id).sort(); // not input order: n8n's --separate export names files by id
       return o;
     })
     .sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name));

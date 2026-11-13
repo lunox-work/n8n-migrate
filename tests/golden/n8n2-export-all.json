@@ -1,0 +1,492 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 3,
+    "outcomes": {
+      "subscription": 3,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "subscription:cloud-task": 3
+    },
+    "wakeups": {
+      "relay": 1,
+      "schedule": 2
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 2,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0.17,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "zzVisitsReport01",
+      "name": "Visits · weekly report",
+      "file": "n8n2-export-all.json",
+      "sourceHash": "17ff67f20961323d9a7ae5803993b6d0edf7e5d736d47e1e187fc208be92888b",
+      "wakeup": {
+        "kind": "schedule",
+        "nodes": [
+          "Mondays 08:00"
+        ],
+        "all": [
+          "schedule"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "cloud-task",
+        "reason": "fires 0.14 times a day, at least 7 d apart, within a cloud task's limit of one run per 1 h",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "http",
+          "name": "outbound http",
+          "nodes": [
+            "Post report"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "secret",
+          "name": "Reports API",
+          "nodes": [
+            "Post report"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "state",
+          "name": "data-table:visits",
+          "nodes": [
+            "Last week's visits"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:state-store",
+            "localTask": "needs:bundled-server",
+            "artifact": "needs:artifact-db"
+          }
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Last week's visits",
+            "Post report"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "zzVisitsReport01/timezone",
+          "text": "Which timezone does the schedule of \"Visits · weekly report\" run in? The export does not say; n8n's default is America/New_York unless GENERIC_TIMEZONE is set.",
+          "nodes": [],
+          "affects": "timezone",
+          "answerType": "text",
+          "options": {
+            "<IANA timezone>": "schedule.timezone"
+          },
+          "assumed": "America/New_York",
+          "answer": null
+        },
+        {
+          "id": "zzVisitsReport01/writes",
+          "text": "Does \"Post report\" (POST request) change data at the other end? Until you answer, it counts as a write.",
+          "nodes": [
+            "Post report"
+          ],
+          "affects": "effect",
+          "answerType": "nodes",
+          "options": {
+            "true": "every listed step writes",
+            "false": "none writes: all read",
+            "<node names>": "only these write; the rest read"
+          },
+          "assumed": true,
+          "answer": null
+        }
+      ],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "httpHeaderAuth",
+          "name": "Reports API",
+          "nodes": [
+            "Post report"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": 0.143,
+        "shortestIntervalSec": 604800,
+        "fits": "cloud-task",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [
+        {
+          "kind": "data-table",
+          "name": "visits",
+          "nodes": [
+            "Last week's visits"
+          ],
+          "sharedWith": [
+            "aaVisitsIntake01",
+            "mmVisitsCleanup1"
+          ]
+        }
+      ],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Mondays 08:00",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Last week's visits",
+          "type": "n8n-nodes-base.dataTable",
+          "typeVersion": 1.1,
+          "role": "step",
+          "branch": "main",
+          "resource": "row",
+          "operation": "get",
+          "kind": "db",
+          "effect": "read",
+          "effectBy": "name",
+          "levers": [
+            "db"
+          ],
+          "mapping": "name",
+          "issues": []
+        },
+        {
+          "node": "Post report",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "http",
+          "effect": "write",
+          "effectBy": "assumed",
+          "levers": [
+            "http"
+          ],
+          "mapping": "hand",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "db",
+        "http"
+      ]
+    },
+    {
+      "id": "aaVisitsIntake01",
+      "name": "Visits · intake",
+      "file": "n8n2-export-all.json",
+      "sourceHash": "38f63173a09568bf81cdaefb64220d0ee31ce0c093adf98f8e282446b056892c",
+      "wakeup": {
+        "kind": "relay",
+        "nodes": [
+          "New visit"
+        ],
+        "all": [
+          "relay"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "cloud-task",
+        "reason": "an event is pushed in with no reply expected: a forwarder posts it to the cloud task's API trigger (at most 30 events an hour)",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "state",
+          "name": "data-table:visits",
+          "nodes": [
+            "Store visit"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:state-store",
+            "localTask": "needs:bundled-server",
+            "artifact": "needs:artifact-db"
+          }
+        },
+        {
+          "kind": "relay",
+          "name": "webhook",
+          "nodes": [
+            "New visit"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:api-trigger-forwarder",
+            "localTask": "no",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Store visit"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [],
+      "blockers": [],
+      "credentials": [],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [
+        {
+          "kind": "data-table",
+          "name": "visits",
+          "nodes": [
+            "Store visit"
+          ],
+          "sharedWith": [
+            "mmVisitsCleanup1",
+            "zzVisitsReport01"
+          ]
+        }
+      ],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "New visit",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2.1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Store visit",
+          "type": "n8n-nodes-base.dataTable",
+          "typeVersion": 1.1,
+          "role": "step",
+          "branch": "main",
+          "resource": "row",
+          "operation": "insert",
+          "kind": "db",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [
+            "db"
+          ],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "db",
+        "relay"
+      ]
+    },
+    {
+      "id": "mmVisitsCleanup1",
+      "name": "Visits · cleanup",
+      "file": "n8n2-export-all.json",
+      "sourceHash": "325b4429117e88d5aee78c0bbd0399d8898d135a0efaedd3f0b37a3bb2d2073a",
+      "wakeup": {
+        "kind": "schedule",
+        "nodes": [
+          "Every 6 hours"
+        ],
+        "all": [
+          "schedule"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "cloud-task",
+        "reason": "fires every 6 h, within a cloud task's limit of one run per 1 h",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "state",
+          "name": "data-table:visits",
+          "nodes": [
+            "Drop old visits"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:state-store",
+            "localTask": "needs:bundled-server",
+            "artifact": "needs:artifact-db"
+          }
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Drop old visits"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [],
+      "blockers": [],
+      "credentials": [],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": 4,
+        "shortestIntervalSec": 21600,
+        "fits": "cloud-task",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [
+        {
+          "kind": "data-table",
+          "name": "visits",
+          "nodes": [
+            "Drop old visits"
+          ],
+          "sharedWith": [
+            "aaVisitsIntake01",
+            "zzVisitsReport01"
+          ]
+        }
+      ],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Every 6 hours",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Drop old visits",
+          "type": "n8n-nodes-base.dataTable",
+          "typeVersion": 1.1,
+          "role": "step",
+          "branch": "main",
+          "resource": "row",
+          "operation": "deleteRows",
+          "kind": "db",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [
+            "db"
+          ],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "db"
+      ]
+    }
+  ]
+}

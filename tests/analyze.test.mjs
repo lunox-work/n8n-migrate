@@ -76,6 +76,22 @@ test("no secret value reaches any golden report", () => {
   }
 });
 
+test("n8n 2.x export: report does not depend on file order and carries no owner data", () => {
+  // --all writes an array; --separate/--backup write one file per workflow named
+  // by id, so a folder reads in id order. Both must give the same report.
+  const input = loadInput(join(FIXTURES, "n8n2-export-all.json"));
+  const opts = { nodes, capabilities, hosts, answers: {}, now: NOW, inputErrors: [] };
+  const byId = (r) => Object.fromEntries(r.workflows.map((w) => [w.id, w]));
+  const forward = analyze(input.items, opts);
+  const reversed = analyze([...input.items].reverse(), opts);
+  assert.deepEqual(byId(reversed), byId(forward));
+  const cleanup = forward.workflows.find((w) => w.id === "mmVisitsCleanup1");
+  assert.deepEqual(cleanup.sharedState[0].sharedWith, ["aaVisitsIntake01", "zzVisitsReport01"]);
+  // `shared[].project.name` holds the owner's name and email in a real export.
+  assert.ok(!JSON.stringify(forward).includes("owner@example.com"));
+  assert.ok(!renderText(forward).includes("owner@example.com"));
+});
+
 // ---------- CLI ----------
 
 test("cli: --json matches the golden; text summary; exit codes", () => {
