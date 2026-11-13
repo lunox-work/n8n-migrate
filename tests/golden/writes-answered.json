@@ -67,7 +67,7 @@
       "outcome": {
         "kind": "subscription",
         "target": "skill",
-        "reason": "run by hand: a skill in Claude Code or Cowork; an artifact lacks arbitrary-hosts",
+        "reason": "run by hand, so a skill in Claude Code or Cowork; an artifact lacks arbitrary-hosts",
         "alsoTargets": []
       },
       "calledBy": [],

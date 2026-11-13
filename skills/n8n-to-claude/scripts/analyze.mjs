@@ -1333,7 +1333,7 @@ function resolveCalls(W, ctx) {
         const { value: v } = ask(W, ctx, "subworkflow-id", call.node, {
           text: cand
             ? `Is workflow id ${label}, called by "${call.node}", the workflow "${t.cached}" that this export holds as id "${cand.id}"?`
-            : `Which workflow is id ${label}, called by "${call.node}"? It is not in this export.${selfOk ? ` Answer self if it is this workflow (it has its own Execute Workflow Trigger),` : " Answer"} the id of a workflow in the export, or false if it is missing.`,
+            : `Which workflow is id ${label}, called by "${call.node}"? It is not in this export. Answer ${selfOk ? "self (this workflow has its own Execute Workflow Trigger), " : ""}the id of a workflow in the export, or false if it is missing.`,
           affects: "sub-workflow",
           answerType: "text",
           options,
@@ -1465,7 +1465,7 @@ function computeSchedule(W, ctx) {
   if (!time.length) return out;
   if (!tz && time.some((t) => timeOfDayMatters(t.d))) {
     const a = ask(W, ctx, "timezone", null, {
-      text: `Which timezone should the schedule of "${W.name}" use? The export has no timezone setting, so n8n uses the instance default (${N8N_DEFAULT_TIMEZONE} unless GENERIC_TIMEZONE is set).`,
+      text: `Which timezone does the schedule of "${W.name}" run in? The export does not say; n8n's default is ${N8N_DEFAULT_TIMEZONE} unless GENERIC_TIMEZONE is set.`,
       affects: "timezone",
       answerType: "text",
       options: { "<IANA timezone>": "schedule.timezone" },
@@ -1576,7 +1576,7 @@ function outcomeForKind(W, ctx, k) {
     let key = false;
     for (const t of triggerNodes(W, "mcp-server")) {
       const { value: v } = ask(W, ctx, "mcp-only-client", t.name, {
-        text: `Is Claude the only client of the MCP server "${t.name}" exposes?`,
+        text: `Is Claude the only client that uses the MCP server of "${t.name}"?`,
         affects: "outcome",
         answerType: "boolean",
         options: { true: "replaced", false: `hosted:${modelOnPath(W, t.name) ? "key" : "no-key"}` },
@@ -1609,7 +1609,7 @@ function outcomeForKind(W, ctx, k) {
       const waits = t.d.flags.includes("form-waits-for-result");
       const tk = modelOnPath(W, t.name) ? "key" : "no-key";
       const { value: v } = ask(W, ctx, "form-outsiders", t.name, {
-        text: `Do people outside your organisation fill the form of "${t.name}"? It needs no sign-in.`,
+        text: `Do people outside your organisation fill in the form "${t.name}"? It needs no sign-in.`,
         affects: "outcome",
         answerType: "boolean",
         options: { true: waits ? `hosted:${tk}` : "subscription:cloud-task (with a relay)", false: "subscription:artifact-form" },
@@ -1656,9 +1656,11 @@ function outcomeForKind(W, ctx, k) {
   } else if (k === "schedule" || k === "poll") {
     const s = W.schedule;
     const what = `${k === "poll" ? "polls" : "fires"} ${intervalLabel(s)}`;
-    if (s.fits === "cloud-task") o = { kind: "subscription", target: "cloud-task", reason: `${what}; a cloud task runs at most every ${formatDuration(ctx.thresholds.cloudMinIntervalSec)}` };
-    else if (s.fits === "local-task") o = { kind: "subscription", target: "local-task", reason: `${what}; more often than a cloud task allows, so a local task` };
-    else o = { kind: "subscription", target: "local-task", reason: `${what}; a local task runs at most every ${formatDuration(ctx.thresholds.localMinIntervalSec)}, so the frequency must change` };
+    const cloudMin = formatDuration(ctx.thresholds.cloudMinIntervalSec);
+    const localMin = formatDuration(ctx.thresholds.localMinIntervalSec);
+    if (s.fits === "cloud-task") o = { kind: "subscription", target: "cloud-task", reason: `${what}, within a cloud task's limit of one run per ${cloudMin}` };
+    else if (s.fits === "local-task") o = { kind: "subscription", target: "local-task", reason: `${what}, more often than a cloud task's one run per ${cloudMin}, so a local task` };
+    else o = { kind: "subscription", target: "local-task", reason: `${what}, more often than a local task's one run per ${localMin}: the schedule must slow down` };
   } else if (k === "error") {
     o = { kind: "keep-in-n8n", target: null, reason: "the runner's failure alert replaces error workflows" };
   } else {
@@ -1672,7 +1674,7 @@ function outcomeForKind(W, ctx, k) {
       // What an artifact lacks: the thing a needs: value waits for, or the
       // requirement kind an artifact cannot have at all.
       const lacks = uniq(notOk.map((r) => (r.surfaces?.artifact?.startsWith("needs:") ? r.surfaces.artifact.slice(6) : r.kind)));
-      o = { kind: "subscription", target: "skill", reason: `${what}: a skill in Claude Code or Cowork; an artifact lacks ${lacks.join(", ")}` };
+      o = { kind: "subscription", target: "skill", reason: `${what}, so a skill in Claude Code or Cowork; an artifact lacks ${lacks.join(", ")}` };
     }
   }
   if (o.kind === "subscription" && o.target === "cloud-task") {
@@ -1944,33 +1946,132 @@ function summarize(workflows, ctx, inputErrors) {
 
 // ---------- text summary ----------
 
+// A few lines per workflow for a person deciding whether to move: the
+// verdict, why, what it needs and what to set up on the chosen surface, then
+// the open questions. Everything else is in the JSON report.
+const TARGET_LABEL = {
+  "cloud-task": "cloud task",
+  "local-task": "local task (computer on)",
+  skill: "skill, run on request",
+  "artifact-form": "artifact form",
+  artifact: "artifact, Run now",
+};
+const SURFACE_OF = { "cloud-task": "cloudTask", "local-task": "localTask", artifact: "artifact", "artifact-form": "artifact", skill: "localTask" };
+const REQ_LABEL = {
+  model: () => "Claude model",
+  http: () => "outbound HTTP",
+  poll: () => "polling",
+  relay: (n) => `relay (${n})`,
+  "host-disk": () => "files on disk",
+  "bundled-server": () => "bundled MCP server",
+  "frequency-change": (n) => `slower schedule (${n})`,
+};
+
+function listCut(xs, max = 3) {
+  return xs.length > max ? `${xs.slice(0, max).join(", ")} and ${xs.length - max} more` : xs.join(", ");
+}
+
+function needsLine(w) {
+  const groups = new Map();
+  for (const r of w.requires) {
+    if (["missing-export", "substitution", "bundled-server"].includes(r.kind)) continue;
+    const label = REQ_LABEL[r.kind] ? REQ_LABEL[r.kind](clean(r.name)) : null;
+    const key = label ?? r.kind;
+    if (!groups.has(key)) groups.set(key, []);
+    if (!label) groups.get(key).push(clean(r.kind === "state" ? r.name.replace(/^(data-table|static-data|dedupe-history|vector-memory):/, "") : r.name));
+  }
+  const names = { connector: "connectors", secret: "secrets", db: "database", vector: "vector store", state: "state", "mcp-server": "MCP server" };
+  return [...groups].map(([k, xs]) => (xs.length ? `${names[k] ?? k} ${listCut(uniq(xs))}` : k)).join(" · ");
+}
+
+// What the chosen surface still lacks: needs:<thing> values, and requirements
+// it cannot have at all.
+function setupLine(w) {
+  const o = w.outcome;
+  if (o.kind !== "subscription") return null;
+  const surf = SURFACE_OF[o.target];
+  const needs = uniq(w.requires.map((r) => r.surfaces[surf]).filter((v) => v.startsWith("needs:")).map((v) => v.slice(6)));
+  const no = uniq(w.requires.filter((r) => r.surfaces[surf] === "no").map((r) => `${r.kind} ${clean(r.name)}`));
+  const parts = [];
+  if (needs.length) parts.push(`to set up: ${needs.join(", ")}`);
+  if (no.length) parts.push(`not possible there: ${listCut(no)}`);
+  return parts.length ? parts.join("; ") : null;
+}
+
 export function renderText(report, color = false) {
   const c = (code, s) => (color ? `\x1b[${code}m${s}\x1b[0m` : s);
   const lines = [];
-  const surf = (s) => `cloud ${s.cloudTask} · local ${s.localTask} · artifact ${s.artifact}`;
+  const byId = new Map(report.workflows.map((w) => [w.id, w]));
+  const nameOf = new Map(report.workflows.map((w) => [w.id, w.name]));
   for (const w of report.workflows) {
     const o = w.outcome;
-    const out =
-      o.kind === "subscription" ? c("32", `subscription → ${o.target}`) : o.kind === "keep-in-n8n" ? c("31", "keep in n8n") : o.kind === "replaced" ? c("36", "replaced by Claude") : c("33", `hosted (${o.target})`);
+    const verdict =
+      o.kind === "subscription"
+        ? c("32", `moves: ${TARGET_LABEL[o.target] ?? o.target}`)
+        : o.kind === "keep-in-n8n"
+          ? c("31", "keep in n8n")
+          : o.kind === "replaced"
+            ? c("36", "replaced by Claude")
+            : c("33", `hosted elsewhere (${o.target === "key" ? "API key" : "no model"})`);
     let wake = w.wakeup.kind;
-    if (["schedule", "poll"].includes(w.wakeup.kind)) wake += `, ${intervalLabel(w.schedule)}`;
-    if (w.calledBy.length) wake += `, called by ${w.calledBy.length}`;
-    lines.push(`${c("1", clean(w.name))} — ${out} (${wake}, ${w.body.kind})`);
-    if (o.kind === "keep-in-n8n" || o.kind === "hosted") lines.push(`  why: ${clean(o.reason)}`);
-    if (w.requires.length) {
-      lines.push("  requires:");
-      for (const r of w.requires) lines.push(`    - ${r.kind} ${clean(r.name)}${r.operations ? ` (${r.operations.map(clean).join(", ")})` : ""}  [${surf(r.surfaces)}]`);
+    if (["schedule", "poll"].includes(w.wakeup.kind)) wake += ` ${intervalLabel(w.schedule)}`;
+    if (w.calledBy.length) wake += `, called by ${listCut(w.calledBy.map((id) => `"${clean(nameOf.get(id) ?? id)}"`))}`;
+    lines.push(`${c("1", clean(w.name))} — ${verdict} · ${wake}, ${w.body.kind}`);
+    const blocking = w.blockers.filter((b) => ["input-incomplete", "unsupported", "unmapped"].includes(b.kind));
+    if (o.kind === "keep-in-n8n" && blocking.length) {
+      // Missing sub-workflows collapse into one clause naming them.
+      const missing = w.requires.filter((r) => r.kind === "missing-export").map((r) => clean(r.name.replace(/^workflow \S+ \((.*)\)$/, "$1")));
+      const rest = uniq(blocking.filter((b) => !/^sub-workflow .* is not in the export$/.test(b.reason)).map((b) => clean(b.reason)));
+      const parts = [...rest];
+      if (missing.length) parts.push(`${missing.length === 1 ? "a sub-workflow is" : `${missing.length} sub-workflows are`} not in the export (${listCut(missing.map((m) => `"${m}"`))})`);
+      lines.push(`  why: ${listCut(parts, 3)}`);
+    } else lines.push(`  why: ${clean(o.reason)}`);
+    for (const a of o.alsoTargets) lines.push(`  also: ${a.wakeup} (${a.nodes.map(clean).join(", ")}) → ${a.kind === "subscription" ? TARGET_LABEL[a.target] ?? a.target : a.kind === "hosted" ? `hosted elsewhere (${a.target === "key" ? "API key" : "no model"})` : a.kind}`);
+    const needs = needsLine(w);
+    if (needs) lines.push(`  needs: ${needs}`);
+    const setup = setupLine(w);
+    if (setup) lines.push(`  ${setup}`);
+    const subs = w.blockers.filter((b) => b.kind === "substitution");
+    if (subs.length) lines.push(`  approve: ${subs.map((b) => `${clean(b.reason.split(":")[0])} (${b.nodes.map(clean).join(", ")})`).join("; ")}`);
+    const llm = w.requires.filter((r) => r.kind === "substitution" && !subs.some((b) => b.reason.startsWith(r.name)));
+    for (const r of llm) lines.push(`  option: ${clean(r.name)} for ${listCut(r.nodes.map(clean))}: no API key needed`);
+    const notes = [];
+    for (const b of w.blockers.filter((b) => b.kind === "dropped-branch")) notes.push(`dropped: ${clean(b.reason)}${b.nodes.length ? ` (${listCut(b.nodes.map(clean))})` : ""}`);
+    for (const b of w.blockers.filter((b) => b.kind === "not-an-automation")) notes.push(`looks like a tutorial: ${clean(b.reason)}`);
+    const offTriggers = w.disabled.filter((n) => /trigger|webhook/i.test(n));
+    if (offTriggers.length) notes.push(`disabled: ${listCut(offTriggers.map((n) => `"${clean(n)}"`))} (enable and re-run to see their outcome)`);
+    const unreached = w.steps.filter((st) => st.branch === "unreached");
+    if (unreached.length) notes.push(`never runs (not connected): ${listCut(unreached.map((st) => `"${clean(st.node)}"`))}`);
+    // Shared state, grouped by the workflows it is shared with; a partner
+    // with another outcome is marked, since the state must move first.
+    const shared = new Map();
+    for (const st of w.sharedState.filter((x) => x.sharedWith.length)) {
+      const k = st.sharedWith.join("\u0000");
+      if (!shared.has(k)) shared.set(k, { ids: st.sharedWith, names: [] });
+      shared.get(k).names.push(`${st.kind.replace("-", " ")} ${clean(st.name)}`);
     }
+    for (const { ids, names } of shared.values()) {
+      const partners = ids.map((id) => {
+        const p = byId.get(id);
+        return `"${clean(p?.name ?? id)}"${p && p.outcome.kind !== o.kind ? ` (${p.outcome.kind})` : ""}`;
+      });
+      notes.push(`shares ${names.join(", ")} with ${listCut(partners)}`);
+    }
+    if (w.inlineSecrets.length) notes.push(`${w.inlineSecrets.length} inline secret${w.inlineSecrets.length > 1 ? "s" : ""} in the export (redacted in the JSON report)`);
+    for (const n of notes) lines.push(`  note: ${n}`);
+    // Node questions of one kind beyond the first two collapse into one line.
     const open = w.questions.filter((q) => q.answer === null);
-    if (open.length) {
-      lines.push("  questions:");
-      for (const q of open) lines.push(`    - ${clean(q.text)}  {${clean(q.id)}}`);
+    const byKind = new Map();
+    for (const q of open) {
+      const k = q.id.slice(w.id.length + 1).split("/")[0];
+      if (!byKind.has(k)) byKind.set(k, []);
+      byKind.get(k).push(q);
     }
-    if (w.blockers.length) {
-      lines.push("  blockers:");
-      for (const b of w.blockers) lines.push(`    - ${b.kind}: ${clean(b.reason)}${b.nodes.length ? ` (${b.nodes.map(clean).join(", ")})` : ""}`);
+    for (const [k, qs] of byKind) {
+      const shown = qs.length > 3 ? qs.slice(0, 1) : qs;
+      for (const q of shown) lines.push(`  ? ${clean(q.text)} ${c("2", `[${clean(q.id)}]`)}`);
+      if (shown.length < qs.length) lines.push(`  ? the same for ${listCut(qs.slice(1).map((q) => `"${clean(q.nodes[0] ?? "")}"`), 4)} ${c("2", `[${clean(w.id)}/${k}/<node>]`)}`);
     }
-    if (w.inlineSecrets.length) lines.push(`  inline secrets: ${w.inlineSecrets.length} (redacted in the JSON report)`);
     lines.push("");
   }
   const s = report.summary;
@@ -1983,7 +2084,7 @@ export function renderText(report, color = false) {
   );
   const bl = Object.entries(s.blockers).map(([k, n]) => `${k} ${n}`).join(", ");
   if (bl) lines.push(`blockers: ${bl}`);
-  lines.push(`open questions: ${s.questions}`);
+  lines.push(`open questions: ${s.questions}${s.questions ? " (answer with --answers <file>: {\"<id>\": <answer>})" : ""}`);
   if (s.cloudScheduledRunsPerHourLimit != null && s.cloudScheduledRunsPerHour > s.cloudScheduledRunsPerHourLimit)
     lines.push(`warning: cloud-task schedules add up to ${s.cloudScheduledRunsPerHour} runs an hour, over the ${s.cloudScheduledRunsPerHourLimit} per account`);
   if (s.inputErrors.length) lines.push(`skipped files: ${s.inputErrors.length}`);

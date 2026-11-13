@@ -81,7 +81,7 @@
       "questions": [
         {
           "id": "mcp-debug-helper/mcp-only-client/MCP Server Trigger",
-          "text": "Is Claude the only client of the MCP server \"MCP Server Trigger\" exposes?",
+          "text": "Is Claude the only client that uses the MCP server of \"MCP Server Trigger\"?",
           "nodes": [
             "MCP Server Trigger"
           ],

@@ -99,7 +99,7 @@
       "questions": [
         {
           "id": "subworkflow-id-self/subworkflow-id/Records",
-          "text": "Which workflow is id \"a2BIIjr2gLBay06M\" (\"Records template\"), called by \"Records\"? It is not in this export. Answer self if it is this workflow (it has its own Execute Workflow Trigger), the id of a workflow in the export, or false if it is missing.",
+          "text": "Which workflow is id \"a2BIIjr2gLBay06M\" (\"Records template\"), called by \"Records\"? It is not in this export. Answer self (this workflow has its own Execute Workflow Trigger), the id of a workflow in the export, or false if it is missing.",
           "nodes": [
             "Records"
           ],

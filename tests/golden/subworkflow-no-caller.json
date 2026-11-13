@@ -67,7 +67,7 @@
       "outcome": {
         "kind": "subscription",
         "target": "skill",
-        "reason": "a sub-workflow with no caller in this export, run on request: a skill in Claude Code or Cowork; an artifact lacks artifact-mcp",
+        "reason": "a sub-workflow with no caller in this export, run on request, so a skill in Claude Code or Cowork; an artifact lacks artifact-mcp",
         "alsoTargets": []
       },
       "calledBy": [],

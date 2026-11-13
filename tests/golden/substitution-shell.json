@@ -69,7 +69,7 @@
       "outcome": {
         "kind": "subscription",
         "target": "local-task",
-        "reason": "fires every 2 h; a cloud task runs at most every 1 h; n8n host shell → local task shell cannot run in a cloud task, so a local task",
+        "reason": "fires every 2 h, within a cloud task's limit of one run per 1 h; n8n host shell → local task shell cannot run in a cloud task, so a local task",
         "alsoTargets": []
       },
       "calledBy": [],

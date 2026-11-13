@@ -67,7 +67,7 @@
       "outcome": {
         "kind": "subscription",
         "target": "local-task",
-        "reason": "fires every 20 s; a local task runs at most every 1 min, so the frequency must change",
+        "reason": "fires every 20 s, more often than a local task's one run per 1 min: the schedule must slow down",
         "alsoTargets": []
       },
       "calledBy": [],

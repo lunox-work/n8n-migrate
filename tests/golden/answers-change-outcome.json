@@ -358,7 +358,7 @@
       "outcome": {
         "kind": "subscription",
         "target": "cloud-task",
-        "reason": "fires every 1 d; a cloud task runs at most every 1 h",
+        "reason": "fires every 1 d, within a cloud task's limit of one run per 1 h",
         "alsoTargets": []
       },
       "calledBy": [],
@@ -406,7 +406,7 @@
         },
         {
           "id": "ans-parent/timezone",
-          "text": "Which timezone should the schedule of \"Nightly cleanup (answered)\" use? The export has no timezone setting, so n8n uses the instance default (America/New_York unless GENERIC_TIMEZONE is set).",
+          "text": "Which timezone does the schedule of \"Nightly cleanup (answered)\" run in? The export does not say; n8n's default is America/New_York unless GENERIC_TIMEZONE is set.",
           "nodes": [],
           "affects": "timezone",
           "answerType": "text",

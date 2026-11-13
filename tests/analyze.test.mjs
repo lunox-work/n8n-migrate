@@ -86,7 +86,7 @@ test("cli: --json matches the golden; text summary; exit codes", () => {
 
   const t = spawnSync(process.execPath, [SCRIPT, FIXTURES, "--now", NOW_ISO], { encoding: "utf8" });
   assert.equal(t.status, 0, t.stderr);
-  assert.match(t.stdout, /Hourly inbox digest — subscription → cloud-task \(schedule, every 1 h, prompt\)/);
+  assert.match(t.stdout, /Hourly inbox digest — moves: cloud task · schedule every 1 h, prompt/);
   assert.match(t.stdout, /workflows: subscription \d+/);
   assert.ok(!/\x1b\[/.test(t.stdout), "no colour codes when stdout is not a TTY");
 
