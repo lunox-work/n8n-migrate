@@ -4,7 +4,7 @@
 // that run claude -p live in evals/task-driver/.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync, mkdirSync, realpathSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -121,7 +121,7 @@ test("hooks off: the model saves responses with `result`; a missing hook degrade
     const t = readJson(join(folder, "task.json"));
     writeFileSync(join(folder, "task.json"), JSON.stringify({ ...t, hooks: false }));
     const a = runner(folder, ["start"]);
-    assert.match(a.out, /use the Write tool to write its full response, exactly as returned \(every character\), to the file \.n2c\/inbox\/q1\.txt in this folder\. Then run: node runtime\/runner\.mjs result q1/);
+    assert.ok(a.out.includes(`use the Write tool to write its full response, exactly as returned (every character), with file_path exactly ${join(realpathSync(folder), ".n2c/inbox/q1.txt")} . Then run: node runtime/runner.mjs result q1`), a.out);
     mkdirSync(join(folder, ".n2c/inbox"), { recursive: true });
     writeFileSync(join(folder, ".n2c/inbox/q1.txt"), JSON.stringify(MAIL) + "\n");
     writeFileSync(join(folder, ".n2c/inbox/q1.txt"), JSON.stringify(MAIL) + "\n");

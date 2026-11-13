@@ -36,7 +36,11 @@ export const RUNNER_CMD = "node runtime/runner.mjs";
 // (.n2c/inbox/<q>.txt), not through a heredoc: Claude Code's Bash permission check refuses a
 // heredoc that holds JSON in dontAsk mode (observed on 2.1.323), and quoting arbitrary text in
 // a shell argument is where a small model slips.
+// The instructions print the absolute path to copy: models composing it from a long cwd
+// mistyped it in 3 of 40 runs (observed), and the allowlist then refused the write.
 export const inboxFile = (handle) => `.n2c/inbox/${handle}.txt`;
+let INBOX_DIR = ".";
+const inboxPath = (handle) => join(INBOX_DIR, inboxFile(handle));
 const RECENT_MS = 60_000; // a run that ended this recently is not followed by a new one
 const INLINE_SLEEP_MS = 120_000;
 // Claude Code cuts a Bash result at about 30,000 characters; longer instructions are paged.
@@ -339,7 +343,7 @@ function toolInstruction(task, handle, req, { hooksSeen = false, repeat = 0 } = 
     JSON.stringify(args),
   ];
   const saveYourself = [
-    `After the tool returns, use the Write tool to write its full response, exactly as returned (every character), to the file ${inboxFile(handle)} in this folder. Then run: ${RUNNER_CMD} result ${handle}`,
+    `After the tool returns, use the Write tool to write its full response, exactly as returned (every character), with file_path exactly ${inboxPath(handle)} . Then run: ${RUNNER_CMD} result ${handle}`,
     `If the tool returned an error, write the error text to that file and run: ${RUNNER_CMD} result ${handle} --error`,
   ];
   if (task.hooks && repeat > 0 && !hooksSeen) {
@@ -358,7 +362,7 @@ function modelInstruction(handle, req) {
   if (req.messages?.length) parts.push(fence("MESSAGES", req.messages.map((m) => `[${m.role}] ${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}`).join("\n")));
   if (req.prompt !== undefined) parts.push(fence("PROMPT", String(req.prompt)));
   parts.push(req.outputSchema ? `Answer with one JSON value that matches this JSON Schema, nothing else:\n${JSON.stringify(req.outputSchema)}` : "Answer with plain text only: the answer itself, no preamble.");
-  parts.push(`Save the answer: use the Write tool to write only your answer to the file ${inboxFile(handle)} in this folder, then run: ${RUNNER_CMD} answer ${handle}`);
+  parts.push(`Save the answer: use the Write tool to write only your answer, with file_path exactly ${inboxPath(handle)} . Then run: ${RUNNER_CMD} answer ${handle}`);
   return parts.join("\n\n");
 }
 function agentInstruction(handle, req, memory) {
@@ -372,7 +376,7 @@ function agentInstruction(handle, req, memory) {
   parts.push(
     `Either answer with the final output${req.outputSchema ? ` (one JSON value matching ${JSON.stringify(req.outputSchema)})` : " (plain text)"}, or ask for tools with exactly this JSON:\n{"intent": "tool-calls", "calls": [{"name": "<tool>", "args": {...}}]}`,
   );
-  parts.push(`Save it: use the Write tool to write only your answer or the JSON to the file ${inboxFile(handle)} in this folder, then run: ${RUNNER_CMD} answer ${handle}`);
+  parts.push(`Save it: use the Write tool to write only your answer or the JSON, with file_path exactly ${inboxPath(handle)} . Then run: ${RUNNER_CMD} answer ${handle}`);
   return parts.join("\n\n");
 }
 function finalText(state) {
@@ -489,6 +493,8 @@ const stripEnd = (s) => String(s).replace(/\r\n/g, "\n").replace(/\n$/, "");
 
 export async function command(cmd, pos, flags, { core, dir, stdin, fetch } = {}) {
   const P = paths(folderOf(dir));
+  INBOX_DIR = P.dir;
+  mkdirSync(join(P.n2c, "inbox"), { recursive: true });
   const task = loadTask(P);
   return withLockAsync(P, async () => {
     if (cmd === "start") {
@@ -562,12 +568,12 @@ export async function command(cmd, pos, flags, { core, dir, stdin, fetch } = {})
             try {
               value = JSON.parse(t.replace(/^```(?:json)?\s*|\s*```$/g, ""));
             } catch (e) {
-              if (req.outputSchema) return { code: 2, text: `The answer is not valid JSON (${e.message}). Write one JSON value to ${inboxFile(handle)} and run ${RUNNER_CMD} answer ${handle} again.` };
+              if (req.outputSchema) return { code: 2, text: `The answer is not valid JSON (${e.message}). Write one JSON value to ${inboxPath(handle)} and run ${RUNNER_CMD} answer ${handle} again.` };
             }
           }
           if (req.outputSchema && !(isObj(value) && value.intent === "tool-calls")) {
             const errs = schemaErrors(value, req.outputSchema);
-            if (errs.length) return { code: 2, text: `The answer does not match the schema: ${errs.slice(0, 5).join("; ")}. Write a corrected answer to ${inboxFile(handle)} and run ${RUNNER_CMD} answer ${handle} again.` };
+            if (errs.length) return { code: 2, text: `The answer does not match the schema: ${errs.slice(0, 5).join("; ")}. Write a corrected answer to ${inboxPath(handle)} and run ${RUNNER_CMD} answer ${handle} again.` };
           }
         }
         result = { ok: true, value, capturedBy: "model" };
