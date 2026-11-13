@@ -128,6 +128,8 @@ export function createLookup(exec, itemIndex, extras = {}) {
     }
   }
 
+  // Node context (n8n getContext("node")): read-only view of what a node stored.
+  const contextOf = (name) => Object.freeze({ ...(run.nodeContext?.[name] ?? {}) });
   const nodeExists = (name) => hasOwn(run.definition.steps, name);
   const executed = (name) => hasOwn(runData, name);
   const ensureExecuted = (name) => {
@@ -207,7 +209,7 @@ export function createLookup(exec, itemIndex, extras = {}) {
         return run.definition.steps[name]?.params;
       },
       get context() {
-        throw new UnsupportedExpression("$('…').context (node context) is not supported", { function: "context" });
+        return contextOf(name);
       },
     };
     return handle;
@@ -237,7 +239,8 @@ export function createLookup(exec, itemIndex, extras = {}) {
       return prev ? run.definition.steps[prev]?.params : undefined;
     },
     get context() {
-      throw new UnsupportedExpression("$input.context is not supported", { function: "context" });
+      const prev = exec.source?.main?.[0]?.previousNode;
+      return prev ? contextOf(prev) : {};
     },
   };
 
@@ -286,7 +289,7 @@ export function createLookup(exec, itemIndex, extras = {}) {
             return executed(nodeName) ? runData[nodeName].length - 1 : -1;
           },
           get context() {
-            throw new UnsupportedExpression("$node[…].context is not supported", { function: "context" });
+            return contextOf(nodeName);
           },
         };
       },

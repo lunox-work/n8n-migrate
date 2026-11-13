@@ -232,6 +232,23 @@ test("Loop Over Items (SplitInBatches v3): batches through the loop, then done w
   assert.deepEqual(out(r, "After"), [{ i: 1, seen: "1-0" }, { i: 2, seen: "2-0" }, { i: 3, seen: "3-1" }]);
 });
 
+test("SplitInBatches v1 with the classic noItemsLeft loop reads the node context", async () => {
+  const def = wf(
+    [
+      start(),
+      node("Loop", "splitInBatches", { batchSize: 2 }, { v: 1, pos: [200, 0] }),
+      node("Work", "set", { assignments: assign(["b", "number", "={{ $runIndex }}"]), includeOtherFields: true, options: {} }, { v: 3.4, pos: [400, 0] }),
+      node("Last?", "if", { conditions: { boolean: [{ value1: '={{ $node["Loop"].context["noItemsLeft"] }}', value2: true }] } }, { pos: [600, 0] }),
+      node("Done", "noOp", {}, { pos: [800, -100] }),
+    ],
+    [["Start", "Loop"], ["Loop", "Work"], ["Work", "Last?"], ["Last?", "Done", 0], ["Last?", "Loop", 1]],
+  );
+  const r = await run(def, { trigger: [{ i: 1 }, { i: 2 }, { i: 3 }, { i: 4 }, { i: 5 }] });
+  assert.equal(r.status, "done");
+  assert.equal(r.runData.Work.length, 3);
+  assert.deepEqual(out(r, "Done"), [{ i: 5, b: 2 }]);
+});
+
 test("Stop and Error fails the run with the message or object", async () => {
   const r = await run(wf([start(), node("Stop", "stopAndError", { errorMessage: "={{ 'bad ' + $json.id }}" })], chain("Start", "Stop")), { trigger: [{ id: 7 }] });
   assert.equal(r.status, "failed");

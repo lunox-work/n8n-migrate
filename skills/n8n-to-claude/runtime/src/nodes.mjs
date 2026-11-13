@@ -1017,13 +1017,16 @@ const aggregate = {
   },
 };
 
-// ---------- SplitInBatches v3 (Loop Over Items) ----------
+// ---------- SplitInBatches v1, v2, v3 (Loop Over Items) ----------
+// Batches are kept in the node context ($node["X"].context.noItemsLeft works).
+// v1: one output, no output when done. v2: [loop, done]. v3: [done, loop].
 
-const splitInBatchesV3 = {
-  versions: oneOf(3),
-  outputs: () => 2,
-  defaults: () => ({ batchSize: 1, options: {} }),
+const splitInBatches = {
+  versions: oneOf(1, 2, 3),
+  outputs: (exec) => (exec.typeVersion === 1 ? 1 : 2),
+  defaults: (v) => ({ batchSize: v === 3 ? 1 : 10, options: {} }),
   execute(exec) {
+    const v = exec.typeVersion;
     const items = exec.getInputData().slice();
     const ctx = (exec.run.nodeContext[exec.name] ??= {});
     const batchSize = exec.param("batchSize", 0);
@@ -1036,13 +1039,12 @@ const splitInBatchesV3 = {
       ctx.sourceData = deepCopy(sourceData);
       ret.push(...items.splice(0, batchSize));
       ctx.items = [...items];
-      ctx.processedItems = [];
+      if (v > 1) ctx.processedItems = [];
     } else {
       ctx.currentRunIndex += 1;
       ret.push(...ctx.items.splice(0, batchSize));
       const withOverwrite = (p) => (typeof p === "number" ? { item: p, sourceOverwrite: ctx.sourceData } : { ...p, sourceOverwrite: ctx.sourceData });
-      const newItems = items.map((item, index) => ({ ...item, pairedItem: { sourceOverwrite: sourceData, item: index } }));
-      ctx.processedItems = [...ctx.processedItems, ...newItems];
+      if (v > 1) ctx.processedItems = [...ctx.processedItems, ...items.map((item, index) => ({ ...item, pairedItem: { sourceOverwrite: sourceData, item: index } }))];
       for (const it of ret) {
         if (it.pairedItem === undefined) it.pairedItem = { item: 0, sourceOverwrite: ctx.sourceData };
         else it.pairedItem = Array.isArray(it.pairedItem) ? it.pairedItem.map(withOverwrite) : withOverwrite(it.pairedItem);
@@ -1050,11 +1052,12 @@ const splitInBatchesV3 = {
     }
     ctx.noItemsLeft = ctx.items.length === 0;
     if (ret.length === 0) {
+      if (v === 1) return null;
       ctx.done = true;
-      return [ctx.processedItems, []];
+      return v === 2 ? [[], ctx.processedItems] : [ctx.processedItems, []];
     }
-    ctx.done = false;
-    return [[], ret];
+    if (v > 1) ctx.done = false;
+    return v === 1 ? [ret] : v === 2 ? [ret, []] : [[], ret];
   },
 };
 
@@ -1356,7 +1359,7 @@ const IMPLS = {
   [BASE + "limit"]: limit,
   [BASE + "splitOut"]: splitOut,
   [BASE + "aggregate"]: aggregate,
-  [BASE + "splitInBatches"]: splitInBatchesV3,
+  [BASE + "splitInBatches"]: splitInBatches,
   [BASE + "wait"]: wait,
   [BASE + "code"]: code,
   [BASE + "function"]: functionNode,

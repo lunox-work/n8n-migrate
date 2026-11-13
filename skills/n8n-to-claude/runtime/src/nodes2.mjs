@@ -679,16 +679,124 @@ function toItems(exec, results, items, what, wrapKey) {
   return out;
 }
 
-// Model step: step.model = {prompt, system?, messages?, outputSchema?, outputKey?}.
+// ---------- model and agent steps ----------
+// A converter may give the step an explicit `model` / `agent` block. Without one, the
+// request is derived from the n8n parameters of the Basic LLM Chain and the AI Agent
+// (n8n-nodes-langchain 2.47): the prompt from promptType ("auto": $json.chatInput,
+// "define": text; chainLlm <= 1.3: the `prompt` parameter), chainLlm's
+// messages.messageValues, the agent's options.systemMessage (default "You are a helpful
+// assistant"), the model name of the connected ai_languageModel sub-node, the schema of a
+// connected Structured Output Parser, the agent's ai_tool sub-nodes and its memory key.
+// Output: chainLlm {text} (trimmed) or {output: object} with a parser; agent {output}.
+
+const LC = "@n8n/n8n-nodes-langchain.";
+const subnodesOf = (exec, type) => (exec.run.graph.subnodesOf[exec.name] ?? []).filter((s) => s.type === type).map((s) => ({ name: s.from, step: exec.run.definition.steps[s.from] })).filter((s) => s.step && s.step.settings?.disabled !== true);
+export function canDeriveRequest(step) {
+  const t = step.n8n?.type;
+  return (step.kind === "model" && t === LC + "chainLlm") || (step.kind === "agent" && t === LC + "agent");
+}
+function schemaFromExample(v) {
+  if (Array.isArray(v)) return { type: "array", items: v.length ? schemaFromExample(v[0]) : {} };
+  if (v === null) return { type: "null" };
+  if (typeof v === "object") return { type: "object", properties: Object.fromEntries(Object.entries(v).map(([k, x]) => [k, schemaFromExample(x)])) };
+  return { type: typeof v === "number" ? (Number.isInteger(v) ? "integer" : "number") : typeof v };
+}
+function outputSchemaOf(exec) {
+  const [parser] = subnodesOf(exec, "ai_outputParser");
+  if (!parser) return undefined;
+  if (parser.step.n8n.type !== LC + "outputParserStructured") throw unsupported(exec, `Output parser ${parser.step.n8n.type}`);
+  const p = parser.step.params ?? {};
+  const type = p.schemaType ?? (parser.step.n8n.typeVersion >= 1.2 ? "fromJson" : "manual");
+  try {
+    if (type === "manual") return typeof p.inputSchema === "string" ? JSON.parse(p.inputSchema) : p.inputSchema;
+    const example = typeof p.jsonSchemaExample === "string" ? parseJsonLoose(p.jsonSchemaExample) : p.jsonSchemaExample ?? { state: "California", cities: ["Los Angeles", "San Francisco", "San Diego"] };
+    return schemaFromExample(example);
+  } catch {
+    throw err(exec, "The Structured Output Parser schema is not valid JSON");
+  }
+}
+const parseJsonLoose = (t) => JSON.parse(String(t).replace(/,\s*([}\]])/g, "$1"));
+function modelNameOf(exec) {
+  const [m] = subnodesOf(exec, "ai_languageModel");
+  if (!m) throw err(exec, "Please connect a model to the Chat Model input");
+  const v = m.step.params?.model;
+  return { model: typeof v === "object" && v !== null ? v.value : v, provider: m.step.n8n.type.replace(LC, "") };
+}
+function promptOf(exec, i, inputKey) {
+  const v = exec.typeVersion;
+  let prompt;
+  if (exec.step.n8n.type === LC + "chainLlm" && v <= 1.3) prompt = exec.param("prompt", i, v === 1 ? "={{ $json.input }}" : v === 1.1 ? "={{ $json.chat_input }}" : "={{ $json.chatInput }}");
+  else {
+    const type = exec.param("promptType", i, exec.step.n8n.type === LC + "agent" && v < 1.5 ? "auto" : "auto");
+    if (type === "auto") prompt = exec.evaluate('={{ $json["chatInput"] }}', i);
+    else if (type === "define") prompt = exec.param(inputKey, i, "");
+    else throw unsupported(exec, `Prompt type "${type}"`);
+    if (prompt === undefined) throw err(exec, "No prompt specified", { itemIndex: i, description: type === "auto" ? "Expected to find the prompt in an input field called 'chatInput' (this is what the chat trigger node outputs). To use something else, change the 'Prompt' parameter" : undefined });
+  }
+  return prompt;
+}
+const toolName = (name) => name.replace(/[^a-zA-Z0-9_-]/g, "_");
+function agentTools(exec) {
+  return subnodesOf(exec, "ai_tool").map(({ name, step }) => {
+    const p = step.params ?? {};
+    const tool = { name: toolName(name), node: name, n8nType: step.n8n.type, description: p.toolDescription ?? p.description ?? "" };
+    if (step.tool?.connector) Object.assign(tool, { connector: step.tool.connector, tool: step.tool.name, effect: step.tool.effect ?? "write" });
+    else if (step.n8n.type === LC + "toolCode") Object.assign(tool, { kind: "code", language: p.language ?? "javaScript", code: p.jsCode ?? p.code, effect: "none" });
+    else if (step.n8n.type === LC + "toolHttpRequest" || step.n8n.type === BASE + "httpRequestTool") Object.assign(tool, { kind: "http", method: p.method ?? "GET", url: typeof p.url === "string" && !p.url.startsWith("=") ? p.url : undefined, effect: (p.method ?? "GET") === "GET" ? "read" : "write" });
+    else Object.assign(tool, { kind: "n8n", params: p, effect: "write" });
+    return tool;
+  });
+}
+
+// Model step: step.model = {prompt, system?, messages?, outputSchema?, outputKey?, model?}.
 const modelStep = {
   versions: () => true,
   async execute(exec) {
-    const m = exec.step.model;
-    if (!m || (m.prompt === undefined && !m.messages)) throw unsupported(exec, "A model step without model.prompt");
     const items = exec.getInputData();
-    const reqs = items.map((_, i) => ({ kind: "model", itemIndex: i, prompt: exec.evaluate(m.prompt ?? "", i), ...(m.system !== undefined ? { system: exec.evaluate(m.system, i) } : {}), ...(m.messages ? { messages: exec.evaluate(m.messages, i) } : {}), ...(m.outputSchema ? { outputSchema: m.outputSchema } : {}), ...(m.model ? { model: m.model } : {}) }));
+    let m = exec.step.model;
+    let derived = false;
+    if (!m) {
+      if (!canDeriveRequest(exec.step)) throw unsupported(exec, "A model step without model.prompt");
+      derived = true;
+      m = { outputSchema: outputSchemaOf(exec), ...modelNameOf(exec) };
+    }
+    if (!derived && m.prompt === undefined && !m.messages) throw unsupported(exec, "A model step without model.prompt");
+    const reqs = items.map((_, i) => {
+      const r = { kind: "model", itemIndex: i };
+      if (derived) {
+        r.prompt = promptOf(exec, i, "text");
+        const messages = exec.param("messages.messageValues", i, []).map((x) => ({ role: { AIMessagePromptTemplate: "assistant", HumanMessagePromptTemplate: "user" }[x.type] ?? "system", type: x.messageType ?? "text", content: x.message ?? x.imageUrl }));
+        if (messages.some((x) => x.type !== "text")) throw unsupported(exec, "Image messages in the Basic LLM Chain");
+        const system = messages.filter((x) => x.role === "system").map((x) => x.content);
+        if (system.length) r.system = system.join("\n");
+        const rest = messages.filter((x) => x.role !== "system").map(({ role, content }) => ({ role, content }));
+        if (rest.length) r.messages = rest;
+      } else {
+        r.prompt = exec.evaluate(m.prompt ?? "", i);
+        if (m.system !== undefined) r.system = exec.evaluate(m.system, i);
+        if (m.messages) r.messages = exec.evaluate(m.messages, i);
+      }
+      if (m.outputSchema) r.outputSchema = m.outputSchema;
+      if (m.model) r.model = m.model;
+      return r;
+    });
     const results = await exec.request(reqs);
-    return [toItems(exec, results, items, "model", m.outputKey ?? (m.outputSchema ? "output" : "text"))];
+    if (m.outputKey || !derived) return [toItems(exec, results, items, "model", m.outputKey ?? (m.outputSchema ? "output" : "text"))];
+    // chainLlm formatResponse: strings trimmed into {text}; arrays {data}; objects unwrapped.
+    const unwrap = exec.typeVersion >= 1.6 || !!m.outputSchema;
+    return [
+      results.map((r, i) => {
+        if (!r.ok) {
+          const e = err(exec, r.error?.message ?? "model call failed", { itemIndex: i });
+          if (!exec.continueOnFail()) throw e;
+          return { json: { error: e.message }, pairedItem: { item: i } };
+        }
+        let v = r.value;
+        if (m.outputSchema && v !== null && typeof v === "object" && !Array.isArray(v)) v = { output: v };
+        const json = typeof v === "string" ? { text: v.trim() } : Array.isArray(v) ? { data: v } : v && typeof v === "object" ? (unwrap ? v : { text: JSON.stringify(v) }) : { response: { text: v } };
+        return { json, pairedItem: { item: i } };
+      }),
+    ];
   },
 };
 
@@ -696,10 +804,36 @@ const modelStep = {
 const agentStep = {
   versions: () => true,
   async execute(exec) {
-    const a = exec.step.agent;
-    if (!a || a.prompt === undefined) throw unsupported(exec, "An agent step without agent.prompt");
     const items = exec.getInputData();
-    const reqs = items.map((_, i) => ({ kind: "agent", itemIndex: i, prompt: exec.evaluate(a.prompt, i), ...(a.system !== undefined ? { system: exec.evaluate(a.system, i) } : {}), tools: a.tools ?? [], ...(a.memoryKey !== undefined ? { memoryKey: exec.evaluate(a.memoryKey, i) } : {}), ...(a.outputSchema ? { outputSchema: a.outputSchema } : {}), ...(a.maxIterations ? { maxIterations: a.maxIterations } : {}) }));
+    let a = exec.step.agent;
+    const derived = !a;
+    if (derived) {
+      if (!canDeriveRequest(exec.step)) throw unsupported(exec, "An agent step without agent.prompt");
+      const [memory] = subnodesOf(exec, "ai_memory");
+      a = { tools: agentTools(exec), outputSchema: exec.params.hasOutputParser ? outputSchemaOf(exec) : undefined, ...modelNameOf(exec), memory };
+    } else if (a.prompt === undefined) throw unsupported(exec, "An agent step without agent.prompt");
+    const reqs = items.map((_, i) => {
+      const r = { kind: "agent", itemIndex: i, tools: a.tools ?? [] };
+      if (derived) {
+        r.prompt = promptOf(exec, i, "text");
+        r.system = exec.param("options.systemMessage", i, "You are a helpful assistant");
+        if (a.memory) {
+          const mp = a.memory.step.params ?? {};
+          r.memoryKey = mp.sessionIdType === "customKey" ? exec.evaluate(mp.sessionKey ?? "", i) : exec.evaluate("={{ $json.sessionId }}", i);
+          r.memoryWindow = mp.contextWindowLength ?? 5;
+        }
+        const maxIterations = exec.param("options.maxIterations", i, 10);
+        if (maxIterations) r.maxIterations = maxIterations;
+        if (a.model) r.model = a.model;
+      } else {
+        r.prompt = exec.evaluate(a.prompt, i);
+        if (a.system !== undefined) r.system = exec.evaluate(a.system, i);
+        if (a.memoryKey !== undefined) r.memoryKey = exec.evaluate(a.memoryKey, i);
+        if (a.maxIterations) r.maxIterations = a.maxIterations;
+      }
+      if (a.outputSchema) r.outputSchema = a.outputSchema;
+      return r;
+    });
     const results = await exec.request(reqs);
     return [toItems(exec, results, items, "agent", a.outputKey ?? "output")];
   },

@@ -47,7 +47,7 @@ test("convert: http allowlist from literal hosts, credentials become named secre
   assert.equal(d.steps.Summarise.kind, "model");
   assert.equal(d.steps.Claude.subnode, true);
   assert.deepEqual(d.subnodes, [{ from: "Claude", to: "Summarise", type: "ai_languageModel" }]);
-  assert.match(preflight(d).issues.find((i) => i.level === "error").message, /model step without model.prompt/);
+  assert.equal(preflight(d).ok, true);
   assert.deepEqual(urlTarget("=https://api.x.com/v1/{{ $json.id }}/items"), { host: "api.x.com", pathPrefix: "/v1/" });
   assert.equal(urlTarget("={{ $json.base }}/x"), null);
   assert.equal(urlTarget("=https://{{ $json.tenant }}.x.com/"), null);
@@ -85,4 +85,22 @@ test("bench c (schedule, webhook with Respond to Webhook) run on the clock and r
   assert.equal(w.status, "done");
   assert.deepEqual(w.effects[0].request.body, { customer: "c-42", total: 17.5 });
   assert.deepEqual(w.response, { body: { accepted: true, total: 17.5, ref: "ord-1001" }, headers: {}, statusCode: 200 });
+});
+
+test("bench d (Basic LLM Chain) and e (AI Agent with a code tool) become model and agent requests", async () => {
+  const seen = [];
+  const host = { model: async (p) => (seen.push(p), "  A short summary.  "), agent: async (p) => (seen.push(p), "SKU-1 has 12 units") };
+  const d = await run(load("d-llm-chain.json").def, { trigger: JSON.parse(readFileSync(join(WF, "d.trigger.json"), "utf8")), clock: CLOCK, host });
+  assert.equal(d.status, "done");
+  assert.deepEqual(d.output, [{ text: "A short summary." }]);
+  assert.equal(seen[0].system, "You write terse summaries.");
+  assert.match(seen[0].prompt, /^Summarise in one sentence: /);
+  assert.deepEqual([seen[0].model, seen[0].provider], ["claude-sonnet-5", undefined]);
+  const e = await run(load("e-llm-agent.json").def, { trigger: JSON.parse(readFileSync(join(WF, "e.trigger.json"), "utf8")), clock: CLOCK, host });
+  assert.equal(e.status, "done");
+  assert.deepEqual(e.output, [{ output: "SKU-1 has 12 units" }]);
+  const req = seen[1];
+  assert.equal(req.system, "You answer stock questions using the tool.");
+  assert.equal(req.model, "claude-sonnet-5");
+  assert.deepEqual(req.tools.map((t) => [t.name, t.kind, t.description]), [["Stock_lookup", "code", "Returns units in stock for a SKU. Input: the SKU string."]]);
 });

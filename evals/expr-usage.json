@@ -16,6 +16,7 @@
       "../n8n-hvac-runtime-reminders/workflows",
       "../n8n-job-leases/workflows",
       "../n8n-loop-over-items-lab/workflows",
+      "../n8n-openai-credential-test/workflows",
       "../n8n-resumable-stages/workflows",
       "../n8n-retry-after/workflows",
       "../n8n-retry-effects/workflows",
@@ -399,11 +400,11 @@
         "runtime": "native"
       },
       "slice": {
-        "count": 96,
+        "count": 100,
         "runtime": "native"
       },
       "replace": {
-        "count": 85,
+        "count": 89,
         "runtime": "native"
       },
       "filter": {
@@ -411,7 +412,7 @@
         "runtime": "native"
       },
       "join": {
-        "count": 67,
+        "count": 69,
         "runtime": "native"
       },
       "includes": {
@@ -423,7 +424,7 @@
         "runtime": "native"
       },
       "trim": {
-        "count": 40,
+        "count": 42,
         "runtime": "native"
       },
       "parse": {
@@ -431,10 +432,14 @@
         "runtime": "native"
       },
       "test": {
-        "count": 25,
+        "count": 29,
         "runtime": "native"
       },
       "log": {
+        "count": 24,
+        "runtime": "native"
+      },
+      "split": {
         "count": 24,
         "runtime": "native"
       },
@@ -447,10 +452,6 @@
         "runtime": "native"
       },
       "padStart": {
-        "count": 20,
-        "runtime": "native"
-      },
-      "split": {
         "count": 20,
         "runtime": "native"
       },
@@ -477,6 +478,10 @@
       "ceil": {
         "count": 13,
         "runtime": "extension"
+      },
+      "startsWith": {
+        "count": 13,
+        "runtime": "native"
       },
       "find": {
         "count": 12,
@@ -522,6 +527,10 @@
         "count": 9,
         "runtime": "native"
       },
+      "exec": {
+        "count": 9,
+        "runtime": "native"
+      },
       "getFullYear": {
         "count": 9,
         "runtime": "native"
@@ -535,6 +544,10 @@
         "runtime": "native"
       },
       "getUTCDate": {
+        "count": 8,
+        "runtime": "native"
+      },
+      "lastIndexOf": {
         "count": 8,
         "runtime": "native"
       },
@@ -554,10 +567,6 @@
         "count": 7,
         "runtime": "native"
       },
-      "exec": {
-        "count": 7,
-        "runtime": "native"
-      },
       "fromEntries": {
         "count": 7,
         "runtime": "native"
@@ -571,10 +580,6 @@
         "runtime": "extension"
       },
       "get": {
-        "count": 6,
-        "runtime": "native"
-      },
-      "lastIndexOf": {
         "count": 6,
         "runtime": "native"
       },
@@ -595,10 +600,6 @@
         "runtime": "native"
       },
       "getUTCDay": {
-        "count": 5,
-        "runtime": "native"
-      },
-      "startsWith": {
         "count": 5,
         "runtime": "native"
       },
@@ -636,6 +637,14 @@
       },
       "setUTCDate": {
         "count": 4,
+        "runtime": "native"
+      },
+      "splice": {
+        "count": 4,
+        "runtime": "native"
+      },
+      "endsWith": {
+        "count": 3,
         "runtime": "native"
       },
       "flatMap": {
@@ -707,10 +716,6 @@
         "runtime": "native"
       },
       "diff": {
-        "count": 1,
-        "runtime": "native"
-      },
-      "endsWith": {
         "count": 1,
         "runtime": "native"
       },
@@ -817,8 +822,8 @@
       "missing": []
     },
     "codeMethods": {
-      "used": 91,
-      "supported": 91,
+      "used": 92,
+      "supported": 92,
       "missing": []
     },
     "expressionGlobals": {
