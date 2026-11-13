@@ -396,5 +396,5 @@ test("tool, model and agent steps hand out requests with evaluated arguments", a
   assert.deepEqual(calls[0], ["tool", { connector: "gmail", tool: "search_threads", args: { query: "from:ann@x.test", limit: 5 }, effect: "read", step: "Search" }]);
   assert.deepEqual(out(r, "Summarise"), [{ text: "sum of S1" }, { text: "sum of S2" }]);
   assert.deepEqual(out(r, "Agent"), [{ output: "done" }, { output: "done" }]);
-  assert.deepEqual(r.effects.map((e) => [e.kind, e.effect, !!e.effectKey]), [["tool", "read", false], ["model", "none", false], ["model", "none", false], ["agent", "write", true], ["agent", "write", true]]);
+  assert.deepEqual(r.effects.map((e) => [e.kind, e.effect, !!e.effectKey]), [["tool", "read", false], ["model", "none", false], ["model", "none", false], ["agent", "none", false], ["agent", "none", false]]);
 });

@@ -17,7 +17,8 @@
       "properties": {
         "file": { "type": "string" },
         "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-        "canonical": { "type": "boolean", "description": "true when sha256 is over the canonical JSON (no export text was given)." }
+        "canonical": { "type": "boolean", "description": "true when sha256 is over the canonical JSON (no export text was given)." },
+        "workflowId": { "type": "string" }
       }
     },
     "settings": {
@@ -76,7 +77,11 @@
             "type": "object",
             "required": ["secret"],
             "additionalProperties": false,
-            "properties": { "credentialType": { "type": "string" }, "secret": { "type": "string" } }
+            "properties": {
+              "credentialType": { "type": "string" },
+              "secret": { "type": "string" },
+              "placement": { "enum": ["header", "url"], "description": "header (default): the host attaches the credential the way its type says; url: the host replaces the literal {{secret}} in the URL." }
+            }
           },
           "tool": {
             "type": "object",
@@ -86,7 +91,25 @@
               "connector": { "type": "string" },
               "name": { "type": "string" },
               "args": { "type": "object", "description": "String values may be n8n expressions, evaluated per item." },
-              "effect": { "enum": ["read", "write"] }
+              "effect": { "enum": ["read", "write"] },
+              "coerce": {
+                "type": "object",
+                "additionalProperties": { "enum": ["string", "string[]", "integer", "number", "boolean", "json"] },
+                "description": "Type coercion after the args are evaluated, from the tool's input schema."
+              },
+              "result": { "$ref": "#/$defs/adapter" },
+              "fidelity": {
+                "enum": ["exact", "adapted", "partial", "none", "unverified"],
+                "description": "exact: the tool returns what n8n returns; adapted: the adapter reshapes, and the fields it lists carry n8n's names; partial: some n8n fields have no source (missingFields); none: no adapter; unverified: the tool's real output shape is not known yet, so the adapter is a best reading of the tool description, to be checked by the bench's emulation run."
+              },
+              "missingFields": { "type": "array", "items": { "type": "string" }, "description": "n8n output fields the tool cannot supply." },
+              "argsCheck": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": { "ok": { "type": "boolean" }, "missing": { "type": "array", "items": { "type": "string" } }, "unknown": { "type": "array", "items": { "type": "string" } } },
+                "description": "The converter's check of args against the tool's input JSON schema. Preflight fails on missing required fields."
+              },
+              "map": { "type": "string", "description": "The tool-maps.json entry used: <n8n type>@<version range> <resource:operation>." }
             }
           },
           "model": {
@@ -98,7 +121,23 @@
               "messages": { "type": "array" },
               "outputSchema": { "type": "object" },
               "outputKey": { "type": "string" },
-              "model": { "type": "string" }
+              "model": { "type": "string" },
+              "outputTemplate": { "description": "n8n's output item, with the string \"$output\" where the model's result goes." },
+              "trim": { "type": "boolean" },
+              "passInput": { "type": "boolean", "description": "Merge the shaped result into the input item (Sentiment Analysis)." },
+              "route": {
+                "type": "object",
+                "required": ["mode", "outputs"],
+                "additionalProperties": false,
+                "properties": { "mode": { "enum": ["flags", "value"] }, "field": { "type": "string" }, "outputs": { "type": "array", "items": { "type": "string" } } },
+                "description": "One output per name: flags sends the input item to every output whose name is true in the result (Text Classifier); value to the output named by result[field] (Sentiment Analysis)."
+              },
+              "hint": {
+                "type": "object",
+                "description": "The original provider and model, for information only. The model always runs on Claude.",
+                "additionalProperties": false,
+                "properties": { "provider": { "type": "string" }, "model": { "type": "string" }, "node": { "type": "string" } }
+              }
             }
           },
           "agent": {
@@ -117,26 +156,154 @@
                     "description": { "type": "string" },
                     "connector": { "type": "string" },
                     "tool": { "type": "string" },
-                    "kind": { "type": "string" },
+                    "kind": { "enum": ["connector", "http", "code", "subflow", "n8n"] },
                     "url": { "type": "string" },
                     "effect": { "enum": ["read", "write", "none"] },
-                    "inputSchema": { "type": "object" }
-                  }
-                }
+                    "inputSchema": { "type": "object" },
+                    "node": { "type": "string", "description": "The sub-node step that holds the tool's tool/http/subflow/params block." },
+                    "n8nType": { "type": "string" }
+                  },
+                  "additionalProperties": false
+                },
+                "description": "Tools the agent may call. Protocol: each turn is an `agent` request {prompt, system, tools: [{name, description, inputSchema}], memory, maxIterations, turn, transcript}; the host answers with the final output or {intent: \"tool-calls\", calls: [{name, args}]}. The runner executes each call itself (runtime/src/nodes2.mjs executeAgentTool) as an ordinary request under the allowlist and appends {calls, results} to the transcript of the next turn. The host never executes a tool."
               },
               "memoryKey": { "type": "string" },
               "outputSchema": { "type": "object" },
               "outputKey": { "type": "string" },
-              "maxIterations": { "type": "number" }
+              "maxIterations": { "type": "number" },
+              "memory": {
+                "type": "object",
+                "required": ["kind"],
+                "additionalProperties": false,
+                "properties": { "kind": { "const": "conversation" }, "key": { "type": "string", "description": "n8n expression for the session key" }, "window": { "type": "number" }, "node": { "type": "string" } },
+                "description": "Buffer-window memory. The host keeps the conversation by key and gives the model the last `window` exchanges."
+              },
+              "hint": {
+                "type": "object",
+                "description": "The original provider and model, for information only. The model always runs on Claude.",
+                "additionalProperties": false,
+                "properties": { "provider": { "type": "string" }, "model": { "type": "string" }, "node": { "type": "string" } }
+              }
             }
           },
           "subflow": {
             "type": "object",
             "description": "Execute Workflow target: {self: true} for a self-reference, or an inline definition.",
             "additionalProperties": false,
-            "properties": { "self": { "type": "boolean" }, "definition": { "type": "object" }, "trigger": { "type": "string" } }
+            "properties": {
+              "self": { "type": "boolean" },
+              "definition": { "type": "object" },
+              "trigger": { "type": "string" },
+              "inputs": { "type": "object", "description": "Sub-workflow tool: the item handed to the sub-workflow; $fromAI() values come from the model's arguments." },
+              "workflowId": { "type": "string" }
+            }
           },
-          "blocked": { "type": "object", "required": ["reason"], "properties": { "reason": { "type": "string" } } }
+          "blocked": {
+            "type": "object",
+            "required": ["reason"],
+            "additionalProperties": false,
+            "properties": {
+              "reason": { "type": "string" },
+              "kind": { "enum": ["no-tool", "not-captured", "substitution", "unsupported", "unmapped", "subnode", "dropped", "input-incomplete", "no-runtime"] },
+              "offer": { "type": "string" },
+              "alternative": { "type": "string" }
+            }
+          },
+          "http": {
+            "type": "object",
+            "description": "A request template for an app REST API that has no connector tool: one request per item, values evaluated like n8n parameters. The credential comes from auth.",
+            "required": ["method", "url"],
+            "additionalProperties": false,
+            "properties": {
+              "method": { "type": "string" },
+              "url": { "type": "string", "description": "May hold a literal {{secret}} where auth.placement is url; never the value." },
+              "query": { "type": "object" },
+              "headers": { "type": "object" },
+              "body": {},
+              "contentType": { "type": "string" },
+              "coerce": { "type": "object" },
+              "result": { "$ref": "#/$defs/adapter" },
+              "fidelity": {
+                "enum": ["exact", "adapted", "partial", "none", "unverified"],
+                "description": "exact: the tool returns what n8n returns; adapted: the adapter reshapes, and the fields it lists carry n8n's names; partial: some n8n fields have no source (missingFields); none: no adapter; unverified: the tool's real output shape is not known yet, so the adapter is a best reading of the tool description, to be checked by the bench's emulation run."
+              },
+              "map": { "type": "string" }
+            }
+          },
+          "poll": {
+            "type": "object",
+            "required": ["tool", "cursor"],
+            "additionalProperties": false,
+            "description": "Poll trigger: the runner calls the tool with the cursor in its args and emits only items after the cursor (runtime/src/adapt.mjs). The schedule says how often.",
+            "properties": {
+              "tool": {
+                "type": "object",
+                "required": ["connector", "name"],
+                "additionalProperties": false,
+                "properties": { "connector": { "type": "string" }, "name": { "type": "string" }, "args": { "type": "object" }, "coerce": { "type": "object" } }
+              },
+              "result": { "$ref": "#/$defs/adapter" },
+              "cursor": {
+                "type": "object",
+                "required": ["field", "strategy"],
+                "additionalProperties": false,
+                "properties": {
+                  "field": { "type": "string" },
+                  "strategy": { "const": "max" },
+                  "idField": { "type": "string" },
+                  "arg": { "type": "string" },
+                  "template": { "type": "string" },
+                  "joiner": { "type": "string" }
+                }
+              },
+              "fidelity": {
+                "enum": ["exact", "adapted", "partial", "none", "unverified"],
+                "description": "exact: the tool returns what n8n returns; adapted: the adapter reshapes, and the fields it lists carry n8n's names; partial: some n8n fields have no source (missingFields); none: no adapter; unverified: the tool's real output shape is not known yet, so the adapter is a best reading of the tool description, to be checked by the bench's emulation run."
+              },
+              "map": { "type": "string" }
+            }
+          },
+          "schedule": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "For the task driver: when the trigger fires. The n8n rule stays in params.",
+            "properties": {
+              "cron": { "type": "array", "items": { "type": "string" }, "description": "6-field cron (seconds first), in timezone" },
+              "everySeconds": { "type": "number", "description": "A fixed rhythm n8n enforces (minutes/hours/days intervals)" },
+              "timezone": { "type": "string" },
+              "runsPerDay": { "type": ["number", "null"] },
+              "shortestIntervalSec": { "type": ["number", "null"] },
+              "fits": { "type": "string" },
+              "note": { "type": "string" }
+            }
+          },
+          "chat": { "type": "boolean", "description": "Chat trigger: the skill hands each message in as {sessionId, action: \"sendMessage\", chatInput}." },
+          "form": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": { "title": { "type": "string" }, "description": { "type": "string" }, "fields": { "type": "array" } },
+            "description": "Form trigger fields, for the artifact form."
+          },
+          "relay": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": { "payloadShape": { "type": "string" }, "method": { "type": "string" }, "path": { "type": "string" } },
+            "description": "An event pushed in from outside (webhook); the payload arrives as the trigger item."
+          },
+          "needsTranslation": {
+            "type": "object",
+            "required": ["kind", "reason"],
+            "additionalProperties": false,
+            "properties": { "kind": { "enum": ["python", "expression", "node", "from-ai", "code", "llm-api-body", "inline-secret", "url"] }, "original": {}, "reason": { "type": "string" } },
+            "description": "What code cannot settle. The converter never translates it; the skill writes a translation into overrides.json, and the step stays review until a dry run passes."
+          },
+          "substitution": {
+            "type": "object",
+            "required": ["id"],
+            "additionalProperties": false,
+            "properties": { "id": { "type": "string" }, "from": { "type": "string" }, "to": { "type": "string" }, "approved": { "type": "boolean" } }
+          },
+          "override": { "type": "boolean", "description": "overrides.json patched this step." }
         }
       }
     },
@@ -164,8 +331,20 @@
       "description": "The allowlist. A tool or http request outside it is never handed out (ContainmentViolation).",
       "additionalProperties": false,
       "properties": {
-        "tools": { "type": "array", "items": { "type": "object", "required": ["connector", "tool"], "additionalProperties": false, "properties": { "connector": { "type": "string" }, "tool": { "type": "string" } } } },
-        "http": { "type": "array", "items": { "type": "object", "required": ["method", "host"], "additionalProperties": false, "properties": { "method": { "type": "string" }, "host": { "type": "string" }, "pathPrefix": { "type": "string" } } } },
+        "tools": {
+          "type": "array",
+          "items": { "type": "object", "required": ["connector", "tool"], "additionalProperties": false, "properties": { "connector": { "type": "string" }, "tool": { "type": "string" } } }
+        },
+        "http": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["method", "host"],
+            "additionalProperties": false,
+            "properties": { "method": { "type": "string" }, "host": { "type": "string" }, "pathPrefix": { "type": "string" }, "note": { "type": "string" } },
+            "description": "host \"*\" (a URL built at run time) is refused by preflight until narrowed in overrides.json."
+          }
+        },
         "sql": { "type": "array", "items": { "type": "string" } }
       }
     },
@@ -179,6 +358,20 @@
         "properties": { "name": { "type": "string" }, "credentialType": { "type": "string" }, "hosts": { "type": "array", "items": { "type": "string" } } }
       }
     },
-    "notes": { "type": "array", "items": { "type": "string" } }
+    "notes": { "type": "array", "items": { "type": "string" } },
+    "converter": {
+      "type": "object",
+      "description": "Which converter wrote this definition (scripts/convert.mjs). The skill commit is in runtime/VERSION beside it.",
+      "additionalProperties": false,
+      "properties": { "version": { "type": "string" }, "toolMaps": { "type": "string", "description": "references/tool-maps.json version" } }
+    }
+  },
+  "$defs": {
+    "adapter": {
+      "type": "object",
+      "description": "Declarative result adapter (runtime/src/adapt.mjs): turns the tool's output into n8n-shaped items. items: path to the elements ([*] flattens); fields: {outName: \"path\" | \"$.root.path\" | \"^.parent.path\" | {path, default} | {const} | {first: [...]} | {split, sep} | {join, sep} | {headers}}; passthrough: keep the element's own fields (default true); wrap; empty: none|one.",
+      "additionalProperties": false,
+      "properties": { "items": { "type": "string" }, "fields": { "type": "object" }, "passthrough": { "type": "boolean" }, "wrap": { "type": "string" }, "empty": { "enum": ["none", "one"] } }
+    }
   }
 }

@@ -83,8 +83,18 @@ export function preflight(definition, { availableTools, sourceText, pinned } = {
       if (!allowed) err(`$.steps.${name}.tool`, `tool ${s.tool?.connector}.${s.tool?.name} is not in allow.tools`, { step: name });
     }
     if (s.kind === "code" && /python/i.test(s.params?.language ?? "")) err(`$.steps.${name}`, "Python Code nodes need translation (review)", { step: name });
+    if (s.kind === "tool" && s.tool?.argsCheck?.missing?.length) err(`$.steps.${name}.tool`, `tool ${s.tool.connector}.${s.tool.name} lacks required arguments: ${s.tool.argsCheck.missing.join(", ")}`, { step: name });
+    for (const t of s.agent?.tools ?? []) {
+      const sub = t.node ? steps[t.node] : undefined;
+      const tool = sub?.tool ?? (t.connector ? { connector: t.connector, name: t.tool } : undefined);
+      if (tool && !(definition.allow?.tools ?? []).some((a) => a.connector === tool.connector && a.tool === tool.name)) err(`$.steps.${name}.agent`, `agent tool ${t.name} uses ${tool.connector}.${tool.name}, which is not in allow.tools`, { step: name });
+    }
+    if (s.needsTranslation && !s.override) warn(`$.steps.${name}`, `needs translation (${s.needsTranslation.kind}): ${s.needsTranslation.reason}`, { step: name });
     if (s.review) warn(`$.steps.${name}`, `flagged for review${s.reviewReasons?.length ? ": " + s.reviewReasons.join("; ") : ""}`, { step: name });
   }
+  (definition.allow?.http ?? []).forEach((a, i) => {
+    if (a.host === "*") err(`$.allow.http[${i}]`, `a request with a URL built at run time is allowed to any host (${a.method} *); narrow it to a host in overrides.json`);
+  });
   if (!Object.values(steps).some((s) => isTriggerStep(s) && s.settings?.disabled !== true)) warn("$.steps", "no trigger step; runs start at the first step without inputs");
   if (availableTools) {
     const have = new Set(availableTools.map(toolKey));
@@ -162,7 +172,7 @@ async function runSubflow(parentExec, sub, items, prefix) {
   const def = sub.self ? parent.rootDefinition : sub.definition;
   if (!def?.steps) throw new NodeError("Sub-workflow definition is missing", { node: parentExec.name });
   const child = createRun(def, { clock: { startedAt: parent.clock.startedAt }, runId: parent.runId, mode: parent.mode });
-  for (const k of ["clock", "resultLog", "effects", "effectIds", "host", "stepMode", "batchSize", "virtualTime", "sleepThresholdMs", "logs", "console", "randomFor", "executionInfo"]) child[k] = parent[k];
+  for (const k of ["clock", "resultLog", "effects", "effectIds", "host", "stepMode", "batchSize", "virtualTime", "sleepThresholdMs", "logs", "console", "randomFor", "executionInfo", "cursorsIn", "cursorsOut"]) child[k] = parent[k];
   child.idPrefix = `${parent.idPrefix}${prefix}/`;
   child.depth = parent.depth + 1;
   child.api = parent.api;
@@ -198,6 +208,7 @@ function finish(run, status, extra = {}) {
     resultLog: deepCopy(run.resultLog),
     ...(run.response !== undefined ? { response: run.response } : {}),
     ...(run.logs.length ? { logs: run.logs } : {}),
+    ...(Object.keys(run.cursorsOut).length ? { cursors: deepCopy(run.cursorsOut) } : {}),
     ...extra,
   };
 }
@@ -238,19 +249,20 @@ export async function run(definition, opts = {}) {
 // ---------- step mode ----------
 
 async function step(state) {
-  const r = createRun(state.definition, { clock: { startedAt: state.startedAt }, runId: state.runId, resultLog: state.resultLog, stepMode: true, batchSize: state.batchSize, mode: state.mode, virtualTime: state.virtualTime, pinData: state.pinData ?? undefined });
+  const r = createRun(state.definition, { clock: { startedAt: state.startedAt }, runId: state.runId, resultLog: state.resultLog, stepMode: true, batchSize: state.batchSize, mode: state.mode, virtualTime: state.virtualTime, pinData: state.pinData ?? undefined, cursors: state.cursors ?? undefined });
   const res = await execute(r, state.trigger);
   state.status = res.status;
   state.outstanding = res.status === "needs" ? res.requests.map((q) => q.id) : [];
   state.requests = res.status === "needs" ? res.requests : [];
   state.effects = res.effects;
-  if (res.status !== "needs") state.result = { runData: res.runData, output: res.output, lastNodeExecuted: res.lastNodeExecuted, ...(res.response !== undefined ? { response: res.response } : {}), ...(res.error ? { error: res.error } : {}), endedAt: res.endedAt };
+  if (res.status !== "needs") state.result = { runData: res.runData, output: res.output, lastNodeExecuted: res.lastNodeExecuted, ...(res.cursors ? { cursors: res.cursors } : {}), ...(res.response !== undefined ? { response: res.response } : {}), ...(res.error ? { error: res.error } : {}), endedAt: res.endedAt };
   const out = { status: res.status, runId: state.runId, state };
   if (res.status === "needs") out.requests = res.requests;
   else {
     out.output = res.output;
     out.runData = res.runData;
     out.effects = res.effects;
+    if (res.cursors) out.cursors = res.cursors;
     if (res.response !== undefined) out.response = res.response;
     if (res.error) out.error = res.error;
   }
@@ -272,6 +284,7 @@ export async function start(definition, opts = {}) {
     virtualTime: opts.virtualTime ?? false,
     trigger: opts.trigger ?? null,
     ...(opts.pinData ? { pinData: opts.pinData } : {}),
+    ...(opts.cursors ? { cursors: opts.cursors } : {}),
     definitionHash: definitionHash(definition),
     definition,
     resultLog: {},

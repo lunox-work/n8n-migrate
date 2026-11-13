@@ -9,8 +9,10 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const schema = JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references/report.schema.json"), "utf8"));
 
-export function validate(v, s, path = "$") {
-  if (s.$ref) return validate(v, s.$ref.split("/").slice(1).reduce((o, k) => o[k], schema), path);
+// root: the schema $refs resolve against (default: s itself when it has an $id, else the
+// report schema).
+export function validate(v, s, path = "$", root = s.$id ? s : schema) {
+  if (s.$ref) return validate(v, s.$ref.split("/").slice(1).reduce((o, k) => o[k], root), path, root);
   const errs = [];
   const typeOf = (x) => (x === null ? "null" : Array.isArray(x) ? "array" : Number.isInteger(x) ? "integer" : typeof x);
   if (s.type) {
@@ -24,11 +26,11 @@ export function validate(v, s, path = "$") {
   if (v && typeof v === "object" && !Array.isArray(v)) {
     for (const k of s.required || []) if (!(k in v)) errs.push(`${path}: missing ${k}`);
     for (const [k, x] of Object.entries(v)) {
-      if (s.properties?.[k]) errs.push(...validate(x, s.properties[k], `${path}.${k}`));
+      if (s.properties?.[k]) errs.push(...validate(x, s.properties[k], `${path}.${k}`, root));
       else if (s.additionalProperties === false) errs.push(`${path}: unexpected ${k}`);
-      else if (s.additionalProperties && typeof s.additionalProperties === "object") errs.push(...validate(x, s.additionalProperties, `${path}.${k}`));
+      else if (s.additionalProperties && typeof s.additionalProperties === "object") errs.push(...validate(x, s.additionalProperties, `${path}.${k}`, root));
     }
   }
-  if (Array.isArray(v) && s.items) v.forEach((x, i) => errs.push(...validate(x, s.items, `${path}[${i}]`)));
+  if (Array.isArray(v) && s.items) v.forEach((x, i) => errs.push(...validate(x, s.items, `${path}[${i}]`, root)));
   return errs;
 }

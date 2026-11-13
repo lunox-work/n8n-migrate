@@ -89,7 +89,12 @@ test("bench c (schedule, webhook with Respond to Webhook) run on the clock and r
 
 test("bench d (Basic LLM Chain) and e (AI Agent with a code tool) become model and agent requests", async () => {
   const seen = [];
-  const host = { model: async (p) => (seen.push(p), "  A short summary.  "), agent: async (p) => (seen.push(p), "SKU-1 has 12 units") };
+  // The agent asks for its code tool on the first turn; the runner runs it and hands the
+  // result back in the transcript of the second turn.
+  const host = {
+    model: async (p) => (seen.push(p), "  A short summary.  "),
+    agent: async (p) => (seen.push(p), p.turn === 0 ? { intent: "tool-calls", calls: [{ name: "Stock_lookup", args: { query: "SKU-1" } }] } : `SKU-1 has ${p.transcript[0].results[0].value} units`),
+  };
   const d = await run(load("d-llm-chain.json").def, { trigger: JSON.parse(readFileSync(join(WF, "d.trigger.json"), "utf8")), clock: CLOCK, host });
   assert.equal(d.status, "done");
   assert.deepEqual(d.output, [{ text: "A short summary." }]);
@@ -102,5 +107,6 @@ test("bench d (Basic LLM Chain) and e (AI Agent with a code tool) become model a
   const req = seen[1];
   assert.equal(req.system, "You answer stock questions using the tool.");
   assert.equal(req.model, "claude-sonnet-5");
-  assert.deepEqual(req.tools.map((t) => [t.name, t.kind, t.description]), [["Stock_lookup", "code", "Returns units in stock for a SKU. Input: the SKU string."]]);
+  assert.deepEqual(req.tools, [{ name: "Stock_lookup", description: "Returns units in stock for a SKU. Input: the SKU string." }]);
+  assert.deepEqual(seen[2].transcript, [{ calls: [{ name: "Stock_lookup", args: { query: "SKU-1" } }], results: [{ name: "Stock_lookup", ok: true, value: "12" }] }]);
 });

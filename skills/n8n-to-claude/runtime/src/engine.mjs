@@ -132,6 +132,8 @@ export function createRun(definition, opts = {}) {
     response: undefined,
     nodeContext: {},
     pinData: normalizePinData(opts.pinData),
+    cursorsIn: opts.cursors ?? null, // poll cursors by trigger step name (adapt.mjs)
+    cursorsOut: {},
     lastNodeExecuted: undefined,
     idPrefix: "",
     depth: 0,
@@ -229,7 +231,9 @@ export function checkContainment(definition, req) {
 export function requestEffect(req) {
   if (req.kind === "http") return WRITE_METHODS.has(String(req.method || "GET").toUpperCase()) ? "write" : "read";
   if (req.kind === "tool") return req.effect === "read" ? "read" : "write";
-  if (req.kind === "agent") return (req.tools || []).some((t) => t.effect !== "read") ? "write" : "none";
+  // An agent turn has no effect of its own: each tool call it asks for is a separate tool or
+  // http request with its own effect entry (nodes2.mjs, executeAgentTool).
+  if (req.kind === "agent") return "none";
   return "none";
 }
 

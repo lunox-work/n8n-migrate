@@ -3,7 +3,7 @@
 //
 //   runner.mjs run <definition.json> --state <run.json> [--trigger <json|@file>]
 //              [--clock <ISO>] [--run-id <id>] [--batch-size <n>] [--mode manual|trigger]
-//              [--available-tools <json|@file>] [--source <export.json>]
+//              [--available-tools <json|@file>] [--source <export.json>] [--cursors <json|@file>]
 //   runner.mjs resume --state <run.json> --results <json|@file>
 //   runner.mjs preflight <definition.json> [--available-tools <json|@file>] [--source <export.json>]
 //   runner.mjs convert <n8n-export.json> [--nodes <nodes.json>] [--out <definition.json>]
@@ -66,6 +66,7 @@ function summary(res) {
   }
   if (res.error) out.error = res.error;
   if (res.effects) out.effects = res.effects.length;
+  if (res.cursors) out.cursors = res.cursors;
   return out;
 }
 
@@ -84,6 +85,7 @@ async function main() {
       mode: flags.mode,
       availableTools: jsonArg(flags["available-tools"], "--available-tools"),
       sourceText: flags.source ? readFileSync(flags.source, "utf8") : undefined,
+      cursors: jsonArg(flags.cursors, "--cursors"),
     });
     if (res.state) writeAtomic(flags.state, res.state);
     print(summary(res));

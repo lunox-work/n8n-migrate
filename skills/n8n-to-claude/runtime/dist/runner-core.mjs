@@ -2459,11 +2459,288 @@ function executeFilter(value, { itemIndex = 0 } = {}) {
 return { FilterError, validateFieldType, executeFilterCondition, executeFilter };
 })();
 
+// ---- src/adapt.mjs ----
+const __m_adapt_mjs = (() => {
+const { isObject, deepCopy } = __m_util_mjs;
+// Declarative result adapters, argument coercion and poll cursors.
+//
+// A converter-written definition never carries code strings for these: every shape change
+// is JSON the runtime interprets here, so a reviewer can read what a step does to a tool's
+// output and a fix to this file reaches every migrated workflow on regeneration.
+//
+// Result adapter (step.tool.result, step.http.result, trigger poll.result):
+//   {
+//     items: "threads[*].messages[*]",  path to the elements that become items; "" = the
+//                                       whole output. [*] flattens a list, [n] indexes.
+//     fields: { outName: spec },        spec: "path" (relative to the element), "$.path"
+//                                       (from the root output), "^.path" (from the element's
+//                                       parent in a [*] chain), {path, default}, {const: v},
+//                                       {first: [spec, ...]} (first defined), {split: spec,
+//                                       sep} (text to a list), {join: spec, sep} (list to text),
+//                                       {headers: spec} (a list of {name, value} to an object).
+//                                       outName may be a dot path ("payload.mimeType").
+//     passthrough: true,                keep the element's own fields (default true); false
+//                                       emits only the listed fields.
+//     wrap: "value",                    key for an element that is not an object.
+//     empty: "none" | "one",            what an output without elements gives: no items
+//                                       (default) or one empty item.
+//   }
+// adaptResult(spec, output) -> [json, ...]. Tool hosts pass the tool's structured result
+// (structuredContent, or JSON-parsed text content); a text result arrives as a string and is
+// parsed as JSON when it is JSON, else kept as {text}.
+//
+// Coercion (step.tool.coerce): {field: "string" | "string[]" | "integer" | "number" |
+// "boolean" | "json"}, applied after the n8n expressions in the args are evaluated, so a
+// comma-separated n8n "To" field reaches a tool that wants a list of addresses as a list.
+// Fields that evaluate to undefined are dropped.
+//
+// Poll cursor (trigger poll.cursor): {field, strategy: "max", idField?, arg?, template?}.
+// Items whose field is greater than the cursor (or equal with an id not seen at that value)
+// are new; the next cursor is the greatest field value seen and the ids at that value. The
+// template puts the cursor into one tool argument: {value}, {seconds} (epoch seconds),
+// {iso}. Missed runs collapse into one run that reads everything after the cursor, never
+// "since the last interval" (PLAN Phase 4).
+
+
+// ---------- paths ----------
+
+function splitPath(path) {
+  const segs = [];
+  for (const part of String(path).split(".")) {
+    if (part === "") continue;
+    const re = /([^[\]]+)|\[(\*|\d+)\]/g;
+    let m;
+    while ((m = re.exec(part))) {
+      if (m[1] !== undefined) segs.push({ key: m[1] });
+      else if (m[2] === "*") segs.push({ all: true });
+      else segs.push({ index: Number(m[2]) });
+    }
+  }
+  return segs;
+}
+
+// Elements at a path, each with its parent chain: [{value, parents: [...]}].
+function select(root, path) {
+  let cur = [{ value: root, parents: [] }];
+  for (const seg of splitPath(path)) {
+    const next = [];
+    for (const { value, parents } of cur) {
+      if (seg.all) {
+        if (Array.isArray(value)) for (const v of value) next.push({ value: v, parents: [...parents, value] });
+        else if (value !== undefined && value !== null) next.push({ value, parents });
+      } else if (seg.index !== undefined) {
+        if (Array.isArray(value) && value[seg.index] !== undefined) next.push({ value: value[seg.index], parents });
+      } else if (isObject(value) && value[seg.key] !== undefined) {
+        // A step down into an object field keeps the object as the parent of what follows.
+        next.push({ value: value[seg.key], parents: [...parents, value] });
+      }
+    }
+    cur = next;
+  }
+  return cur;
+}
+
+function getAt(root, path) {
+  const hit = select(root, path);
+  if (!hit.length) return undefined;
+  return splitPath(path).some((s) => s.all) ? hit.map((h) => h.value) : hit[0].value;
+}
+
+function setAt(obj, path, value) {
+  const keys = String(path).split(".");
+  let o = obj;
+  for (let i = 0; i < keys.length - 1; i++) {
+    if (!isObject(o[keys[i]])) o[keys[i]] = {};
+    o = o[keys[i]];
+  }
+  o[keys.at(-1)] = value;
+}
+
+// ---------- adapter ----------
+
+function fieldValue(spec, el, root) {
+  if (typeof spec === "string") {
+    if (spec.startsWith("$.")) return getAt(root, spec.slice(2));
+    if (spec === "$") return root;
+    if (spec.startsWith("^.")) {
+      const parent = el.parents.findLast((p) => isObject(p));
+      return parent === undefined ? undefined : getAt(parent, spec.slice(2));
+    }
+    if (spec === "" || spec === ".") return el.value;
+    return isObject(el.value) || Array.isArray(el.value) ? getAt(el.value, spec) : undefined;
+  }
+  if (!isObject(spec)) return undefined;
+  if ("const" in spec) return deepCopy(spec.const);
+  if (spec.first) {
+    for (const s of spec.first) {
+      const v = fieldValue(s, el, root);
+      if (v !== undefined && v !== null && v !== "") return v;
+    }
+    return spec.default;
+  }
+  if (spec.split !== undefined) {
+    const v = fieldValue(spec.split, el, root);
+    return typeof v === "string" ? v.split(spec.sep ?? ",").map((x) => x.trim()).filter((x) => x !== "") : v;
+  }
+  if (spec.join !== undefined) {
+    const v = fieldValue(spec.join, el, root);
+    return Array.isArray(v) ? v.join(spec.sep ?? ", ") : v;
+  }
+  if (spec.headers !== undefined) {
+    const v = fieldValue(spec.headers, el, root);
+    return Array.isArray(v) ? Object.fromEntries(v.filter((h) => isObject(h) && typeof h.name === "string").map((h) => [h.name, h.value])) : v;
+  }
+  if (spec.path !== undefined) {
+    const v = fieldValue(spec.path, el, root);
+    return v === undefined ? spec.default : v;
+  }
+  return undefined;
+}
+
+function parseToolOutput(output) {
+  if (typeof output !== "string") return output;
+  const t = output.trim();
+  if (t.startsWith("{") || t.startsWith("[")) {
+    try {
+      return JSON.parse(t);
+    } catch {
+      /* text */
+    }
+  }
+  return { text: output };
+}
+
+function adaptResult(spec, output) {
+  const root = parseToolOutput(output);
+  const s = spec ?? {};
+  const wrap = s.wrap ?? "value";
+  const els = s.items === undefined || s.items === "" ? (Array.isArray(root) ? root.map((v) => ({ value: v, parents: [root] })) : root === null || root === undefined ? [] : [{ value: root, parents: [] }]) : select(root, s.items);
+  const out = [];
+  for (const el of els) {
+    const base = isObject(el.value) ? el.value : el.value === undefined || el.value === null ? {} : { [wrap]: el.value };
+    const json = s.passthrough === false ? {} : deepCopy(base);
+    for (const [name, fs] of Object.entries(s.fields ?? {})) {
+      const v = fieldValue(fs, el, root);
+      if (v !== undefined) setAt(json, name, deepCopy(v));
+    }
+    out.push(json);
+  }
+  if (!out.length && s.empty === "one") out.push({});
+  return out;
+}
+
+// ---------- coercion ----------
+
+function coerceArgs(coerce, args) {
+  if (!isObject(args)) return args;
+  const out = {};
+  for (const [k, v] of Object.entries(args)) {
+    if (v === undefined) continue;
+    const want = coerce?.[k];
+    out[k] = want ? coerceValue(want, v) : v;
+  }
+  return out;
+}
+
+function coerceValue(want, v) {
+  switch (want) {
+    case "string[]":
+      if (Array.isArray(v)) return v.map((x) => String(x));
+      if (typeof v === "string") return v.split(",").map((x) => x.trim()).filter((x) => x !== "");
+      return v === null ? [] : [String(v)];
+    case "integer":
+    case "number": {
+      if (typeof v === "number") return want === "integer" ? Math.trunc(v) : v;
+      const n = Number(v);
+      if (typeof v === "string" && v.trim() !== "" && Number.isFinite(n)) return want === "integer" ? Math.trunc(n) : n;
+      return v;
+    }
+    case "boolean":
+      if (v === "true") return true;
+      if (v === "false") return false;
+      return v;
+    case "string":
+      return v === null || typeof v === "object" ? JSON.stringify(v) : String(v);
+    case "json":
+      if (typeof v === "string") {
+        try {
+          return JSON.parse(v);
+        } catch {
+          return v;
+        }
+      }
+      return v;
+    default:
+      return v;
+  }
+}
+
+// ---------- poll cursor ----------
+
+function comparable(v) {
+  if (typeof v === "number") return v;
+  if (typeof v === "string" && /^-?\d+(\.\d+)?$/.test(v.trim())) return Number(v);
+  if (typeof v === "string") {
+    const t = Date.parse(v);
+    if (Number.isFinite(t)) return t;
+  }
+  return v;
+}
+const cmp = (a, b) => {
+  const x = comparable(a);
+  const y = comparable(b);
+  if (typeof x === "number" && typeof y === "number") return x - y;
+  return String(x) < String(y) ? -1 : String(x) > String(y) ? 1 : 0;
+};
+
+function applyCursorArg(cursorSpec, args, cursor) {
+  if (!cursorSpec?.arg || !cursor || cursor.value === undefined) return args;
+  const ms = comparable(cursor.value);
+  const values = { value: String(cursor.value), seconds: typeof ms === "number" ? String(Math.floor(ms / 1000)) : String(cursor.value), iso: typeof ms === "number" ? new Date(ms).toISOString() : String(cursor.value) };
+  const piece = String(cursorSpec.template ?? "{value}").replace(/\{(value|seconds|iso)\}/g, (_, k) => values[k]);
+  const prev = args[cursorSpec.arg];
+  return { ...args, [cursorSpec.arg]: prev === undefined || prev === "" ? piece : `${prev}${cursorSpec.joiner ?? " "}${piece}` };
+}
+
+// -> {items: new items, cursor: next cursor}
+function advanceCursor(cursorSpec, items, cursor) {
+  const field = cursorSpec.field;
+  const idOf = (j) => (cursorSpec.idField ? getAt(j, cursorSpec.idField) : undefined);
+  const fresh = items.filter((j) => {
+    if (!cursor || cursor.value === undefined) return true;
+    const v = getAt(j, field);
+    if (v === undefined) return false;
+    const c = cmp(v, cursor.value);
+    if (c > 0) return true;
+    if (c < 0) return false;
+    const id = idOf(j);
+    return id !== undefined && !(cursor.ids ?? []).includes(String(id));
+  });
+  let max = cursor?.value;
+  for (const j of items) {
+    const v = getAt(j, field);
+    if (v !== undefined && (max === undefined || cmp(v, max) > 0)) max = v;
+  }
+  const next = { value: max };
+  if (cursorSpec.idField && max !== undefined) {
+    const ids = items.filter((j) => getAt(j, field) !== undefined && cmp(getAt(j, field), max) === 0).map((j) => String(idOf(j)));
+    const carried = cursor && cursor.value !== undefined && cmp(cursor.value, max) === 0 ? cursor.ids ?? [] : [];
+    next.ids = [...new Set([...carried, ...ids])].sort();
+  }
+  return { items: fresh, cursor: max === undefined ? cursor ?? null : next };
+}
+
+return { getAt, parseToolOutput, adaptResult, coerceArgs, applyCursorArg, advanceCursor };
+})();
+
 // ---- src/nodes2.mjs ----
 const __m_nodes2_mjs = (() => {
 const { NodeError, UnsupportedNode, deepCopy, getPath, setPath, unsetPath, isEqual, isObject } = __m_util_mjs;
 const { hashHex, hmacBytes, digestBytes, bytesToBase64, toHex } = __m_hash_mjs;
 const { tryToParseDateTime } = __m_extensions_mjs;
+const { adaptResult, coerceArgs, applyCursorArg, advanceCursor, getAt } = __m_adapt_mjs;
+const { resolveParameter, compileCode } = __m_expression_mjs;
+const { createLookup } = __m_proxy_mjs;
 // Node implementations, group 2 (Sort, Remove Duplicates, Summarize, Date & Time, Crypto,
 // Respond to Webhook, Item Lists, Html template/table, Execution Data) and the steps that
 // become host requests (HTTP Request, connector tools, model and agent steps).
@@ -3253,18 +3530,41 @@ const httpRequest = {
   },
 };
 
-// Connector tool step: step.tool = {connector, name, args, effect}. Args are evaluated per item.
+// Connector tool step: step.tool = {connector, name, args, effect, coerce?, result?}. Args are
+// evaluated per item (n8n expressions stay expressions in the definition), coerced to the
+// tool's input types, and the tool's output becomes n8n-shaped items through the declarative
+// result adapter (adapt.mjs). Without an adapter, a list becomes one item per element.
 const toolStep = {
   versions: () => true,
   async execute(exec) {
     const t = exec.step.tool;
     if (!t?.connector || !t?.name) throw unsupported(exec, "A tool step without tool.connector and tool.name");
     const items = exec.getInputData();
-    const reqs = items.map((_, i) => ({ kind: "tool", itemIndex: i, connector: t.connector, tool: t.name, args: exec.evaluate(t.args ?? {}, i), effect: t.effect }));
+    const reqs = items.map((_, i) => ({ kind: "tool", itemIndex: i, connector: t.connector, tool: t.name, args: toolArgs(exec, t, i), effect: t.effect }));
     const results = await exec.request(reqs);
-    return [toItems(exec, results, items, "tool")];
+    if (!t.result) return [toItems(exec, results, items, "tool")];
+    return [adaptedItems(exec, results, t.result, "tool")];
   },
 };
+
+function toolArgs(exec, t, i, locals) {
+  const raw = locals ? resolveParameter(t.args ?? {}, () => exec.scope(i, { locals })) : exec.evaluate(t.args ?? {}, i);
+  return coerceArgs(t.coerce, raw);
+}
+
+function adaptedItems(exec, results, spec, what) {
+  const out = [];
+  results.forEach((r, i) => {
+    if (!r.ok) {
+      const e = err(exec, r.error?.message ?? `${what} call failed`, { itemIndex: i });
+      if (!exec.continueOnFail()) throw e;
+      out.push({ json: { error: e.message }, pairedItem: { item: i } });
+      return;
+    }
+    for (const json of adaptResult(spec, r.value)) out.push({ json, pairedItem: { item: i } });
+  });
+  return out;
+}
 
 function toItems(exec, results, items, what, wrapKey) {
   const out = [];
@@ -3282,6 +3582,67 @@ function toItems(exec, results, items, what, wrapKey) {
   });
   return out;
 }
+
+// ---------- request templates (app REST APIs without a connector tool) ----------
+// step.http = {method, url, query?, headers?, body?, contentType?, result?}: one request per
+// item, values evaluated like n8n parameters. The credential is step.auth = {credentialType,
+// secret, placement?}: the host attaches it (placement "header", the default) or replaces the
+// literal `{{secret}}` in the URL with it (placement "url", e.g. Telegram's /bot<token>/).
+// The URL keeps the placeholder literal, so the runner never sees the value. A 4xx/5xx
+// fails the step (continue-on-fail gives an error item); a JSON body is parsed.
+
+function templateRequest(exec, h, i, locals) {
+  const ev = (v) => (locals ? resolveParameter(v, () => exec.scope(i, { locals })) : exec.evaluate(v, i));
+  const url = ev(h.url);
+  if (typeof url !== "string" || !/^https?:\/\//.test(url)) throw err(exec, `Invalid URL: ${url}`, { itemIndex: i });
+  const req = { kind: "http", itemIndex: i, method: String(ev(h.method ?? "GET")).toUpperCase(), url, headers: coerceArgs(null, ev(h.headers ?? {})), query: coerceArgs(null, ev(h.query ?? {})) };
+  if (h.body !== undefined) {
+    req.body = isObject(h.body) ? coerceArgs(h.coerce, ev(h.body)) : ev(h.body);
+    req.contentType = h.contentType ?? "json";
+  }
+  const auth = exec.step.auth;
+  if (auth?.secret) req.auth = { credentialType: auth.credentialType, secret: auth.secret, ...(auth.placement ? { placement: auth.placement } : {}) };
+  return req;
+}
+
+function templateValue(res) {
+  const v = res.value ?? {};
+  const status = Number(v.status ?? v.statusCode ?? 200);
+  let body = v.body;
+  if (typeof body === "string") {
+    const t = body.trim();
+    if (t.startsWith("{") || t.startsWith("[")) {
+      try {
+        body = JSON.parse(t);
+      } catch {
+        /* keep text */
+      }
+    }
+  }
+  return { status, body };
+}
+
+const httpTemplateStep = {
+  versions: () => true,
+  async execute(exec) {
+    const h = exec.step.http;
+    const items = exec.getInputData();
+    const reqs = items.map((_, i) => templateRequest(exec, h, i));
+    const results = await exec.request(reqs);
+    const out = [];
+    results.forEach((r, i) => {
+      const { status, body } = r.ok ? templateValue(r) : { status: 0 };
+      if (!r.ok || status >= 400) {
+        const message = r.ok ? `${status} - ${typeof body === "string" ? body : JSON.stringify(body)}` : r.error?.message ?? "request failed";
+        if (!exec.continueOnFail()) throw err(exec, message, { itemIndex: i, httpCode: r.ok ? String(status) : undefined });
+        out.push({ json: { error: message }, pairedItem: { item: i } });
+        return;
+      }
+      for (const json of adaptResult(h.result, body ?? {})) out.push({ json, pairedItem: { item: i } });
+    });
+    return [out];
+  },
+};
 
 // ---------- model and agent steps ----------
 // A converter may give the step an explicit `model` / `agent` block. Without one, the
@@ -3344,17 +3705,46 @@ function agentTools(exec) {
   return subnodesOf(exec, "ai_tool").map(({ name, step }) => {
     const p = step.params ?? {};
     const tool = { name: toolName(name), node: name, n8nType: step.n8n.type, description: p.toolDescription ?? p.description ?? "" };
-    if (step.tool?.connector) Object.assign(tool, { connector: step.tool.connector, tool: step.tool.name, effect: step.tool.effect ?? "write" });
-    else if (step.n8n.type === LC + "toolCode") Object.assign(tool, { kind: "code", language: p.language ?? "javaScript", code: p.jsCode ?? p.code, effect: "none" });
+    if (step.tool?.connector) Object.assign(tool, { kind: "connector", connector: step.tool.connector, tool: step.tool.name, effect: step.tool.effect ?? "write" });
+    else if (step.n8n.type === LC + "toolCode") Object.assign(tool, { kind: "code", effect: "none" });
     else if (step.n8n.type === LC + "toolHttpRequest" || step.n8n.type === BASE + "httpRequestTool") Object.assign(tool, { kind: "http", method: p.method ?? "GET", url: typeof p.url === "string" && !p.url.startsWith("=") ? p.url : undefined, effect: (p.method ?? "GET") === "GET" ? "read" : "write" });
-    else Object.assign(tool, { kind: "n8n", params: p, effect: "write" });
+    else Object.assign(tool, { kind: "n8n", effect: "write" });
     return tool;
   });
 }
 
-// Model step: step.model = {prompt, system?, messages?, outputSchema?, outputKey?, model?}.
+// Shapes a model result as the n8n node does (explicit blocks):
+//   outputTemplate: JSON in which the string "$output" is replaced by the result and
+//     "$output.<path>" by a part of it (OpenAI's {index, message: {role, content: "$output"}},
+//     Sentiment Analysis's {sentimentAnalysis: {category: "$output.sentiment"}});
+//     outputKey: {[key]: result}.
+//   trim: strings are trimmed first (chainLlm).
+//   passInput: the shaped result is merged into the input item's json (Sentiment Analysis).
+//   route: {mode: "flags" | "value", field?, outputs: [names]}: the step has one output per
+//     name; "flags" sends the input item to every output whose name is true in the result
+//     (Text Classifier), "value" to the output named by result[field] (Sentiment Analysis).
+function shapeModelValue(m, v) {
+  if (m.trim && typeof v === "string") v = v.trim();
+  if (m.outputTemplate !== undefined) return fillTemplate(m.outputTemplate, v);
+  return { [m.outputKey ?? (m.outputSchema ? "output" : "text")]: v };
+}
+function fillTemplate(t, v) {
+  if (t === "$output") return deepCopy(v);
+  if (typeof t === "string" && t.startsWith("$output.")) return deepCopy(getAt(v, t.slice(8)));
+  if (Array.isArray(t)) return t.map((x) => fillTemplate(x, v));
+  if (isObject(t)) return Object.fromEntries(Object.entries(t).map(([k, x]) => [k, fillTemplate(x, v)]));
+  return t;
+}
+
+function modelOutputs(exec) {
+  const r = exec.step.model?.route;
+  return r ? r.outputs.length : 1;
+}
+
+// Model step: step.model = {prompt, system?, messages?, outputSchema?, outputKey?, ...}.
 const modelStep = {
   versions: () => true,
+  outputs: modelOutputs,
   async execute(exec) {
     const items = exec.getInputData();
     let m = exec.step.model;
@@ -3376,25 +3766,43 @@ const modelStep = {
         const rest = messages.filter((x) => x.role !== "system").map(({ role, content }) => ({ role, content }));
         if (rest.length) r.messages = rest;
       } else {
-        r.prompt = exec.evaluate(m.prompt ?? "", i);
+        if (m.prompt !== undefined) r.prompt = exec.evaluate(m.prompt, i);
         if (m.system !== undefined) r.system = exec.evaluate(m.system, i);
         if (m.messages) r.messages = exec.evaluate(m.messages, i);
       }
       if (m.outputSchema) r.outputSchema = m.outputSchema;
-      if (m.model) r.model = m.model;
+      if (derived && m.model) r.model = m.model;
       return r;
     });
     const results = await exec.request(reqs);
-    if (m.outputKey || !derived) return [toItems(exec, results, items, "model", m.outputKey ?? (m.outputSchema ? "output" : "text"))];
+    if (!derived) {
+      if (!m.route) {
+        if (m.outputTemplate === undefined && !m.passInput && !m.trim) return [toItems(exec, results, items, "model", m.outputKey ?? (m.outputSchema ? "output" : "text"))];
+        return [
+          results.map((r, i) => {
+            if (!r.ok) return failedItem(exec, r, i, "model");
+            const shaped = shapeModelValue(m, r.value);
+            return { json: m.passInput ? { ...items[i].json, ...shaped } : shaped, pairedItem: { item: i } };
+          }),
+        ];
+      }
+      const outs = m.route.outputs.map(() => []);
+      results.forEach((r, i) => {
+        if (!r.ok) return void outs[0].push(failedItem(exec, r, i, "model"));
+        const v = isObject(r.value) ? r.value : {};
+        const json = m.passInput ? { ...items[i].json, ...shapeModelValue(m, r.value) } : { ...items[i].json };
+        m.route.outputs.forEach((name, k) => {
+          const hit = m.route.mode === "value" ? String(v[m.route.field] ?? "").toLowerCase() === String(name).toLowerCase() : v[name] === true;
+          if (hit) outs[k].push({ json: deepCopy(json), pairedItem: { item: i } });
+        });
+      });
+      return outs;
+    }
     // chainLlm formatResponse: strings trimmed into {text}; arrays {data}; objects unwrapped.
     const unwrap = exec.typeVersion >= 1.6 || !!m.outputSchema;
     return [
       results.map((r, i) => {
-        if (!r.ok) {
-          const e = err(exec, r.error?.message ?? "model call failed", { itemIndex: i });
-          if (!exec.continueOnFail()) throw e;
-          return { json: { error: e.message }, pairedItem: { item: i } };
-        }
+        if (!r.ok) return failedItem(exec, r, i, "model");
         let v = r.value;
         if (m.outputSchema && v !== null && typeof v === "object" && !Array.isArray(v)) v = { output: v };
         const json = typeof v === "string" ? { text: v.trim() } : Array.isArray(v) ? { data: v } : v && typeof v === "object" ? (unwrap ? v : { text: JSON.stringify(v) }) : { response: { text: v } };
@@ -3404,7 +3812,114 @@ const modelStep = {
   },
 };
 
-// Agent step: step.agent = {prompt, system?, tools: [...], memoryKey?, outputSchema?}.
+function failedItem(exec, r, i, what) {
+  const e = err(exec, r.error?.message ?? `${what} call failed`, { itemIndex: i });
+  if (!exec.continueOnFail()) throw e;
+  return { json: { error: e.message }, pairedItem: { item: i } };
+}
+
+// ---------- agent steps and the tool-call protocol ----------
+//
+// An agent step runs as turns. Each turn is one `agent` request to the host:
+//   {kind: "agent", prompt, system, tools: [{name, description, inputSchema}], memory?:
+//    {key, window}, maxIterations, outputSchema?, turn, transcript: [{calls, results}]}
+// The host (the model, on Claude) answers either with the final output (any value), or with
+// an intent to call tools: {intent: "tool-calls", calls: [{name, args}]}. The runner executes
+// each call itself (executeAgentTool): it finds the tool in the step's own list, checks the
+// arguments against the tool's input schema, and runs it as an ordinary request (connector
+// tool, http) or in-process (code, sub-workflow), so containment, the effect ledger and the
+// result log apply to every tool call exactly as to a step. The results go into the next
+// turn's transcript. The host never executes a tool and never sees connector names, URLs or
+// code: it gets names, descriptions and schemas only. More than maxIterations turns with
+// tool calls fail the step as n8n's agent does. In step mode every turn and every tool call
+// is its own request id (Agent#run#item, .1, .2, ...), so a resume replays to the same point.
+// Memory (buffer window) is a key and a window size; the host keeps the conversation.
+
+const TOOL_INTENT = "tool-calls";
+const isToolIntent = (v) => isObject(v) && v.intent === TOOL_INTENT && Array.isArray(v.calls);
+
+function checkToolArgs(schema, args) {
+  if (!isObject(schema)) return null;
+  if (!isObject(args)) return "arguments must be an object";
+  const missing = (schema.required ?? []).filter((k) => args[k] === undefined);
+  if (missing.length) return `missing required argument${missing.length > 1 ? "s" : ""}: ${missing.join(", ")}`;
+  if (schema.additionalProperties === false && isObject(schema.properties)) {
+    const unknown = Object.keys(args).filter((k) => !(k in schema.properties));
+    if (unknown.length) return `unknown argument${unknown.length > 1 ? "s" : ""}: ${unknown.join(", ")}`;
+  }
+  return null;
+}
+
+const fromAiLocals = (args) => {
+  const f = (key, _description, _type, fallback) => (args[key] === undefined ? fallback : args[key]);
+  return { $fromAI: f, $fromAi: f, $fromai: f };
+};
+
+// Runs one tool call of an agent step. Returns {ok, value} | {ok: false, error} for the
+// transcript; throws only for what must stop the run (containment, suspend in step mode).
+async function executeAgentTool(exec, tools, call, itemIndex) {
+  const spec = tools.find((t) => t.name === call?.name);
+  if (!spec) return { ok: false, error: { message: `unknown tool "${call?.name}"` } };
+  const args = isObject(call.args) ? call.args : {};
+  const bad = checkToolArgs(spec.inputSchema, args);
+  if (bad) return { ok: false, error: { message: bad } };
+  const sub = spec.node ? exec.run.definition.steps[spec.node] : undefined;
+  const locals = { ...fromAiLocals(args), query: args.query ?? args.input ?? JSON.stringify(args) };
+  const kind = spec.kind ?? (spec.connector ? "connector" : undefined);
+  try {
+    if (kind === "connector") {
+      const t = sub?.tool ?? { connector: spec.connector, name: spec.tool, effect: spec.effect };
+      const toolArgsValue = sub?.tool ? toolArgs(exec, t, itemIndex, locals) : args;
+      const [r] = await exec.request([{ kind: "tool", itemIndex, connector: t.connector, tool: t.name, args: toolArgsValue, effect: t.effect }]);
+      if (!r.ok) return { ok: false, error: { message: r.error?.message ?? "tool call failed" } };
+      return { ok: true, value: t.result ? adaptResult(t.result, r.value) : r.value };
+    }
+    if (kind === "http") {
+      const h = sub?.http;
+      if (!h) return { ok: false, error: { message: `tool "${spec.name}" has no request template` } };
+      const subExec = Object.assign(Object.create(exec), { step: sub });
+      const req = templateRequest(subExec, { ...h, url: fillPlaceholders(h.url, args), body: fillPlaceholders(h.body, args), query: fillPlaceholders(h.query, args) }, itemIndex, locals);
+      const [r] = await exec.request([req]);
+      if (!r.ok) return { ok: false, error: { message: r.error?.message ?? "request failed" } };
+      const { status, body } = templateValue(r);
+      if (status >= 400) return { ok: false, error: { message: `${status} - ${typeof body === "string" ? body : JSON.stringify(body)}` } };
+      return { ok: true, value: h.result ? adaptResult(h.result, body) : body };
+    }
+    if (kind === "code") {
+      const p = sub?.params ?? {};
+      if ((p.language ?? "javaScript") !== "javaScript") return { ok: false, error: { message: "only JavaScript code tools run" } };
+      const code = p.jsCode ?? p.code ?? "";
+      const fn = compileCode(code);
+      const lookup = createLookup(exec, itemIndex, { locals: { ...locals, ...args }, lenientMissing: true });
+      const value = await fn.call({}, lookup.scope);
+      return { ok: true, value: value === undefined ? null : JSON.parse(JSON.stringify(value)) };
+    }
+    if (kind === "subflow") {
+      if (!sub?.subflow) return { ok: false, error: { message: `tool "${spec.name}" has no sub-workflow in the definition` } };
+      const input = isObject(sub.subflow.inputs) ? resolveParameter(sub.subflow.inputs, () => exec.scope(itemIndex, { locals })) : args;
+      const { runSubflow } = exec.run.api;
+      const res = await runSubflow(exec, sub.subflow, [{ json: isObject(input) ? input : { query: input } }], `${exec.name}#${exec.runIndex}#${itemIndex}/tool${(exec._toolCalls = (exec._toolCalls ?? 0) + 1)}`);
+      const outItems = (res.output[0] ?? []).map((it) => it.json);
+      return { ok: true, value: outItems.length === 1 ? outItems[0] : outItems };
+    }
+    return { ok: false, error: { message: `tool "${spec.name}" (${spec.n8nType ?? kind ?? "unknown kind"}) cannot run in the runtime` } };
+  } catch (e) {
+    if (e?.name === "Suspend" || e?.name === "ContainmentViolation" || e?.name === "BadInput") throw e;
+    return { ok: false, error: { message: e?.message ?? String(e) } };
+  }
+}
+
+// toolHttpRequest placeholders: {name} in the URL, query and body are the model's arguments.
+function fillPlaceholders(v, args) {
+  if (typeof v === "string") return v.replace(/\{([A-Za-z_][\w-]*)\}/g, (m, k) => (args[k] === undefined ? m : encodeURIComponent(String(args[k]))));
+  if (Array.isArray(v)) return v.map((x) => fillPlaceholders(x, args));
+  if (isObject(v)) return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, typeof x === "string" ? x.replace(/^\{([A-Za-z_][\w-]*)\}$/, (m, key) => (args[key] === undefined ? m : args[key])) : fillPlaceholders(x, args)]));
+  return v;
+}
+
+const hostToolSpec = (t) => ({ name: t.name, description: t.description ?? "", ...(t.inputSchema ? { inputSchema: t.inputSchema } : {}) });
+
+// Agent step: step.agent = {prompt, system?, tools: [...], memory?, maxIterations?, outputSchema?}.
 const agentStep = {
   versions: () => true,
   async execute(exec) {
@@ -3416,30 +3931,83 @@ const agentStep = {
       const [memory] = subnodesOf(exec, "ai_memory");
       a = { tools: agentTools(exec), outputSchema: exec.params.hasOutputParser ? outputSchemaOf(exec) : undefined, ...modelNameOf(exec), memory };
     } else if (a.prompt === undefined) throw unsupported(exec, "An agent step without agent.prompt");
-    const reqs = items.map((_, i) => {
-      const r = { kind: "agent", itemIndex: i, tools: a.tools ?? [] };
+    const tools = a.tools ?? [];
+    const out = [];
+    for (let i = 0; i < items.length; i++) {
+      const base = { kind: "agent", itemIndex: i, tools: tools.map(hostToolSpec) };
       if (derived) {
-        r.prompt = promptOf(exec, i, "text");
-        r.system = exec.param("options.systemMessage", i, "You are a helpful assistant");
+        base.prompt = promptOf(exec, i, "text");
+        base.system = exec.param("options.systemMessage", i, "You are a helpful assistant");
         if (a.memory) {
           const mp = a.memory.step.params ?? {};
-          r.memoryKey = mp.sessionIdType === "customKey" ? exec.evaluate(mp.sessionKey ?? "", i) : exec.evaluate("={{ $json.sessionId }}", i);
-          r.memoryWindow = mp.contextWindowLength ?? 5;
+          base.memory = { key: mp.sessionIdType === "customKey" ? exec.evaluate(mp.sessionKey ?? "", i) : exec.evaluate("={{ $json.sessionId }}", i), window: mp.contextWindowLength ?? 5 };
         }
-        const maxIterations = exec.param("options.maxIterations", i, 10);
-        if (maxIterations) r.maxIterations = maxIterations;
-        if (a.model) r.model = a.model;
+        base.maxIterations = exec.param("options.maxIterations", i, 10);
+        if (a.model) base.model = a.model;
       } else {
-        r.prompt = exec.evaluate(a.prompt, i);
-        if (a.system !== undefined) r.system = exec.evaluate(a.system, i);
-        if (a.memoryKey !== undefined) r.memoryKey = exec.evaluate(a.memoryKey, i);
-        if (a.maxIterations) r.maxIterations = a.maxIterations;
+        base.prompt = exec.evaluate(a.prompt, i);
+        if (a.system !== undefined) base.system = exec.evaluate(a.system, i);
+        if (a.memory) base.memory = { key: exec.evaluate(a.memory.key ?? "={{ $json.sessionId }}", i), window: a.memory.window ?? 5 };
+        else if (a.memoryKey !== undefined) base.memory = { key: exec.evaluate(a.memoryKey, i), window: 5 };
+        base.maxIterations = a.maxIterations ?? 10;
       }
-      if (a.outputSchema) r.outputSchema = a.outputSchema;
-      return r;
-    });
-    const results = await exec.request(reqs);
-    return [toItems(exec, results, items, "agent", a.outputKey ?? "output")];
+      if (a.outputSchema) base.outputSchema = a.outputSchema;
+      const transcript = [];
+      let final;
+      let failure;
+      for (let turn = 0; ; turn++) {
+        const [r] = await exec.request([{ ...base, turn, transcript: deepCopy(transcript) }]);
+        if (!r.ok) {
+          failure = r;
+          break;
+        }
+        if (!isToolIntent(r.value)) {
+          final = r.value;
+          break;
+        }
+        if (turn >= base.maxIterations) {
+          failure = { ok: false, error: { message: "Agent stopped due to max iterations." } };
+          break;
+        }
+        const results = [];
+        for (const call of r.value.calls) results.push({ name: call?.name, ...(await executeAgentTool(exec, tools, call, i)) });
+        transcript.push({ calls: deepCopy(r.value.calls), results });
+      }
+      if (failure) {
+        out.push(failedItem(exec, failure, i, "agent"));
+        continue;
+      }
+      out.push({ json: { [a.outputKey ?? "output"]: final }, pairedItem: { item: i } });
+    }
+    return [out];
+  },
+};
+
+// ---------- poll triggers ----------
+// A trigger step with `poll: {tool: {connector, name, args, coerce?}, result, cursor}`. When
+// the driver hands trigger items in, they are emitted as they are (the driver polled).
+// Otherwise the runner polls: it calls the tool with the cursor in its arguments, adapts the
+// output to n8n's item shape, keeps the items after the cursor and records the next cursor
+// (run result `cursors`). With no cursor yet, a production run emits nothing and seeds the
+// cursor (the first run never replays history); a manual run emits what it read.
+
+const pollTrigger = {
+  versions: () => true,
+  trigger: true,
+  async execute(exec, ed) {
+    const p = exec.step.poll;
+    if (ed.triggerProvided) return [(ed.data.main[0] ?? []).map((it) => ({ json: it.json, ...(it.binary ? { binary: it.binary } : {}) }))];
+    const run = exec.run;
+    const cursor = run.cursorsIn?.[exec.name] ?? null;
+    const t = p.tool;
+    const args = applyCursorArg(p.cursor, coerceArgs(t.coerce, exec.evaluate(t.args ?? {}, 0)), cursor);
+    const [r] = await exec.request([{ kind: "tool", itemIndex: 0, connector: t.connector, tool: t.name, args, effect: "read" }]);
+    if (!r.ok) throw err(exec, r.error?.message ?? "poll failed");
+    const all = adaptResult(p.result, r.value);
+    const { items, cursor: next } = advanceCursor(p.cursor ?? {}, all, cursor);
+    run.cursorsOut[exec.name] = next;
+    const emit = cursor || run.mode === "manual" ? items : [];
+    return [emit.map((json) => ({ json }))];
   },
 };
 
@@ -3447,11 +4015,13 @@ function requestImplFor(step) {
   if (step.kind === "tool") return toolStep;
   if (step.kind === "model") return modelStep;
   if (step.kind === "agent") return agentStep;
+  if (step.kind === "http" && isObject(step.http)) return httpTemplateStep;
+  if (step.kind === "trigger" && isObject(step.poll)) return pollTrigger;
   if (step.n8n?.type === BASE + "httpRequest" && httpRequest.versions(step.n8n?.typeVersion ?? 1)) return httpRequest;
   return null;
 }
 
-return { GROUP2, buildHttpRequest, canDeriveRequest, requestImplFor };
+return { GROUP2, buildHttpRequest, canDeriveRequest, executeAgentTool, requestImplFor };
 })();
 
 // ---- src/nodes.mjs ----
@@ -5037,6 +5607,8 @@ function createRun(definition, opts = {}) {
     response: undefined,
     nodeContext: {},
     pinData: normalizePinData(opts.pinData),
+    cursorsIn: opts.cursors ?? null, // poll cursors by trigger step name (adapt.mjs)
+    cursorsOut: {},
     lastNodeExecuted: undefined,
     idPrefix: "",
     depth: 0,
@@ -5134,7 +5706,9 @@ function checkContainment(definition, req) {
 function requestEffect(req) {
   if (req.kind === "http") return WRITE_METHODS.has(String(req.method || "GET").toUpperCase()) ? "write" : "read";
   if (req.kind === "tool") return req.effect === "read" ? "read" : "write";
-  if (req.kind === "agent") return (req.tools || []).some((t) => t.effect !== "read") ? "write" : "none";
+  // An agent turn has no effect of its own: each tool call it asks for is a separate tool or
+  // http request with its own effect entry (nodes2.mjs, executeAgentTool).
+  if (req.kind === "agent") return "none";
   return "none";
 }
 
@@ -5653,8 +6227,18 @@ function preflight(definition, { availableTools, sourceText, pinned } = {}) {
       if (!allowed) err(`$.steps.${name}.tool`, `tool ${s.tool?.connector}.${s.tool?.name} is not in allow.tools`, { step: name });
     }
     if (s.kind === "code" && /python/i.test(s.params?.language ?? "")) err(`$.steps.${name}`, "Python Code nodes need translation (review)", { step: name });
+    if (s.kind === "tool" && s.tool?.argsCheck?.missing?.length) err(`$.steps.${name}.tool`, `tool ${s.tool.connector}.${s.tool.name} lacks required arguments: ${s.tool.argsCheck.missing.join(", ")}`, { step: name });
+    for (const t of s.agent?.tools ?? []) {
+      const sub = t.node ? steps[t.node] : undefined;
+      const tool = sub?.tool ?? (t.connector ? { connector: t.connector, name: t.tool } : undefined);
+      if (tool && !(definition.allow?.tools ?? []).some((a) => a.connector === tool.connector && a.tool === tool.name)) err(`$.steps.${name}.agent`, `agent tool ${t.name} uses ${tool.connector}.${tool.name}, which is not in allow.tools`, { step: name });
+    }
+    if (s.needsTranslation && !s.override) warn(`$.steps.${name}`, `needs translation (${s.needsTranslation.kind}): ${s.needsTranslation.reason}`, { step: name });
     if (s.review) warn(`$.steps.${name}`, `flagged for review${s.reviewReasons?.length ? ": " + s.reviewReasons.join("; ") : ""}`, { step: name });
   }
+  (definition.allow?.http ?? []).forEach((a, i) => {
+    if (a.host === "*") err(`$.allow.http[${i}]`, `a request with a URL built at run time is allowed to any host (${a.method} *); narrow it to a host in overrides.json`);
+  });
   if (!Object.values(steps).some((s) => isTriggerStep(s) && s.settings?.disabled !== true)) warn("$.steps", "no trigger step; runs start at the first step without inputs");
   if (availableTools) {
     const have = new Set(availableTools.map(toolKey));
@@ -5732,7 +6316,7 @@ async function runSubflow(parentExec, sub, items, prefix) {
   const def = sub.self ? parent.rootDefinition : sub.definition;
   if (!def?.steps) throw new NodeError("Sub-workflow definition is missing", { node: parentExec.name });
   const child = createRun(def, { clock: { startedAt: parent.clock.startedAt }, runId: parent.runId, mode: parent.mode });
-  for (const k of ["clock", "resultLog", "effects", "effectIds", "host", "stepMode", "batchSize", "virtualTime", "sleepThresholdMs", "logs", "console", "randomFor", "executionInfo"]) child[k] = parent[k];
+  for (const k of ["clock", "resultLog", "effects", "effectIds", "host", "stepMode", "batchSize", "virtualTime", "sleepThresholdMs", "logs", "console", "randomFor", "executionInfo", "cursorsIn", "cursorsOut"]) child[k] = parent[k];
   child.idPrefix = `${parent.idPrefix}${prefix}/`;
   child.depth = parent.depth + 1;
   child.api = parent.api;
@@ -5768,6 +6352,7 @@ function finish(run, status, extra = {}) {
     resultLog: deepCopy(run.resultLog),
     ...(run.response !== undefined ? { response: run.response } : {}),
     ...(run.logs.length ? { logs: run.logs } : {}),
+    ...(Object.keys(run.cursorsOut).length ? { cursors: deepCopy(run.cursorsOut) } : {}),
     ...extra,
   };
 }
@@ -5808,19 +6393,20 @@ async function run(definition, opts = {}) {
 // ---------- step mode ----------
 
 async function step(state) {
-  const r = createRun(state.definition, { clock: { startedAt: state.startedAt }, runId: state.runId, resultLog: state.resultLog, stepMode: true, batchSize: state.batchSize, mode: state.mode, virtualTime: state.virtualTime, pinData: state.pinData ?? undefined });
+  const r = createRun(state.definition, { clock: { startedAt: state.startedAt }, runId: state.runId, resultLog: state.resultLog, stepMode: true, batchSize: state.batchSize, mode: state.mode, virtualTime: state.virtualTime, pinData: state.pinData ?? undefined, cursors: state.cursors ?? undefined });
   const res = await execute(r, state.trigger);
   state.status = res.status;
   state.outstanding = res.status === "needs" ? res.requests.map((q) => q.id) : [];
   state.requests = res.status === "needs" ? res.requests : [];
   state.effects = res.effects;
-  if (res.status !== "needs") state.result = { runData: res.runData, output: res.output, lastNodeExecuted: res.lastNodeExecuted, ...(res.response !== undefined ? { response: res.response } : {}), ...(res.error ? { error: res.error } : {}), endedAt: res.endedAt };
+  if (res.status !== "needs") state.result = { runData: res.runData, output: res.output, lastNodeExecuted: res.lastNodeExecuted, ...(res.cursors ? { cursors: res.cursors } : {}), ...(res.response !== undefined ? { response: res.response } : {}), ...(res.error ? { error: res.error } : {}), endedAt: res.endedAt };
   const out = { status: res.status, runId: state.runId, state };
   if (res.status === "needs") out.requests = res.requests;
   else {
     out.output = res.output;
     out.runData = res.runData;
     out.effects = res.effects;
+    if (res.cursors) out.cursors = res.cursors;
     if (res.response !== undefined) out.response = res.response;
     if (res.error) out.error = res.error;
   }
@@ -5842,6 +6428,7 @@ async function start(definition, opts = {}) {
     virtualTime: opts.virtualTime ?? false,
     trigger: opts.trigger ?? null,
     ...(opts.pinData ? { pinData: opts.pinData } : {}),
+    ...(opts.cursors ? { cursors: opts.cursors } : {}),
     definitionHash: definitionHash(definition),
     definition,
     resultLog: {},
@@ -6116,6 +6703,11 @@ const unwrapWorkflow = __m_convert_mjs.unwrapWorkflow;
 const urlTarget = __m_convert_mjs.urlTarget;
 const checkContainment = __m_engine_mjs.checkContainment;
 const requestEffect = __m_engine_mjs.requestEffect;
+const adaptResult = __m_adapt_mjs.adaptResult;
+const coerceArgs = __m_adapt_mjs.coerceArgs;
+const applyCursorArg = __m_adapt_mjs.applyCursorArg;
+const advanceCursor = __m_adapt_mjs.advanceCursor;
+const executeAgentTool = __m_nodes2_mjs.executeAgentTool;
 const evaluateExpression = __m_expression_mjs.evaluateExpression;
 const isExpression = __m_expression_mjs.isExpression;
 const RunnerError = __m_util_mjs.RunnerError;
@@ -6125,4 +6717,4 @@ const UnsupportedNode = __m_util_mjs.UnsupportedNode;
 const ContainmentViolation = __m_util_mjs.ContainmentViolation;
 const NodeError = __m_util_mjs.NodeError;
 const BadInput = __m_util_mjs.BadInput;
-export { run, start, resume, preflight, validateDefinition, definitionHash, resolveTrigger, expressionSupport, RUNTIME_VERSION, DEFINITION_SCHEMA_VERSION, SUPPORTED_TYPES, fromN8n, unwrapWorkflow, urlTarget, checkContainment, requestEffect, evaluateExpression, isExpression, RunnerError, ExpressionError, UnsupportedExpression, UnsupportedNode, ContainmentViolation, NodeError, BadInput };
+export { run, start, resume, preflight, validateDefinition, definitionHash, resolveTrigger, expressionSupport, RUNTIME_VERSION, DEFINITION_SCHEMA_VERSION, SUPPORTED_TYPES, fromN8n, unwrapWorkflow, urlTarget, checkContainment, requestEffect, adaptResult, coerceArgs, applyCursorArg, advanceCursor, executeAgentTool, evaluateExpression, isExpression, RunnerError, ExpressionError, UnsupportedExpression, UnsupportedNode, ContainmentViolation, NodeError, BadInput };
