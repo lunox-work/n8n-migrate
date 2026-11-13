@@ -15,7 +15,7 @@ import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { up, exec, copyIn, copyOut, n8nCli, WORK, IMAGE, down } from "./container.mjs";
+import { up, exec, copyIn, copyOut, n8nCli, docker, WORK, IMAGE, NAME, down } from "./container.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "../..");
@@ -117,7 +117,7 @@ function main() {
   if (new Set(names).size !== names.length) throw new Error("duplicate workflow names in the inputs; the diff matches by name");
 
   // Import and export inside the container.
-  exec(["rm", "-rf", "/tmp/xc"]);
+  docker(["exec", "-u", "root", NAME, "rm", "-rf", "/tmp/xc"]); // docker cp leaves root-owned files
   exec(["mkdir", "-p", "/tmp/xc"]);
   copyIn(imp, "/tmp/xc/import");
   const steps = {};
