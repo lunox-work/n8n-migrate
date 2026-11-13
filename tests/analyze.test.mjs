@@ -260,7 +260,8 @@ test("http: host and path read from literal URLs only", () => {
   assert.deepEqual(httpTarget("https://api.openai.com/v1/chat/completions?x=1"), { host: "api.openai.com", path: "/v1/chat/completions" });
   assert.deepEqual(httpTarget("=https://wp.example.com/wp-json/wp/v2/posts/{{ $json.id }}"), { host: "wp.example.com", path: "/wp-json/wp/v2/posts/{x}" });
   assert.deepEqual(httpTarget("https://API.Example.com:8443"), { host: "api.example.com", path: "/" });
-  assert.equal(httpTarget("={{ $json.base_url }}/api/review"), null);
+  assert.deepEqual(httpTarget("={{ $json.base_url }}/oauth2/token"), { host: null, path: "/oauth2/token" });
+  assert.equal(httpTarget("={{ $json.api }}"), null);
   assert.equal(httpTarget("https://{{ $json.host }}/x"), null);
   assert.equal(httpTarget(42), null);
 });

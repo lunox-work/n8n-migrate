@@ -69,7 +69,7 @@
       "outcome": {
         "kind": "subscription",
         "target": "cloud-task",
-        "reason": "an event is pushed in with no reply expected: a forwarder posts it to the cloud task's API trigger",
+        "reason": "an event is pushed in with no reply expected: a forwarder posts it to the cloud task's API trigger (at most 30 events an hour)",
         "alsoTargets": []
       },
       "calledBy": [],

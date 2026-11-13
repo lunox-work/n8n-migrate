@@ -34,7 +34,7 @@
     },
     "blockers": {},
     "notAnAutomation": 0,
-    "questions": 1,
+    "questions": 0,
     "unmappedTypes": [],
     "cloudScheduledRunsPerHour": 0,
     "cloudScheduledRunsPerHourLimit": 100,
@@ -135,20 +135,7 @@
           }
         }
       ],
-      "questions": [
-        {
-          "id": "schedule-local-script/timezone",
-          "text": "Which timezone should the schedule of \"Sync orders to warehouse\" use? The export has no timezone setting, so n8n uses the instance default (America/New_York unless GENERIC_TIMEZONE is set).",
-          "nodes": [],
-          "affects": "timezone",
-          "answerType": "text",
-          "options": {
-            "<IANA timezone>": "schedule.timezone"
-          },
-          "assumed": "America/New_York",
-          "answer": null
-        }
-      ],
+      "questions": [],
       "blockers": [],
       "credentials": [
         {

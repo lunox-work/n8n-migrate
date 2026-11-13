@@ -3,7 +3,7 @@
     "Hand-maintained classification of n8n node types. scripts/gen-nodes.mjs merges it into nodes.json; re-run it after editing.",
     "nodes.<type>: role (trigger|step|subnode|annotation|n8n-internal); wakeup for triggers; kind for steps and sub-nodes; levers; connector (for kind connector); secrets; effect (read|write|none); reason (for kind blocked); flags; notes; operationParam; operations.",
     "Any of role, wakeup, secrets, effect may be a rule object: {param: name | [names], values: {literal: result}, other: result, default: result}. default = parameter absent (n8n default applies); other = a literal not listed; an expression or an unlisted literal without other is undetermined.",
-    "flags: rule objects whose result is a question or warning name for the analyzer, e.g. public-chat-page.",
+    "flags: rule objects (or plain names) whose result is a question or warning name for the analyzer, e.g. public-chat-page, chat-app.",
     "A wakeup of poll, chat, form or relay also needs the lever of the same name.",
     "operations keys: resource:operation, or operation when the node has no resource parameter; resource:* and * apply to several. operationParam names the parameter that plays the operation role (default operation).",
     "effectByOperation: effect of an operation by its exact name, used when neither the operation nor the node states one. Names that can go either way (executeQuery, execute, run, generate, message, query) are left out on purpose.",
@@ -972,7 +972,7 @@
         "message:sendAndWait": {"effect":"write","kind":"blocked","reason":"sends, then waits for a human reply through an n8n webhook (out of scope v1)"}
       }
     },
-    "n8n-nodes-base.telegramTrigger": {"levers":["relay"],"role":"trigger","secrets":true,"wakeup":"relay"},
+    "n8n-nodes-base.telegramTrigger": {"flags":["chat-app"],"levers":["relay"],"notes":"people message a bot and usually wait for its reply","role":"trigger","secrets":true,"wakeup":"relay"},
     "n8n-nodes-base.theHive": {"kind":"http","levers":["http"],"role":"step","secrets":true},
     "n8n-nodes-base.theHiveProject": {"kind":"http","levers":["http"],"role":"step","secrets":true},
     "n8n-nodes-base.theHiveProjectTrigger": {"levers":["relay"],"role":"trigger","secrets":false,"wakeup":"relay"},
@@ -987,7 +987,7 @@
     "n8n-nodes-base.trelloTrigger": {"levers":["relay"],"role":"trigger","secrets":true,"wakeup":"relay"},
     "n8n-nodes-base.twake": {"kind":"http","levers":["http"],"role":"step","secrets":true},
     "n8n-nodes-base.twilio": {"kind":"http","levers":["http"],"role":"step","secrets":true},
-    "n8n-nodes-base.twilioTrigger": {"levers":["relay"],"role":"trigger","secrets":true,"wakeup":"relay"},
+    "n8n-nodes-base.twilioTrigger": {"flags":["chat-app"],"levers":["relay"],"notes":"people message a bot and usually wait for its reply","role":"trigger","secrets":true,"wakeup":"relay"},
     "n8n-nodes-base.twist": {"kind":"http","levers":["http"],"role":"step","secrets":true},
     "n8n-nodes-base.twitter": {"kind":"http","levers":["http"],"role":"step","secrets":true},
     "n8n-nodes-base.typeformTrigger": {"levers":["relay"],"role":"trigger","secrets":true,"wakeup":"relay"},
@@ -1016,7 +1016,7 @@
         "message:sendAndWait": {"effect":"write","kind":"blocked","reason":"sends, then waits for a human reply through an n8n webhook (out of scope v1)"}
       }
     },
-    "n8n-nodes-base.whatsAppTrigger": {"levers":["relay"],"role":"trigger","secrets":true,"wakeup":"relay"},
+    "n8n-nodes-base.whatsAppTrigger": {"flags":["chat-app"],"levers":["relay"],"notes":"people message a bot and usually wait for its reply","role":"trigger","secrets":true,"wakeup":"relay"},
     "n8n-nodes-base.wise": {"kind":"http","levers":["http"],"role":"step","secrets":true},
     "n8n-nodes-base.wiseTrigger": {"levers":["relay"],"role":"trigger","secrets":true,"wakeup":"relay"},
     "n8n-nodes-base.wooCommerce": {"kind":"http","levers":["http"],"role":"step","secrets":true},

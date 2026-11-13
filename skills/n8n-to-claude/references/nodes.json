@@ -45884,7 +45884,9 @@
       "displayName": "Telegram Trigger",
       "group": ["trigger"],
       "mapping": {
+        "flags": ["chat-app"],
         "levers": ["relay"],
+        "notes": "people message a bot and usually wait for its reply",
         "role": "trigger",
         "secrets": true,
         "source": "hand",
@@ -47667,7 +47669,9 @@
       "displayName": "Twilio Trigger",
       "group": ["trigger"],
       "mapping": {
+        "flags": ["chat-app"],
         "levers": ["relay"],
+        "notes": "people message a bot and usually wait for its reply",
         "role": "trigger",
         "secrets": true,
         "source": "hand",
@@ -49718,7 +49722,9 @@
       "displayName": "WhatsApp Trigger",
       "group": ["trigger"],
       "mapping": {
+        "flags": ["chat-app"],
         "levers": ["relay"],
+        "notes": "people message a bot and usually wait for its reply",
         "role": "trigger",
         "secrets": true,
         "source": "hand",

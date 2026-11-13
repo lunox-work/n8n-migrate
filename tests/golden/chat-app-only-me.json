@@ -1,0 +1,264 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 1,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "subscription:skill": 1
+    },
+    "wakeups": {
+      "relay": 1
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 0,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 1,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "chat-app-only-me",
+      "name": "My reading-list bot",
+      "file": "chat-app-only-me.json",
+      "sourceHash": "2356ef3986b9a2a40134bca52bac770a00d8cd8204eb3baa1b2ed9d3e9d3296d",
+      "wakeup": {
+        "kind": "relay",
+        "nodes": [
+          "Telegram Trigger"
+        ],
+        "all": [
+          "relay"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "skill",
+        "reason": "only you message this bot: a skill in Claude replaces it",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "http",
+          "name": "outbound http",
+          "nodes": [
+            "Refresh token",
+            "Reply"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:arbitrary-hosts"
+          }
+        },
+        {
+          "kind": "secret",
+          "name": "Reading bot",
+          "nodes": [
+            "Telegram Trigger"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "state",
+          "name": "data-table:reading_list",
+          "nodes": [
+            "Save link"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:state-store",
+            "localTask": "needs:bundled-server",
+            "artifact": "needs:artifact-db"
+          }
+        },
+        {
+          "kind": "relay",
+          "name": "telegramTrigger",
+          "nodes": [
+            "Telegram Trigger"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:api-trigger-forwarder",
+            "localTask": "no",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Telegram Trigger",
+            "Save link"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "chat-app-only-me/chat-app-users/Telegram Trigger",
+          "text": "Who messages \"Telegram Trigger\" and waits for the replies: outsiders (customers, other people), only you, or nobody waits? A cloud task's start-up time is not measured yet and its API trigger takes at most 30 events an hour.",
+          "nodes": [
+            "Telegram Trigger"
+          ],
+          "affects": "outcome",
+          "answerType": "choice",
+          "options": {
+            "outsiders": "hosted:no-key",
+            "only-me": "subscription:skill",
+            "no-reply": "subscription:cloud-task"
+          },
+          "assumed": "outsiders",
+          "answer": "only-me"
+        }
+      ],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "telegramApi",
+          "name": "Reading bot",
+          "nodes": [
+            "Telegram Trigger"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [
+        {
+          "kind": "data-table",
+          "name": "reading_list",
+          "nodes": [
+            "Save link"
+          ],
+          "sharedWith": []
+        }
+      ],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Telegram Trigger",
+          "type": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1.2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [
+            "relay"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Refresh token",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "http",
+          "effect": "write",
+          "effectBy": "host",
+          "levers": [
+            "http"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Save link",
+          "type": "n8n-nodes-base.dataTable",
+          "typeVersion": 1,
+          "role": "step",
+          "branch": "main",
+          "resource": "row",
+          "operation": "insert",
+          "kind": "db",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [
+            "db"
+          ],
+          "mapping": "name",
+          "issues": []
+        },
+        {
+          "node": "Reply",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "http",
+          "effect": "write",
+          "effectBy": "host",
+          "levers": [
+            "http"
+          ],
+          "mapping": "hand",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "db",
+        "http",
+        "relay"
+      ]
+    }
+  ]
+}

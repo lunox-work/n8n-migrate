@@ -1,0 +1,126 @@
+{
+  "id": "chat-app-only-me",
+  "name": "My reading-list bot",
+  "active": false,
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-8000-000000000701",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        154220,
+        300
+      ],
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "cred-telegramApi",
+          "name": "Reading bot"
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000702",
+      "name": "Refresh token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        154440,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.auth_base }}/oauth2/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "options": {}
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000703",
+      "name": "Save link",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        154660,
+        300
+      ],
+      "parameters": {
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "dt1",
+          "cachedResultName": "reading_list"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000704",
+      "name": "Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        154880,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.api }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $json.chat_id, text: 'Saved' }) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Refresh token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refresh token": {
+      "main": [
+        [
+          {
+            "node": "Save link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save link": {
+      "main": [
+        [
+          {
+            "node": "Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

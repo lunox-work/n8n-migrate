@@ -21,20 +21,20 @@
   "summary": {
     "workflows": 1,
     "outcomes": {
-      "subscription": 1,
+      "subscription": 0,
       "replaced": 0,
-      "hosted": 0,
+      "hosted": 1,
       "keep-in-n8n": 0
     },
     "targets": {
-      "subscription:cloud-task": 1
+      "hosted:key": 1
     },
     "wakeups": {
       "relay": 1
     },
     "blockers": {},
     "notAnAutomation": 0,
-    "questions": 0,
+    "questions": 1,
     "unmappedTypes": [],
     "cloudScheduledRunsPerHour": 0,
     "cloudScheduledRunsPerHourLimit": 100,
@@ -68,9 +68,9 @@
         ]
       },
       "outcome": {
-        "kind": "subscription",
-        "target": "cloud-task",
-        "reason": "an event is pushed in with no reply expected: a forwarder posts it to the cloud task's API trigger",
+        "kind": "hosted",
+        "target": "key",
+        "reason": "people wait in a chat app for each reply, which a model writes",
         "alsoTargets": []
       },
       "calledBy": [],
@@ -139,7 +139,24 @@
           }
         }
       ],
-      "questions": [],
+      "questions": [
+        {
+          "id": "relay-telegram/chat-app-users/Telegram Trigger",
+          "text": "Who messages \"Telegram Trigger\" and waits for the replies: outsiders (customers, other people), only you, or nobody waits? A cloud task's start-up time is not measured yet and its API trigger takes at most 30 events an hour.",
+          "nodes": [
+            "Telegram Trigger"
+          ],
+          "affects": "outcome",
+          "answerType": "choice",
+          "options": {
+            "outsiders": "hosted:key",
+            "only-me": "subscription:skill",
+            "no-reply": "subscription:cloud-task"
+          },
+          "assumed": "outsiders",
+          "answer": null
+        }
+      ],
       "blockers": [],
       "credentials": [
         {

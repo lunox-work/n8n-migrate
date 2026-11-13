@@ -3,7 +3,9 @@
     "Host and path rules for HTTP Request nodes whose method alone does not settle the effect. Read by scripts/analyze.mjs.",
     "The URL is read only when its scheme and host are literal; {{ }} parts of the path stand in as {x}. host is matched exactly (no subdomains), path is a regular expression tested against the path without query string.",
     "model: a POST to a known LLM API. The node becomes kind model, effect none, lever llm-api, and adds the httpSubstitutions.model requirement from capabilities.json: the call can run on the subscription instead of an API key.",
+    "write: an endpoint that always writes, so no question is asked. host is optional.",
     "read: an endpoint that reads although it takes a POST. host is optional. graphql: true means the body decides: a mutation is a write, a literal query without mutation a read, anything else stays undetermined.",
+    "When the base URL comes from an expression ({{ }}/path), only rules without host can match.",
     "Rules are general (provider APIs and URL shapes), never one template's URL."
   ],
   "schemaVersion": 1,
@@ -17,6 +19,11 @@
     { "host": "api.perplexity.ai", "path": "^/(v1/)?chat/completions/?$", "provider": "Perplexity" },
     { "host": "api.deepseek.com", "path": "^/(v1/)?chat/completions/?$", "provider": "DeepSeek" },
     { "host": "api.x.ai", "path": "^/v1/chat/completions/?$", "provider": "xAI" }
+  ],
+  "write": [
+    { "path": "/oauth2?/token/?$", "why": "an OAuth token endpoint issues new tokens (a refresh can retire the old one)" },
+    { "path": "/(send|edit|delete|forward|copy|answer|pin|unpin|ban|unban)[A-Z][A-Za-z]*$", "why": "a bot API method that sends or changes messages (Telegram style)" },
+    { "host": "graph.facebook.com", "path": "/messages/?$", "why": "a WhatsApp Cloud API message send" }
   ],
   "read": [
     { "path": "/(search|query|list)/?$", "why": "a search, query or list endpoint" },

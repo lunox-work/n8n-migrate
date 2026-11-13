@@ -328,22 +328,25 @@ export function httpTarget(url) {
   if (s.startsWith("=")) s = s.slice(1).trim();
   s = s.replace(/\{\{[\s\S]*?\}\}/g, "{x}");
   const m = s.match(/^https?:\/\/([^/?#\s{}]+)([^?#\s]*)/i);
-  if (!m) return null;
-  return { host: m[1].toLowerCase().replace(/:\d+$/, "").replace(/^[^@]*@/, ""), path: m[2] || "/" };
+  if (m) return { host: m[1].toLowerCase().replace(/:\d+$/, "").replace(/^[^@]*@/, ""), path: m[2] || "/" };
+  // Base URL from an expression, literal path after it: only host-less rules
+  // can match.
+  const e = s.match(/^\{x\}(\/[^?#\s]*)$/);
+  return e ? { host: null, path: e[1] } : null;
 }
 
-const ruleMatches = (rule, t) => (!rule.host || rule.host === t.host) && new RegExp(rule.path).test(t.path);
+const ruleMatches = (rule, t) => (rule.host ? rule.host === t.host : true) && new RegExp(rule.path).test(t.path);
 
 // http-hosts.json rules for an HTTP Request node: a POST to a known LLM API
-// becomes a model step (effect none, lever llm-api); a POST to a read
-// endpoint reads; a GraphQL body decides by its operation. Leaves everything
-// else as the method rule left it.
+// becomes a model step (effect none, lever llm-api); a known write endpoint
+// writes; a POST to a read endpoint reads; a GraphQL body decides by its
+// operation. Leaves everything else as the method rule left it.
 function applyHostRules(d, hosts) {
   if (!HTTP_QUESTION_TYPES.has(d.baseType) || d.status !== "mapped") return;
   const t = httpTarget(d.params.url);
   if (!t) return;
   const method = d.params.method ?? d.params.requestMethod;
-  const model = String(method) === "POST" ? (hosts.model || []).find((r) => ruleMatches(r, t)) : null;
+  const model = String(method) === "POST" && t.host ? (hosts.model || []).find((r) => ruleMatches(r, t)) : null;
   if (model) {
     d.kind = "model";
     d.effect = "none";
@@ -354,6 +357,12 @@ function applyHostRules(d, hosts) {
     return;
   }
   if (d.effect !== undefined) return;
+  const write = (hosts.write || []).find((r) => ruleMatches(r, t));
+  if (write) {
+    d.effect = "write";
+    d.effectBy = "host";
+    return;
+  }
   for (const r of hosts.read || []) {
     if (!ruleMatches(r, t)) continue;
     if (r.graphql) {
@@ -647,6 +656,34 @@ function scheduleRuleTimes(item) {
     case "cronExpression":
       return { cron: String(i.expression ?? "") };
   }
+}
+
+// Whether a time trigger fires at a time of day (so its timezone matters),
+// as opposed to every N seconds, minutes or hours. Unreadable settings count
+// as mattering.
+const cronHasTimeOfDay = (c) => {
+  const p = String(c).trim().split(/\s+/);
+  if (p.length === 5) p.unshift("0");
+  if (p.length !== 6) return true;
+  return !/^\*(\/\d+)?$/.test(p[2]) || [p[3], p[4], p[5]].some((x) => !/^[*?]$/.test(x));
+};
+function timeOfDayMatters(d) {
+  const p = d.params;
+  if (d.type === "n8n-nodes-base.interval") return false;
+  if (d.type === "n8n-nodes-base.scheduleTrigger") {
+    const items = [].concat((p.rule ?? { interval: [{ field: "days" }] }).interval ?? []);
+    return items.some((i) => {
+      const f = isObj(i) ? i.field ?? "days" : "days";
+      if (["seconds", "minutes", "hours"].includes(f)) return false;
+      return f === "cronExpression" ? cronHasTimeOfDay(i.expression ?? "") : true;
+    });
+  }
+  const coll = d.type === "n8n-nodes-base.cron" ? p.triggerTimes ?? {} : p.pollTimes ?? { item: [{ mode: "everyMinute" }] };
+  return [].concat(isObj(coll) ? coll.item ?? [] : []).some((i) => {
+    const mode = isObj(i) ? i.mode ?? "everyDay" : "everyDay";
+    if (["everyMinute", "everyHour", "everyX"].includes(mode)) return false;
+    return mode === "custom" ? cronHasTimeOfDay(i.cronExpression ?? "") : true;
+  });
 }
 
 // Fire times of one time-based trigger: {crons, fixed, error}.
@@ -1384,7 +1421,7 @@ function computeSchedule(W, ctx) {
   const time = W.triggers.filter((t) => t.kind === "schedule" || t.kind === "poll");
   const out = { runsPerDay: null, shortestIntervalSec: null, fits: "n/a", timezone: tz ?? N8N_DEFAULT_TIMEZONE, timezoneSource: tz ? "workflow" : "n8n-default" };
   if (!time.length) return out;
-  if (!tz) {
+  if (!tz && time.some((t) => timeOfDayMatters(t.d))) {
     const a = ask(W, ctx, "timezone", null, {
       text: `Which timezone should the schedule of "${W.name}" use? The export has no timezone setting, so n8n uses the instance default (${N8N_DEFAULT_TIMEZONE} unless GENERIC_TIMEZONE is set).`,
       affects: "timezone",
@@ -1546,7 +1583,34 @@ function outcomeForKind(W, ctx, k) {
       }
     }
   } else if (k === "relay") {
-    o = { kind: "subscription", target: "cloud-task", reason: "an event is pushed in with no reply expected: a forwarder posts it to the cloud task's API trigger" };
+    const cap = ctx.thresholds.apiTriggerFiresPerTaskHour;
+    o = { kind: "subscription", target: "cloud-task", reason: `an event is pushed in with no reply expected: a forwarder posts it to the cloud task's API trigger${cap ? ` (at most ${cap} events an hour)` : ""}` };
+    // A chat app (Telegram, WhatsApp, SMS) is a conversation: someone usually
+    // waits for each reply, which a cloud task cannot promise.
+    const answers = [];
+    let others = false;
+    for (const t of triggerNodes(W, "relay")) {
+      if (!t.d.flags.includes("chat-app")) {
+        others = true;
+        continue;
+      }
+      const tk = modelOnPath(W, t.name) ? "key" : "no-key";
+      const { value: v } = ask(W, ctx, "chat-app-users", t.name, {
+        text: `Who messages "${t.name}" and waits for the replies: outsiders (customers, other people), only you, or nobody waits? A cloud task's start-up time is not measured yet${cap ? ` and its API trigger takes at most ${cap} events an hour` : ""}.`,
+        affects: "outcome",
+        answerType: "choice",
+        options: { outsiders: `hosted:${tk}`, "only-me": "subscription:skill", "no-reply": "subscription:cloud-task" },
+        assumed: "outsiders",
+      });
+      answers.push({ v, tk });
+    }
+    const out = answers.filter((a) => a.v === "outsiders");
+    if (out.length) {
+      const key = out.some((a) => a.tk === "key");
+      o = { kind: "hosted", target: key ? "key" : "no-key", reason: `people wait in a chat app for each reply${key ? ", which a model writes" : ""}` };
+    } else if (answers.length && !others && answers.every((a) => a.v === "only-me")) {
+      o = { kind: "subscription", target: "skill", reason: "only you message this bot: a skill in Claude replaces it" };
+    }
   } else if (k === "schedule" || k === "poll") {
     const s = W.schedule;
     const what = `${k === "poll" ? "polls" : "fires"} ${intervalLabel(s)}`;
