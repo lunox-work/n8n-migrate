@@ -1,0 +1,358 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 2,
+    "outcomes": {
+      "subscription": 2,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "subscription:cloud-task": 1,
+      "subscription:skill": 1
+    },
+    "wakeups": {
+      "schedule": 1,
+      "manual": 1
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 0,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0.04,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "dt-setup",
+      "name": "Orders setup",
+      "file": "datatable-identity.json",
+      "sourceHash": "625e8322e2513c2dadf5287b3a8081df059f746d351daad86561bd75052f7c7c",
+      "wakeup": {
+        "kind": "manual",
+        "nodes": [
+          "Run once"
+        ],
+        "all": [
+          "manual"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "skill",
+        "reason": "run by hand, so a skill in Claude Code or Cowork; an artifact lacks artifact-db, bundled-server",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "state",
+          "name": "data-table:a table chosen at run time",
+          "nodes": [
+            "Log run"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:state-store",
+            "localTask": "needs:bundled-server",
+            "artifact": "needs:artifact-db"
+          }
+        },
+        {
+          "kind": "state",
+          "name": "data-table:orders",
+          "nodes": [
+            "Create orders"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:state-store",
+            "localTask": "needs:bundled-server",
+            "artifact": "needs:artifact-db"
+          }
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Create orders",
+            "Log run"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [],
+      "blockers": [],
+      "credentials": [],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [
+        {
+          "kind": "data-table",
+          "name": "a table chosen at run time",
+          "nodes": [
+            "Log run"
+          ],
+          "sharedWith": []
+        },
+        {
+          "kind": "data-table",
+          "name": "orders",
+          "nodes": [
+            "Create orders"
+          ],
+          "sharedWith": [
+            "dt-report"
+          ]
+        }
+      ],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Run once",
+          "type": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Create orders",
+          "type": "n8n-nodes-base.dataTable",
+          "typeVersion": 1.1,
+          "role": "step",
+          "branch": "main",
+          "resource": "table",
+          "operation": "create",
+          "kind": "db",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [
+            "db"
+          ],
+          "mapping": "name",
+          "issues": []
+        },
+        {
+          "node": "Log run",
+          "type": "n8n-nodes-base.dataTable",
+          "typeVersion": 1.1,
+          "role": "step",
+          "branch": "main",
+          "resource": "row",
+          "operation": "insert",
+          "kind": "db",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [
+            "db"
+          ],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "db"
+      ]
+    },
+    {
+      "id": "dt-report",
+      "name": "Orders report",
+      "file": "datatable-identity.json",
+      "sourceHash": "5ac3e776a86e5f461a5e2b57e7c634c1459e4e05800c8748a4cc497f8f7d238d",
+      "wakeup": {
+        "kind": "schedule",
+        "nodes": [
+          "Every day"
+        ],
+        "all": [
+          "schedule"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "cloud-task",
+        "reason": "fires every 1 d, within a cloud task's limit of one run per 1 h",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "state",
+          "name": "data-table:a table chosen at run time",
+          "nodes": [
+            "Read picked table"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:state-store",
+            "localTask": "needs:bundled-server",
+            "artifact": "needs:artifact-db"
+          }
+        },
+        {
+          "kind": "state",
+          "name": "data-table:orders",
+          "nodes": [
+            "Read orders"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:state-store",
+            "localTask": "needs:bundled-server",
+            "artifact": "needs:artifact-db"
+          }
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Read orders",
+            "Read picked table"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [],
+      "blockers": [],
+      "credentials": [],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": 1,
+        "shortestIntervalSec": 86400,
+        "fits": "cloud-task",
+        "timezone": "UTC",
+        "timezoneSource": "workflow"
+      },
+      "sharedState": [
+        {
+          "kind": "data-table",
+          "name": "a table chosen at run time",
+          "nodes": [
+            "Read picked table"
+          ],
+          "sharedWith": []
+        },
+        {
+          "kind": "data-table",
+          "name": "orders",
+          "nodes": [
+            "Read orders"
+          ],
+          "sharedWith": [
+            "dt-setup"
+          ]
+        }
+      ],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Every day",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Read orders",
+          "type": "n8n-nodes-base.dataTable",
+          "typeVersion": 1.1,
+          "role": "step",
+          "branch": "main",
+          "resource": "row",
+          "operation": "get",
+          "kind": "db",
+          "effect": "read",
+          "effectBy": "name",
+          "levers": [
+            "db"
+          ],
+          "mapping": "name",
+          "issues": []
+        },
+        {
+          "node": "Read picked table",
+          "type": "n8n-nodes-base.dataTable",
+          "typeVersion": 1.1,
+          "role": "step",
+          "branch": "main",
+          "resource": "row",
+          "operation": "get",
+          "kind": "db",
+          "effect": "read",
+          "effectBy": "name",
+          "levers": [
+            "db"
+          ],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "db"
+      ]
+    }
+  ]
+}

@@ -1181,9 +1181,18 @@ function processNode(W, d, ctx, br) {
       break;
     case "db":
       if (d.baseType === "n8n-nodes-base.dataTable") {
+        // Tables are matched across workflows by name when the export names
+        // them (a create's tableName, a cached name, mode name), else by id.
+        // A table chosen at run time matches nothing.
         const { value, cached } = rlValue(d.params.dataTableId);
-        const label = cached && !isExpr(cached) ? txt(cached) : value != null && !isExpr(value) ? txt(value) : "table set by an expression";
-        const key = value != null && !isExpr(value) ? txt(value) : label;
+        const mode = isObj(d.params.dataTableId) ? d.params.dataTableId.mode : null;
+        const literal = (x) => x != null && !isObj(x) && !isExpr(x) && txt(x).trim() !== "";
+        const tableName = d.resource === "table" && d.operation === "create" ? d.params.tableName : cached ?? (mode === "name" ? value : undefined);
+        let label;
+        let key;
+        if (literal(tableName)) (label = txt(tableName)), (key = `name:${label}`);
+        else if (literal(value) && tableName === undefined) (label = txt(value)), (key = `id:${label}`);
+        else (label = "a table chosen at run time"), (key = `run-time:${W.id}:${name}`);
         addShared(W, "data-table", label, name, key);
         addReq(W, "state", `data-table:${label}`, name, { surfaces: reqSurf("state") });
       } else if (d.baseType === "n8n-nodes-base.removeDuplicates") {

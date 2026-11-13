@@ -1,0 +1,188 @@
+[
+  {
+    "id": "dt-setup",
+    "name": "Orders setup",
+    "active": false,
+    "nodes": [
+      {
+        "id": "00000000-0000-4000-8000-000000000721",
+        "name": "Run once",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          158620,
+          300
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000722",
+        "name": "Create orders",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          158840,
+          300
+        ],
+        "parameters": {
+          "resource": "table",
+          "operation": "create",
+          "tableName": "orders",
+          "columns": {
+            "column": [
+              {
+                "name": "sku",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000723",
+        "name": "Log run",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          159060,
+          300
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "insert",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "name",
+            "value": "={{ $json.logTable }}"
+          },
+          "columns": {
+            "mappingMode": "autoMapInputData",
+            "value": {}
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Run once": {
+        "main": [
+          [
+            {
+              "node": "Create orders",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create orders": {
+        "main": [
+          [
+            {
+              "node": "Log run",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    }
+  },
+  {
+    "id": "dt-report",
+    "name": "Orders report",
+    "active": false,
+    "nodes": [
+      {
+        "id": "00000000-0000-4000-8000-000000000731",
+        "name": "Every day",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          160820,
+          300
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "days",
+                "triggerAtHour": 6
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000732",
+        "name": "Read orders",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          161040,
+          300
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "name",
+            "value": "orders"
+          },
+          "returnAll": true
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000733",
+        "name": "Read picked table",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          161260,
+          300
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ $json.tableId }}"
+          },
+          "returnAll": true
+        }
+      }
+    ],
+    "connections": {
+      "Every day": {
+        "main": [
+          [
+            {
+              "node": "Read orders",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read orders": {
+        "main": [
+          [
+            {
+              "node": "Read picked table",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "UTC"
+    }
+  }
+]
