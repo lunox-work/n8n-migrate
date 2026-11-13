@@ -119,7 +119,8 @@
         "shortestIntervalSec": 900,
         "fits": "local-task",
         "timezone": "Europe/London",
-        "timezoneSource": "workflow"
+        "timezoneSource": "workflow",
+        "dstNote": true
       },
       "sharedState": [],
       "disabled": [],

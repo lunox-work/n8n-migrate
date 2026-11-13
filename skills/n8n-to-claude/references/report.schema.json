@@ -234,7 +234,8 @@
             "shortestIntervalSec": { "description": "null without time triggers or with fewer than two fires a year", "type": ["integer", "null"] },
             "fits": { "enum": ["cloud-task", "local-task", "frequency-change", "n/a"] },
             "timezone": { "type": "string" },
-            "timezoneSource": { "enum": ["workflow", "answer", "n8n-default"] }
+            "timezoneSource": { "enum": ["workflow", "answer", "n8n-default"] },
+            "dstNote": { "description": "present (true) when a trigger runs at a time of day and the timezone observes DST: the counts ignore DST, and a run can shift, skip or repeat around the change", "const": true }
           }
         },
         "sharedState": {

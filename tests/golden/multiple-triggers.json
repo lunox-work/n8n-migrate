@@ -134,7 +134,8 @@
         "shortestIntervalSec": 86400,
         "fits": "cloud-task",
         "timezone": "America/New_York",
-        "timezoneSource": "n8n-default"
+        "timezoneSource": "n8n-default",
+        "dstNote": true
       },
       "sharedState": [],
       "disabled": [],

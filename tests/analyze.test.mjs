@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { validate, schema } from "./schema-check.mjs";
-import { analyze, loadInput, parseCron, simulateCron, legacyCron, redact, findSecrets, scanSecrets, sqlEffect, renderText, httpTarget } from "../skills/n8n-to-claude/scripts/analyze.mjs";
+import { analyze, loadInput, parseCron, simulateCron, legacyCron, redact, findSecrets, scanSecrets, sqlEffect, renderText, httpTarget, observesDst } from "../skills/n8n-to-claude/scripts/analyze.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..");
@@ -288,4 +288,13 @@ test("catalogue: every connector operation names a tool in capabilities.json", (
     }
   }
   assert.deepEqual(missing, []);
+});
+
+test("dst: zones that move their clocks, zones that do not, unknown names", () => {
+  assert.equal(observesDst("Europe/Berlin", NOW), true);
+  assert.equal(observesDst("America/New_York", NOW), true);
+  assert.equal(observesDst("Australia/Sydney", NOW), true);
+  assert.equal(observesDst("Asia/Singapore", NOW), false);
+  assert.equal(observesDst("UTC", NOW), false);
+  assert.equal(observesDst("Not/AZone", NOW), false);
 });

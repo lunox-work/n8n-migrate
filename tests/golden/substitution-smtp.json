@@ -113,7 +113,8 @@
         "shortestIntervalSec": 86400,
         "fits": "cloud-task",
         "timezone": "America/Chicago",
-        "timezoneSource": "workflow"
+        "timezoneSource": "workflow",
+        "dstNote": true
       },
       "sharedState": [],
       "disabled": [],

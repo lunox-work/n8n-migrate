@@ -596,7 +596,8 @@ function cronDayMatches(c, dom, month, dow) {
 // `nowMs`: 7 days, or 366 days when that gives fewer than 168 fires (sparse
 // schedules need the longer window to be counted fairly). Returns runs per day
 // and the shortest gap between two fires (null with fewer than two fires).
-// Timezone and DST are ignored: they move fires, not their count.
+// Timezone and DST are ignored: they move fires, not their count
+// (computeSchedule sets schedule.dstNote where DST can move a run).
 export function simulateCron(exprs, nowMs) {
   const parsed = exprs.map(parseCron);
   const now = new Date(nowMs);
@@ -1481,6 +1482,19 @@ function computeBody(W) {
   return { kind: "script+model", decidedBy: W.order.filter((n) => set.has(n)) };
 }
 
+// Whether a timezone moves its clocks during the year of nowMs: its UTC offset
+// on 1 January and 1 July differ. An unknown name gives false.
+export function observesDst(tz, nowMs) {
+  try {
+    const f = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "longOffset" });
+    const off = (ms) => f.formatToParts(ms).find((p) => p.type === "timeZoneName")?.value;
+    const y = new Date(nowMs).getUTCFullYear();
+    return off(Date.UTC(y, 0, 1)) !== off(Date.UTC(y, 6, 1));
+  } catch {
+    return false;
+  }
+}
+
 function computeSchedule(W, ctx) {
   const tz = typeof W.settings.timezone === "string" && W.settings.timezone && W.settings.timezone !== "DEFAULT" ? W.settings.timezone : null;
   const time = W.triggers.filter((t) => t.kind === "schedule" || t.kind === "poll");
@@ -1496,6 +1510,9 @@ function computeSchedule(W, ctx) {
     });
     if (a.answered) (out.timezone = a.value), (out.timezoneSource = "answer");
   }
+  // The run counts below ignore DST. A time-of-day run in a zone that moves
+  // its clocks can shift by an hour, be skipped or repeat around the change.
+  if (time.some((t) => timeOfDayMatters(t.d)) && observesDst(out.timezone, ctx.now)) out.dstNote = true;
   const crons = [];
   const fixed = [];
   let unknown = false;
@@ -2264,6 +2281,7 @@ export function renderText(report, color = false) {
       });
       notes.push(`shares ${names.join(", ")} with ${listCut(partners)}`);
     }
+    if (w.schedule.dstNote) notes.push(`${clean(w.schedule.timezone)} moves its clocks: a run at a time of day can shift, skip or repeat around the change`);
     if (w.inlineSecrets.length) notes.push(`${w.inlineSecrets.length} inline secret${w.inlineSecrets.length > 1 ? "s" : ""} in the export (redacted in the JSON report)`);
     for (const n of notes) lines.push(`  note: ${n}`);
     // Node questions of one kind beyond the first two collapse into one line.
