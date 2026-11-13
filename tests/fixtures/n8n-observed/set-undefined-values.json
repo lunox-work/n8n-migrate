@@ -1,0 +1,245 @@
+{
+ "note": "observed from n8n 2.47.7 on 2026-11-14 (evals/diff/differential.mjs --save-fixture)",
+ "title": "Set v2 keeps an undefined result undefined; Set raw repairs a bare undefined and an unquoted value",
+ "label": "set-undefined-values",
+ "workflow": {
+  "name": "set-undefined-values",
+  "nodes": [
+   {
+    "id": "t",
+    "name": "Trigger",
+    "type": "n8n-nodes-base.manualTrigger",
+    "typeVersion": 1,
+    "position": [
+     0,
+     0
+    ],
+    "parameters": {}
+   },
+   {
+    "id": "n0",
+    "name": "Set2",
+    "type": "n8n-nodes-base.set",
+    "typeVersion": 2,
+    "position": [
+     240,
+     0
+    ],
+    "parameters": {
+     "values": {
+      "string": [
+       {
+        "name": "a",
+        "value": "={{ $json.message.nope }}"
+       },
+       {
+        "name": "b",
+        "value": "={{ $json.message.text }}"
+       }
+      ],
+      "number": [
+       {
+        "name": "n",
+        "value": "={{ $json.nothing }}"
+       }
+      ]
+     },
+     "options": {}
+    }
+   },
+   {
+    "id": "n1",
+    "name": "Raw",
+    "type": "n8n-nodes-base.set",
+    "typeVersion": 3.4,
+    "position": [
+     480,
+     200
+    ],
+    "parameters": {
+     "mode": "raw",
+     "jsonOutput": "={\n  \"msg\": {{ $json.nope }},\n  \"ok\": true\n}",
+     "options": {}
+    }
+   },
+   {
+    "id": "n2",
+    "name": "RawText",
+    "type": "n8n-nodes-base.set",
+    "typeVersion": 3.4,
+    "position": [
+     720,
+     400
+    ],
+    "parameters": {
+     "mode": "raw",
+     "jsonOutput": "={\n  \"msg\": {{ $json.err }},\n  \"n\": 1\n}",
+     "options": {}
+    }
+   }
+  ],
+  "connections": {
+   "Trigger": {
+    "main": [
+     [
+      {
+       "node": "Set2",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Raw",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "RawText",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1"
+  }
+ },
+ "triggerName": "Trigger",
+ "pinned": [
+  "Trigger"
+ ],
+ "pinData": {
+  "Trigger": [
+   {
+    "json": {
+     "message": {
+      "text": "hi"
+     },
+     "err": "error:1C80006B:Provider routines::wrong final block length"
+    }
+   }
+  ]
+ },
+ "fixtures": {
+  "default": {
+   "status": 200,
+   "body": {
+    "ok": true,
+    "id": "mock-1",
+    "data": [
+     {
+      "id": 1,
+      "name": "one"
+     },
+     {
+      "id": 2,
+      "name": "two"
+     }
+    ]
+   }
+  }
+ },
+ "n8n": {
+  "status": "success",
+  "error": null,
+  "lastNode": "RawText",
+  "startedAt": "2026-11-13T21:47:38.128Z",
+  "executionId": "1671",
+  "workflowId": "lAnTadcSfSany9IV",
+  "executionData": {
+   "runData": {
+    "Trigger": [
+     {
+      "executionIndex": 0,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "message": {
+            "text": "hi"
+           },
+           "err": "error:1C80006B:Provider routines::wrong final block length"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Set2": [
+     {
+      "executionIndex": 1,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "message": {
+            "text": "hi"
+           },
+           "err": "error:1C80006B:Provider routines::wrong final block length",
+           "b": "hi"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Raw": [
+     {
+      "executionIndex": 2,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "msg": null,
+           "ok": true
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "RawText": [
+     {
+      "executionIndex": 3,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "msg": "error:1C80006B:Provider routines::wrong final block length",
+           "n": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ]
+   }
+  },
+  "effects": []
+ }
+}

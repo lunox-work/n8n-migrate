@@ -179,7 +179,11 @@ export function parseJsonLenient(text) {
     .replace(/(^|[^:"'])\/\/[^\n]*/g, "$1")
     .replace(/'((?:[^'\\]|\\.)*)'/g, (_, s) => JSON.stringify(s.replace(/\\'/g, "'")))
     .replace(/([{,]\s*)([A-Za-z_$][\w$]*)\s*:/g, '$1"$2":')
-    .replace(/,\s*([}\]])/g, "$1");
+    .replace(/,\s*([}\]])/g, "$1")
+    // jsonrepair (n8n's repairJSON) turns a bare undefined into null, and quotes an
+    // unquoted value up to the end of its line.
+    .replace(/([:[,]\s*)undefined(?=\s*[,}\]])/g, "$1null")
+    .replace(/(:[ \t]*)(?!["{[\-\d]|true\b|false\b|null\b)([^\s,{}[\]][^\n]*?)([ \t]*,?[ \t]*)$/gm, (_, a, v, b) => `${a}${JSON.stringify(v)}${b}`);
   return JSON.parse(repaired);
 }
 
@@ -222,13 +226,17 @@ const setV1 = {
         n.json = deepCopy(item.json);
       }
       const put = (name, value) => (options.dotNotation === false ? (n.json[name] = value) : setPath(n.json, name, value));
-      for (const e of exec.param("values.boolean", i, [])) put(e.name ?? "propertyName", !!(e.value ?? false));
-      for (const e of exec.param("values.number", i, [])) {
-        let value = e.value ?? 0;
+      // The value default (false / 0 / "") applies only when the entry has no value; an
+      // expression that evaluates to undefined is set as undefined (the key then drops out).
+      const raw = (type) => exec.params.values?.[type] ?? [];
+      const valueOf = (type, e, j, dflt) => (raw(type)[j] && hasOwn(raw(type)[j], "value") ? e.value : dflt);
+      exec.param("values.boolean", i, []).forEach((e, j) => put(e.name ?? "propertyName", !!valueOf("boolean", e, j, false)));
+      exec.param("values.number", i, []).forEach((e, j) => {
+        let value = valueOf("number", e, j, 0);
         if (exec.typeVersion >= 2 && typeof value === "string" && !Number.isNaN(Number(value))) value = Number(value);
         put(e.name ?? "propertyName", value);
-      }
-      for (const e of exec.param("values.string", i, [])) put(e.name ?? "propertyName", e.value ?? "");
+      });
+      exec.param("values.string", i, []).forEach((e, j) => put(e.name ?? "propertyName", valueOf("string", e, j, "")));
       out.push(n);
     });
     return [out];
