@@ -211,7 +211,7 @@ table(
     ["Replaced by Claude itself", 2, [...surveyOut.values()].filter((x) => x === "replaced").length, o("replaced"), o("replaced")],
     ["Hosted elsewhere, no model", 3, "", o("hosted", "no-key"), count((w) => w.outcome.kind === "hosted" && w.outcome.target === "no-key" && !openOutcomeQ(w))],
     ["Hosted elsewhere, API key", "2 to 8", "", o("hosted", "key"), count((w) => w.outcome.kind === "hosted" && w.outcome.target === "key" && !openOutcomeQ(w))],
-    ["Hosted (survey port: sync webhook reply)", "", [...surveyOut.values()].filter((x) => x === "hosted").length, o("hosted"), ""],
+    ["Hosted elsewhere, all (survey port: synchronous webhook replies only)", "", [...surveyOut.values()].filter((x) => x === "hosted").length, o("hosted"), ""],
     ["Kept in n8n", "", [...surveyOut.values()].filter((x) => x === "keep-in-n8n").length, o("keep-in-n8n"), o("keep-in-n8n") - count(onlyIncomplete)],
   ],
 );
@@ -221,7 +221,7 @@ table(
     .filter(([k]) => k.startsWith("subscription:"))
     .map(([k, n]) => [k.slice(13), n]),
 );
-out.push(`"if answers favour moving": endpoint callers are only you, MCP clients only Claude, form and chat users inside the organisation, and every missing sub-workflow is in the export or is the workflow itself.`, "");
+out.push(`"if answers favour moving": endpoint callers and chat-app users are only you (or nobody waits), MCP clients only Claude, form and chat users inside the organisation, and every missing sub-workflow is in the export or is the workflow itself.`, "");
 
 // Disagreements
 title("Templates whose analyzer outcome differs from the survey's");
