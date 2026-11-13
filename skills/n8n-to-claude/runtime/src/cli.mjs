@@ -8,7 +8,15 @@
 //   runner.mjs preflight <definition.json> [--available-tools <json|@file>] [--source <export.json>]
 //   runner.mjs convert <n8n-export.json> [--nodes <nodes.json>] [--out <definition.json>]
 //
-// Prints one JSON line. Exit codes: 0 done, 10 needs host results, 1 failed, 2 bad input.
+// Task driver (driver.mjs), run from the workflow folder; prints plain text for the model:
+//   runner.mjs start [--trigger <json>] [--clock <ISO>] [--force]  start or continue a run
+//   runner.mjs next                                   the next thing to do, or DONE / FAILED
+//   runner.mjs show <q> <part>                        part of a long instruction
+//   runner.mjs answer <q> [--file f | --text t]       a model/agent answer (default: stdin)
+//   runner.mjs result <q> [--error] [--file f]        a tool response, when hooks are off
+//   runner.mjs status                                 JSON summary of the current run
+//
+// The commands above print one JSON line. Exit codes: 0 done, 10 needs host results, 1 failed, 2 bad input.
 // The state file holds the whole run (definition, clock, result log); the host executes
 // the printed requests and passes their results back with `resume`.
 
@@ -16,10 +24,12 @@ import { readFileSync, writeFileSync, existsSync, renameSync } from "node:fs";
 import { dirname, join, resolve, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { start, resume, preflight, fromN8n, BadInput } from "./index.mjs";
+import { command as driverCommand } from "./driver.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const EXIT = { done: 0, needs: 10, failed: 1 };
 
+const BOOLEAN_FLAGS = new Set(["error", "force"]);
 function parseArgs(argv) {
   const pos = [];
   const flags = {};
@@ -28,7 +38,7 @@ function parseArgs(argv) {
     if (a.startsWith("--")) {
       const key = a.slice(2);
       const next = argv[i + 1];
-      if (next === undefined || next.startsWith("--")) flags[key] = true;
+      if (next === undefined || next.startsWith("--") || BOOLEAN_FLAGS.has(key)) flags[key] = true;
       else {
         flags[key] = next;
         i++;
@@ -119,7 +129,12 @@ async function main() {
     } else print(def);
     return 0;
   }
-  throw new BadInput("commands: run, resume, preflight, convert");
+  if (["start", "next", "show", "answer", "result", "status"].includes(cmd)) {
+    const r = await driverCommand(cmd, pos, flags, { core: { start, resume }, stdin: () => readFileSync(0, "utf8") });
+    process.stdout.write(r.text + "\n");
+    return r.code;
+  }
+  throw new BadInput("commands: run, resume, preflight, convert, start, next, answer, result, status");
 }
 
 main().then(

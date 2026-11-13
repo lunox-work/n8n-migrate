@@ -13,7 +13,14 @@
 //   report.json      the analyzer report for this workflow
 //   overrides.json   approved substitutions, answers and translations written later by the
 //                    skill; regeneration keeps them and never rewrites this file
-//   runtime/         runner-core.mjs, runner.mjs, luxon.mjs and VERSION (the skill commit)
+//   runtime/         runner-core.mjs, runner.mjs, luxon.mjs, driver.mjs, hook.mjs and VERSION
+//                    (the skill commit)
+//   task.json        task-driver settings: hooks on, connector tool-name prefixes, secret source
+//   task-prompt.md   the prompt a scheduled task runs (references/task-prompt.md)
+//   .claude/settings.json  for the task session: the minimal permission allowlist (the runner
+//                    CLI and the definition's connector tools), dontAsk mode, and the hooks that
+//                    check each connector call against the runner's request and capture its
+//                    response (runtime/hook.mjs)
 //   MIGRATION.md     what moved, what is flagged, the questions, the requirements per surface
 //
 // The analyzer runs first. A workflow whose outcome is not `subscription` is refused: its
@@ -1489,11 +1496,43 @@ function writeJson(path, data) {
   renameSync(tmp, path);
 }
 
+export const RUNTIME_FILES = ["runner-core.mjs", "runner.mjs", "luxon.mjs", "driver.mjs", "hook.mjs"];
 export function writeRuntime(dir) {
   const rt = join(dir, "runtime");
   mkdirSync(rt, { recursive: true });
-  for (const f of ["runner-core.mjs", "runner.mjs", "luxon.mjs"]) copyFileSync(join(SKILL, "runtime", "dist", f), join(rt, f));
+  for (const f of RUNTIME_FILES) copyFileSync(join(SKILL, "runtime", "dist", f), join(rt, f));
   writeFileSync(join(rt, "VERSION"), `skill ${skillCommit()}\nruntime ${RUNTIME_VERSION}\nconverter ${CONVERTER_VERSION}\n`);
+}
+
+// ---------- task driver files ----------
+
+// The connector tool name a Claude session shows: <toolPrefix><tool>, from the captured schemas.
+export function toolPrefixes(def, refs) {
+  const out = {};
+  for (const t of def.allow?.tools ?? []) {
+    const p = refs.connectors[t.connector]?.toolPrefix;
+    if (p) out[t.connector] = p;
+  }
+  return out;
+}
+export function taskJson(def, refs) {
+  return { hooks: true, compactWhole: true, compactOver: 80, hideToolOutput: true, secrets: "env", toolPrefixes: toolPrefixes(def, refs) };
+}
+// .claude/settings.json for the task session. Measured in evals/task-driver/MEASUREMENTS.md.
+export function taskSettings(def, refs) {
+  const prefixes = toolPrefixes(def, refs);
+  const tools = (def.allow?.tools ?? []).map((t) => (prefixes[t.connector] ?? `mcp__${t.connector}__`) + t.tool);
+  const hook = (which) => [{ matcher: "^mcp__", hooks: [{ type: "command", command: `node "$CLAUDE_PROJECT_DIR/runtime/hook.mjs" ${which}`, timeout: 30 }] }];
+  return {
+    permissions: { defaultMode: "dontAsk", allow: ["Bash(node runtime/runner.mjs *)", ...uniq(tools)], deny: ["WebFetch", "WebSearch"] },
+    hooks: { PreToolUse: hook("pre"), PostToolUse: hook("post") },
+  };
+}
+export function writeTaskFiles(dir, def, refs) {
+  writeJson(join(dir, "task.json"), taskJson(def, refs));
+  mkdirSync(join(dir, ".claude"), { recursive: true });
+  writeJson(join(dir, ".claude", "settings.json"), taskSettings(def, refs));
+  copyFileSync(join(REFS, "task-prompt.md"), join(dir, "task-prompt.md"));
 }
 
 // Writes one result folder. overrides.json is created when missing and never rewritten.
@@ -1511,8 +1550,9 @@ export function writeFolder(outDir, res, { overrides, refs } = {}) {
     if (errs.length) throw new Error(`definition for "${res.name}" is not valid against the schema: ${errs.slice(0, 5).join("; ")}`);
     writeJson(join(dir, "definition.json"), def);
     writeRuntime(dir);
+    writeTaskFiles(dir, def, refs ?? loadReferences());
   } else {
-    for (const f of ["definition.json"]) if (existsSync(join(dir, f))) rmSync(join(dir, f));
+    for (const f of ["definition.json", "task.json", "task-prompt.md", ".claude/settings.json"]) if (existsSync(join(dir, f))) rmSync(join(dir, f));
   }
   writeFileSync(join(dir, "MIGRATION.md"), migrationMd(res.report.workflows[0], res.definition, { refused: res.refused, overrides: ov }));
   return dir;

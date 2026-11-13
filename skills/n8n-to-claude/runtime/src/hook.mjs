@@ -1,0 +1,116 @@
+#!/usr/bin/env node
+// Claude Code hooks for a migrated workflow folder (wired in .claude/settings.json):
+//
+//   node runtime/hook.mjs pre    PreToolUse on connector tools (matcher ^mcp__)
+//   node runtime/hook.mjs post   PostToolUse on the same tools
+//
+// pre: a connector call goes through only when it is an outstanding runner request for that
+// tool, with exactly the request's arguments once @n2c placeholders are expanded. Anything
+// else is denied with the reason (containment and argument fidelity). When the input held
+// placeholders, the hook returns the exact arguments as updatedInput.
+// post: the tool's response is saved verbatim as the request's result
+// (.n2c/results/<handle>.json), so the model never retypes a connector payload. With
+// task.json hideToolOutput, the model sees only a short "saved" note instead of the payload.
+//
+// Fails closed: an error inside the pre hook denies the call.
+
+import { readFileSync, existsSync, writeFileSync, mkdirSync, rmSync, realpathSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { paths, loadTask, outstanding, markHooksActive, toolName, expandArgs, deepEqual, diffPaths, compactArgs, mcpValue, saveResult, hasResult, logEvent, RUNNER_CMD } from "./driver.mjs";
+
+const DIR = dirname(dirname(fileURLToPath(import.meta.url)));
+
+function out(o) {
+  process.stdout.write(JSON.stringify(o) + "\n");
+}
+function deny(P, reason, extra = {}) {
+  try {
+    logEvent(P, { event: "hook-deny", reason, ...extra });
+  } catch {}
+  out({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason } });
+}
+
+export function pre(P, input) {
+  const task = loadTask(P);
+  const name = input.tool_name;
+  const args = input.tool_input ?? {};
+  const { state, list } = outstanding(P);
+  if (state?.runId) markHooksActive(P, state.runId);
+  const pending = list.filter((x) => x.req.kind === "tool" && !hasResult(P, x.handle));
+  const same = pending.filter((x) => toolName(task, x.req) === name);
+  if (!same.length) {
+    const want = pending.map((x) => `${toolName(task, x.req)} (${x.handle})`);
+    return deny(P, `${name} is not the runner's next request${want.length ? `; the outstanding call is ${want.join(", ")}` : ""}. Do not call tools on your own: run \`${RUNNER_CMD} next\` and do only what it says.`, { tool: name, args });
+  }
+  for (const x of same) {
+    const expanded = expandArgs(args, x.handle, x.req.args ?? {});
+    if (deepEqual(expanded, x.req.args ?? {})) {
+      mkdirSync(join(P.n2c, "calls"), { recursive: true });
+      writeFileSync(join(P.n2c, "calls", `${String(input.tool_use_id ?? "last").replace(/[^\w-]/g, "_")}.json`), JSON.stringify({ handle: x.handle, id: x.req.id }));
+      logEvent(P, { event: "hook-allow", tool: name, handle: x.handle, expanded: !deepEqual(expanded, args) });
+      if (!deepEqual(expanded, args)) {
+        const o = { hookEventName: "PreToolUse", updatedInput: expanded };
+        if (task.preAllow) o.permissionDecision = "allow";
+        return out({ hookSpecificOutput: o });
+      }
+      return;
+    }
+  }
+  const x = same[0];
+  const diff = diffPaths(expandArgs(args, x.handle, x.req.args ?? {}), x.req.args ?? {});
+  return deny(P, `The arguments differ from request ${x.handle} (${diff.slice(0, 5).join(", ")}). Call ${name} again with exactly: ${JSON.stringify(compactArgs(x.req.args ?? {}, x.handle, task.hooks ? task.compactOver : 0))}`, { tool: name, handle: x.handle, diff });
+}
+
+export function post(P, input) {
+  const task = loadTask(P);
+  const callFile = join(P.n2c, "calls", `${String(input.tool_use_id ?? "last").replace(/[^\w-]/g, "_")}.json`);
+  let handle;
+  if (existsSync(callFile)) {
+    handle = JSON.parse(readFileSync(callFile, "utf8")).handle;
+    rmSync(callFile, { force: true });
+  } else {
+    // No record from the pre hook (it did not run): match by tool and arguments.
+    const { list } = outstanding(P);
+    const x = list.find((y) => y.req.kind === "tool" && toolName(task, y.req) === input.tool_name && deepEqual(input.tool_input ?? {}, y.req.args ?? {}) && !hasResult(P, y.handle));
+    handle = x?.handle;
+  }
+  if (!handle) {
+    logEvent(P, { event: "hook-post-unmatched", tool: input.tool_name });
+    return;
+  }
+  const resp = input.tool_response;
+  const isError = resp && typeof resp === "object" && !Array.isArray(resp) && resp.isError === true;
+  const value = mcpValue(resp);
+  saveResult(P, handle, isError ? { ok: false, error: { name: "ToolError", message: typeof value === "string" ? value : JSON.stringify(value) }, capturedBy: "hook" } : { ok: true, value, capturedBy: "hook" });
+  const bytes = Buffer.byteLength(typeof resp === "string" ? resp : JSON.stringify(resp ?? null));
+  logEvent(P, { event: "hook-capture", tool: input.tool_name, handle, bytes, responseType: Array.isArray(resp) ? "array" : typeof resp });
+  const note = `Saved as result ${handle} (${bytes} bytes). Now run: ${RUNNER_CMD} next`;
+  if (task.hideToolOutput) out({ hookSpecificOutput: { hookEventName: "PostToolUse", updatedMCPToolOutput: [{ type: "text", text: note }] } });
+  else out({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: `The runner saved this response as ${handle}; do not retype it. Next: run ${RUNNER_CMD} next` } });
+}
+
+const isMain = process.argv[1] && realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
+if (isMain) {
+  const which = process.argv[2];
+  const P = paths(DIR);
+  let raw = "";
+  try {
+    raw = readFileSync(0, "utf8");
+    const input = JSON.parse(raw || "{}");
+    if (process.env.N2C_HOOK_DEBUG) {
+      mkdirSync(P.n2c, { recursive: true });
+      writeFileSync(join(P.n2c, `hook-${which}-${Date.now()}.json`), raw);
+    }
+    if (which === "pre") pre(P, input);
+    else if (which === "post") post(P, input);
+    process.exit(0);
+  } catch (e) {
+    if (which === "pre") {
+      deny(P, `The runner's hook failed (${e.message}); the call is refused. Run \`${RUNNER_CMD} next\`.`);
+      process.exit(0);
+    }
+    process.stderr.write(`n2c hook: ${e.message}\n`);
+    process.exit(1);
+  }
+}

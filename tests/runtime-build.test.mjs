@@ -7,7 +7,7 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { buildRuntime } from "../scripts/build-runtime.mjs";
+import { buildRuntime, NODE_FILES } from "../scripts/build-runtime.mjs";
 import { wf, node, start, CLOCK } from "./runtime-helpers.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -26,7 +26,7 @@ test("the core is browser-safe: no node: imports, no Node globals, Luxon is its 
   assert.deepEqual(imports, ["./luxon.mjs"]);
   const hits = [...core.matchAll(/from\s+["']node:|import\(\s*["']node:|\brequire\s*\(\s*["'](node:|fs|path|crypto|child_process)|\bprocess\.(env|argv|exit|cwd|versions)\b|\bBuffer\.(from|alloc)|(?<!")\b__(dirname|filename)\b(?!")/g)];
   assert.deepEqual(hits.map((m) => core.slice(Math.max(0, m.index - 40), m.index + 40)), []);
-  for (const f of readdirSync(join(RT, "src")).filter((f) => f !== "cli.mjs")) {
+  for (const f of readdirSync(join(RT, "src")).filter((f) => !NODE_FILES.includes(f))) {
     assert.doesNotMatch(readFileSync(join(RT, "src", f), "utf8"), /from\s+"node:/, `src/${f} imports a node: module`);
   }
   const luxon = readFileSync(join(DIST, "luxon.mjs"), "utf8");
