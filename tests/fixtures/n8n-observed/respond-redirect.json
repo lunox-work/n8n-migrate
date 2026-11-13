@@ -1,0 +1,139 @@
+{
+ "note": "observed from n8n 2.47.7 on 2026-11-14 (evals/diff/differential.mjs --save-fixture)",
+ "title": "Respond to Webhook checks the redirect URL",
+ "label": "respond-redirect",
+ "workflow": {
+  "name": "respond-redirect",
+  "nodes": [
+   {
+    "id": "t",
+    "name": "Webhook",
+    "type": "n8n-nodes-base.webhook",
+    "typeVersion": 2,
+    "position": [
+     0,
+     0
+    ],
+    "parameters": {
+     "httpMethod": "POST",
+     "path": "bench",
+     "responseMode": "responseNode",
+     "options": {}
+    },
+    "webhookId": "00000000-0000-4000-8000-000000000001"
+   },
+   {
+    "id": "n0",
+    "name": "Respond",
+    "type": "n8n-nodes-base.respondToWebhook",
+    "typeVersion": 1.1,
+    "position": [
+     240,
+     0
+    ],
+    "parameters": {
+     "respondWith": "redirect",
+     "redirectURL": "={{ $json.body.to }}",
+     "options": {}
+    }
+   }
+  ],
+  "connections": {
+   "Webhook": {
+    "main": [
+     [
+      {
+       "node": "Respond",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1"
+  }
+ },
+ "triggerName": "Webhook",
+ "pinned": [
+  "Webhook"
+ ],
+ "pinData": {
+  "Webhook": [
+   {
+    "json": {
+     "body": {
+      "to": "not a url ::"
+     }
+    }
+   }
+  ]
+ },
+ "fixtures": {
+  "default": {
+   "status": 200,
+   "body": {
+    "ok": true,
+    "id": "mock-1",
+    "data": [
+     {
+      "id": 1,
+      "name": "one"
+     },
+     {
+      "id": 2,
+      "name": "two"
+     }
+    ]
+   }
+  }
+ },
+ "n8n": {
+  "status": "error",
+  "error": {
+   "message": "Invalid input for 'Redirect URL' [item 0]",
+   "node": null
+  },
+  "lastNode": "Respond",
+  "startedAt": "2026-11-13T21:33:34.731Z",
+  "executionId": "865",
+  "workflowId": "rGSFQ2n02CB9eERs",
+  "executionData": {
+   "runData": {
+    "Webhook": [
+     {
+      "executionIndex": 0,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "body": {
+            "to": "not a url ::"
+           }
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Respond": [
+     {
+      "executionIndex": 1,
+      "executionStatus": "error",
+      "error": {
+       "message": "Invalid input for 'Redirect URL' [item 0]"
+      }
+     }
+    ]
+   }
+  },
+  "effects": []
+ }
+}

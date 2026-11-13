@@ -1,0 +1,404 @@
+{
+ "note": "observed from n8n 2.47.7 on 2026-11-14 (evals/diff/differential.mjs --save-fixture)",
+ "title": "Item Lists v1 split, Html template {{ }}, If v1 TypeError text, Crypto on a non-string",
+ "label": "small-nodes",
+ "workflow": {
+  "name": "small-nodes",
+  "nodes": [
+   {
+    "id": "t",
+    "name": "Trigger",
+    "type": "n8n-nodes-base.manualTrigger",
+    "typeVersion": 1,
+    "position": [
+     0,
+     0
+    ],
+    "parameters": {}
+   },
+   {
+    "id": "n0",
+    "name": "Split",
+    "type": "n8n-nodes-base.itemLists",
+    "typeVersion": 1,
+    "position": [
+     240,
+     0
+    ],
+    "parameters": {
+     "fieldToSplitOut": "list",
+     "options": {}
+    }
+   },
+   {
+    "id": "n1",
+    "name": "SplitBad",
+    "type": "n8n-nodes-base.itemLists",
+    "typeVersion": 1,
+    "position": [
+     480,
+     200
+    ],
+    "parameters": {
+     "fieldToSplitOut": "name",
+     "options": {}
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "n2",
+    "name": "Html",
+    "type": "n8n-nodes-base.html",
+    "typeVersion": 1.2,
+    "position": [
+     720,
+     400
+    ],
+    "parameters": {
+     "html": "<p>{{ $json.name }} has {{ $json.n }}</p><i>{{ $json.n }}</i>"
+    }
+   },
+   {
+    "id": "n3",
+    "name": "IfV1",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 1,
+    "position": [
+     960,
+     600
+    ],
+    "parameters": {
+     "conditions": {
+      "string": [
+       {
+        "value1": "={{ $json.n }}",
+        "operation": "startsWith",
+        "value2": "5"
+       }
+      ]
+     }
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "n4",
+    "name": "Hash",
+    "type": "n8n-nodes-base.crypto",
+    "typeVersion": 1,
+    "position": [
+     1200,
+     800
+    ],
+    "parameters": {
+     "action": "hash",
+     "type": "SHA256",
+     "value": "={{ $json.n }}",
+     "dataPropertyName": "h"
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "n5",
+    "name": "HashStr",
+    "type": "n8n-nodes-base.crypto",
+    "typeVersion": 1,
+    "position": [
+     1440,
+     1000
+    ],
+    "parameters": {
+     "action": "hash",
+     "type": "SHA256",
+     "value": "={{ $json.name }}",
+     "dataPropertyName": "h"
+    }
+   }
+  ],
+  "connections": {
+   "Trigger": {
+    "main": [
+     [
+      {
+       "node": "Split",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "SplitBad",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Html",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "IfV1",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Hash",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "HashStr",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1"
+  }
+ },
+ "triggerName": "Trigger",
+ "pinned": [
+  "Trigger"
+ ],
+ "pinData": {
+  "Trigger": [
+   {
+    "json": {
+     "list": [
+      {
+       "a": 1
+      },
+      {
+       "a": 2
+      }
+     ],
+     "name": "Ada",
+     "n": 5
+    }
+   }
+  ]
+ },
+ "fixtures": {
+  "default": {
+   "status": 200,
+   "body": {
+    "ok": true,
+    "id": "mock-1",
+    "data": [
+     {
+      "id": 1,
+      "name": "one"
+     },
+     {
+      "id": 2,
+      "name": "two"
+     }
+    ]
+   }
+  }
+ },
+ "n8n": {
+  "status": "success",
+  "error": null,
+  "lastNode": "HashStr",
+  "startedAt": "2026-11-13T21:33:34.614Z",
+  "executionId": "864",
+  "workflowId": "1ZqgXRMcEb5qmrbk",
+  "executionData": {
+   "runData": {
+    "Trigger": [
+     {
+      "executionIndex": 0,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "list": [
+            {
+             "a": 1
+            },
+            {
+             "a": 2
+            }
+           ],
+           "name": "Ada",
+           "n": 5
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Split": [
+     {
+      "executionIndex": 1,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "a": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "a": 2
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "SplitBad": [
+     {
+      "executionIndex": 2,
+      "executionStatus": "error",
+      "error": {
+       "message": "The provided field 'name' is not an array"
+      },
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "list": [
+            {
+             "a": 1
+            },
+            {
+             "a": 2
+            }
+           ],
+           "name": "Ada",
+           "n": 5
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Html": [
+     {
+      "executionIndex": 3,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "html": "<p>Ada has 5</p><i>5</i>"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "IfV1": [
+     {
+      "executionIndex": 4,
+      "executionStatus": "error",
+      "error": {
+       "message": "value1.startsWith is not a function"
+      },
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "list": [
+            {
+             "a": 1
+            },
+            {
+             "a": 2
+            }
+           ],
+           "name": "Ada",
+           "n": 5
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Hash": [
+     {
+      "executionIndex": 5,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "error": "The \"data\" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received type number (5)"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "HashStr": [
+     {
+      "executionIndex": 6,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "list": [
+            {
+             "a": 1
+            },
+            {
+             "a": 2
+            }
+           ],
+           "name": "Ada",
+           "n": 5,
+           "h": "99a563ab2f6e21e96998f9fddd2a2bab82b70ac019579502b8d7fc0032ff62bb"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ]
+   }
+  },
+  "effects": []
+ }
+}

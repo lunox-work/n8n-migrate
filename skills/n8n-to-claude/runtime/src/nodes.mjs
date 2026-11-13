@@ -321,25 +321,26 @@ function matchesRegex(a, b) {
 }
 const isDateObject = (v) => Object.prototype.toString.call(v) === "[object Date]";
 const legacyEmpty = (v) => [undefined, null, ""].includes(v) || Number.isNaN(v) || (typeof v === "object" && v !== null && !isDateObject(v) ? Object.entries(v).length === 0 : false) || (isDateObject(v) && v.toString() === "Invalid Date");
+// Parameter names as in n8n's IfV1/FilterV1, so a TypeError reads the same ("value1.startsWith is not a function").
 const LEGACY_OPS = {
-  after: (a, b) => (a || 0) > (b || 0),
-  before: (a, b) => (a || 0) < (b || 0),
-  contains: (a, b) => (a || "").toString().includes((b || "").toString()),
-  notContains: (a, b) => !(a || "").toString().includes((b || "").toString()),
-  endsWith: (a, b) => a.endsWith(b),
-  notEndsWith: (a, b) => !a.endsWith(b),
-  equal: (a, b) => a === b,
-  notEqual: (a, b) => a !== b,
-  larger: (a, b) => (a || 0) > (b || 0),
-  largerEqual: (a, b) => (a || 0) >= (b || 0),
-  smaller: (a, b) => (a || 0) < (b || 0),
-  smallerEqual: (a, b) => (a || 0) <= (b || 0),
-  startsWith: (a, b) => a.startsWith(b),
-  notStartsWith: (a, b) => !a.startsWith(b),
-  isEmpty: (a) => legacyEmpty(a),
-  isNotEmpty: (a) => !legacyEmpty(a),
+  after: (value1, value2) => (value1 || 0) > (value2 || 0),
+  before: (value1, value2) => (value1 || 0) < (value2 || 0),
+  contains: (value1, value2) => (value1 || "").toString().includes((value2 || "").toString()),
+  notContains: (value1, value2) => !(value1 || "").toString().includes((value2 || "").toString()),
+  endsWith: (value1, value2) => value1.endsWith(value2),
+  notEndsWith: (value1, value2) => !value1.endsWith(value2),
+  equal: (value1, value2) => value1 === value2,
+  notEqual: (value1, value2) => value1 !== value2,
+  larger: (value1, value2) => (value1 || 0) > (value2 || 0),
+  largerEqual: (value1, value2) => (value1 || 0) >= (value2 || 0),
+  smaller: (value1, value2) => (value1 || 0) < (value2 || 0),
+  smallerEqual: (value1, value2) => (value1 || 0) <= (value2 || 0),
+  startsWith: (value1, value2) => value1.startsWith(value2),
+  notStartsWith: (value1, value2) => !value1.startsWith(value2),
+  isEmpty: (value1) => legacyEmpty(value1),
+  isNotEmpty: (value1) => !legacyEmpty(value1),
   regex: matchesRegex,
-  notRegex: (a, b) => !matchesRegex(a, b),
+  notRegex: (value1, value2) => !matchesRegex(value1, value2),
 };
 const LEGACY_DEFAULT_OP = { boolean: "equal", dateTime: "after", number: "smaller", string: "equal" };
 const LEGACY_DEFAULT_VALUE = { boolean: false, dateTime: "", number: 0, string: "" };

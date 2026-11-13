@@ -2461,7 +2461,7 @@ return { FilterError, validateFieldType, executeFilterCondition, executeFilter }
 
 // ---- src/nodes2.mjs ----
 const __m_nodes2_mjs = (() => {
-const { NodeError, UnsupportedNode, deepCopy, getPath, setPath, isEqual, isObject } = __m_util_mjs;
+const { NodeError, UnsupportedNode, deepCopy, getPath, setPath, unsetPath, isEqual, isObject } = __m_util_mjs;
 const { hashHex, hmacBytes, digestBytes, bytesToBase64, toHex } = __m_hash_mjs;
 const { tryToParseDateTime } = __m_extensions_mjs;
 // Node implementations, group 2 (Sort, Remove Duplicates, Summarize, Date & Time, Crypto,
@@ -2787,6 +2787,16 @@ function seededUuid(random) {
   const h = toHex(Uint8Array.from(b));
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
+// The "Received ..." tail of Node's ERR_INVALID_ARG_TYPE message.
+function receivedType(v) {
+  if (v === undefined || v === null) return `Received ${v}`;
+  if (typeof v === "function") return `Received function ${v.name}`;
+  if (typeof v === "object") return `Received an instance of ${v.constructor?.name ?? "Object"}`;
+  let shown = typeof v === "string" ? JSON.stringify(v).replace(/^"|"$/g, "'") : String(v);
+  if (shown.length > 28) shown = `${shown.slice(0, 25)}...`;
+  return `Received type ${typeof v} (${shown})`;
+}
+
 const crypto = {
   versions: oneOf(1, 2),
   defaults: () => ({ action: "hash", type: "MD5", encoding: "hex", dataPropertyName: "data", value: "", binaryData: false, encodingType: "uuid", stringLength: 32, secret: "" }),
@@ -2813,7 +2823,9 @@ const crypto = {
           const alg = CRYPTO_ALG[String(exec.param("type", i)).toLowerCase()];
           if (!alg) throw unsupported(exec, `Crypto algorithm ${exec.param("type", i)}`);
           const enc = exec.param("encoding", i);
-          const bytes = action === "hash" ? digestBytes(alg, String(value)) : hmacBytes(alg, String(exec.param("secret", i)), String(value));
+          // node:crypto's update() takes only text or bytes (n8n passes the value as is).
+          if (typeof value !== "string") throw err(exec, `The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView. ${receivedType(value)}`, { itemIndex: i });
+          const bytes = action === "hash" ? digestBytes(alg, value) : hmacBytes(alg, String(exec.param("secret", i)), value);
           nv = enc === "base64" ? bytesToBase64(bytes) : toHex(bytes);
         } else throw unsupported(exec, `Crypto action "${action}"`);
         const n = { json: prop.includes(".") ? deepCopy(items[i].json) : { ...items[i].json }, pairedItem: { item: i } };
@@ -2834,6 +2846,20 @@ const crypto = {
 };
 
 // ---------- Respond to Webhook (records the response) ----------
+
+// n8n validates the Redirect URL parameter (validateType "url", tryToParseUrl): a value
+// without "://" gets "https://", and it must parse with an http/https/ftp/file protocol.
+function redirectUrl(exec, value) {
+  if (value === null || value === undefined) return value;
+  let v = value;
+  if (typeof v === "string" && !v.includes("://")) v = `https://${v}`;
+  let ok = false;
+  try {
+    ok = ["http:", "https:", "ftp:", "file:"].includes(new URL(String(v)).protocol);
+  } catch {}
+  if (!ok) throw err(exec, "Invalid input for 'Redirect URL' [item 0]", { description: `'Redirect URL' expects a url but we got '${value}'` });
+  return String(v);
+}
 
 const respondToWebhook = {
   versions: inRange(1, 1.5),
@@ -2868,7 +2894,7 @@ const respondToWebhook = {
         body = options.responseKey ? setPath({}, options.responseKey, items[0].json) : items[0].json;
       } else if (respondWith === "text") body = exec.param("responseBody", 0);
       else if (respondWith === "redirect") {
-        headers.location = exec.param("redirectURL", 0);
+        headers.location = redirectUrl(exec, exec.param("redirectURL", 0));
         statusCode = options.responseCode ?? 307;
       } else if (respondWith === "jwt" || respondWith === "binary") throw unsupported(exec, `Respond to Webhook with ${respondWith}`);
       else if (respondWith !== "noData") throw err(exec, `The Response Data option "${respondWith}" is not supported!`);
@@ -2886,6 +2912,37 @@ const respondToWebhook = {
 
 // ---------- Item Lists (legacy aliases) ----------
 
+// Item Lists v1 "Split Out Items" (n8n ItemListsV1): one field; a missing field or a value
+// that is not a list fails the node; object elements merge into the item when no other
+// fields are kept and no destination field is set.
+function itemListsSplitV1(exec) {
+  const items = exec.getInputData();
+  const out = [];
+  for (let i = 0; i < items.length; i++) {
+    const field = exec.param("fieldToSplitOut", i);
+    const noDot = exec.param("options.disableDotNotation", 0, false);
+    const dest = exec.param("options.destinationFieldName", i, "");
+    const include = exec.param("include", i, "noOtherFields");
+    const list = noDot ? items[i].json[field] : getPath(items[i].json, field);
+    if (list === undefined) throw err(exec, `Couldn't find the field '${field}' in the input data`, { itemIndex: i });
+    if (!Array.isArray(list)) throw err(exec, `The provided field '${field}' is not an array`, { itemIndex: i });
+    for (const el of list) {
+      let n = {};
+      if (include === "selectedOtherFields") {
+        const keep = exec.param("fieldsToInclude.fields", i, []).map((f) => f.fieldName);
+        if (!keep.length) throw err(exec, "No fields specified", { description: "Please add a field to include" });
+        for (const f of keep) if (f !== field) n[f] = noDot ? items[i].json[f] : getPath(items[i].json, f);
+      } else if (include === "allOtherFields") {
+        for (const k of Object.keys(items[i].json)) n[k] = noDot ? items[i].json[k] : getPath(items[i].json, k);
+        unsetPath(n, field);
+      }
+      if (typeof el === "object" && include === "noOtherFields" && dest === "") n = { ...n, ...el };
+      else n = { ...n, [dest || field]: el };
+      out.push({ json: n, pairedItem: { item: i } });
+    }
+  }
+  return [out];
+}
 const itemLists = {
   versions: inRange(1, 3.1),
   defaults: () => ({ operation: "splitOutItems", fieldToSplitOut: "", include: "noOtherFields", options: {} }),
@@ -2900,6 +2957,7 @@ const itemLists = {
       view.params = { ...(impl.defaults?.(version, step.params) ?? {}), ...step.params };
       return impl.execute.call(impl, view);
     };
+    if (op === "splitOutItems" && exec.typeVersion < 2) return itemListsSplitV1(exec);
     if (op === "splitOutItems") return alias("splitOut", 1, {});
     if (op === "aggregateItems") return alias("aggregate", 1, exec.params.aggregate ? {} : { aggregate: "aggregateIndividualFields" });
     if (op === "limit") return alias("limit", 1, {});
@@ -2919,7 +2977,17 @@ const html = {
   execute(exec) {
     const op = exec.param("operation", 0);
     const items = exec.getInputData();
-    if (op === "generateHtmlTemplate") return [items.map((_, i) => ({ json: { html: String(exec.param("html", i)) }, pairedItem: { item: i } }))];
+    if (op === "generateHtmlTemplate") {
+      // n8n resolves each {{ ... }} left in the (already resolved) html with
+      // evaluateExpression and String.replace, first occurrence each.
+      return [
+        items.map((_, i) => {
+          let h = exec.param("html", i);
+          if (typeof h === "string") for (const r of h.match(/{{[\s\S]*?}}/g) ?? []) h = h.replace(r, exec.evaluate(`=${r}`, i));
+          return { json: { html: h }, pairedItem: { item: i } };
+        }),
+      ];
+    }
     if (op === "convertToHtmlTable") {
       const opts = exec.param("options", 0, {});
       const keys = [...new Set(items.flatMap((it) => Object.keys(it.json)))];
@@ -3710,25 +3778,26 @@ function matchesRegex(a, b) {
 }
 const isDateObject = (v) => Object.prototype.toString.call(v) === "[object Date]";
 const legacyEmpty = (v) => [undefined, null, ""].includes(v) || Number.isNaN(v) || (typeof v === "object" && v !== null && !isDateObject(v) ? Object.entries(v).length === 0 : false) || (isDateObject(v) && v.toString() === "Invalid Date");
+// Parameter names as in n8n's IfV1/FilterV1, so a TypeError reads the same ("value1.startsWith is not a function").
 const LEGACY_OPS = {
-  after: (a, b) => (a || 0) > (b || 0),
-  before: (a, b) => (a || 0) < (b || 0),
-  contains: (a, b) => (a || "").toString().includes((b || "").toString()),
-  notContains: (a, b) => !(a || "").toString().includes((b || "").toString()),
-  endsWith: (a, b) => a.endsWith(b),
-  notEndsWith: (a, b) => !a.endsWith(b),
-  equal: (a, b) => a === b,
-  notEqual: (a, b) => a !== b,
-  larger: (a, b) => (a || 0) > (b || 0),
-  largerEqual: (a, b) => (a || 0) >= (b || 0),
-  smaller: (a, b) => (a || 0) < (b || 0),
-  smallerEqual: (a, b) => (a || 0) <= (b || 0),
-  startsWith: (a, b) => a.startsWith(b),
-  notStartsWith: (a, b) => !a.startsWith(b),
-  isEmpty: (a) => legacyEmpty(a),
-  isNotEmpty: (a) => !legacyEmpty(a),
+  after: (value1, value2) => (value1 || 0) > (value2 || 0),
+  before: (value1, value2) => (value1 || 0) < (value2 || 0),
+  contains: (value1, value2) => (value1 || "").toString().includes((value2 || "").toString()),
+  notContains: (value1, value2) => !(value1 || "").toString().includes((value2 || "").toString()),
+  endsWith: (value1, value2) => value1.endsWith(value2),
+  notEndsWith: (value1, value2) => !value1.endsWith(value2),
+  equal: (value1, value2) => value1 === value2,
+  notEqual: (value1, value2) => value1 !== value2,
+  larger: (value1, value2) => (value1 || 0) > (value2 || 0),
+  largerEqual: (value1, value2) => (value1 || 0) >= (value2 || 0),
+  smaller: (value1, value2) => (value1 || 0) < (value2 || 0),
+  smallerEqual: (value1, value2) => (value1 || 0) <= (value2 || 0),
+  startsWith: (value1, value2) => value1.startsWith(value2),
+  notStartsWith: (value1, value2) => !value1.startsWith(value2),
+  isEmpty: (value1) => legacyEmpty(value1),
+  isNotEmpty: (value1) => !legacyEmpty(value1),
   regex: matchesRegex,
-  notRegex: (a, b) => !matchesRegex(a, b),
+  notRegex: (value1, value2) => !matchesRegex(value1, value2),
 };
 const LEGACY_DEFAULT_OP = { boolean: "equal", dateTime: "after", number: "smaller", string: "equal" };
 const LEGACY_DEFAULT_VALUE = { boolean: false, dateTime: "", number: 0, string: "" };
