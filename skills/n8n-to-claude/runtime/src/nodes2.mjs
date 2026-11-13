@@ -221,9 +221,13 @@ const summarize = {
 
 // n8n's DateTime v2 parseDate: numbers are seconds (< 12 digits) or ms; strings go through
 // moment (ISO first, then the JS Date parser) in UTC; the result is set to `timezone`.
+// n8n DateTime v2 parseDate: anything Number() accepts is a timestamp (so null, "" and
+// false are 0, the epoch; fewer than 12 digits means seconds), a string goes through
+// moment (ISO, else Date parsing), undefined is moment(undefined) = now. Observed from
+// n8n 2.47.7 (tests/fixtures/n8n-observed/datetime-empty.json).
 function parseDate(exec, date, { timezone, fromFormat } = {}) {
   if (DateTime.isDateTime(date)) return date;
-  if (!Number.isNaN(Number(date)) && !fromFormat && date !== "" && date !== null && typeof date !== "boolean") {
+  if (!Number.isNaN(Number(date)) && !fromFormat) {
     date = Number(date);
     if (!Number.isInteger(date)) date *= 1000;
   }
@@ -231,10 +235,12 @@ function parseDate(exec, date, { timezone, fromFormat } = {}) {
   let d;
   if (Number.isInteger(date)) d = String(date).length < 12 ? DateTime.fromSeconds(date) : DateTime.fromMillis(date);
   else {
-    const s = String(date);
-    if (!zone && s.includes("+")) zone = `Etc/GMT-${Number(s.split("+")[1].slice(0, 2))}`;
-    if (fromFormat) d = DateTime.fromFormat(s, fromFormat);
+    if (!zone && typeof date !== "string") throw err(exec, `Cannot read properties of ${date === undefined ? "undefined" : "an object"} (reading 'includes')`);
+    if (!zone && date.includes("+")) zone = `Etc/GMT-${Number(date.split("+")[1].slice(0, 2))}`;
+    if (date === undefined) d = DateTime.fromMillis(exec.run.clock.now);
+    else if (fromFormat) d = DateTime.fromFormat(String(date), fromFormat);
     else {
+      const s = String(date);
       const iso = DateTime.fromISO(s, { zone: "utc", setZone: false });
       d = iso.isValid ? iso : DateTime.fromJSDate(new Date(s));
     }

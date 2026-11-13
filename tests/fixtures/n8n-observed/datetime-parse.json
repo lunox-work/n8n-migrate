@@ -1,0 +1,454 @@
+{
+ "note": "observed from n8n 2.47.7 on 2026-11-14 (evals/diff/differential.mjs --save-fixture)",
+ "title": "Date & Time 2 parses null and \"\" as the epoch and a missing value as now",
+ "label": "datetime-parse",
+ "workflow": {
+  "name": "datetime-parse",
+  "nodes": [
+   {
+    "id": "t",
+    "name": "Trigger",
+    "type": "n8n-nodes-base.manualTrigger",
+    "typeVersion": 1,
+    "position": [
+     0,
+     0
+    ],
+    "parameters": {}
+   },
+   {
+    "id": "n0",
+    "name": "Add",
+    "type": "n8n-nodes-base.dateTime",
+    "typeVersion": 2,
+    "position": [
+     240,
+     0
+    ],
+    "parameters": {
+     "operation": "addToDate",
+     "magnitude": "={{ $json.created }}",
+     "timeUnit": "days",
+     "duration": 1,
+     "outputFieldName": "newDate",
+     "options": {
+      "includeInputFields": true
+     }
+    }
+   },
+   {
+    "id": "n1",
+    "name": "Format",
+    "type": "n8n-nodes-base.dateTime",
+    "typeVersion": 2,
+    "position": [
+     480,
+     0
+    ],
+    "parameters": {
+     "operation": "formatDate",
+     "date": "={{ $json.created }}",
+     "format": "yyyy-MM-dd",
+     "outputFieldName": "f",
+     "options": {
+      "includeInputFields": true
+     }
+    }
+   },
+   {
+    "id": "n2",
+    "name": "Extract",
+    "type": "n8n-nodes-base.dateTime",
+    "typeVersion": 2,
+    "position": [
+     720,
+     0
+    ],
+    "parameters": {
+     "operation": "extractDate",
+     "date": "={{ $json.created }}",
+     "part": "year",
+     "outputFieldName": "y",
+     "options": {
+      "includeInputFields": true
+     }
+    }
+   }
+  ],
+  "connections": {
+   "Trigger": {
+    "main": [
+     [
+      {
+       "node": "Add",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Add": {
+    "main": [
+     [
+      {
+       "node": "Format",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Format": {
+    "main": [
+     [
+      {
+       "node": "Extract",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1"
+  }
+ },
+ "triggerName": "Trigger",
+ "pinned": [
+  "Trigger"
+ ],
+ "pinData": {
+  "Trigger": [
+   {
+    "json": {
+     "created": null
+    }
+   },
+   {
+    "json": {}
+   },
+   {
+    "json": {
+     "created": ""
+    }
+   },
+   {
+    "json": {
+     "created": 0
+    }
+   },
+   {
+    "json": {
+     "created": "2026-01-31T23:59:59Z"
+    }
+   },
+   {
+    "json": {
+     "created": true
+    }
+   }
+  ]
+ },
+ "fixtures": {
+  "default": {
+   "status": 200,
+   "body": {
+    "ok": true,
+    "id": "mock-1",
+    "data": [
+     {
+      "id": 1,
+      "name": "one"
+     },
+     {
+      "id": 2,
+      "name": "two"
+     }
+    ]
+   }
+  }
+ },
+ "n8n": {
+  "status": "success",
+  "error": null,
+  "lastNode": "Extract",
+  "startedAt": "2026-11-13T21:33:33.718Z",
+  "executionId": "860",
+  "workflowId": "9btMl3WHpxHf1qBe",
+  "executionData": {
+   "runData": {
+    "Trigger": [
+     {
+      "executionIndex": 0,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "created": null
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {},
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "created": ""
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "created": 0
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "created": "2026-01-31T23:59:59Z"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "created": true
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Add": [
+     {
+      "executionIndex": 1,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "created": null,
+           "newDate": "1970-01-02T00:00:00.000Z"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "newDate": "2026-11-14T21:33:33.723Z"
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         },
+         {
+          "json": {
+           "created": "",
+           "newDate": "1970-01-02T00:00:00.000Z"
+          },
+          "pairedItem": {
+           "item": 2
+          }
+         },
+         {
+          "json": {
+           "created": 0,
+           "newDate": "1970-01-02T00:00:00.000Z"
+          },
+          "pairedItem": {
+           "item": 3
+          }
+         },
+         {
+          "json": {
+           "created": "2026-01-31T23:59:59Z",
+           "newDate": "2026-02-01T23:59:59.000Z"
+          },
+          "pairedItem": {
+           "item": 4
+          }
+         },
+         {
+          "json": {
+           "created": true,
+           "newDate": "1970-01-02T00:00:01.000Z"
+          },
+          "pairedItem": {
+           "item": 5
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Format": [
+     {
+      "executionIndex": 2,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "created": null,
+           "newDate": "1970-01-02T00:00:00.000Z",
+           "f": null
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "newDate": "2026-11-14T21:33:33.723Z"
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         },
+         {
+          "json": {
+           "created": "",
+           "newDate": "1970-01-02T00:00:00.000Z",
+           "f": "1970-01-01"
+          },
+          "pairedItem": {
+           "item": 2
+          }
+         },
+         {
+          "json": {
+           "created": 0,
+           "newDate": "1970-01-02T00:00:00.000Z",
+           "f": "1970-01-01"
+          },
+          "pairedItem": {
+           "item": 3
+          }
+         },
+         {
+          "json": {
+           "created": "2026-01-31T23:59:59Z",
+           "newDate": "2026-02-01T23:59:59.000Z",
+           "f": "2026-01-31"
+          },
+          "pairedItem": {
+           "item": 4
+          }
+         },
+         {
+          "json": {
+           "created": true,
+           "newDate": "1970-01-02T00:00:01.000Z",
+           "f": "1970-01-01"
+          },
+          "pairedItem": {
+           "item": 5
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Extract": [
+     {
+      "executionIndex": 3,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "created": null,
+           "newDate": "1970-01-02T00:00:00.000Z",
+           "f": null,
+           "y": 1970
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "newDate": "2026-11-14T21:33:33.723Z",
+           "y": 2026
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         },
+         {
+          "json": {
+           "created": "",
+           "newDate": "1970-01-02T00:00:00.000Z",
+           "f": "1970-01-01",
+           "y": 1970
+          },
+          "pairedItem": {
+           "item": 2
+          }
+         },
+         {
+          "json": {
+           "created": 0,
+           "newDate": "1970-01-02T00:00:00.000Z",
+           "f": "1970-01-01",
+           "y": 1970
+          },
+          "pairedItem": {
+           "item": 3
+          }
+         },
+         {
+          "json": {
+           "created": "2026-01-31T23:59:59Z",
+           "newDate": "2026-02-01T23:59:59.000Z",
+           "f": "2026-01-31",
+           "y": 2026
+          },
+          "pairedItem": {
+           "item": 4
+          }
+         },
+         {
+          "json": {
+           "created": true,
+           "newDate": "1970-01-02T00:00:01.000Z",
+           "f": "1970-01-01",
+           "y": 1970
+          },
+          "pairedItem": {
+           "item": 5
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ]
+   }
+  },
+  "effects": []
+ }
+}
