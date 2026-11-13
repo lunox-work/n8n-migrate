@@ -32,7 +32,11 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const RUNNER_CMD = "node runtime/runner.mjs";
-const END = "N2C_END";
+// Answers and responses go through a file the model writes with its Write tool
+// (.n2c/inbox/<q>.txt), not through a heredoc: Claude Code's Bash permission check refuses a
+// heredoc that holds JSON in dontAsk mode (observed on 2.1.323), and quoting arbitrary text in
+// a shell argument is where a small model slips.
+export const inboxFile = (handle) => `.n2c/inbox/${handle}.txt`;
 const RECENT_MS = 60_000; // a run that ended this recently is not followed by a new one
 const INLINE_SLEEP_MS = 120_000;
 // Claude Code cuts a Bash result at about 30,000 characters; longer instructions are paged.
@@ -318,14 +322,11 @@ function toolInstruction(task, handle, req, { hooksSeen = false, repeat = 0 } = 
     JSON.stringify(args),
   ];
   const saveYourself = [
-    "After the tool returns, save its full response exactly as returned (every character) by running:",
-    `${RUNNER_CMD} result ${handle} <<'${END}'`,
-    "<the tool's full response>",
-    END,
-    `If the tool returned an error, run the same command with --error after ${handle}.`,
+    `After the tool returns, use the Write tool to write its full response, exactly as returned (every character), to the file ${inboxFile(handle)} in this folder. Then run: ${RUNNER_CMD} result ${handle}`,
+    `If the tool returned an error, write the error text to that file and run: ${RUNNER_CMD} result ${handle} --error`,
   ];
   if (task.hooks && repeat > 0 && !hooksSeen) {
-    lines.push(`If you already called this tool for ${handle} and it returned, do not call it again: save its response instead.`, ...saveYourself.slice(1), `If you have not called it yet, call it now, then run: ${RUNNER_CMD} next`);
+    lines.push(`If you already called this tool for ${handle} and it returned, do not call it again: save its response instead.`, ...saveYourself, `If you have not called it yet, call it now, then run: ${RUNNER_CMD} next`);
   } else if (task.hooks) {
     if (compact && task.compactWhole) lines.push(`Pass exactly {"n2c": "${handle}"} as the arguments: it is replaced with the real arguments when the tool is called.`);
     else if (compact && JSON.stringify(args).includes("@n2c:")) lines.push(`Keep each "@n2c:..." value exactly as written: it is replaced with the real value when the tool is called.`);
@@ -340,7 +341,7 @@ function modelInstruction(handle, req) {
   if (req.messages?.length) parts.push(fence("MESSAGES", req.messages.map((m) => `[${m.role}] ${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}`).join("\n")));
   if (req.prompt !== undefined) parts.push(fence("PROMPT", String(req.prompt)));
   parts.push(req.outputSchema ? `Answer with one JSON value that matches this JSON Schema, nothing else:\n${JSON.stringify(req.outputSchema)}` : "Answer with plain text only: the answer itself, no preamble.");
-  parts.push(`Save the answer by running:\n${RUNNER_CMD} answer ${handle} <<'${END}'\n<your answer>\n${END}`);
+  parts.push(`Save the answer: use the Write tool to write only your answer to the file ${inboxFile(handle)} in this folder, then run: ${RUNNER_CMD} answer ${handle}`);
   return parts.join("\n\n");
 }
 function agentInstruction(handle, req, memory) {
@@ -354,7 +355,7 @@ function agentInstruction(handle, req, memory) {
   parts.push(
     `Either answer with the final output${req.outputSchema ? ` (one JSON value matching ${JSON.stringify(req.outputSchema)})` : " (plain text)"}, or ask for tools with exactly this JSON:\n{"intent": "tool-calls", "calls": [{"name": "<tool>", "args": {...}}]}`,
   );
-  parts.push(`Save it by running:\n${RUNNER_CMD} answer ${handle} <<'${END}'\n<your answer or the JSON>\n${END}`);
+  parts.push(`Save it: use the Write tool to write only your answer or the JSON to the file ${inboxFile(handle)} in this folder, then run: ${RUNNER_CMD} answer ${handle}`);
   return parts.join("\n\n");
 }
 function finalText(state) {
@@ -383,7 +384,7 @@ function archive(P, state) {
   writeJson(join(P.runs, `${state.runId}.json`), state);
 }
 function clearResults(P) {
-  for (const d of [P.results, join(P.n2c, "pages")]) if (existsSync(d)) for (const f of readdirSync(d)) rmSync(join(d, f), { force: true });
+  for (const d of [P.results, join(P.n2c, "pages"), join(P.n2c, "inbox")]) if (existsSync(d)) for (const f of readdirSync(d)) rmSync(join(d, f), { force: true });
 }
 
 async function advance(P, core, task, state, opts = {}) {
@@ -459,9 +460,12 @@ function rememberAgentTurns(P, reqs, results) {
 
 // ---------- commands ----------
 
-function readInput(flags, stdin) {
+// --text, --file, else the inbox file the model wrote, else stdin.
+function readInput(P, handle, flags, stdin) {
   if (typeof flags.text === "string") return flags.text;
   if (typeof flags.file === "string" && flags.file !== "-") return readFileSync(flags.file, "utf8");
+  const inbox = join(P.dir, inboxFile(safe(handle)));
+  if (flags.file !== "-" && existsSync(inbox)) return readFileSync(inbox, "utf8");
   return stdin();
 }
 const stripEnd = (s) => String(s).replace(/\r\n/g, "\n").replace(/\n$/, "");
@@ -526,7 +530,7 @@ export async function command(cmd, pos, flags, { core, dir, stdin, fetch } = {})
       const want = cmd === "answer" ? ["model", "agent"] : ["tool"];
       if (!want.includes(req.kind)) return { code: 2, text: `Request ${handle} is a ${req.kind} request; use \`${cmd === "answer" ? "result" : "answer"}\`. Run: ${RUNNER_CMD} next` };
       if (hasResult(P, handle)) return { code: 2, text: `Request ${handle} already has its result (saved automatically). Run: ${RUNNER_CMD} next` };
-      const text = stripEnd(readInput(flags, stdin));
+      const text = stripEnd(readInput(P, handle, flags, stdin));
       let result;
       if (cmd === "result") {
         result = flags.error ? { ok: false, error: { name: "ToolError", message: text } } : { ok: true, value: mcpValue(text) };
@@ -539,12 +543,12 @@ export async function command(cmd, pos, flags, { core, dir, stdin, fetch } = {})
             try {
               value = JSON.parse(t.replace(/^```(?:json)?\s*|\s*```$/g, ""));
             } catch (e) {
-              if (req.outputSchema) return { code: 2, text: `The answer is not valid JSON (${e.message}). Answer again with one JSON value: ${RUNNER_CMD} answer ${handle} <<'${END}' ... ${END}` };
+              if (req.outputSchema) return { code: 2, text: `The answer is not valid JSON (${e.message}). Write one JSON value to ${inboxFile(handle)} and run ${RUNNER_CMD} answer ${handle} again.` };
             }
           }
           if (req.outputSchema && !(isObj(value) && value.intent === "tool-calls")) {
             const errs = schemaErrors(value, req.outputSchema);
-            if (errs.length) return { code: 2, text: `The answer does not match the schema: ${errs.slice(0, 5).join("; ")}. Answer again with ${RUNNER_CMD} answer ${handle}.` };
+            if (errs.length) return { code: 2, text: `The answer does not match the schema: ${errs.slice(0, 5).join("; ")}. Write a corrected answer to ${inboxFile(handle)} and run ${RUNNER_CMD} answer ${handle} again.` };
           }
         }
         result = { ok: true, value, capturedBy: "model" };
@@ -554,7 +558,7 @@ export async function command(cmd, pos, flags, { core, dir, stdin, fetch } = {})
       const next = await advance(P, core, task, readJson(P.state), { fetch });
       return { code: codeOf(P), text: `Saved ${handle}.\n\n${next}` };
     }
-    return { code: 2, text: "commands: start, next, show <q> <part>, answer <q> [--file f|--text t], result <q> [--error], status" };
+    return { code: 2, text: "commands: start, next, show <q> <part>, answer <q> [--file f|--text t], result <q> [--error] [--file f], status" };
   });
 }
 // Exit codes the model sees: 0 while the run goes on and when it is done (a non-zero code

@@ -4,7 +4,7 @@
 // that run claude -p live in evals/task-driver/.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -41,7 +41,7 @@ test("converted folders carry the task files: settings with the minimal allowlis
   try {
     for (const f of ["runtime/driver.mjs", "runtime/hook.mjs", "task.json", "task-prompt.md", ".claude/settings.json"]) assert.ok(existsSync(join(folder, f)), f);
     const s = readJson(join(folder, ".claude/settings.json"));
-    assert.deepEqual(s.permissions, { defaultMode: "dontAsk", allow: ["Bash(node runtime/runner.mjs *)", GMAIL, SLACK], deny: ["WebFetch", "WebSearch"] });
+    assert.deepEqual(s.permissions, { defaultMode: "dontAsk", allow: ["Bash(node runtime/runner.mjs *)", "Edit(.n2c/inbox/**)", GMAIL, SLACK], deny: ["WebFetch", "WebSearch"] });
     assert.deepEqual(Object.keys(s.hooks), ["PreToolUse", "PostToolUse"]);
     assert.equal(s.hooks.PreToolUse[0].matcher, "^mcp__");
     assert.equal(s.hooks.PreToolUse[0].hooks[0].command, 'node "$CLAUDE_PROJECT_DIR/runtime/hook.mjs" pre');
@@ -113,8 +113,10 @@ test("hooks off: the model saves responses with `result`; a missing hook degrade
     const t = readJson(join(folder, "task.json"));
     writeFileSync(join(folder, "task.json"), JSON.stringify({ ...t, hooks: false }));
     const a = runner(folder, ["start"]);
-    assert.match(a.out, /save its full response exactly as returned \(every character\) by running:\nnode runtime\/runner\.mjs result q1 <<'N2C_END'/);
-    const b = runner(folder, ["result", "q1"], JSON.stringify(MAIL) + "\n");
+    assert.match(a.out, /use the Write tool to write its full response, exactly as returned \(every character\), to the file \.n2c\/inbox\/q1\.txt in this folder\. Then run: node runtime\/runner\.mjs result q1/);
+    mkdirSync(join(folder, ".n2c/inbox"), { recursive: true });
+    writeFileSync(join(folder, ".n2c/inbox/q1.txt"), JSON.stringify(MAIL) + "\n");
+    const b = runner(folder, ["result", "q1"]);
     assert.match(b.out, /^Saved q1\.\n\nNEXT: write an answer yourself/);
     assert.deepEqual(readJson(join(folder, ".n2c/run.json")).resultLog["Get unread mail#0#0"], { ok: true, value: MAIL });
 

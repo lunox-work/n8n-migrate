@@ -12,7 +12,8 @@
 //   runner.mjs start [--trigger <json>] [--clock <ISO>] [--force]  start or continue a run
 //   runner.mjs next                                   the next thing to do, or DONE / FAILED
 //   runner.mjs show <q> <part>                        part of a long instruction
-//   runner.mjs answer <q> [--file f | --text t]       a model/agent answer (default: stdin)
+//   runner.mjs answer <q> [--file f | --text t]       a model/agent answer (default: the file
+//                                                     .n2c/inbox/<q>.txt, else stdin)
 //   runner.mjs result <q> [--error] [--file f]        a tool response, when hooks are off
 //   runner.mjs status                                 JSON summary of the current run
 //

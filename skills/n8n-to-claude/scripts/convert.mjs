@@ -18,7 +18,8 @@
 //   task.json        task-driver settings: hooks on, connector tool-name prefixes, secret source
 //   task-prompt.md   the prompt a scheduled task runs (references/task-prompt.md)
 //   .claude/settings.json  for the task session: the minimal permission allowlist (the runner
-//                    CLI and the definition's connector tools), dontAsk mode, and the hooks that
+//                    CLI, writes to .n2c/inbox/ for answers, the definition's connector tools),
+//                    dontAsk mode, and the hooks that
 //                    check each connector call against the runner's request and capture its
 //                    response (runtime/hook.mjs)
 //   MIGRATION.md     what moved, what is flagged, the questions, the requirements per surface
@@ -1524,7 +1525,7 @@ export function taskSettings(def, refs) {
   const tools = (def.allow?.tools ?? []).map((t) => (prefixes[t.connector] ?? `mcp__${t.connector}__`) + t.tool);
   const hook = (which) => [{ matcher: "^mcp__", hooks: [{ type: "command", command: `node "$CLAUDE_PROJECT_DIR/runtime/hook.mjs" ${which}`, timeout: 30 }] }];
   return {
-    permissions: { defaultMode: "dontAsk", allow: ["Bash(node runtime/runner.mjs *)", ...uniq(tools)], deny: ["WebFetch", "WebSearch"] },
+    permissions: { defaultMode: "dontAsk", allow: ["Bash(node runtime/runner.mjs *)", "Edit(.n2c/inbox/**)", ...uniq(tools)], deny: ["WebFetch", "WebSearch"] },
     hooks: { PreToolUse: hook("pre"), PostToolUse: hook("post") },
   };
 }
