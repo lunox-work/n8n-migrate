@@ -216,7 +216,9 @@
         }
       ],
       "unmapped": [],
-      "levers": []
+      "levers": [
+        "relay"
+      ]
     }
   ]
 }

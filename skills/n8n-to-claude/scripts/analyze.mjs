@@ -1073,6 +1073,9 @@ function processNode(W, d, ctx, br) {
   const reqSurf = (k) => surfacesFrom(caps.requirements?.[k]);
 
   if (d.isTrigger) {
+    // A poll, chat, form or relay wake-up needs the lever of the same name,
+    // also when the mapping sets the wake-up by a rule (webhook).
+    if (["poll", "chat", "form", "relay"].includes(d.wakeup)) W.levers.add(d.wakeup);
     if (d.wakeup === "relay") addReq(W, "relay", shortType(d.type), name, { surfaces: reqSurf("relay") });
     if (d.wakeup === "poll") addReq(W, "poll", shortType(d.type), name, { surfaces: reqSurf("poll") });
     if (d.connector) addReq(W, "connector", d.connector, name, { ops: [{ type: d.baseType, op: "poll" }] });
