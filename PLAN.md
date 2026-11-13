@@ -142,6 +142,23 @@ Files:
 
 Done when: every fixture matches its golden report; a real export of 20+ workflows produces a report with no crash and no guessed node; the report reproduces or corrects the survey tables; and the author agrees with the report for the 11 workflows in the three sibling n8n repos.
 
+Decisions taken here:
+
+- **Manual target:** `artifact` only when every requirement is `ok` on the artifact surface; otherwise `skill` (Claude Code or Cowork, where secrets and the bundled server exist). The same applies to a sub-workflow with no caller. `outcome.reason` names what the artifact lacks.
+- **Several triggers:** the most demanding wake-up decides the outcome. `outcome.alsoTargets` lists other trigger kinds that need a different target, for example chat → skill plus schedule → cloud task. Manual, sub-workflow and error triggers never get one.
+- **LLM API over HTTP:** a POST to a known LLM API (`references/http-hosts.json`) is a `model` step with effect none, lever `llm-api` and a `model call → Claude` substitution requirement. It runs on the subscription instead of an API key.
+- **Undetermined effects:** an HTTP or SQL step the file cannot settle counts as a write (`effectBy: assumed`). It joins one `writes` question per workflow, answered with true, false or node names.
+- **Chat-app relays:** Telegram, WhatsApp and Twilio triggers ask who waits for the replies. The assumed answer, outsiders, gives `hosted`; only you gives `skill`; nobody waits gives `cloud-task`.
+- **Execute Command** is a substitution to a local task's shell, not a blocker. **Debug Helper** is a logic step. The **n8n API node** stays a blocker.
+
+Status 2026-11-14: every fixture matches its golden. 66 tests pass, including a robustness test that mutates every fixture. The report corrects the survey tables ([RECONCILE.md](evals/survey/RECONCILE.md)). With default answers the top 100 split into subscription 68 (skill 38, cloud task 10, local task 7, artifact form 7, artifact 6), replaced 1, hosted 20 and kept in n8n 11. Eligible after all levers: 68, not 83. If every answer favours moving, 94 run on the subscription. The biggest correction: the 14 Telegram and WhatsApp relays are chat bots whose users wait for replies. `llm-api` applies to 4 templates. Open questions fell from 154 to 89. The sibling report is in [sibling-review.md](evals/sibling-review.md), with 9 of 11 rows judged correct. The two Setup workflows have no "nothing to migrate" outcome yet.
+
+Remaining:
+
+- The author's sign-off on the sibling review.
+- A real bulk export of 20+ workflows from an n8n instance (a later session, with Docker).
+- Phase 0 should add a check on how long a cloud task takes to start from its API trigger, because the chat-app default depends on it.
+
 ## Phase 2: one workflow end to end
 
 Build the thinnest slice before widening anything. Workflow: Schedule Trigger → one read connector → one model step → Slack message.
