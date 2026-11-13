@@ -51,9 +51,8 @@ export function pre(P, input) {
       writeFileSync(join(P.n2c, "calls", `${String(input.tool_use_id ?? "last").replace(/[^\w-]/g, "_")}.json`), JSON.stringify({ handle: x.handle, id: x.req.id }));
       logEvent(P, { event: "hook-allow", tool: name, handle: x.handle, expanded: !deepEqual(expanded, args) });
       if (!deepEqual(expanded, args)) {
-        const o = { hookEventName: "PreToolUse", updatedInput: expanded };
-        if (task.preAllow) o.permissionDecision = "allow";
-        return out({ hookSpecificOutput: o });
+        // No permissionDecision: the allowlist in .claude/settings.json still decides.
+        return out({ hookSpecificOutput: { hookEventName: "PreToolUse", updatedInput: expanded } });
       }
       return;
     }
