@@ -475,10 +475,18 @@ export function redact(v) {
 
 // Finds secret-looking literals in one string. In an expression string
 // (starting with "=") only the literal text outside {{ }} is scanned.
+// A value the converter already redacted (redactSecrets) still counts as that secret, so a
+// stored export reports what the original did.
+const REDACTED_MARK = /«redacted ([\w-]+) ([^»\s]*)»/g;
 export function findSecrets(s) {
   const text = s.startsWith("=") ? blankExpr(s.slice(1), (m) => " ".repeat(m.length)) : s;
   const spans = [];
   const out = [];
+  REDACTED_MARK.lastIndex = 0;
+  for (let m; (m = REDACTED_MARK.exec(text)); ) {
+    spans.push([m.index, m.index + m[0].length]);
+    out.push({ kind: m[1], value: m[0], redacted: m[2] });
+  }
   for (const [kind, re] of SECRET_PATTERNS) {
     re.lastIndex = 0;
     for (let m; (m = re.exec(text)); ) {
@@ -500,7 +508,7 @@ export function scanSecrets(root, path) {
   const out = [];
   const walk = (v, p) => {
     if (typeof v === "string") {
-      for (const f of findSecrets(v)) out.push({ path: p, kind: f.kind, redacted: redact(f.value) });
+      for (const f of findSecrets(v)) out.push({ path: p, kind: f.kind, redacted: f.redacted ?? redact(f.value) });
     } else if (Array.isArray(v)) v.forEach((x, i) => walk(x, `${p}[${i}]`));
     else if (isObj(v)) {
       if (typeof v.name === "string" && typeof v.value === "string" && SECRET_NAME.test(v.name.trim()) && !v.value.startsWith("=")) {
@@ -512,6 +520,40 @@ export function scanSecrets(root, path) {
   };
   walk(root, path);
   return out;
+}
+
+// The same walk as scanSecrets, returning a copy of `root` with every secret value replaced
+// by `«redacted <kind> <first 4 chars>…<length>»` (the converter writes no secret value
+// anywhere), and the list of what was replaced.
+export function redactSecrets(root, path = "") {
+  const found = [];
+  const mark = (kind, v) => `«redacted ${kind} ${redact(v)}»`;
+  const walk = (v, p) => {
+    if (typeof v === "string") {
+      let s = v;
+      for (const f of findSecrets(v)) {
+        if (f.redacted !== undefined) continue;
+        found.push({ path: p, kind: f.kind, redacted: redact(f.value) });
+        s = s.split(f.value).join(mark(f.kind, f.value));
+      }
+      return s;
+    }
+    if (Array.isArray(v)) return v.map((x, i) => walk(x, `${p}[${i}]`));
+    if (isObj(v)) {
+      const out = {};
+      for (const [k, x] of Object.entries(v)) out[k] = walk(x, `${p}.${k}`);
+      if (typeof v.name === "string" && typeof v.value === "string" && SECRET_NAME.test(v.name.trim()) && !v.value.startsWith("=")) {
+        const val = v.value.trim();
+        if (val.length >= 16 && !isPlaceholder(val) && !findSecrets(v.value).length) {
+          found.push({ path: `${p}.value`, kind: "named-param", redacted: redact(val) });
+          out.value = mark("named-param", val);
+        }
+      }
+      return out;
+    }
+    return v;
+  };
+  return { value: walk(root, path), found };
 }
 
 // ---------- cron ----------
