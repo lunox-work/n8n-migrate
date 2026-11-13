@@ -1671,7 +1671,7 @@ function outcomeForKind(W, ctx, k) {
     else if (s.fits === "local-task") o = { kind: "subscription", target: "local-task", reason: `${what}, more often than a cloud task's one run per ${cloudMin}, so a local task` };
     else o = { kind: "subscription", target: "local-task", reason: `${what}, more often than a local task's one run per ${localMin}: the schedule must slow down` };
   } else if (k === "error") {
-    o = { kind: "keep-in-n8n", target: null, reason: "the runner's failure alert replaces error workflows" };
+    o = { kind: "keep-in-n8n", target: null, reason: "an error workflow stays with the workflows that remain in n8n; moved ones get the runner's failure alert instead" };
   } else {
     // Run on request. An artifact only when it can do every step today;
     // otherwise a skill, run in Claude Code or Cowork where secrets and the

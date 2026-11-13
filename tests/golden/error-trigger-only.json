@@ -67,7 +67,7 @@
       "outcome": {
         "kind": "keep-in-n8n",
         "target": null,
-        "reason": "the runner's failure alert replaces error workflows",
+        "reason": "an error workflow stays with the workflows that remain in n8n; moved ones get the runner's failure alert instead",
         "alsoTargets": []
       },
       "calledBy": [],
