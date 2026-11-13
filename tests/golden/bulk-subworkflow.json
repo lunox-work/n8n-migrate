@@ -70,7 +70,8 @@
       "outcome": {
         "kind": "subscription",
         "target": "cloud-task",
-        "reason": "fires every 1 d; a cloud task runs at most every 1 h"
+        "reason": "fires every 1 d; a cloud task runs at most every 1 h",
+        "alsoTargets": []
       },
       "calledBy": [],
       "calls": [
@@ -208,7 +209,8 @@
       "outcome": {
         "kind": "subscription",
         "target": "cloud-task",
-        "reason": "inlined into \"Daily digest\"; follows \"Daily digest\""
+        "reason": "inlined into \"Daily digest\"; follows \"Daily digest\"",
+        "alsoTargets": []
       },
       "calledBy": [
         "wf-parent"

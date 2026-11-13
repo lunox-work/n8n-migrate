@@ -67,7 +67,8 @@
       "outcome": {
         "kind": "keep-in-n8n",
         "target": null,
-        "reason": "the runner's failure alert replaces error workflows"
+        "reason": "the runner's failure alert replaces error workflows",
+        "alsoTargets": []
       },
       "calledBy": [],
       "calls": [],

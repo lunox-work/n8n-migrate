@@ -67,7 +67,8 @@
       "outcome": {
         "kind": "keep-in-n8n",
         "target": null,
-        "reason": "runs a shell command on the n8n host; resumes when an n8n webhook is called (out of scope v1)"
+        "reason": "runs a shell command on the n8n host; resumes when an n8n webhook is called (out of scope v1)",
+        "alsoTargets": []
       },
       "calledBy": [],
       "calls": [],

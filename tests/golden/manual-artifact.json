@@ -34,7 +34,7 @@
     },
     "blockers": {},
     "notAnAutomation": 0,
-    "questions": 1,
+    "questions": 0,
     "unmappedTypes": [],
     "cloudScheduledRunsPerHour": 0,
     "cloudScheduledRunsPerHourLimit": 100,
@@ -48,13 +48,13 @@
   "workflows": [
     {
       "id": "manual-artifact",
-      "name": "Research to Notion",
+      "name": "Split a list by hand",
       "file": "manual-artifact.json",
-      "sourceHash": "04dc97d5164b5e1b955d2ea3ea8587d71f72573d4091bc768907c34defea962c",
+      "sourceHash": "4061e4b88eb29d518314b55a823f22e00e472bfca5abf384d037acdf5f58e7f5",
       "wakeup": {
         "kind": "manual",
         "nodes": [
-          "When clicking 'Execute workflow'"
+          "Run"
         ],
         "all": [
           "manual"
@@ -67,67 +67,15 @@
       "outcome": {
         "kind": "subscription",
         "target": "artifact",
-        "reason": "run by hand: the artifact's Run now button"
+        "reason": "run by hand: the artifact's Run now button",
+        "alsoTargets": []
       },
       "calledBy": [],
       "calls": [],
-      "requires": [
-        {
-          "kind": "connector",
-          "name": "notion",
-          "nodes": [
-            "Create page"
-          ],
-          "surfaces": {
-            "cloudTask": "ok",
-            "localTask": "ok",
-            "artifact": "needs:artifact-mcp"
-          },
-          "operations": [
-            "notion page:create"
-          ],
-          "confirmed": false
-        },
-        {
-          "kind": "http",
-          "name": "outbound http",
-          "nodes": [
-            "Search API"
-          ],
-          "surfaces": {
-            "cloudTask": "ok",
-            "localTask": "ok",
-            "artifact": "needs:arbitrary-hosts"
-          }
-        }
-      ],
-      "questions": [
-        {
-          "id": "manual-artifact/http-writes/Search API",
-          "text": "Does the POST in \"Search API\" write (change data at the other end)?",
-          "nodes": [
-            "Search API"
-          ],
-          "affects": "effect",
-          "answerType": "boolean",
-          "options": {
-            "true": "effect write",
-            "false": "effect read"
-          },
-          "assumed": true,
-          "answer": null
-        }
-      ],
+      "requires": [],
+      "questions": [],
       "blockers": [],
-      "credentials": [
-        {
-          "type": "notionApi",
-          "name": "Notion team",
-          "nodes": [
-            "Create page"
-          ]
-        }
-      ],
+      "credentials": [],
       "inlineSecrets": [],
       "schedule": {
         "runsPerDay": null,
@@ -140,7 +88,7 @@
       "disabled": [],
       "steps": [
         {
-          "node": "When clicking 'Execute workflow'",
+          "node": "Run",
           "type": "n8n-nodes-base.manualTrigger",
           "typeVersion": 1,
           "role": "trigger",
@@ -155,42 +103,53 @@
           "issues": []
         },
         {
-          "node": "Search API",
-          "type": "n8n-nodes-base.httpRequest",
-          "typeVersion": 4.2,
+          "node": "List",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
           "role": "step",
           "branch": "main",
           "resource": null,
           "operation": null,
-          "kind": "http",
-          "effect": "unknown",
-          "effectBy": null,
-          "levers": [
-            "http"
-          ],
+          "kind": "logic",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
           "mapping": "hand",
           "issues": []
         },
         {
-          "node": "Create page",
-          "type": "n8n-nodes-base.notion",
-          "typeVersion": 2.2,
+          "node": "Split",
+          "type": "n8n-nodes-base.splitOut",
+          "typeVersion": 1,
           "role": "step",
           "branch": "main",
-          "resource": "page",
-          "operation": "create",
-          "kind": "connector",
-          "effect": "write",
-          "effectBy": "name",
+          "resource": null,
+          "operation": null,
+          "kind": "logic",
+          "effect": "none",
+          "effectBy": "hand",
           "levers": [],
-          "mapping": "name",
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Double",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "code",
+          "effect": "none",
+          "effectBy": "parse",
+          "levers": [],
+          "mapping": "hand",
           "issues": []
         }
       ],
       "unmapped": [],
-      "levers": [
-        "http"
-      ]
+      "levers": []
     }
   ]
 }

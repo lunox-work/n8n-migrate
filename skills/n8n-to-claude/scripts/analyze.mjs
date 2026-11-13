@@ -1355,8 +1355,7 @@ function triggerNodes(W, kind) {
   return W.triggers.filter((t) => t.kind === kind);
 }
 
-function decideOutcome(W, ctx) {
-  const k = W.wakeup.kind;
+function outcomeForKind(W, ctx, k) {
   const reqs = [...W.req.values()];
   let o;
   if (k === "endpoint") {
@@ -1438,12 +1437,21 @@ function decideOutcome(W, ctx) {
     if (s.fits === "cloud-task") o = { kind: "subscription", target: "cloud-task", reason: `${what}; a cloud task runs at most every ${formatDuration(ctx.thresholds.cloudMinIntervalSec)}` };
     else if (s.fits === "local-task") o = { kind: "subscription", target: "local-task", reason: `${what}; more often than a cloud task allows, so a local task` };
     else o = { kind: "subscription", target: "local-task", reason: `${what}; a local task runs at most every ${formatDuration(ctx.thresholds.localMinIntervalSec)}, so the frequency must change` };
-  } else if (k === "subworkflow") {
-    o = { kind: "subscription", target: "artifact", reason: "a sub-workflow with no caller in this export: it runs on its own from the artifact's Run now button" };
   } else if (k === "error") {
     o = { kind: "keep-in-n8n", target: null, reason: "the runner's failure alert replaces error workflows" };
   } else {
-    o = { kind: "subscription", target: "artifact", reason: "run by hand: the artifact's Run now button" };
+    // Run on request. An artifact only when it can do every step today;
+    // otherwise a skill, run in Claude Code or Cowork where secrets and the
+    // bundled server are available.
+    const what = k === "subworkflow" ? "a sub-workflow with no caller in this export, run on request" : "run by hand";
+    const notOk = reqs.filter((r) => r.surfaces?.artifact !== "ok");
+    if (!notOk.length) o = { kind: "subscription", target: "artifact", reason: `${what}: the artifact's Run now button` };
+    else {
+      // What an artifact lacks: the thing a needs: value waits for, or the
+      // requirement kind an artifact cannot have at all.
+      const lacks = uniq(notOk.map((r) => (r.surfaces?.artifact?.startsWith("needs:") ? r.surfaces.artifact.slice(6) : r.kind)));
+      o = { kind: "subscription", target: "skill", reason: `${what}: a skill in Claude Code or Cowork; an artifact lacks ${lacks.join(", ")}` };
+    }
   }
   if (o.kind === "subscription" && o.target === "cloud-task") {
     const noCloud = reqs.filter((r) => r.surfaces?.cloudTask === "no");
@@ -1452,8 +1460,27 @@ function decideOutcome(W, ctx) {
       o.reason += `; ${uniq(noCloud.map((r) => r.name)).join(", ")} cannot run in a cloud task, so a local task`;
     }
   }
+  return o;
+}
+
+// Wake-up kinds that never get a target of their own beside another trigger:
+// a manual trigger there is for testing, a sub-workflow trigger is a
+// self-call, an error trigger is a dropped branch.
+const NO_ALSO_TARGET = new Set(["manual", "subworkflow", "error"]);
+
+// The deciding wake-up gives the outcome. Every other trigger kind that would
+// need a different target is listed in alsoTargets (for example a chat
+// trigger beside a schedule: a skill plus a cloud task).
+function decideOutcome(W, ctx) {
+  const o = outcomeForKind(W, ctx, W.wakeup.kind);
+  o.alsoTargets = [];
+  for (const k of W.wakeup.all) {
+    if (k === W.wakeup.kind || NO_ALSO_TARGET.has(k)) continue;
+    const x = outcomeForKind(W, ctx, k);
+    if (x.kind !== o.kind || x.target !== o.target) o.alsoTargets.push({ wakeup: k, kind: x.kind, target: x.target, nodes: triggerNodes(W, k).map((t) => t.name) });
+  }
   const blocking = [...W.blockers.values()].filter((b) => BLOCKING.has(b.kind));
-  if (blocking.length) o = { kind: "keep-in-n8n", target: null, reason: blocking.map((b) => b.reason).join("; ") };
+  if (blocking.length) return { kind: "keep-in-n8n", target: null, reason: blocking.map((b) => b.reason).join("; "), alsoTargets: [] };
   return o;
 }
 
@@ -1643,9 +1670,9 @@ export function analyze(items, { nodes, capabilities, answers = {}, now = Date.n
     if (!outs.length) return (W.outcome = decideOutcome(W, ctx));
     outs.sort((a, b) => OUTCOME_RANK.indexOf(a.o.kind) - OUTCOME_RANK.indexOf(b.o.kind));
     const w = outs[0];
-    W.outcome = { kind: w.o.kind, target: w.o.target, reason: `inlined into ${callers.map((C) => `"${C.name}"`).join(", ")}; follows "${w.C.name}"` };
+    W.outcome = { kind: w.o.kind, target: w.o.target, reason: `inlined into ${callers.map((C) => `"${C.name}"`).join(", ")}; follows "${w.C.name}"`, alsoTargets: [] };
     const blocking = [...W.blockers.values()].filter((b) => BLOCKING.has(b.kind));
-    if (blocking.length) W.outcome = { kind: "keep-in-n8n", target: null, reason: blocking.map((b) => b.reason).join("; ") };
+    if (blocking.length) W.outcome = { kind: "keep-in-n8n", target: null, reason: blocking.map((b) => b.reason).join("; "), alsoTargets: [] };
     return W.outcome;
   };
   for (const W of Ws) follow(W, new Set());

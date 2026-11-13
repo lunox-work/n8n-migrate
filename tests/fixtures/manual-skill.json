@@ -1,0 +1,94 @@
+{
+  "id": "manual-skill",
+  "name": "Research to Notion",
+  "active": false,
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-8000-000000000050",
+      "name": "When clicking 'Execute workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        11000,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000051",
+      "name": "Search API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        11220,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.example.com/v1/search",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "n8n"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000052",
+      "name": "Create page",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        11440,
+        300
+      ],
+      "parameters": {
+        "pageId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://www.notion.so/Research-0123456789abcdef0123456789abcdef"
+        },
+        "title": "Search results",
+        "options": {}
+      },
+      "credentials": {
+        "notionApi": {
+          "id": "cred-notionApi",
+          "name": "Notion team"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [
+        [
+          {
+            "node": "Search API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search API": {
+      "main": [
+        [
+          {
+            "node": "Create page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

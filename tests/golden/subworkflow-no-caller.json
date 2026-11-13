@@ -27,7 +27,7 @@
       "keep-in-n8n": 0
     },
     "targets": {
-      "subscription:artifact": 1
+      "subscription:skill": 1
     },
     "wakeups": {
       "subworkflow": 1
@@ -66,8 +66,9 @@
       },
       "outcome": {
         "kind": "subscription",
-        "target": "artifact",
-        "reason": "a sub-workflow with no caller in this export: it runs on its own from the artifact's Run now button"
+        "target": "skill",
+        "reason": "a sub-workflow with no caller in this export, run on request: a skill in Claude Code or Cowork; an artifact lacks artifact-mcp",
+        "alsoTargets": []
       },
       "calledBy": [],
       "calls": [],

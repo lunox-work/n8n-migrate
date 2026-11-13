@@ -69,7 +69,8 @@
       "outcome": {
         "kind": "hosted",
         "target": "key",
-        "reason": "an outside caller waits for a reply that a model writes"
+        "reason": "an outside caller waits for a reply that a model writes",
+        "alsoTargets": []
       },
       "calledBy": [],
       "calls": [],

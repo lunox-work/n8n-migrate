@@ -76,7 +76,8 @@
       "outcome": {
         "kind": "subscription",
         "target": "skill",
-        "reason": "only you call this URL, from Claude: a skill replaces it"
+        "reason": "only you call this URL, from Claude: a skill replaces it",
+        "alsoTargets": []
       },
       "calledBy": [],
       "calls": [],
@@ -223,7 +224,8 @@
       "outcome": {
         "kind": "hosted",
         "target": "key",
-        "reason": "outsiders chat with a model through a public page"
+        "reason": "outsiders chat with a model through a public page",
+        "alsoTargets": []
       },
       "calledBy": [],
       "calls": [],
@@ -356,7 +358,8 @@
       "outcome": {
         "kind": "subscription",
         "target": "cloud-task",
-        "reason": "fires every 1 d; a cloud task runs at most every 1 h"
+        "reason": "fires every 1 d; a cloud task runs at most every 1 h",
+        "alsoTargets": []
       },
       "calledBy": [],
       "calls": [
@@ -486,7 +489,8 @@
       "outcome": {
         "kind": "subscription",
         "target": "cloud-task",
-        "reason": "inlined into \"Nightly cleanup (answered)\"; follows \"Nightly cleanup (answered)\""
+        "reason": "inlined into \"Nightly cleanup (answered)\"; follows \"Nightly cleanup (answered)\"",
+        "alsoTargets": []
       },
       "calledBy": [
         "ans-parent"

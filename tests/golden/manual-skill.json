@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 1,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "subscription:skill": 1
+    },
+    "wakeups": {
+      "manual": 1
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 1,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "manual-skill",
+      "name": "Research to Notion",
+      "file": "manual-skill.json",
+      "sourceHash": "83b88d21a39593d81739873cafb8abea2e0d5a31b490d83acfc981a8573c10ae",
+      "wakeup": {
+        "kind": "manual",
+        "nodes": [
+          "When clicking 'Execute workflow'"
+        ],
+        "all": [
+          "manual"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "skill",
+        "reason": "run by hand: a skill in Claude Code or Cowork; an artifact lacks arbitrary-hosts, artifact-mcp",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "connector",
+          "name": "notion",
+          "nodes": [
+            "Create page"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:artifact-mcp"
+          },
+          "operations": [
+            "notion page:create"
+          ],
+          "confirmed": false
+        },
+        {
+          "kind": "http",
+          "name": "outbound http",
+          "nodes": [
+            "Search API"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:arbitrary-hosts"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "manual-skill/http-writes/Search API",
+          "text": "Does the POST in \"Search API\" write (change data at the other end)?",
+          "nodes": [
+            "Search API"
+          ],
+          "affects": "effect",
+          "answerType": "boolean",
+          "options": {
+            "true": "effect write",
+            "false": "effect read"
+          },
+          "assumed": true,
+          "answer": null
+        }
+      ],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "notionApi",
+          "name": "Notion team",
+          "nodes": [
+            "Create page"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "When clicking 'Execute workflow'",
+          "type": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Search API",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "http",
+          "effect": "unknown",
+          "effectBy": null,
+          "levers": [
+            "http"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Create page",
+          "type": "n8n-nodes-base.notion",
+          "typeVersion": 2.2,
+          "role": "step",
+          "branch": "main",
+          "resource": "page",
+          "operation": "create",
+          "kind": "connector",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "http"
+      ]
+    }
+  ]
+}

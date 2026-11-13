@@ -67,7 +67,8 @@
       "outcome": {
         "kind": "keep-in-n8n",
         "target": null,
-        "reason": "n8n-internal node: calls the n8n instance's own API"
+        "reason": "n8n-internal node: calls the n8n instance's own API",
+        "alsoTargets": []
       },
       "calledBy": [],
       "calls": [],

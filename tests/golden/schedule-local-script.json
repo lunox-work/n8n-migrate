@@ -67,7 +67,8 @@
       "outcome": {
         "kind": "subscription",
         "target": "local-task",
-        "reason": "fires every 5 min; more often than a cloud task allows, so a local task"
+        "reason": "fires every 5 min; more often than a cloud task allows, so a local task",
+        "alsoTargets": []
       },
       "calledBy": [],
       "calls": [],

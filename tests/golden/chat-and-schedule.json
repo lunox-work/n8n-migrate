@@ -1,0 +1,249 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 1,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "subscription:skill": 1
+    },
+    "wakeups": {
+      "chat": 1
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 0,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "chat-and-schedule",
+      "name": "Team helper with a morning brief",
+      "file": "chat-and-schedule.json",
+      "sourceHash": "cd0b1bbe40eda8b12c198e5d932a6fc55360d6634540e7bfd892d36fc3cdd67c",
+      "wakeup": {
+        "kind": "chat",
+        "nodes": [
+          "When chat message received"
+        ],
+        "all": [
+          "chat",
+          "schedule"
+        ]
+      },
+      "body": {
+        "kind": "script+model",
+        "decidedBy": [
+          "Brief prompt",
+          "Agent"
+        ]
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "skill",
+        "reason": "the chat trigger becomes a skill",
+        "alsoTargets": [
+          {
+            "wakeup": "schedule",
+            "kind": "subscription",
+            "target": "cloud-task",
+            "nodes": [
+              "Every morning"
+            ]
+          }
+        ]
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "connector",
+          "name": "slack",
+          "nodes": [
+            "Post brief"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:artifact-mcp"
+          },
+          "operations": [
+            "slack message:post"
+          ],
+          "confirmed": false
+        },
+        {
+          "kind": "model",
+          "name": "claude",
+          "nodes": [
+            "Agent"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:sample"
+          }
+        }
+      ],
+      "questions": [],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "anthropicApi",
+          "name": "Anthropic",
+          "nodes": [
+            "Claude model"
+          ]
+        },
+        {
+          "type": "slackOAuth2Api",
+          "name": "Slack bot",
+          "nodes": [
+            "Post brief"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": 1,
+        "shortestIntervalSec": 86400,
+        "fits": "cloud-task",
+        "timezone": "Asia/Singapore",
+        "timezoneSource": "workflow"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "When chat message received",
+          "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+          "typeVersion": 1.1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [
+            "chat"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Every morning",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Brief prompt",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "logic",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Agent",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1.7,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "agent",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [
+            "agent"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Claude model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+          "typeVersion": 1.3,
+          "role": "subnode",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "model",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Post brief",
+          "type": "n8n-nodes-base.slack",
+          "typeVersion": 2.3,
+          "role": "step",
+          "branch": "main",
+          "resource": "message",
+          "operation": "post",
+          "kind": "connector",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "agent",
+        "chat"
+      ]
+    }
+  ]
+}

@@ -69,7 +69,8 @@
       "outcome": {
         "kind": "subscription",
         "target": "local-task",
-        "reason": "polls every 1 min; more often than a cloud task allows, so a local task"
+        "reason": "polls every 1 min; more often than a cloud task allows, so a local task",
+        "alsoTargets": []
       },
       "calledBy": [],
       "calls": [],

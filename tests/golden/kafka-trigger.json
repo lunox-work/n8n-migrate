@@ -67,7 +67,8 @@
       "outcome": {
         "kind": "keep-in-n8n",
         "target": null,
-        "reason": "persistent Kafka connection; needs a bridge process that subscribes and forwards each message (out of scope v1)"
+        "reason": "persistent Kafka connection; needs a bridge process that subscribes and forwards each message (out of scope v1)",
+        "alsoTargets": []
       },
       "calledBy": [],
       "calls": [],

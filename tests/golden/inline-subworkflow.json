@@ -69,7 +69,8 @@
       "outcome": {
         "kind": "subscription",
         "target": "skill",
-        "reason": "the chat trigger becomes a skill"
+        "reason": "the chat trigger becomes a skill",
+        "alsoTargets": []
       },
       "calledBy": [],
       "calls": [

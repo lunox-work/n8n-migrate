@@ -69,7 +69,8 @@
       "outcome": {
         "kind": "keep-in-n8n",
         "target": null,
-        "reason": "n8n-nodes-acme.acmeCrm is not in the node catalogue"
+        "reason": "n8n-nodes-acme.acmeCrm is not in the node catalogue",
+        "alsoTargets": []
       },
       "calledBy": [],
       "calls": [],

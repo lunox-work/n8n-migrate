@@ -67,7 +67,8 @@
       "outcome": {
         "kind": "hosted",
         "target": "no-key",
-        "reason": "an outside caller waits for a reply; no model step on the way"
+        "reason": "an outside caller waits for a reply; no model step on the way",
+        "alsoTargets": []
       },
       "calledBy": [],
       "calls": [],

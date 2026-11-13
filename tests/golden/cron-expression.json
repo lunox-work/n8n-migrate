@@ -67,7 +67,8 @@
       "outcome": {
         "kind": "subscription",
         "target": "cloud-task",
-        "reason": "fires 0.72 times a day, at least 1 d apart; a cloud task runs at most every 1 h"
+        "reason": "fires 0.72 times a day, at least 1 d apart; a cloud task runs at most every 1 h",
+        "alsoTargets": []
       },
       "calledBy": [],
       "calls": [],

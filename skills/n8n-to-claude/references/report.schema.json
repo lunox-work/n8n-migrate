@@ -66,6 +66,11 @@
       "properties": { "cloudTask": { "$ref": "#/$defs/surface" }, "localTask": { "$ref": "#/$defs/surface" }, "artifact": { "$ref": "#/$defs/surface" } }
     },
     "wakeupKind": { "enum": ["endpoint", "mcp-server", "chat", "form", "relay", "poll", "schedule", "subworkflow", "manual", "error"] },
+    "outcomeKind": { "enum": ["subscription", "replaced", "hosted", "keep-in-n8n"] },
+    "outcomeTarget": {
+      "description": "subscription: cloud-task, local-task, skill, artifact-form, artifact (manual or uncalled sub-workflow, only when every requirement is ok in an artifact, else skill); hosted: key, no-key; otherwise null",
+      "enum": ["cloud-task", "local-task", "skill", "artifact-form", "artifact", "key", "no-key", null]
+    },
     "workflow": {
       "type": "object",
       "required": ["id", "name", "file", "sourceHash", "wakeup", "body", "outcome", "calledBy", "calls", "requires", "questions", "blockers", "credentials", "inlineSecrets", "schedule", "sharedState", "disabled", "steps", "unmapped", "levers"],
@@ -95,13 +100,29 @@
           }
         },
         "outcome": {
+          "description": "decided by the most demanding wake-up",
           "type": "object",
-          "required": ["kind", "target", "reason"],
+          "required": ["kind", "target", "reason", "alsoTargets"],
           "additionalProperties": false,
           "properties": {
-            "kind": { "enum": ["subscription", "replaced", "hosted", "keep-in-n8n"] },
-            "target": { "description": "subscription: cloud-task, local-task, skill, artifact-form, artifact; hosted: key, no-key; otherwise null", "enum": ["cloud-task", "local-task", "skill", "artifact-form", "artifact", "key", "no-key", null] },
-            "reason": { "type": "string" }
+            "kind": { "$ref": "#/$defs/outcomeKind" },
+            "target": { "$ref": "#/$defs/outcomeTarget" },
+            "reason": { "type": "string" },
+            "alsoTargets": {
+              "description": "other trigger kinds of this workflow that need a different target (manual, sub-workflow and error triggers never do); empty when the outcome is keep-in-n8n",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["wakeup", "kind", "target", "nodes"],
+                "additionalProperties": false,
+                "properties": {
+                  "wakeup": { "$ref": "#/$defs/wakeupKind" },
+                  "kind": { "$ref": "#/$defs/outcomeKind" },
+                  "target": { "$ref": "#/$defs/outcomeTarget" },
+                  "nodes": { "$ref": "#/$defs/nodes" }
+                }
+              }
+            }
           }
         },
         "calledBy": { "description": "ids of workflows in this run that call this one", "type": "array", "items": { "type": "string" } },

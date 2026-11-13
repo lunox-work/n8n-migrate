@@ -1,37 +1,36 @@
 {
   "id": "manual-artifact",
-  "name": "Research to Notion",
+  "name": "Split a list by hand",
   "active": false,
   "nodes": [
     {
-      "id": "00000000-0000-4000-8000-000000000050",
-      "name": "When clicking 'Execute workflow'",
+      "id": "00000000-0000-4000-8000-000000000541",
+      "name": "Run",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        11000,
+        119020,
         300
       ],
       "parameters": {}
     },
     {
-      "id": "00000000-0000-4000-8000-000000000051",
-      "name": "Search API",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "id": "00000000-0000-4000-8000-000000000542",
+      "name": "List",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
       "position": [
-        11220,
+        119240,
         300
       ],
       "parameters": {
-        "method": "POST",
-        "url": "https://api.example.com/v1/search",
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
+        "assignments": {
+          "assignments": [
             {
-              "name": "q",
-              "value": "n8n"
+              "id": "a1",
+              "name": "items",
+              "type": "array",
+              "value": "[1,2,3,4]"
             }
           ]
         },
@@ -39,48 +38,61 @@
       }
     },
     {
-      "id": "00000000-0000-4000-8000-000000000052",
-      "name": "Create page",
-      "type": "n8n-nodes-base.notion",
-      "typeVersion": 2.2,
+      "id": "00000000-0000-4000-8000-000000000543",
+      "name": "Split",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
       "position": [
-        11440,
+        119460,
         300
       ],
       "parameters": {
-        "pageId": {
-          "__rl": true,
-          "mode": "url",
-          "value": "https://www.notion.so/Research-0123456789abcdef0123456789abcdef"
-        },
-        "title": "Search results",
+        "fieldToSplitOut": "items",
         "options": {}
-      },
-      "credentials": {
-        "notionApi": {
-          "id": "cred-notionApi",
-          "name": "Notion team"
-        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000544",
+      "name": "Double",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        119680,
+        300
+      ],
+      "parameters": {
+        "jsCode": "return $input.all().map(i => ({ json: { v: i.json.items * 2 } }));"
       }
     }
   ],
   "connections": {
-    "When clicking 'Execute workflow'": {
+    "Run": {
       "main": [
         [
           {
-            "node": "Search API",
+            "node": "List",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Search API": {
+    "List": {
       "main": [
         [
           {
-            "node": "Create page",
+            "node": "Split",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split": {
+      "main": [
+        [
+          {
+            "node": "Double",
             "type": "main",
             "index": 0
           }
