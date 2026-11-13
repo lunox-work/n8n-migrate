@@ -213,7 +213,8 @@ export function checkContainment(definition, req) {
     if (req.auth?.secret) {
       const secret = (definition.secrets || []).find((s) => s.name === req.auth.secret);
       if (!secret) throw new ContainmentViolation(`secret "${req.auth.secret}" is not declared in the definition`, { requestId: req.id });
-      if (secret.hosts?.length && !secret.hosts.map((h) => String(h).toLowerCase()).includes(t.host)) {
+      // Fail closed: a secret with no hosts is sent nowhere.
+      if (!secret.hosts?.length || !secret.hosts.map((h) => String(h).toLowerCase()).includes(t.host)) {
         throw new ContainmentViolation(`secret "${req.auth.secret}" may not be sent to ${t.host}`, { requestId: req.id });
       }
     }

@@ -92,6 +92,9 @@ export function preflight(definition, { availableTools, sourceText, pinned } = {
     if (s.needsTranslation && !s.override) warn(`$.steps.${name}`, `needs translation (${s.needsTranslation.kind}): ${s.needsTranslation.reason}`, { step: name });
     if (s.review) warn(`$.steps.${name}`, `flagged for review${s.reviewReasons?.length ? ": " + s.reviewReasons.join("; ") : ""}`, { step: name });
   }
+  (definition.secrets ?? []).forEach((sec, i) => {
+    if (!sec.hosts?.length) err(`$.secrets[${i}]`, `secret "${sec.name}" names no host it may be sent to; add its hosts in overrides.json`);
+  });
   (definition.allow?.http ?? []).forEach((a, i) => {
     if (a.host === "*") err(`$.allow.http[${i}]`, `a request with a URL built at run time is allowed to any host (${a.method} *); narrow it to a host in overrides.json`);
   });

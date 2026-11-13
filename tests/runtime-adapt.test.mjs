@@ -65,6 +65,11 @@ test("http template step: secret placeholder stays literal, allowlist and secret
   const bad = await run(def, { trigger: [{ chat: 42 }], host: { http: async () => ({ status: 200, body: "{}" }) } });
   assert.equal(bad.status, "failed");
   assert.equal(bad.error.name, "ContainmentViolation");
+  def.secrets[0].hosts = [];
+  assert.match(preflight(def).issues.map((i) => i.message).join("\n"), /names no host/);
+  const none = await run(def, { trigger: [{ chat: 42 }], host: { http: async () => ({ status: 200, body: "{}" }) } });
+  assert.equal(none.error.name, "PreflightFailed");
+  def.secrets[0].hosts = ["api.telegram.org"];
   def.allow.http.push({ method: "GET", host: "*" });
   assert.match(preflight(def).issues.map((i) => i.message).join("\n"), /narrow it to a host/);
 });

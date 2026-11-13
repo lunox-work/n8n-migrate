@@ -5743,7 +5743,8 @@ function checkContainment(definition, req) {
     if (req.auth?.secret) {
       const secret = (definition.secrets || []).find((s) => s.name === req.auth.secret);
       if (!secret) throw new ContainmentViolation(`secret "${req.auth.secret}" is not declared in the definition`, { requestId: req.id });
-      if (secret.hosts?.length && !secret.hosts.map((h) => String(h).toLowerCase()).includes(t.host)) {
+      // Fail closed: a secret with no hosts is sent nowhere.
+      if (!secret.hosts?.length || !secret.hosts.map((h) => String(h).toLowerCase()).includes(t.host)) {
         throw new ContainmentViolation(`secret "${req.auth.secret}" may not be sent to ${t.host}`, { requestId: req.id });
       }
     }
@@ -6291,6 +6292,9 @@ function preflight(definition, { availableTools, sourceText, pinned } = {}) {
     if (s.needsTranslation && !s.override) warn(`$.steps.${name}`, `needs translation (${s.needsTranslation.kind}): ${s.needsTranslation.reason}`, { step: name });
     if (s.review) warn(`$.steps.${name}`, `flagged for review${s.reviewReasons?.length ? ": " + s.reviewReasons.join("; ") : ""}`, { step: name });
   }
+  (definition.secrets ?? []).forEach((sec, i) => {
+    if (!sec.hosts?.length) err(`$.secrets[${i}]`, `secret "${sec.name}" names no host it may be sent to; add its hosts in overrides.json`);
+  });
   (definition.allow?.http ?? []).forEach((a, i) => {
     if (a.host === "*") err(`$.allow.http[${i}]`, `a request with a URL built at run time is allowed to any host (${a.method} *); narrow it to a host in overrides.json`);
   });
