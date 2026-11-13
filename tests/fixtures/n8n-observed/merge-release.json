@@ -1,0 +1,643 @@
+{
+ "note": "observed from n8n 2.47.7 on 2026-11-14 (evals/diff/differential.mjs --save-fixture)",
+ "title": "Merge waits for both inputs and is released with one when the other branch stays empty",
+ "label": "merge-release",
+ "workflow": {
+  "name": "merge-release",
+  "nodes": [
+   {
+    "id": "t",
+    "name": "Trigger",
+    "type": "n8n-nodes-base.manualTrigger",
+    "typeVersion": 1,
+    "position": [
+     0,
+     0
+    ],
+    "parameters": {}
+   },
+   {
+    "id": "n0",
+    "name": "Is9",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2.2,
+    "position": [
+     240,
+     0
+    ],
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "loose",
+       "version": 2
+      },
+      "conditions": [
+       {
+        "id": "c",
+        "leftValue": "={{ $json.k }}",
+        "rightValue": 9,
+        "operator": {
+         "type": "number",
+         "operation": "equals"
+        }
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    }
+   },
+   {
+    "id": "n1",
+    "name": "FalseSide",
+    "type": "n8n-nodes-base.set",
+    "typeVersion": 3.4,
+    "position": [
+     480,
+     0
+    ],
+    "parameters": {
+     "mode": "manual",
+     "assignments": {
+      "assignments": [
+       {
+        "id": "a0",
+        "name": "side",
+        "value": "false",
+        "type": "string"
+       }
+      ]
+     },
+     "includeOtherFields": true,
+     "include": "all",
+     "options": {},
+     "position": [
+      480,
+      100
+     ]
+    }
+   },
+   {
+    "id": "n2",
+    "name": "Append",
+    "type": "n8n-nodes-base.merge",
+    "typeVersion": 3.1,
+    "position": [
+     720,
+     0
+    ],
+    "parameters": {
+     "mode": "append"
+    }
+   },
+   {
+    "id": "n3",
+    "name": "Is2",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2.2,
+    "position": [
+     240,
+     400
+    ],
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "loose",
+       "version": 2
+      },
+      "conditions": [
+       {
+        "id": "c",
+        "leftValue": "={{ $json.k }}",
+        "rightValue": 2,
+        "operator": {
+         "type": "number",
+         "operation": "equals"
+        }
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    }
+   },
+   {
+    "id": "n4",
+    "name": "Choose",
+    "type": "n8n-nodes-base.merge",
+    "typeVersion": 3.1,
+    "position": [
+     480,
+     400
+    ],
+    "parameters": {
+     "mode": "chooseBranch",
+     "useDataOfInput": 2
+    }
+   },
+   {
+    "id": "n5",
+    "name": "ByPos",
+    "type": "n8n-nodes-base.merge",
+    "typeVersion": 3.1,
+    "position": [
+     720,
+     400
+    ],
+    "parameters": {
+     "mode": "combine",
+     "combineBy": "combineByPosition",
+     "options": {}
+    }
+   },
+   {
+    "id": "n6",
+    "name": "After",
+    "type": "n8n-nodes-base.set",
+    "typeVersion": 3.4,
+    "position": [
+     1680,
+     0
+    ],
+    "parameters": {
+     "mode": "manual",
+     "assignments": {
+      "assignments": [
+       {
+        "id": "a0",
+        "name": "via",
+        "value": "={{ $('Is2').item.json.k }}",
+        "type": "number"
+       }
+      ]
+     },
+     "includeOtherFields": true,
+     "include": "all",
+     "options": {},
+     "position": [
+      960,
+      400
+     ]
+    }
+   }
+  ],
+  "connections": {
+   "Trigger": {
+    "main": [
+     [
+      {
+       "node": "Is9",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Is2",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Is9": {
+    "main": [
+     [
+      {
+       "node": "Append",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "FalseSide",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "FalseSide": {
+    "main": [
+     [
+      {
+       "node": "Append",
+       "type": "main",
+       "index": 1
+      }
+     ]
+    ]
+   },
+   "Is2": {
+    "main": [
+     [
+      {
+       "node": "Choose",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Choose",
+       "type": "main",
+       "index": 1
+      },
+      {
+       "node": "ByPos",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Choose": {
+    "main": [
+     [
+      {
+       "node": "ByPos",
+       "type": "main",
+       "index": 1
+      }
+     ]
+    ]
+   },
+   "ByPos": {
+    "main": [
+     [
+      {
+       "node": "After",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1"
+  }
+ },
+ "triggerName": "Trigger",
+ "pinned": [
+  "Trigger"
+ ],
+ "pinData": {
+  "Trigger": [
+   {
+    "json": {
+     "k": 1
+    }
+   },
+   {
+    "json": {
+     "k": 2
+    }
+   },
+   {
+    "json": {
+     "k": 3
+    }
+   }
+  ]
+ },
+ "fixtures": {
+  "default": {
+   "status": 200,
+   "body": {
+    "ok": true,
+    "id": "mock-1",
+    "data": [
+     {
+      "id": 1,
+      "name": "one"
+     },
+     {
+      "id": 2,
+      "name": "two"
+     }
+    ]
+   }
+  }
+ },
+ "n8n": {
+  "status": "success",
+  "error": null,
+  "lastNode": "Append",
+  "startedAt": "2026-11-13T21:40:48.414Z",
+  "executionId": "1480",
+  "workflowId": "Y6HEO2j6qYBceHy4",
+  "executionData": {
+   "runData": {
+    "Trigger": [
+     {
+      "executionIndex": 0,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "k": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "k": 2
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "k": 3
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Is9": [
+     {
+      "executionIndex": 1,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [],
+        [
+         {
+          "json": {
+           "k": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "k": 2
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         },
+         {
+          "json": {
+           "k": 3
+          },
+          "pairedItem": {
+           "item": 2
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "FalseSide": [
+     {
+      "executionIndex": 2,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "k": 1,
+           "side": "false"
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "k": 2,
+           "side": "false"
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         },
+         {
+          "json": {
+           "k": 3,
+           "side": "false"
+          },
+          "pairedItem": {
+           "item": 2
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Is2": [
+     {
+      "executionIndex": 3,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "k": 2
+          },
+          "pairedItem": {
+           "item": 1
+          }
+         }
+        ],
+        [
+         {
+          "json": {
+           "k": 1
+          },
+          "pairedItem": {
+           "item": 0
+          }
+         },
+         {
+          "json": {
+           "k": 3
+          },
+          "pairedItem": {
+           "item": 2
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Choose": [
+     {
+      "executionIndex": 4,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "k": 1
+          },
+          "pairedItem": {
+           "item": 0,
+           "input": 1
+          }
+         },
+         {
+          "json": {
+           "k": 3
+          },
+          "pairedItem": {
+           "item": 1,
+           "input": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "ByPos": [
+     {
+      "executionIndex": 5,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "k": 1
+          },
+          "binary": {},
+          "pairedItem": [
+           {
+            "item": 0
+           },
+           {
+            "item": 0,
+            "input": 1
+           },
+           {
+            "item": 0,
+            "input": 1
+           }
+          ]
+         },
+         {
+          "json": {
+           "k": 3
+          },
+          "binary": {},
+          "pairedItem": [
+           {
+            "item": 1
+           },
+           {
+            "item": 1,
+            "input": 1
+           },
+           {
+            "item": 1,
+            "input": 1
+           }
+          ]
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "After": [
+     {
+      "executionIndex": 6,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "k": 1,
+           "via": 1
+          },
+          "pairedItem": {
+           "item": 0
+          },
+          "binary": {}
+         },
+         {
+          "json": {
+           "k": 3,
+           "via": 3
+          },
+          "pairedItem": {
+           "item": 1
+          },
+          "binary": {}
+         }
+        ]
+       ]
+      }
+     }
+    ],
+    "Append": [
+     {
+      "executionIndex": 7,
+      "executionStatus": "success",
+      "data": {
+       "main": [
+        [
+         {
+          "json": {
+           "k": 1,
+           "side": "false"
+          },
+          "pairedItem": {
+           "item": 0,
+           "input": 1
+          }
+         },
+         {
+          "json": {
+           "k": 2,
+           "side": "false"
+          },
+          "pairedItem": {
+           "item": 1,
+           "input": 1
+          }
+         },
+         {
+          "json": {
+           "k": 3,
+           "side": "false"
+          },
+          "pairedItem": {
+           "item": 2,
+           "input": 1
+          }
+         }
+        ]
+       ]
+      }
+     }
+    ]
+   }
+  },
+  "effects": []
+ }
+}

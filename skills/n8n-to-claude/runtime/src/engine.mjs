@@ -17,6 +17,11 @@
 //   an extra last output, merged with their input item) / stopWorkflow.
 // - A node that throws while continuing on error passes its input through (n8n does).
 //
+// - pinData (opts.pinData, {name: items}) works like n8n's pinData in manual runs: a pinned
+//   enabled step that is reached emits its pinned items instead of running (no retry, no
+//   error routing); paired items are assigned as for any output, on the same item objects,
+//   so a later run of that step keeps the pairing of the first (n8n reuses the array).
+//
 // Host requests (tool, http, model, agent, sleep) go through `dispatch`: containment is
 // checked first, each request gets a deterministic id, results come from the result log
 // (replay) or from the host. In step mode a missing result suspends the run; resuming
@@ -126,6 +131,7 @@ export function createRun(definition, opts = {}) {
     logs: [],
     response: undefined,
     nodeContext: {},
+    pinData: normalizePinData(opts.pinData),
     lastNodeExecuted: undefined,
     idPrefix: "",
     depth: 0,
@@ -134,6 +140,24 @@ export function createRun(definition, opts = {}) {
   run.randomFor = (key) => seededRandom(seedFrom(`${runId}|${key}`));
   run.console = makeConsole(run);
   return run;
+}
+
+export function normalizePinData(pinData) {
+  if (!pinData || typeof pinData !== "object") return null;
+  const out = {};
+  for (const [name, items] of Object.entries(pinData)) {
+    if (!Array.isArray(items)) throw new BadInput(`pinData for "${name}" must be a list of items`);
+    out[name] = items.map((it) =>
+      it && typeof it === "object" && !Array.isArray(it) && it.json && typeof it.json === "object" && Object.keys(it).every((k) => ["json", "binary", "pairedItem"].includes(k)) ? deepCopy(it) : { json: it && typeof it === "object" && !Array.isArray(it) ? deepCopy(it) : { value: it } },
+    );
+  }
+  return out;
+}
+
+// n8n WorkflowExecute.getPinnedOutput.
+function pinnedOutput(run, step, name) {
+  if (!run.pinData || step.settings?.disabled === true || !hasOwn(run.pinData, name)) return undefined;
+  return [run.pinData[name]];
 }
 
 function customData() {
@@ -532,6 +556,13 @@ export async function runEngine(run, startName, triggerItems, provided = false) 
           run.clock.now += wait;
           if (!run.virtualTime && wait) await sleepMs(wait);
           execError = undefined;
+        }
+        const pinned = pinnedOutput(run, step, name);
+        if (pinned) {
+          out = assignPairedItems(pinned, inputData);
+          if (out) run.lastNodeExecuted = name;
+          out = ensureAlwaysOutputData(out, step, inputData);
+          break;
         }
         exec = new NodeExecution(run, name, runIndex, inputData, ed.source, tryIndex);
         out = await runNode(exec, ed);

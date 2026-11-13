@@ -15,7 +15,8 @@
 //     "default":           {...} }            otherwise 404 {"error":"no fixture"}
 // "body" that is not a string is sent as JSON. "delayMs" delays the reply.
 //
-// Log line: {seq, t, method, [proxied], path, query, headers, body, bodyEncoding, fixture}
+// Log line: {seq, t, method, [proxied], path, query, [rawQuery], headers, body, bodyEncoding, fixture}
+// (query keeps the last value of a repeated key; rawQuery is the query string as sent)
 // (proxied: the origin, when the client used this mock as its HTTP proxy)
 // where body is parsed JSON when it parses, else text (or base64 when it is
 // not UTF-8), and fixture is the key that answered (null when none did).
@@ -129,6 +130,7 @@ export function startMock({ port = 8080, log = null, fixtures = null, host = "0.
         ...(origin ? { proxied: origin } : {}),
         path: u.pathname,
         query: Object.fromEntries(u.searchParams),
+        ...(query ? { rawQuery: query } : {}),
         headers: req.headers,
         ...decodeBody(Buffer.concat(chunks), req.headers["content-type"]),
         fixture: key,

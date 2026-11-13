@@ -8,7 +8,10 @@
 //     Step mode for the task driver: all state is in `state` (plain JSON). A resume
 //     replays the run from the start with the logged results (same clock, same seeds),
 //     so it reaches the same point and continues past it.
-//   preflight(definition, {availableTools, sourceText}) -> {ok, issues}
+//   preflight(definition, {availableTools, sourceText, pinned}) -> {ok, issues}
+//   opts.pinData ({stepName: items}) pins steps as n8n's pinData does in a manual run: the
+//   step emits those items instead of running. A pinned trigger without trigger items
+//   starts from n8n's start input [{json: {}}].
 //
 // Determinism: the clock starts at clock.startedAt (default: now) and advances only by
 // waits; Math.random in Code nodes and expressions is seeded from runId, step and run.
@@ -55,7 +58,8 @@ export function validateDefinition(def) {
 
 const toolKey = (t) => (typeof t === "string" ? t : `${t.connector}.${t.tool ?? t.name}`);
 
-export function preflight(definition, { availableTools, sourceText } = {}) {
+// pinned: names of steps that emit pinned items (run's pinData) and so need no implementation.
+export function preflight(definition, { availableTools, sourceText, pinned } = {}) {
   const issues = validateDefinition(definition);
   if (issues.length) return { ok: false, issues };
   const err = (path, message, extra = {}) => issues.push({ level: "error", path, message, ...extra });
@@ -64,8 +68,9 @@ export function preflight(definition, { availableTools, sourceText } = {}) {
   if (definition.settings?.executionOrder && definition.settings.executionOrder !== "v1") {
     warn("$.settings.executionOrder", `execution order "${definition.settings.executionOrder}" runs with v1 semantics; it differs from n8n's legacy order when branches interleave or a Merge waits`);
   }
+  const pinnedSet = new Set(pinned ?? []);
   for (const [name, s] of Object.entries(steps)) {
-    if (s.settings?.disabled === true || s.subnode) continue;
+    if (s.settings?.disabled === true || s.subnode || pinnedSet.has(name)) continue;
     if (s.n8n.type === "n8n-nodes-base.executeWorkflow" && !s.subflow) err(`$.steps.${name}`, "the sub-workflow is not in the definition (only inline and self-referencing sub-workflows run)", { step: name });
     if (s.kind === "blocked") err(`$.steps.${name}`, `blocked: ${s.blocked?.reason ?? "no reason given"}`, { step: name });
     else if (!nodeImplFor(s)) err(`$.steps.${name}`, `not implemented: ${s.n8n.type} v${s.n8n.typeVersion ?? 1} (kind ${s.kind})`, { step: name });
@@ -224,7 +229,7 @@ function preflightOrThrow(definition, opts) {
 }
 
 export async function run(definition, opts = {}) {
-  const pf = preflightOrThrow(definition, { availableTools: opts.availableTools, sourceText: opts.sourceText });
+  const pf = preflightOrThrow(definition, { availableTools: opts.availableTools, sourceText: opts.sourceText, pinned: Object.keys(opts.pinData ?? {}) });
   if (pf) return pf;
   const r = createRun(definition, { ...opts, stepMode: false });
   return execute(r, opts.trigger);
@@ -233,7 +238,7 @@ export async function run(definition, opts = {}) {
 // ---------- step mode ----------
 
 async function step(state) {
-  const r = createRun(state.definition, { clock: { startedAt: state.startedAt }, runId: state.runId, resultLog: state.resultLog, stepMode: true, batchSize: state.batchSize, mode: state.mode, virtualTime: state.virtualTime });
+  const r = createRun(state.definition, { clock: { startedAt: state.startedAt }, runId: state.runId, resultLog: state.resultLog, stepMode: true, batchSize: state.batchSize, mode: state.mode, virtualTime: state.virtualTime, pinData: state.pinData ?? undefined });
   const res = await execute(r, state.trigger);
   state.status = res.status;
   state.outstanding = res.status === "needs" ? res.requests.map((q) => q.id) : [];
@@ -253,7 +258,7 @@ async function step(state) {
 }
 
 export async function start(definition, opts = {}) {
-  const pf = preflightOrThrow(definition, { availableTools: opts.availableTools, sourceText: opts.sourceText });
+  const pf = preflightOrThrow(definition, { availableTools: opts.availableTools, sourceText: opts.sourceText, pinned: Object.keys(opts.pinData ?? {}) });
   if (pf) return pf;
   const startedAt = opts.clock?.startedAt != null ? new Date(Date.parse(opts.clock.startedAt) || Number(opts.clock.startedAt)).toISOString() : new Date().toISOString();
   const state = {
@@ -266,6 +271,7 @@ export async function start(definition, opts = {}) {
     batchSize: opts.batchSize ?? 10,
     virtualTime: opts.virtualTime ?? false,
     trigger: opts.trigger ?? null,
+    ...(opts.pinData ? { pinData: opts.pinData } : {}),
     definitionHash: definitionHash(definition),
     definition,
     resultLog: {},
