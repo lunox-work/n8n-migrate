@@ -1793,6 +1793,46 @@ function notAnAutomation(W) {
   return null;
 }
 
+// Nothing to migrate: a workflow whose only effects are on n8n's own storage
+// or on n8n itself. Kept narrow on purpose, since the flag tells the person
+// there is nothing to schedule:
+// - storage setup: run by hand (a manual trigger, plus at most plain Webhook
+//   triggers that start the same steps), at least one Data Table create, and
+//   otherwise only seed-row inserts, Data Table reads and steps with no
+//   effect. After a move the target's state store replaces the tables.
+// - n8n management: every step with an effect is the n8n API node.
+// Anything else (an outside call, a model, a sub-workflow, an unmapped node,
+// another trigger) clears the flag. The outcome itself is not changed.
+const SETUP_TABLE_OPS = new Set(["table:create", "row:insert", "row:get", "row:rowExists", "row:rowNotExists", "table:list"]);
+function setupOnly(W) {
+  const steps = W.order.map((n) => W.infos.get(n)).filter((d) => !d.disabled && W.branch.get(d.name) === "main" && !d.isTrigger && d.role !== "annotation");
+  const tables = [];
+  let creates = 0;
+  let manages = 0;
+  for (const d of steps) {
+    if (d.status !== "mapped") return null;
+    if (NEUTRAL_STEP_TYPES.has(d.type) || ((d.kind === "logic" || d.kind === "code") && d.effect === "none")) continue;
+    if (d.baseType === "n8n-nodes-base.dataTable" && d.role === "step" && SETUP_TABLE_OPS.has(d.opKey)) {
+      if (d.opKey === "table:create") {
+        creates++;
+        const t = d.params.tableName;
+        tables.push(typeof t === "string" && t && !isExpr(t) ? t : "a table named at run time");
+      }
+      continue;
+    }
+    if (d.baseType === "n8n-nodes-base.n8n") {
+      manages++;
+      continue;
+    }
+    return null;
+  }
+  if (manages && !creates && steps.every((d) => d.baseType !== "n8n-nodes-base.dataTable")) return { reason: "it only manages n8n itself through the n8n API: nothing to move once n8n is gone" };
+  const byHand = W.triggers.some((t) => t.kind === "manual") && W.triggers.every((t) => t.kind === "manual" || t.d.baseType === "n8n-nodes-base.webhook");
+  if (creates && !manages && byHand)
+    return { reason: `it only creates n8n Data Tables (${uniq(tables).join(", ")}) and seeds them, run by hand: recreate the storage in the target, nothing to schedule` };
+  return null;
+}
+
 // ---------- report ----------
 
 function finalizeRequires(W, ctx) {
@@ -1880,6 +1920,7 @@ function reportOf(W, ctx) {
     wakeup: W.wakeup,
     body: W.body,
     outcome: W.outcome,
+    ...(W.setupOnly ? { setupOnly: true, setupOnlyReason: W.setupOnly.reason } : {}),
     calledBy: [...W.calledBy].sort(),
     calls: W.callInfo.map((c) => ({ node: c.node, status: c.status, target: c.target })),
     requires,
@@ -1944,6 +1985,7 @@ export function analyze(items, { nodes, capabilities, hosts = { model: [], read:
   for (const W of Ws) {
     W.body = computeBody(W);
     finalizeRequires(W, ctx);
+    W.setupOnly = setupOnly(W);
     const naa = notAnAutomation(W);
     if (naa) {
       addBlocker(W, "not-an-automation", naa.reason);
@@ -2094,6 +2136,8 @@ export function renderText(report, color = false) {
       if (missing.length) parts.push(`${missing.length === 1 ? "a sub-workflow is" : `${missing.length} sub-workflows are`} not in the export (${listCut(missing.map((m) => `"${m}"`))})`);
       lines.push(`  why: ${listCut(parts, 3)}`);
     } else lines.push(`  why: ${clean(o.reason)}`);
+    // The reason ends with what to do: "…: recreate the storage in the target, nothing to schedule".
+    if (w.setupOnly) lines.push(`  setup only: ${clean(w.setupOnlyReason.slice(w.setupOnlyReason.lastIndexOf(": ") + 2))}`);
     for (const a of o.alsoTargets) lines.push(`  also: ${a.wakeup} (${a.nodes.map(clean).join(", ")}) → ${a.kind === "subscription" ? TARGET_LABEL[a.target] ?? a.target : a.kind === "hosted" ? `hosted elsewhere (${a.target === "key" ? "API key" : "no model"})` : a.kind}`);
     const needs = needsLine(w);
     if (needs) lines.push(`  needs: ${needs}`);
@@ -2157,6 +2201,8 @@ export function renderText(report, color = false) {
   );
   const bl = Object.entries(s.blockers).map(([k, n]) => `${k} ${n}`).join(", ");
   if (bl) lines.push(`blockers: ${bl}`);
+  const setups = report.workflows.filter((w) => w.setupOnly).length;
+  if (setups) lines.push(`setup only: ${setups} (nothing to schedule)`);
   lines.push(`open questions: ${s.questions}${s.questions ? " (answer with --answers <file>: {\"<id>\": <answer>})" : ""}`);
   if (s.cloudScheduledRunsPerHourLimit != null && s.cloudScheduledRunsPerHour > s.cloudScheduledRunsPerHourLimit)
     lines.push(`warning: cloud-task schedules add up to ${s.cloudScheduledRunsPerHour} runs an hour, over the ${s.cloudScheduledRunsPerHourLimit} per account`);

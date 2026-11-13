@@ -125,6 +125,8 @@
             }
           }
         },
+        "setupOnly": { "description": "present (true) only when there is nothing to migrate: the workflow only creates and seeds n8n Data Tables from a manual run (plus plain Webhook triggers for the same steps), or only manages n8n through its API. outcome is unchanged", "const": true },
+        "setupOnlyReason": { "description": "present with setupOnly: what the workflow does and what to do instead", "type": "string" },
         "calledBy": { "description": "ids of workflows in this run that call this one", "type": "array", "items": { "type": "string" } },
         "calls": {
           "type": "array",

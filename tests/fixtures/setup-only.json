@@ -1,0 +1,454 @@
+[
+  {
+    "id": "so-setup",
+    "name": "Shop · 0 Setup",
+    "active": false,
+    "nodes": [
+      {
+        "id": "00000000-0000-4000-8000-000000002201",
+        "name": "About",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          220,
+          300
+        ],
+        "parameters": {
+          "content": "Run once to create the tables."
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002202",
+        "name": "Run once",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          440,
+          300
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002203",
+        "name": "Or call",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          660,
+          300
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "shop/setup",
+          "responseMode": "responseNode",
+          "options": {}
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002204",
+        "name": "Create orders",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1,
+        "position": [
+          880,
+          300
+        ],
+        "parameters": {
+          "resource": "table",
+          "operation": "create",
+          "tableName": "shop_orders",
+          "columns": {
+            "column": [
+              {
+                "name": "sku",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002205",
+        "name": "Create settings",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1,
+        "position": [
+          1100,
+          300
+        ],
+        "parameters": {
+          "resource": "table",
+          "operation": "create",
+          "tableName": "shop_settings",
+          "columns": {
+            "column": [
+              {
+                "name": "key",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002206",
+        "name": "Existing settings",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1,
+        "position": [
+          1320,
+          300
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "name",
+            "value": "shop_settings"
+          }
+        },
+        "alwaysOutputData": true
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002207",
+        "name": "None yet?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          1540,
+          300
+        ],
+        "parameters": {
+          "conditions": {
+            "combinator": "and",
+            "conditions": [
+              {
+                "leftValue": "={{ $json.id }}",
+                "operator": {
+                  "type": "string",
+                  "operation": "empty"
+                }
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002208",
+        "name": "Default settings",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1,
+        "position": [
+          1760,
+          300
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "insert",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "name",
+            "value": "shop_settings"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "key": "currency"
+            }
+          }
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002209",
+        "name": "Done",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.4,
+        "position": [
+          1980,
+          300
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={ \"ok\": true }"
+        }
+      }
+    ],
+    "connections": {
+      "Run once": {
+        "main": [
+          [
+            {
+              "node": "Create orders",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Or call": {
+        "main": [
+          [
+            {
+              "node": "Create orders",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create orders": {
+        "main": [
+          [
+            {
+              "node": "Create settings",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create settings": {
+        "main": [
+          [
+            {
+              "node": "Existing settings",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Existing settings": {
+        "main": [
+          [
+            {
+              "node": "None yet?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "None yet?": {
+        "main": [
+          [
+            {
+              "node": "Default settings",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Done",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Default settings": {
+        "main": [
+          [
+            {
+              "node": "Done",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    }
+  },
+  {
+    "id": "so-n8n-admin",
+    "name": "Deactivate archived workflows",
+    "active": false,
+    "nodes": [
+      {
+        "id": "00000000-0000-4000-8000-000000002301",
+        "name": "Run",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          220,
+          300
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002302",
+        "name": "List workflows",
+        "type": "n8n-nodes-base.n8n",
+        "typeVersion": 1,
+        "position": [
+          440,
+          300
+        ],
+        "parameters": {
+          "resource": "workflow",
+          "operation": "getAll",
+          "filters": {
+            "tags": "archived"
+          }
+        },
+        "credentials": {
+          "n8nApi": {
+            "id": "cred-n8nApi",
+            "name": "n8n admin"
+          }
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002303",
+        "name": "Deactivate",
+        "type": "n8n-nodes-base.n8n",
+        "typeVersion": 1,
+        "position": [
+          660,
+          300
+        ],
+        "parameters": {
+          "resource": "workflow",
+          "operation": "deactivate",
+          "workflowId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ $json.id }}"
+          }
+        },
+        "credentials": {
+          "n8nApi": {
+            "id": "cred-n8nApi",
+            "name": "n8n admin"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Run": {
+        "main": [
+          [
+            {
+              "node": "List workflows",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "List workflows": {
+        "main": [
+          [
+            {
+              "node": "Deactivate",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    }
+  },
+  {
+    "id": "so-not-setup",
+    "name": "Create a table and announce it",
+    "active": false,
+    "nodes": [
+      {
+        "id": "00000000-0000-4000-8000-000000002401",
+        "name": "Run once",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          220,
+          300
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002402",
+        "name": "Create leads",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1,
+        "position": [
+          440,
+          300
+        ],
+        "parameters": {
+          "resource": "table",
+          "operation": "create",
+          "tableName": "shop_leads",
+          "columns": {
+            "column": [
+              {
+                "name": "email",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000002403",
+        "name": "Tell the team",
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 2.3,
+        "position": [
+          660,
+          300
+        ],
+        "parameters": {
+          "select": "channel",
+          "channelId": {
+            "__rl": true,
+            "mode": "name",
+            "value": "#ops"
+          },
+          "text": "Leads table ready"
+        },
+        "credentials": {
+          "slackOAuth2Api": {
+            "id": "cred-slackOAuth2Api",
+            "name": "Slack"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Run once": {
+        "main": [
+          [
+            {
+              "node": "Create leads",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create leads": {
+        "main": [
+          [
+            {
+              "node": "Tell the team",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    }
+  }
+]

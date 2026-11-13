@@ -72,6 +72,8 @@
         "reason": "run by hand, so a skill in Claude Code or Cowork; an artifact lacks artifact-db",
         "alsoTargets": []
       },
+      "setupOnly": true,
+      "setupOnlyReason": "it only creates n8n Data Tables (orders) and seeds them, run by hand: recreate the storage in the target, nothing to schedule",
       "calledBy": [],
       "calls": [],
       "requires": [
