@@ -1,0 +1,972 @@
+{
+  "connector": "clickup",
+  "toolPrefix": "mcp__claude_ai_ClickUp__",
+  "capturedAt": "2026-11-14",
+  "source": "tool schemas visible to a Claude Code session on the author's account, 2026-11-14",
+  "note": "10 of 66 tools have a captured schema; the rest are listed by name only (schemaCaptured: false). Load them with ToolSearch select: and re-run the extractor to fill them.",
+  "tools": [
+    {
+      "name": "clickup_add_tag_to_task",
+      "description": "Add existing tag to task. Tag must exist in space. Note: Will fail if tag doesn't exist; create it first with clickup_create_space_tag.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "ID of task. Works with both regular task IDs and custom IDs (like 'DEV-1234'). Use clickup_search to find task ID by name if needed."
+          },
+          "tag_name": {
+            "type": "string",
+            "description": "Name of the tag to add to the task. The tag must already exist in the space."
+          },
+          "workspace_id": {
+            "description": "Workspace ID (digits only). Only needed when you have multiple workspaces.",
+            "type": "string",
+            "pattern": "^\\d+$"
+          }
+        },
+        "required": [
+          "task_id",
+          "tag_name"
+        ]
+      }
+    },
+    {
+      "name": "clickup_add_task_dependency",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_add_task_link",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_add_task_to_list",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_add_time_entry",
+      "description": "Add a manual time entry to a task. You can provide either (start + duration) OR (start + end). The tool will calculate missing values. Requires task_id, start time, and either duration or end time. Supports description, billable flag, and tags.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "Task ID (supports custom IDs like 'DEV-1234')"
+          },
+          "start": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}$",
+            "description": "Start time in YYYY-MM-DD HH:MM format (e.g., '2025-01-15 09:30'). Time is required for time tracking entries. For a relative date (\"today\", \"tomorrow\", \"this week\", \"overdue\"), call clickup_get_user first and compute from its current_time, not from your own clock."
+          },
+          "duration": {
+            "type": "string",
+            "description": "Duration of the time entry, in hours and/or minutes: '1.5h', '.5h', '90m', '1h 30m', '1h30m' or '1 hour 30 minutes'. Units are h, hr, hrs, hour, hours and m, min, mins, minute, minutes. A whole number with no unit, such as '45', means minutes. Any other format is rejected, as is a duration under 1 second. Either duration or end_time is required."
+          },
+          "end_time": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}$",
+            "description": "End time in YYYY-MM-DD HH:MM format (e.g., '2025-01-15 11:00'). Time is required for time tracking entries. For a relative date (\"today\", \"tomorrow\", \"this week\", \"overdue\"), call clickup_get_user first and compute from its current_time, not from your own clock."
+          },
+          "description": {
+            "type": "string",
+            "description": "Description for the time entry. Keep short and simple, or omit for best compatibility."
+          },
+          "billable": {
+            "type": "boolean",
+            "description": "Whether this time is billable. Default is workspace setting."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of tag names to assign to the time entry."
+          },
+          "workspace_id": {
+            "description": "Workspace ID (digits only). Only needed when you have multiple workspaces.",
+            "type": "string",
+            "pattern": "^\\d+$"
+          }
+        },
+        "required": [
+          "task_id",
+          "start"
+        ]
+      }
+    },
+    {
+      "name": "clickup_attach_task_file",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_create_comment",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_create_document",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_create_document_page",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_create_folder",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_create_list",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_create_list_in_folder",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_create_reminder",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_create_space_tag",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_create_task",
+      "description": "Create a task in a ClickUp list. Requires name and list_id — ask the user which list unless it is already established, and resolve a list name with clickup_get_list (list_name) before calling. Supports assignees and watchers (user IDs, emails, usernames, or \"me\") and task_type by name.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Task name. Ask the user what they want to name the task."
+          },
+          "list_id": {
+            "type": "string",
+            "description": "Numeric list ID. Reuse an id already in context; otherwise resolve the list name with clickup_get_list (list_name)."
+          },
+          "markdown_description": {
+            "type": "string",
+            "description": "Task description in markdown format."
+          },
+          "status": {
+            "type": "string",
+            "description": "Override default status. Omit to use list defaults."
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "urgent",
+              "high",
+              "normal",
+              "low"
+            ]
+          },
+          "due_date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?$",
+            "description": "Due date in YYYY-MM-DD or YYYY-MM-DD HH:MM format. For a relative date (\"today\", \"tomorrow\", \"this week\", \"overdue\"), call clickup_get_user first and compute from its current_time, not from your own clock."
+          },
+          "start_date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?$",
+            "description": "Start date in YYYY-MM-DD or YYYY-MM-DD HH:MM format. For a relative date (\"today\", \"tomorrow\", \"this week\", \"overdue\"), call clickup_get_user first and compute from its current_time, not from your own clock."
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent task ID to create as subtask."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tag names. A tag that does not exist in the space yet is created (lowercase)."
+          },
+          "custom_fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "ID of the custom field"
+                },
+                "value": {
+                  "description": "Value for the custom field. Pass as a string — the format depends on the field type: text/url/email: the value directly. phone: must be a valid phone number in international format (e.g. '+1 234 567 8901'). dropdown: the option UUID. number/money/rating: the number as a string (e.g. '42'). date: a date string in YYYY-MM-DD or YYYY-MM-DD HH:MM format (auto-converted to timestamp). checkbox/button: 'true' or 'false'. labels: JSON array of UUIDs (e.g. '[\"uuid1\",\"uuid2\"]'). relationships/people/files: JSON with add/rem arrays (e.g. '{\"add\":[\"id1\"],\"rem\":[\"id2\"]}'). progress: JSON with current value (e.g. '{\"current\":50}'). location: JSON with location object (e.g. '{\"location\":{\"lat\":-28,\"lng\":153},\"formatted_address\":\"...\"}').",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "value"
+              ]
+            },
+            "description": "Array of custom field values to set on the task. Each object must have an 'id' and 'value' property."
+          },
+          "check_required_custom_fields": {
+            "type": "boolean",
+            "description": "Flag to check if all required custom fields are set before saving the task."
+          },
+          "assignees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Assignees: \"me\", emails, usernames, user IDs, or AI agent names or IDs, resolved automatically. Fails, writing nothing, if a name or email does not resolve or a name fits more than one user; then use an email or user ID. A name a member has resolves to that member; to pick an AI agent with the same name, use its ID."
+          },
+          "watchers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Users to add as watchers: user IDs, emails, usernames, or \"me\". Each needs access to the list. The creator and assignees are added automatically."
+          },
+          "time_estimate": {
+            "type": "string",
+            "description": "Time estimate in minutes (e.g., '150' for 2h 30m)."
+          },
+          "task_type": {
+            "type": "string",
+            "description": "Name of the task type (e.g., 'Bug', 'Feature', 'Milestone'). The type must exist in the workspace. If not specified, the default task type will be used."
+          },
+          "workspace_id": {
+            "description": "Workspace ID (digits only). Only needed when you have multiple workspaces.",
+            "type": "string",
+            "pattern": "^\\d+$"
+          }
+        },
+        "required": [
+          "name",
+          "list_id"
+        ]
+      }
+    },
+    {
+      "name": "clickup_create_task_comment",
+      "description": "[DEPRECATED → clickup_create_comment] Legacy name for creating a task comment, kept for clients with stale tool listings. Prefer the replacement tool; it takes entity_id instead of task_id.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "Task ID (supports custom IDs like 'DEV-1234')"
+          },
+          "comment_text": {
+            "type": "string",
+            "description": "Comment content. Supports Markdown formatting. External image URLs are not shown as images; send the URL as a plain link."
+          },
+          "notify_all": {
+            "type": "boolean",
+            "description": "Whether to notify all assignees. Default is false."
+          },
+          "assignee": {
+            "description": "User to assign the comment to: user ID, email, username, or \"me\" (resolved automatically).",
+            "type": [
+              "number",
+              "string"
+            ]
+          },
+          "workspace_id": {
+            "description": "Workspace ID (digits only). Only needed when you have multiple workspaces.",
+            "type": "string",
+            "pattern": "^\\d+$"
+          }
+        },
+        "required": [
+          "task_id",
+          "comment_text"
+        ]
+      }
+    },
+    {
+      "name": "clickup_delete_chat_message",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_delete_comment",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_delete_task",
+      "description": "Delete a task by task_id (supports custom IDs like 'DEV-1234'). Always confirm the task_id with the user before deleting.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "Task ID to delete (supports custom IDs like 'DEV-1234')"
+          },
+          "workspace_id": {
+            "description": "Workspace ID (digits only). Only needed when you have multiple workspaces.",
+            "type": "string",
+            "pattern": "^\\d+$"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "name": "clickup_download_document_page_attachment",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_download_task_attachment",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_execute_operator",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_filter_tasks",
+      "description": "Retrieve tasks with combined filters (tags, lists, folders, spaces, statuses, assignees, due date range, completion date range, custom field values). Multiple values within a filter use OR logic; across filters, AND logic applies (custom_fields entries also AND together). Best for filtering tasks...",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "view_id": {
+            "description": "Saved view ID, from a view URL such as .../v/l/<view_id> (.../v/li/<id> is a list). Returns the tasks the view shows, its saved filters applied. Combine only with page and fields.",
+            "type": "string",
+            "minLength": 1
+          },
+          "fields": {
+            "description": "Task fields to return besides id, name and url. Omit for all.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "custom_id",
+                "status",
+                "priority",
+                "assignees",
+                "tags",
+                "due_date",
+                "date_updated",
+                "date_closed",
+                "list"
+              ]
+            }
+          },
+          "tags": {
+            "description": "Filter by tag names.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "list_ids": {
+            "description": "Filter by List IDs.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "folder_ids": {
+            "description": "Filter by Folder IDs.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "space_ids": {
+            "description": "Filter by Space IDs.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "statuses": {
+            "description": "Filter by task status names.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assignees": {
+            "description": "Filter by assignee. Accepts \"me\", emails, usernames, user IDs, or AI agent names or IDs, resolved automatically. A name that fits more than one user fails the call; use an email or user ID. A name a member has resolves to that member; to pick an AI agent with the same name, use its ID.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "include_closed": {
+            "description": "Include closed tasks in results. Defaults to true when date_closed_from or date_closed_to is set; pass false to leave them out.",
+            "type": "boolean"
+          },
+          "due_date_from": {
+            "description": "Due date on or after (YYYY-MM-DD).",
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?$"
+          },
+          "due_date_to": {
+            "description": "Due date on or before (YYYY-MM-DD or YYYY-MM-DD HH:MM). A date alone includes that whole day.",
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?$"
+          },
+          "date_closed_from": {
+            "description": "Completed on or after (YYYY-MM-DD). Includes closed tasks unless include_closed is false.",
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?$"
+          },
+          "date_closed_to": {
+            "description": "Completed on or before (YYYY-MM-DD or YYYY-MM-DD HH:MM). A date alone includes that whole day. Includes closed tasks unless include_closed is false.",
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?$"
+          },
+          "order_by": {
+            "description": "Sort results by field. Default direction is descending — newest first for created/updated. Set reverse: true for ascending (oldest first).",
+            "type": "string",
+            "enum": [
+              "id",
+              "created",
+              "updated",
+              "due_date"
+            ]
+          },
+          "reverse": {
+            "description": "Sort ascending (oldest first) instead of the default descending (newest first). Leave unset/false to get the most recently created/updated tasks first.",
+            "type": "boolean"
+          },
+          "page": {
+            "description": "0-indexed page number. Each call returns about 100 tasks. When a response has has_more=true, request the next page using its next_page value, and keep going until has_more=false to retrieve every matching task.",
+            "type": "number"
+          },
+          "subtasks": {
+            "default": true,
+            "description": "Include subtasks in results (default: true)",
+            "type": "boolean"
+          },
+          "custom_fields": {
+            "description": "Filter by custom field values. Entries combine with AND (and with all other filters).",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field_id": {
+                  "type": "string",
+                  "description": "Custom field ID. Discover fields with clickup_get_custom_fields — one unrecognized field_id makes the API silently drop ALL custom field filters in the call and return unfiltered results. Formula, location, button, votes, signature, rollup, progress, and app fields cannot be filtered at all (any operator errors)."
+                },
+                "operator": {
+                  "type": "string",
+                  "enum": [
+                    "=",
+                    "==",
+                    "<",
+                    "<=",
+                    ">",
+                    ">=",
+                    "!=",
+                    "!==",
+                    "IS NULL",
+                    "IS NOT NULL",
+                    "RANGE",
+                    "ANY",
+                    "ALL",
+                    "NOT ANY",
+                    "NOT ALL"
+                  ],
+                  "description": "On text fields '=' means contains and '==' exact match; on single-value non-text fields (number, money, date, rating, checkbox, dropdown) use '=' or '!=' (exact) — '==' and '!==' only work on text fields. <, <=, >, >=, RANGE order numbers/dates. Multi-value fields (labels, people, relationships) require ANY/ALL/NOT ANY/NOT ALL, with a non-empty JSON array value. IS NULL/IS NOT NULL match unset/set fields."
+                },
+                "value": {
+                  "description": "Filter value as a string. Omit for IS NULL/IS NOT NULL. Formats: text as-is; dropdown: option UUID, or the option's orderindex when the field's type_config.options is present (those legacy dropdowns store numeric values); number/money/rating: '42'; date: YYYY-MM-DD or YYYY-MM-DD HH:MM (auto-converted to a timestamp for <, <=, >, >=, RANGE; date-only values resolve to 00:00 in your timezone); RANGE: JSON array of two numbers/dates (e.g. '[1, 5]'); ANY/ALL/NOT ANY/NOT ALL: JSON array — labels: option UUIDs, people: numeric user IDs, task/list relationships: task IDs (e.g. '[\"uuid1\",\"uuid2\"]'). For = or != on Date fields pass a millisecond epoch; date strings auto-convert only for the ordering operators.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "field_id",
+                "operator"
+              ]
+            }
+          },
+          "workspace_id": {
+            "description": "Workspace ID (digits only). Only needed when you have multiple workspaces.",
+            "type": "string",
+            "pattern": "^\\d+$"
+          }
+        }
+      }
+    },
+    {
+      "name": "clickup_find_member_by_name",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_get_bulk_tasks_time_in_status",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_get_chat_channel_messages",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_get_chat_channels",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_get_chat_message_replies",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_get_current_time_entry",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_get_custom_fields",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_get_document_pages",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_get_folder",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_get_list",
+      "description": "Get list details by list_id or list_name. Returns id, name, content, space info, and configured statuses. Use to resolve list names to IDs.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "list_id": {
+            "description": "ID of the list to retrieve.",
+            "type": "string"
+          },
+          "list_name": {
+            "description": "List name as displayed in ClickUp. Matching ignores case and surrounding whitespace, preferring an exact match. If several lists share the name, the first match is returned — verify the space in the result. If not found, confirm the name with the user rather than retrying variants.",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "Workspace ID (digits only). Only needed when you have multiple workspaces.",
+            "type": "string",
+            "pattern": "^\\d+$"
+          }
+        }
+      }
+    },
+    {
+      "name": "clickup_get_operators",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_get_schema",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_get_task",
+      "description": "Retrieve a ClickUp task by ID (supports custom IDs like 'DEV-1234'). Returns a compact summary by default — core fields are always included, large sections appear as counts only (e.g. custom_fields_count: 3, subtasks_count: 2). subtasks_count counts closed subtasks too, so a subtask count needs n...",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "Task ID (supports custom IDs like 'DEV-1234')"
+          },
+          "include": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "attachments",
+                "checklists",
+                "custom_fields",
+                "dependencies",
+                "description",
+                "git_links",
+                "linked_tasks",
+                "subtasks",
+                "watchers"
+              ]
+            },
+            "description": "Sections to return in full. Without this, large sections appear as counts (e.g. custom_fields_count: 3). Available: attachments (metadata only — id, title, extension, mimetype, size, date, source; use clickup_download_task_attachment to get a download URL), checklists (items + completion), custom_fields (fields that have a value, as {id, name, type, value}; dropdown values are resolved to option id and name, label values to id and label; a checkbox missing from the list is unchecked; text values with links also carry value_richtext; use clickup_get_custom_fields for unset fields and option lists), dependencies (blocking/waiting-on relationships), description (full text — summary truncates at 10k chars), git_links (GitHub pull requests linked to the task — title, state, author, branches, URL), linked_tasks (linked task IDs), subtasks (a summary of each subtask; the default subtasks_count already counts them, closed ones included), watchers (watching users)."
+          },
+          "expand_statuses": {
+            "type": "boolean",
+            "description": "When true, returns the full set of statuses configured on the task's list (including any inherited from the parent folder or space) under `available_statuses`. Use to discover which status values can be assigned via update_task. Off by default to keep responses lean."
+          },
+          "workspace_id": {
+            "description": "Workspace ID (digits only). Only needed when you have multiple workspaces.",
+            "type": "string",
+            "pattern": "^\\d+$"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "name": "clickup_get_task_comments",
+      "description": "Get task comments with reply_count per comment. Use clickup_get_threaded_comments for replies when reply_count > 0. Supports pagination via start/start_id.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "Task ID (supports custom IDs like 'DEV-1234')"
+          },
+          "start": {
+            "type": "number",
+            "description": "Timestamp (in milliseconds) to start retrieving comments from. Used for pagination."
+          },
+          "start_id": {
+            "type": "string",
+            "description": "Comment ID to start from. Used together with start for pagination."
+          },
+          "workspace_id": {
+            "description": "Workspace ID (digits only). Only needed when you have multiple workspaces.",
+            "type": "string",
+            "pattern": "^\\d+$"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "name": "clickup_get_task_time_in_status",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_get_threaded_comments",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_get_time_entries",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_get_user",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_get_workspace_hierarchy",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_get_workspace_members",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_list_document_page_attachments",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_list_document_pages",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_merge_tasks",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_move_task",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_react_to_chat_message",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_remove_tag_from_task",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_remove_task_dependency",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_remove_task_from_list",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_remove_task_link",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_request_attachment_upload",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_resolve_assignees",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_search",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_search_reminders",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_send_chat_message",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_start_time_tracking",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_stop_time_tracking",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_update_chat_message",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_update_comment",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_update_document_page",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_update_folder",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_update_list",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_update_reminder",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "clickup_update_task",
+      "description": "Update task properties. Requires task_id and at least one field to change. Supports assignees (user IDs, emails, usernames, or \"me\"), custom fields as [{id, value}], task_type by name (or 'none' to reset), parent to nest the task, and watchers: {add, rem} to add or remove watchers.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "Task ID (supports custom IDs like 'DEV-1234')"
+          },
+          "name": {
+            "type": "string"
+          },
+          "markdown_description": {
+            "type": "string",
+            "description": "Task description in markdown format."
+          },
+          "status": {
+            "type": "string",
+            "description": "New status (must be valid for the task's list)."
+          },
+          "priority": {
+            "description": "Set priority, or 'none' to clear. Omit to leave unchanged.",
+            "type": "string",
+            "enum": [
+              "urgent",
+              "high",
+              "normal",
+              "low",
+              "none"
+            ]
+          },
+          "due_date": {
+            "type": "string",
+            "description": "YYYY-MM-DD or YYYY-MM-DD HH:MM format. Pass 'none' (any letter case) to clear. Omit to leave unchanged. For a relative date (\"today\", \"tomorrow\", \"this week\", \"overdue\"), call clickup_get_user first and compute from its current_time, not from your own clock."
+          },
+          "start_date": {
+            "type": "string",
+            "description": "YYYY-MM-DD or YYYY-MM-DD HH:MM format. Pass 'none' (any letter case) to clear. Omit to leave unchanged. For a relative date (\"today\", \"tomorrow\", \"this week\", \"overdue\"), call clickup_get_user first and compute from its current_time, not from your own clock."
+          },
+          "time_estimate": {
+            "type": "string",
+            "description": "Time estimate in minutes (e.g., '150' for 2h 30m)."
+          },
+          "custom_fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "ID of the custom field"
+                },
+                "value": {
+                  "description": "Value for the custom field. Pass as a string — the format depends on the field type: text/url/email: the value directly. phone: must be a valid phone number in international format (e.g. '+1 234 567 8901'). dropdown: the option UUID. number/money/rating: the number as a string (e.g. '42'). date: a date string in YYYY-MM-DD or YYYY-MM-DD HH:MM format (auto-converted to timestamp). checkbox/button: 'true' or 'false'. labels: JSON array of UUIDs (e.g. '[\"uuid1\",\"uuid2\"]'). relationships/people/files: JSON with add/rem arrays (e.g. '{\"add\":[\"id1\"],\"rem\":[\"id2\"]}'). progress: JSON with current value (e.g. '{\"current\":50}'). location: JSON with location object (e.g. '{\"location\":{\"lat\":-28,\"lng\":153},\"formatted_address\":\"...\"}').",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "value"
+              ]
+            },
+            "description": "Array of custom field values to set on the task. Each object must have an 'id' and 'value' property. An empty string value clears that field's value."
+          },
+          "assignees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Assignees: \"me\", emails, usernames, user IDs, or AI agent names or IDs, resolved automatically. Fails, writing nothing, if a name or email does not resolve or a name fits more than one user; then use an email or user ID. A name a member has resolves to that member; to pick an AI agent with the same name, use its ID."
+          },
+          "watchers": {
+            "type": "object",
+            "properties": {
+              "add": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "rem": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Users to add to or remove from the task watchers: user IDs, emails, usernames, or \"me\". Each added watcher needs access to the task. Read the current watchers with clickup_get_task include [\"watchers\"]."
+          },
+          "task_type": {
+            "type": "string",
+            "description": "To change the task type, pass the type name as a string (e.g., 'Bug', 'Feature', 'Milestone'). The type must exist in the workspace. To revert to the default 'Task' type, pass lowercase 'none'. Omit entirely to leave unchanged."
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent task ID (supports custom IDs). The task moves into the parent's list and stops being private, since subtasks cannot be private. A subtask cannot be made a top-level task through this tool. Omit to leave unchanged."
+          },
+          "workspace_id": {
+            "description": "Workspace ID (digits only). Only needed when you have multiple workspaces.",
+            "type": "string",
+            "pattern": "^\\d+$"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    }
+  ]
+}

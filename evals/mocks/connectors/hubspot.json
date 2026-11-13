@@ -1,0 +1,2144 @@
+{
+  "connector": "hubspot",
+  "toolPrefix": "mcp__claude_ai_HubSpot__",
+  "capturedAt": "2026-11-14",
+  "source": "tool schemas visible to a Claude Code session on the author's account, 2026-11-14",
+  "note": "18 of 34 tools have a captured schema; the rest are listed by name only (schemaCaptured: false). Load them with ToolSearch select: and re-run the extractor to fill them.",
+  "tools": [
+    {
+      "name": "discover_hubspot_schema",
+      "description": "Discovers HubSpot data types, pipelines, and stages, and the current user's read/write access to each type. Returned type names are the values other tools accept as object types. <usage_guidance> - Use this tool FIRST to identify which data types exist before querying data - Use SEARCH_OBJECT_TYP...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "_queryType": {
+                    "const": "SEARCH_OBJECT_TYPES",
+                    "type": "string"
+                  },
+                  "searchTerms": {
+                    "type": "string",
+                    "description": "Natural-language search terms describing the data types you are looking for."
+                  },
+                  "fetchOptions": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/com.hubspot.integration.tools.model.types.discovery.FetchOption"
+                    },
+                    "description": "Optional extra data to include in each result. Use DESCRIPTION to include type descriptions. Use READ_GUIDANCE for reading/querying tips. Use WRITE_GUIDANCE for creation/update tips. Use DEFAULT_PROPERTIES to include the default set of property names fetched for this type. Use LABELS to include each type's current label, plus HubSpot's default label when the portal has renamed the type. Use ASSOCIATIONS to include the types each type can be associated with and their association labels (GET_OBJECT_TYPES with typeNameFilter only). Use DATA_MODEL_OPERATIONS to include the data model changes each type supports, such as renaming it or adding custom properties. Use DISPLAY_PROPERTIES to include the internal names of the property shown as each record's name and the properties shown under it. If omitted, none of this extra data is included."
+                  }
+                },
+                "required": [
+                  "searchTerms",
+                  "_queryType"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "_queryType": {
+                    "const": "GET_OBJECT_TYPES",
+                    "type": "string"
+                  },
+                  "typeNameFilter": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "description": "Filter by exact type names or object type IDs (e.g. CONTACT, DEAL, 0-1). Omit or leave empty to return all available object types. Max: 10"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of types to return per page. Defaults to 10."
+                  },
+                  "fetchOptions": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/com.hubspot.integration.tools.model.types.discovery.FetchOption"
+                    },
+                    "description": "Optional extra data to include in each result. Use DESCRIPTION to include type descriptions. Use READ_GUIDANCE for reading/querying tips. Use WRITE_GUIDANCE for creation/update tips. Use DEFAULT_PROPERTIES to include the default set of property names fetched for this type. Use LABELS to include each type's current label, plus HubSpot's default label when the portal has renamed the type. Use ASSOCIATIONS to include the types each type can be associated with and their association labels (GET_OBJECT_TYPES with typeNameFilter only). Use DATA_MODEL_OPERATIONS to include the data model changes each type supports, such as renaming it or adding custom properties. Use DISPLAY_PROPERTIES to include the internal names of the property shown as each record's name and the properties shown under it. If omitted, none of this extra data is included."
+                  },
+                  "cursor": {
+                    "type": "string",
+                    "description": "Cursor token from a previous response to retrieve the next page of results. Omit to start from the beginning."
+                  }
+                },
+                "required": [
+                  "_queryType"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "_queryType": {
+                    "const": "GET_PIPELINES",
+                    "type": "string"
+                  },
+                  "objectType": {
+                    "type": "string",
+                    "description": "The object type to fetch pipelines for: any CRM object type with hasPipelines: true, by type name or object type ID (e.g. DEAL, TICKET, 0-3)."
+                  }
+                },
+                "required": [
+                  "objectType",
+                  "_queryType"
+                ],
+                "additionalProperties": false
+              }
+            ],
+            "description": "The schema query to run. Choose SEARCH_OBJECT_TYPES to discover types by natural language, or GET_OBJECT_TYPES to fetch known type names directly (or all types when typeNameFilter is empty)."
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "com.hubspot.integration.tools.model.types.discovery.FetchOption": {
+            "type": "string",
+            "enum": [
+              "DESCRIPTION",
+              "WRITE_GUIDANCE",
+              "READ_GUIDANCE",
+              "DEFAULT_PROPERTIES",
+              "LABELS",
+              "ASSOCIATIONS",
+              "DATA_MODEL_OPERATIONS",
+              "DISPLAY_PROPERTIES"
+            ]
+          }
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "get_aeo_metrics",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "get_campaign_attribution_reports",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "get_content_analytics_report",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "get_crm_objects",
+      "description": "Fetches multiple CRM objects of the same object type in a single request. <returns> A list of CRM objects with their properties, identified by their unique IDs, containing: - id: Unique identifier for the CRM object - properties: Key-value pairs of property names and their values - createdAt: Tim...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "objectType": {
+            "type": "string",
+            "description": "Object type to fetch"
+          },
+          "objectIds": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "List of object IDs to fetch. Min: 1, Max: 100"
+          },
+          "properties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of CRM Properties to include in the response"
+          }
+        },
+        "required": [
+          "objectType"
+        ],
+        "additionalProperties": false,
+        "$defs": {},
+        "definitions": {}
+      }
+    },
+    {
+      "name": "get_organization_details",
+      "description": "Get organization-wide teams, job titles (roles), seats, account info (timezone, currency, account type, portal name), and brands. Use the include parameter (TEAMS, SEATS, JOB_TITLES, ACCOUNT_INFORMATION, BRANDS) to fetch only what you need. Returns only the included sections (or all if include is...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "include": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "TEAMS",
+                "SEATS",
+                "JOB_TITLES",
+                "ACCOUNT_INFORMATION",
+                "BRANDS"
+              ]
+            },
+            "description": "Optional list of data to include in the response.\nAvailable values:\n- TEAMS: Include the list of teams and their members\n- SEATS: Include the list of seat/role names available in the account\n- JOB_TITLES: Include the list of job titles assigned to users in the account\n- ACCOUNT_INFORMATION: Include account details such as timezone, currency, and account type\n- BRANDS: Include the account's brands and the primary brand, each with ID and name\n\nIf not specified or empty, all data will be returned.\nSpecify only the values you need to reduce response size.\nUnrecognized values will result in an error."
+          }
+        },
+        "required": [],
+        "additionalProperties": false,
+        "$defs": {},
+        "definitions": {}
+      }
+    },
+    {
+      "name": "get_properties",
+      "description": "Fetches property definitions including data types and enumeration values. <capabilities> - Particularly useful for discovering valid options in enumeration-type properties - To search for actual data, use search_crm_objects </capabilities> <returns> List of property definition objects containing:...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "objectType": {
+            "type": "string",
+            "description": "The object type to get properties for. e.g., contacts, companies, deals, tickets, etc."
+          },
+          "propertyNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The set of property names to retrieve"
+          }
+        },
+        "required": [
+          "objectType"
+        ],
+        "additionalProperties": false,
+        "$defs": {},
+        "definitions": {}
+      }
+    },
+    {
+      "name": "get_social_channels",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "get_social_post_analytics",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "get_user_details",
+      "description": "Returns the current user's identity and hub info, plus optional team and role context. Call this before other HubSpot operations to establish the current user's identity. Returns info for the current user only — to find other users/owners, search the \"users\" objectType with search_crm_objects. <u...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "include": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "TEAMS_AND_ROLES",
+                "TOOL_INFORMATION",
+                "USER_INFORMATION"
+              ]
+            },
+            "description": "Optional list of data sections to include in the user details response.\nAvailable values:\n- USER_INFORMATION: The current user's personal details (owner ID, name, email)\n- TEAMS_AND_ROLES: The user's team memberships and role assignments\n- TOOL_INFORMATION: Deprecated. Use discover_hubspot_schema for object type read/write access.\n\nIf not specified or empty, the USER_INFORMATION section is returned.\nSpecify only the sections you need to reduce response size.\nUnrecognized values are ignored."
+          }
+        },
+        "required": [],
+        "additionalProperties": false,
+        "$defs": {},
+        "definitions": {}
+      }
+    },
+    {
+      "name": "import-claude-design-from-url",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "manage_aeo_prompts",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "manage_aeo_recommendations",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "manage_blog_post",
+      "description": "Create, update, publish, and inspect HubSpot blog posts. One action per call. Read actions: GET_POST, GET_AUTHOR, LIST_BLOGS, LIST_BLOG_POSTS, LIST_TAGS, GET_BRAND_KIT. Write actions: CREATE, UPDATE, SET_AUTHOR, PUBLISH, UNPUBLISH. A blog post is rich text (an HTML body) plus metadata and tags, N...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Action to perform. One per call. READ actions (no side effects): \"LIST_BLOGS\": list the blogs (content groups) in this portal, each with its id and name. Call this when the user wants a blog post but hasn't said which blog; if the portal has more than one blog, ask the user which one before CREATE, then pass the chosen id as blogId. No other fields required. \"LIST_BLOG_POSTS\": list existing posts in this portal as compact summaries (contentId, title, state, blog name, author name, slug, and updated time). Use this when the user asks about existing posts or wants to edit one but does not know its contentId. Optionally pass blogId to scope the list to one blog; limit defaults to 10 and is capped at 25. \"GET_POST\": fetch a post's current title, HTML body, meta description, and tags (requires contentId). Call before any edit so you change only what the user asked. \"GET_AUTHOR\": look up a blog author by email address (requires email). Returns the author's id, name, and email. Use this when the user wants to assign a specific author to a post or needs to find an author's id. \"LIST_TAGS\": list the blog tags in this portal. Returns tag names and ids. Call this before setting tags on CREATE or UPDATE so you can reuse a fitting existing tag by its exact name (tags are matched by exact name, so a near-variant would create a duplicate); if none fit, ask the user before creating a new tag rather than inventing one. Optionally pass limit (defaults to 25, capped at 100). Requires blog-tags-read scope. \"GET_BRAND_KIT\": fetch the portal's primary brand kit (colors, fonts, logos). Call before creating or restyling a post so the HTML uses the customer's brand colors and fonts instead of arbitrary defaults. No other fields required. WRITE actions (mutate the SAME draft — issue them ONE AT A TIME, never in parallel): \"SET_AUTHOR\": assign a blog author to the post (requires contentId). Pass blogAuthorId to assign an existing author directly. Alternatively, pass email and authorName: if an author with that email already exists it is used, otherwise a new blog author is created with the given name and email and then assigned. \"CREATE\": create a NEW draft blog post (requires title and postBody as HTML; metaDescription and comma-separated tags recommended; optional blogId — omit only when the portal has a single blog, otherwise pass the user's chosen blogId, which CREATE lists and requires when the portal has more than one blog). The post is created as a DRAFT. MUST be preceded by a proposal card (call render_blog_post_ui directly with a \"propose\" target) and an explicit user confirmation IN CHAT. Returns contentId and editorUrl. If applying tags, call LIST_TAGS first and reuse existing tags; if none fit, ask the user before creating a new tag (see the tags field). \"UPDATE\": update the post's HTML body, title, meta description, and/or tags (requires contentId; set one or more of postBody, title, metaDescription, or tags — omitted fields are left unchanged; when tags is set it replaces the full tag list — call LIST_TAGS first and reuse existing tags, asking the user before creating any new tag). \"PUBLISH\": publish the post so it goes live (requires contentId). Publishing is a separate, explicit step — only call it when the user clearly asks to publish; otherwise leave the post as a draft for them to publish from the editor. To schedule the post for a future time instead of publishing now, also pass publishAt. \"UNPUBLISH\": revert a published post back to draft (requires contentId). The post is taken offline and returns to draft state. Only call when the user explicitly asks to unpublish, take down, or revert a post to draft."
+          },
+          "contentId": {
+            "type": "integer",
+            "description": "Content ID of the blog post. Required for GET_POST, UPDATE, SET_AUTHOR, PUBLISH, and UNPUBLISH. Not used by CREATE (which returns a new id), LIST_BLOGS, LIST_BLOG_POSTS, LIST_TAGS, GET_AUTHOR, or GET_BRAND_KIT."
+          },
+          "blogId": {
+            "type": "integer",
+            "description": "ID of the blog (content group). For CREATE, omit only when the portal has a single blog; when it has more than one you must pass the user's chosen blogId (CREATE lists the blogs and errors otherwise). For LIST_BLOG_POSTS, optionally pass it to return only posts in that blog. Use LIST_BLOGS to discover ids."
+          },
+          "postBody": {
+            "type": "string",
+            "description": "The post's body as an HTML string — use <h2>/<h3> for subheadings and <p> for paragraphs. Required for CREATE. For UPDATE, set it to replace the body (omit to leave unchanged). Blog posts are authored as HTML, not as a module grid. For font or text-color changes, put the inline style directly on every affected text-bearing element (h2, h3, p, li, a, span, etc.), not only on a wrapping div: HubSpot template CSS can override inherited wrapper styles."
+          },
+          "title": {
+            "type": "string",
+            "description": "Post title (the post's H1 / browser title). Required for CREATE. For UPDATE, set it to change the title (omit to leave unchanged)."
+          },
+          "metaDescription": {
+            "type": "string",
+            "description": "SEO meta description for search snippets (~140–160 chars). Recommended for CREATE. For UPDATE, set it to change the meta description (omit to leave unchanged)."
+          },
+          "tags": {
+            "type": "string",
+            "description": "Comma-separated blog tag names to apply (e.g. \"dogs, pets, family\"). On CREATE, applies these tags to the new draft. On UPDATE, replaces the post's full tag list; omit this field to leave tags unchanged, or pass an empty string to remove all tags. Tags are matched to the portal's tags by EXACT name, so call action=LIST_TAGS first and reuse an existing tag's name verbatim when it fits — a near-variant (e.g. \"Content Marketing\" when the portal already has \"Marketing\") will not match and creates a separate duplicate tag. Reuse existing tags; if none fit, ask the user before creating a new one (see createNewTags) rather than inventing tags — and if they don't approve, leave tags off. Tags must already exist in the portal unless createNewTags=true is set. Whitespace around names is ignored, duplicate names are removed, and each tag name must be at most 50 characters."
+          },
+          "createNewTags": {
+            "type": "boolean",
+            "description": "Set to true to allow creating new tags that don't already exist in the portal. Defaults to false. Leave it false unless the user has approved a new tag (see the tag-reuse rule on the tags field), and set it to true only after they approve or explicitly ask for a new tag. Never set it just to get past a \"tag does not exist\" error — if the user hasn't approved a new tag, add no tags instead."
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address of the blog author. Required for GET_AUTHOR. For SET_AUTHOR, pass this with authorName to find-or-create an author by email. Ignored for other actions."
+          },
+          "blogAuthorId": {
+            "type": "integer",
+            "description": "ID of an existing blog author. Used by SET_AUTHOR to assign a known author directly. Mutually exclusive with the email+authorName path. Ignored for other actions."
+          },
+          "authorName": {
+            "type": "string",
+            "description": "Display name of the blog author. Used by SET_AUTHOR together with email: if no author exists for the given email a new one is created with this name. Ignored for other actions."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of results to return for LIST_BLOGS, LIST_BLOG_POSTS, or LIST_TAGS. LIST_BLOG_POSTS defaults to 10 (capped at 25). LIST_TAGS defaults to 25 (capped at 100). Ignored for other actions."
+          },
+          "publishAt": {
+            "type": "string",
+            "description": "When to publish the post. Only used by PUBLISH; ignored for all other actions. Omit it to publish immediately. To schedule, pass an ISO-8601 date and time with a UTC offset, for example 2026-11-10T09:00:00-05:00. It must be in the future. Convert the time the user gave into their own timezone's offset before passing it, and confirm the date and time with the user first."
+          },
+          "createdByAgent": {
+            "type": "string",
+            "description": "Attribution label stamped on the blog post to identify which agent created it (e.g. \"Content Agent\"). Only used by CREATE; ignored for all other actions. Leave unset when not creating on behalf of an agent."
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false,
+        "$defs": {},
+        "definitions": {}
+      }
+    },
+    {
+      "name": "manage_campaign_objects",
+      "description": "REQUIRED FIRST STEP: before your first call, invoke tool_guidance for \"manage_campaign_objects\". Creates or updates campaigns, assigns campaign owners, and manages asset associations. <prerequisites> Use CRM tools to retrieve the campaign's campaignCrmObjectId before using CAMPAIGN_UPDATE or CAMP...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "CAMPAIGN_CREATE",
+              "CAMPAIGN_UPDATE",
+              "CAMPAIGN_ASSET",
+              "CAMPAIGN_ASSET_TYPES_LIST"
+            ],
+            "description": "Required. The operation to perform: CAMPAIGN_CREATE, CAMPAIGN_UPDATE, CAMPAIGN_ASSET, or CAMPAIGN_ASSET_TYPES_LIST (deprecated — use GET_CAMPAIGN_ASSET_TYPES via readCampaignData instead)."
+          },
+          "createRequest": {
+            "type": "object",
+            "properties": {
+              "displayName": {
+                "type": "string",
+                "description": "Required. The campaign display name (max 255 chars)."
+              },
+              "startDate": {
+                "type": "string",
+                "description": "Campaign start date in ISO 8601 format (YYYY-MM-DD)."
+              },
+              "endDate": {
+                "type": "string",
+                "description": "Campaign end date in ISO 8601 format (YYYY-MM-DD)."
+              },
+              "owner": {
+                "type": "integer",
+                "description": "Campaign CRM owner ID, not a HubSpot user ID. Look it up with CRM owner tools."
+              },
+              "audience": {
+                "type": "string",
+                "description": "Campaign target audience description."
+              },
+              "notes": {
+                "type": "string",
+                "description": "Internal campaign notes."
+              },
+              "colorHex": {
+                "type": "string",
+                "description": "Campaign color as a hex string in the format #RRGGBB (for example #FF5733)."
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/com.hubspot.marketing.campaigns.models.rpc.crud.CampaignStatus"
+                  }
+                ],
+                "description": "Campaign status (sets hs_campaign_status). One of: planned, in_progress, active, paused, completed."
+              },
+              "customProperties": {
+                "type": "object",
+                "required": [],
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Custom campaign properties as a map of property name to value. To set the campaign status or color, use the status or colorHex fields instead of hs_campaign_status or hs_color_hex."
+              }
+            },
+            "required": [
+              "displayName"
+            ],
+            "additionalProperties": false,
+            "description": "Campaign creation data. Required when operationType is CAMPAIGN_CREATE."
+          },
+          "updateRequest": {
+            "type": "object",
+            "properties": {
+              "campaignCrmObjectId": {
+                "type": "integer",
+                "description": "Required. CRM object ID of the campaign to update. If you only have the campaign name, look it up first via CRM search or read_campaign_data; do not guess it."
+              },
+              "displayName": {
+                "type": "string",
+                "description": "Updated campaign display name (max 255 chars)."
+              },
+              "startDate": {
+                "type": "string",
+                "description": "Campaign start date in ISO 8601 format (YYYY-MM-DD)."
+              },
+              "endDate": {
+                "type": "string",
+                "description": "Campaign end date in ISO 8601 format (YYYY-MM-DD)."
+              },
+              "owner": {
+                "type": "integer",
+                "description": "Campaign CRM owner ID, not a HubSpot user ID. Look it up with CRM owner tools."
+              },
+              "audience": {
+                "type": "string",
+                "description": "Campaign target audience description."
+              },
+              "notes": {
+                "type": "string",
+                "description": "Internal campaign notes."
+              },
+              "colorHex": {
+                "type": "string",
+                "description": "Campaign color as a hex string in the format #RRGGBB (for example #FF5733)."
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/com.hubspot.marketing.campaigns.models.rpc.crud.CampaignStatus"
+                  }
+                ],
+                "description": "Campaign status (sets hs_campaign_status). One of: planned, in_progress, active, paused, completed."
+              },
+              "customProperties": {
+                "type": "object",
+                "required": [],
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Custom campaign properties as a map of property name to value. To set the campaign status or color, use the status or colorHex fields instead of hs_campaign_status or hs_color_hex."
+              }
+            },
+            "required": [
+              "campaignCrmObjectId"
+            ],
+            "additionalProperties": false,
+            "description": "Campaign update data. Required when operationType is CAMPAIGN_UPDATE."
+          },
+          "assetRequest": {
+            "type": "object",
+            "properties": {
+              "campaignCrmObjectId": {
+                "type": "integer",
+                "description": "Required. CRM object ID of the campaign. If you only have the campaign name, look it up first via CRM search or read_campaign_data; do not guess it."
+              },
+              "assetOperations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "type": "string",
+                      "enum": [
+                        "ADD",
+                        "REMOVE"
+                      ],
+                      "description": "Required. The action to perform for this asset type: ADD or REMOVE."
+                    },
+                    "assetObjectType": {
+                      "type": "string",
+                      "description": "Required. The asset object type name (e.g. LANDING_PAGE, BLOG_POST, SITE_PAGE, MARKETING_EMAIL)."
+                    },
+                    "crmObjectIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      },
+                      "description": "Required. CRM object IDs of the assets to associate or dissociate."
+                    }
+                  },
+                  "required": [
+                    "action",
+                    "assetObjectType"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Required. One or more asset type operations. Each entry specifies an action (ADD|REMOVE), assetObjectType, and crmObjectIds, allowing ADD and REMOVE to be mixed in a single call. Each (action, assetObjectType) pair must appear at most once — e.g. ADD+LANDING_PAGE and REMOVE+LANDING_PAGE can coexist, but two ADD+LANDING_PAGE entries cannot. Operations are applied sequentially — if one fails, prior operations are not rolled back. Call CAMPAIGN_ASSET_TYPES_LIST to discover valid assetObjectType values."
+              }
+            },
+            "required": [
+              "campaignCrmObjectId"
+            ],
+            "additionalProperties": false,
+            "description": "Asset association data. Required when operationType is CAMPAIGN_ASSET."
+          }
+        },
+        "required": [
+          "operationType"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "com.hubspot.marketing.campaigns.models.rpc.crud.CampaignStatus": {
+            "type": "string",
+            "enum": [
+              "planned",
+              "in_progress",
+              "active",
+              "paused",
+              "completed"
+            ]
+          }
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "manage_crm_objects",
+      "description": "Creates or updates CRM objects and their associations. Use createRequest to create objects; use updateRequest to update existing objects or associate two existing objects. For any association or association-label work, first call the `tool_guidance` tool for `manage_crm_objects` — detailed associ...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "createRequest": {
+            "type": "object",
+            "properties": {
+              "objects": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "objectType": {
+                      "type": "string",
+                      "description": "The object type to create (e.g., contacts, companies, deals, tickets)"
+                    },
+                    "properties": {
+                      "type": "object",
+                      "required": [],
+                      "additionalProperties": {
+                        "type": "string"
+                      },
+                      "description": "The property keys and associated values for each key to set on the newly created object"
+                    },
+                    "associations": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/com.hubspot.integration.tools.model.manage.associations.AssociationContext"
+                      },
+                      "description": "Optional list of associations to create with this object.\nFor CREATE operations, associations are created after the object is successfully created.\nEach association requires a target object ID & target object type."
+                    }
+                  },
+                  "required": [
+                    "objectType"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "A list of CRM objects to create"
+              }
+            },
+            "required": [],
+            "additionalProperties": false,
+            "description": "Required when creating new CRM objects."
+          },
+          "updateRequest": {
+            "type": "object",
+            "properties": {
+              "objects": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "objectType": {
+                      "type": "string",
+                      "description": "The object type to update (e.g., contacts, companies, deals, tickets)"
+                    },
+                    "objectId": {
+                      "type": "integer",
+                      "description": "The ID of the object to update"
+                    },
+                    "properties": {
+                      "type": "object",
+                      "required": [],
+                      "additionalProperties": {
+                        "type": "string"
+                      },
+                      "description": "The property keys and values to update on the existing object. Leave empty to only create associations"
+                    },
+                    "associations": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/com.hubspot.integration.tools.model.manage.associations.AssociationContext"
+                      },
+                      "description": "Optional list of associations to create with this object.\nFor UPDATE operations, associations are created after the object is successfully updated.\nEach association requires a target object ID and target object type."
+                    }
+                  },
+                  "required": [
+                    "objectType",
+                    "objectId"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "A list of CRM objects to update"
+              }
+            },
+            "required": [],
+            "additionalProperties": false,
+            "description": "Required when updating existing CRM objects."
+          },
+          "confirmationStatus": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED",
+              "CONFIRMATION_WAIVED_FOR_SESSION"
+            ],
+            "description": "Indicates whether the user has approved this action. Must be CONFIRMED or CONFIRMATION_WAIVED_FOR_SESSION before invoking the tool."
+          }
+        },
+        "required": [],
+        "additionalProperties": false,
+        "$defs": {
+          "com.hubspot.integration.tools.model.manage.associations.AssociationContext": {
+            "type": "object",
+            "properties": {
+              "targetObjectId": {
+                "type": "integer",
+                "description": "The ID of the target object to associate with"
+              },
+              "targetObjectType": {
+                "type": "string",
+                "description": "The object type of the target object (e.g., CONTACT, COMPANY, DEAL)"
+              },
+              "labels": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "List of association label names to add to this association.\nLabels must already exist for the object type pair (e.g., \"Contact with Primary Company\", \"Billing Contact\").\nSpecified labels are added to any existing labels on the association.\nIf not specified, only the default association is created/updated and existing labels are left unchanged."
+              }
+            },
+            "required": [
+              "targetObjectId",
+              "targetObjectType"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "definitions": {}
+      }
+    },
+    {
+      "name": "manage_landing_page",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "manage_onboarding",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "manage_saved_reports",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "manage_segment",
+      "description": "Create, edit, convert, delete, or restore a segment, add/remove its records, or change its exclusions. Set operation.type to an operation below; segments are identified by list ID. <mandatory_confirmation> This tool writes to the portal. Before calling it, you MUST show the user a summary of the ...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "CreateStaticSegmentOperation",
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "The name for the new segment. If the user has not explicitly provided a name, ask for one before calling this tool."
+                  },
+                  "objectType": {
+                    "type": "string",
+                    "description": "Mandatory field specifying the ObjectType to create the segment for.\n\nWell-known standard CRM types (e.g. CONTACT, COMPANY, DEAL, TICKET, and other documented HubSpot objects) can be used directly. Any other type is a custom object identified by a portal-prefixed ID of the form `p<portalId>_<name>` (e.g. `p885186001_fleet_vehicles`) that you MUST obtain from `discover_hubspot_schema` before searching — do not construct or guess it.\nA plausible standard-looking name (e.g. `products`) may actually resolve to a different standard object OR a custom object. When you are not certain a name is a standard type, treat it as non-standard and resolve it via `discover_hubspot_schema` first, then use the exact `typeName` it returns."
+                  },
+                  "memberObjectIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "CRM record IDs to pre-populate a hand-picked segment. Leave empty to create an empty segment; use AddMembersOperation for large batches. Leave empty when filterExpression is set: a static segment with filters takes its members from the filter, not from hand-picked IDs."
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Optional short, user-friendly description of what the segment represents."
+                  },
+                  "filterExpression": {
+                    "type": "string",
+                    "description": "Optional filter whose matching records fill the segment once, when it is created; it never updates after that. Set it ONLY when the user describes WHO should be in the list and wants that membership frozen. Leave it UNSET for an empty or hand-picked list, and never pass a filter crafted to match no records. When speaking to the user, call this a \"static segment with filters\" that won't update, and never say STATIC, DYNAMIC or \"snapshot\". When the user wants a list that keeps up as records change, use CreateDynamicSegmentOperation instead. Don't write exclusions into it: to keep out another segment's members, specific records, unsubscribed or non-marketing contacts, or an email domain, use the exclusion fields.\n\n    SQL-like filter expression defining segment membership.\n\n    Property conditions compare the object's own properties and combine with AND, OR and parentheses: =, !=, >, >=, <, <=, CONTAINS, NOT CONTAINS, CONTAINS_ANY (...), STARTS_WITH, ENDS_WITH, IN (...), IS NULL, IS NOT NULL, BETWEEN x AND y. Relative dates use NOW() or TODAY() with whole-day offsets only — DAYS or WEEKS, never MONTHS/QUARTERS/YEARS (write NOW() - 90 DAYS, not NOW() - 3 MONTHS). Dates compare at day granularity, and a date property never compares = or != against a relative time (use a fixed date like '2026-08-13', or a rolling window). Example: \"lifecyclestage = 'customer' AND annualrevenue > 500000\". Write a value's apostrophe as two single quotes — lastname = 'O''Brien' — never with a backslash, which does not escape it.\n\n    A != or NOT IN condition matches only records that have a value for the property; records where it is empty are left out. Include them only when the user asks, by writing (p != v OR p IS NULL) — it is stored as one condition, the segments UI's \"Include records where ... is empty\" option, so it does not multiply like other ORs. For a property of an associated record, put that pair inside the one ASSOCIATION's braces — ASSOCIATION(...) { (p != v OR p IS NULL) } — never as two ASSOCIATIONs joined by OR. Never include them by default.\n\n    To leave out records that match any of several combinations of conditions on two or more properties (\"not any of: in Boston and a Lead; in Austin and a Customer; ...\"): with up to three combinations, write the negation directly, NOT ((city = 'Boston' AND lifecyclestage = 'lead') OR ...); it is stored as != conditions with their usual handling of records with no value, so add nothing for those. With more, that multiplies too far to store, so it needs a helper: a segment of the records the combinations describe, excluded from the new segment. An exclusion keeps every other record, including ones with no value for those properties. Before creating anything, tell the user there are too many combinations to write as one filter, so you'll build a helper segment and exclude it, and ask whether to include records with no value for those properties (if the user already said, only confirm the helper segment). To leave them out, give the new segment p IS NOT NULL for each of those properties. A NOT over one property's values stays a single NOT IN (...).\n\n    Keep the expression small. Before it is stored it is expanded into disjunctive normal form, so every OR multiplies: OR groups of widths w1, w2, ... produce w1 x w2 x ... branches, and every ANDed condition is copied into every branch. Branches x conditions per branch is the stored filter count, and it must stay under 250. Multiply the OR widths before writing: 8 ANDed conditions with two OR groups of 5 and 10 alternatives is 50 branches and 500 filters, already rejected. Every ASSOCIATION and NOT ASSOCIATION is copied into every branch too, and a segment holds at most 60 of those copies: one beside an OR of 30 alternatives is already 30. Several values of one property are one condition and do not multiply: p IN ('a', 'b') for exact values, p CONTAINS_ANY ('a', 'b') for substrings — never an OR of p = ... or of p CONTAINS .... To fit, write those as one condition, drop redundant ANDed conditions, put ORed conditions in a helper segment referenced with IN_LIST(list = <its id>), or split the audience across more than one segment; never narrow, drop or truncate the user's alternatives. A number IN (...) is stored as one filter per number, so a list of record ids (hs_object_id IN (...)) counts once per id, and inside an ASSOCIATION each id is its own association copy. A few ids fit: contacts at three given companies are ASSOCIATION(object = '0-2', association = <id>) { hs_object_id IN (101, 202, 303) }. Only when the ids would take the segment past either limit, seed them into a hand-picked static segment of their own object type with membersToAddToStaticList and reference it with IN_LIST(list = <its id>), or ASSOCIATION(...) { IN_LIST(list = <its id>) } for associated records.\n\n    Property names are the object type's internal CRM property names on THIS portal — look them up via your CRM property/schema tools, never guess from display labels or other portals; a name missing from the schema fails validation. Enumeration (dropdown) values must be the internal stored value, never the display label — a wrong value is NOT rejected: the segment saves and silently matches no records, so source stored values from the property definition. There is no dotted cross-object path (company.industry = '...' is invalid); conditions on a related record go inside ASSOCIATION(...) braces.\n\n    Engagement conditions (opened, clicked, visited, submitted, last engaged) often have two valid encodings: a filter form below, or an analytics property on the object itself (recency dates, counts). When no matching filter form or event exists — or the request spans ANY asset rather than a specific one — search the object's real properties for an equivalent before reporting the condition unsupported (the look-it-up rule still applies).\n\n    Beyond property conditions, exactly these filter forms exist; names and named arguments (name = value, never positional) are exact — no other functions or aliases. Notation: [x] is optional; a | b means exactly one. times counts occurrences (>=, <= or =); occurred bounds when (>, >=, < or <= with a date or NOW() offset); for a window between two dates give occurred twice, one lower and one upper bound, both dates: occurred >= '2025-09-01', occurred <= '2026-06-01'. Each is optional and they MAY be combined — except where a form states an EXCEPTION.\n    - IN_LIST(list = 4521): member of another segment/list (id from searchSegments). The same filter keyed differently for workflows and imports: IN_LIST(workflow = '112233', [state = 'ENROLLED'|'ACTIVE'|'COMPLETED'|'GOAL']) (state defaults to ENROLLED, ever enrolled) or IN_LIST(import = '555') — no list argument in those forms.\n    - FORM_SUBMISSION([form = '<guid>'], [times >= 2], [occurred > NOW() - 90 DAYS]): submitted a form. Leave form out for any form, e.g. FORM_SUBMISSION(occurred > NOW() - 30 DAYS) — one condition, never an OR of every form.\n    - PAGE_VIEW(url = '<exact url>' | url_contains = '<substring>', [times >= 2 | occurred > NOW() - 30 DAYS]): visited a website page. EXCEPTION: at most ONE refinement — a count OR a window, never both. The product stores one page-view refinement (the lists UI disables the second field too), so \"twice in the last 30 days\" is not expressible: keep the refinement the request makes primary, or ask the user which to keep. Page visits are ALWAYS this form, never UNIFIED_EVENTS — an event-form page-visit segment cannot be edited in the list UI. Negate with NOT_PAGE_VIEW(...).\n    - ASSOCIATION(object = '0-2', association = 1) { industry = 'SAAS' }: has an associated record matching the braces; object is the associated record's object type id, association the numeric association type id between the two types, and the braces hold conditions on the associated record's properties. An ASSOCIATION body is conjunctive; OR inside its braces is rejected, but IN (...) inside them is fine. NOT ASSOCIATION(...) { condition } means NO associated record matches the condition, and it includes records with no associated record at all — \"contacts with no closed-won deal\" is NOT ASSOCIATION(object = '0-3', association = 4) { dealstage = 'closedwon' }, and \"companies with no deals\" is NOT ASSOCIATION(...) { hs_object_id IS NOT NULL }. Its braces take exactly ONE condition written as =, IN, IS NULL, IS NOT NULL or IN_LIST (not a date or a range). To leave out records associated with something matching several conditions at once, build a segment of those associated records first and write NOT ASSOCIATION(...) { IN_LIST(list = <its id>) }. Never move the negation inside the braces: ASSOCIATION(...) { dealstage != 'closedwon' } means \"has a deal that isn't closed won\", a different audience. A segment read back may carry match = 'ALL', 'ANY_INCLUDE_EMPTY' or 'ALL_INCLUDE_EMPTY' on an ASSOCIATION (all / any associated records match, including records with none); keep it as read when you edit the segment.\n    - UNIFIED_EVENTS(type = '4-123456', [times >= 2], [occurred > NOW() - 30 DAYS]) { [conditions] }: performed an event. The braces hold conditions on the event's OWN properties — take their names from searchFilterInputs (kind EVENT_PROPERTY), never from the segment object's schema.\n    - EMAIL_EVENT(email = '169452110', app = 113, level = 'EMAIL_API_CAMPAIGN_GROUP', event = 'OPEN', [url_contains = '<substring>'], [occurred > '2026-01-01']): engaged with one specific marketing email. event is one of OPEN, CLICK, DELIVERED, SENT, REPLIED, BOUNCE, UNSUBSCRIBED, SPAMREPORT, PRINT. email, app and level come together from ONE searchFilterInputs (kind EMAIL) row — never mix rows or invent them. url_contains is valid only with event = 'CLICK'. EXCEPTIONS: occurred takes a fixed date only (rolling NOW() windows are rejected), no times, and no NOT form. For recency across ANY email (\"opened an email in the last 30 days\"), use the contact's email-engagement properties (e.g. hs_email_last_open_date) instead.\n    Negate any form except EMAIL_EVENT by prefixing NOT, e.g. NOT IN_LIST(list = 4521). All forms combine freely with property conditions.\n\n    Sourcing ids — users do not know these ids; look them up, never invent one (a guessed id creates a segment that silently filters on the wrong thing): list ids from searchSegments; association type ids, event type ids, event property names, form guids, workflow ids, import ids and email triples from searchFilterInputs (kind ASSOCIATION, EVENT, EVENT_PROPERTY, FORM, WORKFLOW, IMPORT or EMAIL), whose results include ready-to-use filter fragments."
+                  },
+                  "excludedSegmentIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Optional: list IDs of segments whose members to EXCLUDE from this new segment, found with querySegments SearchSegmentsQuery. Only with filterExpression (a static segment with filters); a hand-picked segment has no base audience to exclude from. Saved in the same write as the segment: if the exclusions are rejected, nothing is created. To keep out another segment's members, use this, not a NOT IN_LIST filter condition, unless the user explicitly asks for a not-in-list filter."
+                  },
+                  "excludedRecordIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "maxItems": 200,
+                    "description": "Optional: record IDs of the segment's own object type to EXCLUDE; each is kept out even if it matches filterExpression. Only with filterExpression. At most 200."
+                  },
+                  "excludeUnsubscribers": {
+                    "type": "boolean",
+                    "description": "Set true to exclude contacts who have unsubscribed from all email (default false). Use this, not an hs_email_optout filter condition, when the user asks to leave out unsubscribed contacts. Contact segments only, and only with filterExpression."
+                  },
+                  "excludeNonMarketingContacts": {
+                    "type": "boolean",
+                    "description": "Set true to exclude non-marketing contacts (default false). Use this, not an hs_marketable_status filter condition, when the user asks to leave them out. Contact segments only, and only with filterExpression."
+                  },
+                  "excludedEmailDomains": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Optional: email domains whose contacts to exclude, e.g. \"example.com\". Use this, not an email NOT CONTAINS filter condition, when the user asks to leave out contacts at a domain. Contact segments only, and only with filterExpression."
+                  },
+                  "folderId": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Optional folder ID to file the new segment in, found with querySegments SearchSegmentFoldersQuery or returned by CreateSegmentFolderOperation; never guess one. Omit to leave it out of every folder. A missing folder refuses the create before anything is saved."
+                  }
+                },
+                "required": [
+                  "name",
+                  "objectType",
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "AddMembersOperation",
+                    "type": "string"
+                  },
+                  "listId": {
+                    "type": "integer",
+                    "description": "The ID of the existing static segment to add members to. Returned by CreateSegmentOperation."
+                  },
+                  "objectType": {
+                    "type": "string",
+                    "description": "Mandatory field specifying the ObjectType of the records being added.\n\nWell-known standard CRM types (e.g. CONTACT, COMPANY, DEAL, TICKET, and other documented HubSpot objects) can be used directly. Any other type is a custom object identified by a portal-prefixed ID of the form `p<portalId>_<name>` (e.g. `p885186001_fleet_vehicles`) that you MUST obtain from `discover_hubspot_schema` before searching — do not construct or guess it.\nA plausible standard-looking name (e.g. `products`) may actually resolve to a different standard object OR a custom object. When you are not certain a name is a standard type, treat it as non-standard and resolve it via `discover_hubspot_schema` first, then use the exact `typeName` it returns."
+                  },
+                  "memberObjectIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "The CRM record IDs to add to the segment."
+                  }
+                },
+                "required": [
+                  "listId",
+                  "objectType",
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "RemoveMembersOperation",
+                    "type": "string"
+                  },
+                  "listId": {
+                    "type": "integer",
+                    "description": "The ID of the static segment to remove members from."
+                  },
+                  "objectType": {
+                    "type": "string",
+                    "description": "Mandatory field specifying the ObjectType of the records being removed.\n\nWell-known standard CRM types (e.g. CONTACT, COMPANY, DEAL, TICKET, and other documented HubSpot objects) can be used directly. Any other type is a custom object identified by a portal-prefixed ID of the form `p<portalId>_<name>` (e.g. `p885186001_fleet_vehicles`) that you MUST obtain from `discover_hubspot_schema` before searching — do not construct or guess it.\nA plausible standard-looking name (e.g. `products`) may actually resolve to a different standard object OR a custom object. When you are not certain a name is a standard type, treat it as non-standard and resolve it via `discover_hubspot_schema` first, then use the exact `typeName` it returns."
+                  },
+                  "memberObjectIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "The CRM record IDs to remove from the segment."
+                  }
+                },
+                "required": [
+                  "listId",
+                  "objectType",
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "CreateDynamicSegmentOperation",
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "The name for the new segment. If the user has not explicitly provided a name, ask for one before calling this tool."
+                  },
+                  "objectType": {
+                    "type": "string",
+                    "description": "Mandatory field specifying the ObjectType to create the segment for.\n\nWell-known standard CRM types (e.g. CONTACT, COMPANY, DEAL, TICKET, and other documented HubSpot objects) can be used directly. Any other type is a custom object identified by a portal-prefixed ID of the form `p<portalId>_<name>` (e.g. `p885186001_fleet_vehicles`) that you MUST obtain from `discover_hubspot_schema` before searching — do not construct or guess it.\nA plausible standard-looking name (e.g. `products`) may actually resolve to a different standard object OR a custom object. When you are not certain a name is a standard type, treat it as non-standard and resolve it via `discover_hubspot_schema` first, then use the exact `typeName` it returns."
+                  },
+                  "filterExpression": {
+                    "type": "string",
+                    "description": "The filter that defines membership. A DYNAMIC (\"active\") segment continuously reevaluates this expression, so records join or leave the segment automatically as they start or stop matching it. Required and must be non-blank. Don't write exclusions into it: to keep out another segment's members, specific records, unsubscribed or non-marketing contacts, or an email domain, use the exclusion fields.\n\n    SQL-like filter expression defining segment membership.\n\n    Property conditions compare the object's own properties and combine with AND, OR and parentheses: =, !=, >, >=, <, <=, CONTAINS, NOT CONTAINS, CONTAINS_ANY (...), STARTS_WITH, ENDS_WITH, IN (...), IS NULL, IS NOT NULL, BETWEEN x AND y. Relative dates use NOW() or TODAY() with whole-day offsets only — DAYS or WEEKS, never MONTHS/QUARTERS/YEARS (write NOW() - 90 DAYS, not NOW() - 3 MONTHS). Dates compare at day granularity, and a date property never compares = or != against a relative time (use a fixed date like '2026-08-13', or a rolling window). Example: \"lifecyclestage = 'customer' AND annualrevenue > 500000\". Write a value's apostrophe as two single quotes — lastname = 'O''Brien' — never with a backslash, which does not escape it.\n\n    A != or NOT IN condition matches only records that have a value for the property; records where it is empty are left out. Include them only when the user asks, by writing (p != v OR p IS NULL) — it is stored as one condition, the segments UI's \"Include records where ... is empty\" option, so it does not multiply like other ORs. For a property of an associated record, put that pair inside the one ASSOCIATION's braces — ASSOCIATION(...) { (p != v OR p IS NULL) } — never as two ASSOCIATIONs joined by OR. Never include them by default.\n\n    To leave out records that match any of several combinations of conditions on two or more properties (\"not any of: in Boston and a Lead; in Austin and a Customer; ...\"): with up to three combinations, write the negation directly, NOT ((city = 'Boston' AND lifecyclestage = 'lead') OR ...); it is stored as != conditions with their usual handling of records with no value, so add nothing for those. With more, that multiplies too far to store, so it needs a helper: a segment of the records the combinations describe, excluded from the new segment. An exclusion keeps every other record, including ones with no value for those properties. Before creating anything, tell the user there are too many combinations to write as one filter, so you'll build a helper segment and exclude it, and ask whether to include records with no value for those properties (if the user already said, only confirm the helper segment). To leave them out, give the new segment p IS NOT NULL for each of those properties. A NOT over one property's values stays a single NOT IN (...).\n\n    Keep the expression small. Before it is stored it is expanded into disjunctive normal form, so every OR multiplies: OR groups of widths w1, w2, ... produce w1 x w2 x ... branches, and every ANDed condition is copied into every branch. Branches x conditions per branch is the stored filter count, and it must stay under 250. Multiply the OR widths before writing: 8 ANDed conditions with two OR groups of 5 and 10 alternatives is 50 branches and 500 filters, already rejected. Every ASSOCIATION and NOT ASSOCIATION is copied into every branch too, and a segment holds at most 60 of those copies: one beside an OR of 30 alternatives is already 30. Several values of one property are one condition and do not multiply: p IN ('a', 'b') for exact values, p CONTAINS_ANY ('a', 'b') for substrings — never an OR of p = ... or of p CONTAINS .... To fit, write those as one condition, drop redundant ANDed conditions, put ORed conditions in a helper segment referenced with IN_LIST(list = <its id>), or split the audience across more than one segment; never narrow, drop or truncate the user's alternatives. A number IN (...) is stored as one filter per number, so a list of record ids (hs_object_id IN (...)) counts once per id, and inside an ASSOCIATION each id is its own association copy. A few ids fit: contacts at three given companies are ASSOCIATION(object = '0-2', association = <id>) { hs_object_id IN (101, 202, 303) }. Only when the ids would take the segment past either limit, seed them into a hand-picked static segment of their own object type with membersToAddToStaticList and reference it with IN_LIST(list = <its id>), or ASSOCIATION(...) { IN_LIST(list = <its id>) } for associated records.\n\n    Property names are the object type's internal CRM property names on THIS portal — look them up via your CRM property/schema tools, never guess from display labels or other portals; a name missing from the schema fails validation. Enumeration (dropdown) values must be the internal stored value, never the display label — a wrong value is NOT rejected: the segment saves and silently matches no records, so source stored values from the property definition. There is no dotted cross-object path (company.industry = '...' is invalid); conditions on a related record go inside ASSOCIATION(...) braces.\n\n    Engagement conditions (opened, clicked, visited, submitted, last engaged) often have two valid encodings: a filter form below, or an analytics property on the object itself (recency dates, counts). When no matching filter form or event exists — or the request spans ANY asset rather than a specific one — search the object's real properties for an equivalent before reporting the condition unsupported (the look-it-up rule still applies).\n\n    Beyond property conditions, exactly these filter forms exist; names and named arguments (name = value, never positional) are exact — no other functions or aliases. Notation: [x] is optional; a | b means exactly one. times counts occurrences (>=, <= or =); occurred bounds when (>, >=, < or <= with a date or NOW() offset); for a window between two dates give occurred twice, one lower and one upper bound, both dates: occurred >= '2025-09-01', occurred <= '2026-06-01'. Each is optional and they MAY be combined — except where a form states an EXCEPTION.\n    - IN_LIST(list = 4521): member of another segment/list (id from searchSegments). The same filter keyed differently for workflows and imports: IN_LIST(workflow = '112233', [state = 'ENROLLED'|'ACTIVE'|'COMPLETED'|'GOAL']) (state defaults to ENROLLED, ever enrolled) or IN_LIST(import = '555') — no list argument in those forms.\n    - FORM_SUBMISSION([form = '<guid>'], [times >= 2], [occurred > NOW() - 90 DAYS]): submitted a form. Leave form out for any form, e.g. FORM_SUBMISSION(occurred > NOW() - 30 DAYS) — one condition, never an OR of every form.\n    - PAGE_VIEW(url = '<exact url>' | url_contains = '<substring>', [times >= 2 | occurred > NOW() - 30 DAYS]): visited a website page. EXCEPTION: at most ONE refinement — a count OR a window, never both. The product stores one page-view refinement (the lists UI disables the second field too), so \"twice in the last 30 days\" is not expressible: keep the refinement the request makes primary, or ask the user which to keep. Page visits are ALWAYS this form, never UNIFIED_EVENTS — an event-form page-visit segment cannot be edited in the list UI. Negate with NOT_PAGE_VIEW(...).\n    - ASSOCIATION(object = '0-2', association = 1) { industry = 'SAAS' }: has an associated record matching the braces; object is the associated record's object type id, association the numeric association type id between the two types, and the braces hold conditions on the associated record's properties. An ASSOCIATION body is conjunctive; OR inside its braces is rejected, but IN (...) inside them is fine. NOT ASSOCIATION(...) { condition } means NO associated record matches the condition, and it includes records with no associated record at all — \"contacts with no closed-won deal\" is NOT ASSOCIATION(object = '0-3', association = 4) { dealstage = 'closedwon' }, and \"companies with no deals\" is NOT ASSOCIATION(...) { hs_object_id IS NOT NULL }. Its braces take exactly ONE condition written as =, IN, IS NULL, IS NOT NULL or IN_LIST (not a date or a range). To leave out records associated with something matching several conditions at once, build a segment of those associated records first and write NOT ASSOCIATION(...) { IN_LIST(list = <its id>) }. Never move the negation inside the braces: ASSOCIATION(...) { dealstage != 'closedwon' } means \"has a deal that isn't closed won\", a different audience. A segment read back may carry match = 'ALL', 'ANY_INCLUDE_EMPTY' or 'ALL_INCLUDE_EMPTY' on an ASSOCIATION (all / any associated records match, including records with none); keep it as read when you edit the segment.\n    - UNIFIED_EVENTS(type = '4-123456', [times >= 2], [occurred > NOW() - 30 DAYS]) { [conditions] }: performed an event. The braces hold conditions on the event's OWN properties — take their names from searchFilterInputs (kind EVENT_PROPERTY), never from the segment object's schema.\n    - EMAIL_EVENT(email = '169452110', app = 113, level = 'EMAIL_API_CAMPAIGN_GROUP', event = 'OPEN', [url_contains = '<substring>'], [occurred > '2026-01-01']): engaged with one specific marketing email. event is one of OPEN, CLICK, DELIVERED, SENT, REPLIED, BOUNCE, UNSUBSCRIBED, SPAMREPORT, PRINT. email, app and level come together from ONE searchFilterInputs (kind EMAIL) row — never mix rows or invent them. url_contains is valid only with event = 'CLICK'. EXCEPTIONS: occurred takes a fixed date only (rolling NOW() windows are rejected), no times, and no NOT form. For recency across ANY email (\"opened an email in the last 30 days\"), use the contact's email-engagement properties (e.g. hs_email_last_open_date) instead.\n    Negate any form except EMAIL_EVENT by prefixing NOT, e.g. NOT IN_LIST(list = 4521). All forms combine freely with property conditions.\n\n    Sourcing ids — users do not know these ids; look them up, never invent one (a guessed id creates a segment that silently filters on the wrong thing): list ids from searchSegments; association type ids, event type ids, event property names, form guids, workflow ids, import ids and email triples from searchFilterInputs (kind ASSOCIATION, EVENT, EVENT_PROPERTY, FORM, WORKFLOW, IMPORT or EMAIL), whose results include ready-to-use filter fragments."
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Optional short, user-friendly description of what the segment represents."
+                  },
+                  "excludedSegmentIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Optional: list IDs of segments whose members to EXCLUDE from this new segment, found with querySegments SearchSegmentsQuery. Excluded members stay out as both segments change. Saved in the same write as the segment: if the exclusions are rejected, nothing is created. To keep out another segment's members, use this, not a NOT IN_LIST filter condition, unless the user explicitly asks for a not-in-list filter."
+                  },
+                  "excludedRecordIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "maxItems": 200,
+                    "description": "Optional: record IDs of the segment's own object type to EXCLUDE; each is kept out even if it matches filterExpression. At most 200."
+                  },
+                  "excludeUnsubscribers": {
+                    "type": "boolean",
+                    "description": "Set true to exclude contacts who have unsubscribed from all email (default false). Use this, not an hs_email_optout filter condition, when the user asks to leave out unsubscribed contacts. Contact segments only."
+                  },
+                  "excludeNonMarketingContacts": {
+                    "type": "boolean",
+                    "description": "Set true to exclude non-marketing contacts (default false). Use this, not an hs_marketable_status filter condition, when the user asks to leave them out. Contact segments only."
+                  },
+                  "excludedEmailDomains": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Optional: email domains whose contacts to exclude, e.g. \"example.com\". Use this, not an email NOT CONTAINS filter condition, when the user asks to leave out contacts at a domain. Contact segments only."
+                  },
+                  "folderId": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Optional folder ID to file the new segment in, found with querySegments SearchSegmentFoldersQuery or returned by CreateSegmentFolderOperation; never guess one. Omit to leave it out of every folder. A missing folder refuses the create before anything is saved."
+                  }
+                },
+                "required": [
+                  "name",
+                  "objectType",
+                  "filterExpression",
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "UpdateSegmentOperation",
+                    "type": "string"
+                  },
+                  "listId": {
+                    "type": "integer",
+                    "description": "The ID of the segment (list) to update. Obtain it from a prior search if you do not have it."
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "New name for the segment. Omit to leave the name unchanged."
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "New description for the segment. Omit to leave the description unchanged."
+                  },
+                  "filterExpression": {
+                    "type": "string",
+                    "description": "New filter that defines membership, for a DYNAMIC (\"active\") segment or a STATIC segment that was built from a filter (a snapshot). Omit to leave the filter unchanged. A hand-picked STATIC segment (one with no existing filter) cannot be given a filter here — manage its members directly or create a new DYNAMIC segment instead.\n\n    SQL-like filter expression defining segment membership.\n\n    Property conditions compare the object's own properties and combine with AND, OR and parentheses: =, !=, >, >=, <, <=, CONTAINS, NOT CONTAINS, CONTAINS_ANY (...), STARTS_WITH, ENDS_WITH, IN (...), IS NULL, IS NOT NULL, BETWEEN x AND y. Relative dates use NOW() or TODAY() with whole-day offsets only — DAYS or WEEKS, never MONTHS/QUARTERS/YEARS (write NOW() - 90 DAYS, not NOW() - 3 MONTHS). Dates compare at day granularity, and a date property never compares = or != against a relative time (use a fixed date like '2026-08-13', or a rolling window). Example: \"lifecyclestage = 'customer' AND annualrevenue > 500000\". Write a value's apostrophe as two single quotes — lastname = 'O''Brien' — never with a backslash, which does not escape it.\n\n    A != or NOT IN condition matches only records that have a value for the property; records where it is empty are left out. Include them only when the user asks, by writing (p != v OR p IS NULL) — it is stored as one condition, the segments UI's \"Include records where ... is empty\" option, so it does not multiply like other ORs. For a property of an associated record, put that pair inside the one ASSOCIATION's braces — ASSOCIATION(...) { (p != v OR p IS NULL) } — never as two ASSOCIATIONs joined by OR. Never include them by default.\n\n    To leave out records that match any of several combinations of conditions on two or more properties (\"not any of: in Boston and a Lead; in Austin and a Customer; ...\"): with up to three combinations, write the negation directly, NOT ((city = 'Boston' AND lifecyclestage = 'lead') OR ...); it is stored as != conditions with their usual handling of records with no value, so add nothing for those. With more, that multiplies too far to store, so it needs a helper: a segment of the records the combinations describe, excluded from the new segment. An exclusion keeps every other record, including ones with no value for those properties. Before creating anything, tell the user there are too many combinations to write as one filter, so you'll build a helper segment and exclude it, and ask whether to include records with no value for those properties (if the user already said, only confirm the helper segment). To leave them out, give the new segment p IS NOT NULL for each of those properties. A NOT over one property's values stays a single NOT IN (...).\n\n    Keep the expression small. Before it is stored it is expanded into disjunctive normal form, so every OR multiplies: OR groups of widths w1, w2, ... produce w1 x w2 x ... branches, and every ANDed condition is copied into every branch. Branches x conditions per branch is the stored filter count, and it must stay under 250. Multiply the OR widths before writing: 8 ANDed conditions with two OR groups of 5 and 10 alternatives is 50 branches and 500 filters, already rejected. Every ASSOCIATION and NOT ASSOCIATION is copied into every branch too, and a segment holds at most 60 of those copies: one beside an OR of 30 alternatives is already 30. Several values of one property are one condition and do not multiply: p IN ('a', 'b') for exact values, p CONTAINS_ANY ('a', 'b') for substrings — never an OR of p = ... or of p CONTAINS .... To fit, write those as one condition, drop redundant ANDed conditions, put ORed conditions in a helper segment referenced with IN_LIST(list = <its id>), or split the audience across more than one segment; never narrow, drop or truncate the user's alternatives. A number IN (...) is stored as one filter per number, so a list of record ids (hs_object_id IN (...)) counts once per id, and inside an ASSOCIATION each id is its own association copy. A few ids fit: contacts at three given companies are ASSOCIATION(object = '0-2', association = <id>) { hs_object_id IN (101, 202, 303) }. Only when the ids would take the segment past either limit, seed them into a hand-picked static segment of their own object type with membersToAddToStaticList and reference it with IN_LIST(list = <its id>), or ASSOCIATION(...) { IN_LIST(list = <its id>) } for associated records.\n\n    Property names are the object type's internal CRM property names on THIS portal — look them up via your CRM property/schema tools, never guess from display labels or other portals; a name missing from the schema fails validation. Enumeration (dropdown) values must be the internal stored value, never the display label — a wrong value is NOT rejected: the segment saves and silently matches no records, so source stored values from the property definition. There is no dotted cross-object path (company.industry = '...' is invalid); conditions on a related record go inside ASSOCIATION(...) braces.\n\n    Engagement conditions (opened, clicked, visited, submitted, last engaged) often have two valid encodings: a filter form below, or an analytics property on the object itself (recency dates, counts). When no matching filter form or event exists — or the request spans ANY asset rather than a specific one — search the object's real properties for an equivalent before reporting the condition unsupported (the look-it-up rule still applies).\n\n    Beyond property conditions, exactly these filter forms exist; names and named arguments (name = value, never positional) are exact — no other functions or aliases. Notation: [x] is optional; a | b means exactly one. times counts occurrences (>=, <= or =); occurred bounds when (>, >=, < or <= with a date or NOW() offset); for a window between two dates give occurred twice, one lower and one upper bound, both dates: occurred >= '2025-09-01', occurred <= '2026-06-01'. Each is optional and they MAY be combined — except where a form states an EXCEPTION.\n    - IN_LIST(list = 4521): member of another segment/list (id from searchSegments). The same filter keyed differently for workflows and imports: IN_LIST(workflow = '112233', [state = 'ENROLLED'|'ACTIVE'|'COMPLETED'|'GOAL']) (state defaults to ENROLLED, ever enrolled) or IN_LIST(import = '555') — no list argument in those forms.\n    - FORM_SUBMISSION([form = '<guid>'], [times >= 2], [occurred > NOW() - 90 DAYS]): submitted a form. Leave form out for any form, e.g. FORM_SUBMISSION(occurred > NOW() - 30 DAYS) — one condition, never an OR of every form.\n    - PAGE_VIEW(url = '<exact url>' | url_contains = '<substring>', [times >= 2 | occurred > NOW() - 30 DAYS]): visited a website page. EXCEPTION: at most ONE refinement — a count OR a window, never both. The product stores one page-view refinement (the lists UI disables the second field too), so \"twice in the last 30 days\" is not expressible: keep the refinement the request makes primary, or ask the user which to keep. Page visits are ALWAYS this form, never UNIFIED_EVENTS — an event-form page-visit segment cannot be edited in the list UI. Negate with NOT_PAGE_VIEW(...).\n    - ASSOCIATION(object = '0-2', association = 1) { industry = 'SAAS' }: has an associated record matching the braces; object is the associated record's object type id, association the numeric association type id between the two types, and the braces hold conditions on the associated record's properties. An ASSOCIATION body is conjunctive; OR inside its braces is rejected, but IN (...) inside them is fine. NOT ASSOCIATION(...) { condition } means NO associated record matches the condition, and it includes records with no associated record at all — \"contacts with no closed-won deal\" is NOT ASSOCIATION(object = '0-3', association = 4) { dealstage = 'closedwon' }, and \"companies with no deals\" is NOT ASSOCIATION(...) { hs_object_id IS NOT NULL }. Its braces take exactly ONE condition written as =, IN, IS NULL, IS NOT NULL or IN_LIST (not a date or a range). To leave out records associated with something matching several conditions at once, build a segment of those associated records first and write NOT ASSOCIATION(...) { IN_LIST(list = <its id>) }. Never move the negation inside the braces: ASSOCIATION(...) { dealstage != 'closedwon' } means \"has a deal that isn't closed won\", a different audience. A segment read back may carry match = 'ALL', 'ANY_INCLUDE_EMPTY' or 'ALL_INCLUDE_EMPTY' on an ASSOCIATION (all / any associated records match, including records with none); keep it as read when you edit the segment.\n    - UNIFIED_EVENTS(type = '4-123456', [times >= 2], [occurred > NOW() - 30 DAYS]) { [conditions] }: performed an event. The braces hold conditions on the event's OWN properties — take their names from searchFilterInputs (kind EVENT_PROPERTY), never from the segment object's schema.\n    - EMAIL_EVENT(email = '169452110', app = 113, level = 'EMAIL_API_CAMPAIGN_GROUP', event = 'OPEN', [url_contains = '<substring>'], [occurred > '2026-01-01']): engaged with one specific marketing email. event is one of OPEN, CLICK, DELIVERED, SENT, REPLIED, BOUNCE, UNSUBSCRIBED, SPAMREPORT, PRINT. email, app and level come together from ONE searchFilterInputs (kind EMAIL) row — never mix rows or invent them. url_contains is valid only with event = 'CLICK'. EXCEPTIONS: occurred takes a fixed date only (rolling NOW() windows are rejected), no times, and no NOT form. For recency across ANY email (\"opened an email in the last 30 days\"), use the contact's email-engagement properties (e.g. hs_email_last_open_date) instead.\n    Negate any form except EMAIL_EVENT by prefixing NOT, e.g. NOT IN_LIST(list = 4521). All forms combine freely with property conditions.\n\n    Sourcing ids — users do not know these ids; look them up, never invent one (a guessed id creates a segment that silently filters on the wrong thing): list ids from searchSegments; association type ids, event type ids, event property names, form guids, workflow ids, import ids and email triples from searchFilterInputs (kind ASSOCIATION, EVENT, EVENT_PROPERTY, FORM, WORKFLOW, IMPORT or EMAIL), whose results include ready-to-use filter fragments."
+                  }
+                },
+                "required": [
+                  "listId",
+                  "type"
+                ],
+                "additionalProperties": false,
+                "description": " Edit an existing segment's name, description, or filter in place. This is a partial update: only\n the fields provided change; omitted fields keep their current values. It does NOT change\n membership directly (use AddMembersOperation / RemoveMembersOperation) and does NOT convert a\n hand-picked static list into a filter-driven one.\n"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "RemoveAllMembersOperation",
+                    "type": "string"
+                  },
+                  "listId": {
+                    "type": "integer",
+                    "description": "The ID of the STATIC segment to remove every member from. This empties the segment's membership; it does not delete the segment, which remains and becomes empty (use DeleteSegmentOperation to remove the segment itself). Emptying runs as a background bulk operation, so the segment clears shortly rather than instantly. DYNAMIC (filter-driven) segments are rejected: their membership is computed from their filter and cannot be emptied manually — change the filter via UpdateSegmentOperation instead."
+                  }
+                },
+                "required": [
+                  "listId",
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "DeleteSegmentOperation",
+                    "type": "string"
+                  },
+                  "listId": {
+                    "type": "integer",
+                    "description": "The ID of the segment to permanently delete. This removes the segment itself (not just its members); to empty a static segment while keeping it, use RemoveAllMembersOperation instead. Works for STATIC and DYNAMIC segments. Deleting a segment does not delete the CRM records in it. This is destructive, so confirm the exact segment with the user first; a deleted segment can be brought back with RestoreSegmentOperation. A segment that another segment's filter or exclusions still use can't be deleted until that use is removed: the other segment's filter can be changed with UpdateSegmentOperation and its exclusions with UpdateSegmentSuppressionOperation, after asking the user."
+                  }
+                },
+                "required": [
+                  "listId",
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "RestoreSegmentOperation",
+                    "type": "string"
+                  },
+                  "listId": {
+                    "type": "integer",
+                    "description": "The list ID of the deleted segment to restore, from a DeleteSegmentOperation earlier in the conversation or a querySegments SearchSegmentsQuery with deleted=true. It comes back with its filters and settings under the same list ID; a DYNAMIC segment then recalculates its members, and a STATIC segment's members return in the background."
+                  },
+                  "newName": {
+                    "type": "string",
+                    "description": "A new name to restore the segment under. Omit it to keep the original name; set it only after a restore was refused because another segment now has that name, to the name the user chose."
+                  }
+                },
+                "required": [
+                  "listId",
+                  "type"
+                ],
+                "additionalProperties": false,
+                "description": " Restore a deleted segment. This brings back the same segment under its original list ID, so it is\n the way to undo a DeleteSegmentOperation: recreating the segment makes a new list with a new ID,\n and anything that used the old one stays pointed at the deleted segment.\n"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "UpdateSegmentSuppressionOperation",
+                    "type": "string"
+                  },
+                  "listId": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "The list ID of the segment whose exclusions to edit. Must be a DYNAMIC segment or a STATIC segment built from a filter; a hand-picked STATIC segment has no base audience to exclude from."
+                  },
+                  "addExcludedSegmentIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "List IDs of segments to START excluding the members of. Added to any segments already excluded (this never clears existing exclusions); find these IDs with querySegments SearchSegmentsQuery. Excluding a segment holds its members out of this one at the top level, distinct from a not-in-list filter condition."
+                  },
+                  "removeExcludedSegmentIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "List IDs of segments to STOP excluding. Their members rejoin the segment where they match its filter, so the audience grows. An ID that is not currently excluded is ignored."
+                  },
+                  "addExcludedRecordIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "maxItems": 200,
+                    "description": "Record IDs to START excluding, of the segment's own object type (e.g. contact IDs for a contact segment). Each is kept out of the segment even if it matches the filter, without changing the record or the filter; this is how to take specific records off a DYNAMIC segment. Added to any records already excluded. At most 200 per call."
+                  },
+                  "removeExcludedRecordIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "maxItems": 200,
+                    "description": "Record IDs to STOP excluding. They rejoin the segment if they match its filter; an ID that is not currently excluded is ignored. At most 200 per call."
+                  },
+                  "excludeUnsubscribers": {
+                    "type": "boolean",
+                    "description": "Set true to exclude contacts who have unsubscribed from all email, false to stop excluding them, or omit to keep the current setting. Contact segments only."
+                  },
+                  "excludeNonMarketingContacts": {
+                    "type": "boolean",
+                    "description": "Set true to exclude non-marketing contacts, false to stop excluding them, or omit to keep the current setting. Contact segments only."
+                  },
+                  "addExcludedEmailDomains": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Email domains to START excluding, e.g. \"example.com\". Added to any domains already excluded. Contact segments only."
+                  },
+                  "removeExcludedEmailDomains": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Email domains to STOP excluding. Removed from those currently excluded."
+                  }
+                },
+                "required": [
+                  "listId",
+                  "type"
+                ],
+                "additionalProperties": false,
+                "description": " Edit an existing segment's exclusion (suppression) settings by an add/remove delta: segments\n whose members to hold out, individual records to hold out, and, for contact segments, the\n unsubscriber, non-marketing-contact, and email-domain exclusion rules. Only what is named\n changes; every other exclusion carries forward. It does not change the segment's filter or any\n record.\n"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "AddMembersFromSegmentOperation",
+                    "type": "string"
+                  },
+                  "listId": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "The list ID of the STATIC segment to add the members to. The user needs edit access to it. A DYNAMIC segment is refused, since its members come from its filter; the refusal lists what to offer the user instead."
+                  },
+                  "sourceListId": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "The list ID of the segment whose current members to copy, found with querySegments SearchSegmentsQuery. It may be DYNAMIC or STATIC, but must hold the same object type as the segment they are added to. Use this, not GetSegmentMembersQuery plus AddMembersOperation, to put one segment's members into another. To keep a segment's members OUT, exclude it with UpdateSegmentSuppressionOperation instead; to keep up with the source as it changes, filter on its membership instead."
+                  },
+                  "copyEveryMember": {
+                    "type": "boolean",
+                    "description": "Set true only when the user confirmed copying a large segment after membersCopy.status came back NEEDS_CONFIRMATION, or had already said to copy all of them however many there are. A plain request to add a segment's members is not that, so leave it false: the tool then copies nothing and asks for confirmation first when the segment is large."
+                  }
+                },
+                "required": [
+                  "listId",
+                  "sourceListId",
+                  "type"
+                ],
+                "additionalProperties": false,
+                "description": " Copy every current member of one segment into a STATIC segment, without listing their record IDs.\n A one-time copy: records that join the source later are not added.\n"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "ConvertSegmentOperation",
+                    "type": "string"
+                  },
+                  "listId": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "The list ID of the segment to convert, found with querySegments SearchSegmentsQuery. It keeps this list ID, its name, filters and exclusions, so the emails, workflows and other segments that use it stay connected. That is why this, never a create operation followed by DeleteSegmentOperation, is how to freeze a segment or make one active: a rebuilt segment gets a new list ID, and nothing that used the old one is reconnected."
+                  },
+                  "convertTo": {
+                    "type": "string",
+                    "enum": [
+                      "DYNAMIC",
+                      "STATIC"
+                    ],
+                    "description": "The type to convert the segment to. STATIC freezes a DYNAMIC segment with the members it has now: it stops updating, and records can then be added or removed by hand. Do it when the user asks (\"stop it updating\", \"make it static\", \"lock in who's in it now\"). DYNAMIC makes a STATIC segment built from filters update automatically again (\"make it active\", \"keep it up to date\"); its members are then recalculated from its filters. A hand-picked STATIC segment has no filters, so it can't become DYNAMIC; the refusal says what to offer instead."
+                  },
+                  "confirmedMembersChange": {
+                    "type": "boolean",
+                    "description": "Set true only when converting to DYNAMIC and the user confirmed, after conversion.status came back NEEDS_CONFIRMATION, that the segment's members will be recalculated from its filters, so records added or removed by hand don't stay that way. Leave it false otherwise: a conversion to DYNAMIC then changes nothing and asks for that confirmation first."
+                  }
+                },
+                "required": [
+                  "listId",
+                  "convertTo",
+                  "type"
+                ],
+                "additionalProperties": false,
+                "description": " Convert an existing segment between DYNAMIC (active) and STATIC in place. It keeps its list ID, so\n whatever uses it stays connected, which a new segment built to replace it would not.\n"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "CreateSegmentFolderOperation",
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 99,
+                    "description": "The new folder's name, 1 to 99 characters. Create a folder only when the user asks for one. Folder names don't have to be unique: when other folders already have the name, the response lists them, so ask the user whether they meant one of those."
+                  },
+                  "parentFolderId": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "The folder ID to create it inside, found with querySegments SearchSegmentFoldersQuery. Omit to create it at the top level."
+                  }
+                },
+                "required": [
+                  "name",
+                  "type"
+                ],
+                "additionalProperties": false,
+                "description": " Create a segment folder, at the top level or inside another folder. It changes no segment; file\n segments in it with MoveSegmentsToFolderOperation, or a create operation's folderId.\n"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "MoveSegmentsToFolderOperation",
+                    "type": "string"
+                  },
+                  "listIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "description": "The list IDs of the segments to move, up to 50, found with querySegments SearchSegmentsQuery."
+                  },
+                  "folderId": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "The folder ID to move them into, found with querySegments SearchSegmentFoldersQuery or returned by CreateSegmentFolderOperation; never guess one. 0 takes them out of every folder, to the top level."
+                  }
+                },
+                "required": [
+                  "folderId",
+                  "type"
+                ],
+                "additionalProperties": false,
+                "description": " File existing segments in a folder, or take them out of every folder. A segment is in at most one\n folder, so moving it takes it out of the folder it was in.\n"
+              }
+            ],
+            "description": "The segment operation to perform. Set type to CreateStaticSegmentOperation, CreateDynamicSegmentOperation, UpdateSegmentOperation, AddMembersOperation, or RemoveMembersOperation."
+          },
+          "confirmationStatus": {
+            "type": "string",
+            "enum": [
+              "UNCONFIRMED",
+              "CONFIRMED",
+              "CONFIRMATION_WAIVED_FOR_SESSION"
+            ],
+            "description": "User confirmation for this write. Defaults to UNCONFIRMED; the write is rejected unless set to CONFIRMED (or CONFIRMATION_WAIVED_FOR_SESSION) after the user approves."
+          }
+        },
+        "required": [
+          "operation"
+        ],
+        "additionalProperties": false,
+        "$defs": {},
+        "definitions": {}
+      }
+    },
+    {
+      "name": "manage_social_posts",
+      "description": "<purpose>Create, update, or cancel a HubSpot social post.</purpose> <capabilities> action=CREATE: create a post (mode=DRAFT (default) | SCHEDULE | PUBLISH_NOW) on one channel. Requires channelId and content. action=UPDATE: edit, schedule, or publish a draft or scheduled post in place. Requires br...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "CREATE",
+              "UPDATE",
+              "CANCEL"
+            ],
+            "description": "Action to perform.\n\"CREATE\": create a post (see mode). Requires channelId and content.\n\"UPDATE\": edit a scheduled/draft post. Requires broadcastGuid; only the fields you pass change.\nA FAILED post can't be updated: re-create it with CREATE, or reschedule it in HubSpot from its hubspotUrl.\n\"CANCEL\": cancel a scheduled post by moving it back to a draft (unschedules it; nothing is deleted). Requires broadcastGuid. Only SCHEDULED posts can be canceled."
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "SCHEDULE",
+              "PUBLISH_NOW"
+            ],
+            "description": "Publishing mode.\n\"DRAFT\" (CREATE default): save without scheduling. Not valid on UPDATE — use CANCEL to unschedule.\n\"SCHEDULE\": schedule for publishAt, or the channel's optimal send time when publishAt is omitted.\nOn UPDATE this schedules a draft or reschedules a scheduled post.\n\"PUBLISH_NOW\": publish immediately — always confirm with the user first.\nOmit on UPDATE, with no publishAt, to edit fields without changing when the post publishes;\na publishAt alone means SCHEDULE."
+          },
+          "channelId": {
+            "type": "string",
+            "description": "Channel ID to post to (from get_social_channels). Required for CREATE."
+          },
+          "broadcastGuid": {
+            "type": "string",
+            "description": "Broadcast GUID of an existing post. Required for UPDATE and CANCEL. Find it with read_social_posts."
+          },
+          "content": {
+            "type": "string",
+            "description": "Post text. Required for CREATE. Optional for UPDATE — omit to leave the text unchanged."
+          },
+          "title": {
+            "type": "string",
+            "description": "YouTube videos only: the video's title, which YouTube shows apart from content (the description).\nAt most 100 characters, without < or >; any other title is rejected, and line breaks become\nspaces. Optional for CREATE and UPDATE; when omitted, a new video takes its file's title, and an\nexisting title is kept unless YouTube would reject it. Rejected on other networks."
+          },
+          "mediaUrl": {
+            "type": "string",
+            "description": "HubSpot File Manager URL of one public image to attach. Optional for CREATE and UPDATE; on UPDATE\nit replaces the post's current media. Images only; to attach video or several files, use fileIds\ninstead. Ignored when fileIds is set — pass only one of the two."
+          },
+          "fileIds": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "HubSpot File Manager file IDs of the images or video to attach, in display order.\nNo tool looks files up: ask the user for each file's ID, shown as \"File ID\" in the file's details\nin HubSpot File Manager. Each file must be public.\nOptional for CREATE and UPDATE; on UPDATE they replace the post's current media.\nTakes precedence over mediaUrl (mediaUrl is ignored when this is set) — pass only one of the two.\nEach network limits how many files a post can have; a rejected set comes back with the reasons."
+          },
+          "publishAt": {
+            "type": "string",
+            "description": "Scheduled publish time in ISO 8601 format (e.g. \"2026-06-10T10:00:00Z\"); must be in the future.\nOnly with mode=SCHEDULE; rejected with DRAFT or PUBLISH_NOW. On UPDATE, a publishAt with no mode\nalso schedules the post at this time. Omit it with mode=SCHEDULE to apply the channel's optimal\nsend time."
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "Confirmation gate. Call once with confirmed=false (or omitted) to receive a preview of exactly\nwhat will be created or changed — nothing is written. Show it to the user and end your turn;\npass confirmed=true, with the identical arguments, only after the user approves it in a reply."
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false,
+        "$defs": {},
+        "definitions": {}
+      }
+    },
+    {
+      "name": "manage_website_page",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "query_crm_data",
+      "description": "Queries HubSpot CRM data via SQL with HubSpot-specific extensions. IMPORTANT: You MUST call the Tool Guidance tool before your first query. It contains required guidance and examples. <select> IMPORTANT: Property names must exactly match HubSpot internal names. Always call search_properties to co...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sql": {
+            "type": "string",
+            "description": "SQL query to execute against HubSpot CRM data."
+          },
+          "verbosityLevel": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ],
+            "description": "Controls the amount of data returned in the response:\n- LOW: Data only, no citation links\n- MEDIUM/HIGH: Data with citation links for each record when available"
+          },
+          "chatInsights": {
+            "type": "object",
+            "properties": {
+              "userIntent": {
+                "type": "string",
+                "description": "<description>User's goal. Set to \"<unchanged>\" if already submitted and unchanged. Max 40 words.</description>\n<anonymization>Replace PII with generic references: names→\"partner A\", deals→\"deal A\", companies→\"company X\".</anonymization>\n<constraint>Only reflect what the user explicitly stated in the current chat.</constraint>"
+              },
+              "satisfaction": {
+                "type": "string",
+                "enum": [
+                  "DISSATISFIED",
+                  "NEUTRAL",
+                  "SATISFIED"
+                ],
+                "description": "<description>User's satisfaction during the conversation.</description>\n<dissatisfied>User corrects, rephrases, states something is wrong, or expresses frustration/unmet needs.</dissatisfied>\n<satisfied>User expresses gratitude or approval.</satisfied>\n<neutral>Conversation flowed smoothly without strong signals.</neutral>"
+              }
+            },
+            "required": [
+              "userIntent",
+              "satisfaction"
+            ],
+            "additionalProperties": false,
+            "description": "Insights about the chat including user intent and satisfaction level."
+          }
+        },
+        "required": [
+          "sql"
+        ],
+        "additionalProperties": false,
+        "$defs": {},
+        "definitions": {}
+      }
+    },
+    {
+      "name": "query_segments",
+      "description": "Read-only lookups that support the manageSegment write operations. Set operation.type to: - SearchSegmentsQuery: find segments by name, optionally by object type, list type, or folder, for the list ID other operations take; each names its folder. With deleted=true it searches only deleted segment...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "SearchSegmentsQuery",
+                    "type": "string"
+                  },
+                  "query": {
+                    "type": "string",
+                    "description": "Free-text search matched against segment names. Omit to list segments."
+                  },
+                  "objectType": {
+                    "type": "string",
+                    "description": "Optional ObjectType to restrict the search to segments of that type. Omit to search across all object types.\n\nWell-known standard CRM types (e.g. CONTACT, COMPANY, DEAL, TICKET) can be used directly. Any other type is a custom object identified by a portal-prefixed ID of the form `p<portalId>_<name>` obtained from `discover_hubspot_schema`."
+                  },
+                  "listType": {
+                    "type": "string",
+                    "enum": [
+                      "DYNAMIC",
+                      "STATIC"
+                    ],
+                    "description": "Optional list type filter: DYNAMIC to only return auto-updating (\"active\") segments, STATIC to only return static segments. Omit to return both."
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Maximum number of segments to return."
+                  },
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Number of results to skip, for paging when a response has hasMore = true."
+                  },
+                  "deleted": {
+                    "type": "boolean",
+                    "description": "true to search only deleted segments (the lists app's Recently deleted view), newest deletion first, to find the list ID a RestoreSegmentOperation takes. Deleted segments never appear in a normal search."
+                  },
+                  "folderId": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Optional folder ID, found with SearchSegmentFoldersQuery, to only return segments filed directly in that folder, such as when the user asks what's in it. Combine with query to search inside it. Not used with deleted=true. Each result names the folder it's in either way."
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false,
+                "description": " Find existing segments by name, optionally scoped to one object type or list type. Returns the\n summaries (list ID, object type, name) needed to target the other operations, e.g. the list ID\n for AddMembersOperation or a delete. With deleted, searches deleted segments instead, for the\n list ID a RestoreSegmentOperation takes.\n"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "SearchFilterInputsQuery",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "ASSOCIATION",
+                      "EVENT",
+                      "EVENT_PROPERTY",
+                      "FORM",
+                      "WORKFLOW",
+                      "IMPORT",
+                      "EMAIL"
+                    ],
+                    "description": "What to look up: ASSOCIATION for the association type ids usable in an ASSOCIATION(object = ..., association = ...) filter, EVENT for the event type ids usable in a UNIFIED_EVENTS(type = ...) filter, EVENT_PROPERTY for the properties usable inside a UNIFIED_EVENTS body, FORM for form guids (FORM_SUBMISSION), WORKFLOW for workflow ids (IN_LIST(workflow = ...)), IMPORT for import ids (IN_LIST(import = ...)), EMAIL for the marketing email triple (EMAIL_EVENT(email = ..., app = ..., level = ...))."
+                  },
+                  "objectType": {
+                    "type": "string",
+                    "description": "For kind ASSOCIATION (required) and kind EVENT (optional): the ObjectType of the segment whose filter you are writing — a standard name like CONTACT, or a portal-prefixed custom type from `discover_hubspot_schema`. For kind EVENT_PROPERTY (required): the event type id returned by a kind EVENT result, e.g. '4-123456'. Ignored for other kinds."
+                  },
+                  "query": {
+                    "type": "string",
+                    "description": "Free-text filter matched against names and labels. Omit to list everything available."
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Maximum number of results to return."
+                  },
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Number of results to skip, for paging when a response has hasMore = true."
+                  }
+                },
+                "required": [
+                  "kind",
+                  "type"
+                ],
+                "additionalProperties": false,
+                "description": " Look up the ids that segment filter expressions take as arguments — association type ids, event\n type ids, event properties, form guids, workflow/import ids, and marketing email triples. Users\n do not know these ids, so resolve them here rather than guessing; each result includes a\n ready-to-use filter fragment to paste into a filterExpression.\n"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "GetSegmentQuery",
+                    "type": "string"
+                  },
+                  "listId": {
+                    "type": "integer",
+                    "description": "The list ID of the segment to fetch."
+                  },
+                  "includeUsage": {
+                    "type": "boolean",
+                    "description": "true to also return usedBy: what uses this segment, such as other segments' filters and exclusions, workflows, emails and ads. Set it when the user asks where a segment is used, or before deleting one, since a segment that's in use can't be deleted until those uses are removed."
+                  },
+                  "deleted": {
+                    "type": "boolean",
+                    "description": "true to read a deleted segment, for example to see its filters before restoring it with RestoreSegmentOperation. A deleted segment is otherwise reported as not found."
+                  }
+                },
+                "required": [
+                  "listId",
+                  "type"
+                ],
+                "additionalProperties": false,
+                "description": " Fetch one segment's details by list ID: its object type, list type, name, description, the filter\n expression it is saved with, its exclusions, and who can access it. Use it to inspect a segment\n before editing it, or to answer what a segment filters on or excludes. This reports the segment's\n definition, not its members — use GetSegmentMembersQuery to list the records inside it. With\n deleted, reads a deleted segment instead, for example to see its filters before a\n RestoreSegmentOperation.\n"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "GetSegmentMembersQuery",
+                    "type": "string"
+                  },
+                  "listId": {
+                    "type": "integer",
+                    "description": "The list ID of the segment whose member records to list."
+                  },
+                  "properties": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Optional internal CRM property names to additionally return for each member. Every member always includes its record ID and display name; these values are returned on top of that. Omit to return only the record ID and display name."
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 200,
+                    "description": "Maximum number of members to return in this page; page through larger segments with cursor."
+                  },
+                  "cursor": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Pagination cursor. Omit for the first page; to fetch the next page, pass the exact nextCursor value returned by the previous call. This is an opaque continuation token, not a number of members to skip — do not compute or increment it yourself."
+                  }
+                },
+                "required": [
+                  "listId",
+                  "type"
+                ],
+                "additionalProperties": false,
+                "description": " List the CRM records that are members of a segment, by its list ID. This is the only way to read\n the records inside a segment: membership is not a CRM property, so a filter search cannot\n reproduce it. Works for both STATIC and DYNAMIC segments. Paginated: pass the response's\n nextCursor back as cursor to page through large segments. Returns only the records (and\n properties) the user is allowed to see, so a page can hold fewer members than limit while hasMore\n is still true; keep paging.\n"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "PreviewSegmentQuery",
+                    "type": "string"
+                  },
+                  "objectType": {
+                    "type": "string",
+                    "description": "The ObjectType to count matching records for, the same value CreateDynamicSegmentOperation takes: a standard CRM type such as CONTACT or COMPANY, or a portal-prefixed custom type (`p<portalId>_<name>`) obtained from `discover_hubspot_schema`; do not guess one."
+                  },
+                  "filterExpression": {
+                    "type": "string",
+                    "description": "The filter whose matching records to count: the same expression you would give CreateDynamicSegmentOperation, so the count is what that segment would hold. Required; this never counts an object type unfiltered. Do not write exclusions into this filter: to keep out another segment's members, specific records, unsubscribed or non-marketing contacts, or an email domain, pass them in this query's exclusion fields, the same ones the create operation takes, so the segment is created with them in one call. Write such a condition here (NOT IN_LIST, hs_email_optout, hs_marketable_status, an email NOT CONTAINS) only when the user asks for it as a filter, e.g. \"add a filter for contacts who are not in my VIP Customers list\".\n\n    SQL-like filter expression defining segment membership.\n\n    Property conditions compare the object's own properties and combine with AND, OR and parentheses: =, !=, >, >=, <, <=, CONTAINS, NOT CONTAINS, CONTAINS_ANY (...), STARTS_WITH, ENDS_WITH, IN (...), IS NULL, IS NOT NULL, BETWEEN x AND y. Relative dates use NOW() or TODAY() with whole-day offsets only — DAYS or WEEKS, never MONTHS/QUARTERS/YEARS (write NOW() - 90 DAYS, not NOW() - 3 MONTHS). Dates compare at day granularity, and a date property never compares = or != against a relative time (use a fixed date like '2026-08-13', or a rolling window). Example: \"lifecyclestage = 'customer' AND annualrevenue > 500000\". Write a value's apostrophe as two single quotes — lastname = 'O''Brien' — never with a backslash, which does not escape it.\n\n    A != or NOT IN condition matches only records that have a value for the property; records where it is empty are left out. Include them only when the user asks, by writing (p != v OR p IS NULL) — it is stored as one condition, the segments UI's \"Include records where ... is empty\" option, so it does not multiply like other ORs. For a property of an associated record, put that pair inside the one ASSOCIATION's braces — ASSOCIATION(...) { (p != v OR p IS NULL) } — never as two ASSOCIATIONs joined by OR. Never include them by default.\n\n    To leave out records that match any of several combinations of conditions on two or more properties (\"not any of: in Boston and a Lead; in Austin and a Customer; ...\"): with up to three combinations, write the negation directly, NOT ((city = 'Boston' AND lifecyclestage = 'lead') OR ...); it is stored as != conditions with their usual handling of records with no value, so add nothing for those. With more, that multiplies too far to store, so it needs a helper: a segment of the records the combinations describe, excluded from the new segment. An exclusion keeps every other record, including ones with no value for those properties. Before creating anything, tell the user there are too many combinations to write as one filter, so you'll build a helper segment and exclude it, and ask whether to include records with no value for those properties (if the user already said, only confirm the helper segment). To leave them out, give the new segment p IS NOT NULL for each of those properties. A NOT over one property's values stays a single NOT IN (...).\n\n    Keep the expression small. Before it is stored it is expanded into disjunctive normal form, so every OR multiplies: OR groups of widths w1, w2, ... produce w1 x w2 x ... branches, and every ANDed condition is copied into every branch. Branches x conditions per branch is the stored filter count, and it must stay under 250. Multiply the OR widths before writing: 8 ANDed conditions with two OR groups of 5 and 10 alternatives is 50 branches and 500 filters, already rejected. Every ASSOCIATION and NOT ASSOCIATION is copied into every branch too, and a segment holds at most 60 of those copies: one beside an OR of 30 alternatives is already 30. Several values of one property are one condition and do not multiply: p IN ('a', 'b') for exact values, p CONTAINS_ANY ('a', 'b') for substrings — never an OR of p = ... or of p CONTAINS .... To fit, write those as one condition, drop redundant ANDed conditions, put ORed conditions in a helper segment referenced with IN_LIST(list = <its id>), or split the audience across more than one segment; never narrow, drop or truncate the user's alternatives. A number IN (...) is stored as one filter per number, so a list of record ids (hs_object_id IN (...)) counts once per id, and inside an ASSOCIATION each id is its own association copy. A few ids fit: contacts at three given companies are ASSOCIATION(object = '0-2', association = <id>) { hs_object_id IN (101, 202, 303) }. Only when the ids would take the segment past either limit, seed them into a hand-picked static segment of their own object type with membersToAddToStaticList and reference it with IN_LIST(list = <its id>), or ASSOCIATION(...) { IN_LIST(list = <its id>) } for associated records.\n\n    Property names are the object type's internal CRM property names on THIS portal — look them up via your CRM property/schema tools, never guess from display labels or other portals; a name missing from the schema fails validation. Enumeration (dropdown) values must be the internal stored value, never the display label — a wrong value is NOT rejected: the segment saves and silently matches no records, so source stored values from the property definition. There is no dotted cross-object path (company.industry = '...' is invalid); conditions on a related record go inside ASSOCIATION(...) braces.\n\n    Engagement conditions (opened, clicked, visited, submitted, last engaged) often have two valid encodings: a filter form below, or an analytics property on the object itself (recency dates, counts). When no matching filter form or event exists — or the request spans ANY asset rather than a specific one — search the object's real properties for an equivalent before reporting the condition unsupported (the look-it-up rule still applies).\n\n    Beyond property conditions, exactly these filter forms exist; names and named arguments (name = value, never positional) are exact — no other functions or aliases. Notation: [x] is optional; a | b means exactly one. times counts occurrences (>=, <= or =); occurred bounds when (>, >=, < or <= with a date or NOW() offset); for a window between two dates give occurred twice, one lower and one upper bound, both dates: occurred >= '2025-09-01', occurred <= '2026-06-01'. Each is optional and they MAY be combined — except where a form states an EXCEPTION.\n    - IN_LIST(list = 4521): member of another segment/list (id from searchSegments). The same filter keyed differently for workflows and imports: IN_LIST(workflow = '112233', [state = 'ENROLLED'|'ACTIVE'|'COMPLETED'|'GOAL']) (state defaults to ENROLLED, ever enrolled) or IN_LIST(import = '555') — no list argument in those forms.\n    - FORM_SUBMISSION([form = '<guid>'], [times >= 2], [occurred > NOW() - 90 DAYS]): submitted a form. Leave form out for any form, e.g. FORM_SUBMISSION(occurred > NOW() - 30 DAYS) — one condition, never an OR of every form.\n    - PAGE_VIEW(url = '<exact url>' | url_contains = '<substring>', [times >= 2 | occurred > NOW() - 30 DAYS]): visited a website page. EXCEPTION: at most ONE refinement — a count OR a window, never both. The product stores one page-view refinement (the lists UI disables the second field too), so \"twice in the last 30 days\" is not expressible: keep the refinement the request makes primary, or ask the user which to keep. Page visits are ALWAYS this form, never UNIFIED_EVENTS — an event-form page-visit segment cannot be edited in the list UI. Negate with NOT_PAGE_VIEW(...).\n    - ASSOCIATION(object = '0-2', association = 1) { industry = 'SAAS' }: has an associated record matching the braces; object is the associated record's object type id, association the numeric association type id between the two types, and the braces hold conditions on the associated record's properties. An ASSOCIATION body is conjunctive; OR inside its braces is rejected, but IN (...) inside them is fine. NOT ASSOCIATION(...) { condition } means NO associated record matches the condition, and it includes records with no associated record at all — \"contacts with no closed-won deal\" is NOT ASSOCIATION(object = '0-3', association = 4) { dealstage = 'closedwon' }, and \"companies with no deals\" is NOT ASSOCIATION(...) { hs_object_id IS NOT NULL }. Its braces take exactly ONE condition written as =, IN, IS NULL, IS NOT NULL or IN_LIST (not a date or a range). To leave out records associated with something matching several conditions at once, build a segment of those associated records first and write NOT ASSOCIATION(...) { IN_LIST(list = <its id>) }. Never move the negation inside the braces: ASSOCIATION(...) { dealstage != 'closedwon' } means \"has a deal that isn't closed won\", a different audience. A segment read back may carry match = 'ALL', 'ANY_INCLUDE_EMPTY' or 'ALL_INCLUDE_EMPTY' on an ASSOCIATION (all / any associated records match, including records with none); keep it as read when you edit the segment.\n    - UNIFIED_EVENTS(type = '4-123456', [times >= 2], [occurred > NOW() - 30 DAYS]) { [conditions] }: performed an event. The braces hold conditions on the event's OWN properties — take their names from searchFilterInputs (kind EVENT_PROPERTY), never from the segment object's schema.\n    - EMAIL_EVENT(email = '169452110', app = 113, level = 'EMAIL_API_CAMPAIGN_GROUP', event = 'OPEN', [url_contains = '<substring>'], [occurred > '2026-01-01']): engaged with one specific marketing email. event is one of OPEN, CLICK, DELIVERED, SENT, REPLIED, BOUNCE, UNSUBSCRIBED, SPAMREPORT, PRINT. email, app and level come together from ONE searchFilterInputs (kind EMAIL) row — never mix rows or invent them. url_contains is valid only with event = 'CLICK'. EXCEPTIONS: occurred takes a fixed date only (rolling NOW() windows are rejected), no times, and no NOT form. For recency across ANY email (\"opened an email in the last 30 days\"), use the contact's email-engagement properties (e.g. hs_email_last_open_date) instead.\n    Negate any form except EMAIL_EVENT by prefixing NOT, e.g. NOT IN_LIST(list = 4521). All forms combine freely with property conditions.\n\n    Sourcing ids — users do not know these ids; look them up, never invent one (a guessed id creates a segment that silently filters on the wrong thing): list ids from searchSegments; association type ids, event type ids, event property names, form guids, workflow ids, import ids and email triples from searchFilterInputs (kind ASSOCIATION, EVENT, EVENT_PROPERTY, FORM, WORKFLOW, IMPORT or EMAIL), whose results include ready-to-use filter fragments."
+                  },
+                  "includeSampleMembers": {
+                    "type": "boolean",
+                    "description": "Set true ONLY when the user wants to see examples of the matching records, not just how many there are. The result's sampleMembers then holds a few matching records by display name (a sample, never the whole audience). Leave false (the default) for a plain count; it skips an extra record lookup."
+                  },
+                  "sampleProperties": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Internal CRM property names of the object type to also return on each sampleMembers entry (e.g. 'industry', 'country'). Providing any implies includeSampleMembers. Leave empty to return sample members by name only."
+                  },
+                  "countRecordsWithNoValue": {
+                    "type": "boolean",
+                    "description": "Set true ONLY when the user asks how many records a != or NOT IN condition leaves out because they have no value for its property, e.g. \"would including contacts with no company name make a difference?\". The result's recordsWithNoValue then gives, per such condition, how many more records including them would add (0 means none). A condition on a date or inside an event filter can't include them and is not listed. Leave false (the default) otherwise; never set it on your own to decide whether to bring empty values up."
+                  },
+                  "excludedSegmentIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Optional: list IDs of segments whose members the segment will EXCLUDE, so the count leaves them out. Source them with SearchSegmentsQuery. When the user asks for a not-in-list FILTER instead, put the NOT IN_LIST condition in filterExpression and leave this empty."
+                  },
+                  "excludedRecordIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "maxItems": 200,
+                    "description": "Optional: record IDs of the segment's own object type that the segment will EXCLUDE. At most 200."
+                  },
+                  "excludeUnsubscribers": {
+                    "type": "boolean",
+                    "description": "Set true when the segment will exclude unsubscribed contacts (default false). Contact segments only."
+                  },
+                  "excludeNonMarketingContacts": {
+                    "type": "boolean",
+                    "description": "Set true when the segment will exclude non-marketing contacts (default false). Contact segments only."
+                  },
+                  "excludedEmailDomains": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Optional: email domains whose contacts the segment will exclude. Contact segments only."
+                  },
+                  "previewToken": {
+                    "type": "string",
+                    "description": "Only when repeating a preview that failed with PREVIEW_STILL_RUNNING, including when the user later asks you to check it again: the previewToken from that error, copied exactly. Send it with the same objectType, filterExpression and exclusions to keep waiting on that same count instead of starting it over; the count keeps running in the background. Leave it empty (the default) for a new or changed preview; a token that doesn't match the query is ignored and the count starts from scratch."
+                  }
+                },
+                "required": [
+                  "objectType",
+                  "filterExpression",
+                  "type"
+                ],
+                "additionalProperties": false,
+                "description": " Count how many records of an object type currently match a filter, without creating or saving\n anything, optionally leaving out the records the segment's exclusions would. Use it when the user\n asks how many records match, or wants a segment's size before it is saved; when the user simply\n asks for a segment, create it directly with CreateDynamicSegmentOperation.\n"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "SearchSegmentFoldersQuery",
+                    "type": "string"
+                  },
+                  "query": {
+                    "type": "string",
+                    "description": "Text the folder's name contains, ignoring case. Omit to list every folder. Folders belong to the account, so everyone sees the same ones. Folder names don't have to be unique: tell same-named folders apart by path. When no folder matches, say so and offer to create it with manageSegment CreateSegmentFolderOperation; never file segments in a different folder."
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Maximum number of folders to return."
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false,
+                "description": " Find the account's segment folders by name, each with its path through its parents, for the\n folder ID that SearchSegmentsQuery, MoveSegmentsToFolderOperation, and the create operations take.\n"
+              }
+            ],
+            "description": "The read to perform. Set operation.type to SearchSegmentsQuery (find segments by name) or SearchFilterInputsQuery (resolve the ids used in filter expressions)."
+          }
+        },
+        "required": [
+          "operation"
+        ],
+        "additionalProperties": false,
+        "$defs": {},
+        "definitions": {}
+      }
+    },
+    {
+      "name": "read_campaign_data",
+      "description": "REQUIRED FIRST STEP: before your first call, invoke tool_guidance for \"read_campaign_data\" and follow it; it contains the required parameter details and examples for each operation. Reads campaign data using one of four operations selected by the `operation` field. GET_ANALYTICS: engagement metri...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "GET_ANALYTICS",
+              "GET_ASSET_METRICS",
+              "GET_CONTACTS",
+              "GET_CAMPAIGN_ASSET_TYPES"
+            ],
+            "description": "Required. The operation to perform: GET_ANALYTICS, GET_ASSET_METRICS, GET_CONTACTS, or GET_CAMPAIGN_ASSET_TYPES."
+          },
+          "analyticsRequest": {
+            "type": "object",
+            "properties": {
+              "requests": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "campaignCrmObjectId": {
+                      "type": "integer",
+                      "description": "Required. The campaign's numeric CRM object ID (hs_object_id), greater than 0. If you only have the campaign name, look it up first via CRM search or read_campaign_data; do not guess it."
+                    },
+                    "requestedData": {
+                      "type": "string",
+                      "enum": [
+                        "METRICS",
+                        "REVENUE_ATTRIBUTION"
+                      ],
+                      "description": "Required. The type of analytics data to retrieve. Only METRICS is supported — use it for engagement data (sessions, new contacts, influenced contacts). For revenue or attribution data, use getCampaignAttributionReports instead."
+                    },
+                    "startDate": {
+                      "type": "string",
+                      "description": "Optional start of the date range in ISO 8601 format (YYYY-MM-DD). Must be provided together with endDate or both omitted. If omitted, defaults to the campaign's configured start date or up to 3 years ago."
+                    },
+                    "endDate": {
+                      "type": "string",
+                      "description": "Optional end of the date range in ISO 8601 format (YYYY-MM-DD). Must be provided together with startDate or both omitted. If omitted, defaults to the campaign's configured end date or today."
+                    },
+                    "attributionModel": {
+                      "type": "string",
+                      "enum": [
+                        "LINEAR",
+                        "FIRST_INTERACTION",
+                        "LAST_INTERACTION",
+                        "FULL_PATH",
+                        "U_SHAPED",
+                        "W_SHAPED",
+                        "TIME_DECAY",
+                        "J_SHAPED",
+                        "INVERSE_J_SHAPED"
+                      ],
+                      "description": "Ignored. REVENUE_ATTRIBUTION is no longer supported — use getCampaignAttributionReports for revenue and attribution data."
+                    }
+                  },
+                  "required": [
+                    "campaignCrmObjectId",
+                    "requestedData"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Required: List of analytics requests to process. Each entry is a full CampaignAnalyticsRequest. Maximum 20 requests per batch."
+              }
+            },
+            "required": [],
+            "additionalProperties": false,
+            "description": "Analytics request data. Required when operation is GET_ANALYTICS."
+          },
+          "assetMetricsRequest": {
+            "type": "object",
+            "properties": {
+              "campaignCrmObjectId": {
+                "type": "integer",
+                "description": "Required. The campaign's numeric CRM object ID (hs_object_id), greater than 0. If you only have the campaign name, look it up first via CRM search or read_campaign_data; do not guess it."
+              },
+              "assetType": {
+                "type": "string",
+                "description": "Required. Call readCampaignData with operation=GET_CAMPAIGN_ASSET_TYPES to get the exact portal-specific list of valid types (including custom objects) before using this field. For portal custom objects, pass the fully-qualified name (e.g. p12345_my_custom_object) as returned by GET_CAMPAIGN_ASSET_TYPES. If an invalid value is provided, the error will list the currently valid types."
+              },
+              "crmObjectIds": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "description": "Optional list of CRM object IDs to scope metrics to specific assets. When omitted or empty, metrics are returned for all assets of the given assetType associated with the campaign."
+              },
+              "startDate": {
+                "type": "string",
+                "description": "Optional start of the date range in ISO 8601 format (YYYY-MM-DD). Must be provided together with endDate, or both omitted."
+              },
+              "endDate": {
+                "type": "string",
+                "description": "Optional end of the date range in ISO 8601 format (YYYY-MM-DD). Must be provided together with startDate, or both omitted."
+              }
+            },
+            "required": [
+              "campaignCrmObjectId",
+              "assetType"
+            ],
+            "additionalProperties": false,
+            "description": "Asset metrics request data. Required when operation is GET_ASSET_METRICS."
+          },
+          "contactsRequest": {
+            "type": "object",
+            "properties": {
+              "campaignCrmObjectId": {
+                "type": "integer",
+                "description": "Required. The campaign's numeric CRM object ID (hs_object_id), greater than 0. If you only have the campaign name, look it up first via CRM search or read_campaign_data; do not guess it."
+              },
+              "contactType": {
+                "type": "string",
+                "enum": [
+                  "NEW_CONTACTS_FIRST_TOUCH",
+                  "NEW_CONTACTS_LAST_TOUCH",
+                  "INFLUENCED_CONTACTS"
+                ],
+                "description": "Required. The contact attribution type: NEW_CONTACTS_FIRST_TOUCH (first marketing interaction was this campaign), NEW_CONTACTS_LAST_TOUCH (last interaction before conversion), or INFLUENCED_CONTACTS (any engagement within the date range)."
+              },
+              "startDate": {
+                "type": "string",
+                "description": "Optional start of the date range filter in ISO 8601 format (YYYY-MM-DD). Omit to return contacts for the full campaign lifetime. Must be provided together with endDate."
+              },
+              "endDate": {
+                "type": "string",
+                "description": "Optional end of the date range filter in ISO 8601 format (YYYY-MM-DD). Omit to return contacts for the full campaign lifetime. Must be provided together with startDate."
+              },
+              "offset": {
+                "type": "integer",
+                "description": "Zero-based pagination offset. Defaults to 0."
+              },
+              "limit": {
+                "type": "integer",
+                "description": "Number of contacts to return per page. Defaults to 100, maximum 500."
+              }
+            },
+            "required": [
+              "campaignCrmObjectId",
+              "contactType"
+            ],
+            "additionalProperties": false,
+            "description": "Contacts request data. Required when operation is GET_CONTACTS."
+          }
+        },
+        "required": [
+          "operation"
+        ],
+        "additionalProperties": false,
+        "$defs": {},
+        "definitions": {}
+      }
+    },
+    {
+      "name": "read_social_posts",
+      "description": "<purpose>Read the HubSpot Social calendar: draft, scheduled, published, and failed posts managed in HubSpot. Networks: FACEBOOK, INSTAGRAM, LINKEDIN, TIKTOK, TWITTER (X), YOUTUBE.</purpose> <returns>posts [{broadcastGuid, source, network, channelId, channelName, status, publishAt, createdAt, hubs...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "include": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "CONTENT"
+              ]
+            },
+            "description": "Extra fields to return on each post. CONTENT adds the post text (content) and a YouTube video's\ntitle (title). Pass it to read, quote, or compare what posts say, and always before editing a\npost's text or title; leave it out for schedules, gaps, and counts."
+          },
+          "broadcastGuids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "description": "Look up these posts by broadcast GUID, e.g. to read a draft before editing it. Covers any\nstatus the calendar shows; blog auto-publish posts (until they publish), AI suggestions, and\nposts HubSpot is still processing read as not found."
+          },
+          "statuses": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "DRAFT",
+                "SCHEDULED",
+                "PUBLISHED",
+                "FAILED"
+              ]
+            },
+            "description": "Filter by lifecycle status. Omit (or pass empty) for the default calendar view:\nPUBLISHED + SCHEDULED + DRAFT together. A query search adds FAILED, and broadcastGuids has no\nstatus filter.\nNote: PUBLISHED here means posts published through HubSpot. For posts published directly on the\nnetwork, and for engagement, use get_social_post_analytics."
+          },
+          "channelIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter by channel. An array of channel IDs; a post on any of them matches.\nOmit (or pass empty) to read every channel you have access to. An ID you can't read is rejected.\nget_social_channels lists the IDs."
+          },
+          "networks": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "FACEBOOK",
+                "INSTAGRAM",
+                "LINKEDIN",
+                "TIKTOK",
+                "TWITTER",
+                "YOUTUBE"
+              ]
+            },
+            "description": "Only posts on channels of these networks, e.g. [LINKEDIN], with no get_social_channels call\nneeded. Omit (or pass empty) for every network. With channelIds, a post's channel must match both."
+          },
+          "query": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Only posts whose text has every word of this query, in any order, ignoring case, e.g.\n\"black friday\". Words match whole words, not plurals or other forms, except the last word,\nwhich also matches longer words it starts (\"webinar\" finds \"webinars\"). A hashtag is one word:\n\"black friday\" misses \"#BlackFriday\", so also try \"blackfriday\". Use it to find posts on a\ntopic instead of reading every post's content."
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Start of the date range to read (inclusive), on scheduled/publish time, as an ISO-8601 date\n(\"2026-08-01\") or datetime (\"2026-08-01T00:00:00Z\"). A date with no time is interpreted as the\nstart of that day in UTC. Omit for no lower bound."
+          },
+          "endDate": {
+            "type": "string",
+            "description": "End of the date range to read (inclusive), as an ISO-8601 date (\"2026-08-31\") or datetime\n(\"2026-08-31T23:59:59Z\"). A date with no time covers through the end of that day in UTC.\nOmit for no upper bound."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "description": "Max number of posts to return. Defaults to 10. Must be between 1 and 50."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of posts to skip before returning results, for paging beyond limit. Defaults to 0. Must be >= 0."
+          }
+        },
+        "required": [],
+        "additionalProperties": false,
+        "$defs": {},
+        "definitions": {}
+      }
+    },
+    {
+      "name": "render_asset",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "render_hubspot_home",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "search_crm_objects",
+      "description": "Searches and retrieves CRM records from HubSpot by filters, associations, and criteria. Returns actual records, not field definitions (use search_properties to discover fields, discover_hubspot_schema to discover object types). Returns: id, requested properties, urlTemplate, total (match count fo...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "objectType": {
+            "type": "string",
+            "description": "Mandatory field specifying the ObjectType to search for objects for.\n\nWell-known standard CRM types (e.g. CONTACT, COMPANY, DEAL, TICKET, and other documented HubSpot objects) can be used directly. Any other type is a custom object identified by a portal-prefixed ID of the form `p<portalId>_<name>` (e.g. `p885186001_fleet_vehicles`) that you MUST obtain from `discover_hubspot_schema` before searching — do not construct or guess it.\nA plausible standard-looking name (e.g. `products`) may actually resolve to a different standard object OR a custom object. When you are not certain a name is a standard type, treat it as non-standard and resolve it via `discover_hubspot_schema` first, then use the exact `typeName` it returns."
+          },
+          "query": {
+            "type": "string",
+            "description": "Optional text to search for within the default searchable properties of the specified object type.\nUses simple text matching (contains)\nEach object type has different searchable properties.\ncontacts - firstname, lastname, email, phone, company),\ncompanies - name, website, domain, phone),\ndeals - dealname, pipeline, dealstage, description, dealtype)\nticket - subject, content, hs_pipeline_stage, hs_ticket_category, hs_ticket_id)\n\n[Important] Common stop words (e.g., \"the\", \"a\", \"of\", \"and\", \"in\") may not be indexed for some object types. If a query returns no results, retry by removing stop words or using property filters instead of free-text search.\n\nMax length - 200 chars"
+          },
+          "properties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Optional list of property names to include in results. Returns default set if empty. Specify the minimum set of properties needed for the task for best results. Leave it empty only if you explicitly need to discover the full default property set."
+          },
+          "sorts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "propertyName": {
+                  "type": "string",
+                  "description": "The name of the property to sort by"
+                },
+                "direction": {
+                  "type": "string",
+                  "enum": [
+                    "ASCENDING",
+                    "DESCENDING"
+                  ],
+                  "description": "The order to sort by"
+                }
+              },
+              "required": [
+                "propertyName",
+                "direction"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Optional sorting rules for results. Only one sort rule can be applied"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of results per page. Max: 200, Default: 100"
+          },
+          "offset": {
+            "type": "integer",
+            "description": "Paging cursor token for pagination"
+          },
+          "filterGroups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "filters": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "propertyName": {
+                        "type": "string",
+                        "description": "Specify the name of the Crm Object Property to filter on.\n\nDO NOT use the pseudo-property `associations.{objectType}` or `associated_{objectType}` for associations.\n\nYou can use the following properties to filter by the number of associated records:\n\nTickets - hs_num_associated_companies\nCompanies - num_associated_contacts, num_associated_deals\nContacts - num_associated_deals\nDeals - num_associated_contacts"
+                      },
+                      "operator": {
+                        "type": "string",
+                        "description": "Filter operator:\n  EQ, NEQ, LT, LTE, GT, GTE, BETWEEN, IN, NOT_IN, HAS_PROPERTY, NOT_HAS_PROPERTY, CONTAINS_TOKEN, NOT_CONTAINS_TOKEN\nUsage:\n  No additional parameters required for HAS_PROPERTY and NOT_HAS_PROPERTY"
+                      },
+                      "value": {
+                        "type": "string",
+                        "description": "Value parameter for single-value operators (EQ, NEQ, LT, LTE, GT, GTE, CONTAINS_TOKEN, NOT_CONTAINS_TOKEN)"
+                      },
+                      "highValue": {
+                        "type": "string",
+                        "description": "High value for range-based operators like BETWEEN"
+                      },
+                      "values": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "Set of values for multi-value operators like IN and NOT_IN"
+                      }
+                    },
+                    "required": [
+                      "propertyName",
+                      "operator"
+                    ],
+                    "additionalProperties": false,
+                    "description": " Represents a filter condition for CRM object searches.\n Filters specify criteria that property values must meet to be included in search results.\n The available operators are defined in {@link PropertyFilterOperator}.\n"
+                  },
+                  "description": "Set of filters in this group. All filters combined with logical ANDThe filter is used with associatedWith for AND logic in the same FilterGroup."
+                },
+                "associatedWith": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "objectType": {
+                        "type": "string",
+                        "description": "Object type to find associations with.\n\nExample: \"companies\" to find records associated with a company"
+                      },
+                      "operator": {
+                        "type": "string",
+                        "enum": [
+                          "EQUAL",
+                          "IN",
+                          "NOT_EQUAL",
+                          "NOT_IN"
+                        ],
+                        "description": "Operator for association filtering:\n- EQUAL/NOT_EQUAL: Associated with the specified object.\n- IN/NOT_IN: Associated with any of the specified objects."
+                      },
+                      "objectIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "DEPRECATED: Use objectIdValues instead.\nList of object IDs as strings to filter by.\nIf both objectIds and objectIdValues are provided, objectIdValues takes precedence.\nValid IDs are string representations of positive longs (e.g., '123', '456').\n\nFor EQUAL and NOT_EQUAL operators, provide exactly one ID eg. [\"123\"]\nFor IN and NOT_IN operators, provide multiple IDs eg. [\"123\", \"456\", \"789\"]"
+                      },
+                      "objectIdValues": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer"
+                        },
+                        "description": "List of object IDs to filter by.\n\nAt least one valid object ID must be provided.\nEach object ID greater than 0.\nMaximum of 100 object IDs allowed per association filter.\n\nFor EQUAL and NOT_EQUAL operators, provide exactly one ID eg. [123]\nFor IN and NOT_IN operators, provide multiple IDs eg. [123, 456, 789]"
+                      }
+                    },
+                    "required": [
+                      "objectType",
+                      "operator"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Association filters for finding records related to specific objects (e.g., \"contacts for company X\").\n\nWithin a single FilterGroup, all association filters are combined with AND logic.\nAssociation filters are also ANDed with any property filters in the same FilterGroup.\n\nExamples:\n- Find contacts associated with company 123:\n  [{\"objectType\": \"companies\", \"operator\": \"EQUAL\", \"objectIdValues\": [123]}]\n\n- Find contacts associated with company 123 OR 456 (use IN operator):\n  [{\"objectType\": \"companies\", \"operator\": \"IN\", \"objectIdValues\": [123, 456]}]\n\n- Find records associated with BOTH company 123 AND contact 456 (multiple filters):\n  [{\"objectType\": \"companies\", \"operator\": \"EQUAL\", \"objectIdValues\": [123]},\n   {\"objectType\": \"contacts\", \"operator\": \"EQUAL\", \"objectIdValues\": [456]}]\n\n- To search for company A OR company B, use separate FilterGroups (FilterGroups are ORed together)."
+                }
+              },
+              "required": [],
+              "additionalProperties": false,
+              "description": " Represents a group of filters that are logically connected with AND operators.\n Multiple filter groups in a search request are combined with OR operators.\n"
+            },
+            "description": "* The filter groups that define the search criteria.\n * Filters that match ALL of several conditions (AND logic) should be put in the same filterGroup.\n * Filters that match AT LEAST ONE of several conditions (OR logic) should be put in a separate filterGroup."
+          },
+          "chatInsights": {
+            "type": "object",
+            "properties": {
+              "userIntent": {
+                "type": "string",
+                "description": "The original intent or goal the user was trying to accomplish.\nSet to \"<unchanged>\" if the intent has already been submitted and hasn't changed.\nUse generic or anonymized references instead of specific names, emails, or other PII.\nReplace specific names with generalized references:\n- Company/Partner names: \"Bluleadz partner\" → \"partner A\"\n- Deal names: \"Tesla deal\" → \"deal A\"\n- Customer names: \"Acme Corp customer\" → \"company X\"\nImportant: Avoid adding extraneous information other than what the user provides in the current chat.\nMaximum 40 words."
+              },
+              "satisfaction": {
+                "type": "string",
+                "enum": [
+                  "DISSATISFIED",
+                  "NEUTRAL",
+                  "SATISFIED"
+                ],
+                "description": "The user's satisfaction during the conversation.\n  Set to DISSATISFIED when the user struggled with a feature, mentioned an unmet need or showed dissatisfaction.\n  <dissatisfied_signals>\n  - User provides explicit correction: \"No, I meant...\", \"Actually, I want...\"\n  - User repeats query with different phrasing\n  - User states something is wrong: \"That's wrong\", \"That's not right\"\n  - User clarifies because agent misunderstood\n  </dissatisfied_signals>\n  Set to SATISFIED when the user expresses satisfaction, gratitude, or approval.\n  Set to NEUTRAL when the conversation flowed smoothly without strong emotional signals."
+              }
+            },
+            "required": [
+              "userIntent",
+              "satisfaction"
+            ],
+            "additionalProperties": false,
+            "description": "Insights about the chat including user intent and satisfaction level.\nIMPORTANT: MUST be provided for all scenarios."
+          }
+        },
+        "required": [
+          "objectType"
+        ],
+        "additionalProperties": false,
+        "$defs": {},
+        "definitions": {}
+      }
+    },
+    {
+      "name": "search_intent_signals",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "search_owners",
+      "description": "Lists and searches for owners who can be assigned to CRM records. <capabilities> - Supports searching by name/email or batch lookup by owner IDs - HubSpot owner ids and user IDs are distinct, lookups only work when owner ids are provided specifically </capabilities> <returns> List of owner object...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "searchQuery": {
+            "type": "string",
+            "description": "Optional search query to find owners by name or email. Returns all owners if not provided"
+          },
+          "ownerIds": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Optional list of owner IDs to lookup directly. When provided, search query is ignored"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of results to return. Defaults to 25, max 100"
+          },
+          "offset": {
+            "type": "integer",
+            "description": "Offset for pagination. Defaults to 0"
+          }
+        },
+        "required": [],
+        "additionalProperties": false,
+        "$defs": {},
+        "definitions": {}
+      }
+    },
+    {
+      "name": "search_properties",
+      "description": "Finds the most relevant CRM property definitions using keyword-based search. <capabilities> - Lists all property definitions for an object type when no search terms are provided - To search for actual record data, use search_crm_objects </capabilities> <returns> A filtered list of matching proper...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "objectType": {
+            "type": "string",
+            "description": "The name of the object type to search properties for"
+          },
+          "query": {
+            "type": "string",
+            "description": "DEPRECATED: Use keywords instead.\nSingle search keyword for backward compatibility.\nIf both query and keywords are provided, keywords takes precedence.\nIf empty and no keywords provided, returns all properties for the object type."
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Multiple search keywords (max 5) to find relevant properties using efficient keyword-based search.\nSupports searching for multiple related property concepts in a single request.\n\nExamples:\n- [\"urgency\"] - Single keyword search\n- [\"assignee\", \"assigned_to\", \"owner\"] - Multiple related keywords for assignment\n- [\"name\", \"employees\", \"zip\", \"contact\"] - Multiple unrelated keywords for different properties\n\nIf both query and keywords are provided, keywords takes precedence.\nIf empty and no query provided, returns all properties for the object type."
+          }
+        },
+        "required": [
+          "objectType"
+        ],
+        "additionalProperties": false,
+        "$defs": {},
+        "definitions": {}
+      }
+    },
+    {
+      "name": "show_feedback_form",
+      "description": null,
+      "inputSchema": null,
+      "schemaCaptured": false
+    },
+    {
+      "name": "tool_guidance",
+      "description": "<purpose> Retrieves guidance and usage instructions for a set of HubSpot tools. </purpose> <when_to_use> - If a tool's description isn't enough to commit to using it - To find if a tool's inputs or outputs have further semantic meaning - To learn understand if and how certain tools can work toget...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "toolNames": {
+            "description": "List of tool names to get usage instructions for",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "toolNames"
+        ],
+        "additionalProperties": false,
+        "$defs": {},
+        "definitions": {}
+      }
+    }
+  ]
+}
