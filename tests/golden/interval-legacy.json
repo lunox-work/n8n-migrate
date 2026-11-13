@@ -80,14 +80,29 @@
             "Append row"
           ],
           "surfaces": {
-            "cloudTask": "needs:connector-operation-check",
-            "localTask": "needs:connector-operation-check",
-            "artifact": "needs:artifact-mcp"
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
           },
           "operations": [
             "googleSheets sheet:append"
           ],
-          "confirmed": false
+          "confirmed": false,
+          "noTool": [
+            "googleSheets sheet:append"
+          ]
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Append row"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
         }
       ],
       "questions": [],

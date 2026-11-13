@@ -888,15 +888,27 @@ function surfacesFrom(spec) {
   return out;
 }
 
+// Each operation is looked up in the connector's operation table. An
+// unlisted one waits for a check. One whose connector has no tool for it
+// (confirmed "no-tool") falls back to the app's own REST API with a stored
+// secret: the surfaces of requirements.connector-api, worse than the
+// connector's own wherever they differ.
 function connectorSurfaces(caps, name, ops) {
   const c = own(caps.connectors, name);
   const base = c ? surfacesFrom(c.surfaces) : { cloudTask: "ok", localTask: "ok", artifact: "ok" };
-  const listed = ({ type, op }) => (own(c?.operations, type)?.ops || []).includes(op);
-  const allListed = c && ops.length > 0 && ops.every(listed);
+  const entry = ({ type, op }) => own(own(c?.operations, type)?.ops, op);
+  const unlisted = !c || ops.length === 0 || ops.some((o) => !entry(o));
+  const noTool = ops.filter((o) => entry(o)?.confirmed === "no-tool");
+  const fallback = surfacesFrom(caps.requirements?.["connector-api"]);
   const out = {};
-  for (const s of SURFACES) out[s] = base[s] === "ok" && !allListed ? "needs:connector-operation-check" : base[s];
-  const confirmed = !!allListed && ops.every(({ type }) => c.operations[type].status === "confirmed");
-  return { surfaces: out, confirmed };
+  for (const s of SURFACES) {
+    const vals = [base[s]];
+    if (unlisted && base[s] === "ok") vals.push("needs:connector-operation-check");
+    if (noTool.length) vals.push(fallback[s]);
+    out[s] = vals.includes("no") ? "no" : vals.filter((v) => v !== "ok").pop() ?? "ok";
+  }
+  const confirmed = !unlisted && ops.every((o) => entry(o).confirmed === "observed");
+  return { surfaces: out, confirmed, noTool: uniq(noTool.map((x) => `${shortType(x.type)} ${x.op}`)).sort() };
 }
 
 // ---------- per-workflow analysis ----------
@@ -1754,9 +1766,10 @@ function finalizeRequires(W, ctx) {
   if (W.wakeup.kind === "chat") W.req.delete("state\u0000chat-memory");
   for (const r of W.req.values()) {
     if (r.kind === "connector") {
-      const { surfaces, confirmed } = connectorSurfaces(ctx.capabilities, r.name, r.ops);
+      const { surfaces, confirmed, noTool } = connectorSurfaces(ctx.capabilities, r.name, r.ops);
       r.surfaces = surfaces;
       r.confirmed = confirmed;
+      r.noTool = noTool;
     }
   }
   const needsServer = [...W.req.values()].filter((r) => r.kind !== "bundled-server" && r.surfaces?.localTask === "needs:bundled-server");
@@ -1804,6 +1817,7 @@ function reportOf(W, ctx) {
       if (r.kind === "connector") {
         o.operations = uniq(r.ops.map((x) => `${shortType(x.type)} ${x.op}`)).sort();
         o.confirmed = r.confirmed;
+        if (r.noTool?.length) o.noTool = r.noTool;
       }
       return o;
     })

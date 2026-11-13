@@ -151,7 +151,8 @@
               "nodes": { "description": "nodes of this workflow that need it; for what a sub-workflow needs, the calling node", "$ref": "#/$defs/nodes" },
               "surfaces": { "$ref": "#/$defs/surfaces" },
               "operations": { "description": "connector only: \"<node type> <resource:operation>\"", "type": "array", "items": { "type": "string" } },
-              "confirmed": { "description": "connector only: every operation confirmed on a real account (Phase 0)", "type": "boolean" }
+              "confirmed": { "description": "connector only: every operation observed working on a real account (Phase 0)", "type": "boolean" },
+              "noTool": { "description": "connector only: operations no tool of the connector can do (\"<node type> <resource:operation>\"); they fall back to the app's REST API with a stored secret, which the surfaces reflect", "type": "array", "items": { "type": "string" } }
             }
           }
         },

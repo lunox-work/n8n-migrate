@@ -3,7 +3,7 @@
     "What each Claude surface can do for a requirement the analyzer finds. Read by scripts/analyze.mjs to fill requires[].surfaces and the schedule thresholds.",
     "Surfaces: cloudTask, localTask, artifact. A value is ok, needs:<thing> (works once <thing> is confirmed or set up) or no.",
     "Every value carries a source. Phase 0 overwrites value and source with what it observed on a real account.",
-    "connectors.<name>.operations: n8n operations (resource:operation, or poll for the trigger) that the connector's tools are believed to cover, per node type; tool variants (<type>Tool) use their base type. An operation not listed gives needs:connector-operation-check, never no.",
+    "connectors.<name>.operations.<node type>.ops: per n8n operation (resource:operation, or poll for the trigger; tool variants <type>Tool use their base type), the connector tool that does it and how sure that is: confirmed is tool-exists (the tool's schema was seen on a real account, not yet run), no-tool (no tool of the connector can do it), not-captured (connector not attached where the schemas were taken) or observed (ran on a real account). An unlisted operation gives needs:connector-operation-check. A no-tool operation falls back to the app's own REST API with a stored secret: the surfaces of requirements.connector-api, and the report lists it in noTool.",
     "substitutions: blocked nodes with an approvable replacement. The outcome stays subscription; the report adds a substitution requirement and blocker.",
     "nodeRequirements: node types that add a requirement of their own, beyond their kind.",
     "httpSubstitutions: optional replacements found by http-hosts.json rules. model: an HTTP call to an LLM API runs as a Claude model step on the subscription instead of with an API key. It adds a substitution requirement, no blocker: keeping the call with its key also works."
@@ -85,6 +85,11 @@
       "artifact": { "source": "docs 2026-11-14, untested", "value": "needs:artifact-mcp" },
       "cloudTask": { "source": "docs 2026-11-14, untested", "value": "needs:vector-connector" },
       "localTask": { "source": "docs 2026-11-14, untested", "value": "needs:vector-connector" }
+    },
+    "connector-api": {
+      "artifact": { "source": "docs 2026-11-14, untested", "value": "no" },
+      "cloudTask": { "source": "docs 2026-11-14, untested", "value": "needs:network-secret" },
+      "localTask": { "source": "docs 2026-11-14, untested", "value": "needs:bundled-server" }
     }
   },
   "connectors": {
@@ -107,11 +112,40 @@
     "gmail": {
       "operations": {
         "n8n-nodes-base.gmail": {
-          "ops": ["draft:create", "draft:delete", "draft:get", "draft:getAll", "label:create", "label:delete", "label:get", "label:getAll", "message:addLabels", "message:get", "message:getAll", "message:markAsRead", "message:markAsUnread", "message:removeLabels", "message:reply", "message:send", "messageLabel:add", "messageLabel:remove", "thread:addLabels", "thread:get", "thread:getAll", "thread:removeLabels", "thread:reply", "thread:trash", "thread:untrash"],
-          "source": "docs 2026-11-14, untested",
-          "status": "unconfirmed"
+          "source": "tool schemas on the author's account 2026-11-14 (evals/mocks/connectors), not run",
+          "ops": {
+            "draft:create": { "confirmed": "tool-exists", "tool": "create_draft" },
+            "draft:delete": { "confirmed": "tool-exists", "tool": "delete_draft" },
+            "draft:get": { "confirmed": "tool-exists", "tool": "get_draft" },
+            "draft:getAll": { "confirmed": "tool-exists", "tool": "list_drafts" },
+            "label:create": { "confirmed": "tool-exists", "tool": "create_label" },
+            "label:delete": { "confirmed": "tool-exists", "tool": "delete_label" },
+            "label:get": { "confirmed": "tool-exists", "tool": "list_labels", "note": "no single-label get; pick from the list" },
+            "label:getAll": { "confirmed": "tool-exists", "tool": "list_labels" },
+            "message:addLabels": { "confirmed": "tool-exists", "tool": "label_message" },
+            "message:get": { "confirmed": "tool-exists", "tool": "get_message" },
+            "message:getAll": { "confirmed": "tool-exists", "tool": "search_threads", "note": "returns threads with up to 5 messages each; get_thread for the rest" },
+            "message:markAsRead": { "confirmed": "tool-exists", "tool": "unlabel_message", "note": "remove UNREAD" },
+            "message:markAsUnread": { "confirmed": "tool-exists", "tool": "label_message", "note": "add UNREAD" },
+            "message:removeLabels": { "confirmed": "tool-exists", "tool": "unlabel_message" },
+            "message:reply": { "confirmed": "tool-exists", "tool": "reply" },
+            "message:send": { "confirmed": "tool-exists", "tool": "send_message" },
+            "messageLabel:add": { "confirmed": "tool-exists", "tool": "label_message" },
+            "messageLabel:remove": { "confirmed": "tool-exists", "tool": "unlabel_message" },
+            "thread:addLabels": { "confirmed": "tool-exists", "tool": "label_thread" },
+            "thread:get": { "confirmed": "tool-exists", "tool": "get_thread" },
+            "thread:getAll": { "confirmed": "tool-exists", "tool": "search_threads" },
+            "thread:removeLabels": { "confirmed": "tool-exists", "tool": "unlabel_thread" },
+            "thread:reply": { "confirmed": "tool-exists", "tool": "reply", "note": "messageId of the thread's latest message" },
+            "thread:trash": { "confirmed": "tool-exists", "tool": "trash_thread" },
+            "thread:untrash": { "confirmed": "tool-exists", "tool": "untrash_thread" },
+            "message:delete": { "confirmed": "tool-exists", "tool": "trash_message", "note": "moves to Trash; no permanent delete" }
+          }
         },
-        "n8n-nodes-base.gmailTrigger": { "ops": ["poll"], "source": "docs 2026-11-14, untested", "status": "unconfirmed" }
+        "n8n-nodes-base.gmailTrigger": {
+          "source": "tool schemas on the author's account 2026-11-14 (evals/mocks/connectors), not run",
+          "ops": { "poll": { "confirmed": "tool-exists", "tool": "search_threads", "note": "query after:/newer_than: from the runner's cursor" } }
+        }
       },
       "surfaces": {
         "artifact": { "source": "docs 2026-11-14, untested", "value": "needs:artifact-mcp" },
@@ -122,11 +156,20 @@
     "google-calendar": {
       "operations": {
         "n8n-nodes-base.googleCalendar": {
-          "ops": ["calendar:availability", "event:create", "event:delete", "event:get", "event:getAll", "event:update"],
-          "source": "docs 2026-11-14, untested",
-          "status": "unconfirmed"
+          "source": "connector needs sign-in on the author's account 2026-11-14; schemas not captured",
+          "ops": {
+            "calendar:availability": { "confirmed": "not-captured", "tool": null, "note": "connector needs sign-in on this account; schemas not captured" },
+            "event:create": { "confirmed": "not-captured", "tool": null, "note": "connector needs sign-in on this account; schemas not captured" },
+            "event:delete": { "confirmed": "not-captured", "tool": null, "note": "connector needs sign-in on this account; schemas not captured" },
+            "event:get": { "confirmed": "not-captured", "tool": null, "note": "connector needs sign-in on this account; schemas not captured" },
+            "event:getAll": { "confirmed": "not-captured", "tool": null, "note": "connector needs sign-in on this account; schemas not captured" },
+            "event:update": { "confirmed": "not-captured", "tool": null, "note": "connector needs sign-in on this account; schemas not captured" }
+          }
         },
-        "n8n-nodes-base.googleCalendarTrigger": { "ops": ["poll"], "source": "docs 2026-11-14, untested", "status": "unconfirmed" }
+        "n8n-nodes-base.googleCalendarTrigger": {
+          "source": "connector needs sign-in on the author's account 2026-11-14; schemas not captured",
+          "ops": { "poll": { "confirmed": "not-captured", "tool": null, "note": "connector needs sign-in on this account; schemas not captured" } }
+        }
       },
       "surfaces": {
         "artifact": { "source": "docs 2026-11-14, untested", "value": "needs:artifact-mcp" },
@@ -136,13 +179,54 @@
     },
     "google-drive": {
       "operations": {
-        "n8n-nodes-base.googleDocs": { "ops": ["document:create", "document:get"], "source": "docs 2026-11-14, untested", "status": "unconfirmed" },
-        "n8n-nodes-base.googleDrive": {
-          "ops": ["file:copy", "file:createFromText", "file:deleteFile", "file:download", "file:list", "file:share", "file:update", "file:upload", "fileFolder:search"],
-          "source": "docs 2026-11-14, untested",
-          "status": "unconfirmed"
+        "n8n-nodes-base.googleDocs": {
+          "source": "tool schemas on the author's account 2026-11-14 (evals/mocks/connectors), not run",
+          "ops": {
+            "document:create": { "confirmed": "tool-exists", "tool": "create_file", "note": "textContent with a Google Docs mime type" },
+            "document:get": { "confirmed": "tool-exists", "tool": "read_file_content" },
+            "document:update": { "confirmed": "no-tool", "tool": null, "note": "no in-place document edit; update_file changes metadata only" }
+          }
         },
-        "n8n-nodes-base.googleDriveTrigger": { "ops": ["poll"], "source": "docs 2026-11-14, untested", "status": "unconfirmed" }
+        "n8n-nodes-base.googleDrive": {
+          "source": "tool schemas on the author's account 2026-11-14 (evals/mocks/connectors), not run",
+          "ops": {
+            "file:copy": { "confirmed": "tool-exists", "tool": "copy_file" },
+            "file:createFromText": { "confirmed": "tool-exists", "tool": "create_file", "note": "textContent" },
+            "file:deleteFile": { "confirmed": "tool-exists", "tool": "trash_file", "note": "moves to Trash" },
+            "file:download": { "confirmed": "tool-exists", "tool": "download_file_content" },
+            "file:list": { "confirmed": "tool-exists", "tool": "search_files" },
+            "file:share": { "confirmed": "tool-exists", "tool": "share_file" },
+            "file:update": { "confirmed": "tool-exists", "tool": "update_file", "note": "name, parent and flags only; replacing file content has no tool" },
+            "file:upload": { "confirmed": "tool-exists", "tool": "create_file", "note": "base64Content" },
+            "fileFolder:search": { "confirmed": "tool-exists", "tool": "search_files" },
+            "folder:create": { "confirmed": "tool-exists", "tool": "create_file", "note": "mime type application/vnd.google-apps.folder" }
+          }
+        },
+        "n8n-nodes-base.googleDriveTrigger": {
+          "source": "tool schemas on the author's account 2026-11-14 (evals/mocks/connectors), not run",
+          "ops": { "poll": { "confirmed": "tool-exists", "tool": "search_files", "note": "createdTime/modifiedTime after the runner's cursor" } }
+        },
+        "n8n-nodes-base.googleSheets": {
+          "source": "tool schemas on the author's account 2026-11-14 (evals/mocks/connectors), not run",
+          "ops": {
+            "sheet:read": {
+              "confirmed": "tool-exists",
+              "tool": "download_file_content",
+              "note": "exportMimeType text/csv exports the first tab only; read_file_content gives a text rendering of all tabs"
+            },
+            "sheet:append": { "confirmed": "no-tool", "tool": null, "note": "no Sheets API tool: rows cannot be appended through the Drive connector" },
+            "sheet:appendOrUpdate": { "confirmed": "no-tool", "tool": null, "note": "no Sheets API tool" },
+            "sheet:update": { "confirmed": "no-tool", "tool": null, "note": "no Sheets API tool" },
+            "sheet:upsert": { "confirmed": "no-tool", "tool": null, "note": "no Sheets API tool" },
+            "sheet:delete": { "confirmed": "no-tool", "tool": null, "note": "no Sheets API tool" },
+            "sheet:clear": { "confirmed": "no-tool", "tool": null, "note": "no Sheets API tool" },
+            "spreadsheet:create": { "confirmed": "tool-exists", "tool": "create_file", "note": "mime type application/vnd.google-apps.spreadsheet, empty" }
+          }
+        },
+        "n8n-nodes-base.googleSheetsTrigger": {
+          "source": "tool schemas on the author's account 2026-11-14 (evals/mocks/connectors), not run",
+          "ops": { "poll": { "confirmed": "tool-exists", "tool": "download_file_content", "note": "runner diffs the exported first tab against its cursor; other tabs need read_file_content" } }
+        }
       },
       "surfaces": {
         "artifact": { "source": "docs 2026-11-14, untested", "value": "needs:artifact-mcp" },
@@ -153,22 +237,46 @@
     "microsoft-365": {
       "operations": {
         "n8n-nodes-base.microsoftOneDrive": {
-          "ops": ["file:download", "file:get", "file:search", "folder:getChildren", "folder:search"],
-          "source": "docs 2026-11-14, untested",
-          "status": "unconfirmed"
+          "source": "not attached to the author's account 2026-11-14; schemas not captured",
+          "ops": {
+            "file:download": { "confirmed": "not-captured", "tool": null, "note": "connector not attached on this account" },
+            "file:get": { "confirmed": "not-captured", "tool": null, "note": "connector not attached on this account" },
+            "file:search": { "confirmed": "not-captured", "tool": null, "note": "connector not attached on this account" },
+            "folder:getChildren": { "confirmed": "not-captured", "tool": null, "note": "connector not attached on this account" },
+            "folder:search": { "confirmed": "not-captured", "tool": null, "note": "connector not attached on this account" }
+          }
         },
         "n8n-nodes-base.microsoftOutlook": {
-          "ops": ["event:get", "event:getAll", "folderMessage:getAll", "message:get", "message:getAll"],
-          "source": "docs 2026-11-14, untested",
-          "status": "unconfirmed"
+          "source": "not attached to the author's account 2026-11-14; schemas not captured",
+          "ops": {
+            "event:get": { "confirmed": "not-captured", "tool": null, "note": "connector not attached on this account" },
+            "event:getAll": { "confirmed": "not-captured", "tool": null, "note": "connector not attached on this account" },
+            "folderMessage:getAll": { "confirmed": "not-captured", "tool": null, "note": "connector not attached on this account" },
+            "message:get": { "confirmed": "not-captured", "tool": null, "note": "connector not attached on this account" },
+            "message:getAll": { "confirmed": "not-captured", "tool": null, "note": "connector not attached on this account" }
+          }
         },
-        "n8n-nodes-base.microsoftOutlookTrigger": { "ops": ["poll"], "source": "docs 2026-11-14, untested", "status": "unconfirmed" },
+        "n8n-nodes-base.microsoftOutlookTrigger": {
+          "source": "not attached to the author's account 2026-11-14; schemas not captured",
+          "ops": { "poll": { "confirmed": "not-captured", "tool": null, "note": "connector not attached on this account" } }
+        },
         "n8n-nodes-base.microsoftSharePoint": {
-          "ops": ["file:download", "item:get", "item:getAll", "list:get", "list:getAll"],
-          "source": "docs 2026-11-14, untested",
-          "status": "unconfirmed"
+          "source": "not attached to the author's account 2026-11-14; schemas not captured",
+          "ops": {
+            "file:download": { "confirmed": "not-captured", "tool": null, "note": "connector not attached on this account" },
+            "item:get": { "confirmed": "not-captured", "tool": null, "note": "connector not attached on this account" },
+            "item:getAll": { "confirmed": "not-captured", "tool": null, "note": "connector not attached on this account" },
+            "list:get": { "confirmed": "not-captured", "tool": null, "note": "connector not attached on this account" },
+            "list:getAll": { "confirmed": "not-captured", "tool": null, "note": "connector not attached on this account" }
+          }
         },
-        "n8n-nodes-base.microsoftTeams": { "ops": ["channelMessage:getAll", "chatMessage:getAll"], "source": "docs 2026-11-14, untested", "status": "unconfirmed" }
+        "n8n-nodes-base.microsoftTeams": {
+          "source": "not attached to the author's account 2026-11-14; schemas not captured",
+          "ops": {
+            "channelMessage:getAll": { "confirmed": "not-captured", "tool": null, "note": "connector not attached on this account" },
+            "chatMessage:getAll": { "confirmed": "not-captured", "tool": null, "note": "connector not attached on this account" }
+          }
+        }
       },
       "surfaces": {
         "artifact": { "source": "docs 2026-11-14, untested", "value": "needs:artifact-mcp" },
@@ -179,9 +287,30 @@
     "notion": {
       "operations": {
         "n8n-nodes-base.notion": {
-          "ops": ["block:append", "block:getAll", "dataSource:get", "dataSource:search", "database:get", "database:search", "databasePage:create", "databasePage:get", "databasePage:getAll", "databasePage:update", "page:create", "page:get", "page:search", "user:get", "user:getAll"],
-          "source": "docs 2026-11-14, untested",
-          "status": "unconfirmed"
+          "source": "tool schemas on the author's account 2026-11-14 (evals/mocks/connectors), not run",
+          "ops": {
+            "block:append": { "confirmed": "tool-exists", "tool": "notion-update-page", "note": "command insert_content" },
+            "block:getAll": { "confirmed": "tool-exists", "tool": "notion-fetch" },
+            "dataSource:get": { "confirmed": "tool-exists", "tool": "notion-fetch", "note": "collection:// URL" },
+            "dataSource:search": { "confirmed": "tool-exists", "tool": "notion-search" },
+            "database:get": { "confirmed": "tool-exists", "tool": "notion-fetch" },
+            "database:search": { "confirmed": "tool-exists", "tool": "notion-search" },
+            "databasePage:create": { "confirmed": "tool-exists", "tool": "notion-create-pages", "note": "parent data_source_id" },
+            "databasePage:get": { "confirmed": "tool-exists", "tool": "notion-fetch" },
+            "databasePage:getAll": {
+              "confirmed": "tool-exists",
+              "tool": "notion-query-data-sources",
+              "note": "SQL mode has a shared workspace quota below Business; rows or view mode has none stated"
+            },
+            "databasePage:update": { "confirmed": "tool-exists", "tool": "notion-update-page", "note": "command update_properties" },
+            "page:create": { "confirmed": "tool-exists", "tool": "notion-create-pages" },
+            "page:get": { "confirmed": "tool-exists", "tool": "notion-fetch" },
+            "page:search": { "confirmed": "tool-exists", "tool": "notion-search" },
+            "page:archive": { "confirmed": "tool-exists", "tool": "notion-delete-pages", "note": "needs user_confirmed: true" },
+            "databasePage:archive": { "confirmed": "tool-exists", "tool": "notion-delete-pages", "note": "needs user_confirmed: true" },
+            "user:get": { "confirmed": "tool-exists", "tool": "notion-get-users", "note": "user_id" },
+            "user:getAll": { "confirmed": "tool-exists", "tool": "notion-get-users" }
+          }
         }
       },
       "surfaces": {
@@ -193,9 +322,24 @@
     "slack": {
       "operations": {
         "n8n-nodes-base.slack": {
-          "ops": ["channel:getAll", "channel:history", "channel:replies", "message:post", "message:schedule", "message:search", "user:getAll", "user:getProfile", "user:info"],
-          "source": "docs 2026-11-14, untested",
-          "status": "unconfirmed"
+          "source": "tool schemas on the author's account 2026-11-14 (evals/mocks/connectors), not run",
+          "ops": {
+            "channel:getAll": { "confirmed": "tool-exists", "tool": "slack_search_channels", "note": "keyword search, 20 per page; not a full listing" },
+            "channel:history": { "confirmed": "tool-exists", "tool": "slack_read_channel" },
+            "channel:replies": { "confirmed": "tool-exists", "tool": "slack_read_thread" },
+            "message:post": { "confirmed": "tool-exists", "tool": "slack_send_message" },
+            "message:schedule": { "confirmed": "tool-exists", "tool": "slack_schedule_message" },
+            "message:search": { "confirmed": "tool-exists", "tool": "slack_search_public_and_private" },
+            "user:getAll": { "confirmed": "tool-exists", "tool": "slack_search_users", "note": "keyword search, not a full listing" },
+            "user:getProfile": { "confirmed": "tool-exists", "tool": "slack_read_user_profile" },
+            "user:info": { "confirmed": "tool-exists", "tool": "slack_read_user_profile" },
+            "message:update": { "confirmed": "no-tool", "tool": null, "note": "no tool edits a sent message" },
+            "message:delete": { "confirmed": "no-tool", "tool": null, "note": "no tool deletes a message" },
+            "reaction:add": { "confirmed": "no-tool", "tool": null, "note": "no reaction tool" },
+            "file:upload": { "confirmed": "no-tool", "tool": null, "note": "no file upload tool" },
+            "channel:create": { "confirmed": "no-tool", "tool": null, "note": "no channel admin tool" },
+            "channel:invite": { "confirmed": "no-tool", "tool": null, "note": "no channel admin tool" }
+          }
         }
       },
       "surfaces": {

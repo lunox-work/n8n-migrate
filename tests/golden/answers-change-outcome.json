@@ -377,14 +377,29 @@
             "Call child"
           ],
           "surfaces": {
-            "cloudTask": "needs:connector-operation-check",
-            "localTask": "needs:connector-operation-check",
-            "artifact": "needs:artifact-mcp"
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
           },
           "operations": [
             "googleSheets sheet:clear"
           ],
-          "confirmed": false
+          "confirmed": false,
+          "noTool": [
+            "googleSheets sheet:clear"
+          ]
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Call child"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
         }
       ],
       "questions": [
@@ -504,14 +519,29 @@
             "Archive rows"
           ],
           "surfaces": {
-            "cloudTask": "needs:connector-operation-check",
-            "localTask": "needs:connector-operation-check",
-            "artifact": "needs:artifact-mcp"
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
           },
           "operations": [
             "googleSheets sheet:clear"
           ],
-          "confirmed": false
+          "confirmed": false,
+          "noTool": [
+            "googleSheets sheet:clear"
+          ]
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Archive rows"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
         }
       ],
       "questions": [],
