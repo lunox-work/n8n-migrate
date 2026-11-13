@@ -34,7 +34,7 @@
     },
     "blockers": {},
     "notAnAutomation": 0,
-    "questions": 1,
+    "questions": 0,
     "unmappedTypes": [],
     "cloudScheduledRunsPerHour": 0,
     "cloudScheduledRunsPerHourLimit": 100,
@@ -102,23 +102,7 @@
           }
         }
       ],
-      "questions": [
-        {
-          "id": "manual-skill/http-writes/Search API",
-          "text": "Does the POST in \"Search API\" write (change data at the other end)?",
-          "nodes": [
-            "Search API"
-          ],
-          "affects": "effect",
-          "answerType": "boolean",
-          "options": {
-            "true": "effect write",
-            "false": "effect read"
-          },
-          "assumed": true,
-          "answer": null
-        }
-      ],
+      "questions": [],
       "blockers": [],
       "credentials": [
         {
@@ -164,8 +148,8 @@
           "resource": null,
           "operation": null,
           "kind": "http",
-          "effect": "unknown",
-          "effectBy": null,
+          "effect": "read",
+          "effectBy": "host",
           "levers": [
             "http"
           ],

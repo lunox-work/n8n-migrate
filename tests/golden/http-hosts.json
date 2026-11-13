@@ -1,0 +1,363 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 1,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "subscription:cloud-task": 1
+    },
+    "wakeups": {
+      "schedule": 1
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 1,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0.04,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "http-hosts",
+      "name": "Lead research pipeline",
+      "file": "http-hosts.json",
+      "sourceHash": "aef180a951ebbe3378b6899d24d10f747b862981bd3c686818e81f47e509b16c",
+      "wakeup": {
+        "kind": "schedule",
+        "nodes": [
+          "Every day"
+        ],
+        "all": [
+          "schedule"
+        ]
+      },
+      "body": {
+        "kind": "script+model",
+        "decidedBy": [
+          "Search companies",
+          "Query CRM",
+          "Score with GPT",
+          "Mark scored",
+          "Create task",
+          "Notify"
+        ]
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "cloud-task",
+        "reason": "fires every 1 d; a cloud task runs at most every 1 h",
+        "alsoTargets": []
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "model",
+          "name": "claude",
+          "nodes": [
+            "Score with GPT"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:sample"
+          }
+        },
+        {
+          "kind": "http",
+          "name": "outbound http",
+          "nodes": [
+            "Search companies",
+            "Query CRM",
+            "Mark scored",
+            "Create task",
+            "Notify"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:arbitrary-hosts"
+          }
+        },
+        {
+          "kind": "secret",
+          "name": "CRM",
+          "nodes": [
+            "Query CRM",
+            "Mark scored"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "secret",
+          "name": "Data API",
+          "nodes": [
+            "Search companies"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "secret",
+          "name": "Tasks",
+          "nodes": [
+            "Create task"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "substitution",
+          "name": "model call → Claude",
+          "nodes": [
+            "Score with GPT"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:sample"
+          }
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Search companies",
+            "Query CRM",
+            "Mark scored",
+            "Create task"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "http-hosts/writes",
+          "text": "Which of these change data at the other end: \"Create task\" (POST request) and \"Notify\" (method set by an expression)? Until you answer, both count as writes.",
+          "nodes": [
+            "Create task",
+            "Notify"
+          ],
+          "affects": "effect",
+          "answerType": "nodes",
+          "options": {
+            "true": "every listed step writes",
+            "false": "none writes: all read",
+            "<node names>": "only these write; the rest read"
+          },
+          "assumed": true,
+          "answer": null
+        }
+      ],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "httpHeaderAuth",
+          "name": "CRM",
+          "nodes": [
+            "Query CRM",
+            "Mark scored"
+          ]
+        },
+        {
+          "type": "httpHeaderAuth",
+          "name": "Data API",
+          "nodes": [
+            "Search companies"
+          ]
+        },
+        {
+          "type": "httpHeaderAuth",
+          "name": "Tasks",
+          "nodes": [
+            "Create task"
+          ]
+        },
+        {
+          "type": "openAiApi",
+          "name": "OpenAI",
+          "nodes": [
+            "Score with GPT"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": 1,
+        "shortestIntervalSec": 86400,
+        "fits": "cloud-task",
+        "timezone": "UTC",
+        "timezoneSource": "workflow"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Every day",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Search companies",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "http",
+          "effect": "read",
+          "effectBy": "host",
+          "levers": [
+            "http"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Query CRM",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "http",
+          "effect": "read",
+          "effectBy": "host",
+          "levers": [
+            "http"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Score with GPT",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "model",
+          "effect": "none",
+          "effectBy": "host",
+          "levers": [
+            "llm-api"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Mark scored",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "http",
+          "effect": "write",
+          "effectBy": "host",
+          "levers": [
+            "http"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Create task",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "http",
+          "effect": "write",
+          "effectBy": "assumed",
+          "levers": [
+            "http"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Notify",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "http",
+          "effect": "write",
+          "effectBy": "assumed",
+          "levers": [
+            "http"
+          ],
+          "mapping": "hand",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "http",
+        "llm-api"
+      ]
+    }
+  ]
+}

@@ -5,7 +5,8 @@
     "Every value carries a source. Phase 0 overwrites value and source with what it observed on a real account.",
     "connectors.<name>.operations: n8n operations (resource:operation, or poll for the trigger) that the connector's tools are believed to cover, per node type; tool variants (<type>Tool) use their base type. An operation not listed gives needs:connector-operation-check, never no.",
     "substitutions: blocked nodes with an approvable replacement. The outcome stays subscription; the report adds a substitution requirement and blocker.",
-    "nodeRequirements: node types that add a requirement of their own, beyond their kind."
+    "nodeRequirements: node types that add a requirement of their own, beyond their kind.",
+    "httpSubstitutions: optional replacements found by http-hosts.json rules. model: an HTTP call to an LLM API runs as a Claude model step on the subscription instead of with an API key. It adds a substitution requirement, no blocker: keeping the call with its key also works."
   ],
   "schemaVersion": 1,
   "thresholds": {
@@ -226,6 +227,18 @@
         "localTask": { "source": "docs 2026-11-14, untested", "value": "ok" }
       },
       "to": "send through the Gmail connector (message:send) or a mail API instead of SMTP"
+    }
+  },
+  "httpSubstitutions": {
+    "model": {
+      "name": "model call → Claude",
+      "source": "docs 2026-11-14, untested",
+      "surfaces": {
+        "artifact": { "source": "docs 2026-11-14, untested", "value": "needs:sample" },
+        "cloudTask": { "source": "docs 2026-11-14, untested", "value": "ok" },
+        "localTask": { "source": "docs 2026-11-14, untested", "value": "ok" }
+      },
+      "to": "run the prompt as a Claude model step on the subscription instead of calling the provider's API with a key"
     }
   },
   "nodeRequirements": {

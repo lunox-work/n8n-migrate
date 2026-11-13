@@ -1,0 +1,86 @@
+{
+  "id": "inline-subworkflow-writes",
+  "name": "Save notes by hand",
+  "active": false,
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-8000-000000000643",
+      "name": "Run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        141460,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000644",
+      "name": "Send to archive",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        141680,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://archive.example.com/api/items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "cred-httpHeaderAuth",
+          "name": "Archive API"
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000645",
+      "name": "Save via sub-workflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        141900,
+        300
+      ],
+      "parameters": {
+        "source": "parameter",
+        "workflowJson": "{\n  \"active\": false,\n  \"nodes\": [\n    {\n      \"id\": \"00000000-0000-4000-8000-000000000641\",\n      \"name\": \"Start\",\n      \"type\": \"n8n-nodes-base.executeWorkflowTrigger\",\n      \"typeVersion\": 1.1,\n      \"position\": [\n        141020,\n        300\n      ],\n      \"parameters\": {\n        \"inputSource\": \"passthrough\"\n      }\n    },\n    {\n      \"id\": \"00000000-0000-4000-8000-000000000642\",\n      \"name\": \"Save note\",\n      \"type\": \"n8n-nodes-base.httpRequest\",\n      \"typeVersion\": 4.2,\n      \"position\": [\n        141240,\n        300\n      ],\n      \"parameters\": {\n        \"method\": \"POST\",\n        \"url\": \"https://notes.example.com/api/notes\",\n        \"authentication\": \"genericCredentialType\",\n        \"genericAuthType\": \"httpHeaderAuth\",\n        \"sendBody\": true,\n        \"specifyBody\": \"json\",\n        \"jsonBody\": \"={{ JSON.stringify($json) }}\",\n        \"options\": {}\n      },\n      \"credentials\": {\n        \"httpHeaderAuth\": {\n          \"id\": \"cred-httpHeaderAuth\",\n          \"name\": \"Notes API\"\n        }\n      }\n    }\n  ],\n  \"connections\": {\n    \"Start\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Save note\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    }\n  },\n  \"settings\": {\n    \"executionOrder\": \"v1\"\n  }\n}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Run": {
+      "main": [
+        [
+          {
+            "node": "Send to archive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to archive": {
+      "main": [
+        [
+          {
+            "node": "Save via sub-workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

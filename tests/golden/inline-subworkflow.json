@@ -139,6 +139,13 @@
           "nodes": [
             "Claude model"
           ]
+        },
+        {
+          "type": "httpHeaderAuth",
+          "name": "Items API",
+          "nodes": [
+            "lookup_item › Look up"
+          ]
         }
       ],
       "inlineSecrets": [],

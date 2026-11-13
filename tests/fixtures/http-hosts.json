@@ -1,0 +1,244 @@
+{
+  "id": "http-hosts",
+  "name": "Lead research pipeline",
+  "active": false,
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-8000-000000000601",
+      "name": "Every day",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        132220,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000602",
+      "name": "Search companies",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        132440,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.example-data.com/v2/companies/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "cred-httpHeaderAuth",
+          "name": "Data API"
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000603",
+      "name": "Query CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        132660,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://crm.example.com/api/graphql",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"query\": \"{ leads(status: NEW) { id name } }\"}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "cred-httpHeaderAuth",
+          "name": "CRM"
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000604",
+      "name": "Score with GPT",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        132880,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"model\": \"gpt-4o-mini\", \"messages\": [{\"role\": \"user\", \"content\": \"Score {{ $json.name }}\"}]}",
+        "options": {}
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "cred-openAiApi",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000605",
+      "name": "Mark scored",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        133100,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://crm.example.com/api/graphql",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"query\": \"mutation { markScored(id: 1) { id } }\"}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "cred-httpHeaderAuth",
+          "name": "CRM"
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000606",
+      "name": "Create task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        133320,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://tasks.example.com/api/{{ $json.board }}/cards",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "cred-httpHeaderAuth",
+          "name": "Tasks"
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000607",
+      "name": "Notify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        133540,
+        300
+      ],
+      "parameters": {
+        "method": "={{ $json.verb }}",
+        "url": "https://hooks.example.com/notify",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Every day": {
+      "main": [
+        [
+          {
+            "node": "Search companies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search companies": {
+      "main": [
+        [
+          {
+            "node": "Query CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query CRM": {
+      "main": [
+        [
+          {
+            "node": "Score with GPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score with GPT": {
+      "main": [
+        [
+          {
+            "node": "Mark scored",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark scored": {
+      "main": [
+        [
+          {
+            "node": "Create task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create task": {
+      "main": [
+        [
+          {
+            "node": "Notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "UTC"
+  }
+}

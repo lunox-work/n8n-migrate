@@ -1,0 +1,26 @@
+{
+  "$doc": [
+    "Host and path rules for HTTP Request nodes whose method alone does not settle the effect. Read by scripts/analyze.mjs.",
+    "The URL is read only when its scheme and host are literal; {{ }} parts of the path stand in as {x}. host is matched exactly (no subdomains), path is a regular expression tested against the path without query string.",
+    "model: a POST to a known LLM API. The node becomes kind model, effect none, lever llm-api, and adds the httpSubstitutions.model requirement from capabilities.json: the call can run on the subscription instead of an API key.",
+    "read: an endpoint that reads although it takes a POST. host is optional. graphql: true means the body decides: a mutation is a write, a literal query without mutation a read, anything else stays undetermined.",
+    "Rules are general (provider APIs and URL shapes), never one template's URL."
+  ],
+  "schemaVersion": 1,
+  "model": [
+    { "host": "api.openai.com", "path": "^/v1/(chat/completions|responses|completions)/?$", "provider": "OpenAI" },
+    { "host": "api.anthropic.com", "path": "^/v1/messages/?$", "provider": "Anthropic" },
+    { "host": "generativelanguage.googleapis.com", "path": ":(generateContent|streamGenerateContent)$", "provider": "Google Gemini" },
+    { "host": "openrouter.ai", "path": "^/api/v1/chat/completions/?$", "provider": "OpenRouter" },
+    { "host": "api.groq.com", "path": "^/openai/v1/chat/completions/?$", "provider": "Groq" },
+    { "host": "api.mistral.ai", "path": "^/v1/chat/completions/?$", "provider": "Mistral" },
+    { "host": "api.perplexity.ai", "path": "^/(v1/)?chat/completions/?$", "provider": "Perplexity" },
+    { "host": "api.deepseek.com", "path": "^/(v1/)?chat/completions/?$", "provider": "DeepSeek" },
+    { "host": "api.x.ai", "path": "^/v1/chat/completions/?$", "provider": "xAI" }
+  ],
+  "read": [
+    { "path": "/(search|query|list)/?$", "why": "a search, query or list endpoint" },
+    { "path": ":(search[A-Za-z]*|batchGet|get)$", "why": "a Google-style read method" },
+    { "path": "/graphql/?$", "graphql": true, "why": "a GraphQL query without a mutation" }
+  ]
+}

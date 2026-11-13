@@ -1,0 +1,81 @@
+{
+  "id": "writes-answered",
+  "name": "Publish and log",
+  "active": false,
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-8000-000000000621",
+      "name": "Run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        136620,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000622",
+      "name": "Publish post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        136840,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://cms.example.com/api/posts",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000623",
+      "name": "Fetch report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        137060,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://stats.example.com/api/report",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Run": {
+      "main": [
+        [
+          {
+            "node": "Publish post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish post": {
+      "main": [
+        [
+          {
+            "node": "Fetch report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

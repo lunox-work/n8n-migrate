@@ -162,11 +162,11 @@
             "required": ["id", "text", "nodes", "affects", "answerType", "options", "assumed", "answer"],
             "additionalProperties": false,
             "properties": {
-              "id": { "description": "<workflow id>/<kind>[/<node name>]; the key for --answers", "type": "string" },
+              "id": { "description": "<workflow id>/<kind>[/<node path>]; the key for --answers. A node path inside an inline sub-workflow is \"<call node> › <node>\"", "type": "string" },
               "text": { "type": "string" },
               "nodes": { "$ref": "#/$defs/nodes" },
               "affects": { "enum": ["outcome", "effect", "timezone", "sub-workflow", "schedule"] },
-              "answerType": { "enum": ["boolean", "choice", "text"] },
+              "answerType": { "description": "nodes: true (every listed node), false (none) or a list of the listed node names", "enum": ["boolean", "choice", "text", "nodes"] },
               "options": { "description": "accepted answer → what it changes; <placeholder> keys stand for free text", "type": "object", "additionalProperties": { "type": "string" } },
               "assumed": { "description": "value the report uses while unanswered" },
               "answer": { "description": "the valid answer from --answers, else null" }
@@ -190,7 +190,7 @@
           }
         },
         "credentials": {
-          "description": "credentials referenced by enabled nodes: type and name only",
+          "description": "credentials referenced by enabled nodes, inline sub-workflows included (node path \"<call node> › <node>\"): type and name only",
           "type": "array",
           "items": { "type": "object", "required": ["type", "name", "nodes"], "additionalProperties": false, "properties": { "type": { "type": "string" }, "name": { "type": "string" }, "nodes": { "$ref": "#/$defs/nodes" } } }
         },
@@ -252,7 +252,7 @@
             }
           }
         },
-        "levers": { "description": "levers (mappings.json vocabulary) the workflow needs, sub-workflows included", "type": "array", "items": { "type": "string" } }
+        "levers": { "description": "levers (mappings.json vocabulary, plus llm-api: an LLM API called over HTTP that can run on the subscription instead of a key) the workflow needs, sub-workflows included", "type": "array", "items": { "type": "string" } }
       }
     },
     "step": {
@@ -269,7 +269,7 @@
         "operation": { "type": ["string", "null"] },
         "kind": { "description": "mappings.json kind", "type": ["string", "null"] },
         "effect": { "description": "null for triggers and internal nodes without one", "enum": ["read", "write", "none", "unknown", null] },
-        "effectBy": { "description": "hand (mappings.json), name (operation-name table), parse (SQL or code read), answer", "enum": ["hand", "name", "parse", "answer", null] },
+        "effectBy": { "description": "hand (mappings.json), name (operation-name table), parse (SQL or code read), host (http-hosts.json rule), assumed (undetermined, counted as a write until the writes question is answered), answer", "enum": ["hand", "name", "parse", "host", "assumed", "answer", null] },
         "levers": { "type": "array", "items": { "type": "string" } },
         "mapping": { "enum": ["hand", "name", "unmapped"] },
         "issues": { "type": "array", "items": { "enum": ["not-in-catalogue", "unknown-version", "unknown-operation", "expression-operation"] } }

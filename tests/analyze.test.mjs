@@ -16,7 +16,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { analyze, loadInput, parseCron, simulateCron, legacyCron, redact, findSecrets, scanSecrets, sqlEffect, renderText } from "../skills/n8n-to-claude/scripts/analyze.mjs";
+import { analyze, loadInput, parseCron, simulateCron, legacyCron, redact, findSecrets, scanSecrets, sqlEffect, renderText, httpTarget } from "../skills/n8n-to-claude/scripts/analyze.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..");
@@ -27,6 +27,7 @@ const NOW_ISO = "2026-11-16T00:00:00Z"; // a Monday
 const NOW = Date.parse(NOW_ISO);
 const nodes = JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references/nodes.json"), "utf8"));
 const capabilities = JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references/capabilities.json"), "utf8"));
+const hosts = JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references/http-hosts.json"), "utf8"));
 
 const strip = (r) => {
   const { version, ...analyzer } = r.analyzer;
@@ -38,7 +39,7 @@ function run(name) {
   assert.ok(!input.fatal, input.fatal);
   const af = join(FIXTURES, `${name}.answers.json`);
   const answers = existsSync(af) ? JSON.parse(readFileSync(af, "utf8")) : {};
-  return analyze(input.items, { nodes, capabilities, answers, now: NOW, inputErrors: input.errors });
+  return analyze(input.items, { nodes, capabilities, hosts, answers, now: NOW, inputErrors: input.errors });
 }
 
 const names = readdirSync(FIXTURES)
@@ -251,4 +252,30 @@ test("secrets: scan walks parameters, flags named pairs, never returns values", 
   const found = scanSecrets({ headerParameters: { parameters: [{ name: "Authorization", value: val }, { name: "Accept", value: "application/json-long-value" }] } }, "parameters");
   assert.deepEqual(found, [{ path: "parameters.headerParameters.parameters[0].value", kind: "named-param", redacted: `Basi…${val.length}` }]);
   assert.ok(!JSON.stringify(found).includes("dXNlcjpw"));
+});
+
+// ---------- HTTP host rules and the writes question ----------
+
+test("http: host and path read from literal URLs only", () => {
+  assert.deepEqual(httpTarget("https://api.openai.com/v1/chat/completions?x=1"), { host: "api.openai.com", path: "/v1/chat/completions" });
+  assert.deepEqual(httpTarget("=https://wp.example.com/wp-json/wp/v2/posts/{{ $json.id }}"), { host: "wp.example.com", path: "/wp-json/wp/v2/posts/{x}" });
+  assert.deepEqual(httpTarget("https://API.Example.com:8443"), { host: "api.example.com", path: "/" });
+  assert.equal(httpTarget("={{ $json.base_url }}/api/review"), null);
+  assert.equal(httpTarget("https://{{ $json.host }}/x"), null);
+  assert.equal(httpTarget(42), null);
+});
+
+test("writes question: one per workflow, answers by node list, bad names rejected", () => {
+  const input = loadInput(join(FIXTURES, "writes-answered.json"));
+  const rep = (answers) => analyze(input.items, { nodes, capabilities, hosts, answers, now: NOW }).workflows[0];
+  const open = rep({});
+  assert.equal(open.questions.length, 1);
+  assert.deepEqual(open.questions[0].nodes, ["Publish post", "Fetch report"]);
+  assert.deepEqual(open.steps.filter((s) => s.effectBy === "assumed").map((s) => s.effect), ["write", "write"]);
+  const none = rep({ "writes-answered/writes": "no" });
+  assert.deepEqual(none.steps.filter((s) => s.effectBy === "answer").map((s) => s.effect), ["read", "read"]);
+  const r = analyze(input.items, { nodes, capabilities, hosts, answers: { "writes-answered/writes": ["Publish post", "Nope"] }, now: NOW });
+  assert.equal(r.summary.answers.invalid.length, 1);
+  assert.match(r.summary.answers.invalid[0].reason, /Nope/);
+  assert.equal(r.workflows[0].questions[0].answer, null);
 });

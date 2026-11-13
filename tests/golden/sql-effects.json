@@ -115,16 +115,17 @@
       ],
       "questions": [
         {
-          "id": "sql-effects/sql-writes/Run statement",
-          "text": "Does the SQL in \"Run statement\" write? Its statement is built by an expression.",
+          "id": "sql-effects/writes",
+          "text": "Does \"Run statement\" (SQL built by an expression) change data at the other end? Until you answer, it counts as a write.",
           "nodes": [
             "Run statement"
           ],
           "affects": "effect",
-          "answerType": "boolean",
+          "answerType": "nodes",
           "options": {
-            "true": "effect write",
-            "false": "effect read"
+            "true": "every listed step writes",
+            "false": "none writes: all read",
+            "<node names>": "only these write; the rest read"
           },
           "assumed": true,
           "answer": null
@@ -193,8 +194,8 @@
           "resource": null,
           "operation": "executeQuery",
           "kind": "db",
-          "effect": "unknown",
-          "effectBy": null,
+          "effect": "write",
+          "effectBy": "assumed",
           "levers": [
             "db"
           ],
