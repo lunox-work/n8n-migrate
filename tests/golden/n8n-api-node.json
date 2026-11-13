@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 0,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 1
+    },
+    "targets": {},
+    "wakeups": {
+      "schedule": 1
+    },
+    "blockers": {
+      "unsupported": 1
+    },
+    "notAnAutomation": 0,
+    "questions": 0,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "n8n-api-node",
+      "name": "Nightly workflow list",
+      "file": "n8n-api-node.json",
+      "sourceHash": "d40cb653e1be4d6fd10bff407516acd77cac4d52e7045dceda310877adbe96a9",
+      "wakeup": {
+        "kind": "schedule",
+        "nodes": [
+          "Every night"
+        ],
+        "all": [
+          "schedule"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "keep-in-n8n",
+        "target": null,
+        "reason": "n8n-internal node: calls the n8n instance's own API"
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "connector",
+          "name": "slack",
+          "nodes": [
+            "Post count"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:artifact-mcp"
+          },
+          "operations": [
+            "slack message:post"
+          ],
+          "confirmed": false
+        }
+      ],
+      "questions": [],
+      "blockers": [
+        {
+          "kind": "unsupported",
+          "reason": "n8n-internal node: calls the n8n instance's own API",
+          "nodes": [
+            "List workflows"
+          ]
+        }
+      ],
+      "credentials": [
+        {
+          "type": "n8nApi",
+          "name": "n8n account",
+          "nodes": [
+            "List workflows"
+          ]
+        },
+        {
+          "type": "slackOAuth2Api",
+          "name": "Slack bot",
+          "nodes": [
+            "Post count"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": 1,
+        "shortestIntervalSec": 86400,
+        "fits": "cloud-task",
+        "timezone": "UTC",
+        "timezoneSource": "workflow"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Every night",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "List workflows",
+          "type": "n8n-nodes-base.n8n",
+          "typeVersion": 1,
+          "role": "n8n-internal",
+          "branch": "main",
+          "resource": "workflow",
+          "operation": "getAll",
+          "kind": null,
+          "effect": "read",
+          "effectBy": "name",
+          "levers": [],
+          "mapping": "name",
+          "issues": []
+        },
+        {
+          "node": "Post count",
+          "type": "n8n-nodes-base.slack",
+          "typeVersion": 2.3,
+          "role": "step",
+          "branch": "main",
+          "resource": "message",
+          "operation": "post",
+          "kind": "connector",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": []
+    }
+  ]
+}

@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 0,
+      "replaced": 1,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {},
+    "wakeups": {
+      "mcp-server": 1
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 1,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "mcp-debug-helper",
+      "name": "Test data MCP",
+      "file": "mcp-debug-helper.json",
+      "sourceHash": "7efa2a9b7afc237b03cca7a7c2a8db67028ba9823dd52031ba2554eb9d94dc6f",
+      "wakeup": {
+        "kind": "mcp-server",
+        "nodes": [
+          "MCP Server Trigger"
+        ],
+        "all": [
+          "mcp-server",
+          "subworkflow"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "replaced",
+        "target": null,
+        "reason": "n8n serves tools to Claude: Claude's own connectors and skills replace it"
+      },
+      "calledBy": [],
+      "calls": [
+        {
+          "node": "Make users",
+          "status": "self",
+          "target": "mcp-debug-helper"
+        }
+      ],
+      "requires": [],
+      "questions": [
+        {
+          "id": "mcp-debug-helper/mcp-only-client/MCP Server Trigger",
+          "text": "Is Claude the only client of the MCP server \"MCP Server Trigger\" exposes?",
+          "nodes": [
+            "MCP Server Trigger"
+          ],
+          "affects": "outcome",
+          "answerType": "boolean",
+          "options": {
+            "true": "replaced",
+            "false": "hosted:no-key"
+          },
+          "assumed": true,
+          "answer": null
+        }
+      ],
+      "blockers": [],
+      "credentials": [],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [
+        {
+          "kind": "self-call",
+          "name": "this workflow",
+          "nodes": [
+            "Make users"
+          ],
+          "sharedWith": []
+        }
+      ],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "MCP Server Trigger",
+          "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+          "typeVersion": 2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Make users",
+          "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+          "typeVersion": 2.2,
+          "role": "subnode",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "subworkflow",
+          "effect": "unknown",
+          "effectBy": null,
+          "levers": [
+            "agent",
+            "subwf"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "When called",
+          "type": "n8n-nodes-base.executeWorkflowTrigger",
+          "typeVersion": 1.1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [
+            "subwf"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Random users",
+          "type": "n8n-nodes-base.debugHelper",
+          "typeVersion": 1,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "logic",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "agent",
+        "subwf"
+      ]
+    }
+  ]
+}

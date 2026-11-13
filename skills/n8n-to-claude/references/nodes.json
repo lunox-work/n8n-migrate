@@ -13253,8 +13253,11 @@
       "displayName": "DebugHelper",
       "group": ["output"],
       "mapping": {
-        "notes": "n8n testing node: throws errors or emits random data",
-        "role": "n8n-internal",
+        "effect": "none",
+        "kind": "logic",
+        "notes": "generates test data or throws an error; changes nothing outside the run",
+        "role": "step",
+        "secrets": false,
         "source": "hand"
       },
       "package": "n8n-nodes-base",

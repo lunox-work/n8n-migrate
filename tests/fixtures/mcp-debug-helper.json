@@ -1,0 +1,104 @@
+{
+  "id": "mcp-debug-helper",
+  "name": "Test data MCP",
+  "active": false,
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-8000-000000000501",
+      "name": "MCP Server Trigger",
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2,
+      "position": [
+        110220,
+        300
+      ],
+      "parameters": {
+        "path": "test-data"
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000502",
+      "name": "Make users",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        110440,
+        300
+      ],
+      "parameters": {
+        "name": "make_users",
+        "description": "Make random users",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $workflow.id }}"
+        },
+        "workflowInputs": {
+          "value": {
+            "count": "={{ $fromAI('count') }}"
+          }
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000503",
+      "name": "When called",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        110660,
+        300
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "count"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000504",
+      "name": "Random users",
+      "type": "n8n-nodes-base.debugHelper",
+      "typeVersion": 1,
+      "position": [
+        110880,
+        300
+      ],
+      "parameters": {
+        "category": "randomData",
+        "randomDataCount": "={{ $json.count }}"
+      }
+    }
+  ],
+  "connections": {
+    "Make users": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When called": {
+      "main": [
+        [
+          {
+            "node": "Random users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

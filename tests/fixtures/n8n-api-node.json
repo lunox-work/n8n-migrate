@@ -1,0 +1,100 @@
+{
+  "id": "n8n-api-node",
+  "name": "Nightly workflow list",
+  "active": false,
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-8000-000000000521",
+      "name": "Every night",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        114620,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000522",
+      "name": "List workflows",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        114840,
+        300
+      ],
+      "parameters": {
+        "filters": {},
+        "requestOptions": {}
+      },
+      "credentials": {
+        "n8nApi": {
+          "id": "cred-n8nApi",
+          "name": "n8n account"
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000523",
+      "name": "Post count",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        115060,
+        300
+      ],
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "#ops"
+        },
+        "text": "={{ $items().length }} workflows"
+      },
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "cred-slackOAuth2Api",
+          "name": "Slack bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every night": {
+      "main": [
+        [
+          {
+            "node": "List workflows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List workflows": {
+      "main": [
+        [
+          {
+            "node": "Post count",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "UTC"
+  }
+}
