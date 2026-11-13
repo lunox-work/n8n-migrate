@@ -1,0 +1,107 @@
+{
+  "id": "tutorial-sticky",
+  "name": "Learn expressions",
+  "active": false,
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-8000-000000000118",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        25960,
+        300
+      ],
+      "parameters": {
+        "content": "## How to use this template\nThis workflow shows how expressions work in n8n. Click Execute workflow, then open each node to see how the data changes from one step to the next. This workflow shows how expressions work in n8n. Click Execute workflow, then open each node to see how the data changes from one step to the next. This workflow shows how expressions work in n8n. Click Execute workflow, then open each node to see how the data changes from one step to the next. This workflow shows how expressions work in n8n. Click Execute workflow, then open each node to see how the data changes from one step to the next. "
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000119",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        26180,
+        300
+      ],
+      "parameters": {
+        "content": "### Step 2\nThis workflow shows how expressions work in n8n. Click Execute workflow, then open each node to see how the data changes from one step to the next. This workflow shows how expressions work in n8n. Click Execute workflow, then open each node to see how the data changes from one step to the next. This workflow shows how expressions work in n8n. Click Execute workflow, then open each node to see how the data changes from one step to the next. "
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000120",
+      "name": "When clicking 'Execute workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        26400,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000121",
+      "name": "Sample data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        26620,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "name",
+              "value": "Ada",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000122",
+      "name": "Uppercase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        26840,
+        300
+      ],
+      "parameters": {
+        "jsCode": "return $input.all().map(i => ({ json: { name: i.json.name.toUpperCase() } }));"
+      }
+    }
+  ],
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [
+        [
+          {
+            "node": "Sample data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sample data": {
+      "main": [
+        [
+          {
+            "node": "Uppercase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

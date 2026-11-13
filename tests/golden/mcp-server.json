@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 0,
+      "replaced": 1,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {},
+    "wakeups": {
+      "mcp-server": 1
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 1,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "mcp-server",
+      "name": "Team tools MCP",
+      "file": "mcp-server.json",
+      "sourceHash": "1ad8afa4033ae50730a4e359d7d05813816a6ceb379818abeaeb98dfc0e797a7",
+      "wakeup": {
+        "kind": "mcp-server",
+        "nodes": [
+          "MCP Server Trigger"
+        ],
+        "all": [
+          "mcp-server"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "replaced",
+        "target": null,
+        "reason": "n8n serves tools to Claude: Claude's own connectors and skills replace it"
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "connector",
+          "name": "google-calendar",
+          "nodes": [
+            "List events"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:artifact-mcp"
+          },
+          "operations": [
+            "googleCalendar event:getAll"
+          ],
+          "confirmed": false
+        },
+        {
+          "kind": "connector",
+          "name": "slack",
+          "nodes": [
+            "Post message"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:artifact-mcp"
+          },
+          "operations": [
+            "slack message:post"
+          ],
+          "confirmed": false
+        }
+      ],
+      "questions": [
+        {
+          "id": "mcp-server/mcp-only-client/MCP Server Trigger",
+          "text": "Is Claude the only client of the MCP server \"MCP Server Trigger\" exposes?",
+          "nodes": [
+            "MCP Server Trigger"
+          ],
+          "affects": "outcome",
+          "answerType": "boolean",
+          "options": {
+            "true": "replaced",
+            "false": "hosted:no-key"
+          },
+          "assumed": true,
+          "answer": null
+        }
+      ],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "googleCalendarOAuth2Api",
+          "name": "Calendar",
+          "nodes": [
+            "List events"
+          ]
+        },
+        {
+          "type": "slackOAuth2Api",
+          "name": "Slack bot",
+          "nodes": [
+            "Post message"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "MCP Server Trigger",
+          "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+          "typeVersion": 2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Post message",
+          "type": "n8n-nodes-base.slackTool",
+          "typeVersion": 2.3,
+          "role": "subnode",
+          "branch": "main",
+          "resource": "message",
+          "operation": "post",
+          "kind": "connector",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [
+            "agent"
+          ],
+          "mapping": "name",
+          "issues": []
+        },
+        {
+          "node": "List events",
+          "type": "n8n-nodes-base.googleCalendarTool",
+          "typeVersion": 1.3,
+          "role": "subnode",
+          "branch": "main",
+          "resource": "event",
+          "operation": "getAll",
+          "kind": "connector",
+          "effect": "read",
+          "effectBy": "name",
+          "levers": [
+            "agent"
+          ],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "agent"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 0,
+      "replaced": 0,
+      "hosted": 1,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "hosted:no-key": 1
+    },
+    "wakeups": {
+      "endpoint": 1
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 1,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "endpoint-no-key",
+      "name": "Status endpoint",
+      "file": "endpoint-no-key.json",
+      "sourceHash": "465663c092888c44ca46bdc93fe6e7bc6877a125f5effd16a8a25fae1f5bdbf9",
+      "wakeup": {
+        "kind": "endpoint",
+        "nodes": [
+          "Webhook"
+        ],
+        "all": [
+          "endpoint"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "hosted",
+        "target": "no-key",
+        "reason": "an outside caller waits for a reply; no model step on the way"
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [],
+      "questions": [
+        {
+          "id": "endpoint-no-key/endpoint-callers/Webhook",
+          "text": "Who calls the URL of \"Webhook\" and waits for its reply: outsiders (other people or systems), or only you, from Claude?",
+          "nodes": [
+            "Webhook"
+          ],
+          "affects": "outcome",
+          "answerType": "choice",
+          "options": {
+            "outsiders": "hosted:no-key",
+            "only-me": "subscription:skill"
+          },
+          "assumed": "outsiders",
+          "answer": null
+        }
+      ],
+      "blockers": [],
+      "credentials": [],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Webhook",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Build status",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "logic",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": []
+    }
+  ]
+}

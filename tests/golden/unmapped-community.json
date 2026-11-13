@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 0,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 1
+    },
+    "targets": {},
+    "wakeups": {
+      "manual": 1
+    },
+    "blockers": {
+      "unmapped": 1
+    },
+    "notAnAutomation": 0,
+    "questions": 0,
+    "unmappedTypes": [
+      "n8n-nodes-acme.acmeCrm"
+    ],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "unmapped-community",
+      "name": "Push contact to Acme CRM",
+      "file": "unmapped-community.json",
+      "sourceHash": "e6856ebd454d68c9ca7a1cd53f588cf2e33fcc2e51d74c880f82b54c132a4052",
+      "wakeup": {
+        "kind": "manual",
+        "nodes": [
+          "When clicking 'Execute workflow'"
+        ],
+        "all": [
+          "manual"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "keep-in-n8n",
+        "target": null,
+        "reason": "n8n-nodes-acme.acmeCrm is not in the node catalogue"
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [],
+      "questions": [],
+      "blockers": [
+        {
+          "kind": "unmapped",
+          "reason": "n8n-nodes-acme.acmeCrm is not in the node catalogue",
+          "nodes": [
+            "Acme CRM"
+          ]
+        }
+      ],
+      "credentials": [
+        {
+          "type": "acmeCrmApi",
+          "name": "Acme",
+          "nodes": [
+            "Acme CRM"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "When clicking 'Execute workflow'",
+          "type": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Acme CRM",
+          "type": "n8n-nodes-acme.acmeCrm",
+          "typeVersion": 1,
+          "role": "unknown",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": "unknown",
+          "effectBy": null,
+          "levers": [],
+          "mapping": "unmapped",
+          "issues": [
+            "not-in-catalogue"
+          ]
+        }
+      ],
+      "unmapped": [
+        {
+          "node": "Acme CRM",
+          "type": "n8n-nodes-acme.acmeCrm",
+          "typeVersion": 1,
+          "reason": "not-in-catalogue",
+          "branch": "main"
+        }
+      ],
+      "levers": []
+    }
+  ]
+}

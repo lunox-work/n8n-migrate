@@ -1,0 +1,166 @@
+[
+  {
+    "id": "wf-signup-log",
+    "name": "Log signups",
+    "active": false,
+    "nodes": [
+      {
+        "id": "00000000-0000-4000-8000-000000000102",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          22440,
+          300
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "signup",
+          "options": {}
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000103",
+        "name": "Insert signup",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1,
+        "position": [
+          22660,
+          300
+        ],
+        "parameters": {
+          "dataTableId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "tbl_42",
+            "cachedResultName": "signups"
+          },
+          "columns": {
+            "mappingMode": "autoMapInputData",
+            "value": {}
+          },
+          "options": {}
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Insert signup",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    }
+  },
+  {
+    "id": "wf-signup-report",
+    "name": "Weekly signup report",
+    "active": false,
+    "nodes": [
+      {
+        "id": "00000000-0000-4000-8000-000000000104",
+        "name": "Mondays 8:00",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          22880,
+          300
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "weeks",
+                "triggerAtDay": [
+                  1
+                ],
+                "triggerAtHour": 8
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000105",
+        "name": "Get signups",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1,
+        "position": [
+          23100,
+          300
+        ],
+        "parameters": {
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "tbl_42",
+            "cachedResultName": "signups"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000106",
+        "name": "Post to Slack",
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 2.3,
+        "position": [
+          23320,
+          300
+        ],
+        "parameters": {
+          "select": "channel",
+          "channelId": {
+            "__rl": true,
+            "mode": "name",
+            "value": "#growth"
+          },
+          "text": "={{ $items().length }} signups"
+        },
+        "credentials": {
+          "slackOAuth2Api": {
+            "id": "cred-slackOAuth2Api",
+            "name": "Slack bot"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Mondays 8:00": {
+        "main": [
+          [
+            {
+              "node": "Get signups",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get signups": {
+        "main": [
+          [
+            {
+              "node": "Post to Slack",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "UTC"
+    }
+  }
+]

@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 1,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "subscription:skill": 1
+    },
+    "wakeups": {
+      "chat": 1
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 1,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "chat-public",
+      "name": "Website help bot",
+      "file": "chat-public.json",
+      "sourceHash": "0536a96c5623488e3d0c1347c0abad6f19f111dc4c30c84c95f2e834690bf9c4",
+      "wakeup": {
+        "kind": "chat",
+        "nodes": [
+          "When chat message received"
+        ],
+        "all": [
+          "chat"
+        ]
+      },
+      "body": {
+        "kind": "prompt",
+        "decidedBy": [
+          "Agent"
+        ]
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "skill",
+        "reason": "the chat trigger becomes a skill"
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "model",
+          "name": "claude",
+          "nodes": [
+            "Agent"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:sample"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "chat-public/chat-outsiders/When chat message received",
+          "text": "Do people outside your organisation use the public chat page of \"When chat message received\"?",
+          "nodes": [
+            "When chat message received"
+          ],
+          "affects": "outcome",
+          "answerType": "boolean",
+          "options": {
+            "true": "hosted:key",
+            "false": "subscription:skill"
+          },
+          "assumed": false,
+          "answer": null
+        }
+      ],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "googlePalmApi",
+          "name": "Gemini",
+          "nodes": [
+            "Gemini model"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "When chat message received",
+          "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+          "typeVersion": 1.1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [
+            "chat"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Agent",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1.7,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "agent",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [
+            "agent"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Gemini model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+          "typeVersion": 1,
+          "role": "subnode",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "model",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "agent",
+        "chat"
+      ]
+    }
+  ]
+}

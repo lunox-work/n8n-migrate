@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 1,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "subscription:artifact": 1
+    },
+    "wakeups": {
+      "manual": 1
+    },
+    "blockers": {
+      "not-an-automation": 1
+    },
+    "notAnAutomation": 1,
+    "questions": 0,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "tutorial-sticky",
+      "name": "Learn expressions",
+      "file": "tutorial-sticky.json",
+      "sourceHash": "38043a6f4d467ae0dd7cb441d2dae677889b902e26f506e66fbfe9f2b14573b6",
+      "wakeup": {
+        "kind": "manual",
+        "nodes": [
+          "When clicking 'Execute workflow'"
+        ],
+        "all": [
+          "manual"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "artifact",
+        "reason": "run by hand: the artifact's Run now button"
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [],
+      "questions": [],
+      "blockers": [
+        {
+          "kind": "not-an-automation",
+          "reason": "manual trigger only, no outside effect, 1073 characters of sticky notes for 3 nodes",
+          "nodes": []
+        }
+      ],
+      "credentials": [],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "When clicking 'Execute workflow'",
+          "type": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Sample data",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "logic",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Uppercase",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "code",
+          "effect": "none",
+          "effectBy": "parse",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": []
+    }
+  ]
+}

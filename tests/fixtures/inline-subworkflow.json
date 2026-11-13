@@ -1,0 +1,106 @@
+{
+  "id": "inline-subworkflow",
+  "name": "Item lookup chat",
+  "active": false,
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-8000-000000000132",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        29040,
+        300
+      ],
+      "parameters": {
+        "options": {}
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000133",
+      "name": "Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        29260,
+        300
+      ],
+      "parameters": {
+        "options": {}
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000134",
+      "name": "Claude model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        29480,
+        300
+      ],
+      "parameters": {
+        "model": "claude-sonnet-4-5"
+      },
+      "credentials": {
+        "anthropicApi": {
+          "id": "cred-anthropicApi",
+          "name": "Anthropic"
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000135",
+      "name": "lookup_item",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        29700,
+        300
+      ],
+      "parameters": {
+        "name": "lookup_item",
+        "description": "Look up an item",
+        "source": "parameter",
+        "workflowJson": "{\n  \"active\": false,\n  \"nodes\": [\n    {\n      \"id\": \"00000000-0000-4000-8000-000000000130\",\n      \"name\": \"Start\",\n      \"type\": \"n8n-nodes-base.executeWorkflowTrigger\",\n      \"typeVersion\": 1,\n      \"position\": [\n        28600,\n        300\n      ],\n      \"parameters\": {}\n    },\n    {\n      \"id\": \"00000000-0000-4000-8000-000000000131\",\n      \"name\": \"Look up\",\n      \"type\": \"n8n-nodes-base.httpRequest\",\n      \"typeVersion\": 4.2,\n      \"position\": [\n        28820,\n        300\n      ],\n      \"parameters\": {\n        \"url\": \"=https://api.example.com/items/{{ $json.query }}\",\n        \"authentication\": \"genericCredentialType\",\n        \"genericAuthType\": \"httpHeaderAuth\",\n        \"options\": {}\n      },\n      \"credentials\": {\n        \"httpHeaderAuth\": {\n          \"id\": \"cred-httpHeaderAuth\",\n          \"name\": \"Items API\"\n        }\n      }\n    }\n  ],\n  \"connections\": {\n    \"Start\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Look up\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    }\n  },\n  \"settings\": {\n    \"executionOrder\": \"v1\"\n  }\n}"
+      }
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "lookup_item": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

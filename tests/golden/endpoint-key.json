@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 0,
+      "replaced": 0,
+      "hosted": 1,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "hosted:key": 1
+    },
+    "wakeups": {
+      "endpoint": 1
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 1,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "endpoint-key",
+      "name": "Ask endpoint",
+      "file": "endpoint-key.json",
+      "sourceHash": "af916c1117780e4a6c4d2be61ebc6999cf92c209b20f92992a43535bd6143382",
+      "wakeup": {
+        "kind": "endpoint",
+        "nodes": [
+          "Webhook"
+        ],
+        "all": [
+          "endpoint"
+        ]
+      },
+      "body": {
+        "kind": "prompt",
+        "decidedBy": [
+          "Agent"
+        ]
+      },
+      "outcome": {
+        "kind": "hosted",
+        "target": "key",
+        "reason": "an outside caller waits for a reply that a model writes"
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "model",
+          "name": "claude",
+          "nodes": [
+            "Agent"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:sample"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "endpoint-key/endpoint-callers/Webhook",
+          "text": "Who calls the URL of \"Webhook\" and waits for its reply: outsiders (other people or systems), or only you, from Claude?",
+          "nodes": [
+            "Webhook"
+          ],
+          "affects": "outcome",
+          "answerType": "choice",
+          "options": {
+            "outsiders": "hosted:key",
+            "only-me": "subscription:skill"
+          },
+          "assumed": "outsiders",
+          "answer": null
+        }
+      ],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "anthropicApi",
+          "name": "Anthropic",
+          "nodes": [
+            "Claude model"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Webhook",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Agent",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1.7,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "agent",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [
+            "agent"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Claude model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+          "typeVersion": 1.3,
+          "role": "subnode",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "model",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Respond",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1.1,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "logic",
+          "effect": "unknown",
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "agent"
+      ]
+    }
+  ]
+}

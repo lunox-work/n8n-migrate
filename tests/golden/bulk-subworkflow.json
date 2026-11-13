@@ -1,0 +1,292 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 2,
+    "outcomes": {
+      "subscription": 2,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "subscription:cloud-task": 2
+    },
+    "wakeups": {
+      "schedule": 1,
+      "subworkflow": 1
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 0,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0.04,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "wf-parent",
+      "name": "Daily digest",
+      "file": "bulk-subworkflow.json",
+      "sourceHash": "337de9fa81ccb78da8b93c206283e08ce5dff389c59bbfa7ff0ddb5fe38e598f",
+      "wakeup": {
+        "kind": "schedule",
+        "nodes": [
+          "Daily 7:00"
+        ],
+        "all": [
+          "schedule"
+        ]
+      },
+      "body": {
+        "kind": "script+model",
+        "decidedBy": [
+          "Call Summarise"
+        ]
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "cloud-task",
+        "reason": "fires every 1 d; a cloud task runs at most every 1 h"
+      },
+      "calledBy": [],
+      "calls": [
+        {
+          "node": "Call Summarise",
+          "status": "id",
+          "target": "wf-child"
+        }
+      ],
+      "requires": [
+        {
+          "kind": "connector",
+          "name": "slack",
+          "nodes": [
+            "Post to Slack"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:artifact-mcp"
+          },
+          "operations": [
+            "slack message:post"
+          ],
+          "confirmed": false
+        },
+        {
+          "kind": "model",
+          "name": "claude",
+          "nodes": [
+            "Call Summarise"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:sample"
+          }
+        }
+      ],
+      "questions": [],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "slackOAuth2Api",
+          "name": "Slack bot",
+          "nodes": [
+            "Post to Slack"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": 1,
+        "shortestIntervalSec": 86400,
+        "fits": "cloud-task",
+        "timezone": "Europe/Amsterdam",
+        "timezoneSource": "workflow"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Daily 7:00",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Call Summarise",
+          "type": "n8n-nodes-base.executeWorkflow",
+          "typeVersion": 1.2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "subworkflow",
+          "effect": "unknown",
+          "effectBy": null,
+          "levers": [
+            "subwf"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Post to Slack",
+          "type": "n8n-nodes-base.slack",
+          "typeVersion": 2.3,
+          "role": "step",
+          "branch": "main",
+          "resource": "message",
+          "operation": "post",
+          "kind": "connector",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "subwf"
+      ]
+    },
+    {
+      "id": "wf-child",
+      "name": "Summarise",
+      "file": "bulk-subworkflow.json",
+      "sourceHash": "7b737895513ca055557f228e1dc957a1059eab16f343c4601c974042f96ada07",
+      "wakeup": {
+        "kind": "subworkflow",
+        "nodes": [
+          "When called"
+        ],
+        "all": [
+          "subworkflow"
+        ]
+      },
+      "body": {
+        "kind": "prompt",
+        "decidedBy": [
+          "Summarise text"
+        ]
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "cloud-task",
+        "reason": "inlined into \"Daily digest\"; follows \"Daily digest\""
+      },
+      "calledBy": [
+        "wf-parent"
+      ],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "model",
+          "name": "claude",
+          "nodes": [
+            "Summarise text"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:sample"
+          }
+        }
+      ],
+      "questions": [],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "openAiApi",
+          "name": "OpenAI",
+          "nodes": [
+            "Summarise text"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "When called",
+          "type": "n8n-nodes-base.executeWorkflowTrigger",
+          "typeVersion": 1.1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [
+            "subwf"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Summarise text",
+          "type": "@n8n/n8n-nodes-langchain.openAi",
+          "typeVersion": 1.8,
+          "role": "step",
+          "branch": "main",
+          "resource": "text",
+          "operation": "message",
+          "kind": "model",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "subwf"
+      ]
+    }
+  ]
+}

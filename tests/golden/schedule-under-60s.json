@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 1,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "subscription:local-task": 1
+    },
+    "wakeups": {
+      "schedule": 1
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 0,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "schedule-under-60s",
+      "name": "Price ticker",
+      "file": "schedule-under-60s.json",
+      "sourceHash": "52dcd9343a3a04976ba7ba6e965daaaad0cb1f385aa750fdb8a0c6594ea2ab91",
+      "wakeup": {
+        "kind": "schedule",
+        "nodes": [
+          "Every 20 seconds"
+        ],
+        "all": [
+          "schedule"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "local-task",
+        "reason": "fires every 20 s; a local task runs at most every 1 min, so the frequency must change"
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "connector",
+          "name": "slack",
+          "nodes": [
+            "Post to Slack"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:artifact-mcp"
+          },
+          "operations": [
+            "slack message:post"
+          ],
+          "confirmed": false
+        },
+        {
+          "kind": "frequency-change",
+          "name": "every 20 s → at least every 1 min",
+          "nodes": [
+            "Every 20 seconds"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:frequency-change",
+            "localTask": "needs:frequency-change",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "slackOAuth2Api",
+          "name": "Slack bot",
+          "nodes": [
+            "Post to Slack"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": 4320,
+        "shortestIntervalSec": 20,
+        "fits": "frequency-change",
+        "timezone": "UTC",
+        "timezoneSource": "workflow"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Every 20 seconds",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Build message",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "logic",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Post to Slack",
+          "type": "n8n-nodes-base.slack",
+          "typeVersion": 2.3,
+          "role": "step",
+          "branch": "main",
+          "resource": "message",
+          "operation": "post",
+          "kind": "connector",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": []
+    }
+  ]
+}

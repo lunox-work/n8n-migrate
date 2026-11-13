@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 0,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 1
+    },
+    "targets": {},
+    "wakeups": {
+      "relay": 1
+    },
+    "blockers": {
+      "unsupported": 1
+    },
+    "notAnAutomation": 0,
+    "questions": 0,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "kafka-trigger",
+      "name": "Order events",
+      "file": "kafka-trigger.json",
+      "sourceHash": "106b8c4462e298a5d500b71cd56c30ee11da4db7a19cab47988afdc99462d641",
+      "wakeup": {
+        "kind": "relay",
+        "nodes": [
+          "Kafka Trigger"
+        ],
+        "all": [
+          "relay"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "keep-in-n8n",
+        "target": null,
+        "reason": "persistent Kafka connection; needs a bridge process that subscribes and forwards each message (out of scope v1)"
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [],
+      "questions": [],
+      "blockers": [
+        {
+          "kind": "unsupported",
+          "reason": "persistent Kafka connection; needs a bridge process that subscribes and forwards each message (out of scope v1)",
+          "nodes": [
+            "Kafka Trigger"
+          ]
+        }
+      ],
+      "credentials": [
+        {
+          "type": "kafka",
+          "name": "Kafka cluster",
+          "nodes": [
+            "Kafka Trigger"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Kafka Trigger",
+          "type": "n8n-nodes-base.kafkaTrigger",
+          "typeVersion": 1.1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "blocked",
+          "effect": null,
+          "effectBy": null,
+          "levers": [
+            "relay"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Shape event",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "logic",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "relay"
+      ]
+    }
+  ]
+}

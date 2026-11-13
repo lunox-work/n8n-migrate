@@ -1,0 +1,7 @@
+{
+  "ans-endpoint/endpoint-callers/Webhook": "only-me",
+  "ans-chat/chat-outsiders/When chat message received": true,
+  "ans-parent/subworkflow-id/Call child": "true",
+  "ans-parent/timezone": "Asia/Singapore",
+  "ans-chat/no-such-question": "x"
+}

@@ -1,0 +1,67 @@
+{
+  "id": "substitution-smtp",
+  "name": "Daily report mail",
+  "active": false,
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-8000-000000000061",
+      "name": "Daily 7:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        13420,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000062",
+      "name": "Send report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        13640,
+        300
+      ],
+      "parameters": {
+        "fromEmail": "bot@example.com",
+        "toEmail": "boss@example.com",
+        "subject": "Daily report",
+        "emailFormat": "text",
+        "text": "All good.",
+        "options": {}
+      },
+      "credentials": {
+        "smtp": {
+          "id": "cred-smtp",
+          "name": "Office SMTP"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily 7:00": {
+      "main": [
+        [
+          {
+            "node": "Send report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Chicago"
+  }
+}

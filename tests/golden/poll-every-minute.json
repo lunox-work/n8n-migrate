@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 1,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "subscription:local-task": 1
+    },
+    "wakeups": {
+      "poll": 1
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 1,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "poll-every-minute",
+      "name": "Auto-reply to support mail",
+      "file": "poll-every-minute.json",
+      "sourceHash": "9d381fcc3cefc2c3a83d3acfb07676d67864f796751ddbfe369d2d2007273676",
+      "wakeup": {
+        "kind": "poll",
+        "nodes": [
+          "New support mail"
+        ],
+        "all": [
+          "poll"
+        ]
+      },
+      "body": {
+        "kind": "prompt",
+        "decidedBy": [
+          "Support agent"
+        ]
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "local-task",
+        "reason": "polls every 1 min; more often than a cloud task allows, so a local task"
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "connector",
+          "name": "gmail",
+          "nodes": [
+            "New support mail",
+            "Reply"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:artifact-mcp"
+          },
+          "operations": [
+            "gmail message:reply",
+            "gmailTrigger poll"
+          ],
+          "confirmed": false
+        },
+        {
+          "kind": "model",
+          "name": "claude",
+          "nodes": [
+            "Support agent"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:sample"
+          }
+        },
+        {
+          "kind": "poll",
+          "name": "gmailTrigger",
+          "nodes": [
+            "New support mail"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "poll-every-minute/timezone",
+          "text": "Which timezone should the schedule of \"Auto-reply to support mail\" use? The export has no timezone setting, so n8n uses the instance default (America/New_York unless GENERIC_TIMEZONE is set).",
+          "nodes": [],
+          "affects": "timezone",
+          "answerType": "text",
+          "options": {
+            "<IANA timezone>": "schedule.timezone"
+          },
+          "assumed": "America/New_York",
+          "answer": null
+        }
+      ],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "gmailOAuth2",
+          "name": "Gmail support",
+          "nodes": [
+            "New support mail",
+            "Reply"
+          ]
+        },
+        {
+          "type": "openAiApi",
+          "name": "OpenAI",
+          "nodes": [
+            "OpenAI model"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": 1440,
+        "shortestIntervalSec": 60,
+        "fits": "local-task",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "New support mail",
+          "type": "n8n-nodes-base.gmailTrigger",
+          "typeVersion": 1.2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [
+            "poll"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Support agent",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1.7,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "agent",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [
+            "agent"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "OpenAI model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1.2,
+          "role": "subnode",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "model",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Reply",
+          "type": "n8n-nodes-base.gmailTool",
+          "typeVersion": 2.1,
+          "role": "subnode",
+          "branch": "main",
+          "resource": "message",
+          "operation": "reply",
+          "kind": "connector",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [
+            "agent"
+          ],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "agent",
+        "poll"
+      ]
+    }
+  ]
+}

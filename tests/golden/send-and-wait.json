@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 0,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 1
+    },
+    "targets": {},
+    "wakeups": {
+      "schedule": 1
+    },
+    "blockers": {
+      "unsupported": 1
+    },
+    "notAnAutomation": 0,
+    "questions": 0,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "send-and-wait",
+      "name": "Approve invoice in Slack",
+      "file": "send-and-wait.json",
+      "sourceHash": "dfa8b42a33fe07ef280af3ba3fbb3c2d921fdbb2d87c96721dc2c61a48a6d13e",
+      "wakeup": {
+        "kind": "schedule",
+        "nodes": [
+          "Daily 10:00"
+        ],
+        "all": [
+          "schedule"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "keep-in-n8n",
+        "target": null,
+        "reason": "sends, then waits for a human reply through an n8n webhook (out of scope v1)"
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [],
+      "questions": [],
+      "blockers": [
+        {
+          "kind": "unsupported",
+          "reason": "sends, then waits for a human reply through an n8n webhook (out of scope v1)",
+          "nodes": [
+            "Ask approval"
+          ]
+        }
+      ],
+      "credentials": [
+        {
+          "type": "slackOAuth2Api",
+          "name": "Slack bot",
+          "nodes": [
+            "Ask approval"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": 1,
+        "shortestIntervalSec": 86400,
+        "fits": "cloud-task",
+        "timezone": "UTC",
+        "timezoneSource": "workflow"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Daily 10:00",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Ask approval",
+          "type": "n8n-nodes-base.slack",
+          "typeVersion": 2.3,
+          "role": "step",
+          "branch": "main",
+          "resource": "message",
+          "operation": "sendAndWait",
+          "kind": "blocked",
+          "effect": "write",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": []
+    }
+  ]
+}

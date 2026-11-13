@@ -1,0 +1,67 @@
+{
+  "id": "kafka-trigger",
+  "name": "Order events",
+  "active": false,
+  "nodes": [
+    {
+      "id": "00000000-0000-4000-8000-000000000128",
+      "name": "Kafka Trigger",
+      "type": "n8n-nodes-base.kafkaTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        28160,
+        300
+      ],
+      "parameters": {
+        "topic": "orders",
+        "groupId": "n8n",
+        "options": {}
+      },
+      "credentials": {
+        "kafka": {
+          "id": "cred-kafka",
+          "name": "Kafka cluster"
+        }
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000129",
+      "name": "Shape event",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        28380,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "id",
+              "value": "={{ $json.message.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Kafka Trigger": {
+      "main": [
+        [
+          {
+            "node": "Shape event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

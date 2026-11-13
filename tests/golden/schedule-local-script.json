@@ -1,0 +1,251 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 1,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "subscription:local-task": 1
+    },
+    "wakeups": {
+      "schedule": 1
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 1,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "schedule-local-script",
+      "name": "Sync orders to warehouse",
+      "file": "schedule-local-script.json",
+      "sourceHash": "f77ef398cadf8b1a710c25639992d1f882913c4592342047e4b8b89a9d9fdb8c",
+      "wakeup": {
+        "kind": "schedule",
+        "nodes": [
+          "Every 5 minutes"
+        ],
+        "all": [
+          "schedule"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "local-task",
+        "reason": "fires every 5 min; more often than a cloud task allows, so a local task"
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "http",
+          "name": "outbound http",
+          "nodes": [
+            "Fetch orders"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:arbitrary-hosts"
+          }
+        },
+        {
+          "kind": "secret",
+          "name": "Orders API",
+          "nodes": [
+            "Fetch orders"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "secret",
+          "name": "Warehouse DB",
+          "nodes": [
+            "Insert rows"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:non-http-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "db",
+          "name": "postgres",
+          "nodes": [
+            "Insert rows"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:db-connector",
+            "localTask": "needs:bundled-server",
+            "artifact": "needs:artifact-mcp"
+          }
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "Fetch orders",
+            "Insert rows"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "schedule-local-script/timezone",
+          "text": "Which timezone should the schedule of \"Sync orders to warehouse\" use? The export has no timezone setting, so n8n uses the instance default (America/New_York unless GENERIC_TIMEZONE is set).",
+          "nodes": [],
+          "affects": "timezone",
+          "answerType": "text",
+          "options": {
+            "<IANA timezone>": "schedule.timezone"
+          },
+          "assumed": "America/New_York",
+          "answer": null
+        }
+      ],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "httpHeaderAuth",
+          "name": "Orders API",
+          "nodes": [
+            "Fetch orders"
+          ]
+        },
+        {
+          "type": "postgres",
+          "name": "Warehouse DB",
+          "nodes": [
+            "Insert rows"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": 288,
+        "shortestIntervalSec": 300,
+        "fits": "local-task",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Every 5 minutes",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Fetch orders",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "http",
+          "effect": "read",
+          "effectBy": "hand",
+          "levers": [
+            "http"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Pick fields",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "code",
+          "effect": "none",
+          "effectBy": "parse",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Insert rows",
+          "type": "n8n-nodes-base.postgres",
+          "typeVersion": 2.5,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": "insert",
+          "kind": "db",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [
+            "db"
+          ],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "db",
+        "http"
+      ]
+    }
+  ]
+}

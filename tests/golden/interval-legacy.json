@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 1,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "subscription:cloud-task": 1
+    },
+    "wakeups": {
+      "schedule": 1
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 0,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0.5,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "interval-legacy",
+      "name": "Append heartbeat row",
+      "file": "interval-legacy.json",
+      "sourceHash": "592a04b562f5eb4f86e1a654af2af57b9c1366d008b85d356aebbb79a1841f11",
+      "wakeup": {
+        "kind": "schedule",
+        "nodes": [
+          "Interval"
+        ],
+        "all": [
+          "schedule"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "cloud-task",
+        "reason": "fires every 2 h; a cloud task runs at most every 1 h"
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "connector",
+          "name": "google-drive",
+          "nodes": [
+            "Append row"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:connector-operation-check",
+            "localTask": "needs:connector-operation-check",
+            "artifact": "needs:artifact-mcp"
+          },
+          "operations": [
+            "googleSheets sheet:append"
+          ],
+          "confirmed": false
+        }
+      ],
+      "questions": [],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "googleSheetsOAuth2Api",
+          "name": "Google Sheets",
+          "nodes": [
+            "Append row"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": 12,
+        "shortestIntervalSec": 7200,
+        "fits": "cloud-task",
+        "timezone": "Europe/Paris",
+        "timezoneSource": "workflow"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Interval",
+          "type": "n8n-nodes-base.interval",
+          "typeVersion": 1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Append row",
+          "type": "n8n-nodes-base.googleSheets",
+          "typeVersion": 4.5,
+          "role": "step",
+          "branch": "main",
+          "resource": "sheet",
+          "operation": "append",
+          "kind": "connector",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": []
+    }
+  ]
+}

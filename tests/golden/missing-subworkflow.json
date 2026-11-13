@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 0,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 1
+    },
+    "targets": {},
+    "wakeups": {
+      "schedule": 1
+    },
+    "blockers": {
+      "input-incomplete": 1
+    },
+    "notAnAutomation": 0,
+    "questions": 1,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "missing-subworkflow",
+      "name": "Lead enrichment",
+      "file": "missing-subworkflow.json",
+      "sourceHash": "449250cd9a119e86ddf4aeca8646e4bbd643cc52f97ad2a7348667ee40fe9086",
+      "wakeup": {
+        "kind": "schedule",
+        "nodes": [
+          "Daily 9:00"
+        ],
+        "all": [
+          "schedule"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "keep-in-n8n",
+        "target": null,
+        "reason": "sub-workflow \"8Fq2xYkLm3\" (\"Enrich lead\") is not in the export"
+      },
+      "calledBy": [],
+      "calls": [
+        {
+          "node": "Enrich",
+          "status": "missing",
+          "target": null
+        }
+      ],
+      "requires": [
+        {
+          "kind": "missing-export",
+          "name": "workflow 8Fq2xYkLm3 (Enrich lead)",
+          "nodes": [
+            "Enrich"
+          ],
+          "surfaces": {
+            "cloudTask": "no",
+            "localTask": "no",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "missing-subworkflow/subworkflow-id/Enrich",
+          "text": "Hard-coded workflow id \"8Fq2xYkLm3\" (\"Enrich lead\") in \"Enrich\" is not in this export. Which workflow in the export is it?",
+          "nodes": [
+            "Enrich"
+          ],
+          "affects": "sub-workflow",
+          "answerType": "text",
+          "options": {
+            "false": "keep it missing",
+            "<workflow id>": "use that workflow"
+          },
+          "assumed": "false",
+          "answer": null
+        }
+      ],
+      "blockers": [
+        {
+          "kind": "input-incomplete",
+          "reason": "sub-workflow \"8Fq2xYkLm3\" (\"Enrich lead\") is not in the export",
+          "nodes": [
+            "Enrich"
+          ]
+        }
+      ],
+      "credentials": [],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": 1,
+        "shortestIntervalSec": 86400,
+        "fits": "cloud-task",
+        "timezone": "UTC",
+        "timezoneSource": "workflow"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Daily 9:00",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Enrich",
+          "type": "n8n-nodes-base.executeWorkflow",
+          "typeVersion": 1.2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "subworkflow",
+          "effect": "unknown",
+          "effectBy": null,
+          "levers": [
+            "subwf"
+          ],
+          "mapping": "hand",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "subwf"
+      ]
+    }
+  ]
+}

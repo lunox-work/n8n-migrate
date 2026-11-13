@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "outcomes": {
+      "subscription": 1,
+      "replaced": 0,
+      "hosted": 0,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "subscription:artifact": 1
+    },
+    "wakeups": {
+      "manual": 1
+    },
+    "blockers": {
+      "not-an-automation": 1
+    },
+    "notAnAutomation": 1,
+    "questions": 0,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 0,
+      "unused": [],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "tutorial-training",
+      "name": "Customer datastore tutorial",
+      "file": "tutorial-training.json",
+      "sourceHash": "7c73f0e5de1a1362440c05cf1df9fce2c579b956d074aee19e5ac86726b84825",
+      "wakeup": {
+        "kind": "manual",
+        "nodes": [
+          "When clicking 'Execute workflow'"
+        ],
+        "all": [
+          "manual"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "artifact",
+        "reason": "run by hand: the artifact's Run now button"
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [],
+      "questions": [],
+      "blockers": [
+        {
+          "kind": "not-an-automation",
+          "reason": "uses n8n's tutorial data nodes",
+          "nodes": [
+            "Customer Datastore (n8n training)"
+          ]
+        }
+      ],
+      "credentials": [],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "When clicking 'Execute workflow'",
+          "type": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Customer Datastore (n8n training)",
+          "type": "n8n-nodes-base.n8nTrainingCustomerDatastore",
+          "typeVersion": 1,
+          "role": "n8n-internal",
+          "branch": "main",
+          "resource": null,
+          "operation": "getAllPeople",
+          "kind": null,
+          "effect": "read",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Keep names",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "logic",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": []
+    }
+  ]
+}

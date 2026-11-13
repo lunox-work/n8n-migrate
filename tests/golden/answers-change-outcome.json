@@ -1,0 +1,574 @@
+{
+  "schemaVersion": 1,
+  "analyzer": {
+    "nodesMeta": {
+      "counts": {
+        "mapped": 845,
+        "mappedByHand": 575,
+        "mappedDerived": 270,
+        "notInPackages": 3,
+        "toolVariants": 270,
+        "types": 845
+      },
+      "generatedBy": "scripts/gen-nodes.mjs",
+      "mappings": "references/mappings.json",
+      "packages": {
+        "@n8n/n8n-nodes-langchain": "2.47.5",
+        "n8n-nodes-base": "2.47.5"
+      }
+    }
+  },
+  "summary": {
+    "workflows": 4,
+    "outcomes": {
+      "subscription": 3,
+      "replaced": 0,
+      "hosted": 1,
+      "keep-in-n8n": 0
+    },
+    "targets": {
+      "hosted:key": 1,
+      "subscription:cloud-task": 2,
+      "subscription:skill": 1
+    },
+    "wakeups": {
+      "endpoint": 1,
+      "chat": 1,
+      "schedule": 1,
+      "subworkflow": 1
+    },
+    "blockers": {},
+    "notAnAutomation": 0,
+    "questions": 0,
+    "unmappedTypes": [],
+    "cloudScheduledRunsPerHour": 0.04,
+    "cloudScheduledRunsPerHourLimit": 100,
+    "answers": {
+      "used": 4,
+      "unused": [
+        "ans-chat/no-such-question"
+      ],
+      "invalid": []
+    },
+    "inputErrors": []
+  },
+  "workflows": [
+    {
+      "id": "ans-endpoint",
+      "name": "Ask endpoint (answered)",
+      "file": "answers-change-outcome.json",
+      "sourceHash": "08f863d88ef4564f6829bd261570e373bb7054c1111d5e1bb7f55bdf0223ca31",
+      "wakeup": {
+        "kind": "endpoint",
+        "nodes": [
+          "Webhook"
+        ],
+        "all": [
+          "endpoint"
+        ]
+      },
+      "body": {
+        "kind": "prompt",
+        "decidedBy": [
+          "Agent"
+        ]
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "skill",
+        "reason": "only you call this URL, from Claude: a skill replaces it"
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "model",
+          "name": "claude",
+          "nodes": [
+            "Agent"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:sample"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "ans-endpoint/endpoint-callers/Webhook",
+          "text": "Who calls the URL of \"Webhook\" and waits for its reply: outsiders (other people or systems), or only you, from Claude?",
+          "nodes": [
+            "Webhook"
+          ],
+          "affects": "outcome",
+          "answerType": "choice",
+          "options": {
+            "outsiders": "hosted:key",
+            "only-me": "subscription:skill"
+          },
+          "assumed": "outsiders",
+          "answer": "only-me"
+        }
+      ],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "anthropicApi",
+          "name": "Anthropic",
+          "nodes": [
+            "Claude model"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Webhook",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Agent",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1.7,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "agent",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [
+            "agent"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Claude model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+          "typeVersion": 1.3,
+          "role": "subnode",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "model",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Respond",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1.1,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "logic",
+          "effect": "unknown",
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "agent"
+      ]
+    },
+    {
+      "id": "ans-chat",
+      "name": "Public help bot (answered)",
+      "file": "answers-change-outcome.json",
+      "sourceHash": "d2a5ea5f959d4b62eca74c126ebdf9674febbc99115fc3d309dafbfafe860253",
+      "wakeup": {
+        "kind": "chat",
+        "nodes": [
+          "When chat message received"
+        ],
+        "all": [
+          "chat"
+        ]
+      },
+      "body": {
+        "kind": "prompt",
+        "decidedBy": [
+          "Agent"
+        ]
+      },
+      "outcome": {
+        "kind": "hosted",
+        "target": "key",
+        "reason": "outsiders chat with a model through a public page"
+      },
+      "calledBy": [],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "model",
+          "name": "claude",
+          "nodes": [
+            "Agent"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "needs:sample"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "ans-chat/chat-outsiders/When chat message received",
+          "text": "Do people outside your organisation use the public chat page of \"When chat message received\"?",
+          "nodes": [
+            "When chat message received"
+          ],
+          "affects": "outcome",
+          "answerType": "boolean",
+          "options": {
+            "true": "hosted:key",
+            "false": "subscription:skill"
+          },
+          "assumed": false,
+          "answer": true
+        }
+      ],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "anthropicApi",
+          "name": "Anthropic",
+          "nodes": [
+            "Claude model"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "When chat message received",
+          "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+          "typeVersion": 1.1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [
+            "chat"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Agent",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 1.7,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "agent",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [
+            "agent"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Claude model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+          "typeVersion": 1.3,
+          "role": "subnode",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "model",
+          "effect": "none",
+          "effectBy": "hand",
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "agent",
+        "chat"
+      ]
+    },
+    {
+      "id": "ans-parent",
+      "name": "Nightly cleanup (answered)",
+      "file": "answers-change-outcome.json",
+      "sourceHash": "4c73a424e9403f6084c49e0ee94eca0c3908d33119675cd5711356f91551dd79",
+      "wakeup": {
+        "kind": "schedule",
+        "nodes": [
+          "Daily 3:00"
+        ],
+        "all": [
+          "schedule"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "cloud-task",
+        "reason": "fires every 1 d; a cloud task runs at most every 1 h"
+      },
+      "calledBy": [],
+      "calls": [
+        {
+          "node": "Call child",
+          "status": "id-answered",
+          "target": "child-9"
+        }
+      ],
+      "requires": [
+        {
+          "kind": "connector",
+          "name": "google-drive",
+          "nodes": [
+            "Call child"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:connector-operation-check",
+            "localTask": "needs:connector-operation-check",
+            "artifact": "needs:artifact-mcp"
+          },
+          "operations": [
+            "googleSheets sheet:clear"
+          ],
+          "confirmed": false
+        }
+      ],
+      "questions": [
+        {
+          "id": "ans-parent/subworkflow-id/Call child",
+          "text": "Does hard-coded workflow id \"old-123\" (\"Child flow\") in \"Call child\" point to \"Child flow\", which this export holds as id \"child-9\"?",
+          "nodes": [
+            "Call child"
+          ],
+          "affects": "sub-workflow",
+          "answerType": "text",
+          "options": {
+            "true": "use workflow \"child-9\"",
+            "false": "keep it missing",
+            "<workflow id>": "use that workflow"
+          },
+          "assumed": "false",
+          "answer": "true"
+        },
+        {
+          "id": "ans-parent/timezone",
+          "text": "Which timezone should the schedule of \"Nightly cleanup (answered)\" use? The export has no timezone setting, so n8n uses the instance default (America/New_York unless GENERIC_TIMEZONE is set).",
+          "nodes": [],
+          "affects": "timezone",
+          "answerType": "text",
+          "options": {
+            "<IANA timezone>": "schedule.timezone"
+          },
+          "assumed": "America/New_York",
+          "answer": "Asia/Singapore"
+        }
+      ],
+      "blockers": [],
+      "credentials": [],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": 1,
+        "shortestIntervalSec": 86400,
+        "fits": "cloud-task",
+        "timezone": "Asia/Singapore",
+        "timezoneSource": "answer"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "Daily 3:00",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Call child",
+          "type": "n8n-nodes-base.executeWorkflow",
+          "typeVersion": 1.2,
+          "role": "step",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": "subworkflow",
+          "effect": "unknown",
+          "effectBy": null,
+          "levers": [
+            "subwf"
+          ],
+          "mapping": "hand",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "subwf"
+      ]
+    },
+    {
+      "id": "child-9",
+      "name": "Child flow",
+      "file": "answers-change-outcome.json",
+      "sourceHash": "61180ac6dc7907124e1ac3d221051bd50f7954cf5174afcea90978836af47a62",
+      "wakeup": {
+        "kind": "subworkflow",
+        "nodes": [
+          "When called"
+        ],
+        "all": [
+          "subworkflow"
+        ]
+      },
+      "body": {
+        "kind": "script",
+        "decidedBy": []
+      },
+      "outcome": {
+        "kind": "subscription",
+        "target": "cloud-task",
+        "reason": "inlined into \"Nightly cleanup (answered)\"; follows \"Nightly cleanup (answered)\""
+      },
+      "calledBy": [
+        "ans-parent"
+      ],
+      "calls": [],
+      "requires": [
+        {
+          "kind": "connector",
+          "name": "google-drive",
+          "nodes": [
+            "Archive rows"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:connector-operation-check",
+            "localTask": "needs:connector-operation-check",
+            "artifact": "needs:artifact-mcp"
+          },
+          "operations": [
+            "googleSheets sheet:clear"
+          ],
+          "confirmed": false
+        }
+      ],
+      "questions": [],
+      "blockers": [],
+      "credentials": [
+        {
+          "type": "googleSheetsOAuth2Api",
+          "name": "Google Sheets",
+          "nodes": [
+            "Archive rows"
+          ]
+        }
+      ],
+      "inlineSecrets": [],
+      "schedule": {
+        "runsPerDay": null,
+        "shortestIntervalSec": null,
+        "fits": "n/a",
+        "timezone": "America/New_York",
+        "timezoneSource": "n8n-default"
+      },
+      "sharedState": [],
+      "disabled": [],
+      "steps": [
+        {
+          "node": "When called",
+          "type": "n8n-nodes-base.executeWorkflowTrigger",
+          "typeVersion": 1.1,
+          "role": "trigger",
+          "branch": "main",
+          "resource": null,
+          "operation": null,
+          "kind": null,
+          "effect": null,
+          "effectBy": null,
+          "levers": [
+            "subwf"
+          ],
+          "mapping": "hand",
+          "issues": []
+        },
+        {
+          "node": "Archive rows",
+          "type": "n8n-nodes-base.googleSheets",
+          "typeVersion": 4.5,
+          "role": "step",
+          "branch": "main",
+          "resource": "sheet",
+          "operation": "clear",
+          "kind": "connector",
+          "effect": "write",
+          "effectBy": "name",
+          "levers": [],
+          "mapping": "name",
+          "issues": []
+        }
+      ],
+      "unmapped": [],
+      "levers": [
+        "subwf"
+      ]
+    }
+  ]
+}
