@@ -3356,7 +3356,7 @@ function scheduleItem(ms, tz) {
   };
 }
 const scheduleTrigger = {
-  versions: inRange(1, 1.3),
+  versions: inRange(1, 1.4),
   trigger: true,
   execute(exec, ed) {
     if (ed.triggerProvided) return [triggerItems(ed)];
