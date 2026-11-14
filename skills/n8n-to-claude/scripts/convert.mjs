@@ -1557,7 +1557,7 @@ export function toolPrefixes(def, refs) {
 export function taskJson(def, refs, target) {
   const handoff = formHandoff(def);
   const where = handoff?.target ?? target;
-  return { hooks: true, compactWhole: true, compactOver: 80, hideToolOutput: true, secrets: "env", toolPrefixes: { ...toolPrefixes(def, refs), ...(handoff ? { "artifact-db": "" } : {}) }, store: where === "cloud-task" ? { kind: "git", fallback: "file" } : { kind: "file" }, ...(handoff ? { source: "poll-submissions", artifactDb: false, artifactUrl: null } : {}) };
+  return { hooks: true, compactWhole: true, compactOver: 80, hideToolOutput: true, secrets: where === "cloud-task" ? "proxy" : "env", toolPrefixes: { ...toolPrefixes(def, refs), ...(handoff ? { "artifact-db": "" } : {}) }, store: where === "cloud-task" ? { kind: "git", fallback: "file" } : { kind: "file" }, ...(handoff ? { source: "poll-submissions", artifactDb: false, artifactUrl: null } : {}) };
 }
 const formHandoff = (def) => Object.values(def.steps).find((s) => s.kind === "trigger" && s.form?.handoff && s.settings?.disabled !== true)?.form.handoff ?? null;
 const HOOK_MATCHER = "^(mcp__.*|ArtifactData)$";
@@ -1616,6 +1616,10 @@ export function writeRootSettings(outDir) {
   mkdirSync(join(outDir, ".claude"), { recursive: true });
   writeJson(join(outDir, ".claude", "settings.json"), settings);
   copyFileSync(join(SKILL, "runtime", "dist", "dispatch.mjs"), join(outDir, "n2c-hook.mjs"));
+  // Run state is per checkout (the record store keeps what must last): never committed.
+  const gi = join(outDir, ".gitignore");
+  const have = existsSync(gi) ? readFileSync(gi, "utf8") : "";
+  if (!/^\.n2c\/$/m.test(have)) writeFileSync(gi, `${have}${have && !have.endsWith("\n") ? "\n" : ""}.n2c/\n.claude/settings.local.json\n`);
   return settings;
 }
 
