@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "template": 1747,
+  "sha256": "79a2caff6d6cc7ba26f41a5d9c1b65d9a09c25c162ac98ee19af70290b2baaef",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the manual trigger's single empty item (a manual run cannot emit fewer)",
+  "trigger": {
+    "node": "On clicking 'execute'",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [],
+  "models": [],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch; Ingredients in stock from recipe (combine by Name, keep matches), Merge recipe (enrichInput1 by Name) and Super Band (append) all run once"
+    ],
+    "offline": "the template has no external read, model or write: six Code nodes return fixed rows that three Merge nodes join, so every variant runs on the same data; only the manual trigger item differs, and the Code nodes ignore it"
+  }
+}

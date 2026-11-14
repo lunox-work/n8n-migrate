@@ -1,0 +1,339 @@
+{
+  "schemaVersion": 1,
+  "template": 3025,
+  "sha256": "5d3da2f9e04ce5b478e8f6503db7e942983c9e688363fc3f2dc804d113248a2f",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the memory document is empty and the user asks what the bot remembers",
+  "trigger": {
+    "node": "Ⓜ️ When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "c2f1b6e0a9d84e7f9a3b5c1d2e4f6a8b",
+          "action": "sendMessage",
+          "chatInput": "What do you remember about me?"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Retrieve Long Term Memories",
+      "service": "google-docs",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://docs.googleapis.com/v1/documents/1YFTbVGlnpdYF5FuA6grfyvzmcdjcPviClAqbJ5HJIlc",
+            "status": 200,
+            "body": {
+              "title": "Long term memories",
+              "body": {
+                "content": [
+                  {
+                    "endIndex": 1,
+                    "sectionBreak": {
+                      "sectionStyle": {
+                        "columnSeparatorStyle": "NONE",
+                        "contentDirection": "LEFT_TO_RIGHT",
+                        "sectionType": "CONTINUOUS"
+                      }
+                    }
+                  }
+                ]
+              },
+              "documentStyle": {
+                "pageSize": {
+                  "height": {
+                    "magnitude": 792,
+                    "unit": "PT"
+                  },
+                  "width": {
+                    "magnitude": 612,
+                    "unit": "PT"
+                  }
+                }
+              },
+              "revisionId": "ALBJ4LtBenchRevision01",
+              "suggestionsViewMode": "SUGGESTIONS_INLINE",
+              "documentId": "1YFTbVGlnpdYF5FuA6grfyvzmcdjcPviClAqbJ5HJIlc"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "read_file_content",
+            "args": {
+              "fileId": "1YFTbVGlnpdYF5FuA6grfyvzmcdjcPviClAqbJ5HJIlc"
+            },
+            "result": {
+              "fileId": "1YFTbVGlnpdYF5FuA6grfyvzmcdjcPviClAqbJ5HJIlc",
+              "title": "Long term memories",
+              "mimeType": "application/vnd.google-apps.document",
+              "content": ""
+            }
+          }
+        ]
+      },
+      "note": "Google Docs v2 get (simplified): GET /v1/documents/{id}; n8n joins the paragraphs' textRun contents into `content`. Reached through the agent's workflow tools, which call this same workflow ($workflow.id) with a route field; the three get nodes read the same document"
+    },
+    {
+      "node": "Retrieve Long Term Memories2",
+      "service": "google-docs",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://docs.googleapis.com/v1/documents/1YFTbVGlnpdYF5FuA6grfyvzmcdjcPviClAqbJ5HJIlc",
+            "status": 200,
+            "body": {
+              "title": "Long term memories",
+              "body": {
+                "content": [
+                  {
+                    "endIndex": 1,
+                    "sectionBreak": {
+                      "sectionStyle": {
+                        "columnSeparatorStyle": "NONE",
+                        "contentDirection": "LEFT_TO_RIGHT",
+                        "sectionType": "CONTINUOUS"
+                      }
+                    }
+                  }
+                ]
+              },
+              "documentStyle": {
+                "pageSize": {
+                  "height": {
+                    "magnitude": 792,
+                    "unit": "PT"
+                  },
+                  "width": {
+                    "magnitude": 612,
+                    "unit": "PT"
+                  }
+                }
+              },
+              "revisionId": "ALBJ4LtBenchRevision01",
+              "suggestionsViewMode": "SUGGESTIONS_INLINE",
+              "documentId": "1YFTbVGlnpdYF5FuA6grfyvzmcdjcPviClAqbJ5HJIlc"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "read_file_content",
+            "args": {
+              "fileId": "1YFTbVGlnpdYF5FuA6grfyvzmcdjcPviClAqbJ5HJIlc"
+            },
+            "result": {
+              "fileId": "1YFTbVGlnpdYF5FuA6grfyvzmcdjcPviClAqbJ5HJIlc",
+              "title": "Long term memories",
+              "mimeType": "application/vnd.google-apps.document",
+              "content": ""
+            }
+          }
+        ]
+      },
+      "note": "Google Docs v2 get (simplified): GET /v1/documents/{id}; n8n joins the paragraphs' textRun contents into `content`. Reached through the agent's workflow tools, which call this same workflow ($workflow.id) with a route field; the three get nodes read the same document"
+    },
+    {
+      "node": "Retrieve Long Term Memories3",
+      "service": "google-docs",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://docs.googleapis.com/v1/documents/1YFTbVGlnpdYF5FuA6grfyvzmcdjcPviClAqbJ5HJIlc",
+            "status": 200,
+            "body": {
+              "title": "Long term memories",
+              "body": {
+                "content": [
+                  {
+                    "endIndex": 1,
+                    "sectionBreak": {
+                      "sectionStyle": {
+                        "columnSeparatorStyle": "NONE",
+                        "contentDirection": "LEFT_TO_RIGHT",
+                        "sectionType": "CONTINUOUS"
+                      }
+                    }
+                  }
+                ]
+              },
+              "documentStyle": {
+                "pageSize": {
+                  "height": {
+                    "magnitude": 792,
+                    "unit": "PT"
+                  },
+                  "width": {
+                    "magnitude": 612,
+                    "unit": "PT"
+                  }
+                }
+              },
+              "revisionId": "ALBJ4LtBenchRevision01",
+              "suggestionsViewMode": "SUGGESTIONS_INLINE",
+              "documentId": "1YFTbVGlnpdYF5FuA6grfyvzmcdjcPviClAqbJ5HJIlc"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "read_file_content",
+            "args": {
+              "fileId": "1YFTbVGlnpdYF5FuA6grfyvzmcdjcPviClAqbJ5HJIlc"
+            },
+            "result": {
+              "fileId": "1YFTbVGlnpdYF5FuA6grfyvzmcdjcPviClAqbJ5HJIlc",
+              "title": "Long term memories",
+              "mimeType": "application/vnd.google-apps.document",
+              "content": ""
+            }
+          }
+        ]
+      },
+      "note": "Google Docs v2 get (simplified): GET /v1/documents/{id}; n8n joins the paragraphs' textRun contents into `content`. Reached through the agent's workflow tools, which call this same workflow ($workflow.id) with a route field; the three get nodes read the same document"
+    }
+  ],
+  "models": [
+    "🧠 AI Agent w/Long Term Memory",
+    "🤖OpenAI Chat Model",
+    "Prepare Telegram Message",
+    "OpenAI Chat Model2",
+    "Prepare Gmail Message",
+    "OpenAI Chat Model3"
+  ],
+  "writes": [
+    "Save Long Term Memories",
+    "Send Success Message to Telegram",
+    "Email Workflow Stats"
+  ],
+  "writeReplies": [
+    {
+      "node": "Save Long Term Memories",
+      "service": "google-docs",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://docs.googleapis.com/v1/documents/1YFTbVGlnpdYF5FuA6grfyvzmcdjcPviClAqbJ5HJIlc:batchUpdate",
+            "status": 200,
+            "body": {
+              "replies": [
+                {}
+              ],
+              "writeControl": {
+                "requiredRevisionId": "ALBJ4LtBenchRevision02"
+              },
+              "documentId": "1YFTbVGlnpdYF5FuA6grfyvzmcdjcPviClAqbJ5HJIlc"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Docs connector that edits content"
+      },
+      "note": "Google Docs v2 update, insert text at the end of the body: POST /v1/documents/{id}:batchUpdate"
+    },
+    {
+      "node": "Send Success Message to Telegram",
+      "service": "telegram",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.telegram.org/bot{token}/sendMessage",
+            "status": 200,
+            "body": {
+              "ok": true,
+              "result": {
+                "message_id": 902,
+                "chat": {
+                  "id": 123456789,
+                  "type": "private"
+                },
+                "date": 1794819660,
+                "text": "n8n User Memories"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Telegram connector"
+      }
+    },
+    {
+      "node": "Email Workflow Stats",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/send",
+            "status": 200,
+            "body": {
+              "id": "19a8e1f0aa000001",
+              "threadId": "19a8e1f0aa000001",
+              "labelIds": [
+                "SENT"
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "send_message",
+            "args": {
+              "subject": "n8n User Memories"
+            },
+            "result": {
+              "id": "19a8e1f0aa000001",
+              "threadId": "19a8e1f0aa000001",
+              "labelIds": [
+                "SENT"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Gmail v2.1 send: POST /users/me/messages/send"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Memory Tool Router (inside the tool sub-executions): 1️⃣ Save, 2️⃣ Retrieve, Telegram (Retrieve Long Term Memories2) or Gmail (Retrieve Long Term Memories3), as the agent picks tools (model-driven)",
+      "expected: retrieve_long_term_memory only, returning an empty content"
+    ],
+    "offline": "Send Success Message to Telegram and Email Workflow Stats take their targets from $env.TELEGRAM_CHAT_ID and $env.EMAIL_ADDRESS_JOE, unset on the bench (and blocked where N8N_BLOCK_ENV_ACCESS_IN_NODE is on), so both need an overlay; the document does not change after Save Long Term Memories (the mock returns the same body). The four toolWorkflow nodes are not reads themselves (validate warns): their calls land on the Docs nodes"
+  }
+}

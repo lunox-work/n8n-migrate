@@ -63,7 +63,11 @@ export async function checkFixture(fx, raw) {
   if (actual !== fx.sha256) errors.push("sha256 differs from the downloaded template");
   const enabled = new Set(wf.nodes.filter((n) => !n.disabled && n.type !== "n8n-nodes-base.stickyNote").map((n) => n.name));
   const need = (name, where) => enabled.has(name) || errors.push(`${where}: "${name}" is not an enabled node of the template`);
-  need(fx.trigger.node, "trigger");
+  // A template whose only trigger is disabled can still be fixtured on that trigger; the run
+  // needs a config overlay that enables it, so this is a warning, not an error.
+  const disabledTrigger = wf.nodes.find((n) => n.name === fx.trigger.node && n.disabled && /trigger$/i.test(n.type));
+  if (disabledTrigger) warnings.push(`trigger "${fx.trigger.node}" is disabled in the template; the run needs a config overlay that enables it`);
+  else need(fx.trigger.node, "trigger");
   fx.reads.forEach((r) => need(r.node, "reads"));
   fx.models.forEach((m) => need(m, "models"));
   fx.writes.forEach((w) => need(w, "writes"));

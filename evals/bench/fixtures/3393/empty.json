@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "template": 3393,
+  "sha256": "3a571fb216b3ae0acdece9744948e9fb3f46f62138188cd5606859d062377c48",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "no event starts in the window",
+  "trigger": {
+    "node": "Schedule Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T09:00:00.000+00:00",
+          "Readable date": "November 16th 2026, 9:00:00 am",
+          "Readable time": "9:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "09",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "UTC (UTC+00:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get upcoming event",
+      "service": "google-calendar",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/calendar/v3/calendars/user%40example.com/events",
+            "status": 200,
+            "body": {
+              "kind": "calendar#events",
+              "etag": "\"p32bench\"",
+              "summary": "user@example.com",
+              "updated": "2026-11-16T08:55:00.000Z",
+              "timeZone": "Europe/Rome",
+              "accessRole": "owner",
+              "defaultReminders": [
+                {
+                  "method": "popup",
+                  "minutes": 30
+                }
+              ],
+              "items": []
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Calendar connector; the Claude side serves the same Calendar API responses through its HTTP mock"
+      },
+      "note": "Google Calendar v1.3 event getAll, limit 5: GET /calendar/v3/calendars/user%40example.com/events?timeMin=now+1h&timeMax=now+1h1m&maxResults=5 (singleEvents depends on the recurring-event option, so no query is required). The calendar id is the template's placeholder and is served as is"
+    }
+  ],
+  "models": [
+    "Secretary Agent",
+    "OpenAI Chat Model"
+  ],
+  "writes": [
+    "Send reminder"
+  ],
+  "writeReplies": [
+    {
+      "node": "Send reminder",
+      "service": "telegram",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Telegram connector; http with the bot token"
+      },
+      "note": "Telegram sendMessage, one per event; the reply text is model-written"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Get upcoming event returns no items, so the run stops there"
+    ],
+    "offline": "Schedule Trigger is disabled in the template (no enabled trigger), so the run needs an overlay that enables it; Send reminder posts to chat id CHAT_ID, the template's placeholder (the real API would answer 400 chat not found), so the mock answers it as a sent message"
+  }
+}

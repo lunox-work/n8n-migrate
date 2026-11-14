@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "template": 3102,
+  "sha256": "48828666619e05bf4124d926830ec2d229eb16d17d9cdcc22642fef758043ec6",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the first OCR call gets a 422 (Mistral could not fetch the URL), the second a 500 plain-text body",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Mistral DOC OCR1",
+      "service": "mistral-ocr",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.mistral.ai/v1/ocr",
+            "status": 422,
+            "body": {
+              "object": "error",
+              "message": "Could not fetch the document from document_url: 403 Forbidden",
+              "type": "invalid_request_error",
+              "param": null,
+              "code": "3310"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://api.mistral.ai/v1/ocr",
+            "status": 500,
+            "headers": {
+              "content-type": "text/plain"
+            },
+            "body": "Internal Server Error"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "OCR stays with the provider (media lever); no Claude connector for Mistral"
+      },
+      "note": "Mistral OCR: POST /v1/ocr {model: mistral-ocr-latest, document: {type: document_url|image_url, ...}}; Mistral fetches the R2 URL itself, so n8n downloads nothing. DOC OCR1 and IMAGE OCR1 call the same URL in an order the fixture cannot fix, so both get the same reply (the template's PDF and PNG are the same statement)"
+    },
+    {
+      "node": "Mistral IMAGE OCR1",
+      "service": "mistral-ocr",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.mistral.ai/v1/ocr",
+            "status": 422,
+            "body": {
+              "object": "error",
+              "message": "Could not fetch the document from document_url: 403 Forbidden",
+              "type": "invalid_request_error",
+              "param": null,
+              "code": "3310"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://api.mistral.ai/v1/ocr",
+            "status": 500,
+            "headers": {
+              "content-type": "text/plain"
+            },
+            "body": "Internal Server Error"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "OCR stays with the provider (media lever); no Claude connector for Mistral"
+      },
+      "note": "Mistral OCR: POST /v1/ocr {model: mistral-ocr-latest, document: {type: document_url|image_url, ...}}; Mistral fetches the R2 URL itself, so n8n downloads nothing. DOC OCR1 and IMAGE OCR1 call the same URL in an order the fixture cannot fix, so both get the same reply (the template's PDF and PNG are the same statement)"
+    }
+  ],
+  "models": [],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch; only Document URL → Mistral DOC OCR1 and Image URL → Mistral IMAGE OCR1 are reachable from the trigger; the Drive, upload and chat branches have no trigger",
+      "both OCR nodes fail (HTTP Request throws on 4xx/5xx), so the run ends in error"
+    ]
+  }
+}
