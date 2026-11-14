@@ -247,6 +247,9 @@ export function createArtifactDriver(opts) {
     const snap = snapshot(ctx, res, extra);
     const rec = core.runRecord({ runId: ctx.runId, workflow, trigger: ctx.trigger, driver: "artifact", status, dryRun: ctx.dryRun, startedAt: ctx.startedAt, endedAt: status === "running" ? null : iso(now()), definitionHash: ctx.definitionHash, commit, effects: snap.effects, sent: ctx.sent, held: ctx.held, steps: snap.statuses, runData: snap.runData, handoff: extra.handoff, error: extra.error, unknown: extra.unknown, cursorsSaved: extra.cursorsSaved, resumable: status !== "done" && ctx.resumable });
     if (extra.unknown?.length) rec.unknown = extra.unknown.map((u) => ({ step: u.step, effectKey: u.effectKey, connector: u.connector, tool: u.tool, since: u.since, args: core.clip(u.args, 4_000) }));
+    // The cursor the run reached, kept in the record (a dry run saves none): Seed copies it.
+    if (extra.cursors && Object.keys(extra.cursors).length) rec.cursors = core.clip(extra.cursors, 8_000);
+    if (ctx.submissionId) rec.submissionId = ctx.submissionId;
     try {
       await setDoc(core.runPath(ctx.runId), rec);
     } catch {}
@@ -309,13 +312,18 @@ export function createArtifactDriver(opts) {
       }
       res = await core.resume(res.state, results);
     }
+    // Run now works from and advances the manual cursor only; the scheduled cursor moves only
+    // when the person chose "also advance the scheduled cursor" (or later through Seed).
     let cursorsSaved = false;
     if (res.status === "done" && !ctx.dryRun && res.cursors && db()) {
-      for (const [step, cursor] of Object.entries(res.cursors)) await setDoc(core.cursorPath(step), core.cursorRecord({ step, cursor, runId: ctx.runId, at: iso(now()), definitionHash: ctx.definitionHash }));
+      for (const [step, cursor] of Object.entries(res.cursors)) {
+        await setDoc(core.cursorPath(step, "manual"), core.cursorRecord({ step, cursor, runId: ctx.runId, at: iso(now()), definitionHash: ctx.definitionHash, kind: "manual" }));
+        if (ctx.advanceScheduled) await setDoc(core.cursorPath(step, "scheduled"), core.cursorRecord({ step, cursor, runId: ctx.runId, at: iso(now()), definitionHash: ctx.definitionHash, kind: "scheduled", copiedFrom: "manual" }));
+      }
       cursorsSaved = true;
     }
     const error = res.status === "failed" ? res.error ?? res.state?.result?.error : undefined;
-    const out = await writeRecord(ctx, res, res.status, { final: true, error, cursorsSaved });
+    const out = await writeRecord(ctx, res, res.status, { final: true, error, cursorsSaved, cursors: res.status === "done" ? res.cursors : undefined });
     try {
       if (db()) await db().doc(core.statePath(ctx.runId)).delete();
     } catch {}
@@ -341,11 +349,11 @@ export function createArtifactDriver(opts) {
     return Array.isArray(input) ? input : { node: name, items: [input] };
   }
 
-  async function runNow({ dryRun = true, input } = {}) {
+  async function runNow({ dryRun = true, input, advanceScheduled = false, submissionId } = {}) {
     return begin("manual", dryRun, async () => {
       const startedAt = iso(now());
       const runId = `a-${now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-      const ctx = { runId, dryRun, trigger: "manual", startedAt, definitionHash: embeddedHash, sent: {}, held: {}, resumable: false };
+      const ctx = { runId, dryRun, trigger: "manual", startedAt, definitionHash: embeddedHash, sent: {}, held: {}, resumable: false, advanceScheduled: !!advanceScheduled && !dryRun, submissionId };
       const pf = await preflight();
       if (!pf.ok) {
         const error = { message: pf.issues.filter((i) => i.level === "error").map((i) => i.message).join(" ") };
@@ -363,7 +371,7 @@ export function createArtifactDriver(opts) {
         let cursors;
         try {
           const d = db();
-          if (d) cursors = core.cursorsFromDocs((await d.collection(core.COLLECTIONS.cursors).get()).docs.map((x) => x.data()));
+          if (d) cursors = core.startCursors((await d.collection(core.COLLECTIONS.cursors).get()).docs.map((x) => x.data()), "manual");
         } catch {}
         const res = await core.start(definition, { runId, clock: { startedAt }, mode: "manual", trigger: triggerFor(input), cursors: cursors && Object.keys(cursors).length ? cursors : undefined, virtualTime: true });
         if (!res.state) {
@@ -442,5 +450,59 @@ export function createArtifactDriver(opts) {
     return core.cutoverChecklist({ definition, definitionHash: embeddedHash, runs: runs ?? (await history()), cursors, cutover: cut });
   }
 
-  return { preflight, runNow, resume, history, interrupted, cutover, holder, get running() { return running; } };
+  // ---------- cutover: seed the scheduled cursor ----------
+  // Copies the cursor of the latest clean run from this page (a dry run's record, or the
+  // manual cursor document) into the scheduled cursor, so the first scheduled run starts
+  // where the dry run read up to and does not replay history (PLAN Phase 7).
+  async function seedCursors() {
+    const d = db();
+    if (!d) return { refused: true, message: "This view has no run storage." };
+    const docs = (await d.collection(core.COLLECTIONS.cursors).get()).docs.map((x) => x.data());
+    const manual = docs.filter((x) => x.kind === "manual" && x.definitionHash === embeddedHash);
+    const runs = await history();
+    const clean = runs.find((r) => r.status === "done" && r.definitionHash === embeddedHash && r.cursors);
+    const from = manual.length ? manual : clean ? Object.entries(clean.cursors).map(([step, cursor]) => ({ step, cursor, runId: clean.runId, definitionHash: embeddedHash, kind: "manual" })) : [];
+    if (!from.length) return { refused: true, message: "No cursor to seed yet: run a dry run until it ends done, then seed." };
+    for (const doc of from) await setDoc(core.cursorPath(doc.step, "scheduled"), core.seedCursorRecord(doc, { to: "scheduled", at: iso(now()) }));
+    return { seeded: from.map((x) => x.step) };
+  }
+
+  // ---------- form ----------
+  // A form submission: validated against the trigger's fields, turned into n8n's Form Trigger
+  // item, then either run here (Run now with the item as the trigger, dry run as chosen) or,
+  // when a step cannot run in the artifact (form.handoff), stored in submissions/ for the
+  // scheduled task's poll-submissions source.
+  const formStep = Object.entries(definition?.steps ?? {}).find(([, st]) => st.kind === "trigger" && st.form && st.settings?.disabled !== true);
+  async function submitForm(values, { dryRun = true } = {}) {
+    if (!formStep) return { refused: true, message: "This workflow has no form." };
+    const [trigger, st] = formStep;
+    const errors = core.formErrors(st.form, values);
+    if (errors.length) return { invalid: true, errors };
+    const item = core.formItem(st.form, values, { now: now() });
+    const submissionId = `s-${now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    if (st.form.handoff) {
+      if (!db()) return { refused: true, message: "This view has no storage, so the submission cannot be kept for the scheduled task." };
+      await setDoc(core.submissionPath(submissionId), core.submissionRecord({ submissionId, workflow, definitionHash: embeddedHash, trigger, item, submittedAt: iso(now()) }));
+      return { queued: true, submissionId, handoff: st.form.handoff };
+    }
+    const out = await runNow({ dryRun, input: item, submissionId });
+    return { ...out, submissionId };
+  }
+
+  // ---------- missed scheduled runs (shown in the history) ----------
+  async function missed(runs, { graceMs } = {}) {
+    const schedule = core.definitionSchedule(definition);
+    if (!schedule) return null;
+    const list = runs ?? (await history());
+    const scheduled = list.filter((r) => r.trigger === "scheduled");
+    let meta = null;
+    try {
+      meta = await getDoc(core.META_SCHEDULE);
+    } catch {}
+    const last = [meta?.lastRunAt, scheduled[0]?.startedAt].filter(Boolean).sort().pop();
+    if (!last) return null;
+    return core.missedRuns({ schedule, lastRunAt: last, now: now(), graceMs });
+  }
+
+  return { preflight, runNow, resume, history, interrupted, cutover, seedCursors, submitForm, missed, form: formStep ? { trigger: formStep[0], ...formStep[1].form } : null, holder, get running() { return running; } };
 }

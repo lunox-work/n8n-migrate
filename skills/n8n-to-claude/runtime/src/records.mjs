@@ -8,10 +8,13 @@ import { hashHex } from "./hash.mjs";
 import { isObject } from "./util.mjs";
 
 export const RECORD_FORMAT = 1;
-export const COLLECTIONS = { runs: "runs", cursors: "cursors", ledger: "ledger", lock: "lock", meta: "meta" };
+export const COLLECTIONS = { runs: "runs", cursors: "cursors", ledger: "ledger", lock: "lock", meta: "meta", submissions: "submissions" };
 export const LOCK_PATH = "lock/run";
 export const META_CURRENT = "meta/current";
 export const META_CUTOVER = "meta/cutover";
+// {lastRunAt, lastRunId, lastStatus, missedAlertFor?}: written by the scheduled task at each
+// run start, read for the missed-run check (schedule.mjs missedRuns).
+export const META_SCHEDULE = "meta/schedule";
 export const LOCK_TTL_MS = 30_000;
 export const HISTORY_LIMIT = 50;
 const DOC_BUDGET = 200_000; // bytes of JSON; a db document holds at most 256 KiB
@@ -19,11 +22,17 @@ const STEP_ITEMS = 3;
 
 // db path segments allow letters, digits and _ - . ~ : @ + only, at most 200 bytes.
 const safeSegment = (s) => String(s).replace(/[^A-Za-z0-9_.~:@+-]+/g, "-").replace(/^[.-]+|-+$/g, "").slice(0, 40) || "x";
-export const cursorId = (step) => `c-${safeSegment(step)}-${hashHex("sha256", String(step)).slice(0, 8)}`;
+// Two cursor documents per poll step: "scheduled" (c-...) is what the scheduled task works
+// from; "manual" (m-...) is what Run now from the artifact works from and advances. A manual
+// run never moves the scheduled cursor unless the person chooses so, and only the cutover step
+// ("Seed cursor") or that choice copies one to the other (seedCursorRecord).
+export const CURSOR_KINDS = ["scheduled", "manual"];
+export const cursorId = (step, kind = "scheduled") => `${kind === "manual" ? "m" : "c"}-${safeSegment(step)}-${hashHex("sha256", String(step)).slice(0, 8)}`;
 export const runPath = (runId) => `runs/${safeSegment(runId)}`;
 export const statePath = (runId) => `${runPath(runId)}/state/current`;
 export const ledgerPath = (effectKey) => `ledger/${safeSegment(effectKey)}`;
-export const cursorPath = (step) => `cursors/${cursorId(step)}`;
+export const cursorPath = (step, kind = "scheduled") => `cursors/${cursorId(step, kind)}`;
+export const submissionPath = (id) => `submissions/${safeSegment(id)}`;
 
 const byteLength = (s) => new TextEncoder().encode(s).length;
 // A JSON value cut to fit `max` bytes: strings are shortened, the rest becomes a preview.
@@ -223,14 +232,79 @@ export function ledgerEntry(e) {
   };
 }
 
-// cursors/<cursorId(step)>
-export function cursorRecord({ step, cursor, runId, at, definitionHash, seeded = false }) {
-  return { format: RECORD_FORMAT, step, cursor: cursor ?? null, runId: runId ?? null, updatedAt: at, definitionHash: definitionHash ?? null, seeded: !!seeded };
+// cursors/<cursorId(step, kind)>. A document without `kind` (written before kinds existed)
+// is a scheduled cursor.
+export function cursorRecord({ step, cursor, runId, at, definitionHash, seeded = false, kind = "scheduled", copiedFrom }) {
+  return { format: RECORD_FORMAT, kind, step, cursor: cursor ?? null, runId: runId ?? null, updatedAt: at, definitionHash: definitionHash ?? null, seeded: !!seeded, ...(copiedFrom ? { copiedFrom } : {}) };
 }
-export function cursorsFromDocs(docs) {
+export function cursorsFromDocs(docs, kind = "scheduled") {
   const out = {};
-  for (const d of docs ?? []) if (isObject(d) && typeof d.step === "string" && d.cursor != null) out[d.step] = d.cursor;
+  for (const d of docs ?? []) if (isObject(d) && typeof d.step === "string" && d.cursor != null && (d.kind ?? "scheduled") === kind) out[d.step] = d.cursor;
   return out;
+}
+// The cursor a run starts from: a manual run takes its own cursor, else the scheduled one
+// (reading it does not move it); a scheduled run takes only the scheduled one.
+export function startCursors(docs, trigger) {
+  const scheduled = cursorsFromDocs(docs, "scheduled");
+  return trigger === "manual" ? { ...scheduled, ...cursorsFromDocs(docs, "manual") } : scheduled;
+}
+// The cutover step or the person's explicit choice: copy a cursor into the other kind.
+export function seedCursorRecord(doc, { to = "scheduled", at, runId } = {}) {
+  return cursorRecord({ step: doc.step, cursor: doc.cursor, runId: runId ?? doc.runId, at, definitionHash: doc.definitionHash, seeded: true, kind: to, copiedFrom: doc.kind ?? "scheduled" });
+}
+
+// ---------- form submissions (artifact form -> scheduled task hand-off) ----------
+//
+// submissions/<id>: {format, submissionId, workflow, definitionHash, trigger (step name), item,
+// status (new|processing|done|failed), submittedAt, runId?, processedAt?, error?}. The page
+// writes "new" when a step cannot run in the artifact (a task-handoff requirement); the task
+// driver's poll-submissions source picks "new" ones up in submittedAt order and records the
+// outcome.
+export const SUBMISSION_STATUS = ["new", "processing", "done", "failed"];
+export function submissionRecord({ submissionId, workflow, definitionHash, trigger, item, submittedAt, status = "new", runId, processedAt, error }) {
+  return { format: RECORD_FORMAT, submissionId, workflow: workflow ?? null, definitionHash: definitionHash ?? null, trigger: trigger ?? null, item: clip(item, 64_000), status, submittedAt, ...(runId ? { runId } : {}), ...(processedAt ? { processedAt } : {}), ...(error ? { error: String(error).slice(0, 500) } : {}) };
+}
+
+// n8n Form Trigger fields (formFields.values): {fieldLabel, fieldType (text by default),
+// requiredField, placeholder?, fieldOptions: {values: [{option}]}, multiselect?}. Types the
+// page renders: text, number, email, date, dropdown, textarea, checkbox (also password and
+// html/hidden, kept as text or skipped).
+export const FORM_TYPES = ["text", "number", "email", "date", "dropdown", "textarea", "checkbox", "password"];
+const fieldType = (f) => (FORM_TYPES.includes(f?.fieldType) ? f.fieldType : f?.fieldType === "html" || f?.fieldType === "hiddenField" ? null : "text");
+export function formFields(form) {
+  return (form?.fields ?? []).filter((f) => isObject(f) && typeof f.fieldLabel === "string" && fieldType(f)).map((f) => ({ label: f.fieldLabel, type: fieldType(f), required: f.requiredField === true, placeholder: typeof f.placeholder === "string" ? f.placeholder : "", options: (f.fieldOptions?.values ?? []).map((o) => String(o?.option ?? "")).filter((o) => o !== ""), multiple: f.multiselect === true }));
+}
+// Problems with the submitted values ([] when fine). values: {label: string | string[] | bool}.
+export function formErrors(form, values = {}) {
+  const errs = [];
+  for (const f of formFields(form)) {
+    const v = values[f.label];
+    const empty = v === undefined || v === null || v === "" || (Array.isArray(v) && !v.length) || v === false;
+    if (empty) {
+      if (f.required) errs.push({ field: f.label, message: `${f.label} is required` });
+      continue;
+    }
+    if (f.type === "number" && !Number.isFinite(Number(v))) errs.push({ field: f.label, message: `${f.label} must be a number` });
+    if (f.type === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v))) errs.push({ field: f.label, message: `${f.label} must be an email address` });
+    if (f.type === "date" && !/^\d{4}-\d{2}-\d{2}$/.test(String(v))) errs.push({ field: f.label, message: `${f.label} must be a date` });
+    if (f.type === "dropdown" && f.options.length && ![].concat(v).every((x) => f.options.includes(x))) errs.push({ field: f.label, message: `${f.label} must be one of the listed options` });
+  }
+  return errs;
+}
+// The item n8n's Form Trigger (v2.2+) emits: each field under its label, numbers as numbers,
+// a checkbox list and a multiselect dropdown as arrays, then submittedAt and formMode.
+export function formItem(form, values = {}, { now = Date.now(), mode = "production" } = {}) {
+  const item = {};
+  for (const f of formFields(form)) {
+    const v = values[f.label];
+    if (f.type === "number") item[f.label] = v === undefined || v === "" ? null : Number(v);
+    else if (f.type === "checkbox") item[f.label] = f.options.length ? [].concat(v ?? []).filter((x) => f.options.includes(x)) : v === true || v === "on" || (Array.isArray(v) && v.length > 0);
+    else if (f.type === "dropdown" && f.multiple) item[f.label] = [].concat(v ?? []);
+    else item[f.label] = v === undefined || v === null ? "" : String(v);
+  }
+  item.submittedAt = new Date(now).toISOString();
+  item.formMode = mode;
+  return item;
 }
 
 // lock/run. The page holds it through db `acquire` (a lease); a writer without `acquire` (a
@@ -254,10 +328,10 @@ export function cutoverChecklist({ definition, definitionHash, runs = [], cursor
   const polls = Object.entries(definition.steps ?? {}).filter(([, s]) => s.kind === "trigger" && s.poll && s.settings?.disabled !== true).map(([n]) => n);
   const clean = runs.find((r) => r.dryRun && r.status === "done" && r.definitionHash === definitionHash);
   const scheduled = runs.find((r) => r.trigger === "scheduled");
-  const seeded = polls.filter((p) => cursors[p] != null);
+  const seeded = polls.filter((p) => cursors[p] != null); // scheduled cursors only
   return [
     { id: "dry-run", label: "Dry run clean", state: clean ? "done" : "todo", detail: clean ? `run ${clean.runId}` : "Run now with dry run on, until it ends done with this definition", at: clean?.startedAt ?? null },
-    { id: "seed-cursor", label: "Seed cursor", state: !polls.length ? "n/a" : seeded.length === polls.length ? "done" : "todo", detail: !polls.length ? "No poll trigger" : `${seeded.length} of ${polls.length} poll trigger(s) have a cursor`, at: null },
+    { id: "seed-cursor", label: "Seed cursor", state: !polls.length ? "n/a" : seeded.length === polls.length ? "done" : "todo", detail: !polls.length ? "No poll trigger" : `${seeded.length} of ${polls.length} poll trigger(s) have a scheduled cursor; Seed copies the dry run's cursor so the first scheduled run does not replay history`, at: null },
     { id: "enable-schedule", label: "Enable schedule", state: cutover.scheduleEnabledAt || scheduled ? "done" : "todo", detail: cutover.scheduleEnabledAt ? "enabled" : scheduled ? "first scheduled run" : "Create the scheduled task from task-prompt.md", at: cutover.scheduleEnabledAt ?? scheduled?.startedAt ?? null },
     { id: "deactivate-n8n", label: "Deactivate the n8n workflow", state: cutover.n8nDeactivatedAt ? "done" : "todo", detail: cutover.n8nDeactivatedAt ? "deactivated" : "Turn the workflow off in n8n once a scheduled run is clean", at: cutover.n8nDeactivatedAt ?? null },
   ];

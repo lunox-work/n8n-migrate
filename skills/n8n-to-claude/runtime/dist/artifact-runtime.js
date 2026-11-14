@@ -14921,10 +14921,13 @@ const { isObject } = __m_util_mjs;
 
 
 const RECORD_FORMAT = 1;
-const COLLECTIONS = { runs: "runs", cursors: "cursors", ledger: "ledger", lock: "lock", meta: "meta" };
+const COLLECTIONS = { runs: "runs", cursors: "cursors", ledger: "ledger", lock: "lock", meta: "meta", submissions: "submissions" };
 const LOCK_PATH = "lock/run";
 const META_CURRENT = "meta/current";
 const META_CUTOVER = "meta/cutover";
+// {lastRunAt, lastRunId, lastStatus, missedAlertFor?}: written by the scheduled task at each
+// run start, read for the missed-run check (schedule.mjs missedRuns).
+const META_SCHEDULE = "meta/schedule";
 const LOCK_TTL_MS = 30_000;
 const HISTORY_LIMIT = 50;
 const DOC_BUDGET = 200_000; // bytes of JSON; a db document holds at most 256 KiB
@@ -14932,11 +14935,17 @@ const STEP_ITEMS = 3;
 
 // db path segments allow letters, digits and _ - . ~ : @ + only, at most 200 bytes.
 const safeSegment = (s) => String(s).replace(/[^A-Za-z0-9_.~:@+-]+/g, "-").replace(/^[.-]+|-+$/g, "").slice(0, 40) || "x";
-const cursorId = (step) => `c-${safeSegment(step)}-${hashHex("sha256", String(step)).slice(0, 8)}`;
+// Two cursor documents per poll step: "scheduled" (c-...) is what the scheduled task works
+// from; "manual" (m-...) is what Run now from the artifact works from and advances. A manual
+// run never moves the scheduled cursor unless the person chooses so, and only the cutover step
+// ("Seed cursor") or that choice copies one to the other (seedCursorRecord).
+const CURSOR_KINDS = ["scheduled", "manual"];
+const cursorId = (step, kind = "scheduled") => `${kind === "manual" ? "m" : "c"}-${safeSegment(step)}-${hashHex("sha256", String(step)).slice(0, 8)}`;
 const runPath = (runId) => `runs/${safeSegment(runId)}`;
 const statePath = (runId) => `${runPath(runId)}/state/current`;
 const ledgerPath = (effectKey) => `ledger/${safeSegment(effectKey)}`;
-const cursorPath = (step) => `cursors/${cursorId(step)}`;
+const cursorPath = (step, kind = "scheduled") => `cursors/${cursorId(step, kind)}`;
+const submissionPath = (id) => `submissions/${safeSegment(id)}`;
 
 const byteLength = (s) => new TextEncoder().encode(s).length;
 // A JSON value cut to fit `max` bytes: strings are shortened, the rest becomes a preview.
@@ -15136,14 +15145,79 @@ function ledgerEntry(e) {
   };
 }
 
-// cursors/<cursorId(step)>
-function cursorRecord({ step, cursor, runId, at, definitionHash, seeded = false }) {
-  return { format: RECORD_FORMAT, step, cursor: cursor ?? null, runId: runId ?? null, updatedAt: at, definitionHash: definitionHash ?? null, seeded: !!seeded };
+// cursors/<cursorId(step, kind)>. A document without `kind` (written before kinds existed)
+// is a scheduled cursor.
+function cursorRecord({ step, cursor, runId, at, definitionHash, seeded = false, kind = "scheduled", copiedFrom }) {
+  return { format: RECORD_FORMAT, kind, step, cursor: cursor ?? null, runId: runId ?? null, updatedAt: at, definitionHash: definitionHash ?? null, seeded: !!seeded, ...(copiedFrom ? { copiedFrom } : {}) };
 }
-function cursorsFromDocs(docs) {
+function cursorsFromDocs(docs, kind = "scheduled") {
   const out = {};
-  for (const d of docs ?? []) if (isObject(d) && typeof d.step === "string" && d.cursor != null) out[d.step] = d.cursor;
+  for (const d of docs ?? []) if (isObject(d) && typeof d.step === "string" && d.cursor != null && (d.kind ?? "scheduled") === kind) out[d.step] = d.cursor;
   return out;
+}
+// The cursor a run starts from: a manual run takes its own cursor, else the scheduled one
+// (reading it does not move it); a scheduled run takes only the scheduled one.
+function startCursors(docs, trigger) {
+  const scheduled = cursorsFromDocs(docs, "scheduled");
+  return trigger === "manual" ? { ...scheduled, ...cursorsFromDocs(docs, "manual") } : scheduled;
+}
+// The cutover step or the person's explicit choice: copy a cursor into the other kind.
+function seedCursorRecord(doc, { to = "scheduled", at, runId } = {}) {
+  return cursorRecord({ step: doc.step, cursor: doc.cursor, runId: runId ?? doc.runId, at, definitionHash: doc.definitionHash, seeded: true, kind: to, copiedFrom: doc.kind ?? "scheduled" });
+}
+
+// ---------- form submissions (artifact form -> scheduled task hand-off) ----------
+//
+// submissions/<id>: {format, submissionId, workflow, definitionHash, trigger (step name), item,
+// status (new|processing|done|failed), submittedAt, runId?, processedAt?, error?}. The page
+// writes "new" when a step cannot run in the artifact (a task-handoff requirement); the task
+// driver's poll-submissions source picks "new" ones up in submittedAt order and records the
+// outcome.
+const SUBMISSION_STATUS = ["new", "processing", "done", "failed"];
+function submissionRecord({ submissionId, workflow, definitionHash, trigger, item, submittedAt, status = "new", runId, processedAt, error }) {
+  return { format: RECORD_FORMAT, submissionId, workflow: workflow ?? null, definitionHash: definitionHash ?? null, trigger: trigger ?? null, item: clip(item, 64_000), status, submittedAt, ...(runId ? { runId } : {}), ...(processedAt ? { processedAt } : {}), ...(error ? { error: String(error).slice(0, 500) } : {}) };
+}
+
+// n8n Form Trigger fields (formFields.values): {fieldLabel, fieldType (text by default),
+// requiredField, placeholder?, fieldOptions: {values: [{option}]}, multiselect?}. Types the
+// page renders: text, number, email, date, dropdown, textarea, checkbox (also password and
+// html/hidden, kept as text or skipped).
+const FORM_TYPES = ["text", "number", "email", "date", "dropdown", "textarea", "checkbox", "password"];
+const fieldType = (f) => (FORM_TYPES.includes(f?.fieldType) ? f.fieldType : f?.fieldType === "html" || f?.fieldType === "hiddenField" ? null : "text");
+function formFields(form) {
+  return (form?.fields ?? []).filter((f) => isObject(f) && typeof f.fieldLabel === "string" && fieldType(f)).map((f) => ({ label: f.fieldLabel, type: fieldType(f), required: f.requiredField === true, placeholder: typeof f.placeholder === "string" ? f.placeholder : "", options: (f.fieldOptions?.values ?? []).map((o) => String(o?.option ?? "")).filter((o) => o !== ""), multiple: f.multiselect === true }));
+}
+// Problems with the submitted values ([] when fine). values: {label: string | string[] | bool}.
+function formErrors(form, values = {}) {
+  const errs = [];
+  for (const f of formFields(form)) {
+    const v = values[f.label];
+    const empty = v === undefined || v === null || v === "" || (Array.isArray(v) && !v.length) || v === false;
+    if (empty) {
+      if (f.required) errs.push({ field: f.label, message: `${f.label} is required` });
+      continue;
+    }
+    if (f.type === "number" && !Number.isFinite(Number(v))) errs.push({ field: f.label, message: `${f.label} must be a number` });
+    if (f.type === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v))) errs.push({ field: f.label, message: `${f.label} must be an email address` });
+    if (f.type === "date" && !/^\d{4}-\d{2}-\d{2}$/.test(String(v))) errs.push({ field: f.label, message: `${f.label} must be a date` });
+    if (f.type === "dropdown" && f.options.length && ![].concat(v).every((x) => f.options.includes(x))) errs.push({ field: f.label, message: `${f.label} must be one of the listed options` });
+  }
+  return errs;
+}
+// The item n8n's Form Trigger (v2.2+) emits: each field under its label, numbers as numbers,
+// a checkbox list and a multiselect dropdown as arrays, then submittedAt and formMode.
+function formItem(form, values = {}, { now = Date.now(), mode = "production" } = {}) {
+  const item = {};
+  for (const f of formFields(form)) {
+    const v = values[f.label];
+    if (f.type === "number") item[f.label] = v === undefined || v === "" ? null : Number(v);
+    else if (f.type === "checkbox") item[f.label] = f.options.length ? [].concat(v ?? []).filter((x) => f.options.includes(x)) : v === true || v === "on" || (Array.isArray(v) && v.length > 0);
+    else if (f.type === "dropdown" && f.multiple) item[f.label] = [].concat(v ?? []);
+    else item[f.label] = v === undefined || v === null ? "" : String(v);
+  }
+  item.submittedAt = new Date(now).toISOString();
+  item.formMode = mode;
+  return item;
 }
 
 // lock/run. The page holds it through db `acquire` (a lease); a writer without `acquire` (a
@@ -15167,16 +15241,219 @@ function cutoverChecklist({ definition, definitionHash, runs = [], cursors = {},
   const polls = Object.entries(definition.steps ?? {}).filter(([, s]) => s.kind === "trigger" && s.poll && s.settings?.disabled !== true).map(([n]) => n);
   const clean = runs.find((r) => r.dryRun && r.status === "done" && r.definitionHash === definitionHash);
   const scheduled = runs.find((r) => r.trigger === "scheduled");
-  const seeded = polls.filter((p) => cursors[p] != null);
+  const seeded = polls.filter((p) => cursors[p] != null); // scheduled cursors only
   return [
     { id: "dry-run", label: "Dry run clean", state: clean ? "done" : "todo", detail: clean ? `run ${clean.runId}` : "Run now with dry run on, until it ends done with this definition", at: clean?.startedAt ?? null },
-    { id: "seed-cursor", label: "Seed cursor", state: !polls.length ? "n/a" : seeded.length === polls.length ? "done" : "todo", detail: !polls.length ? "No poll trigger" : `${seeded.length} of ${polls.length} poll trigger(s) have a cursor`, at: null },
+    { id: "seed-cursor", label: "Seed cursor", state: !polls.length ? "n/a" : seeded.length === polls.length ? "done" : "todo", detail: !polls.length ? "No poll trigger" : `${seeded.length} of ${polls.length} poll trigger(s) have a scheduled cursor; Seed copies the dry run's cursor so the first scheduled run does not replay history`, at: null },
     { id: "enable-schedule", label: "Enable schedule", state: cutover.scheduleEnabledAt || scheduled ? "done" : "todo", detail: cutover.scheduleEnabledAt ? "enabled" : scheduled ? "first scheduled run" : "Create the scheduled task from task-prompt.md", at: cutover.scheduleEnabledAt ?? scheduled?.startedAt ?? null },
     { id: "deactivate-n8n", label: "Deactivate the n8n workflow", state: cutover.n8nDeactivatedAt ? "done" : "todo", detail: cutover.n8nDeactivatedAt ? "deactivated" : "Turn the workflow off in n8n once a scheduled run is clean", at: cutover.n8nDeactivatedAt ?? null },
   ];
 }
 
-return { RECORD_FORMAT, COLLECTIONS, LOCK_PATH, META_CURRENT, META_CUTOVER, LOCK_TTL_MS, HISTORY_LIMIT, cursorId, runPath, statePath, ledgerPath, cursorPath, clip, stepStatuses, stepItems, runRecord, ledgerEntry, cursorRecord, cursorsFromDocs, lockBody, lockBlocks, cutoverChecklist };
+return { RECORD_FORMAT, COLLECTIONS, LOCK_PATH, META_CURRENT, META_CUTOVER, META_SCHEDULE, LOCK_TTL_MS, HISTORY_LIMIT, CURSOR_KINDS, cursorId, runPath, statePath, ledgerPath, cursorPath, submissionPath, clip, stepStatuses, stepItems, runRecord, ledgerEntry, cursorRecord, cursorsFromDocs, startCursors, seedCursorRecord, SUBMISSION_STATUS, submissionRecord, FORM_TYPES, formFields, formErrors, formItem, lockBody, lockBlocks, cutoverChecklist };
+})();
+
+// ---- src/schedule.mjs ----
+const __m_schedule_mjs = (() => {
+// Expected run times of a trigger's schedule (trigger step `schedule`: {cron: [...],
+// everySeconds?, timezone}) and the runs a schedule missed since the last recorded run.
+// Browser-safe: the task driver uses it for the missed-run alert, the artifact page to show
+// missed runs in its history. Cron: 5 fields (minute first) or 6 (second first), as n8n
+// accepts and the converter writes; evaluated in the schedule's timezone with Luxon, so DST
+// moves fires the way n8n's cron does.
+
+
+const FIELDS = [
+  { min: 0, max: 59 },
+  { min: 0, max: 59 },
+  { min: 0, max: 23 },
+  { min: 1, max: 31 },
+  { min: 1, max: 12, names: ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], base: 1 },
+  { min: 0, max: 7, names: ["sun", "mon", "tue", "wed", "thu", "fri", "sat"], base: 0 },
+];
+const MAX_WINDOW_MS = 35 * 86400_000; // a gap longer than this is reported as "more than"
+const DEFAULT_GRACE_MS = 15 * 60_000; // cloud runs "can start several minutes late"
+
+function value(s, f) {
+  if (/^\d+$/.test(s)) return Number(s);
+  const i = f.names ? f.names.indexOf(s.toLowerCase()) : -1;
+  if (i < 0) throw new Error(`bad cron value "${s}"`);
+  return i + f.base;
+}
+function field(text, f) {
+  const set = new Set();
+  for (const part of text.split(",")) {
+    const m = /^([^/]+)(?:\/(\d+))?$/.exec(part);
+    if (!m) throw new Error(`bad cron field "${text}"`);
+    const step = m[2] === undefined ? 1 : Number(m[2]);
+    let lo;
+    let hi;
+    if (m[1] === "*" || m[1] === "?") [lo, hi] = [f.min, f.max];
+    else if (m[1].includes("-")) [lo, hi] = m[1].split("-").map((x) => value(x, f));
+    else (lo = value(m[1], f)), (hi = m[2] === undefined ? lo : f.max);
+    if (step < 1 || lo < f.min || hi > f.max || lo > hi) throw new Error(`cron field out of range "${text}"`);
+    for (let x = lo; x <= hi; x += step) set.add(x);
+  }
+  return set;
+}
+function parseCron(expr) {
+  const parts = String(expr ?? "").trim().split(/\s+/);
+  if (parts.length === 5) parts.unshift("0");
+  if (parts.length !== 6) throw new Error(`cron needs 5 or 6 fields: "${expr}"`);
+  const s = parts.map((p, i) => field(p, FIELDS[i]));
+  if (s[5].has(7)) s[5].add(0);
+  return { sec: s[0], min: s[1], hour: s[2], dom: s[3], mon: s[4], dow: s[5], domStar: /^[*?]/.test(parts[3]), dowStar: /^[*?]/.test(parts[5]) };
+}
+function dayMatches(c, d) {
+  if (!c.mon.has(d.month)) return false;
+  const dow = d.weekday % 7;
+  if (c.domStar && c.dowStar) return true;
+  if (c.domStar) return c.dow.has(dow);
+  if (c.dowStar) return c.dom.has(d.day);
+  return c.dom.has(d.day) || c.dow.has(dow);
+}
+
+// Fire times (ms) in (fromMs, toMs], at most `limit`. `capped` when the limit cut the list.
+function expectedRuns(schedule, fromMs, toMs, { limit = 500 } = {}) {
+  const out = [];
+  if (!schedule || !(toMs > fromMs)) return { times: out, capped: false };
+  const crons = (schedule.cron ?? []).filter(Boolean).map(parseCron);
+  const zone = schedule.timezone || "UTC";
+  if (!crons.length) {
+    const every = Number(schedule.everySeconds) * 1000;
+    if (!(every > 0)) return { times: out, capped: false };
+    for (let t = fromMs + every; t <= toMs; t += every) {
+      if (out.length >= limit) return { times: out, capped: true };
+      out.push(t);
+    }
+    return { times: out, capped: false };
+  }
+  // Minute by minute in the zone; seconds fields fire within the minute.
+  let dt = DateTime.fromMillis(Math.floor(fromMs / 60_000) * 60_000, { zone });
+  if (!dt.isValid) dt = DateTime.fromMillis(Math.floor(fromMs / 60_000) * 60_000, { zone: "UTC" });
+  for (let guard = 0; guard < 60 * 24 * 40 && dt.toMillis() <= toMs; guard++, dt = dt.plus({ minutes: 1 })) {
+    const hits = new Set();
+    for (const c of crons) {
+      if (!c.min.has(dt.minute) || !c.hour.has(dt.hour) || !dayMatches(c, dt)) continue;
+      for (const s of c.sec) hits.add(dt.toMillis() + s * 1000);
+    }
+    for (const t of [...hits].sort((a, b) => a - b)) {
+      if (t <= fromMs || t > toMs) continue;
+      if (out.length >= limit) return { times: out, capped: true };
+      out.push(t);
+    }
+  }
+  return { times: out, capped: false };
+}
+
+// Runs the schedule expected after the last run and before now minus the grace period.
+// lastRunAt: when the last recorded run (any status) started; null when there is none (then
+// nothing counts as missed: the first run is the cutover). -> {count, since, first, times,
+// capped}. A fire within the grace period of now is the run that is starting now.
+function missedRuns({ schedule, lastRunAt, now = Date.now(), graceMs = DEFAULT_GRACE_MS } = {}) {
+  const last = typeof lastRunAt === "number" ? lastRunAt : Date.parse(lastRunAt ?? "");
+  if (!schedule || !Number.isFinite(last)) return { count: 0, since: null, first: null, times: [], capped: false };
+  const from = Math.max(last, now - MAX_WINDOW_MS);
+  const { times, capped } = expectedRuns(schedule, from, now - graceMs);
+  return { count: times.length, since: new Date(last).toISOString(), first: times[0] ? new Date(times[0]).toISOString() : null, times: times.map((t) => new Date(t).toISOString()), capped: capped || from > last };
+}
+
+// The schedule of a definition's first enabled trigger that has one.
+function definitionSchedule(definition) {
+  for (const s of Object.values(definition?.steps ?? {})) if (s.kind === "trigger" && s.schedule && s.settings?.disabled !== true) return s.schedule;
+  return null;
+}
+
+return { DEFAULT_GRACE_MS, parseCron, expectedRuns, missedRuns, definitionSchedule };
+})();
+
+// ---- src/alerts.mjs ----
+const __m_alerts_mjs = (() => {
+const { isObject } = __m_util_mjs;
+const { hashHex } = __m_hash_mjs;
+// Run alerts (PLAN Phase 4): a failed run, a missed run and a write whose outcome is unknown
+// notify the person through the one channel chosen at setup.
+//
+// definition.alerts = {channel: {connector, tool, target}}; the converter also lists the
+// channel in definition.allow.alerts, its own category: an alert can go only to that target,
+// with a fixed template, so a hostile tool response cannot turn the alert path into a way to
+// post elsewhere or relay its text. The template carries the workflow name, the step name, an
+// error class, the run id and counts; never an error message or payload data. Names come from
+// the definition (the person's own workflow) and are cleaned: no line breaks, no angle
+// brackets (Slack mentions), cut to 80 characters.
+//
+// Without a channel the task's final message states the failure (cloud task sessions are
+// visible to the person); alertRequest returns null.
+//
+// Browser-safe and pure.
+
+
+// The tools an alert can use, and how the fixed text becomes their arguments.
+const ALERT_TOOLS = {
+  "slack.slack_send_message": (target, m) => ({ channel_id: target, message: m.text }),
+  "gmail.create_draft": (target, m) => ({ to: [target], subject: m.subject, body: m.text }),
+  "gmail.send_message": (target, m) => ({ to: [target], subject: m.subject, body: m.text }),
+};
+const ALERT_KINDS = ["failed", "missed", "needs-check"];
+
+function cleanName(s, max = 80) {
+  const t = String(s ?? "").replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, " ").replace(/[<>]/g, "").replace(/\s+/g, " ").trim();
+  return t.length > max ? t.slice(0, max - 1) + "…" : t || "unnamed";
+}
+const errorClass = (e) => (/^[A-Za-z][A-Za-z0-9]{0,40}$/.test(String(e ?? "")) ? String(e) : "Error");
+const safeId = (s) => String(s ?? "").replace(/[^\w.:-]+/g, "").slice(0, 64) || "unknown";
+const safeTime = (s) => (Number.isFinite(Date.parse(s ?? "")) ? new Date(Date.parse(s)).toISOString().replace(/\.\d{3}Z$/, "Z") : "an unknown time");
+
+// The fixed message. info: {workflow, runId, step?, errorClass?, count?, since?, tool?}
+function alertMessage(kind, info = {}) {
+  const wf = `"${cleanName(info.workflow)}"`;
+  const run = safeId(info.runId);
+  const step = info.step ? ` at step "${cleanName(info.step)}"` : "";
+  let text;
+  let subject;
+  if (kind === "failed") {
+    text = `n8n-to-claude: run ${run} of ${wf} failed${step} (${errorClass(info.errorClass)}). The run record has the details; nothing after that step ran.`;
+    subject = `Workflow failed: ${cleanName(info.workflow, 60)}`;
+  } else if (kind === "missed") {
+    const n = Math.max(0, Math.floor(Number(info.count) || 0));
+    text = `n8n-to-claude: ${wf} missed ${n}${info.capped ? " or more" : ""} scheduled run${n === 1 ? "" : "s"} since ${safeTime(info.since)}. Check that the scheduled task is enabled and the computer (for a local task) was on.`;
+    subject = `Workflow missed runs: ${cleanName(info.workflow, 60)}`;
+  } else if (kind === "needs-check") {
+    text = `n8n-to-claude: run ${run} of ${wf} stopped${step}: a write was going out when an earlier session ended, and it is not known whether it was sent${info.tool ? ` (${cleanName(info.tool, 60)})` : ""}. Check before re-sending; it is never sent again on its own.`;
+    subject = `Workflow needs a check: ${cleanName(info.workflow, 60)}`;
+  } else throw new Error(`unknown alert kind ${kind}`);
+  return { kind, text, subject };
+}
+
+function alertChannel(definition) {
+  const ch = definition?.alerts?.channel;
+  if (!isObject(ch) || !ch.connector || !ch.tool || !ch.target) return null;
+  if (!ALERT_TOOLS[`${ch.connector}.${ch.tool}`]) return null;
+  const listed = (definition.allow?.alerts ?? []).some((a) => a.connector === ch.connector && a.tool === ch.tool && a.target === ch.target);
+  return listed ? ch : null;
+}
+
+// The request a driver hands out for an alert, or null without a usable channel. The effect
+// key makes a resent alert for the same event a ledger replay, not a second message.
+function alertRequest(definition, kind, info = {}) {
+  const ch = alertChannel(definition);
+  if (!ch) return null;
+  const m = alertMessage(kind, { workflow: definition.name, ...info });
+  const args = ALERT_TOOLS[`${ch.connector}.${ch.tool}`](ch.target, m);
+  const effectKey = `alert-${hashHex("sha256", `${kind}|${safeId(info.runId)}|${info.since ?? ""}|${info.count ?? ""}`).slice(0, 16)}`;
+  return { kind: "tool", purpose: "alert", alert: kind, step: "(alert)", connector: ch.connector, tool: ch.tool, args, effect: "write", effectKey };
+}
+
+// Is this tool call exactly an alert the definition allows? (hooks: containment for alerts)
+function isAllowedAlert(definition, connector, tool, args) {
+  const ch = alertChannel(definition);
+  if (!ch || ch.connector !== connector || ch.tool !== tool) return false;
+  const want = ALERT_TOOLS[`${connector}.${tool}`](ch.target, { text: "", subject: "" });
+  for (const [k, v] of Object.entries(want)) if (k !== "message" && k !== "body" && k !== "subject" && JSON.stringify(args?.[k]) !== JSON.stringify(v)) return false;
+  return true;
+}
+
+return { ALERT_TOOLS, ALERT_KINDS, cleanName, alertMessage, alertChannel, alertRequest, isAllowedAlert };
 })();
 
 const run = __m_api_mjs.run;
@@ -15214,13 +15491,16 @@ const COLLECTIONS = __m_records_mjs.COLLECTIONS;
 const LOCK_PATH = __m_records_mjs.LOCK_PATH;
 const META_CURRENT = __m_records_mjs.META_CURRENT;
 const META_CUTOVER = __m_records_mjs.META_CUTOVER;
+const META_SCHEDULE = __m_records_mjs.META_SCHEDULE;
 const LOCK_TTL_MS = __m_records_mjs.LOCK_TTL_MS;
 const HISTORY_LIMIT = __m_records_mjs.HISTORY_LIMIT;
+const CURSOR_KINDS = __m_records_mjs.CURSOR_KINDS;
 const cursorId = __m_records_mjs.cursorId;
 const runPath = __m_records_mjs.runPath;
 const statePath = __m_records_mjs.statePath;
 const ledgerPath = __m_records_mjs.ledgerPath;
 const cursorPath = __m_records_mjs.cursorPath;
+const submissionPath = __m_records_mjs.submissionPath;
 const clip = __m_records_mjs.clip;
 const stepStatuses = __m_records_mjs.stepStatuses;
 const stepItems = __m_records_mjs.stepItems;
@@ -15228,10 +15508,30 @@ const runRecord = __m_records_mjs.runRecord;
 const ledgerEntry = __m_records_mjs.ledgerEntry;
 const cursorRecord = __m_records_mjs.cursorRecord;
 const cursorsFromDocs = __m_records_mjs.cursorsFromDocs;
+const startCursors = __m_records_mjs.startCursors;
+const seedCursorRecord = __m_records_mjs.seedCursorRecord;
+const submissionRecord = __m_records_mjs.submissionRecord;
+const SUBMISSION_STATUS = __m_records_mjs.SUBMISSION_STATUS;
+const FORM_TYPES = __m_records_mjs.FORM_TYPES;
+const formFields = __m_records_mjs.formFields;
+const formErrors = __m_records_mjs.formErrors;
+const formItem = __m_records_mjs.formItem;
 const lockBody = __m_records_mjs.lockBody;
 const lockBlocks = __m_records_mjs.lockBlocks;
 const cutoverChecklist = __m_records_mjs.cutoverChecklist;
-return { run, start, resume, preflight, validateDefinition, definitionHash, resolveTrigger, expressionSupport, RUNTIME_VERSION, DEFINITION_SCHEMA_VERSION, SUPPORTED_TYPES, fromN8n, unwrapWorkflow, urlTarget, checkContainment, requestEffect, adaptResult, coerceArgs, applyCursorArg, advanceCursor, executeAgentTool, evaluateExpression, isExpression, RunnerError, ExpressionError, UnsupportedExpression, UnsupportedNode, ContainmentViolation, NodeError, BadInput, RECORD_FORMAT, COLLECTIONS, LOCK_PATH, META_CURRENT, META_CUTOVER, LOCK_TTL_MS, HISTORY_LIMIT, cursorId, runPath, statePath, ledgerPath, cursorPath, clip, stepStatuses, stepItems, runRecord, ledgerEntry, cursorRecord, cursorsFromDocs, lockBody, lockBlocks, cutoverChecklist };
+const parseCron = __m_schedule_mjs.parseCron;
+const expectedRuns = __m_schedule_mjs.expectedRuns;
+const missedRuns = __m_schedule_mjs.missedRuns;
+const definitionSchedule = __m_schedule_mjs.definitionSchedule;
+const DEFAULT_GRACE_MS = __m_schedule_mjs.DEFAULT_GRACE_MS;
+const ALERT_TOOLS = __m_alerts_mjs.ALERT_TOOLS;
+const ALERT_KINDS = __m_alerts_mjs.ALERT_KINDS;
+const alertMessage = __m_alerts_mjs.alertMessage;
+const alertChannel = __m_alerts_mjs.alertChannel;
+const alertRequest = __m_alerts_mjs.alertRequest;
+const isAllowedAlert = __m_alerts_mjs.isAllowedAlert;
+const cleanName = __m_alerts_mjs.cleanName;
+return { run, start, resume, preflight, validateDefinition, definitionHash, resolveTrigger, expressionSupport, RUNTIME_VERSION, DEFINITION_SCHEMA_VERSION, SUPPORTED_TYPES, fromN8n, unwrapWorkflow, urlTarget, checkContainment, requestEffect, adaptResult, coerceArgs, applyCursorArg, advanceCursor, executeAgentTool, evaluateExpression, isExpression, RunnerError, ExpressionError, UnsupportedExpression, UnsupportedNode, ContainmentViolation, NodeError, BadInput, RECORD_FORMAT, COLLECTIONS, LOCK_PATH, META_CURRENT, META_CUTOVER, META_SCHEDULE, LOCK_TTL_MS, HISTORY_LIMIT, CURSOR_KINDS, cursorId, runPath, statePath, ledgerPath, cursorPath, submissionPath, clip, stepStatuses, stepItems, runRecord, ledgerEntry, cursorRecord, cursorsFromDocs, startCursors, seedCursorRecord, submissionRecord, SUBMISSION_STATUS, FORM_TYPES, formFields, formErrors, formItem, lockBody, lockBlocks, cutoverChecklist, parseCron, expectedRuns, missedRuns, definitionSchedule, DEFAULT_GRACE_MS, ALERT_TOOLS, ALERT_KINDS, alertMessage, alertChannel, alertRequest, isAllowedAlert, cleanName };
 })();
 const __artifact = (() => {
 // Artifact driver (browser-safe): runs a definition from the artifact page's "Run now" on the
@@ -15483,6 +15783,9 @@ function createArtifactDriver(opts) {
     const snap = snapshot(ctx, res, extra);
     const rec = core.runRecord({ runId: ctx.runId, workflow, trigger: ctx.trigger, driver: "artifact", status, dryRun: ctx.dryRun, startedAt: ctx.startedAt, endedAt: status === "running" ? null : iso(now()), definitionHash: ctx.definitionHash, commit, effects: snap.effects, sent: ctx.sent, held: ctx.held, steps: snap.statuses, runData: snap.runData, handoff: extra.handoff, error: extra.error, unknown: extra.unknown, cursorsSaved: extra.cursorsSaved, resumable: status !== "done" && ctx.resumable });
     if (extra.unknown?.length) rec.unknown = extra.unknown.map((u) => ({ step: u.step, effectKey: u.effectKey, connector: u.connector, tool: u.tool, since: u.since, args: core.clip(u.args, 4_000) }));
+    // The cursor the run reached, kept in the record (a dry run saves none): Seed copies it.
+    if (extra.cursors && Object.keys(extra.cursors).length) rec.cursors = core.clip(extra.cursors, 8_000);
+    if (ctx.submissionId) rec.submissionId = ctx.submissionId;
     try {
       await setDoc(core.runPath(ctx.runId), rec);
     } catch {}
@@ -15545,13 +15848,18 @@ function createArtifactDriver(opts) {
       }
       res = await core.resume(res.state, results);
     }
+    // Run now works from and advances the manual cursor only; the scheduled cursor moves only
+    // when the person chose "also advance the scheduled cursor" (or later through Seed).
     let cursorsSaved = false;
     if (res.status === "done" && !ctx.dryRun && res.cursors && db()) {
-      for (const [step, cursor] of Object.entries(res.cursors)) await setDoc(core.cursorPath(step), core.cursorRecord({ step, cursor, runId: ctx.runId, at: iso(now()), definitionHash: ctx.definitionHash }));
+      for (const [step, cursor] of Object.entries(res.cursors)) {
+        await setDoc(core.cursorPath(step, "manual"), core.cursorRecord({ step, cursor, runId: ctx.runId, at: iso(now()), definitionHash: ctx.definitionHash, kind: "manual" }));
+        if (ctx.advanceScheduled) await setDoc(core.cursorPath(step, "scheduled"), core.cursorRecord({ step, cursor, runId: ctx.runId, at: iso(now()), definitionHash: ctx.definitionHash, kind: "scheduled", copiedFrom: "manual" }));
+      }
       cursorsSaved = true;
     }
     const error = res.status === "failed" ? res.error ?? res.state?.result?.error : undefined;
-    const out = await writeRecord(ctx, res, res.status, { final: true, error, cursorsSaved });
+    const out = await writeRecord(ctx, res, res.status, { final: true, error, cursorsSaved, cursors: res.status === "done" ? res.cursors : undefined });
     try {
       if (db()) await db().doc(core.statePath(ctx.runId)).delete();
     } catch {}
@@ -15577,11 +15885,11 @@ function createArtifactDriver(opts) {
     return Array.isArray(input) ? input : { node: name, items: [input] };
   }
 
-  async function runNow({ dryRun = true, input } = {}) {
+  async function runNow({ dryRun = true, input, advanceScheduled = false, submissionId } = {}) {
     return begin("manual", dryRun, async () => {
       const startedAt = iso(now());
       const runId = `a-${now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-      const ctx = { runId, dryRun, trigger: "manual", startedAt, definitionHash: embeddedHash, sent: {}, held: {}, resumable: false };
+      const ctx = { runId, dryRun, trigger: "manual", startedAt, definitionHash: embeddedHash, sent: {}, held: {}, resumable: false, advanceScheduled: !!advanceScheduled && !dryRun, submissionId };
       const pf = await preflight();
       if (!pf.ok) {
         const error = { message: pf.issues.filter((i) => i.level === "error").map((i) => i.message).join(" ") };
@@ -15599,7 +15907,7 @@ function createArtifactDriver(opts) {
         let cursors;
         try {
           const d = db();
-          if (d) cursors = core.cursorsFromDocs((await d.collection(core.COLLECTIONS.cursors).get()).docs.map((x) => x.data()));
+          if (d) cursors = core.startCursors((await d.collection(core.COLLECTIONS.cursors).get()).docs.map((x) => x.data()), "manual");
         } catch {}
         const res = await core.start(definition, { runId, clock: { startedAt }, mode: "manual", trigger: triggerFor(input), cursors: cursors && Object.keys(cursors).length ? cursors : undefined, virtualTime: true });
         if (!res.state) {
@@ -15678,7 +15986,61 @@ function createArtifactDriver(opts) {
     return core.cutoverChecklist({ definition, definitionHash: embeddedHash, runs: runs ?? (await history()), cursors, cutover: cut });
   }
 
-  return { preflight, runNow, resume, history, interrupted, cutover, holder, get running() { return running; } };
+  // ---------- cutover: seed the scheduled cursor ----------
+  // Copies the cursor of the latest clean run from this page (a dry run's record, or the
+  // manual cursor document) into the scheduled cursor, so the first scheduled run starts
+  // where the dry run read up to and does not replay history (PLAN Phase 7).
+  async function seedCursors() {
+    const d = db();
+    if (!d) return { refused: true, message: "This view has no run storage." };
+    const docs = (await d.collection(core.COLLECTIONS.cursors).get()).docs.map((x) => x.data());
+    const manual = docs.filter((x) => x.kind === "manual" && x.definitionHash === embeddedHash);
+    const runs = await history();
+    const clean = runs.find((r) => r.status === "done" && r.definitionHash === embeddedHash && r.cursors);
+    const from = manual.length ? manual : clean ? Object.entries(clean.cursors).map(([step, cursor]) => ({ step, cursor, runId: clean.runId, definitionHash: embeddedHash, kind: "manual" })) : [];
+    if (!from.length) return { refused: true, message: "No cursor to seed yet: run a dry run until it ends done, then seed." };
+    for (const doc of from) await setDoc(core.cursorPath(doc.step, "scheduled"), core.seedCursorRecord(doc, { to: "scheduled", at: iso(now()) }));
+    return { seeded: from.map((x) => x.step) };
+  }
+
+  // ---------- form ----------
+  // A form submission: validated against the trigger's fields, turned into n8n's Form Trigger
+  // item, then either run here (Run now with the item as the trigger, dry run as chosen) or,
+  // when a step cannot run in the artifact (form.handoff), stored in submissions/ for the
+  // scheduled task's poll-submissions source.
+  const formStep = Object.entries(definition?.steps ?? {}).find(([, st]) => st.kind === "trigger" && st.form && st.settings?.disabled !== true);
+  async function submitForm(values, { dryRun = true } = {}) {
+    if (!formStep) return { refused: true, message: "This workflow has no form." };
+    const [trigger, st] = formStep;
+    const errors = core.formErrors(st.form, values);
+    if (errors.length) return { invalid: true, errors };
+    const item = core.formItem(st.form, values, { now: now() });
+    const submissionId = `s-${now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    if (st.form.handoff) {
+      if (!db()) return { refused: true, message: "This view has no storage, so the submission cannot be kept for the scheduled task." };
+      await setDoc(core.submissionPath(submissionId), core.submissionRecord({ submissionId, workflow, definitionHash: embeddedHash, trigger, item, submittedAt: iso(now()) }));
+      return { queued: true, submissionId, handoff: st.form.handoff };
+    }
+    const out = await runNow({ dryRun, input: item, submissionId });
+    return { ...out, submissionId };
+  }
+
+  // ---------- missed scheduled runs (shown in the history) ----------
+  async function missed(runs, { graceMs } = {}) {
+    const schedule = core.definitionSchedule(definition);
+    if (!schedule) return null;
+    const list = runs ?? (await history());
+    const scheduled = list.filter((r) => r.trigger === "scheduled");
+    let meta = null;
+    try {
+      meta = await getDoc(core.META_SCHEDULE);
+    } catch {}
+    const last = [meta?.lastRunAt, scheduled[0]?.startedAt].filter(Boolean).sort().pop();
+    if (!last) return null;
+    return core.missedRuns({ schedule, lastRunAt: last, now: now(), graceMs });
+  }
+
+  return { preflight, runNow, resume, history, interrupted, cutover, seedCursors, submitForm, missed, form: formStep ? { trigger: formStep[0], ...formStep[1].form } : null, holder, get running() { return running; } };
 }
 
 return { composeModelInput, composeAgentInput, agentValue, mcpPayload, requestSummary, createArtifactDriver };
