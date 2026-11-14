@@ -40,7 +40,7 @@
             "headers": {
               "content-type": "text/plain"
             },
-            "body": "Internal Server Error"
+            "body": "ocr-gateway: upstream worker exited (code 137) while rendering page 1"
           }
         ]
       },
@@ -75,7 +75,7 @@
             "headers": {
               "content-type": "text/plain"
             },
-            "body": "Internal Server Error"
+            "body": "ocr-gateway: upstream worker exited (code 137) while rendering page 1"
           }
         ]
       },

@@ -12,7 +12,7 @@ const VARIANTS = ["normal", "empty", "malformed", "hostile"];
 
 test("every bench fixture validates, four variants per template", async () => {
   const ids = readdirSync(join(BENCH, "fixtures"));
-  assert.ok(ids.length >= 10);
+  assert.ok(ids.length >= 30);
   for (const id of ids) {
     const tpl = join(BENCH, "data", "wf", `${id}.json`);
     const raw = existsSync(tpl) ? JSON.parse(readFileSync(tpl, "utf8")) : null;
@@ -26,7 +26,7 @@ test("every bench fixture validates, four variants per template", async () => {
   }
 });
 
-test("the first ten dev templates of splits.json have fixtures", () => {
+test("the first thirty dev templates of splits.json have fixtures", () => {
   const splits = JSON.parse(readFileSync(join(BENCH, "splits.json"), "utf8"));
-  for (const { id } of splits.dev.slice(0, 10)) assert.ok(existsSync(join(BENCH, "fixtures", String(id), "normal.json")), String(id));
+  for (const { id } of splits.dev.slice(0, 30)) assert.ok(existsSync(join(BENCH, "fixtures", String(id), "normal.json")), String(id));
 });

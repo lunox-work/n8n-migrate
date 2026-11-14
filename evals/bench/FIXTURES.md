@@ -2,7 +2,7 @@
 
 A fixture says what the outside world returns to one template in one variant. It feeds both sides of the bench (n8n in Docker, and the migrated workflow on the Claude side), so the comparison measures the migration and not the inputs. Written by someone who has not seen the converter or the runtime.
 
-- Path: `evals/bench/fixtures/<templateId>/<variant>.json`, variants `normal`, `empty`, `malformed`, `hostile`. Schema: `fixture.schema.json`. Check: `node evals/bench/validate.mjs` (schema, node names against the template, captured connector tool names, hash against `corpus.json`; warns on read steps the fixture neither feeds nor lists).
+- Path: `evals/bench/fixtures/<templateId>/<variant>.json`, variants `normal`, `empty`, `malformed`, `hostile`. Schema: `fixture.schema.json`. Check: `node evals/bench/validate.mjs` (schema, node names against the template, captured connector tool names, hash against `corpus.json`; warns on read steps the fixture neither feeds nor lists, and on a trigger that is disabled in the template, which the run must enable by overlay).
 - `sha256` pins the template version. A changed template invalidates its fixtures.
 
 ## Fields

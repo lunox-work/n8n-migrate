@@ -1,0 +1,673 @@
+{
+  "schemaVersion": 1,
+  "template": 2658,
+  "sha256": "ba5c8d7ac6fbd848e7319395d4e32ba413c9943b298c547001e84dc6cb94f2b8",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the search returns a dataset item without origin_search.results",
+  "trigger": {
+    "node": "Execute Workflow Trigger",
+    "kind": "subworkflow",
+    "items": [
+      {
+        "json": {
+          "eventType": "research",
+          "createdAt": "2026-11-16T09:00:00.000+00:00",
+          "executedById": "1187",
+          "data": {
+            "row_number": 2,
+            "service": "Fieldnote",
+            "url": "https://www.fieldnote-crm.example/",
+            "collection": "api_schema_crawler_and_extractor"
+          }
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Web Search For API Schema",
+      "service": "apify-google-search",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.apify.com/v2/acts/serping~fast-google-search-results-scraper/run-sync-get-dataset-items",
+            "status": 200,
+            "body": [
+              {
+                "searchQuery": {
+                  "term": "site:fieldnote-crm.example \"Fieldnote\" api developer",
+                  "page": 1
+                },
+                "origin_search": {}
+              }
+            ]
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Apify connector; http with the header credential"
+      },
+      "note": "Apify actor run-sync-get-dataset-items (serping fast Google search): POST with searchTerms and resultsPerPage; the reply is the dataset items array"
+    },
+    {
+      "node": "Scrape Webpage Contents",
+      "service": "apify-web-scraper",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.apify.com/v2/acts/apify~web-scraper/run-sync-get-dataset-items",
+            "status": 200,
+            "body": []
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Apify connector; http with the header credential"
+      },
+      "note": "Apify web-scraper run-sync-get-dataset-items, one start URL per call, replies in item order (batches of 2, 30 s apart); the page function returns {url, title, body}"
+    },
+    {
+      "node": "Embeddings Google Gemini",
+      "service": "gemini-embeddings",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "embeddings stay with the provider"
+      },
+      "note": "Gemini text-embedding-004 batchEmbedContents, one request per stored page (each page body is under the 4,000-character chunk size, so one chunk)"
+    },
+    {
+      "node": "Get All Research",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1042334767,
+                    "title": "Extracted API Operations",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/Sheet1",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:E1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Service",
+                  "Website",
+                  "Stage 1 - Research",
+                  "Stage 2 - Extraction",
+                  "Stage 3 - Output File"
+                ],
+                [
+                  "Fieldnote",
+                  "https://www.fieldnote-crm.example/"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/Extracted API Operations",
+            "status": 200,
+            "body": {
+              "range": "Extracted API Operations!A1:G1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "service",
+                  "resource",
+                  "operation",
+                  "description",
+                  "url",
+                  "method",
+                  "documentation_url"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0",
+              "exportMimeType": "text/csv"
+            },
+            "result": {
+              "fileId": "1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0",
+              "title": "API Schema Crawler & Extractor",
+              "mimeType": "text/csv",
+              "content": "U2VydmljZSxXZWJzaXRlLFN0YWdlIDEgLSBSZXNlYXJjaCxTdGFnZSAyIC0gRXh0cmFjdGlvbixTdGFnZSAzIC0gT3V0cHV0IEZpbGUKRmllbGRub3RlLGh0dHBzOi8vd3d3LmZpZWxkbm90ZS1jcm0uZXhhbXBsZS8sLCwK"
+            }
+          }
+        ]
+      },
+      "note": "not on the research event's path (the manual orchestrator and the extraction and generate events reach it); served so every read has a source",
+      "connectorGaps": [
+        "row_number: n8n's Sheets node adds row_number to every row; a CSV export has none (it follows from the row position)",
+        "tabs: the Drive export holds the first tab only; there is no captured Sheets connector, so writes go over the Sheets API"
+      ]
+    },
+    {
+      "node": "Get All Extract",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1042334767,
+                    "title": "Extracted API Operations",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/Sheet1",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:E1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Service",
+                  "Website",
+                  "Stage 1 - Research",
+                  "Stage 2 - Extraction",
+                  "Stage 3 - Output File"
+                ],
+                [
+                  "Fieldnote",
+                  "https://www.fieldnote-crm.example/"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/Extracted API Operations",
+            "status": 200,
+            "body": {
+              "range": "Extracted API Operations!A1:G1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "service",
+                  "resource",
+                  "operation",
+                  "description",
+                  "url",
+                  "method",
+                  "documentation_url"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0",
+              "exportMimeType": "text/csv"
+            },
+            "result": {
+              "fileId": "1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0",
+              "title": "API Schema Crawler & Extractor",
+              "mimeType": "text/csv",
+              "content": "U2VydmljZSxXZWJzaXRlLFN0YWdlIDEgLSBSZXNlYXJjaCxTdGFnZSAyIC0gRXh0cmFjdGlvbixTdGFnZSAzIC0gT3V0cHV0IEZpbGUKRmllbGRub3RlLGh0dHBzOi8vd3d3LmZpZWxkbm90ZS1jcm0uZXhhbXBsZS8sLCwK"
+            }
+          }
+        ]
+      },
+      "note": "not on the research event's path (the manual orchestrator and the extraction and generate events reach it); served so every read has a source",
+      "connectorGaps": [
+        "row_number: n8n's Sheets node adds row_number to every row; a CSV export has none (it follows from the row position)",
+        "tabs: the Drive export holds the first tab only; there is no captured Sheets connector, so writes go over the Sheets API"
+      ]
+    },
+    {
+      "node": "Get All Generate",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1042334767,
+                    "title": "Extracted API Operations",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/Sheet1",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:E1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Service",
+                  "Website",
+                  "Stage 1 - Research",
+                  "Stage 2 - Extraction",
+                  "Stage 3 - Output File"
+                ],
+                [
+                  "Fieldnote",
+                  "https://www.fieldnote-crm.example/"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/Extracted API Operations",
+            "status": 200,
+            "body": {
+              "range": "Extracted API Operations!A1:G1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "service",
+                  "resource",
+                  "operation",
+                  "description",
+                  "url",
+                  "method",
+                  "documentation_url"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0",
+              "exportMimeType": "text/csv"
+            },
+            "result": {
+              "fileId": "1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0",
+              "title": "API Schema Crawler & Extractor",
+              "mimeType": "text/csv",
+              "content": "U2VydmljZSxXZWJzaXRlLFN0YWdlIDEgLSBSZXNlYXJjaCxTdGFnZSAyIC0gRXh0cmFjdGlvbixTdGFnZSAzIC0gT3V0cHV0IEZpbGUKRmllbGRub3RlLGh0dHBzOi8vd3d3LmZpZWxkbm90ZS1jcm0uZXhhbXBsZS8sLCwK"
+            }
+          }
+        ]
+      },
+      "note": "not on the research event's path (the manual orchestrator and the extraction and generate events reach it); served so every read has a source",
+      "connectorGaps": [
+        "row_number: n8n's Sheets node adds row_number to every row; a CSV export has none (it follows from the row position)",
+        "tabs: the Drive export holds the first tab only; there is no captured Sheets connector, so writes go over the Sheets API"
+      ]
+    },
+    {
+      "node": "Get API Operations",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1042334767,
+                    "title": "Extracted API Operations",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/Sheet1",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:E1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Service",
+                  "Website",
+                  "Stage 1 - Research",
+                  "Stage 2 - Extraction",
+                  "Stage 3 - Output File"
+                ],
+                [
+                  "Fieldnote",
+                  "https://www.fieldnote-crm.example/"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/Extracted API Operations",
+            "status": 200,
+            "body": {
+              "range": "Extracted API Operations!A1:G1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "service",
+                  "resource",
+                  "operation",
+                  "description",
+                  "url",
+                  "method",
+                  "documentation_url"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0",
+              "exportMimeType": "text/csv"
+            },
+            "result": {
+              "fileId": "1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0",
+              "title": "API Schema Crawler & Extractor",
+              "mimeType": "text/csv",
+              "content": "U2VydmljZSxXZWJzaXRlLFN0YWdlIDEgLSBSZXNlYXJjaCxTdGFnZSAyIC0gRXh0cmFjdGlvbixTdGFnZSAzIC0gT3V0cHV0IEZpbGUKRmllbGRub3RlLGh0dHBzOi8vd3d3LmZpZWxkbm90ZS1jcm0uZXhhbXBsZS8sLCwK"
+            }
+          }
+        ]
+      },
+      "note": "not on the research event's path (the manual orchestrator and the extraction and generate events reach it); served so every read has a source",
+      "connectorGaps": [
+        "row_number: n8n's Sheets node adds row_number to every row; a CSV export has none (it follows from the row position)",
+        "tabs: the Drive export holds the first tab only; there is no captured Sheets connector, so writes go over the Sheets API"
+      ]
+    },
+    {
+      "node": "Search in Relevant Docs",
+      "service": "qdrant",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "http://localhost:6333/collections/api_schema_crawler_and_extractor/points/search",
+            "status": 200,
+            "body": {
+              "result": [],
+              "status": "ok",
+              "time": 0.001
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "self-hosted Qdrant, no Claude connector"
+      },
+      "note": "not on the research event's path (the manual orchestrator and the extraction and generate events reach it); served so every read has a source"
+    },
+    {
+      "node": "Search in Relevant Docs1",
+      "service": "qdrant",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "http://localhost:6333/collections/api_schema_crawler_and_extractor/points/search",
+            "status": 200,
+            "body": {
+              "result": [],
+              "status": "ok",
+              "time": 0.001
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "self-hosted Qdrant, no Claude connector"
+      },
+      "note": "not on the research event's path (the manual orchestrator and the extraction and generate events reach it); served so every read has a source"
+    }
+  ],
+  "models": [
+    "Has API Documentation?",
+    "Google Gemini Chat Model"
+  ],
+  "writes": [
+    "Store Document Embeddings",
+    "Append Row",
+    "Research Pending",
+    "Research Result",
+    "Research Error",
+    "Extract Pending",
+    "Extract Result",
+    "Extract Error",
+    "Upload to Drive",
+    "Generate Pending",
+    "Generate Result",
+    "Generate Error"
+  ],
+  "writeReplies": [
+    {
+      "node": "Store Document Embeddings",
+      "service": "qdrant",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "http://localhost:6333/",
+            "status": 200,
+            "body": {
+              "title": "qdrant - vector search engine",
+              "version": "1.12.4",
+              "commit": "bench"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "http://localhost:6333/collections",
+            "status": 200,
+            "body": {
+              "result": {
+                "collections": [
+                  {
+                    "name": "api_schema_crawler_and_extractor"
+                  }
+                ]
+              },
+              "status": "ok",
+              "time": 0.0001
+            }
+          },
+          {
+            "method": "GET",
+            "url": "http://localhost:6333/collections/api_schema_crawler_and_extractor",
+            "status": 200,
+            "body": {
+              "result": {
+                "status": "green",
+                "points_count": 41,
+                "config": {
+                  "params": {
+                    "vectors": {
+                      "size": 768,
+                      "distance": "Cosine"
+                    }
+                  }
+                }
+              },
+              "status": "ok",
+              "time": 0.0002
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "self-hosted Qdrant, no Claude connector"
+      },
+      "note": "LangChain QdrantVectorStore.addDocuments: the client's version GET, collection lookup (existing, so no create), then PUT /collections/{c}/points per batch"
+    }
+  ],
+  "pinData": {
+    "Execute Workflow Trigger": [
+      {
+        "data": {
+          "url": "https://www.formstack.com/",
+          "service": "Formstack",
+          "collection": "api_schema_crawler_and_extractor",
+          "row_number": 2
+        },
+        "createdAt": "2024-12-07T12:22:35.344-05:00",
+        "eventType": "research",
+        "executedById": "10234"
+      }
+    ]
+  },
+  "expect": {
+    "branches": [
+      "EventRouter: research (extraction and generate not taken)",
+      "Has Results?: false → Response Empty ('no web results')"
+    ],
+    "offline": "trigger.items override the template's pinned research event (Formstack); the template ships without credentials on every node but Get All Research (Apify header auth, Gemini, Qdrant, the other Sheets nodes), so the bench must attach them by type; the Qdrant URL is a stand-in (localhost:6333). Research, Extract and Generate call this workflow (executeWorkflow on itself) and are left unlisted (validate warns). Scrape Webpage Contents batches 2 requests per 30 s, so the run takes 30 s more per extra pair. Apify result shapes follow the template's expressions (origin_search.results[].type and source.link; body and url from the page function)"
+  }
+}

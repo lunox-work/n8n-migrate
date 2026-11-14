@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "template": 6270,
+  "sha256": "a9fe1306257b036b807075119ec479b2faad5bd64ee01e8af6ac98d8ffecc952",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "every feed has no items and the forecast arrays are empty",
+  "trigger": {
+    "node": "Example Chat",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "7c9e1b3d5f7a9c1e3b5d7f9a1c3e5b7d",
+          "action": "sendMessage",
+          "chatInput": "Any news from the BBC today? And the weather in Lyon?"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get News",
+      "service": "rss",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://feeds.bbci.co.uk/news/world/rss.xml",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=utf-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><rss version=\"2.0\"><channel><title><![CDATA[BBC News - World]]></title><link>https://www.bbc.co.uk/news/world</link><description>BBC News - World</description><language>en-gb</language><lastBuildDate>Mon, 16 Nov 2026 08:45:00 GMT</lastBuildDate></channel></rss>"
+          },
+          {
+            "method": "GET",
+            "url": "http://news.ycombinator.com/rss",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=utf-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><rss version=\"2.0\"><channel><title><![CDATA[Hacker News]]></title><link>https://news.ycombinator.com/</link><description>Hacker News</description><language>en-gb</language><lastBuildDate>Mon, 16 Nov 2026 08:45:00 GMT</lastBuildDate></channel></rss>"
+          },
+          {
+            "method": "GET",
+            "url": "https://n8n.io/blog/rss",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=utf-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><rss version=\"2.0\"><channel><title><![CDATA[n8n Blog]]></title><link>https://blog.n8n.io/</link><description>n8n Blog</description><language>en-gb</language><lastBuildDate>Mon, 16 Nov 2026 08:45:00 GMT</lastBuildDate></channel></rss>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no connector; plain web fetch"
+      },
+      "note": "RSS Read tool: GET the feed URL the model picks from the tool's list (rss-parser parses the XML into items). The main feeds are served; any other URL gets a 404 from the mock"
+    },
+    {
+      "node": "Get Weather",
+      "service": "open-meteo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.open-meteo.com/v1/forecast",
+            "status": 200,
+            "body": {
+              "latitude": 45.76,
+              "longitude": 4.84,
+              "generationtime_ms": 0.081,
+              "utc_offset_seconds": 3600,
+              "timezone": "Europe/Paris",
+              "timezone_abbreviation": "GMT+1",
+              "elevation": 173.0,
+              "current_units": {
+                "time": "iso8601",
+                "interval": "seconds",
+                "temperature_2m": "°C",
+                "windspeed_10m": "km/h",
+                "rain": "mm"
+              },
+              "current": {},
+              "hourly_units": {
+                "time": "iso8601",
+                "temperature_2m": "°C",
+                "precipitation": "mm"
+              },
+              "hourly": {
+                "time": [],
+                "temperature_2m": [],
+                "precipitation": []
+              },
+              "daily_units": {
+                "time": "iso8601",
+                "temperature_2m_max": "°C",
+                "temperature_2m_min": "°C",
+                "precipitation_sum": "mm"
+              },
+              "daily": {
+                "time": [],
+                "temperature_2m_max": [],
+                "temperature_2m_min": [],
+                "precipitation_sum": []
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no connector; plain web fetch"
+      },
+      "note": "Open-Meteo forecast: GET /v1/forecast with latitude, longitude, current, hourly, daily, start_date, end_date chosen by the model ($fromAI); the reply cannot follow the chosen variables, so it carries current, hourly (24 h) and daily blocks for Lyon"
+    }
+  ],
+  "models": [
+    "Your First AI Agent",
+    "Connect Gemini"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch; the agent picks the tools and their inputs (model-driven)"
+    ]
+  }
+}
