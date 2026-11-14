@@ -372,6 +372,8 @@ A person approves each commit at first. After ten clean iterations the loop comm
 
 Done when: ten unattended iterations have run, `dev` success has risen, `held-out` is within the overfitting bound above, and no regression was merged.
 
+Status 2026-11-14 (P6, first iterations, a person approving): iteration 0 added the lint and `convert-coverage --split dev`; three fixes accepted, none discarded ([evals/bench/LOOP.md](evals/bench/LOOP.md)): tolerant connector result shapes, preflight ignoring steps no trigger reaches, classifier prompts as n8n sends them. On the 10 dev fixture templates (plain converter, replayed models) the gate sum went 31 → 37 and 2777 passes every gate under `--driver claude`, the first pass (1 of 10); dev coverage preflight clean 15 → 17 of 60. Two bench proposals wait in [evals/bench/PROPOSALS.md](evals/bench/PROPOSALS.md). Next: OpenAI-compatible LLM APIs over HTTP kept as `http` with a stored key when the substitution is not approved; the ReAct agent prompt; Sheets and files levers; headless translation in SKILL.md.
+
 ## Phase 7: parity and cutover
 
 - Dry run: write tools are stubbed and their inputs shown, so nothing is sent twice while n8n is still live.
