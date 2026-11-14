@@ -48,7 +48,7 @@
 //   record store          runs/, cursors/, ledger/, meta/ (store.mjs; default .n2c/records/)
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, readdirSync, rmSync, appendFileSync, openSync, closeSync, statSync, realpathSync } from "node:fs";
-import { join, dirname, relative, isAbsolute } from "node:path";
+import { join, dirname, relative, isAbsolute, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createStore } from "./store.mjs";
 
@@ -75,8 +75,8 @@ export function setRunner(dir, cwd = process.cwd()) {
 // The instructions print the absolute path to copy: models composing it from a long cwd
 // mistyped it in 4 of 26 eval runs, and the allowlist then refused the write.
 export const inboxFile = (handle) => `.n2c/inbox/${handle}.txt`;
-let INBOX_DIR = ".";
-const inboxPath = (handle) => join(INBOX_DIR, inboxFile(handle));
+let STATE_DIR = ".n2c";
+const inboxPath = (handle) => join(STATE_DIR, "inbox", `${handle}.txt`);
 const RECENT_MS = 60_000; // a run that ended this recently is not followed by a new one
 const INLINE_SLEEP_MS = 120_000;
 // Claude Code cuts a Bash result at about 30,000 characters; longer instructions are paged.
@@ -91,19 +91,33 @@ export function folderOf(start) {
   const up = dirname(here);
   return existsSync(join(up, "definition.json")) ? up : process.cwd();
 }
-export const paths = (dir) => ({
-  dir,
-  definition: join(dir, "definition.json"),
-  source: join(dir, "source.n8n.json"),
-  task: join(dir, "task.json"),
-  n2c: join(dir, ".n2c"),
-  state: join(dir, ".n2c", "run.json"),
-  driver: join(dir, ".n2c", "driver.json"),
-  results: join(dir, ".n2c", "results"),
-  events: join(dir, ".n2c", "events.jsonl"),
-  runs: join(dir, ".n2c", "runs"),
-  lock: join(dir, ".n2c", "lock"),
-});
+// Where a folder's run state lives: <folder>/.n2c by default. task.json stateDir "cwd" puts it
+// at <session cwd>/.n2c/<folder name> instead: a skill installed under .claude/skills/ must not
+// write there (Claude Code refuses writes into its own config folders even with an allow rule;
+// observed on 2.1.323), so the generated skill keeps its state in the project.
+export function stateDirOf(dir, cwd = process.cwd()) {
+  let task = {};
+  try {
+    task = JSON.parse(readFileSync(join(dir, "task.json"), "utf8"));
+  } catch {}
+  return task.stateDir === "cwd" ? join(cwd, ".n2c", basename(dir)) : join(dir, ".n2c");
+}
+export const paths = (dir, cwd) => {
+  const n2c = stateDirOf(dir, cwd);
+  return {
+    dir,
+    definition: join(dir, "definition.json"),
+    source: join(dir, "source.n8n.json"),
+    task: join(dir, "task.json"),
+    n2c,
+    state: join(n2c, "run.json"),
+    driver: join(n2c, "driver.json"),
+    results: join(n2c, "results"),
+    events: join(n2c, "events.jsonl"),
+    runs: join(n2c, "runs"),
+    lock: join(n2c, "lock"),
+  };
+};
 const readJson = (p, dflt) => (existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : dflt);
 function writeJson(p, data) {
   mkdirSync(dirname(p), { recursive: true });
@@ -822,7 +836,7 @@ function rememberAgentTurns(P, reqs, results) {
 function readInput(P, handle, flags, stdin) {
   if (typeof flags.text === "string") return flags.text;
   if (typeof flags.file === "string" && flags.file !== "-") return readFileSync(flags.file, "utf8");
-  const inbox = join(P.dir, inboxFile(safe(handle)));
+  const inbox = join(P.n2c, "inbox", `${safe(handle)}.txt`);
   if (flags.file !== "-" && existsSync(inbox)) return readFileSync(inbox, "utf8");
   return stdin();
 }
@@ -852,8 +866,8 @@ function unknownWrite(core, store, state) {
 }
 
 export async function command(cmd, pos, flags, { core, dir, stdin, fetch, isTTY = !!process.stdin.isTTY, cwd } = {}) {
-  const P = paths(folderOf(dir));
-  INBOX_DIR = P.dir;
+  const P = paths(folderOf(dir), cwd);
+  STATE_DIR = P.n2c;
   setRunner(P.dir, cwd);
   mkdirSync(join(P.n2c, "inbox"), { recursive: true });
   const task = loadTask(P);

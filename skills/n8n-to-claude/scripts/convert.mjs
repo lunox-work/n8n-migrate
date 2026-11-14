@@ -1561,6 +1561,10 @@ export function taskJson(def, refs, target) {
 }
 const formHandoff = (def) => Object.values(def.steps).find((s) => s.kind === "trigger" && s.form?.handoff && s.settings?.disabled !== true)?.form.handoff ?? null;
 const HOOK_MATCHER = "^(mcp__.*|ArtifactData)$";
+// A PreToolUse hook that cannot start (a missing file, no node) exits 1, a non-blocking error,
+// and the call goes ahead unchecked (observed on 2.1.323). "|| exit 2" turns any failure into a
+// block, so containment fails closed.
+const hookCommand = (path, which) => `node "${path}" ${which}${which === "pre" ? " || exit 2" : ""}`;
 // .claude/settings.json for the task session. Measured in evals/task-driver/MEASUREMENTS.md.
 export function connectorToolNames(def, refs) {
   const prefixes = toolPrefixes(def, refs);
@@ -1570,7 +1574,7 @@ export function connectorToolNames(def, refs) {
 }
 // .claude/settings.json for a session opened on this folder alone (one repo per workflow).
 export function taskSettings(def, refs) {
-  const hook = (which) => [{ matcher: HOOK_MATCHER, hooks: [{ type: "command", command: `node "$CLAUDE_PROJECT_DIR/runtime/hook.mjs" ${which}`, timeout: 30 }] }];
+  const hook = (which) => [{ matcher: HOOK_MATCHER, hooks: [{ type: "command", command: hookCommand("$CLAUDE_PROJECT_DIR/runtime/hook.mjs", which), timeout: 30 }] }];
   return {
     permissions: { defaultMode: "dontAsk", allow: ["Bash(node runtime/runner.mjs *)", "Edit(.n2c/inbox/**)", ...connectorToolNames(def, refs)], deny: ["WebFetch", "WebSearch"] },
     hooks: { PreToolUse: hook("pre"), PostToolUse: hook("post") },
@@ -1607,7 +1611,7 @@ export function rootSettings(outDir) {
       else allow.push(rule);
     }
   }
-  const hook = (which) => [{ matcher: HOOK_MATCHER, hooks: [{ type: "command", command: `node "$CLAUDE_PROJECT_DIR/n2c-hook.mjs" ${which}`, timeout: 30 }] }];
+  const hook = (which) => [{ matcher: HOOK_MATCHER, hooks: [{ type: "command", command: hookCommand("$CLAUDE_PROJECT_DIR/n2c-hook.mjs", which), timeout: 30 }] }];
   return { permissions: { defaultMode: "dontAsk", allow: uniq(allow), deny: ["WebFetch", "WebSearch"] }, hooks: { PreToolUse: hook("pre"), PostToolUse: hook("post") } };
 }
 export function writeRootSettings(outDir) {
@@ -1640,7 +1644,10 @@ export function skillMd(def, refs, slug) {
   const name = skillName(slug);
   const title = cleanTitle(def.name);
   const tools = connectorToolNames(def, refs);
-  const hook = (which) => [`    - matcher: ${yamlString(HOOK_MATCHER)}`, "      hooks:", "        - type: command", `          command: ${yamlString(`node "\${CLAUDE_SKILL_DIR}/runtime/hook.mjs" ${which}`)}`, "          timeout: 30"];
+  // The skill's folder: CLAUDE_SKILL_DIR is not set for a skill's hook command (observed on
+  // 2.1.323: node got "/runtime/hook.mjs"), so look in the project's and the user's skills.
+  const find = `d="\${CLAUDE_SKILL_DIR:-}"; [ -f "$d/runtime/hook.mjs" ] || d="$CLAUDE_PROJECT_DIR/.claude/skills/${name}"; [ -f "$d/runtime/hook.mjs" ] || d="$HOME/.claude/skills/${name}"; `;
+  const hook = (which) => [`    - matcher: ${yamlString(HOOK_MATCHER)}`, "      hooks:", "        - type: command", `          command: ${yamlString(find + hookCommand("$d/runtime/hook.mjs", which))}`, "          timeout: 30"];
   return [
     "---",
     `name: ${name}`,
@@ -1659,7 +1666,7 @@ export function skillMd(def, refs, slug) {
     "",
     "For each message the person sends to this workflow:",
     "",
-    "1. Write the person's message, exactly as they wrote it, to `SKILL_DIR/.n2c/inbox/chat.txt` with the Write tool.",
+    "1. Write the person's message, exactly as they wrote it, with the Write tool to `.n2c/<name of the SKILL_DIR folder>/inbox/chat.txt` under the current working directory (the project, never inside the skill folder): for this skill installed as `" + name + "`, `.n2c/" + name + "/inbox/chat.txt`.",
     "2. Run `node SKILL_DIR/runtime/runner.mjs chat --new-session` for the first message of this conversation, `node SKILL_DIR/runtime/runner.mjs chat` for the ones after it.",
     "3. Do what each output says, then go on:",
     "   - NEXT: call one tool. Call that tool once, with exactly the arguments printed, then run the `next` command it prints.",
@@ -1689,7 +1696,8 @@ export function writeSkill(dir, def, refs, slug) {
   writeFileSync(join(sk, "SKILL.md"), skillMd(def, refs, slug));
   copyFileSync(join(dir, "definition.json"), join(sk, "definition.json"));
   copyFileSync(join(dir, "source.n8n.json"), join(sk, "source.n8n.json"));
-  writeJson(join(sk, "task.json"), { ...taskJson(def, refs, "skill"), store: { kind: "file" } });
+  // State in <project>/.n2c/<skill name>/: Claude Code refuses writes under .claude/skills/.
+  writeJson(join(sk, "task.json"), { ...taskJson(def, refs, "skill"), store: { kind: "file" }, stateDir: "cwd" });
   writeRuntime(sk);
   return sk;
 }

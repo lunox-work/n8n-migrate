@@ -133,7 +133,7 @@ function readDefinition(P) {
 
 // Entry point for one folder (also called by the repo-root dispatcher, n2c-hook.mjs).
 export async function runHook(which, input, dir = DIR) {
-  const P = paths(dir);
+  const P = paths(dir, input.cwd ?? process.cwd());
   setRunner(P.dir, input.cwd ?? process.cwd());
   const core = await loadCore(dir === DIR ? HERE : join(dir, "runtime"));
   if (which === "pre") pre(P, input, core);
@@ -143,11 +143,12 @@ export async function runHook(which, input, dir = DIR) {
 const isMain = process.argv[1] && realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
 if (isMain) {
   const which = process.argv[2];
-  const P = paths(DIR);
+  let P = paths(DIR);
   let raw = "";
   try {
     raw = readFileSync(0, "utf8");
     const input = JSON.parse(raw || "{}");
+    P = paths(DIR, input.cwd ?? process.cwd());
     if (process.env.N2C_HOOK_DEBUG) {
       mkdirSync(P.n2c, { recursive: true });
       writeFileSync(join(P.n2c, `hook-${which}-${Date.now()}.json`), raw);

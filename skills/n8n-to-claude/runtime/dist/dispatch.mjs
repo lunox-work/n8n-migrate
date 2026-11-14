@@ -30,9 +30,9 @@ export async function pickFolder(which, input, root = ROOT) {
   const safeId = String(input.tool_use_id ?? "last").replace(/[^\w-]/g, "_");
   let fallback = null;
   for (const folder of workflowFolders(root)) {
-    if (which === "post" && existsSync(join(folder, ".n2c", "calls", `${safeId}.json`))) return folder;
     const drv = await import(pathToFileURL(join(folder, "runtime", "driver.mjs")).href);
-    const P = drv.paths(folder);
+    if (which === "post" && existsSync(join(drv.paths(folder, input.cwd ?? process.cwd()).n2c, "calls", `${safeId}.json`))) return folder;
+    const P = drv.paths(folder, input.cwd ?? process.cwd());
     const { list } = drv.outstanding(P);
     const pending = list.filter((x) => x.req.kind === "tool" && !drv.hasResult(P, x.handle));
     if (!pending.length) continue;

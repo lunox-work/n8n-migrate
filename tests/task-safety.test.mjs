@@ -382,13 +382,21 @@ test("a chat workflow gets a self-contained skill; run from a project root it pr
     for (const f of ["SKILL.md", "definition.json", "source.n8n.json", "task.json", "runtime/runner.mjs", "runtime/hook.mjs", "runtime/store.mjs"]) assert.ok(existsSync(join(sk, f)), f);
     const md = readFileSync(join(sk, "SKILL.md"), "utf8");
     assert.match(md, /^---\nname: n8n-inbox-assistant-chat\ndescription: "Runs the migrated n8n chat workflow \\"Inbox assistant chat\\" on Claude/);
-    assert.match(md, /command: "node \\"\$\{CLAUDE_SKILL_DIR\}\/runtime\/hook\.mjs\\" pre"/);
+    assert.match(md, /command: "d=\\"\$\{CLAUDE_SKILL_DIR:-\}\\"; .*\$CLAUDE_PROJECT_DIR\/\.claude\/skills\/n8n-inbox-assistant-chat.*node \\"\$d\/runtime\/hook\.mjs\\" pre \|\| exit 2"/);
+    // The hook command, run by a shell as Claude Code does, finds the installed skill and fails closed.
     assert.match(md, /allowed-tools: "Bash\(node \*runtime\/runner\.mjs \*\), Write, Read, mcp__claude_ai_Gmail__search_threads, mcp__claude_ai_Slack__slack_send_message"/);
     assert.deepEqual(readJson(join(sk, "task.json")).store, { kind: "file" });
     // Installed under a project's .claude/skills/, driven from the project root.
     const project = join(dir, "project");
     mkdirSync(join(project, ".claude/skills"), { recursive: true });
     cpSync(sk, join(project, ".claude/skills/n8n-inbox-assistant-chat"), { recursive: true });
+    const pre = JSON.parse(/^ {4}- matcher: .*\n {6}hooks:\n {8}- type: command\n {10}command: (".*")$/m.exec(md)[1]);
+    const sh = (env) => spawnSync("/bin/sh", ["-c", pre], { cwd: project, encoding: "utf8", input: JSON.stringify({ tool_name: "mcp__claude_ai_Slack__slack_send_message", tool_input: { channel_id: "C0GENERAL", message: "x" }, cwd: project }), env: { PATH: process.env.PATH, ...env } });
+    const found = sh({ CLAUDE_PROJECT_DIR: project, HOME: dir });
+    assert.equal(found.status, 0, found.stderr);
+    assert.equal(JSON.parse(found.stdout).hookSpecificOutput.permissionDecision, "deny", "no run in progress: denied by the skill's hook");
+    const missing = sh({ CLAUDE_PROJECT_DIR: join(dir, "nowhere"), HOME: join(dir, "nowhere") });
+    assert.equal(missing.status, 2, "a hook that cannot start blocks the call");
     const r = spawnSync(process.execPath, [".claude/skills/n8n-inbox-assistant-chat/runtime/runner.mjs", "chat", "--new-session", "--text", "What did Ann send?"], { cwd: project, encoding: "utf8" });
     assert.match(r.stdout, /^NEXT: take one agent turn yourself/);
     assert.match(r.stdout, /run: node \.claude\/skills\/n8n-inbox-assistant-chat\/runtime\/runner\.mjs answer q1/);
