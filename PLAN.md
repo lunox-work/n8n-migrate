@@ -306,8 +306,8 @@ Measures, with no real account touched, whether the skill migrates templates in 
 
 - **Fixtures.** For each template: the trigger input and the output of every external read node, in four variants (normal, empty, malformed, hostile). Written by someone who has not seen the converter, reviewed, committed. Template `pinData` is used where it exists.
 - **n8n side, the baseline.** Local n8n in Docker. Where feasible the real node runs against an HTTP-level mock, so its own behaviour stays in the baseline. Node-level stubs are the fallback and are marked in the results. The record is the ordered list of outgoing effects.
-- **Claude side.** The migration is one headless run of the skill on the raw template: no retry, no hand edit. The resulting definition runs through the task driver with `claude -p` against mock connectors that carry the real connectors' tool names and schemas. The artifact driver runs second, with `mcp`, `sample` and `db` replaced by bench shims.
-- **Model steps.** The template's model node is pointed at the same Claude model on the n8n side, so the comparison measures the migration and not the model.
+- **Claude side.** The migration is one headless run of the skill on the raw template: no retry, no hand edit. The resulting definition runs in process through the runner (every variant and repeat), and through the task driver with `claude -p` on the normal and hostile fixtures, against mock connectors that carry the real connectors' tool names and schemas. The artifact driver runs second, with `mcp`, `sample` and `db` replaced by bench shims (not wired into the bench yet).
+- **Model steps.** There is no API key, so n8n's chat-model nodes get a credential pointing at a local shim (`evals/bench/model-shim.mjs`) that answers Anthropic, OpenAI, Gemini and Ollama requests with `claude -p --model haiku` and records each reply by node and call index. The Claude side replays n8n's reply for the same node and call (the default for gates 4–7, so model-driven branches compare deterministically), and the bench checks that the Claude request asked the same question. Media models (image generation, vision, transcription, Assistants) and LLM APIs called over HTTP are answered from fixtures, not swapped to Claude: a swap would change what n8n's node does.
 - **Judge.** Before it is used, n8n is compared against itself to measure the judge's false-fail rate.
 
 ### Gates per template
@@ -337,6 +337,8 @@ Every result is appended to `evals/results.jsonl` with the template id, skill co
 
 Done when: the bench runs end to end on 10 templates, and two runs on the same commit agree on every gate except steps flagged as model-written.
 
+Status 2026-11-14 (P5b): built and run end to end on the 10 fixture templates ([evals/bench/README.md](evals/bench/README.md)); two runs on commit 8ef469d (`b1`, `b2`, both reusing the headless skill runs of `r1`) agree on every gate, cause and diagnostic, 10 of 10. One-shot success 0 of 10: 8 stop at gate 3 on blocked steps (files, database, LLM API over HTTP, OpenAI Assistants, forms that wait, Facebook Graph and WordPress without request templates, Drive move, Sheets), 2415 at gate 3 (the Notion connector's `notion-fetch` result has no `properties`, so a Code node fails) and 4722 at gate 4 (the agent's prompt renders an empty sender because `get_message`'s result has no `from` object; the writes themselves match). The headless skill run gave the same folder as plain `convert.mjs` on 10 of 10 and translated nothing. Contained held on the hostile fixtures of 2415 and 4722 in process and under the claude driver. Judge false fails: 1 of 2 judged pairs (n8n against n8n). 54 `claude -p` runs, $1.10 at API prices. HTTPS interception works on n8n 2.47.7 with `HTTPS_PROXY` and `NODE_EXTRA_CA_CERTS`. Gate 8's ceiling is provisional ([ceiling.json](evals/bench/ceiling.json)).
+
 ## Phase 6: improvement loop
 
 One iteration:
@@ -344,14 +346,14 @@ One iteration:
 1. Run the bench on `dev`.
 2. Bucket the failures by gate and cause: unmapped node, field map, expression translation, runner bug, skill instruction, flaky model step, bench defect.
 3. Take the largest bucket. A session proposes one general fix to the skill (`nodes.json`, `SKILL.md`, runner, templates).
-4. Re-run `dev`. Accept the fix only if the success count rises by more than the run-to-run noise measured in Phase 5 and no template that passed before now fails. Otherwise discard it and record what was tried.
+4. Re-run `dev`. Accept the fix only if the success count rises by at least max(2, 2 × flips) templates, where flips is the number of templates whose verdict changed between the last two runs on one commit (0 of 10 in Phase 5, with replayed model replies), and no template that passed before now fails. Otherwise discard it and record what was tried.
 5. An accepted fix is one commit with the before and after counts in its message.
 
 Every template that has ever passed joins the regression set, which runs on each change to the skill. That is the check for "did the migration workflow break".
 
 Rules that keep the number honest:
 
-- **`held-out` never steers.** The fixing session cannot read it. It runs only at release points and is reported. If it trails `dev` by more than 10 points (4 templates of 40), the loop is overfitting: stop and review.
+- **`held-out` never steers.** The fixing session cannot read it. It runs only at release points and is reported. With 40 templates (strata of 2–4) one template is 2.5 points and the standard error of the dev − held-out difference is about 10 points near a 50% pass rate, so a fixed 10-point gap is noise. The loop is overfitting when the gap exceeds 1.96 × sqrt(p(1 − p)(1/60 + 1/40)) with p the pooled pass rate (about 20 points at p = 0.5, 12 at p = 0.1) plus 2 × flips templates, at two release points in a row: stop and review. Per-stratum gaps are reported, never gated.
 - **No template-specific rules.** A lint rejects template ids, names or fixture strings in skill files.
 - **The loop cannot loosen the bench.** Changes to fixtures, mocks, gates or the comparer are proposed separately and approved by a person.
 - **The comparer has its own idea of "same effect".** It must not reuse the converter's field map, or a wrong mapping passes on both sides. Its table is hand-checked on `held-out`.
@@ -361,7 +363,7 @@ Rules that keep the number honest:
 
 A person approves each commit at first. After ten clean iterations the loop commits on its own and the person reviews the `held-out` report.
 
-Done when: ten unattended iterations have run, `dev` success has risen, `held-out` is within 10 points of it, and no regression was merged.
+Done when: ten unattended iterations have run, `dev` success has risen, `held-out` is within the overfitting bound above, and no regression was merged.
 
 ## Phase 7: parity and cutover
 

@@ -38,5 +38,5 @@ A fixture says what the outside world returns to one template in one variant. It
 - A read whose `node` is the trigger is the poll source for the Claude side (connector calls only); the n8n side pins `trigger.items`.
 - Binary data cannot be pinned: file downloads, Gmail attachments and image inputs need `tls-intercept` (or the trigger polling once through it) on the n8n side.
 - `writeReplies` load like `reads`; `db` seeds a Postgres or MySQL sidecar that both sides query.
-- What `mock-server.mjs` lacks today: subset query matching (it matches the exact query string) and TLS termination for `tls-intercept` hosts (it refuses `CONNECT`).
+- `mock-server.mjs` serves `http` sources as `__routes` (subset query matching, `{token}`, UUIDs with or without dashes) and terminates TLS for every host the fixtures name (evals/bench/README.md). A write no fixture answers gets `200 {}` on both sides, logged as `write-default`.
 - Node names are matched exactly, emoji and trailing spaces included.
