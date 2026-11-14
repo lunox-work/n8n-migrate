@@ -68,6 +68,14 @@
               "vector_type": "dense",
               "metric": "cosine",
               "dimension": 1536,
+              "schema": {
+                "fields": {
+                  "_values": {
+                    "type": "dense_vector",
+                    "dimension": 1536
+                  }
+                }
+              },
               "status": {
                 "ready": true,
                 "state": "Ready"
