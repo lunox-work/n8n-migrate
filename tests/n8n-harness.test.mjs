@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, writeFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { parseFlatted, pickTrigger, triggerItems, scheduleItem, swapTrigger, credentialRefs, summariseRunData } from "../evals/n8n/run-workflow.mjs";
+import { parseFlatted, pickTrigger, triggerItems, scheduleItem, swapTrigger, credentialRefs, summariseRunData, formBody } from "../evals/n8n/run-workflow.mjs";
 import { startMock, pickFixture } from "../evals/n8n/mock-server.mjs";
 
 test("flatted: n8n's execution encoding, shared strings and objects", () => {
@@ -118,4 +118,16 @@ test("mock: proxied requests match origin-qualified keys first", () => {
   assert.equal(pickFixture(map, "GET", "/x", "", c, "http://a.test").f.body, "a");
   assert.equal(pickFixture(map, "GET", "/x", "", c, "http://b.test").f.body, "any host");
   assert.equal(pickFixture(map, "GET", "/x", "", c).f.body, "any host");
+});
+
+test("formBody: a Form Trigger submission as field-<index>, files from the item's binary by label", async () => {
+  const t = { parameters: { formFields: { values: [{ fieldLabel: "Platform" }, { fieldLabel: "Upload", fieldType: "file" }, { fieldLabel: "Facebook Id" }, { fieldLabel: "Tags", fieldType: "checkbox" }] } } };
+  const fd = formBody(t, { json: { Platform: "instagram", "Facebook Id": "", Tags: ["a", "b"] }, binary: { Upload: { data: Buffer.from("JPEG").toString("base64"), mimeType: "image/jpeg", fileName: "x.jpg" } } });
+  assert.equal(fd.get("field-0"), "instagram");
+  assert.equal(fd.get("field-2"), "");
+  assert.deepEqual(fd.getAll("field-3"), ["a", "b"]);
+  const f = fd.get("field-1");
+  assert.equal(f.name, "x.jpg");
+  assert.equal(f.type, "image/jpeg");
+  assert.equal(Buffer.from(await f.arrayBuffer()).toString(), "JPEG");
 });

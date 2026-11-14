@@ -13,8 +13,9 @@
 //     `timeCompression.n8n` patches that only shorten a wait (recorded as non-placeholder);
 //     `env` values the container is started with (overlayEnv).
 //   - the trigger: the fixture's trigger node (not run-workflow's pick among several), pinned
-//     (`--via pin`), or, when the fixture's trigger items carry binary (a
-//     form upload, which a pin drops), replaced by a Code node that returns them (`--via cli`).
+//     (`--via pin`); when the fixture's trigger items carry binary (an upload, which a pin
+//     drops), a Form Trigger gets a multipart submission (`--via form`) and any other trigger is
+//     replaced by a Code node that returns them (`--via cli`).
 //   - pins: the trigger's items (FIXTURES.md), the template's own pinData, and an `n8n` pin for
 //     a read only when its `http` source cannot be used (no http source, or the node failed
 //     with the http source and the fixture has a pin: `pin-fallback`).
@@ -259,9 +260,12 @@ export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = 
   const triggerRead = fx.reads.find((r) => r.node === fx.trigger.node && r.http?.responses?.length);
   const pinTrigger = !(triggerRead && fx.trigger.kind === "poll");
   if (!pinTrigger) sources[fx.trigger.node] = `http/${triggerRead.http.via} (trigger polls)`;
-  // Binary trigger items (form uploads) survive only the Code-node swap.
-  const via = pinTrigger && (fx.trigger.items ?? []).some((i) => i && typeof i === "object" && i.binary) ? "cli" : "pin";
-  if (via === "cli") sources[fx.trigger.node] = "cli (Code-node swap: binary trigger items)";
+  // Binary trigger items (uploads) are dropped by a pin: a Form Trigger gets a real multipart
+  // submission (its Form ending nodes need it), any other trigger the Code-node swap.
+  const binary = pinTrigger && (fx.trigger.items ?? []).some((i) => i && typeof i === "object" && i.binary);
+  const isForm = wf.nodes.find((n) => n.name === fx.trigger.node)?.type === "n8n-nodes-base.formTrigger";
+  const via = binary ? (isForm ? "form" : "cli") : "pin";
+  if (via !== "pin") sources[fx.trigger.node] = via === "form" ? "form (multipart submission: binary trigger items)" : "cli (Code-node swap: binary trigger items)";
   return { pinTrigger, via, id, variant, name, wf: { ...wf, name: `${id} ${name}` }, fixture: fx, credentials, credentialsAttached, routes, models, overlayApplied: applied, sources, files };
 }
 

@@ -4,7 +4,7 @@
 // This is the n8n side of the Phase 5 bench. Contract: HEADLESS.md.
 //
 //   node evals/n8n/run-workflow.mjs <workflow.json> [--trigger input.json] [--mock fixtures.json]
-//        [--credentials creds.json] [--via pin|cli|webhook] [--trigger-node name]
+//        [--credentials creds.json] [--via pin|cli|webhook|form] [--trigger-node name]
 //        [--keep-pin] [--keep] [--stats] [--timeout s] [--now ISO] [--out result.json]
 //
 // --via pin      (default) REST: the trigger's output is pinned to the input and the
@@ -13,6 +13,12 @@
 //                that returns the input, fed by a Manual Trigger. Mode "cli".
 // --via webhook  the workflow is activated and the input is sent to its production
 //                webhook URL. Webhook triggers only; mode "webhook"; gives `response`.
+// --via form     the workflow is activated and the first trigger item is submitted to the
+//                Form Trigger's production URL as multipart (field-<index> by formFields, files
+//                from the item's binary by label). Form triggers only; carries uploads, and
+//                Form ending nodes keep their trigger (the run then stops in "waiting" at the
+//                ending page, as n8n leaves it until the person's browser loads it); gives
+//                `response`.
 //
 // Trigger input (--trigger): a list of items ([{...}] or [{json: {...}}]), {items: [...]},
 // or for a webhook {request: {method, path, headers, query, body}}. Without one: manual
@@ -267,6 +273,8 @@ export async function runWorkflow(workflow, { trigger, mock, credentials = {}, v
   else if (via === "cli") body = { ...body, ...swapTrigger({ nodes: body.nodes, connections: body.connections }, t, items) };
   else if (via === "webhook") {
     if (t.type !== "n8n-nodes-base.webhook") throw new Error(`--via webhook needs a Webhook trigger, not ${t.type}`);
+  } else if (via === "form") {
+    if (t.type !== "n8n-nodes-base.formTrigger") throw new Error(`--via form needs a Form Trigger, not ${t.type}`);
   } else throw new Error(`unknown --via ${via}`);
   body.pinData = pin;
 
@@ -285,6 +293,10 @@ export async function runWorkflow(workflow, { trigger, mock, credentials = {}, v
         ex = await waitExecution(r.executionId, timeoutS * 1000);
       } else if (via === "cli") {
         cli = n8nCli(["execute", `--id=${wid}`, "--rawOutput"]);
+        ex = await latestExecution(wid, timeoutS * 1000);
+      } else if (via === "form") {
+        await rest("POST", `/workflows/${wid}/activate`, { versionId: res.versionId });
+        response = await submitForm(t, items[0] ?? { json: {} }, timeoutS);
         ex = await latestExecution(wid, timeoutS * 1000);
       } else {
         await rest("POST", `/workflows/${wid}/activate`, { versionId: res.versionId });
@@ -320,12 +332,47 @@ export async function runWorkflow(workflow, { trigger, mock, credentials = {}, v
     };
   } finally {
     if (!keep) {
-      if (via === "webhook") await rest("POST", `/workflows/${wid}/deactivate`, {}).catch(() => {});
+      if (via === "webhook" || via === "form") await rest("POST", `/workflows/${wid}/deactivate`, {}).catch(() => {});
       if (ex) await rest("POST", "/executions/delete", { ids: [ex.id] }).catch(() => {});
       await rest("POST", `/workflows/${wid}/archive`, {}).catch(() => {});
       await rest("DELETE", `/workflows/${wid}`).catch(() => {});
       for (const c of created) await rest("DELETE", `/credentials/${c.id}`).catch(() => {});
     }
+  }
+}
+
+// The multipart body a person's submission of this Form Trigger sends for `item`: each form
+// field as field-<index>, its value from item.json[label]; a file field from item.binary.
+export function formBody(t, item) {
+  const fd = new FormData();
+  const fields = t.parameters?.formFields?.values ?? [];
+  fields.forEach((f, i) => {
+    const label = f.fieldLabel ?? f.fieldName ?? `field-${i}`;
+    if (f.fieldType === "file") {
+      const b = item.binary?.[label.replace(/\W/g, "_")] ?? item.binary?.[label];
+      if (b?.data) fd.append(`field-${i}`, new Blob([Buffer.from(b.data, "base64")], { type: b.mimeType ?? "application/octet-stream" }), b.fileName ?? "upload");
+      return;
+    }
+    const v = item.json?.[label];
+    if (v === undefined || v === null) return;
+    for (const x of [].concat(v)) fd.append(`field-${i}`, typeof x === "string" ? x : JSON.stringify(x));
+  });
+  return fd;
+}
+
+async function submitForm(t, item, timeoutS) {
+  const path = t.parameters?.path || t.webhookId;
+  const t0 = Date.now();
+  for (;;) {
+    const r = await fetch(`${BASE}/form/${path}`, { method: "POST", body: formBody(t, item), signal: AbortSignal.timeout(timeoutS * 1000) });
+    const text = await r.text();
+    // Activation registers the form asynchronously; until then n8n answers 404.
+    if (r.status === 404) {
+      if (Date.now() - t0 > 10_000) throw new Error(`form ${path} still 404 after 10 s: ${text.slice(0, 300)}`);
+      await sleep(250);
+      continue;
+    }
+    return { status: r.status, headers: Object.fromEntries(r.headers), body: text.slice(0, 4000) };
   }
 }
 
