@@ -270,7 +270,10 @@ export async function dispatch(run, reqs) {
     if (run.stepMode) throw new Suspend(missing.slice(0, run.batchSize).map((r) => deepCopy(r)));
     for (const r of missing) run.resultLog[r.id] = await callHost(run, r);
   }
-  return reqs.map((r) => run.resultLog[r.id]);
+  // A copy: a step may change what it was handed (the Sheets programs add header columns to
+  // the rows they read), and the log is what a resumed run replays, so it must stay as the
+  // host answered.
+  return reqs.map((r) => deepCopy(run.resultLog[r.id]));
 }
 
 function summarize(r) {

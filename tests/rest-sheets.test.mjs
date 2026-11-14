@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { convertItems, loadReferences } from "../skills/n8n-to-claude/scripts/convert.mjs";
 import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
-import { preflight } from "../skills/n8n-to-claude/runtime/src/api.mjs";
+import { preflight, start as startRun, resume } from "../skills/n8n-to-claude/runtime/src/api.mjs";
 import { node, wf, run, out, start } from "./runtime-helpers.mjs";
 
 const SHEET = "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789";
@@ -74,6 +74,29 @@ test("Sheets update and appendOrUpdate: one cell per changed column; new rows ap
   assert.deepEqual(writes.map((r) => `${r.method} ${r.path}`), [`POST /v4/spreadsheets/${SHEET}/values:batchUpdate`, `POST /v4/spreadsheets/${SHEET}/values/Leads!4:4:append`]);
   assert.deepEqual(writes[0].body.data, [{ range: "Leads!C2", values: [["seen"]] }]);
   assert.deepEqual(writes[1].body, { range: "Leads!4:4", values: [["zed@x.test", null, "new"]] });
+});
+
+test("step mode (task driver): a program that grows the header it read replays the same requests after each resume", async () => {
+  // appendOrUpdate with a new input column writes the header and adds the column to the rows
+  // it read. The answer it was handed must not change in the result log, or the replay after a
+  // resume skips the header write and every later request id shifts by one.
+  const cols = { mappingMode: "autoMapInputData", matchingColumns: ["email"], value: {}, schema: schema("email", "name") };
+  const def = wf([start(), withRest(sheetsStep("appendOrUpdate", cols, {}, 4.5))], [["Start", "Sheet"]], { allow, secrets });
+  const values = () => [["email", "name"], ["ann@x.test", "Ann"]];
+  const trigger = [{ email: "bo@x.test", name: "Bo", phone: "555" }];
+  const once = sheetsHost(values());
+  const res = await run(def, { host: once, trigger });
+  assert.equal(res.status, "done", res.error?.message);
+  const host = sheetsHost(values());
+  let r = await startRun(def, { clock: { startedAt: "2026-11-14T03:00:00Z" }, virtualTime: true, trigger: { node: "Start", items: trigger.map((json) => ({ json })) }, batchSize: 1 });
+  for (let k = 0; r.status === "needs" && k < 20; k++) {
+    const state = JSON.parse(JSON.stringify(r.state)); // persisted between resumes, as the task driver does
+    const answers = await Promise.all(r.requests.map(async (q) => ({ id: q.id, ok: true, value: JSON.parse(JSON.stringify(await host.http(q))) })));
+    r = await resume(state, answers);
+  }
+  assert.equal(r.status, "done", JSON.stringify(r.error));
+  assert.deepEqual(host.seen.map((q) => `${q.method} ${q.path}`), once.seen.map((q) => `${q.method} ${q.path}`));
+  assert.ok(once.seen.some((q) => q.method === "PUT" && q.path.endsWith("Leads!1:1")), "the header write is part of the run");
 });
 
 test("a REST program step outside allow.http is refused before any request", async () => {
