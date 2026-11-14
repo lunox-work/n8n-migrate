@@ -13,7 +13,13 @@
 //                                       parent in a [*] chain), {path, default}, {const: v},
 //                                       {first: [spec, ...]} (first defined), {split: spec,
 //                                       sep} (text to a list), {join: spec, sep} (list to text),
-//                                       {headers: spec} (a list of {name, value} to an object).
+//                                       {headers: spec} (a list of {name, value} to an object),
+//                                       {headerLines: spec} (a list of {name, value} to
+//                                       {lowercase name: "Name: value"}, as n8n's parsed email),
+//                                       {addresses: spec} (a list of {address, name} to a
+//                                       parsed-email address object {value, text, html}),
+//                                       {addressLine: spec} (the same list as one header
+//                                       string, '"Name" <a@b>, c@d'); an empty list gives none.
 //                                       outName may be a dot path ("payload.mimeType").
 //     passthrough: true,                keep the element's own fields (default true); false
 //                                       emits only the listed fields.
@@ -23,6 +29,10 @@
 //     parse: "csv", text: "path",       the elements are the rows of a CSV text at `text`
 //     decode: "base64",                 (base64-decoded first), keyed by the header row;
 //     rowNumber: {field, start},        each row gets its sheet row number (header = 1).
+//     shape: "gmail-message",           read the raw output with a tolerant connector-shape
+//                                       reader first (shapes.mjs); paths then address the
+//                                       reader's canonical object. Unrecognised output fails
+//                                       the step ("connector shape not recognised").
 //   }
 // adaptResult(spec, output) -> [json, ...]. Tool hosts pass the tool's structured result
 // (structuredContent, or JSON-parsed text content); a text result arrives as a string and is
@@ -41,6 +51,7 @@
 // "since the last interval" (PLAN Phase 4).
 
 import { isObject, deepCopy, NodeError } from "./util.mjs";
+import { readShape, parseAddressList } from "./shapes.mjs";
 
 // ---------- paths ----------
 
@@ -130,11 +141,33 @@ function fieldValue(spec, el, root) {
     const v = fieldValue(spec.headers, el, root);
     return Array.isArray(v) ? Object.fromEntries(v.filter((h) => isObject(h) && typeof h.name === "string").map((h) => [h.name, h.value])) : v;
   }
+  if (spec.headerLines !== undefined) {
+    const v = fieldValue(spec.headerLines, el, root);
+    return Array.isArray(v) ? Object.fromEntries(v.filter((h) => isObject(h) && typeof h.name === "string").map((h) => [h.name.toLowerCase(), `${h.name}: ${h.value}`])) : v;
+  }
+  if (spec.addresses !== undefined) {
+    const list = parseAddressList(fieldValue(spec.addresses, el, root));
+    return list.length ? addressObject(list) : undefined;
+  }
+  if (spec.addressLine !== undefined) {
+    const list = parseAddressList(fieldValue(spec.addressLine, el, root));
+    return list.length ? list.map((a) => (a.name ? `"${a.name.replace(/"/g, '\\"')}" <${a.address}>` : a.address)).join(", ") : undefined;
+  }
   if (spec.path !== undefined) {
     const v = fieldValue(spec.path, el, root);
     return v === undefined ? spec.default : v;
   }
   return undefined;
+}
+
+// A parsed-email address object as n8n's Gmail and IMAP nodes emit it (mailparser).
+const escHtml = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+function addressObject(list) {
+  return {
+    value: list.map((a) => ({ address: a.address, name: a.name ?? "" })),
+    html: list.map((a) => `<span class="mp_address_group">${a.name ? `<span class="mp_address_name">${escHtml(a.name)}</span> &lt;` : ""}<a href="mailto:${escHtml(a.address)}" class="mp_address_email">${escHtml(a.address)}</a>${a.name ? "&gt;" : ""}</span>`).join(", "),
+    text: list.map((a) => (a.name ? `"${a.name}" <${a.address}>` : a.address)).join(", "),
+  };
 }
 
 export function parseToolOutput(output) {
@@ -206,9 +239,9 @@ function expectsJson(s) {
   return Object.values(s.fields ?? {}).some((f) => typeof f === "string" ? f !== "" && f !== "." && f !== "$" : isObject(f) && !("const" in f));
 }
 export function adaptResult(spec, output) {
-  const root = parseToolOutput(output);
   const s = spec ?? {};
-  if (typeof output === "string" && isObject(root) && Object.keys(root).length === 1 && root.text === output && expectsJson(s)) {
+  const root = s.shape ? readShape(s.shape, output) : parseToolOutput(output);
+  if (!s.shape && typeof output === "string" && isObject(root) && Object.keys(root).length === 1 && root.text === output && expectsJson(s)) {
     const preview = output.replace(/\s+/g, " ").trim().slice(0, 60);
     throw new NodeError(`the tool answered with text where this step reads JSON (${output.length} characters: "${preview}${output.length > 60 ? "…" : ""}"); refusing to continue with 0 items`);
   }

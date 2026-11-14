@@ -358,6 +358,18 @@ function mapReviews(params, entry) {
   return out;
 }
 
+// The result adapter for a map entry: the first `resultWhen` case whose parameter matches
+// (n8n's default when the export leaves it out), else `result`. Lets one operation keep n8n's
+// output shape per option, e.g. Gmail get's simplified versus parsed message.
+function resultFor(entry, params) {
+  for (const c of entry.resultWhen ?? []) {
+    const raw = getParam(params, c.param);
+    const v = raw === undefined ? c.default : unwrapParam(raw, c.param, []);
+    if (v === c.equals) return c.result ?? {};
+  }
+  return entry.result ?? {};
+}
+
 // ---------- $fromAI ----------
 
 const FROM_AI = /\$fromA[Ii]\s*\(\s*(['"`])((?:(?!\1).)+)\1\s*(?:,\s*(['"`])((?:(?!\3).)*)\3\s*)?(?:,\s*(['"`])(\w*)\5\s*)?(?:,\s*([^)]*?)\s*)?\)/g;
@@ -654,7 +666,7 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       const query = h.query ? resolveSpec(h.query, params, issues) : undefined;
       step.kind = "http";
       const cav = caveatsFor(params, entry.caveats);
-      step.http = { method: h.method, url, ...(query ? { query } : {}), ...(body ? { body } : {}), ...(h.coerce ? { coerce: h.coerce } : {}), result: entry.result ?? {}, fidelity: entry.fidelity, ...(cav.length ? { caveats: cav } : {}), map: key };
+      step.http = { method: h.method, url, ...(query ? { query } : {}), ...(body ? { body } : {}), ...(h.coerce ? { coerce: h.coerce } : {}), result: resultFor(entry, params), fidelity: entry.fidelity, ...(cav.length ? { caveats: cav } : {}), map: key };
       issues.push(...urlIssues);
       const cred = Object.entries(step.credentials ?? {}).find(([t]) => t === entry.credentialType) ?? Object.entries(step.credentials ?? {})[0];
       const secretName = cred?.[1] ?? `${entry.credentialType} (no credential named in the export)`;
@@ -685,7 +697,7 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         args,
         effect: entry.effect ?? "write",
         coerce: coerceFor(schema, args),
-        result: entry.result ?? {},
+        result: resultFor(entry, params),
         fidelity: entry.fidelity ?? "unverified",
         ...(entry.missingFields?.length ? { missingFields: entry.missingFields } : {}),
         ...(caveatsFor(params, entry.caveats).length ? { caveats: caveatsFor(params, entry.caveats) } : {}),
@@ -813,7 +825,7 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
             if (!isExpr(pv) && e.cursorByParam.values[pv]) cursor = e.cursorByParam.values[pv];
           }
           const schema = toolSchema(refs, e.connector, e.tool);
-          step.poll = { tool: { connector: e.connector, name: e.tool, args, coerce: coerceFor(schema, args) }, result: e.result ?? {}, cursor, fidelity: e.fidelity, ...(e.missingFields?.length ? { missingFields: e.missingFields } : {}), ...(e.caveats ? { caveats: caveatsFor(params, e.caveats) } : {}), map: found.key };
+          step.poll = { tool: { connector: e.connector, name: e.tool, args, coerce: coerceFor(schema, args) }, result: resultFor(e, params), cursor, fidelity: e.fidelity, ...(e.missingFields?.length ? { missingFields: e.missingFields } : {}), ...(e.caveats ? { caveats: caveatsFor(params, e.caveats) } : {}), map: found.key };
           step.schedule = scheduleFor(step, wr, ctx.now);
           addTool(e.connector, e.tool);
           const chk = checkArgs(schema, args);

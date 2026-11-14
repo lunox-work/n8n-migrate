@@ -46,9 +46,25 @@
             "tool": "get_message",
             "effect": "read",
             "args": { "messageId": "messageId", "messageFormat": { "if": { "param": "simple", "equals": false, "default": true }, "then": { "const": "FULL_CONTENT" }, "else": { "const": "MINIMAL" } } },
-            "result": { "fields": { "From": "sender", "To": { "join": "toRecipients" }, "Cc": { "join": "ccRecipients" }, "Subject": "subject", "text": "plaintextBody", "html": "htmlBody" } },
+            "result": {
+              "shape": "gmail-message",
+              "passthrough": false,
+              "fields": { "id": "id", "threadId": "threadId", "snippet": "snippet", "labelIds": "labelIds", "sizeEstimate": "sizeEstimate", "historyId": "historyId", "internalDate": "internalDate", "From": { "addressLine": "from" }, "To": { "addressLine": "to" }, "Cc": { "addressLine": "cc" }, "Subject": "subject", "text": "text", "html": "html" }
+            },
+            "resultWhen": [
+              {
+                "param": "simple",
+                "equals": false,
+                "default": true,
+                "result": {
+                  "shape": "gmail-message",
+                  "passthrough": false,
+                  "fields": { "id": "id", "threadId": "threadId", "labelIds": "labelIds", "sizeEstimate": "sizeEstimate", "headers": { "headerLines": "headers" }, "html": { "path": "html", "default": false }, "text": "text", "subject": "subject", "date": "date", "to": { "addresses": "to" }, "from": { "addresses": "from" }, "cc": { "addresses": "cc" }, "bcc": { "addresses": "bcc" }, "replyTo": { "addresses": "replyTo" }, "messageId": "messageId", "inReplyTo": "inReplyTo", "references": "references" }
+                }
+              }
+            ],
             "fidelity": "unverified",
-            "missingFields": ["threadId", "historyId", "internalDate", "labels", "payload", "sizeEstimate"],
+            "missingFields": ["labels", "payload", "textAsHtml"],
             "understood": ["operation", "resource", "messageId", "simple"],
             "review": [{"param":"options.downloadAttachments", "reason":"attachments are not downloaded by get_message"}]
           },
@@ -757,9 +773,10 @@
             "tool": "notion-fetch",
             "effect": "read",
             "args": { "id": "databaseId" },
-            "result": {},
+            "result": { "shape": "notion-database", "passthrough": false, "fields": { "id": "id", "name": { "path": "title[0].plain_text", "default": "" }, "url": "url" } },
+            "resultWhen": [{ "param": "simple", "equals": false, "default": true, "result": { "shape": "notion-database" } }],
             "fidelity": "unverified",
-            "missingFields": ["id", "name", "url"],
+            "missingFields": ["cover", "icon", "created_time", "last_edited_time", "created_by", "last_edited_by", "description", "is_inline", "parent", "archived"],
             "understood": ["operation", "resource", "databaseId", "simple"]
           }
         },
