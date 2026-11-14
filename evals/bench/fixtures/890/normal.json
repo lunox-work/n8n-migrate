@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "template": 890,
+  "sha256": "9f716c41557d60f9bf9d950d9abb7290765a8edde74ec041c29a0e927c4b919f",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "a five-row customer orders CSV with a header row",
+  "trigger": {
+    "node": "On clicking 'execute'",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Read Binary File",
+      "service": "local-file",
+      "file": {
+        "path": "/data/sample_spreadsheet.csv",
+        "text": "order_id,customer,country,amount_eur,ordered_at\n1001,Hanna Berg,NO,420.00,2026-11-02\n1002,Luis Ortega,ES,1260.50,2026-11-03\n1003,Mei Chen,SG,89.90,2026-11-05\n1004,\"Ortega, Luis\",ES,310.00,2026-11-09\n1005,Amara Okafor,NG,2045.00,2026-11-12\n"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a local file, no connector"
+      },
+      "note": "Read Binary File v1: reads the path into binary data; Spreadsheet File v1 (fromFile, CSV by extension, header row on) turns it into one item per row"
+    }
+  ],
+  "models": [],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: five items, one per row (the quoted comma in row 4 stays in the customer field)"
+    ],
+    "offline": "No model, no write and no network: the workflow reads one CSV from disk and parses it. The file is written at /data/sample_spreadsheet.csv on both sides; n8n 2.x restricts Read Binary File to N8N_RESTRICT_FILE_ACCESS_TO (default ~/.n8n-files), so the bench must allow /data or the n8n side fails with \"access to the file is not allowed\" (unverified on 2.47.7)"
+  }
+}

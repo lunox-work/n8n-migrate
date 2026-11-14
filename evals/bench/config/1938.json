@@ -1,0 +1,41 @@
+{
+  "why": "All three Discord nodes post to the template's placeholder URI https://discord.com/api/webhooks/<YOUR WEBHOOK HERE>. Filled with one dummy webhook per department (the fixture's writeReplies answer these), so the comparison can tell the three targets apart. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "User Success Dept": {
+      "parameters.webhookUri": "https://discord.com/api/webhooks/1300000000000000001/bench-success-token"
+    },
+    "IT Dept": {
+      "parameters.webhookUri": "https://discord.com/api/webhooks/1300000000000000002/bench-it-token"
+    },
+    "Helpdesk": {
+      "parameters.webhookUri": "https://discord.com/api/webhooks/1300000000000000003/bench-helpdesk-token"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "User Success Dept": {
+          "patch": {
+            "params": {
+              "webhookUri": "https://discord.com/api/webhooks/1300000000000000001/bench-success-token"
+            }
+          }
+        },
+        "IT Dept": {
+          "patch": {
+            "params": {
+              "webhookUri": "https://discord.com/api/webhooks/1300000000000000002/bench-it-token"
+            }
+          }
+        },
+        "Helpdesk": {
+          "patch": {
+            "params": {
+              "webhookUri": "https://discord.com/api/webhooks/1300000000000000003/bench-helpdesk-token"
+            }
+          }
+        }
+      }
+    }
+  }
+}

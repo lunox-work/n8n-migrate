@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "template": 2552,
+  "sha256": "a5849eeb64b99db598bd75d8b49d35c59a0e13e52d06770eb2866f82c0fcd77c",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the category page lists no books",
+  "trigger": {
+    "node": "When clicking \"Test workflow\"",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Jina Fetch",
+      "service": "jina-reader",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://r.jina.ai/http://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html",
+            "status": 200,
+            "headers": {
+              "content-type": "text/plain; charset=utf-8"
+            },
+            "body": "Title: Historical Fiction | Books to Scrape - Sandbox\n\nURL Source: http://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html\n\nMarkdown Content:\n[Books to Scrape](http://books.toscrape.com/index.html) We love being scraped!\n\n*   [Home](http://books.toscrape.com/index.html)\n*   [Books](http://books.toscrape.com/catalogue/category/books_1/index.html)\n*   Historical Fiction\n\nHistorical Fiction\n==================\n\n**0** results - showing **1** to **0**.\n\n"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Jina connector; the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "HTTP Request v4.1 GET r.jina.ai/<page URL> with an httpHeaderAuth credential (Authorization: Bearer); Jina Reader answers text/plain markdown (Title, URL Source, Markdown Content), which the node puts in $json.data"
+    }
+  ],
+  "models": [
+    "Information Extractor",
+    "OpenAI Chat Model"
+  ],
+  "writes": [
+    "Save to Google Sheets"
+  ],
+  "writeReplies": [
+    {
+      "node": "Save to Google Sheets",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1VDbfi2PpeheD2ZlO6feX3RdMeSsm0XukQlNVW8uVcuo",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 258629074,
+                    "title": "Sheet2",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1VDbfi2PpeheD2ZlO6feX3RdMeSsm0XukQlNVW8uVcuo/values/'Sheet2'",
+            "status": 200,
+            "body": {
+              "range": "Sheet2!A1:Z1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "name",
+                  "price",
+                  "availability",
+                  "image",
+                  "link"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1VDbfi2PpeheD2ZlO6feX3RdMeSsm0XukQlNVW8uVcuo/values/Sheet2!1:1",
+            "status": 200,
+            "body": {
+              "range": "Sheet2!A1:Z1",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "name",
+                  "price",
+                  "availability",
+                  "image",
+                  "link"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "PUT",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1VDbfi2PpeheD2ZlO6feX3RdMeSsm0XukQlNVW8uVcuo/values/Sheet2!1:1",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1VDbfi2PpeheD2ZlO6feX3RdMeSsm0XukQlNVW8uVcuo",
+              "updatedRange": "Sheet2!A1:H1",
+              "updatedRows": 1,
+              "updatedColumns": 8,
+              "updatedCells": 8
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1VDbfi2PpeheD2ZlO6feX3RdMeSsm0XukQlNVW8uVcuo:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1VDbfi2PpeheD2ZlO6feX3RdMeSsm0XukQlNVW8uVcuo",
+              "replies": [
+                {}
+              ]
+            }
+          },
+          {
+            "method": "PUT",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1VDbfi2PpeheD2ZlO6feX3RdMeSsm0XukQlNVW8uVcuo/values/Sheet2!2:2",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1VDbfi2PpeheD2ZlO6feX3RdMeSsm0XukQlNVW8uVcuo",
+              "updatedRange": "Sheet2!A2:H2",
+              "updatedRows": 1,
+              "updatedColumns": 8,
+              "updatedCells": 8
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Sheets connector for writes"
+      },
+      "note": "Sheets v4.2 append, autoMapInputData, gid 258629074: sheet properties (gid → Sheet2), GET values/'Sheet2' (header + existing rows), the extractor's keys title/product_url/image_url are not columns, so n8n writes the widened header to Sheet2!1:1 (insertInNewColumn, the default), adds a row (batchUpdate appendDimension), then PUTs the rows from row 2. The row count is model-driven; the PUT range assumes 1 books, and any other range gets the mock's write default"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "the extractor returns an empty results array (model-driven), so Split Out emits nothing and nothing is appended"
+    ],
+    "offline": "The page is books.toscrape.com as Jina Reader renders it; the extraction (how many books, which fields) is model-driven, so the append rows follow the recorded reply. allowUnauthorizedCerts is set on Jina Fetch"
+  }
+}

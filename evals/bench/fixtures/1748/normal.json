@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "template": 1748,
+  "sha256": "ca5faa42ed2217fd47a9ba7be84ff5c9054e6ed83159a155b97fa07d6d0ae97a",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "two starred repositories on the first page, then an empty page; five albums; the random article is a lighthouse",
+  "trigger": {
+    "node": "On clicking 'execute'",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "HTTP Request - Get my Stars",
+      "service": "github",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.github.com/users/that-one-tom/starred",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8",
+              "x-ratelimit-limit": "60",
+              "x-ratelimit-remaining": "57"
+            },
+            "body": [
+              {
+                "id": 500000001,
+                "node_id": "R_kgDOBench0001",
+                "name": "n8n",
+                "full_name": "n8n-io/n8n",
+                "private": false,
+                "owner": {
+                  "login": "n8n-io",
+                  "id": 9000001,
+                  "type": "User",
+                  "html_url": "https://github.com/n8n-io"
+                },
+                "html_url": "https://github.com/n8n-io/n8n",
+                "description": "Fair-code workflow automation platform with native AI capabilities.",
+                "fork": false,
+                "url": "https://api.github.com/repos/n8n-io/n8n",
+                "created_at": "2024-03-02T10:00:00Z",
+                "updated_at": "2026-11-10T08:00:00Z",
+                "pushed_at": "2026-11-09T21:00:00Z",
+                "homepage": null,
+                "size": 1201,
+                "stargazers_count": 160000,
+                "watchers_count": 160000,
+                "language": "TypeScript",
+                "forks_count": 16000,
+                "open_issues_count": 3,
+                "license": {
+                  "key": "mit",
+                  "name": "MIT License",
+                  "spdx_id": "MIT"
+                },
+                "topics": [],
+                "visibility": "public",
+                "default_branch": "main"
+              },
+              {
+                "id": 500000002,
+                "node_id": "R_kgDOBench0002",
+                "name": "jq",
+                "full_name": "jqlang/jq",
+                "private": false,
+                "owner": {
+                  "login": "jqlang",
+                  "id": 9000002,
+                  "type": "User",
+                  "html_url": "https://github.com/jqlang"
+                },
+                "html_url": "https://github.com/jqlang/jq",
+                "description": "Command-line JSON processor",
+                "fork": false,
+                "url": "https://api.github.com/repos/jqlang/jq",
+                "created_at": "2024-03-02T10:00:00Z",
+                "updated_at": "2026-11-10T08:00:00Z",
+                "pushed_at": "2026-11-09T21:00:00Z",
+                "homepage": null,
+                "size": 1202,
+                "stargazers_count": 31000,
+                "watchers_count": 31000,
+                "language": "C",
+                "forks_count": 3100,
+                "open_issues_count": 3,
+                "license": {
+                  "key": "mit",
+                  "name": "MIT License",
+                  "spdx_id": "MIT"
+                },
+                "topics": [],
+                "visibility": "public",
+                "default_branch": "main"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "url": "https://api.github.com/users/that-one-tom/starred",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8",
+              "x-ratelimit-limit": "60",
+              "x-ratelimit-remaining": "57"
+            },
+            "body": []
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured GitHub connector; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "HTTP Request v3 GET /users/that-one-tom/starred?per_page=15&page=<Set.page>, full response. Answered in turn, last repeats: the loop asks again for every star item (If - Are we finished? runs per item and Set - Increment Page does not change the page the request reads, since the URL reads $node[\"Set\"]), so a turn-based answer ends it when the body is empty"
+    },
+    {
+      "node": "HTTP Request - Get Mock Albums",
+      "service": "jsonplaceholder",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://jsonplaceholder.typicode.com/albums",
+            "status": 200,
+            "body": [
+              {
+                "userId": 1,
+                "id": 1,
+                "title": "quidem molestiae enim"
+              },
+              {
+                "userId": 1,
+                "id": 2,
+                "title": "sunt qui excepturi placeat culpa"
+              },
+              {
+                "userId": 1,
+                "id": 3,
+                "title": "omnis laborum odio"
+              },
+              {
+                "userId": 1,
+                "id": 4,
+                "title": "non esse culpa molestiae omnis sed optio"
+              },
+              {
+                "userId": 1,
+                "id": 5,
+                "title": "eaque aut omnis a"
+              }
+            ]
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a public mock API, no connector"
+      },
+      "note": "HTTP Request v3 GET https://jsonplaceholder.typicode.com/albums, full response; Item Lists splits body into items"
+    },
+    {
+      "node": "HTTP Request - Get Wikipedia Page",
+      "service": "wikipedia",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://en.wikipedia.org/wiki/Special:Random",
+            "status": 302,
+            "headers": {
+              "location": "https://en.wikipedia.org/wiki/Akaroa_Lighthouse",
+              "cache-control": "private, s-maxage=0, max-age=0, must-revalidate"
+            },
+            "body": ""
+          },
+          {
+            "method": "GET",
+            "url": "https://en.wikipedia.org/wiki/Akaroa_Lighthouse",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=UTF-8"
+            },
+            "body": "<!DOCTYPE html><html class=\"client-nojs\" lang=\"en\"><head><meta charset=\"UTF-8\"><title>Akaroa Lighthouse - Wikipedia</title></head><body><div id=\"content\"><h1 id=\"firstHeading\" class=\"firstHeading mw-first-heading\"><span class=\"mw-page-title-main\">Akaroa Lighthouse</span></h1><div id=\"bodyContent\"><p>The Akaroa Lighthouse is a historic lighthouse in Akaroa, New Zealand.</p></div></div></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a plain page fetch, no connector"
+      },
+      "note": "HTTP Request v3 GET Special:Random (followRedirects, response as file): Wikipedia answers 302 to a random article, whose HTML becomes binary data for HTML Extract (#firstHeading)"
+    }
+  ],
+  "models": [],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "If - Are we finished?: false for the two star items of page one → Set - Increment Page → two more requests, both answered with an empty body → Item Lists emits nothing and the loop ends"
+    ],
+    "offline": "No model and no write: three independent read branches. GitHub, jsonplaceholder and Wikipedia are public APIs; the random article is fixed by the fixture"
+  }
+}

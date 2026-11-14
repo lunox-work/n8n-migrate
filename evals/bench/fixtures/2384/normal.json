@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "template": 2384,
+  "sha256": "c9f0559c48001ac166f0b221a01c656c55e5070fb1d70ab49eb34044cc2ec591",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "a customer asks for help choosing between two plans; the chain answers in one reply",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "e1b3d5f7a9c24e6f8a0b2c4d6e8f0a1b",
+          "action": "sendMessage",
+          "chatInput": "Hi! I run a small bakery with 3 staff. Should I pick your Basic plan (1 user) or Team plan (5 users)? We mostly need online ordering."
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [
+    "Chat LLM Chain",
+    "Ollama Chat Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch; the chain answers once (model-driven text)"
+    ],
+    "offline": "No external read: the only call is the model (lmChatOllama, POST /api/chat on the ollamaApi credential's base URL, routed to the shim). The chain has no prompt of its own, so it takes chatInput; no memory is attached"
+  }
+}
