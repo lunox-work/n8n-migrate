@@ -3,6 +3,14 @@
 // corpus.json and the refusal labels.
 //
 //   node evals/bench/summary.mjs [--tag <bench run>] [--json]
+//   node evals/bench/summary.mjs --release <dev tag> <held-out tag> [--flips n] [--round n] [--json]
+//
+// --release: a release point's gap and overfitting bound (PLAN Phase 6) for the current round
+// of the rolling held-out (rounds.mjs): dev = the round's dev templates with fixtures, held-out
+// = the round's held-out templates; only those templates' rows of each tag count, and n are
+// the fixtured sizes. --flips: templates whose verdict changed between two runs on one commit.
+// --round: another round than splits.currentRound (to restate an earlier release point).
+// Membership of the run's templates in the current round is printed either way.
 //
 // Outcome shares and coverage: the analyzer's outcomes for the top 100 of the listing
 // (corpus.json, default answers). One-shot success: templates of the bench run that passed
@@ -16,14 +24,43 @@ import { readFileSync, existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { readSplits, roundOf, devWithFixtures, overfittingBound } from "./rounds.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
 const args = process.argv.slice(2);
 const json = args.includes("--json");
+const splits = readSplits();
+const roundArg = args.includes("--round") ? Number(args[args.indexOf("--round") + 1]) : undefined;
+const round = roundOf(splits, roundArg);
+const devIds = new Set(devWithFixtures(splits, undefined, round.round));
+const heldIds = new Set(round.heldOut.map((r) => r.id));
 const rows = existsSync(join(ROOT, "evals", "results.jsonl")) ? readFileSync(join(ROOT, "evals", "results.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
 const tag = args.includes("--tag") ? args[args.indexOf("--tag") + 1] : rows.at(-1)?.tag;
-const mine = [...new Map(rows.filter((r) => r.tag === tag).map((r) => [r.template, r])).values()];
+const latest = (t) => [...new Map(rows.filter((r) => r.tag === t).map((r) => [r.template, r])).values()];
+const mine = latest(tag);
+
+if (args.includes("--release")) {
+  const i = args.indexOf("--release");
+  const [devTag, heldTag] = [args[i + 1], args[i + 2]];
+  const flips = args.includes("--flips") ? Number(args[args.indexOf("--flips") + 1]) : 0;
+  const dev = latest(devTag).filter((r) => devIds.has(r.template));
+  const held = latest(heldTag).filter((r) => heldIds.has(r.template));
+  const nDev = devIds.size;
+  const nHeld = heldIds.size;
+  const passDev = dev.filter((r) => r.passedAll).length;
+  const passHeld = held.filter((r) => r.passedAll).length;
+  const b = overfittingBound({ passDev, nDev, passHeld, nHeld, flips });
+  const missing = { dev: [...devIds].filter((id) => !dev.some((r) => r.template === id)), heldOut: [...heldIds].filter((id) => !held.some((r) => r.template === id)) };
+  const out = { round: round.round, devTag, heldTag, dev: { passed: passDev, of: nDev }, heldOut: { passed: passHeld, of: nHeld }, flips, ...b, missing };
+  if (json) console.log(JSON.stringify(out, null, 2));
+  else {
+    console.log(`release point, round ${round.round}: dev ${passDev}/${nDev} (${devTag}), held-out ${passHeld}/${nHeld} (${heldTag})`);
+    console.log(`gap ${b.gap} points; bound ${b.bound} (pooled p ${b.pooled}%, 1.96·sqrt(p(1−p)(1/${nDev} + 1/${nHeld})) + 2 × ${flips} flips = ${b.flipsPoints} points): ${b.inside ? "inside" : "OVER"} the bound`);
+    if (missing.dev.length || missing.heldOut.length) console.log(`templates without a row in their tag (counted as not passing): dev ${missing.dev.join(", ") || "none"}; held-out ${missing.heldOut.join(", ") || "none"}`);
+  }
+  process.exit(0);
+}
 
 const corpus = JSON.parse(readFileSync(join(HERE, "corpus.json"), "utf8"));
 const top = corpus.templates.filter((t) => t.rank <= 100);
@@ -47,8 +84,10 @@ for (const r of mine) {
   byGate[r.gate ?? "error"] = (byGate[r.gate ?? "error"] ?? 0) + 1;
   byBucket[r.bucket ?? "?"] = (byBucket[r.bucket ?? "?"] ?? 0) + 1;
 }
+const membership = { round: round.round, dev: mine.filter((r) => devIds.has(r.template)).length, heldOut: mine.filter((r) => heldIds.has(r.template)).length, other: mine.filter((r) => !devIds.has(r.template) && !heldIds.has(r.template)).length };
 const out = {
   tag,
+  membership,
   commit: mine[0]?.commit,
   outcomeSharesTop100: shares,
   coverageTop100: corpus.coverageTop100,
@@ -81,7 +120,7 @@ const out = {
 
 if (json) console.log(JSON.stringify(out, null, 2));
 else {
-  console.log(`bench run ${tag} (commit ${out.commit})`);
+  console.log(`bench run ${tag} (commit ${out.commit}); round ${round.round}: ${membership.dev} of its templates are dev (${devIds.size} with fixtures), ${membership.heldOut} held-out${membership.other ? `, ${membership.other} neither (an earlier round's held-out or no fixtures)` : ""}`);
   console.log(`outcome shares, top 100 (analyzer, default answers): ${Object.entries(shares).map(([k, v]) => `${k} ${v}`).join(", ")}`);
   console.log(`coverage of the top 100: ${corpus.coverageTop100.raw.subscription} of ${corpus.coverageTop100.raw.of} raw, ${corpus.coverageTop100.afterExclusions.subscription} of ${corpus.coverageTop100.afterExclusions.of} after exclusions`);
   console.log(`one-shot success: ${out.oneShot.passed} of ${out.oneShot.of} (${out.oneShot.share ?? "-"}%); gate sum ${out.gateSum}`);

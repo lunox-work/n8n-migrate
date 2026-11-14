@@ -7,6 +7,9 @@
 //        [--driver inprocess|claude] [--skill <id,id|all|none>] [--tag <run tag>]
 //        [--reuse-convert <tag>] [--record] [--no-n8n-check] [--diagnose]
 //
+// Without ids (or with --split dev): the current round's dev templates that have fixtures
+// (splits.json `rounds`, evals/bench/rounds.mjs).
+//
 // --skill        templates whose gate 2 is the headless skill run (claude -p sonnet); the rest
 //                use the plain converter (budget). Every template also gets the plain column.
 // --tag          names this bench run; its ledger is .work/ledger/<tag>.json. Re-running with
@@ -39,6 +42,7 @@ import { startShim, answerOf } from "./model-shim.mjs";
 import { fromHttp, fromTool, reply, replyText, compare, modelTextsOf, baitHits, refsOf } from "./compare.mjs";
 import { gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited } from "./gates.mjs";
 import { BudgetExceeded, UsageLimit, ledger as claudeLedger, memoryGate } from "./claude.mjs";
+import { readSplits, devWithFixtures } from "./rounds.mjs";
 
 // Bench folders sit inside this checkout: keep run records local, never push an n2c-state branch.
 process.env.N2C_STORE = "file";
@@ -72,9 +76,9 @@ function parseArgs(argv) {
     else a.ids.push(Number(k));
   }
   if (!a.ids.length) {
-    const splits = JSON.parse(readFileSync(join(HERE, "splits.json"), "utf8"));
     if (a.split === "held-out") throw new Error("held-out runs only at release points (EXCLUSIONS.md); pass ids explicitly");
-    a.ids = splits.dev.map((x) => x.id).filter((id) => existsSync(join(HERE, "fixtures", String(id))));
+    // The current round's dev (rolling held-out, rounds.mjs): templates with fixtures.
+    a.ids = devWithFixtures(readSplits());
   }
   if (a.limit) a.ids = a.ids.slice(0, a.limit);
   a.tag ??= `run-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-")}`;

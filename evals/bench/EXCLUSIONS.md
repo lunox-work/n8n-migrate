@@ -23,4 +23,4 @@ Not excluded on purpose, because they are real refusals the bench should measure
 
 ## Held-out
 
-`splits.json` holds `dev` (60) and `held-out` (40). A session that changes the skill, the converter or the runtime must never read the held-out templates, their fixtures or their results; it runs only at release points (PLAN Phase 6).
+`splits.json` holds `dev` (60) and `held-out` (40). A session that changes the skill, the converter or the runtime must never read the current round's held-out templates, their fixtures or their results; they run only at release points (PLAN Phase 6). Held-out templates already scored at a release point join dev in the next round (`rounds`, rolling held-out) and may be read from then on; round 2's held-out is held-out 21–40.

@@ -43,3 +43,28 @@ test("the first twenty held-out templates of splits.json have fixtures pinned to
     }
   }
 });
+
+// Rolling held-out (PLAN Phase 6, evals/bench/rounds.mjs): the seeded split stays; held-out
+// 1-20, scored at release point 1, join dev in round 2, and held-out 21-40 score release point 2.
+test("rolling held-out: round 2 promotes held-out 1-20 to dev and holds out 21-40; the seeded split is unchanged", async () => {
+  const { readSplits, roundOf, devWithFixtures, overfittingBound } = await import("../evals/bench/rounds.mjs");
+  const splits = readSplits();
+  assert.equal(splits.dev.length, 60);
+  assert.equal(splits.heldOut.length, 40);
+  const ids = (rows) => rows.map((r) => r.id);
+  const r1 = roundOf(splits, 1);
+  assert.deepEqual([ids(r1.dev), ids(r1.heldOut)], [ids(splits.dev), ids(splits.heldOut.slice(0, 20))]);
+  const r2 = roundOf(splits);
+  assert.equal(r2.round, 2);
+  assert.deepEqual(ids(r2.dev), [...ids(splits.dev), ...ids(splits.heldOut.slice(0, 20))]);
+  assert.deepEqual(ids(r2.heldOut), ids(splits.heldOut.slice(20, 40)));
+  assert.equal(new Set([...ids(r2.dev), ...ids(r2.heldOut)]).size, 100, "dev and held-out stay disjoint");
+  assert.equal(devWithFixtures(splits).length, 50);
+  assert.equal(devWithFixtures(splits, undefined, 1).length, 30);
+  // The lint forbids every corpus id in skill files, promoted ones included.
+  const corpusIds = new Set(JSON.parse(readFileSync(join(BENCH, "corpus.json"), "utf8")).templates.map((t) => t.id));
+  for (const r of splits.rounds) for (const id of [...r.promoted, ...r.heldOut]) assert.ok(corpusIds.has(id), String(id));
+  // Release point 1 restated: 9/30 against 2/20, bound 23.4.
+  assert.deepEqual(overfittingBound({ passDev: 9, nDev: 30, passHeld: 2, nHeld: 20 }), { pooled: 22, gap: 20, bound: 23.4, flipsPoints: 0, inside: true });
+  assert.equal(overfittingBound({ passDev: 9, nDev: 30, passHeld: 2, nHeld: 20, flips: 1 }).bound, 33.4);
+});

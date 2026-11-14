@@ -11,7 +11,7 @@
 // take the dev slots. Both lists keep the shuffled order, which is "the seeded order" the
 // bench walks (the first 10 of dev get fixtures first).
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { stratum } from "./fetch.mjs";
@@ -78,6 +78,12 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     dev: dev.map(row),
     heldOut: held.map(row),
   };
+  // Rolling held-out (rounds.mjs): rounds are decided at release points, not by the seed; a
+  // re-run of the split keeps them.
+  if (existsSync(out)) {
+    const prev = JSON.parse(readFileSync(out, "utf8"));
+    for (const k of ["roundsRule", "currentRound", "rounds"]) if (prev[k] !== undefined) doc[k] = prev[k];
+  }
   const text = JSON.stringify(doc, null, 2).replace(/\{\n\s+("id": \d+,[^{}]*?)\n\s+\}/g, (_, b) => `{ ${b.replace(/\n\s+/g, " ")} }`);
   writeFileSync(out, text + "\n");
   console.log(`dev ${dev.length} ${JSON.stringify(strata(dev))}; held-out ${held.length} ${JSON.stringify(strata(held))}; slots ${JSON.stringify(slots)}`);
