@@ -163,3 +163,27 @@ test("a Google Calendar step (not a tool) runs the same program; an empty calend
   assert.equal(bad.status, "failed");
   assert.match(bad.error.message, /Invalid identifier: "" is not allowed/);
 });
+
+test("an X tweet (Twitter node v2, tweet create) is one request template: POST api.x.com/2/tweets {text}, the reply's data as the item", async () => {
+  const wf = {
+    id: "x01",
+    name: "Tweet",
+    nodes: [
+      { parameters: {}, name: "Start", type: "n8n-nodes-base.manualTrigger", typeVersion: 1, position: [0, 0] },
+      { parameters: { text: "={{ $json.t }}", additionalFields: {} }, name: "Post tweet", type: "n8n-nodes-base.twitter", typeVersion: 2, position: [200, 0], credentials: { twitterOAuth2Api: { id: "1", name: "X" } } },
+    ],
+    connections: { Start: { main: [[{ node: "Post tweet", type: "main", index: 0 }]] } },
+    settings: { executionOrder: "v1" },
+  };
+  const def = convertJson(wf);
+  assert.deepEqual(def.allow.http, [{ method: "POST", host: "api.x.com", pathPrefix: "/2/tweets" }]);
+  assert.equal(preflight(def).ok, true, JSON.stringify(preflight(def).issues));
+  const seen = [];
+  const host = { http: async (q) => (seen.push(q), { status: 201, headers: { "content-type": "application/json" }, body: JSON.stringify({ data: { id: "19", text: "hi", edit_history_tweet_ids: ["19"] } }) }) };
+  const r = await run(def, { clock: CLOCK, virtualTime: true, trigger: { node: "Start", items: [{ json: { t: "hi" } }] }, host });
+  assert.equal(r.status, "done", JSON.stringify(r.error));
+  assert.equal(seen[0].url, "https://api.x.com/2/tweets");
+  assert.deepEqual(seen[0].body, { text: "hi" });
+  assert.equal(seen[0].auth.secret, "X");
+  assert.deepEqual(r.runData["Post tweet"][0].data.main[0].map((i) => i.json), [{ id: "19", text: "hi", edit_history_tweet_ids: ["19"] }]);
+});

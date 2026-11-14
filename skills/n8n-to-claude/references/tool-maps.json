@@ -957,6 +957,27 @@
         }
       }
     },
+    "n8n-nodes-base.twitter": {
+      ">=2": {
+        "tweet": {
+          "create": {
+            "http": { "method": "POST", "url": "https://api.x.com/2/tweets", "body": { "text": "text" }, "coerce": { "text": "string" } },
+            "credentialType": "twitterOAuth2Api",
+            "effect": "write",
+            "result": { "items": "data" },
+            "fidelity": "exact",
+            "caveats": ["X OAuth 2.0 access tokens expire after two hours and no refresh is built: the stored secret must be a current access token, so an unattended run needs it refreshed."],
+            "understood": ["operation", "resource", "text"],
+            "review": [
+              { "param": "additionalFields.location", "reason": "the tweet's place (geo.place_id) is not mapped into the request body" },
+              { "param": "additionalFields.attachments", "reason": "media attachments need an upload first; not mapped" },
+              { "param": "additionalFields.inQuoteToStatusId", "reason": "the quoted tweet (quote_tweet_id) is not mapped into the request body" },
+              { "param": "additionalFields.inReplyToStatusId", "reason": "the replied-to tweet (reply.in_reply_to_tweet_id) is not mapped into the request body" }
+            ]
+          }
+        }
+      }
+    },
     "n8n-nodes-base.telegram": {
       ">=1": {
         "message": {

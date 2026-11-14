@@ -6,8 +6,8 @@ Classes: **full** (no review flag, no blocked step), **review** (some step is fl
 
 | Mode | full | review | blocked | refused | crash | schema-invalid | preflight clean |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| default | 11 | 18 | 51 | 0 | 0 | 0 | 29 |
-| forced | 11 | 18 | 51 | 0 | 0 | 0 | 29 |
+| default | 12 | 18 | 50 | 0 | 0 | 0 | 30 |
+| forced | 12 | 18 | 50 | 0 | 0 | 0 | 30 |
 
 ## Default (refusals honoured)
 
@@ -23,13 +23,13 @@ Top reasons for blocked steps:
 | no-tool: no request template for facebookGraphApi yet (it needs the app's REST API with a stored secret) | 4 | 8 |
 | unsupported: toolThink cannot run in the runtime | 3 | 5 |
 | no-tool: no request template for rssFeedRead yet (it needs the app's REST API with a stored secret) | 3 | 3 |
-| no-tool: no request template for twitter tweet:create yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | unsupported: form waits for a person (out of scope v1) | 2 | 6 |
 | dropped: a database step needs the bundled server or a database connector (open decision N) | 2 | 2 |
 | no-tool: no request template for discord channel:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
 | no-tool: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
 | no-tool: no request template for blotato yet (it needs the app's REST API with a stored secret) | 1 | 10 |
 | no-tool: no tool map for microsoftOutlook message:update yet | 1 | 7 |
+| no-tool: no tool map for microsoftOutlook message:move yet | 1 | 5 |
 
 Top reasons for review flags:
 
@@ -62,9 +62,9 @@ Top preflight errors (what stops a run before any effect):
 | blocked: media steps (transcription, image generation) go through the original provider (lever not built yet) | 6 | 7 |
 | blocked: no request template for wordpress post:create yet (it needs the app's REST API with a stored secret) | 5 | 5 |
 | blocked: no request template for facebookGraphApi yet (it needs the app's REST API with a stored secret) | 4 | 8 |
-| blocked: no request template for twitter tweet:create yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | not implemented: n8n-nodes-base.markdown v1 (kind logic) | 3 | 3 |
 | blocked: form waits for a person (out of scope v1) | 2 | 6 |
+| not implemented: n8n-nodes-base.htmlExtract v1 (kind logic) | 2 | 3 |
 
 ## Forced (every template converted)
 
@@ -80,13 +80,13 @@ Top reasons for blocked steps:
 | no-tool: no request template for facebookGraphApi yet (it needs the app's REST API with a stored secret) | 4 | 8 |
 | unsupported: toolThink cannot run in the runtime | 3 | 5 |
 | no-tool: no request template for rssFeedRead yet (it needs the app's REST API with a stored secret) | 3 | 3 |
-| no-tool: no request template for twitter tweet:create yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | unsupported: form waits for a person (out of scope v1) | 2 | 6 |
 | dropped: a database step needs the bundled server or a database connector (open decision N) | 2 | 2 |
 | no-tool: no request template for discord channel:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
 | no-tool: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
 | no-tool: no request template for blotato yet (it needs the app's REST API with a stored secret) | 1 | 10 |
 | no-tool: no tool map for microsoftOutlook message:update yet | 1 | 7 |
+| no-tool: no tool map for microsoftOutlook message:move yet | 1 | 5 |
 
 Top reasons for review flags:
 
@@ -119,15 +119,15 @@ Top preflight errors (what stops a run before any effect):
 | blocked: media steps (transcription, image generation) go through the original provider (lever not built yet) | 6 | 7 |
 | blocked: no request template for wordpress post:create yet (it needs the app's REST API with a stored secret) | 5 | 5 |
 | blocked: no request template for facebookGraphApi yet (it needs the app's REST API with a stored secret) | 4 | 8 |
-| blocked: no request template for twitter tweet:create yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | not implemented: n8n-nodes-base.markdown v1 (kind logic) | 3 | 3 |
 | blocked: form waits for a person (out of scope v1) | 2 | 6 |
+| not implemented: n8n-nodes-base.htmlExtract v1 (kind logic) | 2 | 3 |
 
 ## Tool maps
 
-69 operation entries in `references/tool-maps.json`: 57 connector tools, 4 REST request templates, 8 explained no-tool blocks; 2 substitutions (smtp-to-gmail, imap-to-gmail-poll). Fidelity of the mapped ones: unverified 50, exact 11. 4 connector entries need their arguments translated by the skill (Notion property formats).
+70 operation entries in `references/tool-maps.json`: 57 connector tools, 5 REST request templates, 8 explained no-tool blocks; 2 substitutions (smtp-to-gmail, imap-to-gmail-poll). Fidelity of the mapped ones: unverified 50, exact 12. 4 connector entries need their arguments translated by the skill (Notion property formats).
 
-Steps in the forced run by fidelity: tools unverified 71; REST templates exact 8.
+Steps in the forced run by fidelity: tools unverified 71; REST templates exact 11.
 
 No connector output shape was captured (the schemas are input schemas), so every adapter that reads a tool's output is `unverified` until the bench's emulation check runs it against real output. REST templates are `exact` where n8n returns the API's own response body.
 
