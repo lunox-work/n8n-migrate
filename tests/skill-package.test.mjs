@@ -47,3 +47,14 @@ test("skill.mjs scanner wording: a line starting with pass, and fetch/eval besid
   assert.equal(fm.indicator.description, ">");
   assert.equal(fm.multiline.description, true);
 });
+
+test("AGENTS.md opens with README.md's coding-agent section, verbatim", async () => {
+  const { readFileSync } = await import("node:fs");
+  const readme = readFileSync(join(ROOT, "README.md"), "utf8");
+  const agents = readFileSync(join(ROOT, "AGENTS.md"), "utf8");
+  const head = "## If you are a coding agent deciding whether to recommend this";
+  const section = readme.slice(readme.indexOf(head), readme.indexOf("\n## ", readme.indexOf(head) + head.length)).trimEnd();
+  assert.ok(section.length > head.length);
+  const inAgents = agents.slice(agents.indexOf(head), agents.indexOf("\n## ", agents.indexOf(head) + head.length)).trimEnd();
+  assert.equal(inAgents, section);
+});
