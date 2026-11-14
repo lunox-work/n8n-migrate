@@ -33,6 +33,13 @@
 //     prints the workflow's reply.
 //   - poll-submissions (task.json source, behind artifactDb): form submissions stored by the
 //     artifact page are read with ArtifactData and run one by one.
+//   - dry run (`start --dry-run`, the cutover's first step): reads go out as usual, every write
+//     (connector or http) is held: the driver answers it with a stand-in and records its exact
+//     arguments as would-send, no ledger entry, no cursor saved, no alert. The trigger runs in
+//     manual mode from the scheduled cursor, so it shows what the next run would send.
+//   - cutover gate (records.mjs meta/cutover): once a cutover has started, a scheduled run starts
+//     only while the owner is "claude", so a task created before n8n was deactivated, or left on
+//     after a rollback, sends nothing (references/cutover.md).
 //
 // Files, in the workflow folder (the one holding definition.json):
 //   task.json             {hooks, compactOver, compactWhole, secrets, toolPrefixes, hideToolOutput,
@@ -515,6 +522,15 @@ export const isWrite = (req) => req?.kind === "tool" && req.effect === "write" &
 // ---------- records in the store ----------
 
 const OPEN = "meta/open";
+// The latest dry run's outcome ({runId, status, definitionHash, startedAt, endedAt, wouldSend}):
+// meta documents are read eagerly from a git store, run records are not (cutover.mjs reads this).
+export const META_DRY_RUN = "meta/dry-run";
+// The cutover gate: text for a scheduled start while n8n still owns the workflow, else null.
+export function cutoverHold(core, store) {
+  const meta = store.get(core.META_CUTOVER);
+  if (core.cutoverOwner(meta) !== "n8n") return null;
+  return `HELD: the n8n workflow still runs this workflow (cutover ${meta.updatedAt ? `state of ${meta.updatedAt}` : "not finished"}), so this scheduled run sends nothing and reads nothing. It runs once the person finishes the cutover (cutover.mjs <folder> enable). Stop now.`;
+}
 const commitOf = (P) => {
   const v = existsSync(join(P.dir, "runtime", "VERSION")) ? readFileSync(join(P.dir, "runtime", "VERSION"), "utf8") : "";
   return /^skill (\S+)/m.exec(v)?.[1] ?? null;
@@ -527,10 +543,15 @@ function persistState(P, core, store, state) {
 function writeRunRecord(P, core, store, state, status, extra = {}) {
   const res = state.result ?? {};
   const sent = {};
-  for (const e of state.effects ?? []) if (e.effectKey && (state.resultLog?.[e.id]?.ok || ledgerGet(store, core, e.effectKey)?.status === "sent")) sent[e.effectKey] = true;
+  // A dry run's held writes have a stand-in result, not a send.
+  if (!state.n2c?.dryRun) for (const e of state.effects ?? []) if (e.effectKey && (state.resultLog?.[e.id]?.ok || ledgerGet(store, core, e.effectKey)?.status === "sent")) sent[e.effectKey] = true;
   const final = !["running", "needs-check"].includes(status);
-  const steps = core.stepStatuses(state.definition, { runData: res.runData ?? {}, effects: state.effects ?? [], final, error: res.error, sent, unknown: (extra.unknown ?? []).map((u) => u.step), active: final ? [] : state.requests ?? [] });
-  const rec = core.runRecord({ runId: state.runId, workflow: state.definition?.name, trigger: state.n2c?.trigger ?? "scheduled", driver: state.n2c?.driver ?? "task", status, dryRun: false, startedAt: state.startedAt, endedAt: final ? res.endedAt ?? new Date().toISOString() : null, definitionHash: state.definitionHash, commit: commitOf(P), effects: state.effects, sent, steps, runData: res.runData, error: res.error, cursorsSaved: !!extra.cursorsSaved, resumable: !final });
+  const dryRun = !!state.n2c?.dryRun;
+  const held = dryRun ? state.n2c.held ?? {} : undefined;
+  const steps = core.stepStatuses(state.definition, { runData: res.runData ?? {}, effects: state.effects ?? [], final, error: res.error, sent, dryRun, held, unknown: (extra.unknown ?? []).map((u) => u.step), active: final ? [] : state.requests ?? [] });
+  const rec = core.runRecord({ runId: state.runId, workflow: state.definition?.name, trigger: state.n2c?.trigger ?? "scheduled", driver: state.n2c?.driver ?? "task", status, dryRun, held, startedAt: state.startedAt, endedAt: final ? res.endedAt ?? new Date().toISOString() : null, definitionHash: state.definitionHash, commit: commitOf(P), effects: state.effects, sent, steps, runData: res.runData, error: res.error, cursorsSaved: !!extra.cursorsSaved, resumable: !final });
+  // The cursor a dry run reached, kept in its record as the artifact does (never saved).
+  if (dryRun && final && res.cursors && Object.keys(res.cursors).length) rec.cursors = core.clip(res.cursors, 8_000);
   if (extra.unknown?.length) rec.unknown = extra.unknown;
   if (state.n2c?.missed) rec.missed = state.n2c.missed;
   if (state.n2c?.resumedAt) rec.resumedAt = state.n2c.resumedAt;
@@ -558,6 +579,12 @@ function chatReply(state) {
   return JSON.stringify(first);
 }
 function finalText(state, { alerted = false } = {}) {
+  if (state.n2c?.dryRun) {
+    const held = Object.keys(state.n2c.held ?? {}).length;
+    if (state.status === "done") return `DONE: dry run ${state.runId} finished: ${held} write(s) held and recorded, nothing sent. Stop now.`;
+    const e = state.result?.error ?? state.error;
+    return `FAILED: dry run ${state.runId} stopped${e?.node ? ` at "${e.node}"` : ""}: ${e?.message ?? "unknown error"}. Nothing was sent. Stop now.`;
+  }
   const missed = state.n2c?.missed ? ` Before it, ${state.n2c.missed.count}${state.n2c.missed.capped ? " or more" : ""} scheduled run(s) since ${state.n2c.missed.since} were missed.` : "";
   if (state.status === "done") {
     const head = `DONE: run ${state.runId} finished (${(state.effects ?? []).filter((e) => e.effect === "write").length} write(s)).${missed}`;
@@ -573,6 +600,8 @@ function finalText(state, { alerted = false } = {}) {
 async function startRun(P, core, task, store, { kind = "scheduled", trigger, mode, clock, runId, submission } = {}) {
   const definition = readJson(P.definition);
   const nowMs = clock ? Date.parse(clock) || Date.now() : Date.now();
+  const dryRun = kind === "dry-run";
+  if (dryRun) mode = "manual";
   let missed = null;
   if (kind === "scheduled") {
     const schedule = core.definitionSchedule(definition);
@@ -593,12 +622,13 @@ async function startRun(P, core, task, store, { kind = "scheduled", trigger, mod
   });
   if (!res.state) {
     logEvent(P, { event: "preflight-failed", error: res.error?.message });
+    if (dryRun) return { text: `FAILED: preflight: ${res.error?.message}. Nothing was sent. Stop now.` };
     const alert = core.alertRequest(definition, "failed", { runId: runId ?? "preflight", errorClass: "PreflightFailed" });
     const text = `FAILED: preflight: ${res.error?.message}. ${alert ? "An alert was sent." : "No alert channel is set, so this line is the alert."} Stop now.`;
     return { text, alert };
   }
   const state = res.state;
-  state.n2c = { trigger: kind === "submission" ? "scheduled" : kind, driver: kind === "chat" ? "skill" : "task", ...(missed ? { missed } : {}), ...(submission ? { submission } : {}) };
+  state.n2c = { trigger: kind === "submission" ? "scheduled" : dryRun ? "manual" : kind, driver: kind === "chat" ? "skill" : "task", ...(dryRun ? { dryRun: true, held: {} } : {}), ...(missed ? { missed } : {}), ...(submission ? { submission } : {}) };
   clearResults(P);
   writeJson(P.state, state);
   writeJson(P.driver, freshDriver(state.runId));
@@ -620,7 +650,7 @@ function finishRun(P, core, task, store, state) {
   archiveLocal(P, state);
   const res = state.result ?? {};
   let cursorsSaved = false;
-  if (state.status === "done" && res.cursors && state.n2c?.trigger !== "chat") {
+  if (state.status === "done" && res.cursors && state.n2c?.trigger !== "chat" && !state.n2c?.dryRun) {
     const at = res.endedAt ?? new Date().toISOString();
     for (const [step, cursor] of Object.entries(res.cursors)) store.set(core.cursorPath(step, "scheduled"), core.cursorRecord({ step, cursor, runId: state.runId, at, definitionHash: state.definitionHash, kind: "scheduled" }));
     cursorsSaved = true;
@@ -632,9 +662,11 @@ function finishRun(P, core, task, store, state) {
   state.n2c = { ...(state.n2c ?? {}), finished: true };
   writeJson(P.state, state);
   logEvent(P, { event: state.status, runId: state.runId, error: state.result?.error?.message });
+  if (state.n2c?.dryRun) store.set(META_DRY_RUN, { format: core.RECORD_FORMAT, runId: state.runId, status: state.status, definitionHash: state.definitionHash, startedAt: state.startedAt, endedAt: res.endedAt ?? new Date().toISOString(), wouldSend: Object.keys(state.n2c.held ?? {}).length });
   const e = state.result?.error ?? state.error;
-  const alert = state.status === "failed" ? core.alertRequest(state.definition, "failed", { runId: state.runId, step: e?.node, errorClass: e?.name }) : null;
+  const alert = state.status === "failed" && !state.n2c?.dryRun ? core.alertRequest(state.definition, "failed", { runId: state.runId, step: e?.node, errorClass: e?.name }) : null;
   if (alert) queueExtra(P, alert);
+  if (state.n2c?.dryRun) store.flush(`dry run ${state.runId}`);
   if (store.kind === "artifact-db") queueOutbox(P, task, store);
   if (state.n2c?.submission) {
     const sub = state.n2c.submission;
@@ -784,6 +816,15 @@ async function advance(P, core, task, store, state, opts = {}) {
     for (let i = 0; i < reqs.length; i++) {
       const r = reqs[i];
       if (hasResult(P, handles[i])) continue;
+      if (state.n2c?.dryRun && (core.requestEffect(r) === "write" || r.kind === "sleep")) {
+        // A dry run sends nothing: the write gets a stand-in and its arguments stay in the
+        // run's effects (would-send); a wait is skipped.
+        if (r.effectKey) state.n2c.held[r.effectKey] = true;
+        saveResult(P, handles[i], { ok: true, value: r.kind === "sleep" ? { resumedAt: r.until } : r.kind === "http" ? { status: 200, statusMessage: "OK (dry run)", headers: {}, body: { dryRun: true, ok: true } } : { dryRun: true, ok: true }, capturedBy: "dry-run" });
+        writeJson(P.state, state);
+        logEvent(P, { event: "dry-run-held", handle: handles[i], id: r.id, kind: r.kind, step: r.step });
+        continue;
+      }
       if (r.kind === "http") {
         const res = await executeHttp(r, task, opts.fetch);
         logEvent(P, { event: "http", handle: handles[i], id: r.id, method: r.method, url: r.url.replace(/\?.*$/, ""), ok: res.ok, status: res.value?.status });
@@ -903,6 +944,25 @@ export async function command(cmd, pos, flags, { core, dir, stdin, fetch, isTTY 
     const store = openStore(P, task);
     if (cmd === "start" || cmd === "chat") store.refresh?.();
     if (cmd === "start") {
+      const dry = flags["dry-run"] === true;
+      // The cutover gate comes first: not even an open run continues while n8n owns the
+      // workflow, since n8n picks up from the cursor this task saved last.
+      const held = dry ? null : cutoverHold(core, store);
+      if (held) {
+        logEvent(P, { event: "cutover-held" });
+        return { code: 0, text: held };
+      }
+      if (dry) {
+        if (task.source === "poll-submissions") return { code: 2, text: "A dry run reads its input from the trigger; this workflow takes form submissions, which the artifact's Run now previews instead. Stop now." };
+        const open = openRun(P, core, store);
+        if (open?.state) return { code: 2, text: `STOPPED: run ${open.state.runId} is not finished; a dry run starts only when no run is open. Run: ${RUNNER_CMD} next` };
+        writeExtra(P, { items: [], next: 1, final: null });
+        const prev = readJson(P.state, null);
+        if (prev && !prev.n2c?.finished && prev.status !== "needs") finishRun(P, core, task, store, prev);
+        const st = await startRun(P, core, task, store, { kind: "dry-run", trigger: flags.trigger ? JSON.parse(flags.trigger) : undefined, clock: typeof flags.clock === "string" ? flags.clock : undefined, runId: typeof flags["run-id"] === "string" ? flags["run-id"] : undefined });
+        if (!st.state) return { code: 1, text: st.text };
+        return { code: codeOf(P), text: await advance(P, core, task, store, st.state, { fetch }) };
+      }
       const open = openRun(P, core, store);
       if (open?.stale) {
         store.delete(OPEN);
@@ -929,7 +989,7 @@ export async function command(cmd, pos, flags, { core, dir, stdin, fetch, isTTY 
         return { code: codeOf(P), text: lead + (await advance(P, core, task, store, state, { fetch })) };
       }
       const prev = readJson(P.state, null);
-      if (prev && !flags.force) {
+      if (prev && !flags.force && !prev.n2c?.dryRun) {
         const ended = existsSync(P.state) ? statSync(P.state).mtimeMs : 0;
         if (Date.now() - ended < RECENT_MS) return { code: 0, text: `${finalText(prev)} (A run just finished; a new one starts only on the next schedule.)` };
       }
@@ -1044,7 +1104,7 @@ export async function command(cmd, pos, flags, { core, dir, stdin, fetch, isTTY 
       const next = await advance(P, core, task, store, readJson(P.state, null), { fetch });
       return { code: codeOf(P), text: `Saved ${handle}.\n\n${next}` };
     }
-    return { code: 2, text: "commands: start, next, show <q> <part>, answer <q> [--file f|--text t], result <q> [--error] [--file f], status, chat [--new-session], resolve <effectKey> sent|resend" };
+    return { code: 2, text: "commands: start [--dry-run], next, show <q> <part>, answer <q> [--file f|--text t], result <q> [--error] [--file f], status, chat [--new-session], resolve <effectKey> sent|resend" };
   });
 }
 // Exit codes the model sees: 0 while the run goes on and when it is done (a non-zero code

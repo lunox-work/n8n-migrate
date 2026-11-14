@@ -335,14 +335,26 @@ export function applyCursorArg(cursorSpec, args, cursor) {
 }
 
 // -> {items: new items, cursor: next cursor}
+// cursorSpec.resolutionMs: the service compares at this resolution (Gmail's after: is whole
+// seconds and inclusive), so items in the cursor's unit are told apart by id: fresh when the
+// id is not in cursor.ids, which holds every id seen in the max item's unit. n8n's poll node
+// for Gmail keeps the same pair (lastTimeChecked + possibleDuplicates), so a cursor carries
+// over to n8n and back without a gap or a repeat (scripts/n8n-api.mjs).
 export function advanceCursor(cursorSpec, items, cursor) {
   const field = cursorSpec.field;
+  const res = Number(cursorSpec.resolutionMs) > 0 ? Number(cursorSpec.resolutionMs) : 0;
+  const unitCmp = (a, b) => {
+    if (!res) return cmp(a, b);
+    const x = comparable(a);
+    const y = comparable(b);
+    return typeof x === "number" && typeof y === "number" ? Math.floor(x / res) - Math.floor(y / res) : cmp(a, b);
+  };
   const idOf = (j) => (cursorSpec.idField ? getAt(j, cursorSpec.idField) : undefined);
   const fresh = items.filter((j) => {
     if (!cursor || cursor.value === undefined) return true;
     const v = getAt(j, field);
     if (v === undefined) return false;
-    const c = cmp(v, cursor.value);
+    const c = unitCmp(v, cursor.value);
     if (c > 0) return true;
     if (c < 0) return false;
     const id = idOf(j);
@@ -355,8 +367,8 @@ export function advanceCursor(cursorSpec, items, cursor) {
   }
   const next = { value: max };
   if (cursorSpec.idField && max !== undefined) {
-    const ids = items.filter((j) => getAt(j, field) !== undefined && cmp(getAt(j, field), max) === 0).map((j) => String(idOf(j)));
-    const carried = cursor && cursor.value !== undefined && cmp(cursor.value, max) === 0 ? cursor.ids ?? [] : [];
+    const ids = items.filter((j) => getAt(j, field) !== undefined && unitCmp(getAt(j, field), max) === 0).map((j) => String(idOf(j)));
+    const carried = cursor && cursor.value !== undefined && unitCmp(cursor.value, max) === 0 ? cursor.ids ?? [] : [];
     next.ids = [...new Set([...carried, ...ids])].sort();
   }
   return { items: fresh, cursor: max === undefined ? cursor ?? null : next };

@@ -230,9 +230,9 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
 .cutover .mark::before { content: counter(c); }
 .cutover li[data-state="done"] .mark { border-color: var(--done); color: var(--done); }
 .cutover li[data-state="done"] .mark::before { content: "\2713"; }
-.cutover li[data-state="n/a"] .mark::before { content: "\2013"; }
+.cutover li[data-state="n/a"] .mark::before, .cutover li[data-state="optional"] .mark::before { content: "\2013"; }
 .cutover .clabel { font-weight: 600; }
-.cutover li[data-state="n/a"] .clabel { color: var(--faint); font-weight: 400; }
+.cutover li[data-state="n/a"] .clabel, .cutover li[data-state="optional"] .clabel { color: var(--faint); font-weight: 400; }
 .cutover .cdetail { grid-column: 2; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
 .cutover .cact { grid-column: 2; margin-top: 6px; }
 .hmissed { padding: 8px 10px; border-radius: var(--r); background: var(--sunken); display: grid; gap: 2px; }
@@ -885,7 +885,7 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
     if (!driver || busy) return;
     const r = await driver.seedCursors().catch((e) => ({ refused: true, message: String(e?.message || e) }));
     if (r.refused) banner("warn", "Nothing seeded", [r.message]);
-    else banner("info", "Cursor seeded", [`The scheduled task starts after what the dry run read (${r.seeded.join(", ")}), so its first run does not replay history.`]);
+    else banner("info", "Cursor seeded", [`Runs from here start after what the dry run read (${r.seeded.join(", ")}), so they do not replay history. For the scheduled task, seed from n8n's own cursor once the n8n workflow is off (cutover.mjs seed).`]);
     refresh();
   }
   async function refresh() {

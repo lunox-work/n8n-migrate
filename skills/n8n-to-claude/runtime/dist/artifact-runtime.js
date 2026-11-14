@@ -11591,14 +11591,26 @@ function applyCursorArg(cursorSpec, args, cursor) {
 }
 
 // -> {items: new items, cursor: next cursor}
+// cursorSpec.resolutionMs: the service compares at this resolution (Gmail's after: is whole
+// seconds and inclusive), so items in the cursor's unit are told apart by id: fresh when the
+// id is not in cursor.ids, which holds every id seen in the max item's unit. n8n's poll node
+// for Gmail keeps the same pair (lastTimeChecked + possibleDuplicates), so a cursor carries
+// over to n8n and back without a gap or a repeat (scripts/n8n-api.mjs).
 function advanceCursor(cursorSpec, items, cursor) {
   const field = cursorSpec.field;
+  const res = Number(cursorSpec.resolutionMs) > 0 ? Number(cursorSpec.resolutionMs) : 0;
+  const unitCmp = (a, b) => {
+    if (!res) return cmp(a, b);
+    const x = comparable(a);
+    const y = comparable(b);
+    return typeof x === "number" && typeof y === "number" ? Math.floor(x / res) - Math.floor(y / res) : cmp(a, b);
+  };
   const idOf = (j) => (cursorSpec.idField ? getAt(j, cursorSpec.idField) : undefined);
   const fresh = items.filter((j) => {
     if (!cursor || cursor.value === undefined) return true;
     const v = getAt(j, field);
     if (v === undefined) return false;
-    const c = cmp(v, cursor.value);
+    const c = unitCmp(v, cursor.value);
     if (c > 0) return true;
     if (c < 0) return false;
     const id = idOf(j);
@@ -11611,8 +11623,8 @@ function advanceCursor(cursorSpec, items, cursor) {
   }
   const next = { value: max };
   if (cursorSpec.idField && max !== undefined) {
-    const ids = items.filter((j) => getAt(j, field) !== undefined && cmp(getAt(j, field), max) === 0).map((j) => String(idOf(j)));
-    const carried = cursor && cursor.value !== undefined && cmp(cursor.value, max) === 0 ? cursor.ids ?? [] : [];
+    const ids = items.filter((j) => getAt(j, field) !== undefined && unitCmp(getAt(j, field), max) === 0).map((j) => String(idOf(j)));
+    const carried = cursor && cursor.value !== undefined && unitCmp(cursor.value, max) === 0 ? cursor.ids ?? [] : [];
     next.ids = [...new Set([...carried, ...ids])].sort();
   }
   return { items: fresh, cursor: max === undefined ? cursor ?? null : next };
@@ -16042,21 +16054,69 @@ function lockBlocks(body, { now, holder }) {
   return Number.isFinite(exp) && exp > now;
 }
 
-// ---------- cutover checklist (PLAN Phase 7), read from records only ----------
-function cutoverChecklist({ definition, definitionHash, runs = [], cursors = {}, cutover = {} }) {
+// ---------- cutover (PLAN Phase 7, references/cutover.md) ----------
+//
+// cutover/<at>-<step>: one document per cutover step, written by scripts/cutover.mjs (by: "cli")
+// and by the artifact page (by: "artifact": its dry run and Seed), in the same shape:
+//   {format, step, at, by, ok, forced, detail}
+// Steps, in order: dry-run, parity (optional), deactivate-n8n, seed, enable; rollback starts a
+// new round. meta/cutover says who sends: {format, owner: "n8n" | "claude", updatedAt, n8n?}.
+// The task driver runs a scheduled run only while owner is "claude" or no cutover was started
+// (driver.mjs), so a task created early, or one still enabled after a rollback, sends nothing.
+const CUTOVER_COLLECTION = "cutover";
+const CUTOVER_STEPS = ["dry-run", "parity", "deactivate-n8n", "seed", "enable", "rollback", "shared-moved"];
+const cutoverPath = (at, step) => `${CUTOVER_COLLECTION}/${safeSegment(`${String(at).replace(/[^0-9TZ]/g, "")}-${step}`)}`;
+function cutoverEntry({ step, at, by = "cli", ok = true, forced = false, detail = {} }) {
+  return { format: RECORD_FORMAT, step, at, by, ok: !!ok, forced: !!forced, detail: clip(detail, 32_000) };
+}
+function cutoverMeta({ owner, at, n8n, previous = {} }) {
+  return { ...previous, format: RECORD_FORMAT, owner, updatedAt: at, ...(n8n ? { n8n } : {}) };
+}
+// Who may send: "claude", "n8n", or null when no cutover was started (the task runs as before).
+const cutoverOwner = (meta) => (isObject(meta) && (meta.owner === "n8n" || meta.owner === "claude") ? meta.owner : null);
+// The log in time order, and the part after the last rollback (the current round).
+function cutoverLog(docs) {
+  return (docs ?? []).filter((d) => isObject(d) && typeof d.step === "string" && typeof d.at === "string").sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+}
+function cutoverRound(docs) {
+  const log = cutoverLog(docs);
+  const i = log.map((e) => e.step).lastIndexOf("rollback");
+  return log.slice(i + 1);
+}
+const SEED_SOURCES = { n8n: "n8n's own cursor", time: "a time", "dry-run": "the dry run", "manual-cursor": "the page's manual cursor", none: "nothing (no poll trigger)" };
+const lastOf = (round, step) => [...round].reverse().find((e) => e.step === step && e.ok) ?? null;
+
+// The checklist, read from records only. Order: a clean dry run (nothing sent while n8n is
+// live), parity where the export has pinData (optional), deactivate the n8n workflow, seed the
+// scheduled cursor from n8n's own cursor, enable the schedule. n8n goes off before the task goes
+// on: the gap between them is covered by the carried cursor, while the other order would let
+// both systems send (references/cutover.md).
+function cutoverChecklist({ definition, definitionHash, runs = [], cursors = {}, cutover = {}, log = [] }) {
   const polls = Object.entries(definition.steps ?? {}).filter(([, s]) => s.kind === "trigger" && s.poll && s.settings?.disabled !== true).map(([n]) => n);
-  const clean = runs.find((r) => r.dryRun && r.status === "done" && r.definitionHash === definitionHash);
-  const scheduled = runs.find((r) => r.trigger === "scheduled");
-  const seeded = polls.filter((p) => cursors[p] != null); // scheduled cursors only
-  return [
-    { id: "dry-run", label: "Dry run clean", state: clean ? "done" : "todo", detail: clean ? `run ${clean.runId}` : "Run now with dry run on, until it ends done with this definition", at: clean?.startedAt ?? null },
-    { id: "seed-cursor", label: "Seed cursor", state: !polls.length ? "n/a" : seeded.length === polls.length ? "done" : "todo", detail: !polls.length ? "No poll trigger" : `${seeded.length} of ${polls.length} poll trigger(s) have a scheduled cursor; Seed copies the dry run's cursor so the first scheduled run does not replay history`, at: null },
-    { id: "enable-schedule", label: "Enable schedule", state: cutover.scheduleEnabledAt || scheduled ? "done" : "todo", detail: cutover.scheduleEnabledAt ? "enabled" : scheduled ? "first scheduled run" : "Create the scheduled task from task-prompt.md", at: cutover.scheduleEnabledAt ?? scheduled?.startedAt ?? null },
-    { id: "deactivate-n8n", label: "Deactivate the n8n workflow", state: cutover.n8nDeactivatedAt ? "done" : "todo", detail: cutover.n8nDeactivatedAt ? "deactivated" : "Turn the workflow off in n8n once a scheduled run is clean", at: cutover.n8nDeactivatedAt ?? null },
+  const round = cutoverRound(log);
+  const never = !cutoverLog(log).length; // no cutover step logged: the older record-only reading
+  const lastRollback = [...cutoverLog(log)].reverse().find((e) => e.step === "rollback");
+  const since = (r) => !lastRollback || String(r.startedAt ?? "") > lastRollback.at;
+  const dryEntry = [...round].reverse().find((e) => e.step === "dry-run" && e.ok && (!e.detail?.definitionHash || e.detail.definitionHash === definitionHash)) ?? null;
+  const cleanRun = runs.find((r) => r.dryRun && r.status === "done" && r.definitionHash === definitionHash && since(r));
+  const parity = lastOf(round, "parity");
+  const deact = lastOf(round, "deactivate-n8n");
+  const seed = lastOf(round, "seed");
+  const enable = lastOf(round, "enable");
+  const scheduled = runs.find((r) => r.trigger === "scheduled" && !r.dryRun && since(r));
+  const seededCount = polls.filter((p) => cursors[p] != null).length; // scheduled cursors only
+  const seedFresh = seed && (!deact || seed.at >= deact.at);
+  const items = [
+    { id: "dry-run", label: "Dry run clean", state: dryEntry || cleanRun ? "done" : "todo", detail: dryEntry ? `run ${dryEntry.detail?.runId ?? "?"}, ${dryEntry.detail?.wouldSend ?? 0} write(s) held, nothing sent` : cleanRun ? `run ${cleanRun.runId}` : "Run with dry run on until it ends done with this definition: writes are held and shown, nothing is sent while n8n is live", at: dryEntry?.at ?? cleanRun?.startedAt ?? null },
+    { id: "parity", label: "Parity with n8n", state: parity ? (parity.detail?.compared ? "done" : "n/a") : "optional", detail: parity && !parity.detail?.compared ? parity.detail?.reason ?? "nothing to compare" : parity ? `${parity.detail?.matched ?? 0} of ${parity.detail?.compared ?? 0} pinned node output(s) match${parity.detail?.differ ? `, ${parity.detail.differ} differ` : ""}` : "Optional: replays the export's pinData through this workflow (cutover.mjs parity)", at: parity?.at ?? null },
+    { id: "deactivate-n8n", label: "Deactivate the n8n workflow", state: deact || cutover.n8nDeactivatedAt ? "done" : "todo", detail: deact ? `${deact.detail?.via === "api" ? "through n8n's API" : "by hand"}${deact.detail?.cursor ? ", n8n's cursor recorded" : ""}` : cutover.n8nDeactivatedAt ? "deactivated" : "Turn the n8n workflow off before the task goes on (cutover.mjs deactivate-n8n); its cursor is recorded", at: deact?.at ?? cutover.n8nDeactivatedAt ?? null },
+    { id: "seed-cursor", label: "Seed cursor", state: !polls.length ? "n/a" : seedFresh || (never && seededCount === polls.length) ? "done" : "todo", detail: !polls.length ? "No poll trigger" : seedFresh ? `from ${SEED_SOURCES[seed.detail?.source] ?? seed.detail?.source ?? "?"}${["dry-run", "manual-cursor"].includes(seed.detail?.source) && !deact ? " (for the task, seed again from n8n's cursor once n8n is off)" : ""}` : seed ? "Seeded before n8n was deactivated: seed again from n8n's cursor" : `${seededCount} of ${polls.length} poll trigger(s) have a scheduled cursor; seed it from n8n's cursor so the first scheduled run neither repeats nor skips an item`, at: seedFresh ? seed.at : null },
+    { id: "enable-schedule", label: "Enable schedule", state: enable || (never && (cutover.scheduleEnabledAt || scheduled)) ? "done" : "todo", detail: enable ? "the task may send" : scheduled && never ? "first scheduled run" : "Create the scheduled task from task-prompt.md (cutover.mjs enable prints the setup)", at: enable?.at ?? (never ? cutover.scheduleEnabledAt ?? scheduled?.startedAt ?? null : null) },
   ];
+  return items;
 }
 
-return { RECORD_FORMAT, COLLECTIONS, LOCK_PATH, META_CURRENT, META_CUTOVER, META_SCHEDULE, LOCK_TTL_MS, HISTORY_LIMIT, CURSOR_KINDS, cursorId, runPath, statePath, ledgerPath, cursorPath, submissionPath, clip, stepStatuses, stepItems, runRecord, ledgerEntry, cursorRecord, cursorsFromDocs, startCursors, seedCursorRecord, SUBMISSION_STATUS, submissionRecord, FORM_TYPES, formFields, formErrors, formItem, lockBody, lockBlocks, cutoverChecklist };
+return { RECORD_FORMAT, COLLECTIONS, LOCK_PATH, META_CURRENT, META_CUTOVER, META_SCHEDULE, LOCK_TTL_MS, HISTORY_LIMIT, CURSOR_KINDS, cursorId, runPath, statePath, ledgerPath, cursorPath, submissionPath, clip, stepStatuses, stepItems, runRecord, ledgerEntry, cursorRecord, cursorsFromDocs, startCursors, seedCursorRecord, SUBMISSION_STATUS, submissionRecord, FORM_TYPES, formFields, formErrors, formItem, lockBody, lockBlocks, CUTOVER_COLLECTION, CUTOVER_STEPS, cutoverPath, cutoverEntry, cutoverMeta, cutoverOwner, cutoverLog, cutoverRound, cutoverChecklist };
 })();
 
 // ---- src/schedule.mjs ----
@@ -16325,6 +16385,14 @@ const formItem = __m_records_mjs.formItem;
 const lockBody = __m_records_mjs.lockBody;
 const lockBlocks = __m_records_mjs.lockBlocks;
 const cutoverChecklist = __m_records_mjs.cutoverChecklist;
+const CUTOVER_COLLECTION = __m_records_mjs.CUTOVER_COLLECTION;
+const CUTOVER_STEPS = __m_records_mjs.CUTOVER_STEPS;
+const cutoverPath = __m_records_mjs.cutoverPath;
+const cutoverEntry = __m_records_mjs.cutoverEntry;
+const cutoverMeta = __m_records_mjs.cutoverMeta;
+const cutoverOwner = __m_records_mjs.cutoverOwner;
+const cutoverLog = __m_records_mjs.cutoverLog;
+const cutoverRound = __m_records_mjs.cutoverRound;
 const parseCron = __m_schedule_mjs.parseCron;
 const expectedRuns = __m_schedule_mjs.expectedRuns;
 const missedRuns = __m_schedule_mjs.missedRuns;
@@ -16337,7 +16405,7 @@ const alertChannel = __m_alerts_mjs.alertChannel;
 const alertRequest = __m_alerts_mjs.alertRequest;
 const isAllowedAlert = __m_alerts_mjs.isAllowedAlert;
 const cleanName = __m_alerts_mjs.cleanName;
-return { run, start, resume, preflight, validateDefinition, definitionHash, resolveTrigger, expressionSupport, RUNTIME_VERSION, DEFINITION_SCHEMA_VERSION, SUPPORTED_TYPES, fromN8n, unwrapWorkflow, urlTarget, checkContainment, requestEffect, adaptResult, coerceArgs, applyCursorArg, advanceCursor, executeAgentTool, evaluateExpression, isExpression, RunnerError, ExpressionError, UnsupportedExpression, UnsupportedNode, ContainmentViolation, NodeError, BadInput, RECORD_FORMAT, COLLECTIONS, LOCK_PATH, META_CURRENT, META_CUTOVER, META_SCHEDULE, LOCK_TTL_MS, HISTORY_LIMIT, CURSOR_KINDS, cursorId, runPath, statePath, ledgerPath, cursorPath, submissionPath, clip, stepStatuses, stepItems, runRecord, ledgerEntry, cursorRecord, cursorsFromDocs, startCursors, seedCursorRecord, submissionRecord, SUBMISSION_STATUS, FORM_TYPES, formFields, formErrors, formItem, lockBody, lockBlocks, cutoverChecklist, parseCron, expectedRuns, missedRuns, definitionSchedule, DEFAULT_GRACE_MS, ALERT_TOOLS, ALERT_KINDS, alertMessage, alertChannel, alertRequest, isAllowedAlert, cleanName };
+return { run, start, resume, preflight, validateDefinition, definitionHash, resolveTrigger, expressionSupport, RUNTIME_VERSION, DEFINITION_SCHEMA_VERSION, SUPPORTED_TYPES, fromN8n, unwrapWorkflow, urlTarget, checkContainment, requestEffect, adaptResult, coerceArgs, applyCursorArg, advanceCursor, executeAgentTool, evaluateExpression, isExpression, RunnerError, ExpressionError, UnsupportedExpression, UnsupportedNode, ContainmentViolation, NodeError, BadInput, RECORD_FORMAT, COLLECTIONS, LOCK_PATH, META_CURRENT, META_CUTOVER, META_SCHEDULE, LOCK_TTL_MS, HISTORY_LIMIT, CURSOR_KINDS, cursorId, runPath, statePath, ledgerPath, cursorPath, submissionPath, clip, stepStatuses, stepItems, runRecord, ledgerEntry, cursorRecord, cursorsFromDocs, startCursors, seedCursorRecord, submissionRecord, SUBMISSION_STATUS, FORM_TYPES, formFields, formErrors, formItem, lockBody, lockBlocks, cutoverChecklist, CUTOVER_COLLECTION, CUTOVER_STEPS, cutoverPath, cutoverEntry, cutoverMeta, cutoverOwner, cutoverLog, cutoverRound, parseCron, expectedRuns, missedRuns, definitionSchedule, DEFAULT_GRACE_MS, ALERT_TOOLS, ALERT_KINDS, alertMessage, alertChannel, alertRequest, isAllowedAlert, cleanName };
 })();
 const __artifact = (() => {
 // Artifact driver (browser-safe): runs a definition from the artifact page's "Run now" on the
@@ -16666,6 +16734,8 @@ function createArtifactDriver(opts) {
     }
     const error = res.status === "failed" ? res.error ?? res.state?.result?.error : undefined;
     const out = await writeRecord(ctx, res, res.status, { final: true, error, cursorsSaved, cursors: res.status === "done" ? res.cursors : undefined });
+    // A clean dry run is the cutover's first step: the same log the CLI writes (records.mjs).
+    if (res.status === "done" && ctx.dryRun) await logCutover("dry-run", { runId: ctx.runId, definitionHash: ctx.definitionHash, wouldSend: out.record.effects.wouldSend, reads: out.record.effects.reads });
     try {
       if (db()) await db().doc(core.statePath(ctx.runId)).delete();
     } catch {}
@@ -16779,6 +16849,23 @@ function createArtifactDriver(opts) {
       return Date.parse(lock.expiresAt) < now();
     });
   }
+  // cutover/<at>-<step>: the page's own steps (its dry run and Seed) in the log the CLI writes.
+  async function logCutover(step, detail) {
+    if (!db()) return;
+    const at = iso(now());
+    try {
+      await setDoc(core.cutoverPath(at, step), core.cutoverEntry({ step, at, by: "artifact", detail }));
+    } catch {}
+  }
+  async function cutoverLog() {
+    const d = db();
+    if (!d) return [];
+    try {
+      return (await d.collection(core.CUTOVER_COLLECTION).get()).docs.map((x) => x.data());
+    } catch {
+      return [];
+    }
+  }
   async function cutover(runs) {
     const d = db();
     let cursors = {};
@@ -16789,13 +16876,14 @@ function createArtifactDriver(opts) {
         cut = (await getDoc(core.META_CUTOVER)) ?? {};
       } catch {}
     }
-    return core.cutoverChecklist({ definition, definitionHash: embeddedHash, runs: runs ?? (await history()), cursors, cutover: cut });
+    return core.cutoverChecklist({ definition, definitionHash: embeddedHash, runs: runs ?? (await history()), cursors, cutover: cut, log: await cutoverLog() });
   }
 
   // ---------- cutover: seed the scheduled cursor ----------
   // Copies the cursor of the latest clean run from this page (a dry run's record, or the
-  // manual cursor document) into the scheduled cursor, so the first scheduled run starts
-  // where the dry run read up to and does not replay history (PLAN Phase 7).
+  // manual cursor document) into the scheduled cursor, so a run from here does not replay
+  // history. The task's own seed is cutover.mjs seed from n8n's cursor once n8n is off
+  // (references/cutover.md): a dry-run cursor is exact only if n8n sent nothing after it.
   async function seedCursors() {
     const d = db();
     if (!d) return { refused: true, message: "This view has no run storage." };
@@ -16806,6 +16894,7 @@ function createArtifactDriver(opts) {
     const from = manual.length ? manual : clean ? Object.entries(clean.cursors).map(([step, cursor]) => ({ step, cursor, runId: clean.runId, definitionHash: embeddedHash, kind: "manual" })) : [];
     if (!from.length) return { refused: true, message: "No cursor to seed yet: run a dry run until it ends done, then seed." };
     for (const doc of from) await setDoc(core.cursorPath(doc.step, "scheduled"), core.seedCursorRecord(doc, { to: "scheduled", at: iso(now()) }));
+    await logCutover("seed", { source: manual.length ? "manual-cursor" : "dry-run", runId: from[0].runId ?? null, steps: from.map((x) => x.step), cursors: Object.fromEntries(from.map((x) => [x.step, x.cursor])) });
     return { seeded: from.map((x) => x.step) };
   }
 
@@ -16846,7 +16935,7 @@ function createArtifactDriver(opts) {
     return core.missedRuns({ schedule, lastRunAt: last, now: now(), graceMs });
   }
 
-  return { preflight, runNow, resume, history, interrupted, cutover, seedCursors, submitForm, missed, form: formStep ? { trigger: formStep[0], ...formStep[1].form } : null, holder, get running() { return running; } };
+  return { preflight, runNow, resume, history, interrupted, cutover, cutoverLog, seedCursors, submitForm, missed, form: formStep ? { trigger: formStep[0], ...formStep[1].form } : null, holder, get running() { return running; } };
 }
 
 return { composeModelInput, composeAgentInput, agentValue, mcpPayload, requestSummary, createArtifactDriver };

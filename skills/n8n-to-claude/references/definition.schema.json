@@ -299,7 +299,8 @@
                   "idField": { "type": "string" },
                   "arg": { "type": "string" },
                   "template": { "type": "string" },
-                  "joiner": { "type": "string" }
+                  "joiner": { "type": "string" },
+                  "resolutionMs": { "type": "integer", "minimum": 1, "description": "The service compares the cursor field at this resolution (Gmail: 1000); items in the cursor's unit are told apart by id." }
                 }
               },
               "fidelity": {

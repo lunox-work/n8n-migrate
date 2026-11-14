@@ -99,9 +99,9 @@ function gitBackend(P, opts) {
     }
   };
   const headFile = join(cacheDir, ".head.json");
-  // Eager: what every run reads (cursors, meta, open run state). The ledger and run records
+  // Eager: what every run reads (cursors, meta, the cutover log, open run state). The ledger and run records
   // grow with every run, so a ledger entry is read from the branch only when asked for.
-  const EAGER = /^(cursors|meta)\/[^/]+$|^runs\/[^/]+\/state\/current$/;
+  const EAGER = /^(cursors|meta|cutover)\/[^/]+$|^runs\/[^/]+\/state\/current$/;
   return {
     kind: "git",
     branch,

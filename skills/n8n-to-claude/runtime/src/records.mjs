@@ -323,16 +323,64 @@ export function lockBlocks(body, { now, holder }) {
   return Number.isFinite(exp) && exp > now;
 }
 
-// ---------- cutover checklist (PLAN Phase 7), read from records only ----------
-export function cutoverChecklist({ definition, definitionHash, runs = [], cursors = {}, cutover = {} }) {
+// ---------- cutover (PLAN Phase 7, references/cutover.md) ----------
+//
+// cutover/<at>-<step>: one document per cutover step, written by scripts/cutover.mjs (by: "cli")
+// and by the artifact page (by: "artifact": its dry run and Seed), in the same shape:
+//   {format, step, at, by, ok, forced, detail}
+// Steps, in order: dry-run, parity (optional), deactivate-n8n, seed, enable; rollback starts a
+// new round. meta/cutover says who sends: {format, owner: "n8n" | "claude", updatedAt, n8n?}.
+// The task driver runs a scheduled run only while owner is "claude" or no cutover was started
+// (driver.mjs), so a task created early, or one still enabled after a rollback, sends nothing.
+export const CUTOVER_COLLECTION = "cutover";
+export const CUTOVER_STEPS = ["dry-run", "parity", "deactivate-n8n", "seed", "enable", "rollback", "shared-moved"];
+export const cutoverPath = (at, step) => `${CUTOVER_COLLECTION}/${safeSegment(`${String(at).replace(/[^0-9TZ]/g, "")}-${step}`)}`;
+export function cutoverEntry({ step, at, by = "cli", ok = true, forced = false, detail = {} }) {
+  return { format: RECORD_FORMAT, step, at, by, ok: !!ok, forced: !!forced, detail: clip(detail, 32_000) };
+}
+export function cutoverMeta({ owner, at, n8n, previous = {} }) {
+  return { ...previous, format: RECORD_FORMAT, owner, updatedAt: at, ...(n8n ? { n8n } : {}) };
+}
+// Who may send: "claude", "n8n", or null when no cutover was started (the task runs as before).
+export const cutoverOwner = (meta) => (isObject(meta) && (meta.owner === "n8n" || meta.owner === "claude") ? meta.owner : null);
+// The log in time order, and the part after the last rollback (the current round).
+export function cutoverLog(docs) {
+  return (docs ?? []).filter((d) => isObject(d) && typeof d.step === "string" && typeof d.at === "string").sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+}
+export function cutoverRound(docs) {
+  const log = cutoverLog(docs);
+  const i = log.map((e) => e.step).lastIndexOf("rollback");
+  return log.slice(i + 1);
+}
+const SEED_SOURCES = { n8n: "n8n's own cursor", time: "a time", "dry-run": "the dry run", "manual-cursor": "the page's manual cursor", none: "nothing (no poll trigger)" };
+const lastOf = (round, step) => [...round].reverse().find((e) => e.step === step && e.ok) ?? null;
+
+// The checklist, read from records only. Order: a clean dry run (nothing sent while n8n is
+// live), parity where the export has pinData (optional), deactivate the n8n workflow, seed the
+// scheduled cursor from n8n's own cursor, enable the schedule. n8n goes off before the task goes
+// on: the gap between them is covered by the carried cursor, while the other order would let
+// both systems send (references/cutover.md).
+export function cutoverChecklist({ definition, definitionHash, runs = [], cursors = {}, cutover = {}, log = [] }) {
   const polls = Object.entries(definition.steps ?? {}).filter(([, s]) => s.kind === "trigger" && s.poll && s.settings?.disabled !== true).map(([n]) => n);
-  const clean = runs.find((r) => r.dryRun && r.status === "done" && r.definitionHash === definitionHash);
-  const scheduled = runs.find((r) => r.trigger === "scheduled");
-  const seeded = polls.filter((p) => cursors[p] != null); // scheduled cursors only
-  return [
-    { id: "dry-run", label: "Dry run clean", state: clean ? "done" : "todo", detail: clean ? `run ${clean.runId}` : "Run now with dry run on, until it ends done with this definition", at: clean?.startedAt ?? null },
-    { id: "seed-cursor", label: "Seed cursor", state: !polls.length ? "n/a" : seeded.length === polls.length ? "done" : "todo", detail: !polls.length ? "No poll trigger" : `${seeded.length} of ${polls.length} poll trigger(s) have a scheduled cursor; Seed copies the dry run's cursor so the first scheduled run does not replay history`, at: null },
-    { id: "enable-schedule", label: "Enable schedule", state: cutover.scheduleEnabledAt || scheduled ? "done" : "todo", detail: cutover.scheduleEnabledAt ? "enabled" : scheduled ? "first scheduled run" : "Create the scheduled task from task-prompt.md", at: cutover.scheduleEnabledAt ?? scheduled?.startedAt ?? null },
-    { id: "deactivate-n8n", label: "Deactivate the n8n workflow", state: cutover.n8nDeactivatedAt ? "done" : "todo", detail: cutover.n8nDeactivatedAt ? "deactivated" : "Turn the workflow off in n8n once a scheduled run is clean", at: cutover.n8nDeactivatedAt ?? null },
+  const round = cutoverRound(log);
+  const never = !cutoverLog(log).length; // no cutover step logged: the older record-only reading
+  const lastRollback = [...cutoverLog(log)].reverse().find((e) => e.step === "rollback");
+  const since = (r) => !lastRollback || String(r.startedAt ?? "") > lastRollback.at;
+  const dryEntry = [...round].reverse().find((e) => e.step === "dry-run" && e.ok && (!e.detail?.definitionHash || e.detail.definitionHash === definitionHash)) ?? null;
+  const cleanRun = runs.find((r) => r.dryRun && r.status === "done" && r.definitionHash === definitionHash && since(r));
+  const parity = lastOf(round, "parity");
+  const deact = lastOf(round, "deactivate-n8n");
+  const seed = lastOf(round, "seed");
+  const enable = lastOf(round, "enable");
+  const scheduled = runs.find((r) => r.trigger === "scheduled" && !r.dryRun && since(r));
+  const seededCount = polls.filter((p) => cursors[p] != null).length; // scheduled cursors only
+  const seedFresh = seed && (!deact || seed.at >= deact.at);
+  const items = [
+    { id: "dry-run", label: "Dry run clean", state: dryEntry || cleanRun ? "done" : "todo", detail: dryEntry ? `run ${dryEntry.detail?.runId ?? "?"}, ${dryEntry.detail?.wouldSend ?? 0} write(s) held, nothing sent` : cleanRun ? `run ${cleanRun.runId}` : "Run with dry run on until it ends done with this definition: writes are held and shown, nothing is sent while n8n is live", at: dryEntry?.at ?? cleanRun?.startedAt ?? null },
+    { id: "parity", label: "Parity with n8n", state: parity ? (parity.detail?.compared ? "done" : "n/a") : "optional", detail: parity && !parity.detail?.compared ? parity.detail?.reason ?? "nothing to compare" : parity ? `${parity.detail?.matched ?? 0} of ${parity.detail?.compared ?? 0} pinned node output(s) match${parity.detail?.differ ? `, ${parity.detail.differ} differ` : ""}` : "Optional: replays the export's pinData through this workflow (cutover.mjs parity)", at: parity?.at ?? null },
+    { id: "deactivate-n8n", label: "Deactivate the n8n workflow", state: deact || cutover.n8nDeactivatedAt ? "done" : "todo", detail: deact ? `${deact.detail?.via === "api" ? "through n8n's API" : "by hand"}${deact.detail?.cursor ? ", n8n's cursor recorded" : ""}` : cutover.n8nDeactivatedAt ? "deactivated" : "Turn the n8n workflow off before the task goes on (cutover.mjs deactivate-n8n); its cursor is recorded", at: deact?.at ?? cutover.n8nDeactivatedAt ?? null },
+    { id: "seed-cursor", label: "Seed cursor", state: !polls.length ? "n/a" : seedFresh || (never && seededCount === polls.length) ? "done" : "todo", detail: !polls.length ? "No poll trigger" : seedFresh ? `from ${SEED_SOURCES[seed.detail?.source] ?? seed.detail?.source ?? "?"}${["dry-run", "manual-cursor"].includes(seed.detail?.source) && !deact ? " (for the task, seed again from n8n's cursor once n8n is off)" : ""}` : seed ? "Seeded before n8n was deactivated: seed again from n8n's cursor" : `${seededCount} of ${polls.length} poll trigger(s) have a scheduled cursor; seed it from n8n's cursor so the first scheduled run neither repeats nor skips an item`, at: seedFresh ? seed.at : null },
+    { id: "enable-schedule", label: "Enable schedule", state: enable || (never && (cutover.scheduleEnabledAt || scheduled)) ? "done" : "todo", detail: enable ? "the task may send" : scheduled && never ? "first scheduled run" : "Create the scheduled task from task-prompt.md (cutover.mjs enable prints the setup)", at: enable?.at ?? (never ? cutover.scheduleEnabledAt ?? scheduled?.startedAt ?? null : null) },
   ];
+  return items;
 }

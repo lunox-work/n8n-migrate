@@ -340,7 +340,7 @@
               "includeTrash": { "param": "filters.includeSpamTrash" }
             },
             "result": { "items": "threads[*].messages[*]", "fields": { "threadId": "^.id", "From": "sender", "To": { "join": "toRecipients" }, "Cc": { "join": "ccRecipients" }, "Subject": "subject" } },
-            "cursor": { "field": "date", "strategy": "max", "idField": "id", "arg": "query", "template": "after:{seconds}" },
+            "cursor": { "field": "date", "strategy": "max", "idField": "id", "arg": "query", "template": "after:{seconds}", "resolutionMs": 1000 },
             "fidelity": "unverified",
             "missingFields": ["historyId", "internalDate", "labels", "payload", "sizeEstimate"],
             "detail": {
@@ -1041,7 +1041,7 @@
       "effect": "read",
       "args": { "query": { "const": "in:inbox is:unread" }, "pageSize": { "const": 50 } },
       "result": { "items": "threads[*].messages[*]", "fields": { "threadId": "^.id", "from": "sender", "subject": "subject", "textPlain": "plaintextBody" } },
-      "cursor": { "field": "date", "strategy": "max", "idField": "id", "arg": "query", "template": "after:{seconds}" },
+      "cursor": { "field": "date", "strategy": "max", "idField": "id", "arg": "query", "template": "after:{seconds}", "resolutionMs": 1000 },
       "fidelity": "unverified",
       "missingFields": ["textHtml", "to", "date", "attachments"],
       "caveats": ["Only a Gmail mailbox can be polled this way.", "IMAP marks messages as read; the poll does not."],

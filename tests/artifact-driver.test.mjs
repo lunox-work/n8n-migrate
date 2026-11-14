@@ -212,7 +212,18 @@ test("records: ids fit the db path grammar, documents stay under the size limit,
   assert.ok(JSON.stringify(rec).length < 200_000);
   const def = defOf("poll-code-http");
   const list = core.cutoverChecklist({ definition: def, definitionHash: "h", runs: [{ dryRun: true, status: "done", definitionHash: "h", runId: "r", startedAt: "2026-11-14T00:00:00Z" }], cursors: {} });
-  assert.deepEqual(list.map((c) => [c.id, c.state]), [["dry-run", "done"], ["seed-cursor", "todo"], ["enable-schedule", "todo"], ["deactivate-n8n", "todo"]]);
+  // n8n goes off before the task goes on (references/cutover.md).
+  assert.deepEqual(list.map((c) => [c.id, c.state]), [["dry-run", "done"], ["parity", "optional"], ["deactivate-n8n", "todo"], ["seed-cursor", "todo"], ["enable-schedule", "todo"]]);
+  // The same checklist read from the cutover log; a rollback starts a new round.
+  const e = (step, at, detail = {}) => core.cutoverEntry({ step, at, detail });
+  const log = [e("dry-run", "2026-11-14T01:00:00.000Z", { runId: "d1", definitionHash: "h" }), e("deactivate-n8n", "2026-11-14T01:01:00.000Z", { via: "api", cursor: true }), e("seed", "2026-11-14T01:02:00.000Z", { source: "n8n" }), e("enable", "2026-11-14T01:03:00.000Z")];
+  const states = (l, runs = []) => core.cutoverChecklist({ definition: def, definitionHash: "h", runs, log: l }).map((c) => c.state);
+  assert.deepEqual(states(log), ["done", "optional", "done", "done", "done"]);
+  assert.deepEqual(states([...log, e("rollback", "2026-11-14T02:00:00.000Z")]), ["todo", "optional", "todo", "todo", "todo"], "a dry run before the rollback no longer counts");
+  assert.deepEqual(states([e("seed", "2026-11-14T01:00:00.000Z", { source: "dry-run" }), e("deactivate-n8n", "2026-11-14T01:01:00.000Z")]).slice(2, 4), ["done", "todo"], "a seed older than the deactivation is stale");
+  assert.equal(core.cutoverPath("2026-11-14T01:00:00.000Z", "deactivate-n8n"), "cutover/20261114T010000000Z-deactivate-n8n");
+  assert.equal(core.cutoverOwner({ owner: "n8n" }), "n8n");
+  assert.equal(core.cutoverOwner(null), null);
   assert.equal(core.lockBlocks(core.lockBody({ holder: "x", kind: "manual", now: Date.now() }), { now: Date.now(), holder: "y" }), false, "a page-written lock is governed by its lease");
 });
 

@@ -78,7 +78,8 @@
           "strategy": "max",
           "idField": "id",
           "arg": "query",
-          "template": "after:{seconds}"
+          "template": "after:{seconds}",
+          "resolutionMs": 1000
         },
         "fidelity": "unverified",
         "missingFields": [

@@ -10,6 +10,7 @@
 //
 // Task driver (driver.mjs), run from the workflow folder; prints plain text for the model:
 //   runner.mjs start [--trigger <json>] [--clock <ISO>] [--force]  start or continue a run
+//   runner.mjs start --dry-run                        a dry run: reads go out, writes are held
 //   runner.mjs next                                   the next thing to do, or DONE / FAILED
 //   runner.mjs show <q> <part>                        part of a long instruction
 //   runner.mjs answer <q> [--file f | --text t]       a model/agent answer (default: the file
@@ -35,7 +36,7 @@ import { command as driverCommand } from "./driver.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const EXIT = { done: 0, needs: 10, failed: 1 };
 
-const BOOLEAN_FLAGS = new Set(["error", "force"]);
+const BOOLEAN_FLAGS = new Set(["error", "force", "dry-run"]);
 function parseArgs(argv) {
   const pos = [];
   const flags = {};

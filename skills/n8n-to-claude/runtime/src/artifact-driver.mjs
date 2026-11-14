@@ -324,6 +324,8 @@ export function createArtifactDriver(opts) {
     }
     const error = res.status === "failed" ? res.error ?? res.state?.result?.error : undefined;
     const out = await writeRecord(ctx, res, res.status, { final: true, error, cursorsSaved, cursors: res.status === "done" ? res.cursors : undefined });
+    // A clean dry run is the cutover's first step: the same log the CLI writes (records.mjs).
+    if (res.status === "done" && ctx.dryRun) await logCutover("dry-run", { runId: ctx.runId, definitionHash: ctx.definitionHash, wouldSend: out.record.effects.wouldSend, reads: out.record.effects.reads });
     try {
       if (db()) await db().doc(core.statePath(ctx.runId)).delete();
     } catch {}
@@ -437,6 +439,23 @@ export function createArtifactDriver(opts) {
       return Date.parse(lock.expiresAt) < now();
     });
   }
+  // cutover/<at>-<step>: the page's own steps (its dry run and Seed) in the log the CLI writes.
+  async function logCutover(step, detail) {
+    if (!db()) return;
+    const at = iso(now());
+    try {
+      await setDoc(core.cutoverPath(at, step), core.cutoverEntry({ step, at, by: "artifact", detail }));
+    } catch {}
+  }
+  async function cutoverLog() {
+    const d = db();
+    if (!d) return [];
+    try {
+      return (await d.collection(core.CUTOVER_COLLECTION).get()).docs.map((x) => x.data());
+    } catch {
+      return [];
+    }
+  }
   async function cutover(runs) {
     const d = db();
     let cursors = {};
@@ -447,13 +466,14 @@ export function createArtifactDriver(opts) {
         cut = (await getDoc(core.META_CUTOVER)) ?? {};
       } catch {}
     }
-    return core.cutoverChecklist({ definition, definitionHash: embeddedHash, runs: runs ?? (await history()), cursors, cutover: cut });
+    return core.cutoverChecklist({ definition, definitionHash: embeddedHash, runs: runs ?? (await history()), cursors, cutover: cut, log: await cutoverLog() });
   }
 
   // ---------- cutover: seed the scheduled cursor ----------
   // Copies the cursor of the latest clean run from this page (a dry run's record, or the
-  // manual cursor document) into the scheduled cursor, so the first scheduled run starts
-  // where the dry run read up to and does not replay history (PLAN Phase 7).
+  // manual cursor document) into the scheduled cursor, so a run from here does not replay
+  // history. The task's own seed is cutover.mjs seed from n8n's cursor once n8n is off
+  // (references/cutover.md): a dry-run cursor is exact only if n8n sent nothing after it.
   async function seedCursors() {
     const d = db();
     if (!d) return { refused: true, message: "This view has no run storage." };
@@ -464,6 +484,7 @@ export function createArtifactDriver(opts) {
     const from = manual.length ? manual : clean ? Object.entries(clean.cursors).map(([step, cursor]) => ({ step, cursor, runId: clean.runId, definitionHash: embeddedHash, kind: "manual" })) : [];
     if (!from.length) return { refused: true, message: "No cursor to seed yet: run a dry run until it ends done, then seed." };
     for (const doc of from) await setDoc(core.cursorPath(doc.step, "scheduled"), core.seedCursorRecord(doc, { to: "scheduled", at: iso(now()) }));
+    await logCutover("seed", { source: manual.length ? "manual-cursor" : "dry-run", runId: from[0].runId ?? null, steps: from.map((x) => x.step), cursors: Object.fromEntries(from.map((x) => [x.step, x.cursor])) });
     return { seeded: from.map((x) => x.step) };
   }
 
@@ -504,5 +525,5 @@ export function createArtifactDriver(opts) {
     return core.missedRuns({ schedule, lastRunAt: last, now: now(), graceMs });
   }
 
-  return { preflight, runNow, resume, history, interrupted, cutover, seedCursors, submitForm, missed, form: formStep ? { trigger: formStep[0], ...formStep[1].form } : null, holder, get running() { return running; } };
+  return { preflight, runNow, resume, history, interrupted, cutover, cutoverLog, seedCursors, submitForm, missed, form: formStep ? { trigger: formStep[0], ...formStep[1].form } : null, holder, get running() { return running; } };
 }
