@@ -16,6 +16,10 @@
 //                                                     .n2c/inbox/<q>.txt, else stdin)
 //   runner.mjs result <q> [--error] [--file f]        a tool response, when hooks are off
 //   runner.mjs status                                 JSON summary of the current run
+//   runner.mjs chat [--new-session] [--file f|--text t]  one chat message (the skill's
+//                                                     entry point; default .n2c/inbox/chat.txt)
+//   runner.mjs resolve <effectKey> sent|resend        the person's answer for a write whose
+//                                                     outcome is unknown (terminal only)
 //
 // The commands above print one JSON line. Exit codes: 0 done, 10 needs host results, 1 failed, 2 bad input.
 // The state file holds the whole run (definition, clock, result log); the host executes
@@ -25,6 +29,7 @@ import { readFileSync, writeFileSync, existsSync, renameSync } from "node:fs";
 import { dirname, join, resolve, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { start, resume, preflight, fromN8n, BadInput, runRecord, stepStatuses, cursorRecord, runPath, cursorPath } from "./index.mjs";
+import * as core from "./index.mjs";
 import { command as driverCommand } from "./driver.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -130,12 +135,12 @@ async function main() {
     } else print(def);
     return 0;
   }
-  if (["start", "next", "show", "answer", "result", "status"].includes(cmd)) {
-    const r = await driverCommand(cmd, pos, flags, { core: { start, resume, runRecord, stepStatuses, cursorRecord, runPath, cursorPath }, stdin: () => readFileSync(0, "utf8") });
+  if (["start", "next", "show", "answer", "result", "status", "chat", "resolve"].includes(cmd)) {
+    const r = await driverCommand(cmd, pos, flags, { core, stdin: () => readFileSync(0, "utf8") });
     process.stdout.write(r.text + "\n");
     return r.code;
   }
-  throw new BadInput("commands: run, resume, preflight, convert, start, next, answer, result, status");
+  throw new BadInput("commands: run, resume, preflight, convert, start, next, show, answer, result, status, chat, resolve");
 }
 
 main().then(

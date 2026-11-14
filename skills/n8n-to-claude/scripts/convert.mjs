@@ -1508,7 +1508,7 @@ function writeJson(path, data) {
   renameSync(tmp, path);
 }
 
-export const RUNTIME_FILES = ["runner-core.mjs", "runner.mjs", "luxon.mjs", "driver.mjs", "hook.mjs"];
+export const RUNTIME_FILES = ["runner-core.mjs", "runner.mjs", "luxon.mjs", "driver.mjs", "hook.mjs", "store.mjs"];
 export function writeRuntime(dir) {
   const rt = join(dir, "runtime");
   mkdirSync(rt, { recursive: true });

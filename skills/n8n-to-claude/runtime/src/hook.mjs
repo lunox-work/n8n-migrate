@@ -12,14 +12,25 @@
 // (.n2c/results/<handle>.json), so the model never retypes a connector payload. With
 // task.json hideToolOutput, the model sees only a short "saved" note instead of the payload.
 //
+// Run safety: for a write, pre records "sending" in the effect ledger (record store) before
+// the call goes out, and refuses a write the ledger already has as sent (its stored result is
+// replayed instead) or as sending (outcome unknown: check before re-sending); post records
+// "sent" with the result, or "failed" when the tool answered with an error. An alert call
+// must also match the definition's one alert channel (alerts.mjs).
+//
 // Fails closed: an error inside the pre hook denies the call.
 
 import { readFileSync, existsSync, writeFileSync, mkdirSync, rmSync, realpathSync } from "node:fs";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { paths, loadTask, outstanding, markHooksActive, overflowResult, toolName, expandArgs, deepEqual, diffPaths, compactArgs, mcpValue, saveResult, hasResult, logEvent, RUNNER_CMD } from "./driver.mjs";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { paths, loadTask, outstanding, markHooksActive, overflowResult, toolName, expandArgs, deepEqual, diffPaths, compactArgs, mcpValue, saveResult, hasResult, logEvent, RUNNER_CMD, setRunner, openStore, ledgerGet, ledgerWrite, isWrite } from "./driver.mjs";
 
-const DIR = dirname(dirname(fileURLToPath(import.meta.url)));
+const HERE = dirname(fileURLToPath(import.meta.url));
+const DIR = dirname(HERE);
+// The core: runner-core.mjs beside this file in a workflow folder, index.mjs in the source tree.
+export async function loadCore(dir = HERE) {
+  return import(pathToFileURL(join(dir, existsSync(join(dir, "runner-core.mjs")) ? "runner-core.mjs" : "index.mjs")).href);
+}
 
 function out(o) {
   process.stdout.write(JSON.stringify(o) + "\n");
@@ -31,7 +42,7 @@ function deny(P, reason, extra = {}) {
   out({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason } });
 }
 
-export function pre(P, input) {
+export function pre(P, input, core) {
   const task = loadTask(P);
   const name = input.tool_name;
   const args = input.tool_input ?? {};
@@ -46,6 +57,20 @@ export function pre(P, input) {
   for (const x of same) {
     const expanded = expandArgs(args, x.handle, x.req.args ?? {});
     if (deepEqual(expanded, x.req.args ?? {})) {
+      if (x.req.purpose === "alert" && core && !core.isAllowedAlert(readDefinition(P), x.req.connector, x.req.tool, expanded)) return deny(P, `${name}: this alert does not match the workflow's alert channel; refused.`, { tool: name, handle: x.handle });
+      if (isWrite(x.req) && core) {
+        const store = openStore(P, task);
+        const entry = ledgerGet(store, core, x.req.effectKey);
+        if (entry?.status === "sent") {
+          saveResult(P, x.handle, { ok: true, value: entry.result ?? null, capturedBy: "ledger" });
+          return deny(P, `This write was already sent in an earlier session; its result is reused and it is not sent again. Run \`${RUNNER_CMD} next\`.`, { tool: name, handle: x.handle, ledger: "sent" });
+        }
+        // A "sending" mark by the driver of this checkout for this hand-out (hooks were not
+        // seen yet) is this call; any other "sending" is an earlier session's.
+        const own = entry?.status === "sending" && entry.by === "driver" && (readDriver(P).handed?.[x.handle] ?? 0) > 0;
+        if (entry?.status === "sending" && !own) return deny(P, `This write may already have gone out in an earlier session (outcome unknown). It is not sent again; run \`${RUNNER_CMD} next\`.`, { tool: name, handle: x.handle, ledger: "sending" });
+        ledgerWrite(store, core, x.req, "sending", { runId: outstanding(P).state?.runId, by: "hook" });
+      }
       mkdirSync(join(P.n2c, "calls"), { recursive: true });
       writeFileSync(join(P.n2c, "calls", `${String(input.tool_use_id ?? "last").replace(/[^\w-]/g, "_")}.json`), JSON.stringify({ handle: x.handle, id: x.req.id }));
       logEvent(P, { event: "hook-allow", tool: name, handle: x.handle, expanded: !deepEqual(expanded, args) });
@@ -61,19 +86,20 @@ export function pre(P, input) {
   return deny(P, `The arguments differ from request ${x.handle} (${diff.slice(0, 5).join(", ")}). Call ${name} again with exactly: ${JSON.stringify(compactArgs(x.req.args ?? {}, x.handle, task.hooks ? task.compactOver : 0))}`, { tool: name, handle: x.handle, diff });
 }
 
-export function post(P, input) {
+export function post(P, input, core) {
   const task = loadTask(P);
   const callFile = join(P.n2c, "calls", `${String(input.tool_use_id ?? "last").replace(/[^\w-]/g, "_")}.json`);
   let handle;
+  const { list, state } = outstanding(P);
   if (existsSync(callFile)) {
     handle = JSON.parse(readFileSync(callFile, "utf8")).handle;
     rmSync(callFile, { force: true });
   } else {
     // No record from the pre hook (it did not run): match by tool and arguments.
-    const { list } = outstanding(P);
     const x = list.find((y) => y.req.kind === "tool" && toolName(task, y.req) === input.tool_name && deepEqual(input.tool_input ?? {}, y.req.args ?? {}) && !hasResult(P, y.handle));
     handle = x?.handle;
   }
+  const req = list.find((y) => y.handle === handle)?.req;
   if (!handle) {
     logEvent(P, { event: "hook-post-unmatched", tool: input.tool_name });
     return;
@@ -85,11 +111,32 @@ export function post(P, input) {
   const overflow = overflowResult(typeof value === "string" ? value : null);
   const result = overflow ?? (isError ? { ok: false, error: { name: "ToolError", message: typeof value === "string" ? value : JSON.stringify(value) } } : { ok: true, value });
   saveResult(P, handle, { ...result, capturedBy: overflow ? "hook-overflow-file" : "hook" });
+  if (isWrite(req) && core) ledgerWrite(openStore(P, task), core, req, result.ok ? "sent" : "failed", { runId: state?.runId, result: result.value, error: result.error });
   const bytes = overflow?.ok ? Buffer.byteLength(JSON.stringify(overflow.value)) : Buffer.byteLength(typeof resp === "string" ? resp : JSON.stringify(resp ?? null));
   logEvent(P, { event: "hook-capture", tool: input.tool_name, handle, bytes, responseType: Array.isArray(resp) ? "array" : typeof resp, ...(overflow ? { overflow: overflow.ok ? "read" : "unreadable" } : {}) });
   const note = `Saved as result ${handle} (${bytes} bytes). Now run: ${RUNNER_CMD} next`;
   if (task.hideToolOutput) out({ hookSpecificOutput: { hookEventName: "PostToolUse", updatedMCPToolOutput: [{ type: "text", text: note }] } });
   else out({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: `The runner saved this response as ${handle}; do not retype it. Next: run ${RUNNER_CMD} next` } });
+}
+
+function readDriver(P) {
+  try {
+    return JSON.parse(readFileSync(P.driver, "utf8"));
+  } catch {
+    return {};
+  }
+}
+function readDefinition(P) {
+  return JSON.parse(readFileSync(P.definition, "utf8"));
+}
+
+// Entry point for one folder (also called by the repo-root dispatcher, n2c-hook.mjs).
+export async function runHook(which, input, dir = DIR) {
+  const P = paths(dir);
+  setRunner(P.dir, input.cwd ?? process.cwd());
+  const core = await loadCore(dir === DIR ? HERE : join(dir, "runtime"));
+  if (which === "pre") pre(P, input, core);
+  else if (which === "post") post(P, input, core);
 }
 
 const isMain = process.argv[1] && realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
@@ -104,8 +151,7 @@ if (isMain) {
       mkdirSync(P.n2c, { recursive: true });
       writeFileSync(join(P.n2c, `hook-${which}-${Date.now()}.json`), raw);
     }
-    if (which === "pre") pre(P, input);
-    else if (which === "post") post(P, input);
+    await runHook(which, input);
     process.exit(0);
   } catch (e) {
     if (which === "pre") {

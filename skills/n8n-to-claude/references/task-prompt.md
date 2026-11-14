@@ -9,7 +9,7 @@ Each command prints one of these. Do what it says, then go on:
 - NEXT: call one tool. Call that tool once, with exactly the arguments printed, character for character. Then run: node runtime/runner.mjs next
 - NEXT: write an answer yourself. Write the answer from the text it gives you into the file it names (.n2c/inbox/...) with the Write tool, then run the command it prints (node runtime/runner.mjs answer ...). That command prints the next step.
 - If it asks you to save a tool's response, write the response exactly as returned into the file it names, then run the command it prints.
-- DONE, FAILED or PAUSED: stop. Reply with that one line and nothing else.
+- DONE, FAILED, STOPPED or PAUSED: stop. Reply with that line and nothing else.
 
 Rules:
 

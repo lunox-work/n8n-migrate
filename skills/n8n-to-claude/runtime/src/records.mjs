@@ -226,7 +226,7 @@ export function ledgerEntry(e) {
     argsHash: e.args !== undefined ? hashHex("sha256", JSON.stringify(e.args)).slice(0, 16) : null,
     status: e.status,
     at: e.at,
-    ...(e.status === "sent" ? { result: clip(e.result, 4_000) } : {}),
+    ...(e.status === "sent" ? { result: clip(e.result, e.resultMax ?? 4_000) } : {}),
     ...(e.error ? { error: { code: e.error.code ?? e.error.name ?? null, message: String(e.error.message ?? e.error).slice(0, 500) } } : {}),
     ...(e.resolvedBy ? { resolvedBy: e.resolvedBy } : {}),
   };

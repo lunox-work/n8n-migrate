@@ -149,7 +149,7 @@ test("hooks off: the model saves responses with `result`; a missing hook degrade
 
 test("long instructions are paged under the Bash output limit; outputSchema answers are checked", async () => {
   const { paths, command, PAGE_CHARS } = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/runtime/src/driver.mjs")).href);
-  const core = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/runtime/src/api.mjs")).href);
+  const core = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/runtime/src/index.mjs")).href);
   const dir = mkdtempSync(join(tmpdir(), "n2c-page-"));
   try {
     const def = {
@@ -164,7 +164,7 @@ test("long instructions are paged under the Bash output limit; outputSchema answ
       secrets: [],
     };
     writeFileSync(join(dir, "definition.json"), JSON.stringify(def));
-    const run = (cmd, pos = [], flags = {}, input = "") => command(cmd, pos, flags, { core, dir, stdin: () => input });
+    const run = (cmd, pos = [], flags = {}, input = "") => command(cmd, pos, flags, { core, dir, cwd: dir, stdin: () => input });
     const a = await run("start");
     assert.ok(a.text.length < PAGE_CHARS + 400);
     assert.match(a.text, /\[This is part 1 of 3 of request q1\. Read the next part before doing anything: node runtime\/runner\.mjs show q1 2\]$/);

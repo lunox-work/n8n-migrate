@@ -285,7 +285,18 @@
           "form": {
             "type": "object",
             "additionalProperties": false,
-            "properties": { "title": { "type": "string" }, "description": { "type": "string" }, "fields": { "type": "array" } },
+            "properties": {
+              "title": { "type": "string" },
+              "description": { "type": "string" },
+              "fields": { "type": "array" },
+              "handoff": {
+                "type": "object",
+                "required": ["target"],
+                "additionalProperties": false,
+                "properties": { "target": { "enum": ["cloud-task", "local-task"] }, "reason": { "type": "string" } },
+                "description": "A step cannot run in the artifact (a task-handoff requirement): the page stores each submission in db submissions/ and the scheduled task runs it (task.json source poll-submissions)."
+              }
+            },
             "description": "Form trigger fields, for the artifact form."
           },
           "relay": {
@@ -349,8 +360,19 @@
             "description": "host \"*\" (a URL built at run time) is refused by preflight until narrowed in overrides.json."
           }
         },
-        "sql": { "type": "array", "items": { "type": "string" } }
+        "sql": { "type": "array", "items": { "type": "string" } },
+        "alerts": {
+          "type": "array",
+          "description": "The one alert channel (definition.alerts) as its own category: an alert reaches only this target, with the fixed template of runtime/src/alerts.mjs.",
+          "items": { "$ref": "#/$defs/alertTarget" }
+        }
       }
+    },
+    "alerts": {
+      "type": "object",
+      "description": "Where a failed run, missed runs and a write whose outcome is unknown are reported; chosen by the person at setup (overrides.json alerts). Without it the task's final message says it.",
+      "additionalProperties": false,
+      "properties": { "channel": { "$ref": "#/$defs/alertTarget" } }
     },
     "secrets": {
       "type": "array",
@@ -371,6 +393,12 @@
     }
   },
   "$defs": {
+    "alertTarget": {
+      "type": "object",
+      "required": ["connector", "tool", "target"],
+      "additionalProperties": false,
+      "properties": { "connector": { "type": "string" }, "tool": { "type": "string" }, "target": { "type": "string", "description": "Slack user or channel id, or an email address" } }
+    },
     "adapter": {
       "type": "object",
       "description": "Declarative result adapter (runtime/src/adapt.mjs): turns the tool's output into n8n-shaped items. items: path to the elements ([*] flattens); fields: {outName: \"path\" | \"$.root.path\" | \"^.parent.path\" | {path, default} | {const} | {first: [...]} | {split, sep} | {join, sep} | {headers}}; passthrough: keep the element's own fields (default true); wrap; empty: none|one. parse: csv turns the text at `text` (decode: base64 first) into one item per row keyed by the header, with rowNumber: {field, start}.",
