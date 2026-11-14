@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fromHttp, fromTool, reply, compare, modelWritten, parseMime, multipartJson, baitHits, replyText, normTarget, modelTextsOf, maskRunTime, formStrings } from "../evals/bench/compare.mjs";
+import { fromHttp, fromTool, reply, compare, modelWritten, parseMime, multipartJson, baitHits, replyText, normTarget, modelTextsOf, maskRunTime, formStrings, pairWrites, maxAssignment } from "../evals/bench/compare.mjs";
 import { pickRoute, routeKey, parseMultipart } from "../evals/n8n/mock-server.mjs";
 import { answerOf, runnerValue, jsonFromText, normalize, providerResponse } from "../evals/bench/model-shim.mjs";
 import { pickConnector, sameModelInput, modelKeyFor } from "../evals/bench/claude-side.mjs";
@@ -229,4 +229,35 @@ test("P4: run-time timestamps are masked only where the sides differ by them alo
   const m = sameModelInput(rec, { kind: "agent", system: `Assistant. ${claudeIso}`, prompt: "Hi" }, rt);
   assert.deepEqual(m, { same: true, runTimeMasked: true });
   assert.equal(sameModelInput(rec, { kind: "agent", system: `Assistant. ${claudeIso}`, prompt: "Hi" }).same, false);
+});
+
+test("P6: writes to one target pair by content, deterministically, not by list order", () => {
+  const url = "https://gitlab.com/api/v4/projects/4821/merge_requests/57/discussions";
+  const post = (side, path, line) => fromHttp({ method: "POST", url, query: {}, body: { body: `Review of ${path}`, "position[new_path]": path, "position[new_line]": line } }, side);
+  const n8n = [post("n8n", "test/b.test.ts", 9), post("n8n", "src/a.ts", 48)];
+  const claude = [post("claude", "src/a.ts", 48), post("claude", "test/b.test.ts", 9)];
+  const r = compare(n8n, claude);
+  assert.equal(r.ok, true, JSON.stringify(r.writes));
+  assert.equal(r.writes.matched.length, 2);
+  assert.deepEqual(pairWrites(n8n, claude), [1, 0]);
+  // A real difference still shows, against the closest partner.
+  const off = compare(n8n, [post("claude", "src/a.ts", 48), post("claude", "test/b.test.ts", 10)]);
+  assert.equal(off.ok, false);
+  assert.equal(off.writes.fieldDiffs.length, 1);
+  assert.equal(off.writes.fieldDiffs[0].diffs[0].n8n["position[new_path]"], "test/b.test.ts", "the differing write is compared with the same file's post");
+  // Equal content keeps list order; extra writes stay extra.
+  const same = [post("claude", "src/a.ts", 48), post("claude", "src/a.ts", 48)];
+  assert.deepEqual(pairWrites([post("n8n", "src/a.ts", 48), post("n8n", "src/a.ts", 48)], same), [0, 1]);
+  const more = compare([post("n8n", "src/a.ts", 48)], [post("claude", "test/b.test.ts", 9), post("claude", "src/a.ts", 48)]);
+  assert.equal(more.writes.extra.length, 1);
+  assert.equal(more.writes.extra[0].fields.body["position[new_path]"], "test/b.test.ts");
+  assert.equal(more.writes.fieldDiffs.length, 0);
+  // Within a generic body the share of equal keys decides.
+  const near = [post("claude", "test/b.test.ts", 10), post("claude", "src/a.ts", 47)];
+  assert.deepEqual(pairWrites(n8n, near), [0, 1]);
+  assert.deepEqual(pairWrites([post("n8n", "src/a.ts", 47), post("n8n", "test/b.test.ts", 10)], [post("claude", "test/b.test.ts", 9), post("claude", "src/a.ts", 48)]), [1, 0]);
+  // The assignment maximises the total, not the first row's pick.
+  assert.deepEqual(maxAssignment([[5, 4], [4, 0]]), [1, 0]);
+  assert.deepEqual(maxAssignment([[1], [3], [2]]), [-1, 0, -1]);
+  assert.deepEqual(maxAssignment([[2, 2, 2]]), [0]);
 });

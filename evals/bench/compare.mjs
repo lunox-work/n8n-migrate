@@ -7,8 +7,8 @@
 //   fromTool(call)    a connector call on the Claude side ({connector, tool, args})
 //   compare(n8n, claude, {modelTexts, mode}) -> {ok, writes, reads, reply, judge: [...]}
 //
-// Writes (and media calls) are matched as multisets by service.action.target, then field by
-// field. Reads are compared as sets of service.action.target and reported; they do not fail
+// Writes (and media calls) are matched as multisets by service.action.target, paired by
+// content within one target (pairWrites), then compared field by field. Reads are compared as sets of service.action.target and reported; they do not fail
 // the comparison, because a connector legitimately pages or batches differently from n8n's
 // REST calls (a wrong read shows up in the writes it feeds). A text field that holds a model
 // reply is model-written: byte-identical in replay mode, handed to the judge in live mode.
@@ -287,6 +287,126 @@ export function sameUpToRunTime(cmp, a, b, runTime) {
   return cmp === "text" ? ma.trim() === mb.trim() : ma === mb;
 }
 
+// ---------- pairing writes with one target (PROPOSALS P6) ----------
+//
+// Writes are a multiset per service.action.target. When one target gets several writes, n8n
+// may send them in a different order from the runner (its HTTP Request node sends items
+// concurrently), so pairing by list order compares each write with the wrong partner.
+// pairWrites() pairs the writes of each key by content: a maximum-weight assignment where a
+// pair's weight is the number of fields that are the same (sameField, or the same once
+// run-time timestamps are masked; a differing object field counts its share of equal keys). Ties go to the pairing closest to list order (smallest
+// total |i - j| within the key), so equal-content writes keep their order and the result is
+// deterministic. Pairs count stays min(n8n, claude) per key, as with order pairing.
+// Returns, for each n8n write, the index of its Claude write or -1.
+
+const plainObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+
+// Similarity of two effects in thousandths of a field: a field that is the same counts 1000;
+// two differing object fields (a generic body) count the share of their top-level keys that
+// are the same.
+function fieldScore(a, b, runTime) {
+  let n = 0;
+  for (const f of new Set([...Object.keys(a.fields), ...Object.keys(b.fields)])) {
+    const cmp = a.cmp[f] ?? b.cmp[f] ?? "exact";
+    const x = a.fields[f];
+    const y = b.fields[f];
+    if (sameField(cmp, x, y) || sameUpToRunTime(cmp, x, y, runTime)) n += 1000;
+    else if (cmp === "exact" && plainObject(x) && plainObject(y)) {
+      const keys = new Set([...Object.keys(x), ...Object.keys(y)]);
+      let same = 0;
+      for (const k of keys) if (sameField("exact", x[k], y[k]) || sameUpToRunTime("exact", x[k], y[k], runTime)) same++;
+      n += Math.floor((1000 * same) / keys.size);
+    }
+  }
+  return n;
+}
+
+export function pairWrites(nW, cW, runTime = null) {
+  const out = nW.map(() => -1);
+  const groups = new Map();
+  nW.forEach((a, i) => {
+    const k = keyOf(a);
+    if (!groups.has(k)) groups.set(k, { n: [], c: [] });
+    groups.get(k).n.push(i);
+  });
+  cW.forEach((b, j) => groups.get(keyOf(b))?.c.push(j));
+  for (const { n, c } of groups.values()) {
+    if (!c.length) continue;
+    if (n.length === 1 && c.length === 1) {
+      out[n[0]] = c[0];
+      continue;
+    }
+    // Integer weights: field matches dominate; displacement only breaks ties.
+    const tie = n.length * Math.max(n.length, c.length) + 1;
+    const w = n.map((i, x) => c.map((j, y) => fieldScore(nW[i], cW[j], runTime) * tie - Math.abs(x - y)));
+    const assign = maxAssignment(w);
+    assign.forEach((y, x) => {
+      if (y >= 0) out[n[x]] = c[y];
+    });
+  }
+  return out;
+}
+
+// Maximum-weight assignment on a rows × cols integer matrix (Hungarian method, O(n²m)):
+// every row is assigned when rows <= cols, else every column. Returns the column per row, -1
+// for an unassigned row. Deterministic: ties resolve by index order.
+export function maxAssignment(w) {
+  const rows = w.length;
+  const cols = rows ? w[0].length : 0;
+  if (!rows || !cols) return new Array(rows).fill(-1);
+  const flip = rows > cols;
+  const m = flip ? cols : rows;
+  const k = flip ? rows : cols;
+  const cost = (i, j) => -(flip ? w[j][i] : w[i][j]);
+  const u = new Array(m + 1).fill(0);
+  const v = new Array(k + 1).fill(0);
+  const p = new Array(k + 1).fill(0);
+  const way = new Array(k + 1).fill(0);
+  for (let i = 1; i <= m; i++) {
+    p[0] = i;
+    let j0 = 0;
+    const minv = new Array(k + 1).fill(Infinity);
+    const usedC = new Array(k + 1).fill(false);
+    do {
+      usedC[j0] = true;
+      const i0 = p[j0];
+      let delta = Infinity;
+      let j1 = 0;
+      for (let j = 1; j <= k; j++) {
+        if (usedC[j]) continue;
+        const cur = cost(i0 - 1, j - 1) - u[i0] - v[j];
+        if (cur < minv[j]) {
+          minv[j] = cur;
+          way[j] = j0;
+        }
+        if (minv[j] < delta) {
+          delta = minv[j];
+          j1 = j;
+        }
+      }
+      for (let j = 0; j <= k; j++) {
+        if (usedC[j]) {
+          u[p[j]] += delta;
+          v[j] -= delta;
+        } else minv[j] -= delta;
+      }
+      j0 = j1;
+    } while (p[j0] !== 0);
+    do {
+      const j1 = way[j0];
+      p[j0] = p[j1];
+      j0 = j1;
+    } while (j0);
+  }
+  const out = new Array(rows).fill(-1);
+  for (let j = 1; j <= k; j++) {
+    if (!p[j]) continue;
+    if (flip) out[j - 1] = p[j] - 1;
+    else out[p[j] - 1] = j - 1;
+  }
+  return out;
+}
+
 // mode: "replay" (model-written text must be byte-identical) or "live" (it goes to the judge).
 // runTime ({startMs, zone}): timestamps of the run itself are masked in fields that differ
 // only by them (maskRunTime); such fields are listed in `runTimeMasked`.
@@ -297,11 +417,12 @@ export function compare(n8n, claude, { modelTexts = [], mode = "replay", runTime
   const writes = { matched: [], missing: [], extra: [], fieldDiffs: [] };
   const judge = [];
   const runTimeMasked = [];
-  for (const a of nW) {
-    const i = cW.findIndex((b, j) => !used.has(j) && keyOf(b) === keyOf(a));
+  const pairOf = pairWrites(nW, cW, runTime);
+  nW.forEach((a, ai) => {
+    const i = pairOf[ai];
     if (i < 0) {
       writes.missing.push(summary(a));
-      continue;
+      return;
     }
     used.add(i);
     const b = cW[i];
@@ -325,7 +446,7 @@ export function compare(n8n, claude, { modelTexts = [], mode = "replay", runTime
     }
     writes.matched.push(keyOf(a));
     if (diffs.length) writes.fieldDiffs.push({ effect: keyOf(a), diffs });
-  }
+  });
   cW.forEach((b, j) => used.has(j) || writes.extra.push(summary(b)));
   const nR = new Set(n8n.filter((e) => e.effect === "read").map(keyOf));
   const cR = new Set(claude.filter((e) => e.effect === "read").map(keyOf));
