@@ -126,6 +126,11 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
   }
   if (env.shim.lastError && /budget|usage limit/i.test(env.shim.lastError.message)) throw env.shim.lastError;
   const res = r.result;
+  // PROPOSALS P15: each model call's place in the mock log (its seq), so the reads n8n's agent
+  // tools made between two model calls can be told apart. The k-th model request of a tag in
+  // the log is the shim's call k of that tag.
+  const modelSeq = {};
+  for (const e of splitLog(res.effects ?? []).model.sort((a, b) => a.seq - b.seq)) (modelSeq[e.model] ??= []).push(e.seq);
   if (!canned) {
     const why = recordingInterrupted({ result: res, modelCalls: r.modelCalls, models: prep.models, consumers: modelConsumers(prep.wf) });
     if (why) throw new Error(`recording interrupted (${id}/${variant}, not saved): ${why}`);
@@ -142,7 +147,7 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
     lastItems: res.nodes?.[res.lastNode]?.at(-1)?.items?.main?.[0] ?? [],
     nodes: Object.fromEntries(Object.entries(res.nodes ?? {}).map(([k, v]) => [k, v.map((x) => ({ status: x.status, ...(x.error ? { error: x.error.slice(0, 300) } : {}), items: x.items?.main?.map((o) => o.length) }))])),
     effects: splitLog(res.effects).service.map(({ seq, method, proxied, tls, path, query, rawQuery, body, bodyEncoding, fixture }) => ({ seq, method, proxied, tls, path, query, rawQuery, body, bodyEncoding, fixture })),
-    modelCalls: r.modelCalls.map(({ tag, node, index, format, request, response, mode, costUsd }) => ({ tag, node, index, format, request, response, mode, costUsd })),
+    modelCalls: r.modelCalls.map(({ tag, node, index, format, request, response, mode, costUsd }) => ({ tag, node, index, format, request, response, mode, costUsd, seq: modelSeq[tag]?.[index] ?? null })),
     modelModes: [...new Set(r.modelCalls.map((c) => c.mode))],
     sources: prep.sources,
     overlay: prep.overlayApplied,
@@ -303,7 +308,7 @@ async function benchTemplate(id, args, L) {
   const evaluate = async (rep) => {
     const out = { runs: {}, gates: {} };
     const g = out.gates;
-    const runV = async (v) => (out.runs[v] ??= await runInProcess(folder, loadFixture(id, v), { wf, recordings: (await need(v))?.modelCalls ?? [], mode: args.modelMode, startedAt: recs[v]?.startedAt, runTime: runTime(recs[v]), log }));
+    const runV = async (v) => (out.runs[v] ??= await runInProcess(folder, loadFixture(id, v), { wf, recordings: (await need(v))?.modelCalls ?? [], n8nEffects: recs[v]?.effects ?? [], n8nSources: recs[v]?.sources ?? {}, mode: args.modelMode, startedAt: recs[v]?.startedAt, runTime: runTime(recs[v]), log }));
     const N = await runV("normal");
     g[3] = { ...gate3(N.res), driver: "inprocess" };
     // In replay mode the Claude side runs on n8n's recorded replies: a baseline that failed
@@ -361,7 +366,7 @@ async function benchTemplate(id, args, L) {
       if (!D.inprocessHostile && args.variants.includes("hostile")) {
         const fx = loadFixture(id, "hostile");
         const rec = await need("hostile");
-        const run = await runInProcess(folder, fx, { wf, recordings: rec?.modelCalls ?? [], mode: args.modelMode, startedAt: rec?.startedAt, runTime: runTime(rec), log });
+        const run = await runInProcess(folder, fx, { wf, recordings: rec?.modelCalls ?? [], n8nEffects: rec?.effects ?? [], n8nSources: rec?.sources ?? {}, mode: args.modelMode, startedAt: rec?.startedAt, runTime: runTime(rec), log });
         const n8nHits = baitHits(n8nEffects(rec, fx), fx.expect.bait ?? []);
         D.inprocessHostile = { run: { status: run.res.status, error: run.res.error?.message ?? null }, n8n: rec?.status, gate6: gate6({ claudeCalls: run.seen, allow: run.definition.allow ?? {}, claudeEffects: claudeEffects(run, fx), n8nBaitHits: n8nHits, bait: fx.expect.bait ?? [], baitHits }), calls: [...run.seen.tools.map((x) => `${x.connector}.${x.tool}`), ...run.seen.http.map((h) => `${h.method} ${h.url}`)] };
         save();

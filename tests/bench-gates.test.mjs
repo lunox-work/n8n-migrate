@@ -175,3 +175,60 @@ test("P13: the stand-in's answer envelope written as the reply text is unwrapped
   assert.deepEqual(modelAnswer({ type: "text", text: JSON.stringify({ type: "text", text: { a: 1 } }) }), { text: '{"a":1}' });
   assert.deepEqual(modelAnswer({ type: "text" }), { text: "" });
 });
+
+test("P15: a replayed agent turn after a tool call needs the tools run on the Claude side with the same reads", async () => {
+  const { sameToolTurn, claudeReadKeys } = await import("../evals/bench/claude-side.mjs");
+  // n8n (OpenAI format): call 0 asks for Get_News and Get_Weather; call 1 carries both results.
+  const asked = [
+    { id: "call_a", type: "function", function: { name: "Get_News", arguments: '{"URL":"https://feeds.example/rss.xml"}' } },
+    { id: "call_b", type: "function", function: { name: "Get_Weather", arguments: "{}" } },
+  ];
+  const n8nPrev = { format: "openai", seq: 10, response: { choices: [{ message: { role: "assistant", content: null, tool_calls: asked } }] } };
+  const n8nCall = { format: "openai", seq: 13, request: { messages: [{ role: "user", content: "q" }, { role: "assistant", content: null, tool_calls: asked }, { role: "tool", tool_call_id: "call_a", content: "<rss/>" }, { role: "tool", tool_call_id: "call_b", content: '{"t":8}' }] } };
+  const n8nEffects = [
+    { seq: 11, method: "GET", proxied: "https://feeds.example", path: "/rss.xml" },
+    { seq: 12, method: "GET", proxied: "https://api.weather.example", path: "/v1/forecast" },
+    { seq: 20, method: "GET", proxied: "https://later.example", path: "/x" },
+  ];
+  const n8nSources = { "Get News": "http/tls-intercept", "Get Weather": "http/tls-intercept" };
+  const calls = [{ name: "Get_News", args: {} }, { name: "Get_Weather", args: {} }];
+  const both = claudeReadKeys([], [{ method: "GET", url: "https://feeds.example/rss.xml", query: {} }, { method: "GET", url: "https://api.weather.example/v1/forecast", query: {} }]);
+  const ok = sameToolTurn({ n8nPrev, n8nCall, n8nEffects, n8nSources, claudeTurn: { calls, results: [{ name: "Get_News", ok: true, value: "x" }, { name: "Get_Weather", ok: true, value: {} }], reads: both } });
+  assert.deepEqual([ok.same, ok.reads], [true, 2], "the read after call 1 (seq 20) is not this turn's");
+
+  // A tool the runtime cannot run: not executed.
+  const blocked = sameToolTurn({ n8nPrev, n8nCall, n8nEffects, n8nSources, claudeTurn: { calls, results: [{ name: "Get_News", ok: false, error: { message: 'tool "Get_News" (rssFeedReadTool) cannot run in the runtime' } }, { name: "Get_Weather", ok: true, value: {} }], reads: both.slice(1) } });
+  assert.deepEqual([blocked.same, blocked.cause, blocked.detail[0].tool], [false, "tool call not executed", "Get_News"]);
+  // No call of that name at all.
+  assert.equal(sameToolTurn({ n8nPrev, n8nCall, n8nEffects, n8nSources, claudeTurn: { calls: calls.slice(1), results: [{ ok: true }], reads: both.slice(1) } }).cause, "tool call not executed");
+  // Ran, but read something else than n8n did.
+  const other = sameToolTurn({ n8nPrev, n8nCall, n8nEffects, n8nSources, claudeTurn: { calls, results: [{ ok: true }, { ok: true }], reads: claudeReadKeys([], [{ method: "GET", url: "https://feeds.example/other.xml", query: {} }, { method: "GET", url: "https://api.weather.example/v1/forecast", query: {} }]) } });
+  assert.equal(other.cause, "different tool result");
+  assert.equal(other.detail.onlyN8n.length, 1);
+  assert.equal(other.detail.onlyClaude.length, 1);
+  // Both sides' tool failed (n8n fed back an empty result): nothing to blame on the migration.
+  const n8nEmpty = { ...n8nCall, request: { messages: [...n8nCall.request.messages.slice(0, 2), { role: "tool", tool_call_id: "call_a", content: "" }, n8nCall.request.messages[3]] } };
+  assert.equal(sameToolTurn({ n8nPrev, n8nCall: n8nEmpty, n8nEffects: n8nEffects.filter((e) => e.seq !== 11), n8nSources, claudeTurn: { calls, results: [{ ok: false, error: { message: "boom" } }, { ok: true }], reads: both.slice(1) } }).same, true);
+  // Without model seq, or with a pinned tool, the reads are unchecked and say so.
+  assert.match(sameToolTurn({ n8nPrev: { ...n8nPrev, seq: null }, n8nCall, n8nEffects, n8nSources, claudeTurn: { calls, results: [{ ok: true }, { ok: true }], reads: [] } }).reads, /unchecked/);
+  assert.match(sameToolTurn({ n8nPrev, n8nCall, n8nEffects, n8nSources: { ...n8nSources, "Get News": "pin" }, claudeTurn: { calls, results: [{ ok: true }, { ok: true }], reads: [] } }).reads, /unchecked.*Get News/);
+  // n8n's previous reply asked no tool: not a turn after a tool call.
+  assert.equal(sameToolTurn({ n8nPrev: { format: "openai", response: { choices: [{ message: { content: "done" } }] } }, n8nCall, claudeTurn: { calls: [], results: [] } }), null);
+
+  // Gemini: results named, not id'd.
+  const gPrev = { format: "gemini", seq: 1, response: { candidates: [{ content: { parts: [{ functionCall: { name: "Get_Weather", args: {} } }] } }] } };
+  const gCall = { format: "gemini", seq: 3, request: { contents: [{ role: "user", parts: [{ text: "q" }] }, { role: "model", parts: [{ functionCall: { name: "Get_Weather", args: {} } }] }, { role: "user", parts: [{ functionResponse: { name: "Get_Weather", response: { result: "[]" } } }] }] } };
+  assert.equal(sameToolTurn({ n8nPrev: gPrev, n8nCall: gCall, n8nEffects: [{ seq: 2, method: "GET", proxied: "https://api.weather.example", path: "/v1/forecast" }], n8nSources, claudeTurn: { calls: [{ name: "Get_Weather" }], results: [{ ok: false, error: { message: "unknown tool" } }], reads: [] } }).cause, "tool call not executed");
+});
+
+test("P15: gate 4 fails a replayed agent turn whose tools were not run, after the model-input check", () => {
+  const cmp = compare([], []);
+  const turn = (tools) => ({ step: "Agent", index: 1, mode: "replay", input: { same: true }, tools });
+  const miss = gate4({ cmp, modelInputs: [turn({ same: false, cause: "tool call not executed", detail: [{ tool: "Get_News", claude: "cannot run" }] })], n8nStatus: "success" });
+  assert.deepEqual([miss.pass, miss.bucket, miss.cause, miss.detail[0].tools[0].tool], [false, "field map", "tool call not executed", "Get_News"]);
+  const diff = gate4({ cmp, modelInputs: [turn({ same: false, cause: "different tool result", detail: { tools: ["T"], onlyN8n: ["a"], onlyClaude: [] } })], n8nStatus: "success" });
+  assert.deepEqual([diff.cause, diff.detail[0].onlyN8n], ["different tool result", ["a"]]);
+  assert.equal(gate4({ cmp, modelInputs: [turn({ same: true, reads: 1 })], n8nStatus: "success" }).pass, true);
+  const both = gate4({ cmp, modelInputs: [{ step: "A", index: 1, input: { same: false, at: "x", n8nAround: "y" }, tools: { same: false, cause: "tool call not executed" } }], n8nStatus: "success" });
+  assert.match(both.cause, /different input/, "a different question is reported first");
+});

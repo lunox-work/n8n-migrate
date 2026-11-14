@@ -63,11 +63,16 @@ export function gate3(r) {
 }
 
 // 4. Equivalent: same effects as n8n (compare.mjs), the replayed model calls asked the same
-// question, and the chat/form reply matches. n8nOk: the baseline ran to success.
+// question, replayed agent turns ran the same tools with the same reads (P15), and the
+// chat/form reply matches. n8nOk: the baseline ran to success.
 export function gate4({ cmp, modelInputs = [], n8nStatus, judged = [] }) {
   if (n8nStatus !== "success") return fail("fixture", `n8n baseline did not succeed on the normal fixture (${n8nStatus})`);
   const differs = modelInputs.filter((m) => m.input && !m.input.same);
   if (differs.length) return fail("field map", `${differs.length} replayed model call(s) got a different input`, differs.slice(0, 2).map((m) => ({ step: m.step, index: m.index, claude: m.input.at, n8n: m.input.n8nAround })));
+  // PROPOSALS P15: a replayed agent turn after a tool call needs the same tools run on the
+  // Claude side with the same results (claude-side.mjs sameToolTurn).
+  const toolMiss = modelInputs.filter((m) => m.tools && !m.tools.same);
+  if (toolMiss.length) return fail("field map", toolMiss[0].tools.cause, toolMiss.slice(0, 2).map((m) => ({ step: m.step, index: m.index, cause: m.tools.cause, ...(Array.isArray(m.tools.detail) ? { tools: m.tools.detail } : m.tools.detail) })));
   if (cmp.unmapped?.length) {
     const claudeOnly = cmp.unmapped.filter((u) => !cmp.writes.matched.includes(u.key));
     if (claudeOnly.length && (cmp.writes.missing.length || cmp.writes.extra.length)) return fail("bench defect", "effects the comparer table does not cover", claudeOnly.map((u) => u.key));

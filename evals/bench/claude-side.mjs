@@ -22,7 +22,7 @@ import { limitErrors, pageResult } from "../mocks/limits.mjs";
 import { answerOf, liveAnswer, normalize, normalizeRunnerRequest, runnerValue } from "./model-shim.mjs";
 import { claudeP } from "./claude.mjs";
 import { modelConsumers } from "./n8n-side.mjs";
-import { maskRunTime, fromTool } from "./compare.mjs";
+import { maskRunTime, fromTool, fromHttp, keyOf } from "./compare.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
@@ -158,6 +158,71 @@ export function sameModelInput(n8nCall, claudeReq, runTime = null) {
   return { same: false, at: p.slice(Math.max(0, k - 60), k + 120), n8nAround: hay.slice(Math.max(0, hay.indexOf(p.slice(0, k)) + k - 60), hay.indexOf(p.slice(0, k)) + k + 120) };
 }
 
+// ---------- replayed agent turns against the tools the Claude side ran (PROPOSALS P15) ----------
+//
+// sameModelInput() compares system and user text only. For an agent turn that follows a tool
+// call, n8n's recorded reply (call i-1) asked for tools and n8n fed their results into call i;
+// the Claude side gets n8n's reply replayed, so it must have run the same tools and fed back
+// the same results, or an agent whose tool is missing or blocked would still be handed n8n's
+// next turn and final answer.
+//   - executed: each tool n8n's reply asked for (matched by name, as runnerValue() maps names)
+//     has a Claude call whose result is not an error, unless n8n's own result for it was empty
+//     or an error too (both sides fed back nothing usable). Else `tool call not executed`.
+//   - results: the reads the turn's tool calls made, keyed as compare() keys reads
+//     (service.action:target), are the same set on both sides: n8n's reads between the two
+//     model requests in the mock log (by seq), the Claude side's between its two agent turns.
+//     Else `different tool result`. Unchecked (and said so) when the recording has no model
+//     seq, or a tool's n8n side was not served over http (a pin makes no read to key).
+
+const toolNorm = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+const n8nToolFailed = (r) => !!r && (!String(r.text ?? "").trim() || /^\s*"?(error\b|there was an error)/i.test(String(r.text)));
+
+// Read keys of Claude-side calls ({tools: [...], http: [...]} as seen by the in-process host).
+export function claudeReadKeys(tools = [], http = []) {
+  const effects = [...tools.filter((t) => !t.invalid).map((t) => fromTool(t, "claude")), ...http.map((h) => fromHttp(h, "claude"))];
+  return [...new Set(effects.filter((e) => e && e.effect === "read").map(keyOf))];
+}
+
+// n8nPrev, n8nCall: recorded model calls i-1 and i; n8nEffects: the recording's service
+// effects; n8nSources: its read sources by node; claudeTurn: {calls, results, reads} (the
+// Claude transcript's last turn and the read keys its tool calls made). Returns null when
+// n8n's reply asked for no tool, else {same, cause?, detail?, reads?}.
+export function sameToolTurn({ n8nPrev, n8nCall, n8nEffects = [], n8nSources = {}, claudeTurn }) {
+  if (!n8nPrev || !n8nCall || !claudeTurn) return null;
+  const asked = answerOf(n8nPrev.format, n8nPrev.response).calls ?? [];
+  if (!asked.length) return null;
+  const n = normalize(n8nCall.format, n8nCall.request);
+  let last = -1;
+  n.messages.forEach((m, j) => m.role === "assistant" && m.calls?.length && (last = j));
+  const n8nCalls = last >= 0 ? n.messages[last].calls : [];
+  const n8nResults = n.messages.slice(last + 1).filter((m) => m.role === "tool");
+  const n8nResultFor = (j) => {
+    const id = n8nCalls[j]?.id;
+    return (id && n8nResults.find((r) => r.toolId === id)) || n8nResults.filter((r) => !r.toolName || toolNorm(r.toolName) === toolNorm(asked[j].name))[asked.slice(0, j).filter((a) => toolNorm(a.name) === toolNorm(asked[j].name)).length] || n8nResults[j];
+  };
+  const calls = claudeTurn.calls ?? [];
+  const results = claudeTurn.results ?? [];
+  const used = new Set();
+  const notRun = [];
+  asked.forEach((a, j) => {
+    const ci = calls.findIndex((c, x) => !used.has(x) && toolNorm(c?.name) === toolNorm(a.name));
+    if (ci < 0) return notRun.push({ tool: a.name, claude: "no call" });
+    used.add(ci);
+    const r = results[ci];
+    if (r?.ok === false && !n8nToolFailed(n8nResultFor(j))) notRun.push({ tool: a.name, claude: String(r.error?.message ?? "error").slice(0, 200) });
+  });
+  if (notRun.length) return { same: false, cause: "tool call not executed", detail: notRun };
+  if (n8nPrev.seq == null || n8nCall.seq == null) return { same: true, reads: "unchecked: the recording has no model call order" };
+  const notHttp = asked.map((a) => Object.keys(n8nSources).find((node) => toolNorm(node) === toolNorm(a.name))).filter((node) => node && !String(n8nSources[node]).startsWith("http"));
+  if (notHttp.length) return { same: true, reads: `unchecked: n8n's ${notHttp.join(", ")} not served over http` };
+  const nKeys = [...new Set(n8nEffects.filter((e) => e.seq > n8nPrev.seq && e.seq < n8nCall.seq && e.method !== "CONNECT").map((e) => fromHttp(e, "n8n")).filter((e) => e && e.effect === "read").map(keyOf))];
+  const cKeys = claudeTurn.reads ?? [];
+  const onlyN8n = nKeys.filter((k) => !cKeys.includes(k));
+  const onlyClaude = cKeys.filter((k) => !nKeys.includes(k));
+  if (onlyN8n.length || onlyClaude.length) return { same: false, cause: "different tool result", detail: { tools: asked.map((a) => a.name), onlyN8n, onlyClaude } };
+  return { same: true, reads: nKeys.length };
+}
+
 // Runs a definition with every request answered by the bench. Returns the run result and what
 // the bench saw: tool calls, http requests and model answers, each with where its answer came
 // from. recordings: n8n's model calls [{node, index, format, request, response}].
@@ -183,7 +248,7 @@ export function decodeFileParts(body) {
   return Object.fromEntries(Object.entries(body).map(([k, v]) => [k, Array.isArray(v) ? v.map(one) : one(v)]));
 }
 
-export async function runInProcess(folder, fx, { wf, recordings = [], mode = "replay", liveFallback = true, startedAt, runTime = null, log = console.error } = {}) {
+export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects = [], n8nSources = {}, mode = "replay", liveFallback = true, startedAt, runTime = null, log = console.error } = {}) {
   const def = JSON.parse(readFileSync(join(folder, "definition.json"), "utf8"));
   const core = await import(pathToFileURL(join(folder, "runtime", "runner-core.mjs")).href);
   const conn = connectorFixtures(fx);
@@ -194,6 +259,8 @@ export async function runInProcess(folder, fx, { wf, recordings = [], mode = "re
   for (const c of recordings) (byKey[c.node] ??= []).push(c);
   const modelCount = new Map();
   const seen = { tools: [], http: [], models: [] };
+  // Where each agent loop (step and item) stood in `seen` at its last turn (P15).
+  const turnMarks = new Map();
 
   const host = {
     tool: async (p) => {
@@ -248,9 +315,18 @@ export async function runInProcess(folder, fx, { wf, recordings = [], mode = "re
     const rec = byKey[key]?.[i];
     const entry = { step, key, index: i, kind: req.kind };
     seen.models.push(entry);
+    let claudeTurn = null;
+    if (req.kind === "agent") {
+      const mk = `${step}\u0000${req.itemIndex ?? 0}`;
+      const mark = turnMarks.get(mk);
+      if (req.transcript?.length && mark) claudeTurn = { ...req.transcript.at(-1), reads: claudeReadKeys(seen.tools.slice(mark.tools), seen.http.slice(mark.http)) };
+      turnMarks.set(mk, { tools: seen.tools.length, http: seen.http.length });
+    }
     if (mode === "replay" && rec) {
       entry.mode = "replay";
       entry.input = sameModelInput(rec, req, runTime);
+      const tools = claudeTurn && sameToolTurn({ n8nPrev: byKey[key]?.[i - 1], n8nCall: rec, n8nEffects, n8nSources, claudeTurn });
+      if (tools) entry.tools = tools;
       return runnerValue(req, answerOf(rec.format, rec.response));
     }
     if (mode === "replay" && !liveFallback) {
