@@ -52,7 +52,7 @@
 //   is built from the steps and kept as tight as the parameters allow.
 // - Zero dependencies, Node >= 20.
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, rmSync, renameSync, readdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, rmSync, renameSync, readdirSync, realpathSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, join, resolve, basename } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -1991,7 +1991,7 @@ export function main(argv = process.argv.slice(2)) {
   return 0;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+if (process.argv[1] && realpathSync(fileURLToPath(import.meta.url)) === realpathSync(resolve(process.argv[1]))) {
   try {
     process.exitCode = main();
   } catch (e) {

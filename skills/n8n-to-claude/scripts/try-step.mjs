@@ -14,7 +14,7 @@
 // Prints {status, output: [json...], requests: [{kind, connector?, tool?, args?|prompt?|url?}],
 // error?}. Exit 0 when the step ran, 1 when it failed, 2 on bad input. Zero dependencies.
 
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, realpathSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { run } from "../runtime/src/api.mjs";
 
@@ -63,7 +63,7 @@ export async function tryStep(folder, stepName, { items, pin = false } = {}) {
   return { status: res.status, output: out, requests, ...(res.error ? { error: res.error } : {}) };
 }
 
-if (import.meta.url === new URL(`file://${resolve(process.argv[1] ?? "")}`).href) {
+if (process.argv[1] && realpathSync(new URL(import.meta.url)) === realpathSync(resolve(process.argv[1]))) {
   const { pos, flags } = parse(process.argv.slice(2));
   if (pos.length < 2) {
     process.stderr.write("usage: try-step.mjs <folder> <step> [--items items.json | --pin]\n");

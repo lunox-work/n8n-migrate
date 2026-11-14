@@ -31,7 +31,7 @@
 // - Zero dependencies, Node >= 20, one file. Pure functions are exported for
 //   tests; the CLI runs only when this file is the entry point.
 
-import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, join, relative, resolve, basename } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -2464,4 +2464,6 @@ function main() {
   } else process.stdout.write(text);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) main();
+// realpath on both sides: a skills installer may link the skill folder, and Node resolves the
+// link for import.meta.url but not for argv[1]; a plain comparison then exits 0 printing nothing.
+if (process.argv[1] && realpathSync(fileURLToPath(import.meta.url)) === realpathSync(resolve(process.argv[1]))) main();

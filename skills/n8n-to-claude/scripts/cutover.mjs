@@ -27,7 +27,7 @@
 // both systems send. Exit codes: 0 done, 1 refused or failed, 2 bad usage, 3 waiting for the
 // person (a step outside this CLI).
 
-import { readFileSync, existsSync, openSync, closeSync, statSync, rmSync, mkdirSync } from "node:fs";
+import { readFileSync, existsSync, openSync, closeSync, statSync, rmSync, mkdirSync, realpathSync } from "node:fs";
 import { join, resolve, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as core from "../runtime/src/index.mjs";
@@ -596,7 +596,7 @@ function parse(argv) {
   return { pos, flags };
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(resolve(process.argv[1])) === realpathSync(fileURLToPath(import.meta.url))) {
   const { pos, flags } = parse(process.argv.slice(2));
   if (pos.length < 2) {
     process.stderr.write(`usage: ${basename(process.argv[1])} <folder> <${Object.keys(STEPS).join("|")}> [--json] [--force]\n`);
