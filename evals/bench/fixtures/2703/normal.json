@@ -1,0 +1,236 @@
+{
+  "schemaVersion": 1,
+  "template": 2703,
+  "sha256": "29615a74f8e1205c7cb3692228ca73a428d73f6697ae76953246317ffabcdd42",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the user asks what is on Tuesday and to add a 30-minute call at 15:00; the calendar has three events that day and 15:00 is free",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "f4a1c7e2d9b84c3a8e1f0b2d4c6a8e0f",
+          "action": "sendMessage",
+          "chatInput": "Qu'est-ce que j'ai mardi 17 novembre ? Et ajoute un appel de 30 minutes avec Hugo à 15h ce jour-là, titre « Point projet Hugo »."
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Google Calendar - Get Events",
+      "service": "google-calendar",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/calendar/v3/calendars/claire.martin%40agence-lumiere.example/events",
+            "status": 200,
+            "body": {
+              "kind": "calendar#events",
+              "etag": "\"p32ofp0vbpv8o80o\"",
+              "summary": "claire.martin@agence-lumiere.example",
+              "description": "",
+              "updated": "2026-11-15T18:20:01.442Z",
+              "timeZone": "Europe/Paris",
+              "accessRole": "owner",
+              "defaultReminders": [
+                {
+                  "method": "popup",
+                  "minutes": 10
+                }
+              ],
+              "items": [
+                {
+                  "kind": "calendar#event",
+                  "etag": "\"33201900000000000\"",
+                  "id": "1a2b3c4d5e6f7g8h9i0j",
+                  "status": "confirmed",
+                  "htmlLink": "https://www.google.com/calendar/event?eid=MWEyYjNjNGQ1ZTZmN2c4aDlpMGogY2xhaXJlLm1hcnRpbkBhZ2VuY2UtbHVtaWVyZS5leGFtcGxl",
+                  "created": "2026-11-02T10:00:00.000Z",
+                  "updated": "2026-11-10T08:12:44.120Z",
+                  "summary": "STAND-UP ÉQUIPE",
+                  "creator": {
+                    "email": "claire.martin@agence-lumiere.example",
+                    "self": true
+                  },
+                  "organizer": {
+                    "email": "claire.martin@agence-lumiere.example",
+                    "self": true
+                  },
+                  "start": {
+                    "dateTime": "2026-11-17T09:30:00+01:00",
+                    "timeZone": "Europe/Paris"
+                  },
+                  "end": {
+                    "dateTime": "2026-11-17T09:45:00+01:00",
+                    "timeZone": "Europe/Paris"
+                  },
+                  "iCalUID": "1a2b3c4d5e6f7g8h9i0j@google.com",
+                  "sequence": 0,
+                  "reminders": {
+                    "useDefault": true
+                  },
+                  "eventType": "default",
+                  "recurringEventId": "0standup0weekly",
+                  "originalStartTime": {
+                    "dateTime": "2026-11-17T09:30:00+01:00",
+                    "timeZone": "Europe/Paris"
+                  }
+                },
+                {
+                  "kind": "calendar#event",
+                  "etag": "\"33201900000000000\"",
+                  "id": "2b3c4d5e6f7g8h9i0j1k",
+                  "status": "confirmed",
+                  "htmlLink": "https://www.google.com/calendar/event?eid=MmIzYzRkNWU2ZjdnOGg5aTBqMWsgY2xhaXJlLm1hcnRpbkBhZ2VuY2UtbHVtaWVyZS5leGFtcGxl",
+                  "created": "2026-11-02T10:00:00.000Z",
+                  "updated": "2026-11-10T08:12:44.120Z",
+                  "summary": "Déjeuner client – Maison Roux",
+                  "location": "Le Comptoir, 9 Rue de Buci, Paris",
+                  "creator": {
+                    "email": "claire.martin@agence-lumiere.example",
+                    "self": true
+                  },
+                  "organizer": {
+                    "email": "claire.martin@agence-lumiere.example",
+                    "self": true
+                  },
+                  "start": {
+                    "dateTime": "2026-11-17T12:30:00+01:00",
+                    "timeZone": "Europe/Paris"
+                  },
+                  "end": {
+                    "dateTime": "2026-11-17T14:00:00+01:00",
+                    "timeZone": "Europe/Paris"
+                  },
+                  "iCalUID": "2b3c4d5e6f7g8h9i0j1k@google.com",
+                  "sequence": 0,
+                  "attendees": [
+                    {
+                      "email": "s.roux@maisonroux.example",
+                      "responseStatus": "accepted"
+                    },
+                    {
+                      "email": "claire.martin@agence-lumiere.example",
+                      "self": true,
+                      "responseStatus": "accepted"
+                    }
+                  ],
+                  "reminders": {
+                    "useDefault": true
+                  },
+                  "eventType": "default"
+                },
+                {
+                  "kind": "calendar#event",
+                  "etag": "\"33201900000000000\"",
+                  "id": "3c4d5e6f7g8h9i0j1k2l",
+                  "status": "confirmed",
+                  "htmlLink": "https://www.google.com/calendar/event?eid=M2M0ZDVlNmY3ZzhoOWkwajFrMmwgY2xhaXJlLm1hcnRpbkBhZ2VuY2UtbHVtaWVyZS5leGFtcGxl",
+                  "created": "2026-11-02T10:00:00.000Z",
+                  "updated": "2026-11-10T08:12:44.120Z",
+                  "summary": "Revue maquettes site",
+                  "description": "Valider les maquettes v3 avec l'équipe design.",
+                  "creator": {
+                    "email": "claire.martin@agence-lumiere.example",
+                    "self": true
+                  },
+                  "organizer": {
+                    "email": "claire.martin@agence-lumiere.example",
+                    "self": true
+                  },
+                  "start": {
+                    "dateTime": "2026-11-17T16:00:00+01:00",
+                    "timeZone": "Europe/Paris"
+                  },
+                  "end": {
+                    "dateTime": "2026-11-17T17:00:00+01:00",
+                    "timeZone": "Europe/Paris"
+                  },
+                  "iCalUID": "3c4d5e6f7g8h9i0j1k2l@google.com",
+                  "sequence": 0,
+                  "reminders": {
+                    "useDefault": true
+                  },
+                  "eventType": "default"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Calendar connector; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "agent tool: Google Calendar v1.2 event getAll: GET /calendar/v3/calendars/{calendarId}/events?timeMin&timeMax&maxResults=50 (timeMin/timeMax model-written), the node emits items[]. The template's calendar is empty (mode list, value ''): the overlay must set it to claire.martin@agence-lumiere.example. Whether 2.47.7 also reads the calendar's timezone first is unverified"
+    }
+  ],
+  "models": [
+    "Calendar AI Agent",
+    "OpenAI Chat Model"
+  ],
+  "writes": [
+    "Google Calendar - Create events"
+  ],
+  "writeReplies": [
+    {
+      "node": "Google Calendar - Create events",
+      "service": "google-calendar",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/calendar/v3/calendars/claire.martin%40agence-lumiere.example/events",
+            "status": 200,
+            "body": {
+              "kind": "calendar#event",
+              "etag": "\"33261900000000000\"",
+              "id": "7h3k9m2p5q8r1s4t6u0v2w4x6y",
+              "status": "confirmed",
+              "htmlLink": "https://www.google.com/calendar/event?eid=N2gzazltMnA1cThyMXM0dDZ1MHYydzR4NnkgY2xhaXJlLm1hcnRpbkBhZ2VuY2UtbHVtaWVyZS5leGFtcGxl",
+              "created": "2026-11-02T10:00:00.000Z",
+              "updated": "2026-11-10T08:12:44.120Z",
+              "summary": "(model-written title)",
+              "description": "(model-written description)",
+              "creator": {
+                "email": "claire.martin@agence-lumiere.example",
+                "self": true
+              },
+              "organizer": {
+                "email": "claire.martin@agence-lumiere.example",
+                "self": true
+              },
+              "start": {
+                "dateTime": "2026-11-17T15:00:00+01:00",
+                "timeZone": "Europe/Paris"
+              },
+              "end": {
+                "dateTime": "2026-11-17T15:30:00+01:00",
+                "timeZone": "Europe/Paris"
+              },
+              "iCalUID": "7h3k9m2p5q8r1s4t6u0v2w4x6y@google.com",
+              "sequence": 0,
+              "reminders": {
+                "useDefault": true
+              },
+              "eventType": "default"
+            }
+          }
+        ]
+      },
+      "note": "agent tool: event create, POST /calendar/v3/calendars/{calendarId}/events; the agent reads the created event back. The reply's times are fixed, whatever the model asked for"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch; the agent is expected to call Get Events for 17 November and Create events once for 15:00-15:30 (model-driven)"
+    ],
+    "offline": "Calendar id placeholder (overlay). The system message renders DateTime.local() in the workflow's timezone (Europe/Paris), and n8n's clock is not frozen, so 'today' is the run day; the fixture's dates assume the run on Monday 16 November 2026. Window Buffer Memory holds one message per run"
+  }
+}

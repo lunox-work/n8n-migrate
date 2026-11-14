@@ -12,7 +12,7 @@ const VARIANTS = ["normal", "empty", "malformed", "hostile"];
 
 test("every bench fixture validates, four variants per template", async () => {
   const ids = readdirSync(join(BENCH, "fixtures"));
-  assert.ok(ids.length >= 30);
+  assert.ok(ids.length >= 50);
   for (const id of ids) {
     const tpl = join(BENCH, "data", "wf", `${id}.json`);
     const raw = existsSync(tpl) ? JSON.parse(readFileSync(tpl, "utf8")) : null;
@@ -29,4 +29,17 @@ test("every bench fixture validates, four variants per template", async () => {
 test("the first thirty dev templates of splits.json have fixtures", () => {
   const splits = JSON.parse(readFileSync(join(BENCH, "splits.json"), "utf8"));
   for (const { id } of splits.dev.slice(0, 30)) assert.ok(existsSync(join(BENCH, "fixtures", String(id), "normal.json")), String(id));
+});
+
+// Held-out fixtures feed release points only (EXCLUSIONS.md); the first twenty in the seeded
+// order exist so the first release point can run. Each pins the hash splits.json recorded.
+test("the first twenty held-out templates of splits.json have fixtures pinned to their hash", () => {
+  const splits = JSON.parse(readFileSync(join(BENCH, "splits.json"), "utf8"));
+  for (const { id, sha256 } of splits.heldOut.slice(0, 20)) {
+    for (const v of VARIANTS) {
+      const p = join(BENCH, "fixtures", String(id), `${v}.json`);
+      assert.ok(existsSync(p), `${id}/${v}`);
+      assert.equal(JSON.parse(readFileSync(p, "utf8")).sha256, sha256, `${id}/${v}`);
+    }
+  }
 });
