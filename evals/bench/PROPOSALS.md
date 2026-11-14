@@ -192,3 +192,9 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Evidence.** `sameModelInput()` compares system and user text; P15–P17 compare the tool calls and fed-back values. The tool list itself (names, descriptions, input schemas) is not compared. Iteration 11: 1953's calendar tool reaches the model as "googleCalendar getAll" with no properties on the Claude side, where n8n 2.47.7 sends "Get many events in Google Calendar" (the node's action label plus its display name). With n8n's replies replayed, the turn passes either way; a live model on the Claude side picks tools from descriptions that differ from n8n's.
 - **Proposed change.** Compare each replayed agent request's tool names and input schemas with n8n's (names exact after the runner's name mapping, schemas as JSON), and report description differences (not gated) until the converter rebuilds n8n's descriptions.
 - **Why not in the loop.** It adds a check to gate 4.
+
+## P29. The Gmail send route accepts a message with no recipient
+
+- **Evidence.** Iteration 12: 1953's malformed fixture has an unread mail with no `From`; n8n's reply then builds a message whose `To` is empty (the only other address is the account's own) and the fixture's `POST /gmail/v1/users/me/messages/send` answers 200, so the baseline "succeeds". Gmail's API refuses a message without recipients (400, invalid To header), so n8n would fail there for real. The Claude side now sends the connector reply with an empty `to`, which matches the baseline only because both are recipient-less.
+- **Proposed change.** Make the mock's Gmail send route answer 400 for a raw message without `To`, `Cc` or `Bcc` (as the API does), or mark such a variant `expect` as an n8n failure, and re-record.
+- **Why not in the loop.** It changes a fixture route and a recording.

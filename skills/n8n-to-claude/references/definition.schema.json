@@ -103,6 +103,19 @@
                 "description": "exact: the tool returns what n8n returns; adapted: the adapter reshapes, and the fields it lists carry n8n's names; partial: some n8n fields have no source (missingFields); none: no adapter; unverified: the tool's real output shape is not known yet, so the adapter is a best reading of the tool description, to be checked by the bench's emulation run."
               },
               "missingFields": { "type": "array", "items": { "type": "string" }, "description": "n8n output fields the tool cannot supply." },
+              "recipients": {
+                "type": "object",
+                "description": "A reply whose recipients n8n takes from the replied-to message: before the call the runner reads that message (tool, with args[idArg]) and sets args[arg] to the addresses in its first present field of replyTo, else from, an empty list when there are none (runtime nodes2.mjs replyRecipients). The connector's own default recipients are never relied on.",
+                "required": ["tool", "idArg", "arg", "from"],
+                "additionalProperties": false,
+                "properties": {
+                  "tool": { "type": "string" },
+                  "idArg": { "type": "string" },
+                  "arg": { "type": "string" },
+                  "from": { "type": "array", "items": { "type": "string" } },
+                  "replyTo": { "type": "array", "items": { "type": "string" } }
+                }
+              },
               "lookup": {
                 "type": "object",
                 "description": "Row filters applied to the adapted rows as n8n's Google Sheets lookupValues does (runtime nodes2.mjs applyLookup). filters may hold expressions, evaluated per item.",

@@ -830,7 +830,9 @@ const toolStep = {
     const t = exec.step.tool;
     if (!t?.connector || !t?.name) throw unsupported(exec, "A tool step without tool.connector and tool.name");
     const items = exec.getInputData();
-    const reqs = items.map((_, i) => ({ kind: "tool", itemIndex: i, connector: t.connector, tool: t.name, args: toolArgs(exec, t, i), effect: t.effect }));
+    const argsList = items.map((_, i) => toolArgs(exec, t, i));
+    if (t.recipients) for (let i = 0; i < items.length; i++) argsList[i] = await replyRecipients(exec, t, argsList[i], i);
+    const reqs = items.map((_, i) => ({ kind: "tool", itemIndex: i, connector: t.connector, tool: t.name, args: argsList[i], effect: t.effect }));
     const results = await exec.request(reqs);
     if (!t.result) return [toItems(exec, results, items, "tool")];
     const adapted = adaptedItems(exec, results, t.result, "tool");
@@ -881,6 +883,54 @@ export function applyLookup(exec, rows, lookup) {
 function toolArgs(exec, t, i, locals) {
   const raw = locals ? resolveParameter(t.args ?? {}, () => exec.scope(i, { locals })) : exec.evaluate(t.args ?? {}, i);
   return coerceArgs(t.coerce, raw);
+}
+
+// ---------- reply recipients (t.recipients) ----------
+// n8n's Gmail reply addresses the reply from the replied-to message's headers (From; Reply-To
+// from node 2.2 when present). The connector's reply tool picks its own default recipients, and
+// a hostile message's Reply-To may be among them, so the runner reads the message first and
+// passes the recipients explicitly. A message field may be a plain address, "Name <a@b>", a
+// comma list, a list, or the REST payload's headers.
+function messageField(m, name) {
+  if (!isObject(m)) return undefined;
+  if (m[name] !== undefined && m[name] !== null && m[name] !== "") return m[name];
+  const lower = name.toLowerCase();
+  const headers = Array.isArray(m.payload?.headers) ? m.payload.headers : Array.isArray(m.headers) ? m.headers : null;
+  const h = headers?.find((x) => String(x?.name ?? "").toLowerCase() === lower);
+  if (h?.value) return h.value;
+  if (isObject(m.headers)) {
+    const k = Object.keys(m.headers).find((x) => x.toLowerCase() === lower);
+    if (k && m.headers[k]) return m.headers[k];
+  }
+  return undefined;
+}
+function addressesOf(v) {
+  if (v == null) return [];
+  if (Array.isArray(v)) return v.flatMap(addressesOf);
+  if (isObject(v)) return v.address ? [String(v.address)] : v.value ? addressesOf(v.value) : v.text ? addressesOf(v.text) : [];
+  return String(v)
+    .split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/)
+    .map((x) => (/<([^>]+)>/.exec(x)?.[1] ?? x).trim())
+    .filter((x) => /@/.test(x));
+}
+async function replyRecipients(exec, t, args, i) {
+  const r = t.recipients;
+  if (!r || args[r.arg] !== undefined) return args;
+  const id = args[r.idArg];
+  if (id === undefined || id === null || id === "") return args;
+  const [res] = await exec.request([{ kind: "tool", itemIndex: i, connector: t.connector, tool: r.tool, args: { [r.idArg]: id }, effect: "read" }]);
+  if (!res.ok) throw err(exec, `could not read the message to reply to: ${res.error?.message ?? "tool call failed"}`, { itemIndex: i });
+  const pick = (fields) => {
+    for (const f of fields ?? []) {
+      const a = addressesOf(messageField(res.value, f));
+      if (a.length) return a;
+    }
+    return [];
+  };
+  // A message without a sender gets an empty list, as n8n's request has no recipient then
+  // (Gmail itself refuses such a message); the connector is never left to choose.
+  const to = r.replyTo ? (pick(r.replyTo).length ? pick(r.replyTo) : pick(r.from)) : pick(r.from);
+  return { ...args, [r.arg]: to };
 }
 
 function adaptedItems(exec, results, spec, what) {
@@ -1207,7 +1257,7 @@ export async function executeAgentTool(exec, tools, call, itemIndex) {
   try {
     if (kind === "connector") {
       const t = sub?.tool ?? { connector: spec.connector, name: spec.tool, effect: spec.effect };
-      const toolArgsValue = sub?.tool ? toolArgs(exec, t, itemIndex, locals) : args;
+      const toolArgsValue = sub?.tool ? await replyRecipients(exec, t, toolArgs(exec, t, itemIndex, locals), itemIndex) : args;
       const [r] = await exec.request([{ kind: "tool", itemIndex, connector: t.connector, tool: t.name, args: toolArgsValue, effect: t.effect }]);
       if (!r.ok) return { ok: false, error: { message: r.error?.message ?? "tool call failed" } };
       return { ok: true, value: t.result ? toolValue(t.result, r.value) : r.value };

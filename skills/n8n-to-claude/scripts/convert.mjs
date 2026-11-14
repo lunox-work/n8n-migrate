@@ -778,6 +778,16 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         step.tool.lookup = { filters: clone(params.filtersUI.values).map((f) => ({ lookupColumn: f.lookupColumn ?? "", lookupValue: f.lookupValue ?? "" })), combine: params.combineFilters === "AND" ? "AND" : "OR", returnAll, ...(v >= 4.6 ? { stopAtFirst: true } : {}) };
         if (v <= 4.1) review(step, "n8n 4.1 and older pool the row filters of every input item; each item's own filters apply here");
       }
+      // A reply that n8n addresses from the replied-to message: the runner reads the message
+      // and sets the recipients itself, so a connector default (a hostile Reply-To) never picks them.
+      if (entry.recipients) {
+        const r = entry.recipients;
+        const v = step.n8n.typeVersion ?? 1;
+        const useReplyTo = r.replyTo && r.replyToFromVersion !== undefined && v >= r.replyToFromVersion;
+        step.tool.recipients = { tool: r.tool, idArg: r.idArg, arg: r.arg, from: [...r.from], ...(useReplyTo ? { replyTo: [...r.replyTo] } : {}) };
+        addTool(entry.connector, r.tool);
+        if (useReplyTo) review(step, `n8n ${shortType(step.n8n.type)} ${v} replies to the message's Reply-To when it has one; the runner uses it when the connector's message carries it (an assumed field), else the sender`);
+      }
       if (argsCheck.noSchema) review(step, `no captured input schema for ${entry.connector}.${entry.tool}`);
       if (argsCheck.unknown.length) review(step, `arguments the tool does not take: ${argsCheck.unknown.join(", ")}`);
       if (entry.argsNeedTranslation) translate(step, "code", clone(params), entry.argsNeedTranslation);

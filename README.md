@@ -328,9 +328,12 @@ previews; this list is dated 2026-11-14 and re-runnable
   allowlist and the exact-argument hook are the defence against hostile
   text, and the bench's contained gate measures it.
 - **The allowlist cannot see inside an allowed call.** A hostile email's
-  `Reply-To` redirected the Gmail connector's reply in the bench. Check reply
-  and forward steps before you enable a workflow that reads mail from
-  strangers.
+  `Reply-To` redirected the Gmail connector's reply in the bench (the
+  connector picks the recipient when none is given; assumed, not verified).
+  The runner now reads the replied-to message and names the recipient n8n
+  would use (its `From`, or its `Reply-To` from Gmail node 2.2), so the
+  connector never chooses. Check reply and forward steps before you enable a
+  workflow that reads mail from strangers.
 - **Secrets stay with you.** The skill reads credential names only, redacts
   inline keys before writing anything, and never asks for a value. Cloud
   tasks get secrets as network secrets for listed hosts; local tasks read

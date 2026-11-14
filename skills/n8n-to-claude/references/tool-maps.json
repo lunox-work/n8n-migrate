@@ -8,6 +8,7 @@
     "The converter checks every args field against the tool's input JSON schema: required fields present, no unknown fields.",
     "lookup: true (Google Sheets reads): the node's filtersUI rows become tool.lookup, applied by the runtime to the adapted rows as n8n's lookupValues does (cell text equals the value; OR or AND by combineFilters; first match per filter unless all matches are asked for).",
     "Or rest (a REST program in runtime/src/rest.mjs, for an operation that takes several requests: a read decides the write) with credentialType and hosts [{method, host, pathPrefix}]; the n8n parameters stay in step.params. Keeping the same service over its REST API with the person's own credential is the default mapping, not a substitution (references/translation.md).",
+    "recipients (a reply whose n8n node addresses it from the replied-to message's headers, as Gmail's reply): {tool, idArg, arg, from, replyTo, replyToFromVersion}. Before the call the runner reads the message (tool with idArg) and sets args[arg] to the addresses in its first present field of replyTo (only from replyToFromVersion on), else of from; a connector's own default recipients are never relied on.",
     "detail (poll triggers whose n8n node reads each new item again, as Gmail's GET per message): {tool, args, idArg, idField, keep, result, resultWhen, missingFields}. After the cursor, the runner calls the tool once per new item with args plus idArg set to the list item's idField; the item becomes the adapted detail result (the resultWhen branch the node's parameters pick, which may carry its own missingFields); keep names list-item fields used when the detail result lacks them. The step's missingFields are the detail's."
   ],
   "version": "1",
@@ -103,16 +104,19 @@
               "body": { "if": { "param": "emailType", "equals": "text", "default": "html" }, "then": { "param": "message" }, "else": { "const": null } },
               "htmlBody": { "if": { "param": "emailType", "equals": "html", "default": "html" }, "then": { "param": "message" }, "else": { "const": null } },
               "cc": "options.ccList",
-              "bcc": "options.bccList",
-              "replyAll": "options.replyToSenderOnly"
+              "bcc": "options.bccList"
             },
+            "recipients": { "tool": "get_message", "idArg": "messageId", "arg": "to", "from": ["sender", "from", "From"], "replyTo": ["replyTo", "reply-to", "Reply-To"], "replyToFromVersion": 2.2 },
             "result": {},
             "fidelity": "unverified",
             "missingFields": ["id", "threadId", "labelIds"],
-            "caveats": [{"text":"n8n appends 'This email was sent automatically with n8n' unless the option is off; the tool does not.", "unless":{"param":"options.appendAttribution", "equals":false}}],
-            "understood": ["operation", "resource", "messageId", "emailType", "message", "options.ccList", "options.bccList", "options.appendAttribution"],
+            "caveats": [
+              {"text":"n8n appends 'This email was sent automatically with n8n' unless the option is off; the tool does not.", "unless":{"param":"options.appendAttribution", "equals":false}},
+              {"text":"n8n also replies to the message's other To recipients (every one but the account's own address); the connector cannot tell the account's address, so the reply goes to the sender only.", "unless":{"param":"options.replyToSenderOnly", "equals":true}}
+            ],
+            "understood": ["operation", "resource", "messageId", "emailType", "message", "options.ccList", "options.bccList", "options.appendAttribution", "options.replyToSenderOnly"],
             "review": [
-              { "param": "options.replyToSenderOnly", "reason": "n8n's replyToSenderOnly is the opposite of the tool's replyAll; check the mapped value" },
+              { "param": "options.replyToRecipientsOnly", "equals": true, "reason": "'Reply to Recipients Only' is not mapped: the reply goes to the sender (the connector cannot tell the account's own address to leave out)" },
               { "param": "options.attachmentsUi", "reason": "attachments from n8n binary data need translating into file references" }
             ]
           },
