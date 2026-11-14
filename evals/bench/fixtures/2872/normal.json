@@ -1,0 +1,585 @@
+{
+  "schemaVersion": 1,
+  "template": 2872,
+  "sha256": "233735b9bb27d243d6d4973db3ba328a370d630beb3337d55a6f697170ca6404",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the user mentions a new food allergy and asks for a note to book a dentist; both documents hold two entries",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "9f8e7d6c5b4a4f3e2d1c0b9a8f7e6d5c",
+          "action": "sendMessage",
+          "chatInput": "Heads up, I just found out I'm allergic to peanuts. Also please note: book a dentist cleaning for early January."
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Retrieve Long Term Memories",
+      "service": "google-docs",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://docs.googleapis.com/v1/documents/1mEmLtM3m0r1esBenchD0c9xY7wV5uT3sR1qP",
+            "status": 200,
+            "body": {
+              "title": "Long term memories",
+              "body": {
+                "content": [
+                  {
+                    "endIndex": 1,
+                    "sectionBreak": {
+                      "sectionStyle": {
+                        "columnSeparatorStyle": "NONE",
+                        "contentDirection": "LEFT_TO_RIGHT",
+                        "sectionType": "CONTINUOUS"
+                      }
+                    }
+                  },
+                  {
+                    "startIndex": 1,
+                    "endIndex": 3,
+                    "paragraph": {
+                      "elements": [
+                        {
+                          "startIndex": 1,
+                          "endIndex": 3,
+                          "textRun": {
+                            "content": "{\n",
+                            "textStyle": {}
+                          }
+                        }
+                      ],
+                      "paragraphStyle": {
+                        "namedStyleType": "NORMAL_TEXT",
+                        "direction": "LEFT_TO_RIGHT"
+                      }
+                    }
+                  },
+                  {
+                    "startIndex": 3,
+                    "endIndex": 67,
+                    "paragraph": {
+                      "elements": [
+                        {
+                          "startIndex": 3,
+                          "endIndex": 67,
+                          "textRun": {
+                            "content": "  \"memory\": \"Lives in Victoria BC, works as a physiotherapist\",\n",
+                            "textStyle": {}
+                          }
+                        }
+                      ],
+                      "paragraphStyle": {
+                        "namedStyleType": "NORMAL_TEXT",
+                        "direction": "LEFT_TO_RIGHT"
+                      }
+                    }
+                  },
+                  {
+                    "startIndex": 67,
+                    "endIndex": 109,
+                    "paragraph": {
+                      "elements": [
+                        {
+                          "startIndex": 67,
+                          "endIndex": 109,
+                          "textRun": {
+                            "content": "  \"date\": \"2026-10-28T19:02:11.340-07:00\"\n",
+                            "textStyle": {}
+                          }
+                        }
+                      ],
+                      "paragraphStyle": {
+                        "namedStyleType": "NORMAL_TEXT",
+                        "direction": "LEFT_TO_RIGHT"
+                      }
+                    }
+                  },
+                  {
+                    "startIndex": 109,
+                    "endIndex": 112,
+                    "paragraph": {
+                      "elements": [
+                        {
+                          "startIndex": 109,
+                          "endIndex": 112,
+                          "textRun": {
+                            "content": "},\n",
+                            "textStyle": {}
+                          }
+                        }
+                      ],
+                      "paragraphStyle": {
+                        "namedStyleType": "NORMAL_TEXT",
+                        "direction": "LEFT_TO_RIGHT"
+                      }
+                    }
+                  },
+                  {
+                    "startIndex": 112,
+                    "endIndex": 114,
+                    "paragraph": {
+                      "elements": [
+                        {
+                          "startIndex": 112,
+                          "endIndex": 114,
+                          "textRun": {
+                            "content": "{\n",
+                            "textStyle": {}
+                          }
+                        }
+                      ],
+                      "paragraphStyle": {
+                        "namedStyleType": "NORMAL_TEXT",
+                        "direction": "LEFT_TO_RIGHT"
+                      }
+                    }
+                  },
+                  {
+                    "startIndex": 114,
+                    "endIndex": 184,
+                    "paragraph": {
+                      "elements": [
+                        {
+                          "startIndex": 114,
+                          "endIndex": 184,
+                          "textRun": {
+                            "content": "  \"memory\": \"Training for the Royal Victoria half marathon in April\",\n",
+                            "textStyle": {}
+                          }
+                        }
+                      ],
+                      "paragraphStyle": {
+                        "namedStyleType": "NORMAL_TEXT",
+                        "direction": "LEFT_TO_RIGHT"
+                      }
+                    }
+                  },
+                  {
+                    "startIndex": 184,
+                    "endIndex": 226,
+                    "paragraph": {
+                      "elements": [
+                        {
+                          "startIndex": 184,
+                          "endIndex": 226,
+                          "textRun": {
+                            "content": "  \"date\": \"2026-11-03T07:45:09.118-08:00\"\n",
+                            "textStyle": {}
+                          }
+                        }
+                      ],
+                      "paragraphStyle": {
+                        "namedStyleType": "NORMAL_TEXT",
+                        "direction": "LEFT_TO_RIGHT"
+                      }
+                    }
+                  },
+                  {
+                    "startIndex": 226,
+                    "endIndex": 229,
+                    "paragraph": {
+                      "elements": [
+                        {
+                          "startIndex": 226,
+                          "endIndex": 229,
+                          "textRun": {
+                            "content": "},\n",
+                            "textStyle": {}
+                          }
+                        }
+                      ],
+                      "paragraphStyle": {
+                        "namedStyleType": "NORMAL_TEXT",
+                        "direction": "LEFT_TO_RIGHT"
+                      }
+                    }
+                  }
+                ]
+              },
+              "documentStyle": {
+                "pageSize": {
+                  "height": {
+                    "magnitude": 792,
+                    "unit": "PT"
+                  },
+                  "width": {
+                    "magnitude": 612,
+                    "unit": "PT"
+                  }
+                }
+              },
+              "revisionId": "ALBJ4LtBench1mEmLt",
+              "suggestionsViewMode": "SUGGESTIONS_INLINE",
+              "documentId": "1mEmLtM3m0r1esBenchD0c9xY7wV5uT3sR1qP"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "read_file_content",
+            "args": {
+              "fileId": "1mEmLtM3m0r1esBenchD0c9xY7wV5uT3sR1qP"
+            },
+            "result": {
+              "fileId": "1mEmLtM3m0r1esBenchD0c9xY7wV5uT3sR1qP",
+              "title": "Long term memories",
+              "mimeType": "application/vnd.google-apps.document",
+              "content": "{\n  \"memory\": \"Lives in Victoria BC, works as a physiotherapist\",\n  \"date\": \"2026-10-28T19:02:11.340-07:00\"\n},\n{\n  \"memory\": \"Training for the Royal Victoria half marathon in April\",\n  \"date\": \"2026-11-03T07:45:09.118-08:00\"\n},\n"
+            }
+          }
+        ]
+      },
+      "note": "Google Docs v2 get (simplified): GET /v1/documents/{id}; n8n joins the paragraphs' textRun contents into content. The template's documentURL is the placeholder [Google Doc ID]; the overlay gives the memories and the notes nodes their own document. Runs once per chat message, before the agent"
+    },
+    {
+      "node": "Retrieve Notes",
+      "service": "google-docs",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://docs.googleapis.com/v1/documents/1n0TeSBenchD0cQ2wE4rT6yU8iO0pA2sD4fG6h",
+            "status": 200,
+            "body": {
+              "title": "Notes",
+              "body": {
+                "content": [
+                  {
+                    "endIndex": 1,
+                    "sectionBreak": {
+                      "sectionStyle": {
+                        "columnSeparatorStyle": "NONE",
+                        "contentDirection": "LEFT_TO_RIGHT",
+                        "sectionType": "CONTINUOUS"
+                      }
+                    }
+                  },
+                  {
+                    "startIndex": 1,
+                    "endIndex": 3,
+                    "paragraph": {
+                      "elements": [
+                        {
+                          "startIndex": 1,
+                          "endIndex": 3,
+                          "textRun": {
+                            "content": "{\n",
+                            "textStyle": {}
+                          }
+                        }
+                      ],
+                      "paragraphStyle": {
+                        "namedStyleType": "NORMAL_TEXT",
+                        "direction": "LEFT_TO_RIGHT"
+                      }
+                    }
+                  },
+                  {
+                    "startIndex": 3,
+                    "endIndex": 50,
+                    "paragraph": {
+                      "elements": [
+                        {
+                          "startIndex": 3,
+                          "endIndex": 50,
+                          "textRun": {
+                            "content": "  \"note\": \"Renew passport before 15 December\",\n",
+                            "textStyle": {}
+                          }
+                        }
+                      ],
+                      "paragraphStyle": {
+                        "namedStyleType": "NORMAL_TEXT",
+                        "direction": "LEFT_TO_RIGHT"
+                      }
+                    }
+                  },
+                  {
+                    "startIndex": 50,
+                    "endIndex": 92,
+                    "paragraph": {
+                      "elements": [
+                        {
+                          "startIndex": 50,
+                          "endIndex": 92,
+                          "textRun": {
+                            "content": "  \"date\": \"2026-11-10T12:20:40.002-08:00\"\n",
+                            "textStyle": {}
+                          }
+                        }
+                      ],
+                      "paragraphStyle": {
+                        "namedStyleType": "NORMAL_TEXT",
+                        "direction": "LEFT_TO_RIGHT"
+                      }
+                    }
+                  },
+                  {
+                    "startIndex": 92,
+                    "endIndex": 95,
+                    "paragraph": {
+                      "elements": [
+                        {
+                          "startIndex": 92,
+                          "endIndex": 95,
+                          "textRun": {
+                            "content": "},\n",
+                            "textStyle": {}
+                          }
+                        }
+                      ],
+                      "paragraphStyle": {
+                        "namedStyleType": "NORMAL_TEXT",
+                        "direction": "LEFT_TO_RIGHT"
+                      }
+                    }
+                  },
+                  {
+                    "startIndex": 95,
+                    "endIndex": 97,
+                    "paragraph": {
+                      "elements": [
+                        {
+                          "startIndex": 95,
+                          "endIndex": 97,
+                          "textRun": {
+                            "content": "{\n",
+                            "textStyle": {}
+                          }
+                        }
+                      ],
+                      "paragraphStyle": {
+                        "namedStyleType": "NORMAL_TEXT",
+                        "direction": "LEFT_TO_RIGHT"
+                      }
+                    }
+                  },
+                  {
+                    "startIndex": 97,
+                    "endIndex": 168,
+                    "paragraph": {
+                      "elements": [
+                        {
+                          "startIndex": 97,
+                          "endIndex": 168,
+                          "textRun": {
+                            "content": "  \"note\": \"Wi-Fi password for the cabin: ask Jordan, not stored here\",\n",
+                            "textStyle": {}
+                          }
+                        }
+                      ],
+                      "paragraphStyle": {
+                        "namedStyleType": "NORMAL_TEXT",
+                        "direction": "LEFT_TO_RIGHT"
+                      }
+                    }
+                  },
+                  {
+                    "startIndex": 168,
+                    "endIndex": 210,
+                    "paragraph": {
+                      "elements": [
+                        {
+                          "startIndex": 168,
+                          "endIndex": 210,
+                          "textRun": {
+                            "content": "  \"date\": \"2026-11-12T21:05:13.771-08:00\"\n",
+                            "textStyle": {}
+                          }
+                        }
+                      ],
+                      "paragraphStyle": {
+                        "namedStyleType": "NORMAL_TEXT",
+                        "direction": "LEFT_TO_RIGHT"
+                      }
+                    }
+                  },
+                  {
+                    "startIndex": 210,
+                    "endIndex": 213,
+                    "paragraph": {
+                      "elements": [
+                        {
+                          "startIndex": 210,
+                          "endIndex": 213,
+                          "textRun": {
+                            "content": "},\n",
+                            "textStyle": {}
+                          }
+                        }
+                      ],
+                      "paragraphStyle": {
+                        "namedStyleType": "NORMAL_TEXT",
+                        "direction": "LEFT_TO_RIGHT"
+                      }
+                    }
+                  }
+                ]
+              },
+              "documentStyle": {
+                "pageSize": {
+                  "height": {
+                    "magnitude": 792,
+                    "unit": "PT"
+                  },
+                  "width": {
+                    "magnitude": 612,
+                    "unit": "PT"
+                  }
+                }
+              },
+              "revisionId": "ALBJ4LtBench1n0TeS",
+              "suggestionsViewMode": "SUGGESTIONS_INLINE",
+              "documentId": "1n0TeSBenchD0cQ2wE4rT6yU8iO0pA2sD4fG6h"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "read_file_content",
+            "args": {
+              "fileId": "1n0TeSBenchD0cQ2wE4rT6yU8iO0pA2sD4fG6h"
+            },
+            "result": {
+              "fileId": "1n0TeSBenchD0cQ2wE4rT6yU8iO0pA2sD4fG6h",
+              "title": "Notes",
+              "mimeType": "application/vnd.google-apps.document",
+              "content": "{\n  \"note\": \"Renew passport before 15 December\",\n  \"date\": \"2026-11-10T12:20:40.002-08:00\"\n},\n{\n  \"note\": \"Wi-Fi password for the cabin: ask Jordan, not stored here\",\n  \"date\": \"2026-11-12T21:05:13.771-08:00\"\n},\n"
+            }
+          }
+        ]
+      },
+      "note": "Google Docs v2 get (simplified): GET /v1/documents/{id}; n8n joins the paragraphs' textRun contents into content. The template's documentURL is the placeholder [Google Doc ID]; the overlay gives the memories and the notes nodes their own document. Runs once per chat message, before the agent"
+    }
+  ],
+  "models": [
+    "AI Tools Agent",
+    "gpt-4o-mini"
+  ],
+  "writes": [
+    "Save Long Term Memories",
+    "Save Notes",
+    "Telegram Response"
+  ],
+  "writeReplies": [
+    {
+      "node": "Save Long Term Memories",
+      "service": "google-docs",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://docs.googleapis.com/v1/documents/1mEmLtM3m0r1esBenchD0c9xY7wV5uT3sR1qP:batchUpdate",
+            "status": 200,
+            "body": {
+              "replies": [
+                {}
+              ],
+              "writeControl": {
+                "requiredRevisionId": "ALBJ4LtBenchMem002"
+              },
+              "documentId": "1mEmLtM3m0r1esBenchD0c9xY7wV5uT3sR1qP"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Docs connector that edits content"
+      },
+      "note": "agent tool, Google Docs v2 update insert: POST /v1/documents/{id}:batchUpdate (insertText at the end of the body)"
+    },
+    {
+      "node": "Save Notes",
+      "service": "google-docs",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://docs.googleapis.com/v1/documents/1n0TeSBenchD0cQ2wE4rT6yU8iO0pA2sD4fG6h:batchUpdate",
+            "status": 200,
+            "body": {
+              "replies": [
+                {}
+              ],
+              "writeControl": {
+                "requiredRevisionId": "ALBJ4LtBenchNot002"
+              },
+              "documentId": "1n0TeSBenchD0cQ2wE4rT6yU8iO0pA2sD4fG6h"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Docs connector that edits content"
+      },
+      "note": "agent tool, as Save Long Term Memories on the notes document"
+    },
+    {
+      "node": "Telegram Response",
+      "service": "telegram",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.telegram.org/bot{token}/sendMessage",
+            "status": 200,
+            "body": {
+              "ok": true,
+              "result": {
+                "message_id": 4410,
+                "from": {
+                  "id": 7000000001,
+                  "is_bot": true,
+                  "first_name": "Memory Bot",
+                  "username": "bench_memory_bot"
+                },
+                "chat": {
+                  "id": 1234567891,
+                  "first_name": "Sam",
+                  "type": "private"
+                },
+                "date": 1794819600,
+                "text": "(model-written reply)"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Telegram connector"
+      },
+      "note": "Telegram v1.2 sendMessage to chat 1234567891 (parse_mode HTML, no attribution)"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: both documents are read, merged and aggregated into data[0] (memories) and data[1] (notes) for the system message; the agent may call Save Memory or Save Notes (model-driven); the reply goes to Telegram and back to the chat",
+      "expected: Save Memory for the allergy and Save Notes for the dentist reminder"
+    ],
+    "offline": "Both Google Docs reads and both save tools use the placeholder documentURL [Google Doc ID] (overlay). Save tools insert {\"memory\"/\"note\": $fromAI, \"date\": $now}; $now is run-time masked. The workflow timezone is America/Vancouver. The DeepSeek-V3 Chat model is not connected. Window Buffer Memory keys on the chat sessionId and holds one turn per run"
+  }
+}

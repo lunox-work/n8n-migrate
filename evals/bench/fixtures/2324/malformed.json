@@ -1,0 +1,307 @@
+{
+  "schemaVersion": 1,
+  "template": 2324,
+  "sha256": "b8961277ba92ed362a2773e2ddc4da033cb8b15523691268fb1d68dc9ef2151e",
+  "variant": "malformed",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "rows with an empty input, a URL with a space and SQL-looking text, and a 3,000-character name with no other cells; the site answers 500, SerpAPI rejects the key and ScrapingBee answers 401",
+  "trigger": {
+    "node": "Schedule Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T09:00:00.000-05:00",
+          "Readable date": "November 16th 2026, 9:00:00 am",
+          "Readable time": "9:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "09",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get rows to enrich",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/19U7gAgkUEz6mbFcnygf1zKDdGvY6OAdUqq3bZQWgjxE",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/19U7gAgkUEz6mbFcnygf1zKDdGvY6OAdUqq3bZQWgjxE/values/'Sheet1'",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:Z1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "input",
+                  "domain",
+                  "linkedinUrl",
+                  "has_free_trial",
+                  "cheapest_plan",
+                  "has_entreprise_plan",
+                  "last_case_study_link",
+                  "market",
+                  "integrations",
+                  "enrichment_status"
+                ],
+                [
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ],
+                [
+                  "https://weird domain.example/?q=\" OR 1=1 --",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ],
+                [
+                  "ΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩΩ"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "19U7gAgkUEz6mbFcnygf1zKDdGvY6OAdUqq3bZQWgjxE",
+              "exportMimeType": "text/csv"
+            },
+            "result": {
+              "fileId": "19U7gAgkUEz6mbFcnygf1zKDdGvY6OAdUqq3bZQWgjxE",
+              "title": "Enrich companies using AI agents",
+              "mimeType": "text/csv",
+              "content": "aW5wdXQsZG9tYWluLGxpbmtlZGluVXJsLGhhc19mcmVlX3RyaWFsLGNoZWFwZXN0X3BsYW4saGFzX2VudHJlcHJpc2VfcGxhbixsYXN0X2Nhc2Vfc3R1ZHlfbGluayxtYXJrZXQsaW50ZWdyYXRpb25zLGVucmljaG1lbnRfc3RhdHVzCiwsLCwsLCwsLAoiaHR0cHM6Ly93ZWlyZCBkb21haW4uZXhhbXBsZS8/cT0iIiBPUiAxPTEgLS0iLCwsLCwsLCwsCs6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqc6pzqnOqQo="
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.3 read, gid=0, filter enrichment_status with an empty lookup value, return all matches: sheet properties (gid → Sheet1), then GET values/'Sheet1'; n8n keeps the rows whose enrichment_status is empty and adds row_number. Trailing empty cells are omitted, as the API does",
+      "connectorGaps": [
+        "row_number: n8n's Sheets node adds row_number to every row; a CSV export has none (it follows from the row position)",
+        "tabs: the Drive export holds the first tab only; there is no captured Sheets connector, so the update goes over the Sheets API"
+      ]
+    },
+    {
+      "node": "Get website content",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://weird domain.example",
+            "status": 500,
+            "headers": {
+              "content-type": "text/html"
+            },
+            "body": "<html><body>500 Internal Server Error</body></html>"
+          },
+          {
+            "method": "GET",
+            "url": "https://weirddomain.example",
+            "status": 200,
+            "headers": {
+              "content-type": "application/pdf"
+            },
+            "body": "%PDF-1.4 binary junk \u0000\u0001"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a plain web fetch, no connector"
+      },
+      "note": "agent tool get_website_content: a workflow defined inline (source parameter) that GETs query.url with HTTP Request v4.2 and extracts the cleaned text of <html> minus <head>; the URLs are model-chosen, so the fixture answers the likely home and pricing pages"
+    },
+    {
+      "node": "SerpAPI - Search Google",
+      "service": "serpapi",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://serpapi.com/search",
+            "status": 200,
+            "body": {
+              "error": "Invalid API key. Your API key should be here: https://serpapi.com/manage-api-key"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured search connector; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "agent tool: LangChain SerpAPI (GET https://serpapi.com/search?q=<model-written>&api_key=…); the query is model-written, so the replies answer in turn (last repeats) rather than by query"
+    },
+    {
+      "node": "Search Google with ScrapingBee",
+      "service": "scrapingbee",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://app.scrapingbee.com/api/v1/store/google",
+            "status": 401,
+            "body": {
+              "message": "Invalid api key",
+              "status": 401
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured search connector"
+      },
+      "note": "agent tool search_google: an inline workflow GETs https://app.scrapingbee.com/api/v1/store/google?search=<model-written>&language=en&nb_results=5 (api_key from the httpQueryAuth credential) and returns organic_results; replies answer in turn"
+    }
+  ],
+  "models": [
+    "AI company researcher",
+    "OpenAI Chat Model"
+  ],
+  "writes": [
+    "Google Sheets - Update Row with data"
+  ],
+  "writeReplies": [
+    {
+      "node": "Google Sheets - Update Row with data",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/19U7gAgkUEz6mbFcnygf1zKDdGvY6OAdUqq3bZQWgjxE",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/19U7gAgkUEz6mbFcnygf1zKDdGvY6OAdUqq3bZQWgjxE/values/'Sheet1'",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:Z1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "input",
+                  "domain",
+                  "linkedinUrl",
+                  "has_free_trial",
+                  "cheapest_plan",
+                  "has_entreprise_plan",
+                  "last_case_study_link",
+                  "market",
+                  "integrations",
+                  "enrichment_status"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/19U7gAgkUEz6mbFcnygf1zKDdGvY6OAdUqq3bZQWgjxE/values:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "19U7gAgkUEz6mbFcnygf1zKDdGvY6OAdUqq3bZQWgjxE",
+              "totalUpdatedRows": 1,
+              "totalUpdatedColumns": 9,
+              "totalUpdatedCells": 9,
+              "totalUpdatedSheets": 1,
+              "responses": [
+                {
+                  "spreadsheetId": "19U7gAgkUEz6mbFcnygf1zKDdGvY6OAdUqq3bZQWgjxE",
+                  "updatedRange": "Sheet1!B2:J2",
+                  "updatedRows": 1,
+                  "updatedColumns": 9,
+                  "updatedCells": 9
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Sheets connector for writes"
+      },
+      "note": "Sheets v4.3 update matching row_number: sheet properties, GET values/'Sheet1' (the header row is what n8n needs; the reply holds the header only), then values:batchUpdate for that row; once per company"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Loop Over Items: one company per batch → AI company researcher (tools model-driven) → Merge data (by position with the row) → Update Row → back to the loop; done output unconnected",
+      "tool errors go back to the agent; the structured output parser may reject nulls (model-driven); the update writes whatever the agent returns"
+    ],
+    "offline": "The agent's searches and page visits are model-driven, so search replies answer in turn and pages are answered for the likely URLs (an unanswered URL gets the mock's default). The schedule trigger runs every 2 hours; the manual trigger runs the same path. The sheet column is has_entreprise_plan (sic); the update writes has_enterprise_plan into it"
+  }
+}

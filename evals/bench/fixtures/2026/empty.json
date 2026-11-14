@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "template": 2026,
+  "sha256": "1100780ce36cefdc1176f8bca26690b6026adf4e66f9efa49e094ee4c8272c69",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the tool returns no stories",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "4a6c8e0f2b4d4f6a8c0e2a4c6e8a0c2f",
+          "action": "sendMessage",
+          "chatInput": "Which Hacker News post has the most points?"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Hacker News",
+      "service": "hackernews",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "http://hn.algolia.com/api/v1/search",
+            "query": {
+              "hitsPerPage": "50"
+            },
+            "status": 200,
+            "body": {
+              "hits": [],
+              "nbHits": 41800000,
+              "page": 0,
+              "nbPages": 20,
+              "hitsPerPage": 50,
+              "exhaustiveNbHits": false,
+              "query": "",
+              "params": "tags=&hitsPerPage=50",
+              "processingTimeMS": 4
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Hacker News connector; the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "reached through the agent tool hn_tool, which runs this same workflow ($workflow.id) from When Executed by Another Workflow: Hacker News v1 resource all, limit 50: GET http://hn.algolia.com/api/v1/search?tags=&hitsPerPage=50 (plain HTTP); Clean up data keeps title (from _highlightResult), points, url, created_at, author and Stringify returns them as one JSON string"
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: the agent may call hn_tool, whose sub-execution returns the 50 stories as a JSON string",
+      "Stringify returns \"[]\""
+    ],
+    "offline": "The agent decides whether to call hn_tool (model-driven); the sub-execution it starts is this workflow from When Executed by Another Workflow. No memory is attached"
+  }
+}

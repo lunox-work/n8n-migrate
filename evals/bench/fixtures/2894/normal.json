@@ -144,12 +144,52 @@
         "none": "transcription stays with the provider (media lever); the Claude side serves the same response through its HTTP mock"
       },
       "note": "OpenAI node v1 audio transcribe: multipart POST /v1/audio/transcriptions (whisper-1, binary data written by Read video from Google Drive); not a chat endpoint, so the shim does not answer it. Replies answer in turn, one per video"
+    },
+    {
+      "node": "Read Video from Google Drive",
+      "service": "local-file",
+      "file": {
+        "path": "Demo_InfluencersDe_nov_16.mp4",
+        "base64": "AAAAHGZ0eXBpc3NvbQAAAgBpc29taXNvMm1wNDEAAAAIZnJlZQAAAAhtZGF0"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a local file, no connector"
+      },
+      "note": "Read Binary File v1 reads back the file Read video from Google Drive (Write Binary File) wrote one step earlier at the relative path originalFilename with spaces as underscores; seeded with the same bytes so both sides read the same file, while the write itself is compared as an effect"
+    },
+    {
+      "node": "Read Video from Google Drive2",
+      "service": "local-file",
+      "file": {
+        "path": "Demo_InfluencersDe_nov_16.mp4",
+        "base64": "AAAAHGZ0eXBpc3NvbQAAAgBpc29taXNvMm1wNDEAAAAIZnJlZQAAAAhtZGF0"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a local file, no connector"
+      },
+      "note": "Read Binary File v1 reads back the file Read video from Google Drive (Write Binary File) wrote one step earlier at the relative path originalFilename with spaces as underscores; seeded with the same bytes so both sides read the same file, while the write itself is compared as an effect"
+    },
+    {
+      "node": "Read Video from Google Drive3",
+      "service": "local-file",
+      "file": {
+        "path": "Demo_InfluencersDe_nov_16.mp4",
+        "base64": "AAAAHGZ0eXBpc3NvbQAAAgBpc29taXNvMm1wNDEAAAAIZnJlZQAAAAhtZGF0"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a local file, no connector"
+      },
+      "note": "Read Binary File v1 reads back the file Read video from Google Drive (Write Binary File) wrote one step earlier at the relative path originalFilename with spaces as underscores; seeded with the same bytes so both sides read the same file, while the write itself is compared as an effect"
     }
   ],
   "models": [
     "Generate Description for Videos  in Tiktok and Instagram"
   ],
   "writes": [
+    "Read video from Google Drive",
     "Upload Video and Description to Tiktok",
     "Upload Video and Description to Instagram",
     "Upload Video and Description to Youtube"

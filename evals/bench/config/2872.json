@@ -1,0 +1,51 @@
+{
+  "why": "All four Google Docs nodes (two reads, two agent tools) use the template's placeholder documentURL [Google Doc ID]. The memory nodes get one document and the notes nodes another, as the template's prompt keeps memories and notes apart; the fixture's routes answer these two ids. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "Retrieve Long Term Memories": {
+      "parameters.documentURL": "1mEmLtM3m0r1esBenchD0c9xY7wV5uT3sR1qP"
+    },
+    "Save Long Term Memories": {
+      "parameters.documentURL": "1mEmLtM3m0r1esBenchD0c9xY7wV5uT3sR1qP"
+    },
+    "Retrieve Notes": {
+      "parameters.documentURL": "1n0TeSBenchD0cQ2wE4rT6yU8iO0pA2sD4fG6h"
+    },
+    "Save Notes": {
+      "parameters.documentURL": "1n0TeSBenchD0cQ2wE4rT6yU8iO0pA2sD4fG6h"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Retrieve Long Term Memories": {
+          "patch": {
+            "params": {
+              "documentURL": "1mEmLtM3m0r1esBenchD0c9xY7wV5uT3sR1qP"
+            }
+          }
+        },
+        "Save Long Term Memories": {
+          "patch": {
+            "params": {
+              "documentURL": "1mEmLtM3m0r1esBenchD0c9xY7wV5uT3sR1qP"
+            }
+          }
+        },
+        "Retrieve Notes": {
+          "patch": {
+            "params": {
+              "documentURL": "1n0TeSBenchD0cQ2wE4rT6yU8iO0pA2sD4fG6h"
+            }
+          }
+        },
+        "Save Notes": {
+          "patch": {
+            "params": {
+              "documentURL": "1n0TeSBenchD0cQ2wE4rT6yU8iO0pA2sD4fG6h"
+            }
+          }
+        }
+      }
+    }
+  }
+}

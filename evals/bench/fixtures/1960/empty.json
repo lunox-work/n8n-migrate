@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "template": 1960,
+  "sha256": "bc8074b597cc35771496f5f3eef65dbd433d6b1d77815f31870186b557685bf6",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "a question while the index is empty: Pinecone returns no matches",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "2b7e1f4a9c3d4e5f8a6b0c1d2e3f4a5c",
+          "action": "sendMessage",
+          "chatInput": "What does the whitepaper say about mining rewards?"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Embeddings OpenAI1",
+      "service": "openai-embeddings",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/embeddings",
+            "status": 200,
+            "body": {
+              "object": "list",
+              "data": [
+                {
+                  "object": "embedding",
+                  "index": 0,
+                  "embedding": "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"
+                }
+              ],
+              "model": "text-embedding-3-small",
+              "usage": {
+                "prompt_tokens": 14,
+                "total_tokens": 14
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "embeddings stay with the provider; the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "OpenAI embeddings v1.2 for the retriever tool: POST /v1/embeddings. The shim does not answer embeddings, so the vector is fixed here; the openai SDK asks for encoding_format=base64, so the embedding is base64 of 1536 little-endian float32"
+    },
+    {
+      "node": "Pinecone Vector Store1",
+      "service": "pinecone",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.pinecone.io/indexes/test-index",
+            "status": 200,
+            "body": {
+              "name": "test-index",
+              "vector_type": "dense",
+              "metric": "cosine",
+              "dimension": 1536,
+              "status": {
+                "ready": true,
+                "state": "Ready"
+              },
+              "host": "test-index-7f3e9a1.svc.aped-4627-b74a.pinecone.io",
+              "spec": {
+                "serverless": {
+                  "region": "us-east-1",
+                  "cloud": "aws"
+                }
+              },
+              "deletion_protection": "disabled",
+              "tags": null
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://test-index-7f3e9a1.svc.aped-4627-b74a.pinecone.io/query",
+            "status": 200,
+            "body": {
+              "results": [],
+              "matches": [],
+              "namespace": "",
+              "usage": {
+                "readUnits": 6
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Pinecone connector; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "agent tool bitcoin_paper (Pinecone v1 retrieve-as-tool, index test-index, topK 4, includeDocumentMetadata false): the Pinecone client GETs the index description from api.pinecone.io for its host, then POSTs <host>/query {vector, topK: 4, includeMetadata: true}; LangChain keeps the chunk in metadata.text and flattens loader metadata to dotted keys"
+    },
+    {
+      "node": "Google Drive",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/11Koq9q53nkk0F5Y8eZgaWJUVR03I4-MM",
+            "status": 200,
+            "body": {
+              "id": "11Koq9q53nkk0F5Y8eZgaWJUVR03I4-MM",
+              "name": "bitcoin.pdf",
+              "mimeType": "application/pdf",
+              "size": "836"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/11Koq9q53nkk0F5Y8eZgaWJUVR03I4-MM",
+            "query": {
+              "alt": "media"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "application/pdf"
+            },
+            "bodyBase64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA1IDAgUiA+PiA+PiAvQ29udGVudHMgNCAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCAyOTEgPj4Kc3RyZWFtCkJUIC9GMSAxMSBUZiA1MCA3ODAgVGQgMTQgVEwgKEJpdGNvaW46IEEgUGVlci10by1QZWVyIEVsZWN0cm9uaWMgQ2FzaCBTeXN0ZW0pICcgKFNhdG9zaGkgTmFrYW1vdG8pICcgKEFic3RyYWN0LiBBIHB1cmVseSBwZWVyLXRvLXBlZXIgdmVyc2lvbiBvZiBlbGVjdHJvbmljIGNhc2ggd291bGQgYWxsb3cgb25saW5lIHBheW1lbnRzKSAnICh0byBiZSBzZW50IGRpcmVjdGx5IGZyb20gb25lIHBhcnR5IHRvIGFub3RoZXIgd2l0aG91dCBnb2luZyB0aHJvdWdoIGEgZmluYW5jaWFsIGluc3RpdHV0aW9uLikgJyBFVAplbmRzdHJlYW0KZW5kb2JqCjUgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyNDEgMDAwMDAgbiAKMDAwMDAwMDU4MyAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDYgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjY1MwolJUVPRgo="
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "11Koq9q53nkk0F5Y8eZgaWJUVR03I4-MM"
+            },
+            "result": {
+              "fileId": "11Koq9q53nkk0F5Y8eZgaWJUVR03I4-MM",
+              "title": "bitcoin.pdf",
+              "mimeType": "application/pdf",
+              "content": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA1IDAgUiA+PiA+PiAvQ29udGVudHMgNCAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCAyOTEgPj4Kc3RyZWFtCkJUIC9GMSAxMSBUZiA1MCA3ODAgVGQgMTQgVEwgKEJpdGNvaW46IEEgUGVlci10by1QZWVyIEVsZWN0cm9uaWMgQ2FzaCBTeXN0ZW0pICcgKFNhdG9zaGkgTmFrYW1vdG8pICcgKEFic3RyYWN0LiBBIHB1cmVseSBwZWVyLXRvLXBlZXIgdmVyc2lvbiBvZiBlbGVjdHJvbmljIGNhc2ggd291bGQgYWxsb3cgb25saW5lIHBheW1lbnRzKSAnICh0byBiZSBzZW50IGRpcmVjdGx5IGZyb20gb25lIHBhcnR5IHRvIGFub3RoZXIgd2l0aG91dCBnb2luZyB0aHJvdWdoIGEgZmluYW5jaWFsIGluc3RpdHV0aW9uLikgJyBFVAplbmRzdHJlYW0KZW5kb2JqCjUgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyNDEgMDAwMDAgbiAKMDAwMDAwMDU4MyAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDYgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjY1MwolJUVPRgo="
+            }
+          }
+        ]
+      },
+      "note": "manual ingestion path (When clicking 'Test Workflow' button → Set Google Drive file URL → Google Drive v3 download → Pinecone insert with clearNamespace), not run by the chat trigger; listed so both paths have their sources. The PDF is a one-page stand-in whose text pdf.js extracts"
+    }
+  ],
+  "models": [
+    "Question & Answer",
+    "OpenAI Chat Model"
+  ],
+  "writes": [
+    "Pinecone Vector Store"
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch on the chat path; the agent decides whether to call bitcoin_paper (model-driven)",
+      "the tool returns no chunks; the answer is model-driven"
+    ],
+    "offline": "The vectors are synthetic, so the scores are fixed by the fixture rather than computed. The ingestion path (manual trigger) is not run under the chat trigger; no memory is attached to the agent"
+  }
+}

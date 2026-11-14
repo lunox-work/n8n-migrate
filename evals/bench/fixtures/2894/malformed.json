@@ -148,12 +148,52 @@
         "none": "transcription stays with the provider (media lever)"
       },
       "note": "OpenAI audio transcribe answers 400 for an empty file"
+    },
+    {
+      "node": "Read Video from Google Drive",
+      "service": "local-file",
+      "file": {
+        "path": "undefined",
+        "base64": ""
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a local file, no connector"
+      },
+      "note": "Read Binary File v1 reads back the file Read video from Google Drive (Write Binary File) wrote one step earlier at the relative path originalFilename with spaces as underscores; seeded with the same bytes so both sides read the same file, while the write itself is compared as an effect"
+    },
+    {
+      "node": "Read Video from Google Drive2",
+      "service": "local-file",
+      "file": {
+        "path": "undefined",
+        "base64": ""
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a local file, no connector"
+      },
+      "note": "Read Binary File v1 reads back the file Read video from Google Drive (Write Binary File) wrote one step earlier at the relative path originalFilename with spaces as underscores; seeded with the same bytes so both sides read the same file, while the write itself is compared as an effect"
+    },
+    {
+      "node": "Read Video from Google Drive3",
+      "service": "local-file",
+      "file": {
+        "path": "undefined",
+        "base64": ""
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a local file, no connector"
+      },
+      "note": "Read Binary File v1 reads back the file Read video from Google Drive (Write Binary File) wrote one step earlier at the relative path originalFilename with spaces as underscores; seeded with the same bytes so both sides read the same file, while the write itself is compared as an effect"
     }
   ],
   "models": [
     "Generate Description for Videos  in Tiktok and Instagram"
   ],
   "writes": [
+    "Read video from Google Drive",
     "Upload Video and Description to Tiktok",
     "Upload Video and Description to Instagram",
     "Upload Video and Description to Youtube"

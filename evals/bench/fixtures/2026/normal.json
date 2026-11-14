@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 1,
+  "template": 2026,
+  "sha256": "1100780ce36cefdc1176f8bca26690b6026adf4e66f9efa49e094ee4c8272c69",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the user asks for the three most upvoted Hacker News posts of all time; the tool returns five top stories (two tied on points)",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "4a6c8e0f2b4d4f6a8c0e2a4c6e8a0c2e",
+          "action": "sendMessage",
+          "chatInput": "What are the 3 most popular posts ever on Hacker News? Give title and points."
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Hacker News",
+      "service": "hackernews",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "http://hn.algolia.com/api/v1/search",
+            "query": {
+              "hitsPerPage": "50"
+            },
+            "status": 200,
+            "body": {
+              "hits": [
+                {
+                  "created_at": "2014-01-01T00:00:00Z",
+                  "title": "Bitcoin: A Peer-to-Peer Electronic Cash System",
+                  "url": "https://bitcoin.org/bitcoin.pdf",
+                  "author": "satoshi_fan",
+                  "points": 5771,
+                  "story_text": null,
+                  "comment_text": null,
+                  "num_comments": 1923,
+                  "story_id": null,
+                  "story_title": null,
+                  "story_url": null,
+                  "parent_id": null,
+                  "created_at_i": 1300000001,
+                  "_tags": [
+                    "story",
+                    "author_satoshi_fan",
+                    "story_1"
+                  ],
+                  "objectID": "1",
+                  "_highlightResult": {
+                    "title": {
+                      "value": "Bitcoin: A Peer-to-Peer Electronic Cash System",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    },
+                    "url": {
+                      "value": "https://bitcoin.org/bitcoin.pdf",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    },
+                    "author": {
+                      "value": "satoshi_fan",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    }
+                  }
+                },
+                {
+                  "created_at": "2018-03-14T04:00:00Z",
+                  "title": "Stephen Hawking has died",
+                  "url": "https://www.bbc.com/news/uk-43396008",
+                  "author": "Cogito",
+                  "points": 6015,
+                  "story_text": null,
+                  "comment_text": null,
+                  "num_comments": 2005,
+                  "story_id": null,
+                  "story_title": null,
+                  "story_url": null,
+                  "parent_id": null,
+                  "created_at_i": 1300000002,
+                  "_tags": [
+                    "story",
+                    "author_Cogito",
+                    "story_2"
+                  ],
+                  "objectID": "2",
+                  "_highlightResult": {
+                    "title": {
+                      "value": "Stephen Hawking has died",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    },
+                    "url": {
+                      "value": "https://www.bbc.com/news/uk-43396008",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    },
+                    "author": {
+                      "value": "Cogito",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    }
+                  }
+                },
+                {
+                  "created_at": "2011-10-05T23:54:00Z",
+                  "title": "Steve Jobs has passed away",
+                  "url": "http://www.apple.com/stevejobs/",
+                  "author": "patricktomas",
+                  "points": 4338,
+                  "story_text": null,
+                  "comment_text": null,
+                  "num_comments": 1446,
+                  "story_id": null,
+                  "story_title": null,
+                  "story_url": null,
+                  "parent_id": null,
+                  "created_at_i": 1300000003,
+                  "_tags": [
+                    "story",
+                    "author_patricktomas",
+                    "story_3"
+                  ],
+                  "objectID": "3",
+                  "_highlightResult": {
+                    "title": {
+                      "value": "Steve Jobs has passed away",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    },
+                    "url": {
+                      "value": "http://www.apple.com/stevejobs/",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    },
+                    "author": {
+                      "value": "patricktomas",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    }
+                  }
+                },
+                {
+                  "created_at": "2016-02-17T08:38:00Z",
+                  "title": "A Message to Our Customers",
+                  "url": "http://www.apple.com/customer-letter/",
+                  "author": "epaga",
+                  "points": 5771,
+                  "story_text": null,
+                  "comment_text": null,
+                  "num_comments": 1923,
+                  "story_id": null,
+                  "story_title": null,
+                  "story_url": null,
+                  "parent_id": null,
+                  "created_at_i": 1300000004,
+                  "_tags": [
+                    "story",
+                    "author_epaga",
+                    "story_4"
+                  ],
+                  "objectID": "4",
+                  "_highlightResult": {
+                    "title": {
+                      "value": "A Message to Our Customers",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    },
+                    "url": {
+                      "value": "http://www.apple.com/customer-letter/",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    },
+                    "author": {
+                      "value": "epaga",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    }
+                  }
+                },
+                {
+                  "created_at": "2012-03-23T11:20:00Z",
+                  "title": "Show HN: This up-votes itself",
+                  "url": "https://news.ycombinator.com/item?id=3742902",
+                  "author": "olalonde",
+                  "points": 3531,
+                  "story_text": null,
+                  "comment_text": null,
+                  "num_comments": 1177,
+                  "story_id": null,
+                  "story_title": null,
+                  "story_url": null,
+                  "parent_id": null,
+                  "created_at_i": 1300000005,
+                  "_tags": [
+                    "story",
+                    "author_olalonde",
+                    "story_5"
+                  ],
+                  "objectID": "5",
+                  "_highlightResult": {
+                    "title": {
+                      "value": "Show HN: This up-votes itself",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    },
+                    "url": {
+                      "value": "https://news.ycombinator.com/item?id=3742902",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    },
+                    "author": {
+                      "value": "olalonde",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    }
+                  }
+                }
+              ],
+              "nbHits": 41800000,
+              "page": 0,
+              "nbPages": 20,
+              "hitsPerPage": 50,
+              "exhaustiveNbHits": false,
+              "query": "",
+              "params": "tags=&hitsPerPage=50",
+              "processingTimeMS": 4
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Hacker News connector; the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "reached through the agent tool hn_tool, which runs this same workflow ($workflow.id) from When Executed by Another Workflow: Hacker News v1 resource all, limit 50: GET http://hn.algolia.com/api/v1/search?tags=&hitsPerPage=50 (plain HTTP); Clean up data keeps title (from _highlightResult), points, url, created_at, author and Stringify returns them as one JSON string"
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: the agent may call hn_tool, whose sub-execution returns the 50 stories as a JSON string",
+      "expected: one hn_tool call"
+    ],
+    "offline": "The agent decides whether to call hn_tool (model-driven); the sub-execution it starts is this workflow from When Executed by Another Workflow. No memory is attached"
+  }
+}
