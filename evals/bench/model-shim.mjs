@@ -143,6 +143,44 @@ function writeCache(c) {
   renameSync(`${CACHE}.tmp`, CACHE);
 }
 
+// PROPOSALS P13: the stand-in sometimes writes its answer envelope itself as the reply text
+// (`{"type":"text","text":"..."}` inside `text`), so the reply n8n received was the envelope.
+// envelopeOf() tells whether a text is exactly such an envelope (the whole text one JSON
+// object with only the envelope's keys and a valid `type`); modelAnswer() unwraps it, again
+// while it nests, and never asks the model again (a re-draw chosen by n8n's reaction would
+// select baselines). A `text` that is an object or array (the answer schema wants a string) is
+// kept as its JSON text, not "[object Object]".
+const ENVELOPE_KEYS = new Set(["type", "text", "calls"]);
+const plain = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+export function envelopeOf(text) {
+  if (typeof text !== "string") return null;
+  const t = text.trim();
+  if (!t.startsWith("{") || !t.endsWith("}")) return null;
+  let v;
+  try {
+    v = JSON.parse(t);
+  } catch {
+    return null;
+  }
+  if (!plain(v) || !Object.keys(v).every((k) => ENVELOPE_KEYS.has(k))) return null;
+  if (v.type === "text" && v.text !== undefined && v.text !== null && (!("calls" in v) || (Array.isArray(v.calls) && !v.calls.length))) return v;
+  if (v.type === "tool_use" && Array.isArray(v.calls) && v.calls.length && v.calls.every((c) => plain(c) && typeof c.name === "string")) return v;
+  return null;
+}
+
+const textValue = (t) => (t === undefined || t === null ? "" : typeof t === "string" ? t : JSON.stringify(t));
+
+// The neutral answer for what the stand-in returned ({type, text?, calls?}).
+export function modelAnswer(a) {
+  for (let k = 0; k < 20 && a && a.type !== "tool_use"; k++) {
+    const e = envelopeOf(a.text);
+    if (!e) break;
+    a = e;
+  }
+  if (a?.type === "tool_use" && a.calls?.length) return { calls: a.calls.map((c) => ({ name: c.name, input: c.input ?? {} })) };
+  return { text: textValue(a?.text) };
+}
+
 // Returns {answer: {text} | {calls: [{name, input}]}, mode: live|cached, costUsd, ms}.
 // memoryChecked: a live n8n recording checked memory once before it started (PROPOSALS P12),
 // so its model calls do not wait on the per-call gate (n8n would abort the request).
@@ -151,12 +189,13 @@ export async function liveAnswer(norm, { noCache = false, purpose = "model-shim"
   const key = sha(`${model}\n${prompt}`);
   if (!noCache) {
     const hit = readCache()[key];
-    if (hit) return { answer: hit.answer, mode: "cached", costUsd: 0, ms: 0, key };
+    // Cached before P13: the same unwrap applies to the stored draw.
+    if (hit) return { answer: modelAnswer(hit.answer.calls?.length ? { type: "tool_use", calls: hit.answer.calls } : { type: "text", text: hit.answer.text }), mode: "cached", costUsd: 0, ms: 0, key };
   }
   const r = await claudeP({ prompt, model, purpose, args: ["--system-prompt", SYSTEM, "--tools", "", "--json-schema", JSON.stringify(ANSWER_SCHEMA), "--disable-slash-commands", "--setting-sources", "project"], budgetUsd: 0.5, timeoutMs: 300_000, memoryChecked });
   let a = r.json?.structured_output ?? safeParse(r.text);
   if (!a || typeof a !== "object" || !a.type) a = { type: "text", text: r.text };
-  const answer = a.type === "tool_use" && a.calls?.length ? { calls: a.calls.map((c) => ({ name: c.name, input: c.input ?? {} })) } : { text: String(a.text ?? "") };
+  const answer = modelAnswer(a);
   const c = readCache();
   c[key] = { answer, t: new Date().toISOString(), model };
   writeCache(c);

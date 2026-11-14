@@ -156,3 +156,22 @@ test("P14: a bench claude -p carries no prompt in argv, and the prompt reaches s
   await new Promise((ok) => child.on("exit", ok));
   assert.equal(Buffer.from(out, "hex").toString("utf8"), prompt);
 });
+
+test("P13: the stand-in's answer envelope written as the reply text is unwrapped, nested too; other JSON stays", async () => {
+  const { envelopeOf, modelAnswer } = await import("../evals/bench/model-shim.mjs");
+  const env = (text) => JSON.stringify({ type: "text", text });
+  assert.deepEqual(modelAnswer({ type: "text", text: "plain" }), { text: "plain" });
+  assert.deepEqual(modelAnswer({ type: "text", text: env("Mercredi : un seul événement.") }), { text: "Mercredi : un seul événement." });
+  assert.deepEqual(modelAnswer({ type: "text", text: `  ${env(env('{"needsReply":true}'))}\n` }), { text: '{"needsReply":true}' }, "repeated while it nests; the inner JSON reply stays text");
+  assert.deepEqual(modelAnswer({ type: "text", text: JSON.stringify({ type: "tool_use", calls: [{ name: "Get_News", input: { URL: "u" } }] }) }), { calls: [{ name: "Get_News", input: { URL: "u" } }] });
+  assert.deepEqual(modelAnswer({ type: "tool_use", calls: [{ name: "t" }] }), { calls: [{ name: "t", input: {} }] });
+  // Not the envelope: other keys, another type, JSON inside prose, a fenced block, a JSON reply that only looks alike.
+  for (const t of [JSON.stringify({ type: "text", text: "x", extra: 1 }), JSON.stringify({ type: "message", text: "x" }), `Here: ${env("x")}`, "```json\n" + env("x") + "\n```", '{"text":"x"}', '{"type":"text"}'])
+    assert.deepEqual(modelAnswer({ type: "text", text: t }), { text: t }, t);
+  assert.equal(envelopeOf(env("x")).text, "x");
+  assert.equal(envelopeOf("not json"), null);
+  // A text that is an object (the answer schema wants a string) is its JSON text.
+  assert.deepEqual(modelAnswer({ type: "text", text: { __structured__output: { needsReply: true } } }), { text: '{"__structured__output":{"needsReply":true}}' });
+  assert.deepEqual(modelAnswer({ type: "text", text: JSON.stringify({ type: "text", text: { a: 1 } }) }), { text: '{"a":1}' });
+  assert.deepEqual(modelAnswer({ type: "text" }), { text: "" });
+});
