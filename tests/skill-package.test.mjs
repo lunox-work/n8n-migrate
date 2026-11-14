@@ -28,3 +28,22 @@ test("scripts run when the skill folder is reached through a symlink (skills ins
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("skill.mjs check: the repository passes (manifests, links, sizes, frontmatter, scanner wording)", () => {
+  const r = run([join(ROOT, "scripts/skill.mjs"), "check"]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /skills: n8n-to-claude \d+\.\d+\.\d+ ok/);
+});
+
+test("skill.mjs scanner wording: a line starting with pass, and fetch/eval beside a module loaded from a URL", async () => {
+  const { scannerWording, frontmatter } = await import("../scripts/skill.mjs");
+  assert.equal(scannerWording("the check\npasses when it builds\n", "a.md").length, 1);
+  assert.equal(scannerWording("- pass: nothing sent\n", "a.md").length, 1);
+  assert.equal(scannerWording("the check passing means\nit builds; bypass is refused\n", "a.md").length, 0);
+  assert.equal(scannerWording("a reach: `fetch`, `eval`,\na module loaded from a URL\n", "a.md").length, 1);
+  assert.equal(scannerWording("a reach: `fetch`.\n\nA module loaded from a URL.\n", "a.md").length, 0);
+  const fm = frontmatter("---\nname: x\ndescription: >\n  one\n  two\n---\nbody\n");
+  assert.equal(fm.fields.description, "one two");
+  assert.equal(fm.indicator.description, ">");
+  assert.equal(fm.multiline.description, true);
+});

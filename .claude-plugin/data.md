@@ -1,0 +1,19 @@
+- **Sent off the machine by the skill:** nothing of its own. The analyzer and
+  the converter make no network call and call no model. There is no telemetry
+  and nothing reaches the author.
+- **When a converted workflow runs:** it reaches the services the n8n workflow
+  already used, through the person's connectors or the workflow's own HTTP
+  requests, limited to the tools and hosts its definition allows. Connector
+  results and model-step inputs pass through the person's own Claude session.
+- **n8n:** the cutover steps call the person's n8n instance through its public
+  API only when `N8N_BASE_URL` and `N8N_API_KEY` are set in the environment;
+  otherwise they print the steps to do by hand.
+- **Secrets:** read by credential name only. The skill never asks for, prints
+  or copies a value; inline keys in an export are redacted before anything is
+  written. The person stores each secret (a cloud task's network secret, or
+  `N2C_SECRET_<NAME>` in a git-ignored local settings file).
+- **Personal data:** exports can carry the owner's name and email; the report
+  never repeats them.
+- **Retention:** run records, cursors and the effect ledger stay in the
+  workflow's folder (`.n2c/`), on a branch of the person's own repository
+  (`n2c-state`), or in the artifact's database the person publishes.

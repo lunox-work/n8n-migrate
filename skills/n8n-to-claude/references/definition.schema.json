@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/lunox-work/n8n-to-claude/skills/n8n-to-claude/references/definition.schema.json",
+  "$id": "urn:n8n-to-claude:definition.schema.json",
   "title": "n8n-to-claude workflow definition",
   "description": "One neutral file per migrated workflow, read by the runner (runtime/dist/runner-core.mjs) in both drivers. Steps keep the n8n parameters verbatim; the runner evaluates n8n expressions natively. Secrets are names only.",
   "type": "object",

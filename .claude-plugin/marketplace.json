@@ -1,0 +1,20 @@
+{
+  "name": "n8n-to-claude",
+  "owner": {
+    "name": "lunox-work",
+    "url": "https://github.com/lunox-work"
+  },
+  "metadata": {
+    "description": "n8n-to-claude: move n8n workflows onto Claude, with a fit report for every workflow and a cutover that turns n8n off before Claude goes on."
+  },
+  "plugins": [
+    {
+      "name": "n8n-to-claude",
+      "source": "./",
+      "description": "Classify every n8n workflow in an export with the reason, convert the ones that fit into folders Claude runs as scheduled tasks, skills or artifact forms, and cut over without both systems sending.",
+      "version": "0.1.0",
+      "category": "productivity",
+      "license": "MIT"
+    }
+  ]
+}
