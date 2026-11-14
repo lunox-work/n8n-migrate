@@ -12,7 +12,8 @@
 //   - replay hook: a PreToolUse hook on Write replaces the model's answer for a model or agent
 //     request (.n2c/inbox/<q>.txt) with n8n's recorded reply for the same model node and call
 //     index (the session still writes and submits it). A miss leaves the model's own answer and
-//     is marked live.
+//     is marked live. The hook keeps each replayed request and its time (replayLog), so the
+//     bench checks the question and each agent turn's tools as in process (PROPOSALS P16).
 //   - http steps (PROPOSALS P5): the task driver executes them itself with fetch. The bench
 //     starts a host mock-server.mjs with the fixture's http routes (the routes the in-process
 //     driver answers from) and preloads http-preload.mjs into the session's node processes,
@@ -160,13 +161,16 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   const effects = existsSync(effectsLog) ? readFileSync(effectsLog, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
   const events = existsSync(join(n2c, "events.jsonl")) ? readFileSync(join(n2c, "events.jsonl"), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
   const replays = readJson(join(runDir, "replay-state.json"), { log: [] }).log;
+  // PROPOSALS P16: what each replayed request asked, for the model-input and tool-turn checks.
+  const replayLog = replays.filter((x) => !x.repeat).map(({ id, key, index, mode, t, req }) => ({ id, key, index, mode, t, req }));
   // The runner's http requests as the mock logged them, in the runner's request shape.
   if (httpMock) await new Promise((ok) => httpMock.close(ok));
   const httpCalls = httpMock && existsSync(httpLog) ? readFileSync(httpLog, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
-  const httpEffects = httpCalls.map((e) => ({ method: e.method, url: e.method === "CONNECT" ? `https://${e.path}/` : `${e.proxied ?? "http://127.0.0.1"}${e.path}${e.rawQuery ? "?" + e.rawQuery : ""}`, query: {}, body: e.body, bodyEncoding: e.bodyEncoding, contentType: e.headers?.["content-type"] ?? null, fixture: e.fixture }));
+  const httpEffects = httpCalls.map((e) => ({ t: e.t, method: e.method, url: e.method === "CONNECT" ? `https://${e.path}/` : `${e.proxied ?? "http://127.0.0.1"}${e.path}${e.rawQuery ? "?" + e.rawQuery : ""}`, query: {}, body: e.body, bodyEncoding: e.bodyEncoding, contentType: e.headers?.["content-type"] ?? null, fixture: e.fixture }));
   return {
     run: state ? { status: state.status, output: state.result?.output ?? [], error: state.result?.error ?? null } : null,
-    effects: [...effects.filter((e) => e.valid).map((e) => ({ connector: e.connector, tool: e.tool, args: e.args })), ...httpEffects],
+    effects: [...effects.filter((e) => e.valid).map((e) => ({ t: e.t, connector: e.connector, tool: e.tool, args: e.args })), ...httpEffects],
+    replayLog,
     invalidCalls: effects.filter((e) => !e.valid).map((e) => `${e.connector}.${e.tool}: ${e.error}`),
     allow: def.allow,
     metrics: { wallMs, turns: r.num_turns ?? null, costUsd: r.total_cost_usd ?? null, usage: r.usage ? { in: r.usage.input_tokens, out: r.usage.output_tokens, cacheRead: r.usage.cache_read_input_tokens } : null },

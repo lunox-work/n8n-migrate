@@ -6,7 +6,8 @@
 //
 //   node replay-hook.mjs <recordings.json>   (stdin: the hook input; stdout: the hook output)
 // recordings.json: {recordings: [{node, index, format, response}], workflow, folder}.
-// Its state (request id -> call index) is kept next to it in replay-state.json.
+// Its state (request id -> call index, and a log of each replayed request with its time,
+// PROPOSALS P16) is kept next to it in replay-state.json.
 
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join, basename } from "node:path";
@@ -46,7 +47,11 @@ function handle(h) {
   }
   const index = st.ids[reqId];
   const rec = recordings.filter((r) => r.node === key)[index];
-  st.log.push({ id: reqId, key, index, mode: rec ? "replay" : "live" });
+  // PROPOSALS P16: the request this reply answers and when, so the bench can check the
+  // question (sameModelInput) and an agent turn's tools (sameToolTurn) as it does in process.
+  // A second write of the same answer is marked, and only the first counts.
+  const repeat = st.log.some((e) => e.id === reqId);
+  st.log.push({ id: reqId, key, index, mode: rec ? "replay" : "live", t: new Date().toISOString(), ...(repeat ? { repeat: true } : { req }) });
   writeFileSync(stateFile, JSON.stringify(st));
   if (!rec) return null;
   const v = runnerValue(req, answerOf(rec.format, rec.response));

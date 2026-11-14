@@ -18,7 +18,10 @@
 //                from the item's binary by label). Form triggers only; carries uploads, and
 //                Form ending nodes keep their trigger (the run then stops in "waiting" at the
 //                ending page, as n8n leaves it until the person's browser loads it); gives
-//                `response`.
+//                `response`. Form node pages after the trigger are answered from `formPages`
+//                (runWorkflow option) at n8n's form-waiting URL, as a browser submits them.
+// Every mode awaits the executions the run starts (sub-workflows, by parent execution id)
+// before the mock log is read (`children`).
 //
 // Trigger input (--trigger): a list of items ([{...}] or [{json: {...}}]), {items: [...]},
 // or for a webhook {request: {method, path, headers, query, body}}. Without one: manual
@@ -238,7 +241,11 @@ export function summariseRunData(runData = {}) {
 
 // pinTrigger false (pin mode): the trigger is not pinned, so a poll trigger polls once in manual
 // mode through the mock (binary data, such as Gmail attachments, cannot be pinned).
-export async function runWorkflow(workflow, { trigger, mock, credentials = {}, via = "pin", triggerNode, keepPin = false, keep = false, stats = false, timeoutS = 120, now = "2026-11-16T09:00:00Z", pinTrigger = true, activate = false } = {}) {
+// formPages (PROPOSALS P20, --via form): the Form node pages n8n serves after the trigger's
+// submission, answered in order. children: executions the run starts (sub-workflow calls,
+// waitForSubWorkflow false included) are awaited by parent execution id before the mock log is
+// read, so their requests are in `effects`; their statuses are in `children`.
+export async function runWorkflow(workflow, { trigger, mock, credentials = {}, via = "pin", triggerNode, keepPin = false, keep = false, stats = false, timeoutS = 120, now = "2026-11-16T09:00:00Z", pinTrigger = true, activate = false, formPages = [] } = {}) {
   await waitHealthy(30_000);
   const wf = structuredClone(workflow);
   const t = pickTrigger(wf, triggerNode);
@@ -285,7 +292,7 @@ export async function runWorkflow(workflow, { trigger, mock, credentials = {}, v
   setMock(mock);
   const res = await rest("POST", "/workflows", body);
   const wid = res.id;
-  let ex, response, cli, wallMs, peakMiB;
+  let ex, response, cli, wallMs, peakMiB, children = [];
   const sampler = stats ? statsSampler() : null;
   const t0 = Date.now();
   try {
@@ -302,8 +309,9 @@ export async function runWorkflow(workflow, { trigger, mock, credentials = {}, v
         ex = await latestExecution(wid, timeoutS * 1000);
       } else if (via === "form") {
         await rest("POST", `/workflows/${wid}/activate`, { versionId: res.versionId });
-        response = await submitForm(t, items[0] ?? { json: {} }, timeoutS);
-        ex = await latestExecution(wid, timeoutS * 1000);
+        response = await submitForm(t, items[0] ?? { json: {} }, timeoutS, { pages: formPages, wf });
+        // The execution the submission started (the form-waiting URL names it), never a child.
+        ex = response.executionId ? await waitExecution(response.executionId, timeoutS * 1000) : await latestExecution(wid, timeoutS * 1000);
       } else {
         await rest("POST", `/workflows/${wid}/activate`, { versionId: res.versionId });
         response = await callWebhook(t, trigger?.request ?? {}, timeoutS);
@@ -313,6 +321,8 @@ export async function runWorkflow(workflow, { trigger, mock, credentials = {}, v
       wallMs = Date.now() - t0;
       peakMiB = sampler?.stop();
     }
+    // wallMs is the run's own; the children's wait comes after it.
+    children = await awaitChildren(wid, ex.id, Math.max(5000, timeoutS * 1000 - wallMs));
     const data = typeof ex.data === "string" ? parseFlatted(ex.data) : ex.data;
     const resultData = data?.resultData ?? {};
     return {
@@ -331,6 +341,7 @@ export async function runWorkflow(workflow, { trigger, mock, credentials = {}, v
       lastNode: resultData.lastNodeExecuted ?? null,
       nodes: summariseRunData(resultData.runData),
       effects: readEffects(),
+      ...(children.length ? { children: children.map(({ id, status, mode, error, nodes }) => ({ id, status, mode, ...(error ? { error } : {}), nodes })) } : {}),
       ...(response ? { response } : {}),
       ...(cli ? { cli: { status: cli.status, ms: cli.ms } } : {}),
       credentials: { created: created.map(({ name, type }) => ({ name, type })), missing },
@@ -339,7 +350,7 @@ export async function runWorkflow(workflow, { trigger, mock, credentials = {}, v
   } finally {
     if (!keep) {
       if (via === "webhook" || via === "form" || activate) await rest("POST", `/workflows/${wid}/deactivate`, {}).catch(() => {});
-      if (ex) await rest("POST", "/executions/delete", { ids: [ex.id] }).catch(() => {});
+      if (ex) await rest("POST", "/executions/delete", { ids: [ex.id, ...children.map((c) => c.id)] }).catch(() => {});
       await rest("POST", `/workflows/${wid}/archive`, {}).catch(() => {});
       await rest("DELETE", `/workflows/${wid}`).catch(() => {});
       for (const c of created) await rest("DELETE", `/credentials/${c.id}`).catch(() => {});
@@ -366,9 +377,28 @@ export function formBody(t, item) {
   return fd;
 }
 
-async function submitForm(t, item, timeoutS) {
+// The multipart body for one Form node page (PROPOSALS P20): `fields` by label (the page node's
+// formFields, as for the trigger) or a list by position (a page whose fields are defined at run
+// time, e.g. from a model's output), each as field-<index>.
+export function formPageBody(node, fields) {
+  if (Array.isArray(fields)) {
+    const fd = new FormData();
+    fields.forEach((v, i) => {
+      if (v === undefined || v === null) return;
+      for (const x of [].concat(v)) fd.append(`field-${i}`, typeof x === "string" ? x : JSON.stringify(x));
+    });
+    return fd;
+  }
+  return formBody(node ?? { parameters: {} }, { json: fields ?? {} });
+}
+
+// The execution id in n8n's form-waiting URL (<base>/form-waiting/<id>?signature=...).
+export const waitingExecutionId = (url) => /\/form-waiting\/([^/?#]+)/.exec(String(url ?? ""))?.[1] ?? null;
+
+async function submitForm(t, item, timeoutS, { pages = [], wf = null } = {}) {
   const path = t.parameters?.path || t.webhookId;
   const t0 = Date.now();
+  let first;
   for (;;) {
     const r = await fetch(`${BASE}/form/${path}`, { method: "POST", body: formBody(t, item), signal: AbortSignal.timeout(timeoutS * 1000) });
     const text = await r.text();
@@ -378,8 +408,82 @@ async function submitForm(t, item, timeoutS) {
       await sleep(250);
       continue;
     }
-    return { status: r.status, headers: Object.fromEntries(r.headers), body: text.slice(0, 4000) };
+    first = { status: r.status, headers: Object.fromEntries(r.headers), body: text.slice(0, 4000) };
+    break;
   }
+  // A trigger followed by Form nodes answers {formWaitingUrl} (n8n's formPage response mode);
+  // the browser then waits until the execution waits for a form and submits each page there.
+  let waitingUrl = null;
+  try {
+    waitingUrl = JSON.parse(first.body).formWaitingUrl ?? null;
+  } catch {}
+  const executionId = waitingExecutionId(waitingUrl);
+  const submitted = [];
+  for (const [k, page] of pages.entries()) {
+    if (!waitingUrl) {
+      submitted.push({ page: k, node: page.node ?? null, skipped: "n8n served no form page" });
+      continue;
+    }
+    const u = new URL(waitingUrl);
+    const statusUrl = `${u.origin}${u.pathname.replace(/\/$/, "")}/n8n-execution-status${u.search}`;
+    let status = "";
+    for (const t1 = Date.now(); Date.now() - t1 < timeoutS * 1000; await sleep(250)) {
+      status = await fetch(statusUrl).then((x) => x.text()).catch((e) => `error: ${e.message}`);
+      if (status === "form-waiting" || ["success", "error", "canceled", "crashed"].includes(status)) break;
+    }
+    if (status !== "form-waiting") {
+      submitted.push({ page: k, node: page.node ?? null, skipped: `execution ${status || "not waiting"}` });
+      waitingUrl = null;
+      continue;
+    }
+    const node = page.node ? wf?.nodes?.find((n) => n.name === page.node) : null;
+    const r = await fetch(waitingUrl, { method: "POST", body: formPageBody(node, page.fields), signal: AbortSignal.timeout(timeoutS * 1000) });
+    const text = await r.text();
+    submitted.push({ page: k, node: page.node ?? null, status: r.status });
+    try {
+      waitingUrl = JSON.parse(text).formWaitingUrl ?? waitingUrl;
+    } catch {}
+  }
+  return { ...first, ...(executionId ? { executionId } : {}), ...(pages.length ? { pages: submitted } : {}) };
+}
+
+// Executions started by `parentId` (n8n keeps the parent in the child's run data,
+// parentExecution.executionId), and theirs in turn, each awaited until it ends. A sub-workflow
+// started without waiting may begin after its parent ended, so the list is read again until it
+// stays the same for two seconds.
+async function awaitChildren(workflowId, parentId, timeoutMs) {
+  const t0 = Date.now();
+  const parents = new Set([String(parentId)]);
+  const known = new Map();
+  let stableSince = Date.now();
+  while (Date.now() - t0 < timeoutMs) {
+    const list = await rest("GET", `/executions?filter=${encodeURIComponent(JSON.stringify({ workflowId }))}&limit=50`).catch(() => ({ results: [] }));
+    let grew = false;
+    for (const e of list.results ?? list ?? []) {
+      const id = String(e.id);
+      if (parents.has(id) || known.has(id)) continue;
+      const full = await rest("GET", `/executions/${id}`).catch(() => null);
+      const data = full && (typeof full.data === "string" ? parseFlatted(full.data) : full.data);
+      const parent = data?.parentExecution?.executionId;
+      if (parent === undefined || !parents.has(String(parent))) continue;
+      known.set(id, null);
+      parents.add(id);
+      grew = true;
+    }
+    if (grew) stableSince = Date.now();
+    const open = [...known.keys()].filter((id) => !known.get(id));
+    for (const id of open) {
+      const done = await waitExecution(id, Math.max(1000, timeoutMs - (Date.now() - t0))).catch((err) => ({ id, status: "timeout", error: err.message }));
+      known.set(id, done);
+    }
+    if (!grew && Date.now() - stableSince >= 2000) break;
+    await sleep(500);
+  }
+  return [...known.entries()].map(([id, ex]) => {
+    const data = ex && (typeof ex.data === "string" ? parseFlatted(ex.data) : ex.data);
+    const rd = data?.resultData ?? {};
+    return { id, status: ex?.status ?? "unknown", mode: ex?.mode, ...(rd.error ? { error: { message: rd.error.message, node: rd.error.node?.name ?? null } } : ex?.error ? { error: { message: ex.error } } : {}), nodes: summariseRunData(rd.runData) };
+  });
 }
 
 // Sends the trigger request to the production webhook URL. Retries while n8n

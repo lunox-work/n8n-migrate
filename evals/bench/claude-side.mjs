@@ -175,7 +175,47 @@ export function sameModelInput(n8nCall, claudeReq, runTime = null) {
 //     seq, or a tool's n8n side was not served over http (a pin makes no read to key).
 
 const toolNorm = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
-const n8nToolFailed = (r) => !!r && (!String(r.text ?? "").trim() || /^\s*"?(error\b|there was an error)/i.test(String(r.text)));
+const n8nToolFailed = (r) => !!r && (r.isError || !String(r.result ?? r.text ?? "").trim() || /^\s*"?(error\b|there was an error)/i.test(String(r.result ?? r.text)));
+
+// ---------- fed-back tool values (PROPOSALS P17) ----------
+//
+// What n8n fed back for a tool call is the provider's tool message: the content text for
+// OpenAI, Anthropic and Ollama, functionResponse.response.result for Gemini (model-shim.mjs
+// normalize() keeps it as `result`). n8n 2.47.7 builds that text per tool kind: a node used as
+// a tool returns JSON.stringify of its output items' json, always a list
+// (n8n-core makeHandleToolInvocation/mapResult); the Workflow tool v2 the items' json list
+// (pretty-printed) or a string; the Code tool and the legacy HTTP Request tool their own
+// string. The Claude side's value is the runtime's transcript result. Both are read as JSON
+// when they parse; a list of one item and that item count as the same value (the runtime hands
+// a single item where n8n always sends a list: reported as `shape`, not gated); otherwise the
+// squashed texts are compared. Run-time timestamps are masked first when the values differ.
+const parseMaybe = (v) => {
+  if (typeof v !== "string") return { json: true, value: v };
+  try {
+    return { json: true, value: JSON.parse(v) };
+  } catch {
+    return { json: false, value: v };
+  }
+};
+const unwrapOne = (v) => (Array.isArray(v) && v.length === 1 ? v[0] : v);
+const canon = (v) => (v === undefined ? "null" : JSON.stringify(v, (k, x) => (x && typeof x === "object" && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map((key) => [key, x[key]])) : x)));
+export function sameToolValue(n8nMsg, claudeValue, runTime = null) {
+  const n = parseMaybe(n8nMsg?.result !== undefined ? n8nMsg.result : n8nMsg?.text);
+  const c = parseMaybe(claudeValue);
+  let a, b;
+  if (n.json && c.json) {
+    a = canon(unwrapOne(n.value));
+    b = canon(unwrapOne(c.value));
+  } else {
+    const txt = (x) => squash(typeof x.value === "string" ? x.value : JSON.stringify(x.value));
+    a = txt(n);
+    b = txt(c);
+  }
+  const shape = n.json && c.json && Array.isArray(n.value) !== Array.isArray(c.value);
+  if (a === b) return { same: true, ...(shape ? { shape: "n8n sends a list of one item, the runtime the item" } : {}) };
+  if (runTime && maskRunTime(a, runTime) === maskRunTime(b, runTime)) return { same: true, runTimeMasked: true };
+  return { same: false, n8n: a.slice(0, 300), claude: b.slice(0, 300) };
+}
 
 // Read keys of Claude-side calls ({tools: [...], http: [...]} as seen by the in-process host).
 export function claudeReadKeys(tools = [], http = []) {
@@ -187,7 +227,7 @@ export function claudeReadKeys(tools = [], http = []) {
 // effects; n8nSources: its read sources by node; claudeTurn: {calls, results, reads} (the
 // Claude transcript's last turn and the read keys its tool calls made). Returns null when
 // n8n's reply asked for no tool, else {same, cause?, detail?, reads?}.
-export function sameToolTurn({ n8nPrev, n8nCall, n8nEffects = [], n8nSources = {}, claudeTurn }) {
+export function sameToolTurn({ n8nPrev, n8nCall, n8nEffects = [], n8nSources = {}, claudeTurn, runTime = null }) {
   if (!n8nPrev || !n8nCall || !claudeTurn) return null;
   const asked = answerOf(n8nPrev.format, n8nPrev.response).calls ?? [];
   if (!asked.length) return null;
@@ -212,15 +252,70 @@ export function sameToolTurn({ n8nPrev, n8nCall, n8nEffects = [], n8nSources = {
     if (r?.ok === false && !n8nToolFailed(n8nResultFor(j))) notRun.push({ tool: a.name, claude: String(r.error?.message ?? "error").slice(0, 200) });
   });
   if (notRun.length) return { same: false, cause: "tool call not executed", detail: notRun };
-  if (n8nPrev.seq == null || n8nCall.seq == null) return { same: true, reads: "unchecked: the recording has no model call order" };
+  // P17: each fed-back value against n8n's tool message for the same call (both sides ran it).
+  const valueDiffs = [];
+  const shapes = [];
+  const used2 = new Set();
+  asked.forEach((a, j) => {
+    const ci = calls.findIndex((c, x) => !used2.has(x) && toolNorm(c?.name) === toolNorm(a.name));
+    used2.add(ci);
+    const r = results[ci];
+    const nm = n8nResultFor(j);
+    if (!nm || n8nToolFailed(nm) || r?.ok === false) return;
+    const v = sameToolValue(nm, r?.value, runTime);
+    if (!v.same) valueDiffs.push({ tool: a.name, n8n: v.n8n, claude: v.claude });
+    else if (v.shape) shapes.push(a.name);
+  });
+  if (valueDiffs.length) return { same: false, cause: "different tool result", detail: { tools: asked.map((a) => a.name), values: valueDiffs } };
+  const valuesNote = { values: asked.length, ...(shapes.length ? { shape: `single item vs list: ${shapes.join(", ")}` } : {}) };
+  if (n8nPrev.seq == null || n8nCall.seq == null) return { same: true, ...valuesNote, reads: "unchecked: the recording has no model call order" };
   const notHttp = asked.map((a) => Object.keys(n8nSources).find((node) => toolNorm(node) === toolNorm(a.name))).filter((node) => node && !String(n8nSources[node]).startsWith("http"));
-  if (notHttp.length) return { same: true, reads: `unchecked: n8n's ${notHttp.join(", ")} not served over http` };
+  if (notHttp.length) return { same: true, ...valuesNote, reads: `unchecked: n8n's ${notHttp.join(", ")} not served over http` };
   const nKeys = [...new Set(n8nEffects.filter((e) => e.seq > n8nPrev.seq && e.seq < n8nCall.seq && e.method !== "CONNECT").map((e) => fromHttp(e, "n8n")).filter((e) => e && e.effect === "read").map(keyOf))];
   const cKeys = claudeTurn.reads ?? [];
   const onlyN8n = nKeys.filter((k) => !cKeys.includes(k));
   const onlyClaude = cKeys.filter((k) => !nKeys.includes(k));
   if (onlyN8n.length || onlyClaude.length) return { same: false, cause: "different tool result", detail: { tools: asked.map((a) => a.name), onlyN8n, onlyClaude } };
-  return { same: true, reads: nKeys.length };
+  return { same: true, ...valuesNote, reads: nKeys.length };
+}
+
+// ---------- the claude driver's replayed requests (PROPOSALS P16) ----------
+//
+// The claude driver's replay hook keeps each replayed request with the time its answer was
+// written (replayLog: [{id, key, index, mode, t, req}]). Each replayed one is checked as the
+// in-process driver checks it: sameModelInput against n8n's recorded request for the same model
+// node and call index, and, for an agent turn after a tool call, sameToolTurn with the turn's
+// reads taken from the driver's effects (MCP mock log and host http log, both timed) between
+// the previous agent turn's answer and this one's. Returns modelInputs in gate4's shape.
+export function claudeDriverModelInputs({ replayLog = [], effects = [], recordings = [], n8nEffects = [], n8nSources = {}, runTime = null }) {
+  const byKey = {};
+  for (const c of recordings) (byKey[c.node] ??= [])[c.index] = c;
+  const lastTurn = new Map();
+  const out = [];
+  const seen = new Set();
+  for (const e of replayLog) {
+    if (!e.req || seen.has(e.id)) continue;
+    seen.add(e.id);
+    const step = String(e.id).split("#")[0];
+    let claudeTurn = null;
+    if (e.req.kind === "agent") {
+      const mk = `${step}\u0000${e.req.itemIndex ?? 0}`;
+      const prev = lastTurn.get(mk);
+      if (e.req.transcript?.length && prev) {
+        const between = (x) => x.t && x.t > prev && x.t <= e.t;
+        claudeTurn = { ...e.req.transcript.at(-1), reads: claudeReadKeys(effects.filter((x) => x.connector && between(x)), effects.filter((x) => x.url && between(x))) };
+      }
+      lastTurn.set(mk, e.t);
+    }
+    if (e.mode !== "replay") continue;
+    const rec = byKey[e.key]?.[e.index];
+    if (!rec) continue;
+    const m = { step, key: e.key, index: e.index, kind: e.req.kind, mode: "replay", input: sameModelInput(rec, e.req, runTime) };
+    const tools = claudeTurn && sameToolTurn({ n8nPrev: byKey[e.key]?.[e.index - 1], n8nCall: rec, n8nEffects, n8nSources, claudeTurn, runTime });
+    if (tools) m.tools = tools;
+    out.push(m);
+  }
+  return out;
 }
 
 // Runs a definition with every request answered by the bench. Returns the run result and what
@@ -297,7 +392,10 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
         entry.fixture = "write-default";
         return { status: 200, headers: { "content-type": "application/json" }, body: "{}" };
       }
-      if (!r) return { status: 404, headers: { "content-type": "application/json" }, body: JSON.stringify({ error: "no fixture" }) };
+      if (!r) {
+        entry.fixture = "read-default"; // PROPOSALS P19, as the mock logs it
+        return { status: 404, headers: { "content-type": "application/json" }, body: JSON.stringify({ error: "no fixture" }) };
+      }
       const f = r.f;
       if (f.bodyBase64 !== undefined) return { status: f.status ?? 200, headers: { "content-type": "application/octet-stream", ...(f.headers ?? {}) }, body: Buffer.from(f.bodyBase64, "base64").toString("latin1") };
       const isText = typeof f.body === "string";
@@ -325,7 +423,7 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
     if (mode === "replay" && rec) {
       entry.mode = "replay";
       entry.input = sameModelInput(rec, req, runTime);
-      const tools = claudeTurn && sameToolTurn({ n8nPrev: byKey[key]?.[i - 1], n8nCall: rec, n8nEffects, n8nSources, claudeTurn });
+      const tools = claudeTurn && sameToolTurn({ n8nPrev: byKey[key]?.[i - 1], n8nCall: rec, n8nEffects, n8nSources, claudeTurn, runTime });
       if (tools) entry.tools = tools;
       return runnerValue(req, answerOf(rec.format, rec.response));
     }

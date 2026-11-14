@@ -174,6 +174,28 @@
           "description": "what the trigger node emits: the pinned output on the n8n side, the runner's trigger items on the Claude side",
           "$ref": "#/$defs/items"
         },
+        "formPages": {
+          "description": "form only (PROPOSALS P20): the Form node pages n8n serves after the trigger's submission, answered in order (--via form submits each when n8n waits for it). `node`: the Form node of that page; `fields`: answers by field label, or a list by position for a page whose fields are defined at run time",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "fields"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "node": {
+                "type": "string"
+              },
+              "fields": {
+                "type": [
+                  "object",
+                  "array"
+                ]
+              }
+            }
+          }
+        },
         "request": {
           "description": "webhook only: the raw HTTP request, for --via webhook",
           "type": "object",
@@ -223,6 +245,10 @@
           "description": "the real service URL without query (scheme, host, path). Same method + url replies in turn; the last repeats",
           "type": "string",
           "pattern": "^https?://[^?#]+$"
+        },
+        "any": {
+          "description": "reads only (PROPOSALS P19): this response answers every path on the url's origin (scheme and host), for a page or image the model chooses; a response for the exact path wins over it. Without it, a read no response matches gets 404 {\"error\":\"no fixture\"}, logged read-default",
+          "type": "boolean"
         },
         "query": {
           "description": "when present, this response answers only requests whose query carries these parameters (values compared as strings); without it, any query",
@@ -439,6 +465,10 @@
         },
         "offline": {
           "description": "what this fixture cannot make realistic offline",
+          "type": "string"
+        },
+        "n8nCannotRun": {
+          "description": "PROPOSALS P21: why the bench's n8n image cannot run this template's main path (a Code node language without a runner in evals/n8n/container.mjs, a node the image lacks), in a short sentence. summary.mjs reports these templates apart, like connector-limited ones",
           "type": "string"
         }
       }

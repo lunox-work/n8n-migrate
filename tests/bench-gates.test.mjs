@@ -193,7 +193,7 @@ test("P15: a replayed agent turn after a tool call needs the tools run on the Cl
   const n8nSources = { "Get News": "http/tls-intercept", "Get Weather": "http/tls-intercept" };
   const calls = [{ name: "Get_News", args: {} }, { name: "Get_Weather", args: {} }];
   const both = claudeReadKeys([], [{ method: "GET", url: "https://feeds.example/rss.xml", query: {} }, { method: "GET", url: "https://api.weather.example/v1/forecast", query: {} }]);
-  const ok = sameToolTurn({ n8nPrev, n8nCall, n8nEffects, n8nSources, claudeTurn: { calls, results: [{ name: "Get_News", ok: true, value: "x" }, { name: "Get_Weather", ok: true, value: {} }], reads: both } });
+  const ok = sameToolTurn({ n8nPrev, n8nCall, n8nEffects, n8nSources, claudeTurn: { calls, results: [{ name: "Get_News", ok: true, value: "<rss/>" }, { name: "Get_Weather", ok: true, value: { t: 8 } }], reads: both } });
   assert.deepEqual([ok.same, ok.reads], [true, 2], "the read after call 1 (seq 20) is not this turn's");
 
   // A tool the runtime cannot run: not executed.
@@ -202,16 +202,17 @@ test("P15: a replayed agent turn after a tool call needs the tools run on the Cl
   // No call of that name at all.
   assert.equal(sameToolTurn({ n8nPrev, n8nCall, n8nEffects, n8nSources, claudeTurn: { calls: calls.slice(1), results: [{ ok: true }], reads: both.slice(1) } }).cause, "tool call not executed");
   // Ran, but read something else than n8n did.
-  const other = sameToolTurn({ n8nPrev, n8nCall, n8nEffects, n8nSources, claudeTurn: { calls, results: [{ ok: true }, { ok: true }], reads: claudeReadKeys([], [{ method: "GET", url: "https://feeds.example/other.xml", query: {} }, { method: "GET", url: "https://api.weather.example/v1/forecast", query: {} }]) } });
+  const other = sameToolTurn({ n8nPrev, n8nCall, n8nEffects, n8nSources, claudeTurn: { calls, results: [{ ok: true, value: "<rss/>" }, { ok: true, value: { t: 8 } }], reads: claudeReadKeys([], [{ method: "GET", url: "https://feeds.example/other.xml", query: {} }, { method: "GET", url: "https://api.weather.example/v1/forecast", query: {} }]) } });
   assert.equal(other.cause, "different tool result");
   assert.equal(other.detail.onlyN8n.length, 1);
   assert.equal(other.detail.onlyClaude.length, 1);
   // Both sides' tool failed (n8n fed back an empty result): nothing to blame on the migration.
   const n8nEmpty = { ...n8nCall, request: { messages: [...n8nCall.request.messages.slice(0, 2), { role: "tool", tool_call_id: "call_a", content: "" }, n8nCall.request.messages[3]] } };
-  assert.equal(sameToolTurn({ n8nPrev, n8nCall: n8nEmpty, n8nEffects: n8nEffects.filter((e) => e.seq !== 11), n8nSources, claudeTurn: { calls, results: [{ ok: false, error: { message: "boom" } }, { ok: true }], reads: both.slice(1) } }).same, true);
+  assert.equal(sameToolTurn({ n8nPrev, n8nCall: n8nEmpty, n8nEffects: n8nEffects.filter((e) => e.seq !== 11), n8nSources, claudeTurn: { calls, results: [{ ok: false, error: { message: "boom" } }, { ok: true, value: { t: 8 } }], reads: both.slice(1) } }).same, true);
   // Without model seq, or with a pinned tool, the reads are unchecked and say so.
-  assert.match(sameToolTurn({ n8nPrev: { ...n8nPrev, seq: null }, n8nCall, n8nEffects, n8nSources, claudeTurn: { calls, results: [{ ok: true }, { ok: true }], reads: [] } }).reads, /unchecked/);
-  assert.match(sameToolTurn({ n8nPrev, n8nCall, n8nEffects, n8nSources: { ...n8nSources, "Get News": "pin" }, claudeTurn: { calls, results: [{ ok: true }, { ok: true }], reads: [] } }).reads, /unchecked.*Get News/);
+  const okResults = [{ ok: true, value: "<rss/>" }, { ok: true, value: { t: 8 } }];
+  assert.match(sameToolTurn({ n8nPrev: { ...n8nPrev, seq: null }, n8nCall, n8nEffects, n8nSources, claudeTurn: { calls, results: okResults, reads: [] } }).reads, /unchecked/);
+  assert.match(sameToolTurn({ n8nPrev, n8nCall, n8nEffects, n8nSources: { ...n8nSources, "Get News": "pin" }, claudeTurn: { calls, results: okResults, reads: [] } }).reads, /unchecked.*Get News/);
   // n8n's previous reply asked no tool: not a turn after a tool call.
   assert.equal(sameToolTurn({ n8nPrev: { format: "openai", response: { choices: [{ message: { content: "done" } }] } }, n8nCall, claudeTurn: { calls: [], results: [] } }), null);
 
@@ -231,4 +232,204 @@ test("P15: gate 4 fails a replayed agent turn whose tools were not run, after th
   assert.equal(gate4({ cmp, modelInputs: [turn({ same: true, reads: 1 })], n8nStatus: "success" }).pass, true);
   const both = gate4({ cmp, modelInputs: [{ step: "A", index: 1, input: { same: false, at: "x", n8nAround: "y" }, tools: { same: false, cause: "tool call not executed" } }], n8nStatus: "success" });
   assert.match(both.cause, /different input/, "a different question is reported first");
+});
+
+test("P17: fed-back tool values are compared with n8n's tool message per provider format", async () => {
+  const { sameToolTurn, sameToolValue } = await import("../evals/bench/claude-side.mjs");
+  const { normalize } = await import("../evals/bench/model-shim.mjs");
+  // A node used as a tool: n8n sends JSON.stringify of its items' json, always a list.
+  assert.deepEqual(sameToolValue({ text: '[{"id":7,"name":"Ada"}]' }, { name: "Ada", id: 7 }), { same: true, shape: "n8n sends a list of one item, the runtime the item" });
+  assert.equal(sameToolValue({ text: '[{"id":7},{"id":8}]' }, [{ id: 7 }, { id: 8 }]).same, true);
+  assert.equal(sameToolValue({ text: '[{"id":7},{"id":8}]' }, [{ id: 7 }]).same, false);
+  // The Workflow tool pretty-prints; a Code tool returns text.
+  assert.equal(sameToolValue({ text: '[\n  {\n    "a": 1\n  }\n]' }, { a: 1 }).same, true);
+  assert.equal(sameToolValue({ text: "42 rows  found" }, "42 rows found").same, true);
+  assert.deepEqual(sameToolValue({ text: "42 rows found" }, "41 rows found").same, false);
+  // Run-time timestamps are masked (P4).
+  const runTime = { startMs: Date.parse("2026-11-16T14:00:00Z"), zone: "America/New_York" };
+  assert.equal(sameToolValue({ text: '{"at":"2026-11-16T14:00:01.000Z"}' }, { at: "2026-11-16T14:00:07.000Z" }, runTime).runTimeMasked, true);
+  // Gemini: functionResponse.response.result.
+  const g = normalize("gemini", { contents: [{ role: "user", parts: [{ functionResponse: { name: "Lookup", response: { result: '[{"ok":true}]' } } }] }] });
+  assert.equal(g.messages[0].result, '[{"ok":true}]');
+  assert.equal(sameToolValue(g.messages[0], { ok: true }).same, true);
+  // Anthropic: tool_result content blocks.
+  const a = normalize("anthropic", { messages: [{ role: "user", content: [{ type: "tool_result", tool_use_id: "t1", content: [{ type: "text", text: '{"n":1}' }] }] }] });
+  assert.equal(sameToolValue(a.messages[0], { n: 1 }).same, true);
+
+  // In a turn: a Code tool makes no read, so only the value can tell (P15 compared two empty sets).
+  const asked = [{ id: "call_c", type: "function", function: { name: "Calc", arguments: '{"x":2}' } }];
+  const n8nPrev = { format: "openai", seq: 1, response: { choices: [{ message: { role: "assistant", content: null, tool_calls: asked } }] } };
+  const n8nCall = { format: "openai", seq: 2, request: { messages: [{ role: "user", content: "q" }, { role: "assistant", content: null, tool_calls: asked }, { role: "tool", tool_call_id: "call_c", content: "4" }] } };
+  const turn = (value) => sameToolTurn({ n8nPrev, n8nCall, n8nEffects: [], n8nSources: {}, claudeTurn: { calls: [{ name: "Calc" }], results: [{ ok: true, value }], reads: [] } });
+  assert.deepEqual([turn(4).same, turn(4).values, turn(4).reads], [true, 1, 0]);
+  const bad = turn(5);
+  assert.deepEqual([bad.same, bad.cause, bad.detail.values[0].tool, bad.detail.values[0].n8n, bad.detail.values[0].claude], [false, "different tool result", "Calc", "4", "5"]);
+});
+
+test("P18: one list of shim-answered model types; the validator errors on models the shim cannot answer", async () => {
+  const { SHIM_MODELS, UNSHIMMED_MODELS, modelRoute, modelNodes } = await import("../evals/bench/n8n-side.mjs");
+  const { modelErrors } = await import("../evals/bench/validate.mjs");
+  const LC = "@n8n/n8n-nodes-langchain.";
+  for (const t of ["lmChatDeepSeek", "lmChatXAiGrok", "lmChatMoonshot", "lmChatNvidia", "lmChatMinimax", "lmChatVercelAiGateway", "lmChatAlibabaCloud", "lmChatLemonade", "lmLemonade", "lmChatAzureOpenAi", "lmChatGroq", "lmChatMistralCloud", "lmChatGoogleVertex", "lmOpenHuggingFaceInference"]) assert.ok(SHIM_MODELS[LC + t], t);
+  for (const t of ["lmChatCohere", "lmCohere", "lmChatAwsBedrock", "lmChatDatabricks"]) assert.ok(UNSHIMMED_MODELS[LC + t], t);
+  const deep = SHIM_MODELS[LC + "lmChatDeepSeek"].data("http://mock:8080/model/m0");
+  assert.equal(deep.url, "http://mock:8080/model/m0/v1");
+  assert.equal(SHIM_MODELS[LC + "lmChatAzureOpenAi"].data("http://mock:8080/model/m1").endpoint, "http://mock:8080/model/m1");
+  assert.match(modelRoute({ type: LC + "lmChatAzureOpenAi", parameters: { authentication: "azureEntraCognitiveServicesOAuth2Api" } }).why, /Entra/);
+  assert.equal(modelRoute({ type: LC + "lmChatGoogleVertex", parameters: { location: "europe-west4" } }).host, "europe-west4-aiplatform.googleapis.com");
+  assert.equal(modelRoute({ type: LC + "lmChatGoogleVertex", parameters: {} }).host, "us-central1-aiplatform.googleapis.com");
+  assert.match(modelRoute({ type: LC + "openAi", typeVersion: 2, parameters: {} }, { listed: true }).why, /Responses API/);
+  assert.equal(modelRoute({ type: LC + "openAi", typeVersion: 1.8, parameters: { resource: "image", operation: "analyze" } }, { listed: true }).host, "api.openai.com");
+  assert.equal(modelRoute({ type: LC + "openAi", typeVersion: 1.8, parameters: {} }), null, "a root model node is routed only when the fixture lists it");
+  assert.equal(modelRoute({ type: "n8n-nodes-base.httpRequest", parameters: { url: "https://openrouter.ai/api/v1/chat/completions" } }, { listed: true }).host, "openrouter.ai");
+  assert.match(modelRoute({ type: "n8n-nodes-base.httpRequest", parameters: { url: "https://api.perplexity.ai/chat/completions" } }, { listed: true }).why, /not a model API/);
+  // The Hugging Face node gets a bench route for the hub's provider lookup.
+  const hf = modelNodes({ nodes: [{ name: "HF", type: LC + "lmOpenHuggingFaceInference", parameters: { model: "org/model" } }] }, { models: [] })[0];
+  assert.deepEqual([hf.tag, hf.routes[0].url, hf.routes[0].body.inferenceProviderMapping["hf-inference"].task], ["host:router.huggingface.co", "https://huggingface.co/api/models/org/model", "text-generation"]);
+
+  const wf = {
+    nodes: [
+      { name: "Agent", type: LC + "agent", parameters: {} },
+      { name: "Cohere", type: LC + "lmChatCohere", parameters: {} },
+      { name: "Chain", type: LC + "chainLlm", parameters: {} },
+      { name: "Groq A", type: LC + "lmChatGroq", parameters: {} },
+      { name: "Chain 2", type: LC + "chainLlm", parameters: {} },
+      { name: "Groq B", type: LC + "lmChatGroq", parameters: {} },
+      { name: "Fetch", type: "n8n-nodes-base.httpRequest", parameters: {} },
+    ],
+    connections: { Cohere: { ai_languageModel: [[{ node: "Agent" }]] }, "Groq A": { ai_languageModel: [[{ node: "Chain" }]] }, "Groq B": { ai_languageModel: [[{ node: "Chain 2" }]] } },
+  };
+  const errs = modelErrors({ models: ["Agent", "Chain", "Fetch"] }, wf);
+  assert.ok(errs.some((e) => /"Agent": its model "Cohere" is not answered.*Cohere/.test(e)), errs.join("\n"));
+  assert.ok(errs.some((e) => /"Fetch".*not a model API/.test(e)), errs.join("\n"));
+  assert.ok(errs.some((e) => /"Groq A", "Groq B" call one fixed host \(api\.groq\.com\)/.test(e)), errs.join("\n"));
+  assert.deepEqual(modelErrors({ models: ["Chain"] }, { nodes: wf.nodes.slice(2, 4), connections: { "Groq A": wf.connections["Groq A"] } }), []);
+});
+
+test("P16: the claude driver's replayed requests get the model-input and tool-turn checks, reads by time", async () => {
+  const { claudeDriverModelInputs } = await import("../evals/bench/claude-side.mjs");
+  const asked = [{ id: "call_a", type: "function", function: { name: "Get_News", arguments: "{}" } }];
+  const recordings = [
+    { node: "Model", index: 0, format: "openai", seq: 1, request: { messages: [{ role: "system", content: "Be brief." }, { role: "user", content: "news?" }] }, response: { choices: [{ message: { role: "assistant", content: null, tool_calls: asked } }] } },
+    { node: "Model", index: 1, format: "openai", seq: 3, request: { messages: [{ role: "system", content: "Be brief." }, { role: "user", content: "news?" }, { role: "assistant", content: null, tool_calls: asked }, { role: "tool", tool_call_id: "call_a", content: '[{"title":"A"}]' }] }, response: { choices: [{ message: { role: "assistant", content: "A" } }] } },
+  ];
+  const n8nEffects = [{ seq: 2, method: "GET", proxied: "https://feeds.example", path: "/rss.xml" }];
+  const n8nSources = { "Get News": "http/tls-intercept" };
+  const base = { kind: "agent", itemIndex: 0, system: "Be brief.", prompt: "news?", tools: [{ name: "Get_News" }] };
+  const log = (value, url, t2 = "2026-11-15T10:00:05.000Z") => ({
+    replayLog: [
+      { id: "Agent#0#0", key: "Model", index: 0, mode: "replay", t: "2026-11-15T10:00:01.000Z", req: { ...base, transcript: [] } },
+      { id: "Agent#0#0", key: "Model", index: 0, mode: "replay", t: "2026-11-15T10:00:02.000Z" },
+      { id: "Agent#0#0.1", key: "Model", index: 1, mode: "replay", t: t2, req: { ...base, transcript: [{ calls: [{ name: "Get_News", args: {} }], results: [{ name: "Get_News", ok: true, value }] }] } },
+    ],
+    effects: [{ t: "2026-11-15T10:00:03.000Z", method: "GET", url, query: {} }, { t: "2026-11-15T10:00:09.000Z", method: "GET", url: "https://later.example/x", query: {} }],
+    recordings, n8nEffects, n8nSources,
+  });
+  const ok = claudeDriverModelInputs(log([{ title: "A" }], "https://feeds.example/rss.xml"));
+  assert.deepEqual(ok.map((m) => [m.index, m.input.same, m.tools?.same ?? null, m.tools?.reads ?? null]), [[0, true, null, null], [1, true, true, 1]], "the read after the second answer is not this turn's");
+  const wrongRead = claudeDriverModelInputs(log([{ title: "A" }], "https://feeds.example/other.xml"));
+  assert.equal(wrongRead[1].tools.cause, "different tool result");
+  const wrongValue = claudeDriverModelInputs(log([{ title: "B" }], "https://feeds.example/rss.xml"));
+  assert.equal(wrongValue[1].tools.detail.values[0].tool, "Get_News");
+  // A different question fails the model-input check, as in process.
+  const asked2 = log([{ title: "A" }], "https://feeds.example/rss.xml");
+  asked2.replayLog[0].req = { ...asked2.replayLog[0].req, prompt: "weather?" };
+  assert.equal(claudeDriverModelInputs(asked2)[0].input.same, false);
+  // A live (not replayed) request is not checked; a run made before P16 has no requests.
+  assert.equal(claudeDriverModelInputs({ ...asked2, replayLog: asked2.replayLog.map((e) => ({ ...e, mode: "live" })) }).length, 0);
+  assert.deepEqual(claudeDriverModelInputs({ replayLog: [{ id: "Agent#0#0", key: "Model", index: 0, mode: "replay" }], recordings }), []);
+});
+
+test("P19: an unrouted read is a 404 logged read-default; an `any` response answers every path on its origin, after exact paths", async () => {
+  const { pickRoute, startMock } = await import("../evals/n8n/mock-server.mjs");
+  const { mkdtempSync, writeFileSync, readFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const R = [
+    { method: "GET", url: "https://news.example/", any: true, status: 200, body: "<html>any page</html>" },
+    { method: "GET", url: "https://news.example/front", status: 200, body: "<html>front</html>" },
+    { method: "GET", url: "https://img.example/", any: true, query: { size: "s" }, status: 200, body: "small" },
+  ];
+  const c = new Map();
+  const sp = (q) => new URLSearchParams(q);
+  assert.equal(pickRoute(R, "GET", "https://news.example", "/2026/11/story-the-model-chose", sp(""), c).f.body, "<html>any page</html>");
+  assert.equal(pickRoute(R, "GET", "https://news.example", "/front", sp("utm=1"), c).f.body, "<html>front</html>", "the exact path wins over any");
+  assert.equal(pickRoute(R, "GET", "https://img.example", "/a.png", sp(""), c), null, "any keeps its query condition");
+  assert.equal(pickRoute(R, "GET", "https://img.example", "/a.png", sp("size=s"), c).f.body, "small");
+  assert.equal(pickRoute(R, "GET", "https://other.example", "/front", sp(""), c), null);
+  assert.equal(pickRoute(R, "GET", null, "/2026/story", sp(""), c), null, "a request made to the mock directly names no origin, so any never matches it");
+  assert.equal(pickRoute(R, "POST", "https://news.example", "/x", sp(""), c), null, "the method still has to match");
+
+  const dir = mkdtempSync(join(tmpdir(), "n2c-p19-"));
+  const fixtures = join(dir, "fx.json");
+  const log = join(dir, "log.jsonl");
+  writeFileSync(fixtures, JSON.stringify({ __routes: R, __writeDefault: { status: 200, body: {} } }));
+  writeFileSync(log, "");
+  const server = await startMock({ port: 0, host: "127.0.0.1", log, fixtures });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const viaProxy = (method, url) => new Promise(async (ok) => {
+    const { request } = await import("node:http");
+    const u = new URL(base);
+    const r = request({ host: u.hostname, port: u.port, method, path: url }, (res) => { let b = ""; res.on("data", (x) => (b += x)); res.on("end", () => ok({ status: res.statusCode, body: b })); });
+    r.end();
+  });
+  const miss = await viaProxy("GET", "http://unknown.example/page");
+  const write = await viaProxy("POST", "http://unknown.example/items");
+  const hit = await viaProxy("GET", "http://news.example/anything");
+  await new Promise((ok) => server.close(ok));
+  assert.deepEqual([miss.status, JSON.parse(miss.body).error, write.status, hit.status], [404, "no fixture", 200, 404]);
+  const lines = readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  assert.deepEqual(lines.map((l) => l.fixture), ["read-default", "write-default", "read-default"], "an https any route does not answer an http origin");
+});
+
+test("P21: file paths resolve under /home/node; absolute ones are allowed by directory; n8nCannotRun is in the schema", async () => {
+  const { containerPath, fileAccessDirs, N8N_HOME } = await import("../evals/bench/n8n-side.mjs");
+  const { mkdtempSync, mkdirSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  assert.equal(containerPath("./schema.json"), "/home/node/schema.json");
+  assert.equal(containerPath("data/in.csv"), "/home/node/data/in.csv");
+  assert.equal(containerPath("~/in.csv"), "/home/node/in.csv");
+  assert.equal(containerPath("/files/a.xlsx"), "/files/a.xlsx");
+  const dir = mkdtempSync(join(tmpdir(), "n2c-p21-"));
+  mkdirSync(join(dir, "1"));
+  writeFileSync(join(dir, "1", "normal.json"), JSON.stringify({ reads: [{ node: "R", file: { path: "/files/a.xlsx" } }, { node: "S", file: { path: "rel.csv" } }, { node: "T", file: { path: "/home/node/x/y.txt" } }] }));
+  writeFileSync(join(dir, "1", "empty.json"), JSON.stringify({ reads: [{ node: "R", file: { path: "/data/deep/b.csv" } }] }));
+  assert.deepEqual(fileAccessDirs(dir), [N8N_HOME, "/data/deep", "/files"]);
+  const schema = JSON.parse((await import("node:fs")).readFileSync(new URL("../evals/bench/fixture.schema.json", import.meta.url), "utf8"));
+  assert.equal(schema.$defs.expect.properties.n8nCannotRun.type, "string");
+});
+
+test("P22: a poll trigger's http list longer than n8n's manual mode asks for warns", async () => {
+  const { pollWarnings } = await import("../evals/bench/validate.mjs");
+  const wf = { nodes: [{ name: "Gmail Trigger", type: "n8n-nodes-base.gmailTrigger" }, { name: "Drive Trigger", type: "n8n-nodes-base.googleDriveTrigger" }] };
+  const list = (n) => ({ method: "GET", url: "https://www.googleapis.com/gmail/v1/users/me/messages", status: 200, body: { messages: Array.from({ length: n }, (_, i) => ({ id: `m${i}` })) } });
+  const fx = (n, kind = "poll", node = "Gmail Trigger") => ({ trigger: { node, kind }, reads: [{ node, http: { responses: [list(n), { method: "GET", url: "https://www.googleapis.com/gmail/v1/users/me/messages/m0", status: 200, body: {} }] } }] });
+  assert.match(pollWarnings(fx(2), wf)[0], /manual mode, where it asks maxResults=1.*answers 2 items/);
+  assert.deepEqual(pollWarnings(fx(1), wf), []);
+  assert.deepEqual(pollWarnings(fx(3, "manual"), wf), [], "only a poll trigger");
+  const drive = { trigger: { node: "Drive Trigger", kind: "poll" }, reads: [{ node: "Drive Trigger", http: { responses: [{ method: "GET", url: "https://www.googleapis.com/drive/v3/files", status: 200, body: { files: [{}, {}] } }] } }] };
+  assert.match(pollWarnings(drive, wf)[0], /pageSize=1/);
+});
+
+test("P20: form pages by label or position, the execution id in n8n's form-waiting URL, and the validator's page checks", async () => {
+  const { formPageBody, waitingExecutionId } = await import("../evals/n8n/run-workflow.mjs");
+  const { checkFixture } = await import("../evals/bench/validate.mjs");
+  const page = { parameters: { formFields: { values: [{ fieldLabel: "Depth" }, { fieldLabel: "Audience" }] } } };
+  const byLabel = formPageBody(page, { Audience: "kids", Depth: "deep" });
+  assert.deepEqual([byLabel.get("field-0"), byLabel.get("field-1")], ["deep", "kids"]);
+  const byPos = formPageBody(null, ["because the moon", null, { a: 1 }]);
+  assert.deepEqual([byPos.get("field-0"), byPos.get("field-1"), byPos.get("field-2")], ["because the moon", null, '{"a":1}']);
+  assert.equal(waitingExecutionId("http://127.0.0.1:5690/form-waiting/4186?signature=abc"), "4186");
+  assert.equal(waitingExecutionId(null), null);
+
+  const wf = { nodes: [
+    { name: "Form", type: "n8n-nodes-base.formTrigger", parameters: { formFields: { values: [{ fieldLabel: "Topic" }] } } },
+    { name: "Page 1", type: "n8n-nodes-base.form", parameters: {} },
+    { name: "Set", type: "n8n-nodes-base.set", parameters: {} },
+  ], connections: {} };
+  const fx = { schemaVersion: 1, template: 1, sha256: "0".repeat(64), variant: "normal", now: "2026-11-16T09:00:00Z", about: "x", trigger: { node: "Form", kind: "form", items: [{ json: { Topic: "t" } }], formPages: [{ node: "Page 1", fields: { Depth: "d" } }, { node: "Set", fields: [] }] }, reads: [], models: [], writes: [], expect: { branches: [] } };
+  const { errors } = await checkFixture(fx, { workflow: { workflow: wf } });
+  assert.ok(errors.some((e) => /formPages: "Set" is not an enabled Form node/.test(e)), errors.join("\n"));
+  assert.ok(!errors.some((e) => /"Page 1"/.test(e)), errors.join("\n"));
 });

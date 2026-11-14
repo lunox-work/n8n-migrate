@@ -16,7 +16,8 @@
 // (corpus.json, default answers). One-shot success: templates of the bench run that passed
 // every gate, with the count, overall and excluding connector-limited templates (a failure that
 // traces to a fixture's connectorGaps, PROPOSALS P1; the connector shapes behind those gaps are
-// unverified). Refusal accuracy: labels.json against the analyzer (compare-labels.mjs). Per
+// unverified), and excluding templates whose fixture says the bench's n8n image cannot run them
+// (expect.n8nCannotRun, PROPOSALS P21). Refusal accuracy: labels.json against the analyzer (compare-labels.mjs). Per
 // template: gate reached, cause, connector-limited, overlays that are not placeholder fills,
 // wall time, cost, n8n execution time.
 
@@ -73,9 +74,21 @@ try {
   refusal = JSON.parse(labels.stdout).summary;
 } catch {}
 
+// PROPOSALS P21: templates whose fixture says the bench's n8n image cannot run the main path
+// (expect.n8nCannotRun), from the row or, for rows written before it, the normal fixture.
+const cannotRunOf = (r) => {
+  if (r.n8nCannotRun !== undefined) return r.n8nCannotRun;
+  try {
+    return JSON.parse(readFileSync(join(HERE, "fixtures", String(r.template), "normal.json"), "utf8")).expect?.n8nCannotRun ?? null;
+  } catch {
+    return null;
+  }
+};
 const passed = mine.filter((r) => r.passedAll);
 const limited = mine.filter((r) => !r.passedAll && r.connectorLimited);
 const rest = mine.filter((r) => !r.connectorLimited || r.passedAll);
+const cannotRun = mine.filter((r) => !r.passedAll && cannotRunOf(r));
+const runnable = mine.filter((r) => r.passedAll || !cannotRunOf(r));
 const share = (a, b) => (b ? Math.round((a / b) * 1000) / 10 : null);
 const byGate = {};
 const byBucket = {};
@@ -93,6 +106,7 @@ const out = {
   coverageTop100: corpus.coverageTop100,
   oneShot: { passed: passed.length, of: mine.length, share: share(passed.length, mine.length) },
   oneShotExcludingConnectorLimited: { passed: passed.length, of: rest.length, share: share(passed.length, rest.length), connectorLimited: limited.map((r) => r.template), note: "connector-limited: the failure traces to a fixture connectorGaps field; the real connector shapes behind those gaps are unverified (shape: assumed)" },
+  oneShotExcludingN8nCannotRun: { passed: passed.length, of: runnable.length, share: share(passed.length, runnable.length), n8nCannotRun: cannotRun.map((r) => ({ template: r.template, why: cannotRunOf(r) })), note: "the fixture's expect.n8nCannotRun: the bench's n8n image cannot run the template's main path, so its baseline stops early" },
   gateSum: mine.reduce((n, r) => n + (r.reached ?? 0), 0),
   nonPlaceholderOverlays: mine.filter((r) => r.config?.nonPlaceholder?.length).map((r) => ({ template: r.template, kinds: r.config.nonPlaceholder.map((x) => x.kind) })),
   failuresByGate: byGate,
@@ -104,6 +118,7 @@ const out = {
     bucket: r.bucket,
     cause: r.cause,
     connectorLimited: !!r.connectorLimited,
+    n8nCannotRun: !!cannotRunOf(r),
     nonPlaceholder: (r.config?.nonPlaceholder ?? []).map((x) => x.kind),
     convert: r.drivers?.convert?.startsWith("skill") ? "skill" : "plain",
     plainPreflight: r.plainColumn?.preflightOk,
@@ -126,9 +141,11 @@ else {
   console.log(`one-shot success: ${out.oneShot.passed} of ${out.oneShot.of} (${out.oneShot.share ?? "-"}%); gate sum ${out.gateSum}`);
   const x = out.oneShotExcludingConnectorLimited;
   console.log(`one-shot success excluding connector-limited: ${x.passed} of ${x.of} (${x.share ?? "-"}%); connector-limited: ${x.connectorLimited.length ? x.connectorLimited.join(", ") : "none"} (${x.note})`);
+  const y = out.oneShotExcludingN8nCannotRun;
+  console.log(`one-shot success excluding templates n8n cannot run on the bench image: ${y.passed} of ${y.of} (${y.share ?? "-"}%); n8n cannot run: ${y.n8nCannotRun.length ? y.n8nCannotRun.map((x) => `${x.template} (${x.why})`).join("; ") : "none"}`);
   if (out.nonPlaceholderOverlays.length) console.log(`non-placeholder overlays: ${out.nonPlaceholderOverlays.map((o) => `${o.template} (${o.kinds.join(", ")})`).join("; ")}`);
   console.log(`failures by gate: ${JSON.stringify(byGate)}; by bucket: ${JSON.stringify(byBucket)}`);
   if (refusal) console.log(`refusal accuracy (labels.json vs analyzer): outcome+target ${refusal.outcomeAndTarget}/${refusal.templates}, blockers ${refusal.blockers}/${refusal.templates}, questions ${refusal.questions}/${refusal.templates}, everything ${refusal.all}/${refusal.templates}`);
-  console.log("\ntemplate  gate  convert  bucket: cause [CL = connector-limited, TC = time compression]  | bench s, n8n ms, claude-driver s/$/turns, claude -p runs/$");
-  for (const p of out.perTemplate) console.log(`${String(p.template).padEnd(9)} ${String(p.reached === 9 ? "all" : p.reached).padEnd(5)} ${p.convert.padEnd(8)} ${p.connectorLimited ? "CL " : ""}${p.nonPlaceholder.includes("time-compression") ? "TC " : ""}${p.bucket ?? "-"}: ${(p.cause ?? "").slice(0, 90)} | ${p.benchWallS}, ${p.n8nExecMs ?? "-"}, ${p.claudeDriverS ?? "-"}/${p.claudeDriverUsd ?? "-"}/${p.claudeDriverTurns ?? "-"}, ${p.claudeRuns}/${p.claudeUsd}`);
+  console.log("\ntemplate  gate  convert  bucket: cause [CL = connector-limited, NR = n8n cannot run, TC = time compression]  | bench s, n8n ms, claude-driver s/$/turns, claude -p runs/$");
+  for (const p of out.perTemplate) console.log(`${String(p.template).padEnd(9)} ${String(p.reached === 9 ? "all" : p.reached).padEnd(5)} ${p.convert.padEnd(8)} ${p.connectorLimited ? "CL " : ""}${p.n8nCannotRun ? "NR " : ""}${p.nonPlaceholder.includes("time-compression") ? "TC " : ""}${p.bucket ?? "-"}: ${(p.cause ?? "").slice(0, 90)} | ${p.benchWallS}, ${p.n8nExecMs ?? "-"}, ${p.claudeDriverS ?? "-"}/${p.claudeDriverUsd ?? "-"}/${p.claudeDriverTurns ?? "-"}, ${p.claudeRuns}/${p.claudeUsd}`);
 }

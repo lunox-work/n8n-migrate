@@ -3,8 +3,9 @@
 //
 //   n8n side   each model node's credential points at http://mock:8080/model/<tag> (the mock
 //              forwards to this server with x-bench-model-tag); the shim speaks Anthropic
-//              /v1/messages, OpenAI /v1/chat/completions, Gemini :generateContent and Ollama
-//              /api/chat and /api/generate (the completion node), with or without streaming.
+//              /v1/messages, OpenAI /v1/chat/completions, Gemini :generateContent, Ollama
+//              /api/chat and /api/generate (the completion node), with or without streaming, and
+//              Hugging Face's hf-inference text generation (no streaming).
 //   Claude side the in-process driver hands the runner's `model` / `agent` requests to
 //              answerRunnerRequest(), which replays n8n's recorded reply for the same node and
 //              call index (replay), or asks the model (live).
@@ -67,13 +68,21 @@ export function normalize(format, body = {}) {
     for (const c of body.contents ?? []) {
       const parts = c.parts ?? [];
       const calls = parts.filter((p) => p.functionCall).map((p, i) => ({ id: `g${i}`, name: p.functionCall.name, input: p.functionCall.args ?? {} }));
-      for (const p of parts.filter((x) => x.functionResponse)) out.messages.push({ role: "tool", text: JSON.stringify(p.functionResponse.response ?? {}), toolName: p.functionResponse.name });
+      // @langchain/google-genai 2.1 sends a tool message as response {result} ({error:
+      // {details}} on a failed tool); `result` keeps the tool's own output (PROPOSALS P17).
+      for (const p of parts.filter((x) => x.functionResponse)) {
+        const r = p.functionResponse.response ?? {};
+        out.messages.push({ role: "tool", text: JSON.stringify(r), toolName: p.functionResponse.name, ...("result" in r ? { result: r.result } : {}), ...(r.error ? { isError: true } : {}) });
+      }
       const text = textOf(parts.filter((p) => !p.functionCall && !p.functionResponse));
       if (text || calls.length) out.messages.push({ role: c.role === "model" ? "assistant" : "user", text, ...(calls.length ? { calls } : {}) });
     }
     out.tools = (body.tools ?? []).flatMap((t) => t.functionDeclarations ?? []).map((f) => ({ name: f.name, description: f.description ?? "", schema: f.parameters ?? {} }));
   } else if (format === "openai-completions") {
     out.messages.push({ role: "user", text: [].concat(body.prompt ?? "").join("\n") });
+  } else if (format === "hf-text-generation") {
+    // Hugging Face's hf-inference text generation ({inputs, parameters}), PROPOSALS P18.
+    out.messages.push({ role: "user", text: String(body.inputs ?? "") });
   } else if (format === "ollama-generate") {
     out.system = body.system ?? "";
     out.messages.push({ role: "user", text: String(body.prompt ?? "") });
@@ -224,12 +233,14 @@ export function providerResponse(format, answer, body = {}) {
     const parts = calls.length ? calls.map((c) => ({ functionCall: { name: c.name, args: c.input } })) : [{ text }];
     return { candidates: [{ content: { role: "model", parts }, finishReason: "STOP", index: 0 }], usageMetadata: { promptTokenCount: 0, candidatesTokenCount: 0, totalTokenCount: 0 } };
   }
+  if (format === "hf-text-generation") return [{ generated_text: text }];
   if (format === "ollama-generate") return { model: body.model ?? "ollama-bench", created_at: "2026-11-16T09:00:00Z", response: text, done: true, done_reason: "stop" };
   return { model: body.model ?? "ollama-bench", created_at: "2026-11-16T09:00:00Z", message: { role: "assistant", content: text }, done: true, done_reason: "stop" };
 }
 
 // The answer inside a recorded provider response (for replaying it to the Claude side).
 export function answerOf(format, resp) {
+  if (format === "hf-text-generation") return { text: String((Array.isArray(resp) ? resp[0] : resp)?.generated_text ?? "") };
   if (!resp || typeof resp !== "object") return { text: String(resp ?? "") };
   if (format === "anthropic") {
     const calls = (resp.content ?? []).filter((b) => b.type === "tool_use").map((b) => ({ name: b.name, input: b.input ?? {} }));
@@ -277,6 +288,7 @@ function sse(format, resp) {
 }
 
 export function formatOf(path) {
+  if (/\/hf-inference\/models\/./.test(path)) return "hf-text-generation";
   if (/\/messages$/.test(path)) return "anthropic";
   if (/\/chat\/completions$/.test(path)) return "openai";
   if (/\/v1\/completions$/.test(path)) return "openai-completions";

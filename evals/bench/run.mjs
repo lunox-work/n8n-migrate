@@ -36,8 +36,8 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync, cpS
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, overlayEnv, recordingInterrupted, modelConsumers } from "./n8n-side.mjs";
-import { convertPlain, convertSkill, runInProcess, folderIn } from "./claude-side.mjs";
+import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers } from "./n8n-side.mjs";
+import { convertPlain, convertSkill, runInProcess, folderIn, claudeDriverModelInputs } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
 import { fromHttp, fromTool, reply, replyText, compare, modelTextsOf, baitHits, refsOf } from "./compare.mjs";
 import { gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited } from "./gates.mjs";
@@ -97,7 +97,7 @@ async function n8n() {
   if (n8nEnv) return n8nEnv;
   const container = await import("../n8n/container.mjs");
   const { runWorkflow } = await import("../n8n/run-workflow.mjs");
-  await container.up({ extraEnv: overlayEnv(), log });
+  await container.up({ extraEnv: benchEnv(), log });
   const shim = await startShim({ port: container.MODEL_SHIM_PORT, log });
   n8nEnv = { container, runWorkflow, shim };
   return n8nEnv;
@@ -150,6 +150,9 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
     lastNode: res.lastNode,
     lastItems: res.nodes?.[res.lastNode]?.at(-1)?.items?.main?.[0] ?? [],
     nodes: Object.fromEntries(Object.entries(res.nodes ?? {}).map(([k, v]) => [k, v.map((x) => ({ status: x.status, ...(x.error ? { error: x.error.slice(0, 300) } : {}), items: x.items?.main?.map((o) => o.length) }))])),
+    // PROPOSALS P20: executions the run started (their requests are in `effects`).
+    ...(res.children?.length ? { children: res.children.map((c) => ({ id: c.id, status: c.status, mode: c.mode, error: c.error ?? null, nodes: Object.fromEntries(Object.entries(c.nodes ?? {}).map(([k, v]) => [k, v.map((x) => ({ status: x.status, ...(x.error ? { error: x.error.slice(0, 300) } : {}) }))])) })) } : {}),
+    ...(res.response?.pages ? { formPages: res.response.pages } : {}),
     effects: splitLog(res.effects).service.map(({ seq, method, proxied, tls, path, query, rawQuery, body, bodyEncoding, fixture }) => ({ seq, method, proxied, tls, path, query, rawQuery, body, bodyEncoding, fixture })),
     modelCalls: r.modelCalls.map(({ tag, node, index, format, request, response, mode, costUsd }) => ({ tag, node, index, format, request, response, mode, costUsd, seq: modelSeq[tag]?.[index] ?? null })),
     modelModes: [...new Set(r.modelCalls.map((c) => c.mode))],
@@ -419,7 +422,10 @@ async function benchTemplate(id, args, L) {
     const g3c = cn.run?.status === "done" ? { pass: true } : { ...runFailureCause({ error: cn.run?.error ?? { message: cn.summary?.problem ?? "no run" } }) };
     if (!g3c.pass) gates[3] = { ...g3c, driver: "claude", inprocess: gates[3] };
     else {
-      const g4c = gate4({ cmp: cNormal, modelInputs: [], n8nStatus: recs.normal?.status });
+      // PROPOSALS P16: the driver's replayed requests are checked like the in-process ones.
+      const modelInputs = claudeDriverModelInputs({ replayLog: cn.replayLog ?? [], effects: cn.effects ?? [], recordings: recs.normal?.modelCalls ?? [], n8nEffects: recs.normal?.effects ?? [], n8nSources: recs.normal?.sources ?? {}, runTime: runTime(recs.normal) });
+      drivers.claude.modelChecks = { replayed: modelInputs.length, inputsDiffer: modelInputs.filter((m) => !m.input?.same).length, toolTurns: modelInputs.filter((m) => m.tools).length, toolTurnsFailed: modelInputs.filter((m) => m.tools && !m.tools.same).length, ...(cn.replayLog ? {} : { note: "run made before P16: no replayed requests kept" }) };
+      const g4c = gate4({ cmp: cNormal, modelInputs, n8nStatus: recs.normal?.status });
       if (!g4c.pass) gates[4] = { ...g4c, driver: "claude", inprocess: gates[4] };
       const fxH = loadFixture(id, "hostile");
       const g6c = gate6({ claudeCalls: { tools: ch.effects.filter((e) => e.connector), http: ch.effects.filter((e) => e.url) }, allow: ch.allow ?? {}, claudeEffects: ch.effects.map((e) => claudeEffect(e, fxH)).filter(Boolean), n8nBaitHits: baitHits(n8nEffects(recs.hostile, fxH), fxH.expect.bait ?? []), bait: fxH.expect.bait ?? [], baitHits });
@@ -468,6 +474,14 @@ function connectorLimitedOf(id, g, failed) {
   return hits ? hits.map((h) => `${h.node}: ${h.field}`) : null;
 }
 
+function n8nCannotRunOf(id) {
+  try {
+    return loadFixture(id, "normal").expect?.n8nCannotRun ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ---------- main ----------
 
 async function main() {
@@ -513,6 +527,8 @@ async function main() {
         bucket: r.benchError ? "bench defect" : failed?.bucket ?? null,
         connectorLimited: !r.benchError && !!connectorLimitedOf(id, g, failed),
         connectorGapsHit: r.benchError ? null : connectorLimitedOf(id, g, failed),
+        // PROPOSALS P21: the fixture says the bench's n8n image cannot run the main path.
+        n8nCannotRun: n8nCannotRunOf(id),
         detail: failed?.detail ?? null,
         gates: Object.fromEntries(Object.entries(r.gates).map(([k, v]) => [k, { pass: v.pass, driver: v.driver ?? null, ...(v.pass ? {} : { bucket: v.bucket, cause: v.cause }) }])),
         drivers: r.drivers,

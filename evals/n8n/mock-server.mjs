@@ -16,7 +16,7 @@
 // "body" that is not a string is sent as JSON. "delayMs" delays the reply.
 //
 // Bench routes (evals/bench, FIXTURES.md `http` sources), tried before the keys above:
-//   "__routes": [{method, url, query?, bodyMatch?, status, headers?, body?, bodyBase64?, delayMs?}]
+//   "__routes": [{method, url, any?, query?, bodyMatch?, status, headers?, body?, bodyBase64?, delayMs?}]
 //   url is the real service URL without query; it is matched against the request's origin and
 //   path (a proxied or TLS-intercepted request), or its path alone for a request made to the
 //   mock directly. `{token}` in the url matches one run of non-slash characters (Telegram's
@@ -24,8 +24,12 @@
 //   as strings; UUIDs match with or without dashes). `bodyMatch`, when given, must be carried by
 //   the request body: an object is a subset of the parsed body (JSON or form; leaves compared as
 //   strings, arrays element by element), a string must occur in the raw body text. The most
-//   specific match wins (most query keys plus bodyMatch leaves, then list order). Routes with
-//   the same method + url + query + bodyMatch reply in turn and the last repeats. bodyBase64 is binary.
+//   specific match wins (an exact path before `any`, then most query keys plus bodyMatch
+//   leaves, then list order). `any: true` answers every path on the url's origin (a request
+//   made to the mock directly names no origin and never matches it). Routes with the same
+//   method + url + any + query + bodyMatch reply in turn and the last repeats. bodyBase64 is
+//   binary. With __routes present, a write no route answers gets __writeDefault (logged
+//   write-default) and a read gets 404 {"error":"no fixture"}, logged read-default.
 //
 // TLS (--tls-dir, evals/bench/tls.mjs): a CONNECT to a host with a leaf certificate in
 // <dir>/hosts is answered 200 and the tunnel is terminated here with that leaf, so the
@@ -36,7 +40,8 @@
 // /model/<tag>/ (a model credential's base URL, set per node by the bench) is forwarded to the
 // shim with header x-bench-model-tag: <tag> and the rest of the path; a request to
 // api.anthropic.com/v1/messages or api.openai.com/v1/chat/completions that no route answers is
-// forwarded with tag host:<host>. The log line carries model: <tag> and the shim's reply.
+// forwarded with tag host:<host> (MODEL_HOSTS lists the hosts). The log line carries model: <tag>
+// and the shim's reply.
 //
 // Forwarding to a host responder ("__forward": [{origin}] in the fixture map, needs --model-shim):
 // a proxied or TLS-intercepted request to one of these origins is forwarded to the --model-shim
@@ -192,7 +197,7 @@ const leaves = (w) => (typeof w === "string" ? 1 : Array.isArray(w) ? w.reduce((
 // The group a route replies in turn with: method, url, query and bodyMatch. Also the log's
 // `fixture` value ("route <key>"), so the request log can be diffed against the fixture.
 export function routeKey(r) {
-  return `${r.method} ${r.url}${r.query && Object.keys(r.query).length ? " " + JSON.stringify(r.query) : ""}${r.bodyMatch !== undefined ? " body " + JSON.stringify(r.bodyMatch) : ""}`;
+  return `${r.method} ${r.url}${r.any ? " any" : ""}${r.query && Object.keys(r.query).length ? " " + JSON.stringify(r.query) : ""}${r.bodyMatch !== undefined ? " body " + JSON.stringify(r.bodyMatch) : ""}`;
 }
 
 // Picks the bench route for a request (see the header). `searchParams` is a URLSearchParams;
@@ -205,14 +210,19 @@ export function pickRoute(routes, method, origin, path, searchParams, counters, 
   let best = null;
   for (const r of routes) {
     if (r.method !== "*" && String(r.method).toUpperCase() !== method) continue;
-    const re = routeRegex(r.url);
     const u = /^https?:\/\/[^/]+(\/.*)?$/.exec(r.url);
-    const hit = origin ? re.test(full) : routeRegex(u ? u[1] || "/" : r.url).test(bare);
+    let hit;
+    // `any` (PROPOSALS P19): the response answers every path on its origin (a page tool or an
+    // image fetch whose URL the model writes). Only for requests that name an origin.
+    if (r.any) hit = !!origin && safeDecode(origin).toLowerCase() === new URL(r.url).origin.toLowerCase();
+    else hit = origin ? routeRegex(r.url).test(full) : routeRegex(u ? u[1] || "/" : r.url).test(bare);
     if (!hit) continue;
     const q = r.query ?? {};
     if (!Object.entries(q).every(([k, v]) => searchParams.get(k) === String(v))) continue;
     if (r.bodyMatch !== undefined && !bodyCarries(r.bodyMatch, body)) continue;
-    const n = Object.keys(q).length + (r.bodyMatch !== undefined ? leaves(r.bodyMatch) : 0);
+    // A route for the exact path always beats an `any` route; then the most query keys and
+    // bodyMatch leaves; then list order.
+    const n = (r.any ? 0 : 1e6) + Object.keys(q).length + (r.bodyMatch !== undefined ? leaves(r.bodyMatch) : 0);
     if (!best || n > best.n) best = { n, r };
   }
   if (!best) return null;
@@ -223,7 +233,19 @@ export function pickRoute(routes, method, origin, path, searchParams, counters, 
   return { key: `route ${groupKey}`, f: group[Math.min(i, group.length - 1)] };
 }
 
-const MODEL_HOSTS = { "api.anthropic.com": /^\/v1\/messages$/, "api.openai.com": /^\/v1\/chat\/completions$/ };
+// Model APIs on fixed hosts that no route answers are forwarded to the shim, tagged host:<host>
+// (evals/bench/n8n-side.mjs SHIM_MODELS routes Groq, Mistral and Vertex nodes, and LLM APIs over
+// HTTP, this way; PROPOSALS P18). Every format here is one the shim speaks.
+export const MODEL_HOSTS = [
+  { host: "api.anthropic.com", path: /^\/v1\/messages$/ },
+  { host: "api.openai.com", path: /^\/v1\/chat\/completions$/ },
+  { host: "openrouter.ai", path: /^\/api\/v1\/chat\/completions$/ },
+  { host: "api.groq.com", path: /^\/openai\/v1\/chat\/completions$/ },
+  { host: "api.mistral.ai", path: /^\/v1\/chat\/completions$/ },
+  { host: "router.huggingface.co", path: /^\/hf-inference\/models\/.+/ },
+  { host: /^(?:[a-z0-9-]+-)?aiplatform\.googleapis\.com$|^aiplatform\.(?:eu|us)\.rep\.googleapis\.com$/, path: /:(?:stream)?generateContent$/ },
+];
+export const modelHost = (host, path) => MODEL_HOSTS.some((m) => (typeof m.host === "string" ? m.host === host : m.host.test(host)) && m.path.test(path));
 
 export function startMock({ port = 8080, log = null, fixtures = null, host = "0.0.0.0", tlsDir = null, modelShim = null } = {}) {
   let seq = 0;
@@ -272,7 +294,7 @@ export function startMock({ port = 8080, log = null, fixtures = null, host = "0.
       const tagged = /^\/model\/([^/]+)(\/.*)$/.exec(u.pathname);
       const route = tagged ? null : pickRoute(map.__routes, req.method, origin, u.pathname, u.searchParams, counters, entry.body);
       const hostOnly = origin ? origin.replace(/^https?:\/\//, "").replace(/:\d+$/, "") : null;
-      const modelTag = tagged ? safeDecode(tagged[1]) : !route && hostOnly && MODEL_HOSTS[hostOnly]?.test(u.pathname) ? `host:${hostOnly}` : null;
+      const modelTag = tagged ? safeDecode(tagged[1]) : !route && hostOnly && modelHost(hostOnly, u.pathname) ? `host:${hostOnly}` : null;
       const forward = !modelTag && origin && modelShim && Array.isArray(map.__forward) ? map.__forward.find((f) => f && f.origin === origin) : null;
       if ((modelTag || forward) && modelShim) {
         if (modelTag) entry.model = modelTag;
@@ -304,7 +326,10 @@ export function startMock({ port = 8080, log = null, fixtures = null, host = "0.
       // A write no fixture answers is accepted (200 {}), as the mock MCP server answers an
       // unfixtured call with {"ok": true}; reads still get the 404 so fixture gaps show.
       const writeDefault = !route && map.__writeDefault && ["POST", "PUT", "PATCH", "DELETE"].includes(req.method) && origin ? { key: "write-default", f: map.__writeDefault } : null;
-      const { key, f } = route ?? writeDefault ?? pickFixture(map, req.method, u.pathname, query, counters, origin);
+      let { key, f } = route ?? writeDefault ?? pickFixture(map, req.method, u.pathname, query, counters, origin);
+      // A read no bench route answers (PROPOSALS P19): 404, logged as read-default, the twin of
+      // write-default, so a fixture gap shows in the request log.
+      if (key === null && Array.isArray(map.__routes)) key = "read-default";
       entry.fixture = key;
       if (log) appendFileSync(log, JSON.stringify(entry) + "\n");
       const send = () => {
