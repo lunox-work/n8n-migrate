@@ -89,3 +89,13 @@ From here a run covers the templates whose `definition.json` changed against the
   - 2167: 4 → 4, later blocker. With P6 it passes gates 3–7 in process; the claude driver fails gate 4 because the task driver sends the GitLab `multipart-form-data` body as JSON (`position[new_line]` 48 instead of "48"), the known gap in PLAN Known gaps.
 - `convert-coverage --split dev`: unchanged (no converter change).
 - From here every measurement runs all 30 templates; rows are not carried forward.
+
+## Iteration 8: multipart bodies as n8n sends them (accepted)
+
+- Bucket: runner bug (task driver). Found in `p6-full30`: 2167 passes gates 3–7 in process and fails gate 4 under the claude driver, because `executeHttp` sent the HTTP Request node's `multipart-form-data` body as JSON (`position[new_line]` 48 where n8n's form sends "48"). PLAN Known gaps listed it. Binary form fields were refused outright (`HTTP Request binary form fields`).
+- Hypothesis: encoding the body as n8n's form-data 4 does (read from the n8n 2.47.7 image) makes the task driver's request the same as n8n's, and moves 2167 to a pass.
+- Change: `driver.mjs` `multipartBody()` and the `executeHttp` branch: each field a part, values byte for byte, numbers, booleans and null as text, objects as JSON, lists repeated, file parts with filename and Content-Type; names escaped as form-data does; the body goes out as bytes with its boundary, so any fetch sends the same thing. `nodes2.mjs` `multipartPairs()`: `formBinaryData` fields become file parts from the item's binary property (n8n's error when it is missing; left out without a field name; data in n8n's store is refused), repeated names as before.
+- First measurement `p6-i8` (real multipart through undici's `FormData`, 18 `claude -p` runs): 7 of 30, gate sum 136, every template unchanged. 2167's only difference left: `FormData` rewrites `\n` to `\r\n` inside text values (the WHATWG encoding rule), which n8n's form-data does not. The encoder was replaced by the byte-exact one above.
+- Second measurement `p6-i8b` (18 `claude -p` runs; ledger 165 → 201 over both): **8 of 30 pass** (was 7: adds 2167), **gate sum 141** (was 136). Reached: 2167 4 → 9; 1747, 2197, 2413, 2777, 3102, 4573, 6270 9; 1953, 2415, 4722 4; 2063 3 (P8, `read ECONNRESET`, same as `p6-full30`); the other 18 at 3, all unchanged.
+- `convert-coverage --split dev`: unchanged (full 6, review 14, blocked 40, preflight clean 21; the converter is untouched). `node --test` 279 pass, lint included.
+- Verdict: accepted (success count rises, gate sum rises, no gate falls, no pass lost).

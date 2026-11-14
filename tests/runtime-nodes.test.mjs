@@ -361,6 +361,23 @@ test("HTTP Request 4.2 builds the request from parameters and splits JSON arrays
   assert.deepEqual(out(r, "Get"), [{ a: 1 }, { a: 2 }]);
 });
 
+test("HTTP Request multipart: text fields as given, file parts from the item's binary, duplicates as a list from 4.2", async () => {
+  const seen = [];
+  const params = (v) => ({ method: "POST", url: "https://up.example.com/v1/files", sendBody: true, contentType: "multipart-form-data", bodyParameters: { parameters: [{ name: "purpose", value: "ocr" }, { name: "line", value: "={{ $json.n }}" }, { parameterType: "formBinaryData", name: "file", inputDataFieldName: "data" }, { parameterType: "formBinaryData", name: "skipped", inputDataFieldName: "" }, { name: "tag", value: "a" }, { name: "tag", value: "b" }] }, options: {} });
+  const mk = (v) => wf([start(), node("Up", "httpRequest", params(v), { v })], chain("Start", "Up"), { allow: { tools: [], http: [{ method: "POST", host: "up.example.com", pathPrefix: "/v1/" }] } });
+  const host = { http: async (req) => (seen.push(req), { status: 200, headers: { "content-type": "application/json" }, body: "{}" }) };
+  const binary = { data: { data: Buffer.from("%PDF-1.4 x").toString("base64"), mimeType: "application/pdf", fileName: "doc.pdf" } };
+  const r = await run(mk(4.2), { trigger: { node: "Start", items: [{ json: { n: 48 }, binary }] }, host });
+  assert.equal(r.status, "done", JSON.stringify(r.error));
+  assert.equal(seen[0].contentType, "multipart-form-data");
+  assert.deepEqual(seen[0].body, { purpose: "ocr", line: 48, file: { $file: { fileName: "doc.pdf", mimeType: "application/pdf", data: binary.data.data } }, tag: ["a", "b"] });
+  await run(mk(4.1), { trigger: { node: "Start", items: [{ json: { n: 1 }, binary }] }, host });
+  assert.equal(seen[1].body.tag, "b", "before 4.2 a repeated name keeps the last value");
+  const missing = await run(mk(4.2), { trigger: [{ n: 1 }], host });
+  assert.equal(missing.status, "failed");
+  assert.match(missing.error.message, /binary file 'data', but none was found \[item 0\]/);
+});
+
 test("HTTP Request: text, full response, 4xx errors and neverError", async () => {
   const mk = (options, settings) => wf([start(), node("Get", "httpRequest", { url: "https://x.test/a", options }, { v: 4.2, settings })], chain("Start", "Get"), { allow: { http: [{ method: "GET", host: "x.test", pathPrefix: "/" }] } });
   const host = (status, body, ct = "text/plain") => ({ http: async () => ({ status, headers: { "Content-Type": ct }, body }) });

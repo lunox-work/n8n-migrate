@@ -586,6 +586,31 @@ const REASONS = { 200: "OK", 201: "Created", 202: "Accepted", 204: "No Content",
 
 // n8n HttpRequestV3 builds key-value parameters with updadeQueryParameterConfig: before
 // 4.3 a repeated name keeps the last value, from 4.3 it collects the values in a list.
+// A multipart body from n8n's key-value list (HttpRequestV3 parametersToKeyValue): a form
+// field keeps its value; a formBinaryData field becomes a file part from the item's binary
+// property inputDataFieldName (left out without one), {$file: {fileName, mimeType, data}} with
+// data in base64, as the host encodes it (driver.mjs multipartBody). Repeated names follow
+// keyPairs (a list from 4.3, with multipart from 4.2).
+function multipartPairs(exec, i, list, version) {
+  const out = {};
+  const binary = exec.getInputData()[i]?.binary ?? {};
+  for (const p of list ?? []) {
+    if (!p) continue;
+    let value = p.value;
+    if (p.parameterType === "formBinaryData") {
+      if (!p.inputDataFieldName) continue;
+      const b = binary[p.inputDataFieldName];
+      if (!b) throw err(exec, `This operation expects the node's input data to contain a binary file '${p.inputDataFieldName}', but none was found [item ${i}]`, { itemIndex: i });
+      if (typeof b.data !== "string" || b.id) throw unsupported(exec, "HTTP Request file parts from stored binary data");
+      value = { $file: { fileName: b.fileName, mimeType: b.mimeType, data: b.data } };
+    }
+    if (version < 4.3 || out[p.name] === undefined) out[p.name] = value;
+    else if (Array.isArray(out[p.name])) out[p.name].push(value);
+    else out[p.name] = [out[p.name], value];
+  }
+  return out;
+}
+
 function keyPairs(list, version) {
   const out = {};
   for (const p of list ?? []) {
@@ -637,11 +662,11 @@ export function buildHttpRequest(exec, i) {
     const list = p("bodyParameters.parameters", []);
     let body;
     if (specifyBody === "keypair" || ct === "multipart-form-data") {
-      if (list.some((x) => x?.parameterType === "formBinaryData")) throw unsupported(exec, "HTTP Request binary form fields");
+      if (ct !== "multipart-form-data" && list.some((x) => x?.parameterType === "formBinaryData")) throw unsupported(exec, "HTTP Request binary form fields outside a multipart body");
       if (ct === "json" && v >= 4) {
         body = {};
         for (const e of list) setPath(body, e.name, e.value);
-      } else if (ct === "multipart-form-data" && v >= 4.2) body = keyPairs(list, 4.3);
+      } else if (ct === "multipart-form-data") body = multipartPairs(exec, i, list, v >= 4.2 ? 4.3 : v);
       else body = keyPairs(list, v);
     } else if (specifyBody === "json") {
       const jb = p("jsonBody", "");

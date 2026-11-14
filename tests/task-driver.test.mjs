@@ -218,6 +218,26 @@ test("http requests run in the driver: the secret comes from its source, goes on
   await executeHttp(req, { secrets: "proxy" }, fakeFetch);
   assert.equal(seen[3].init.headers.authorization, undefined, "proxy: the environment adds the credential");
 
+  // multipart/form-data is sent as a real form (not JSON): text parts as text, lists repeated,
+  // file parts with their name and type; the body is bytes with its boundary header.
+  const mp = { kind: "http", method: "POST", url: "https://gitlab.example.com/api/v4/x", headers: { "content-type": "application/json" }, query: {}, contentType: "multipart-form-data", body: { body: "# Review\n\nline two", "position[new_line]": 48, flag: true, empty: null, tag: ["a", "b"], meta: { k: 1 }, file: { $file: { fileName: "a.txt", mimeType: "text/plain", data: Buffer.from("hi").toString("base64") } } } };
+  await executeHttp(mp, { secrets: "env" }, fakeFetch);
+  const sent = seen[4].init;
+  assert.ok(Buffer.isBuffer(sent.body));
+  assert.match(sent.headers["content-type"], /^multipart\/form-data; boundary=/);
+  const form = await new Request("https://x.test", { method: "POST", headers: { "content-type": sent.headers["content-type"] }, body: sent.body }).formData();
+  assert.equal(form.get("position[new_line]"), "48");
+  assert.ok(sent.body.includes(Buffer.from("# Review\n\nline two\r\n--")), "values go byte for byte (no CRLF rewrite)");
+  assert.match(sent.headers["content-type"], /boundary=-{26}[0-9a-f]{24}$/);
+  assert.equal(form.get("flag"), "true");
+  assert.equal(form.get("empty"), "null", "form-data sends null as text");
+  assert.deepEqual(form.getAll("tag"), ["a", "b"]);
+  assert.equal(form.get("meta"), '{"k":1}');
+  const file = form.get("file");
+  assert.equal(file.name, "a.txt");
+  assert.equal(file.type, "text/plain");
+  assert.equal(await file.text(), "hi");
+
   assert.deepEqual(mcpValue([{ type: "text", text: '{"a":1}' }]), { a: 1 });
   assert.equal(mcpValue([{ type: "text", text: "plain" }]), "plain");
   assert.deepEqual(mcpValue({ content: [{ type: "text", text: "x" }], structuredContent: { s: 1 } }), { s: 1 });

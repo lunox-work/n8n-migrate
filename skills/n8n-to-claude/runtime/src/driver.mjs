@@ -49,6 +49,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, readdirSync, rmSync, appendFileSync, openSync, closeSync, statSync, realpathSync } from "node:fs";
 import { join, dirname, relative, isAbsolute, basename } from "node:path";
 import { fileURLToPath } from "node:url";
+import { randomBytes } from "node:crypto";
 import { createStore } from "./store.mjs";
 
 // The command the model runs, relative to the session's working directory: a repo with several
@@ -310,6 +311,29 @@ function attachSecret(req, value, url, headers) {
   return url;
 }
 
+// A multipart/form-data body as n8n sends it (form-data 4 through its request helper): each
+// field a part, values byte for byte (no line-ending rewrite, unlike the WHATWG FormData
+// encoder), numbers, booleans and null as text, objects as JSON, a list as the same name
+// repeated, a file part ({$file: {fileName, mimeType, data (base64)}}, nodes2.mjs
+// multipartPairs) with filename and Content-Type. Names and file names escape CR, LF and " as
+// %0D, %0A, %22. Parts are separated by CRLF; the boundary is 26 dashes and 24 hex digits.
+export function multipartBody(fields, boundary = "--------------------------" + randomBytes(12).toString("hex")) {
+  const esc = (s) => String(s).replace(/\r/g, "%0D").replace(/\n/g, "%0A").replace(/"/g, "%22");
+  const chunks = [];
+  for (const [k, v] of Object.entries(fields ?? {})) {
+    for (const x of Array.isArray(v) ? v : [v]) {
+      const file = x && typeof x === "object" && x.$file ? x.$file : null;
+      let head = `--${boundary}\r\nContent-Disposition: form-data; name="${esc(k)}"`;
+      if (file) head += `; filename="${esc(basename(String(file.fileName || "file")))}"\r\nContent-Type: ${file.mimeType || "application/octet-stream"}`;
+      chunks.push(Buffer.from(head + "\r\n\r\n"));
+      chunks.push(file ? Buffer.from(String(file.data ?? ""), "base64") : Buffer.from(x !== null && typeof x === "object" ? JSON.stringify(x) : String(x)));
+      chunks.push(Buffer.from("\r\n"));
+    }
+  }
+  chunks.push(Buffer.from(`--${boundary}--\r\n`));
+  return { body: Buffer.concat(chunks), contentType: `multipart/form-data; boundary=${boundary}` };
+}
+
 export async function executeHttp(req, task, fetchImpl = globalThis.fetch) {
   const source = typeof task.secrets === "function" ? task.secrets : secretSources[task.secrets ?? "env"];
   let url = req.url;
@@ -325,7 +349,12 @@ export async function executeHttp(req, task, fetchImpl = globalThis.fetch) {
   url = u.toString();
   let body;
   if (req.body !== undefined && !["GET", "HEAD"].includes(req.method)) {
-    if (req.contentType === "form-urlencoded") {
+    if (req.contentType === "multipart-form-data" && req.body && typeof req.body === "object") {
+      const mp = multipartBody(req.body);
+      body = mp.body;
+      for (const k of Object.keys(headers)) if (k.toLowerCase() === "content-type") delete headers[k];
+      headers["content-type"] = mp.contentType;
+    } else if (req.contentType === "form-urlencoded") {
       body = new URLSearchParams(Object.entries(req.body ?? {}).map(([k, v]) => [k, typeof v === "object" ? JSON.stringify(v) : String(v)])).toString();
       headers["content-type"] ??= "application/x-www-form-urlencoded";
     } else if (typeof req.body === "string") body = req.body;
