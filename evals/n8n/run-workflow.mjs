@@ -255,7 +255,10 @@ export async function runWorkflow(workflow, { trigger, mock, credentials = {}, v
     node.credentials[ref.type] = { id: madeByKey.get(key), name: ref.name };
   }
 
-  let body = { name: `bench: ${wf.name ?? "workflow"}`, nodes: wf.nodes, connections: wf.connections ?? {}, settings: wf.settings ?? { executionOrder: "v1" }, staticData: wf.staticData ?? undefined, meta: wf.meta ?? undefined };
+  // Save settings only decide whether n8n keeps the execution; the bench reads every run back,
+  // so they are forced on (a template with saveManualExecutions: false is never readable).
+  const settings = { ...(wf.settings ?? { executionOrder: "v1" }), saveManualExecutions: true, saveDataSuccessExecution: "all", saveDataErrorExecution: "all" };
+  let body = { name: `bench: ${wf.name ?? "workflow"}`, nodes: wf.nodes, connections: wf.connections ?? {}, settings, staticData: wf.staticData ?? undefined, meta: wf.meta ?? undefined };
   const pin = keepPin ? { ...(wf.pinData ?? {}) } : {};
   if (via === "pin") {
     if (pinTrigger) pin[t.name] = items;
