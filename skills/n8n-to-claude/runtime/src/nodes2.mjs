@@ -7,6 +7,7 @@
 // Extract (need a DOM / cheerio selector engine), Date & Time v1 (moment format strings),
 // Crypto "sign" (private keys), HTTP pagination and binary bodies. Preflight reports them.
 
+import { restPrograms } from "./rest.mjs";
 import { NodeError, UnsupportedNode, deepCopy, getPath, setPath, unsetPath, isEqual, isObject } from "./util.mjs";
 import { hashHex, hmacBytes, digestBytes, bytesToBase64, toHex } from "./hash.mjs";
 import { tryToParseDateTime } from "./extensions.mjs";
@@ -1286,6 +1287,10 @@ export function requestImplFor(step) {
   if (step.kind === "model") return modelStep;
   if (step.kind === "agent") return agentStep;
   if (step.kind === "http" && isObject(step.http)) return httpTemplateStep;
+  if (step.kind === "http" && isObject(step.rest)) {
+    const prog = restPrograms[step.rest.program];
+    return prog && prog.versions(step.n8n?.typeVersion ?? 1) ? prog : null;
+  }
   if (step.kind === "trigger" && isObject(step.poll)) return pollTrigger;
   if (step.n8n?.type === BASE + "httpRequest" && httpRequest.versions(step.n8n?.typeVersion ?? 1)) return httpRequest;
   return null;

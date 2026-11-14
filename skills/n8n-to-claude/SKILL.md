@@ -41,7 +41,7 @@ First run `node --version`. No Node, or below 20: stop and tell the person the s
 
 ## Headless mode
 
-`N2C_HEADLESS=1`, or the person says "use defaults": ask nothing. Take every question's `assumed` value (convert does this when no answer is given), approve no substitution (they stay blocked), and say in the summary which answers were assumed. Everything else is the same.
+`N2C_HEADLESS=1`, or the person says "use defaults": ask nothing. Take every question's `assumed` value (convert does this when no answer is given), approve no substitution (a step offered one keeps its original service: an LLM API call stays an `http` step with the person's own key; anything else stays blocked), and say in the summary which answers were assumed. Everything else is the same.
 
 ## 1. Get the input
 
@@ -73,7 +73,7 @@ Ask the report's `questions` (each has `id`, `text`, `options`, `assumed`), grou
 `convert.mjs <input> --out <repo> --answers answers.json [--approve <id>[,<id>]]`.
 
 - `<repo>` is the folder that becomes the private git repository (or the local task's folder): one subfolder per workflow, `.claude/settings.json` and `n2c-hook.mjs` at its root.
-- A substitution (SMTP to Gmail, an LLM API call to a Claude model step, a shell command to a local task's shell) is applied only with `--approve <id>`, and only when the person said yes to that one. Show what it changes first (`requires` entries of kind `substitution`). Headless: never approve.
+- A substitution (SMTP to Gmail, an LLM API call to a Claude model step, a shell command to a local task's shell) is applied only with `--approve <id>`, and only when the person said yes to that one. Keeping the same service over its REST API with the person's key (an LLM API call, Google Sheets writes) is not a substitution: it needs only the secret, stored at setup. Show what it changes first (`requires` entries of kind `substitution`). Headless: never approve.
 - Workflows that do not run on the subscription are refused (folder with `report.json` and `MIGRATION.md` only). `--force-convert` only when the person asks to see the greyed graph anyway.
 - Read the printed summary: `converted`, `review` (steps flagged), `blocked-steps`, `refused`. Each folder's `MIGRATION.md` says what moved, what is flagged and what it needs.
 

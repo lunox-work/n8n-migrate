@@ -703,6 +703,19 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         addSecret(secretName, entry.credentialType);
       }
       for (const host of refs.toolMaps.credentialHosts?.[entry.credentialType] ?? []) addSecret(secretName, entry.credentialType, host);
+    } else if (entry.rest) {
+      // A REST program: the runtime reads the n8n parameters itself and makes n8n's requests.
+      step.kind = "http";
+      const cav = caveatsFor(params, entry.caveats);
+      step.rest = { program: entry.rest, fidelity: entry.fidelity ?? "exact", ...(cav.length ? { caveats: cav } : {}), map: key };
+      const cred = Object.entries(step.credentials ?? {}).find(([t]) => t === entry.credentialType) ?? Object.entries(step.credentials ?? {})[0];
+      const credType = cred?.[0] ?? entry.credentialType;
+      const secretName = cred?.[1] ?? `${entry.credentialType} (no credential named in the export)`;
+      step.auth = { credentialType: credType, secret: secretName };
+      for (const h of entry.hosts ?? []) {
+        addHttp(h.method, h.host, h.pathPrefix);
+        addSecret(secretName, credType, h.host);
+      }
     } else {
       const args = {};
       for (const [k, spec] of Object.entries(entry.args ?? {})) {
@@ -914,10 +927,13 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         const id = "llm-api-to-claude";
         const approved = ctx.approve.has(id) || ctx.approve.has(`${id}:${name}`);
         step.substitution = { id, from: "HTTP request to an LLM API", to: "a model step on Claude", approved };
-        if (!approved) {
-          block(step, "substitution", "a request to an LLM API with an API key", { offer: `approve with --approve ${id} to run it as a model step on Claude` });
-          continue;
-        }
+      }
+      if ((info.levers?.includes("llm-api") || info.kind === "model") && !step.substitution.approved) {
+        // Default mapping: the same request to the same provider with the person's own key
+        // (references/translation.md); running it on Claude instead is the substitution.
+        step.kind = "http";
+        review(step, `an LLM API called with your own API key, as n8n does; approve --approve ${step.substitution.id} to run it as a model step on Claude instead`);
+      } else if (info.levers?.includes("llm-api") || info.kind === "model") {
         step.kind = "model";
         delete step.auth;
         step.model = { prompt: "", outputKey: "text" };

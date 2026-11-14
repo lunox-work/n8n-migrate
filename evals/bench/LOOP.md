@@ -37,3 +37,18 @@ Baseline (`p6-i0`, plain `convert.mjs`, commit before iteration 1): see iteratio
 - Bench `p6-i3` (in process): 0 of 10, gate sum 37 (unchanged). 2415 stays at 4 with a later blocker: the classifier's system message now matches n8n's; its input text is `null` because the ReAct agent upstream (prompt built from `options.prefix`, not modelled) yields no `output.workflowJson`. Others unchanged; 2777 still 8 in process.
 - `convert-coverage --split dev`: unchanged (preflight clean 17).
 - Verdict: accepted under rule (c), later blocking cause, no gate falling.
+
+## Baseline for iterations 4–6 (`p6-base30c`, 30 dev fixture templates)
+
+After the approved bench changes P3–P5 (commit dccf5b5): 6 of 30 pass (1747, 2197, 2413, 2777, 3102, 6270), gate sum 130. Reached: 1953 4, 2167 4, 2415 4, 4722 4, the other 20 at 3. `convert-coverage --split dev`: full 4, review 9, blocked 47, preflight clean 17.
+
+From here a run covers the templates whose `definition.json` changed against the previous commit (converted by both trees, `generated`/`converter` stripped); the others carry their previous row, because the runner change in each iteration only adds code that unchanged definitions never reach and replayed runs are deterministic. Every row carries the commit it ran on.
+
+## Iteration 4: same service over REST with the person's credential (accepted)
+
+- Bucket: unmapped node (preflight-blocked steps). Sheets writes were the sole blocker of 2063 and 4573; unapproved LLM API calls over HTTP were blocked in 5 dev templates.
+- Hypothesis: keeping the same service over its REST API with a stored credential is the default mapping, not a substitution. One mechanism covers a single request (the existing `http` templates, an LLM API call kept as the original `http` step) and operations that take several requests (`rest` programs that follow the n8n node's own code), with the host allowlist and the secret's hosts from the tool map.
+- Change: `runtime/src/rest.mjs` (`googleSheets`: append, update, appendOrUpdate for v4+, n8n 2.47's requests and bodies: metadata, sheet read, `appendDimension`, `PUT`/`:append`, `values:batchUpdate`); tool-map entry kind `rest` (`credentialType`, `hosts`), schema `steps.*.rest`; converter `applyMap` rest branch; an unapproved LLM API call stays `http` with a review line naming `--approve llm-api-to-claude`. PLAN Phase 3, SKILL.md, translation.md state the rule. Caveat on every Sheets step: Google access tokens expire after an hour and service-account sign-in is not built.
+- Bench `p6-i4` (changed definitions: 1900, 2063, 2614, 2658, 2777, 3016, 3086, 3102, 4573; 4 `claude -p` runs): 6 of 30 pass (was 6), gate sum 133 (was 130). 2063 3 → 5 (all Sheets writes equal n8n's on the normal fixture; malformed differs in the updated row because the Sheets read does not apply `filtersUI`); 4573 3 → 4 (its Sheets writes equal n8n's; an extra CoreClaw POST from the same unfiltered read). 2777 and 3102 still pass; the rest unchanged.
+- `convert-coverage --split dev`: full 4 → 4, review 9 → 16, blocked 47 → 40, preflight clean 17 → 21; no template gains a blocked step or a preflight error (19 lose some).
+- Verdict: accepted (gate sum rises, no pass lost, no gate falls).

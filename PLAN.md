@@ -235,6 +235,7 @@ Conversion is split by how sure it is:
 - n8n expressions (`={{ $json.x }}`) and Code nodes: translated by Claude under the skill's instructions, flagged `review`.
 - Blocked nodes: kept in the graph as greyed-out steps with the reason.
 - Substitutions are applied only after the person approves them. Dropped branches are listed.
+- The same service over its own REST API with the person's stored credential is the default mapping, not a substitution: same service, same effect (an LLM API call kept as an `http` step; operations that take several requests, such as Google Sheets writes, as `rest` programs in `runtime/src/rest.mjs`). The person still supplies the key at setup, so it is listed under `definition.secrets`; headless runs assume no key. A substitution changes the service (SMTP to Gmail, an LLM API to a Claude model step).
 
 Safety during conversion:
 

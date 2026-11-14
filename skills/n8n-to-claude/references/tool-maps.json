@@ -5,7 +5,8 @@
     "args: tool input field -> spec. Specs are resolved at conversion time against the node's parameters; n8n expressions stay expressions and the runner evaluates them per item. Spec forms: \"param.path\" (a resource locator gives its value); {param, default}; {param, map: {n8nValue: toolValue}} (values not in the map are left out); {param, prefix}; {const}; {concat: [spec...], sep}; {if: {param, equals, default}, then, else}; {param, extract: \"googleId\"}; {binary: param, default, field}; {param, json: true} (a JSON text parameter becomes an object).",
     "caveats: plain-words differences from n8n; an object {text, unless: {param, equals}} is left out when the parameter has that value. result: the declarative result adapter evaluated by the runtime (runtime/src/adapt.mjs), so downstream expressions see n8n's field names. fidelity: exact | adapted | partial | none | unverified. The tool schemas captured on 2026-11-14 carry input schemas only, so no tool output shape is known: every adapter that depends on one is unverified until the bench's emulation check runs it against real output. missingFields: n8n output fields (from n8n's own output schemas, n8n-nodes-base 2.47.5) that the adapter cannot supply.",
     "understood: parameters this entry reads or accepts; any other parameter set on the node makes the step `review` (it has no counterpart in the tool). review: [{param, equals?, reason}] flags the step when a parameter has that value (any value when equals is absent).",
-    "The converter checks every args field against the tool's input JSON schema: required fields present, no unknown fields."
+    "The converter checks every args field against the tool's input JSON schema: required fields present, no unknown fields.",
+    "Or rest (a REST program in runtime/src/rest.mjs, for an operation that takes several requests: a read decides the write) with credentialType and hosts [{method, host, pathPrefix}]; the n8n parameters stay in step.params. Keeping the same service over its REST API with the person's own credential is the default mapping, not a substitution (references/translation.md)."
   ],
   "version": "1",
   "maps": {
@@ -668,6 +669,37 @@
       }
     },
     "n8n-nodes-base.googleSheets": {
+      ">=4": {
+        "sheet": {
+          "append": {
+            "rest": "googleSheets",
+            "credentialType": "googleSheetsOAuth2Api",
+            "hosts": [{ "method": "GET", "host": "sheets.googleapis.com", "pathPrefix": "/v4/spreadsheets/" }, { "method": "POST", "host": "sheets.googleapis.com", "pathPrefix": "/v4/spreadsheets/" }, { "method": "PUT", "host": "sheets.googleapis.com", "pathPrefix": "/v4/spreadsheets/" }],
+            "effect": "write",
+            "fidelity": "exact",
+            "caveats": ["Google OAuth access tokens expire after an hour and a service-account sign-in is not built yet: the stored secret must be a current access token, so an unattended run needs it refreshed."],
+            "understood": ["operation", "resource", "documentId", "sheetName", "columns.mappingMode", "columns.value", "columns.schema", "columns.matchingColumns", "columns.attemptToConvertTypes", "columns.convertFieldsToString", "options.cellFormat", "options.useAppend", "options.locationDefine", "options.handlingExtraData", "options.valueRenderMode", "authentication"]
+          },
+          "update": {
+            "rest": "googleSheets",
+            "credentialType": "googleSheetsOAuth2Api",
+            "hosts": [{ "method": "GET", "host": "sheets.googleapis.com", "pathPrefix": "/v4/spreadsheets/" }, { "method": "POST", "host": "sheets.googleapis.com", "pathPrefix": "/v4/spreadsheets/" }, { "method": "PUT", "host": "sheets.googleapis.com", "pathPrefix": "/v4/spreadsheets/" }],
+            "effect": "write",
+            "fidelity": "exact",
+            "caveats": ["Google OAuth access tokens expire after an hour and a service-account sign-in is not built yet: the stored secret must be a current access token, so an unattended run needs it refreshed."],
+            "understood": ["operation", "resource", "documentId", "sheetName", "columns.mappingMode", "columns.value", "columns.schema", "columns.matchingColumns", "columns.attemptToConvertTypes", "columns.convertFieldsToString", "options.cellFormat", "options.useAppend", "options.locationDefine", "options.handlingExtraData", "options.valueRenderMode", "authentication"]
+          },
+          "appendOrUpdate": {
+            "rest": "googleSheets",
+            "credentialType": "googleSheetsOAuth2Api",
+            "hosts": [{ "method": "GET", "host": "sheets.googleapis.com", "pathPrefix": "/v4/spreadsheets/" }, { "method": "POST", "host": "sheets.googleapis.com", "pathPrefix": "/v4/spreadsheets/" }, { "method": "PUT", "host": "sheets.googleapis.com", "pathPrefix": "/v4/spreadsheets/" }],
+            "effect": "write",
+            "fidelity": "exact",
+            "caveats": ["Google OAuth access tokens expire after an hour and a service-account sign-in is not built yet: the stored secret must be a current access token, so an unattended run needs it refreshed."],
+            "understood": ["operation", "resource", "documentId", "sheetName", "columns.mappingMode", "columns.value", "columns.schema", "columns.matchingColumns", "columns.attemptToConvertTypes", "columns.convertFieldsToString", "options.cellFormat", "options.useAppend", "options.locationDefine", "options.handlingExtraData", "options.valueRenderMode", "authentication"]
+          }
+        }
+      },
       ">=3": {
         "sheet": {
           "read": {
@@ -1001,6 +1033,7 @@
     "anthropicApi": ["api.anthropic.com"],
     "googlePalmApi": ["generativelanguage.googleapis.com"],
     "googleSheetsOAuth2Api": ["sheets.googleapis.com"],
+    "googleApi": ["sheets.googleapis.com"],
     "googleDocsOAuth2Api": ["docs.googleapis.com"],
     "googleDriveOAuth2Api": ["www.googleapis.com"],
     "gmailOAuth2": ["gmail.googleapis.com", "www.googleapis.com"],

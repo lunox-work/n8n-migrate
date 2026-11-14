@@ -232,6 +232,18 @@
               "caveats": { "type": "array", "items": { "type": "string" }, "description": "Known differences from what n8n does, in plain words (from tool-maps.json)." }
             }
           },
+          "rest": {
+            "type": "object",
+            "description": "A REST program (runtime/src/rest.mjs): a node operation run against the app's own REST API with the person's stored credential (auth), when one operation takes several requests (a read decides the write). The n8n parameters stay in params.",
+            "required": ["program"],
+            "additionalProperties": false,
+            "properties": {
+              "program": { "type": "string" },
+              "fidelity": { "enum": ["exact", "adapted", "partial", "none", "unverified"] },
+              "map": { "type": "string" },
+              "caveats": { "type": "array", "items": { "type": "string" } }
+            }
+          },
           "poll": {
             "type": "object",
             "required": ["tool", "cursor"],
