@@ -151,6 +151,7 @@ Needs a real Pro account:
 
 Gaps found in this unit:
 
-- A repo with several workflow folders loads only the repo root's `.claude/settings.json`, and `$CLAUDE_PROJECT_DIR/runtime/hook.mjs` assumes the folder is the root.
-- The runner core accepts a text value where an adapter expects JSON and emits 0 items. It should fail closed.
+- A repo with several workflow folders loads only the repo root's `.claude/settings.json`, and `$CLAUDE_PROJECT_DIR/runtime/hook.mjs` assumes the folder is the root. Fixed 2026-11-14: the `--out` folder is the repo, with a root settings file and the `n2c-hook.mjs` dispatcher; `run.mjs` now runs in that layout (row `p4-repo-layout-haiku-hostile5`: exact, 0 calls outside the definition).
+- The runner core accepts a text value where an adapter expects JSON and emits 0 items. It should fail closed. Fixed 2026-11-14: the step fails.
+- The mock did not cap Gmail at 50 threads or Slack at 40,000 characters. Fixed 2026-11-14 (`evals/mocks/limits.mjs`): the N = 200 and 500 rows above would now be refused by the mock at `pageSize` 500 or cut to one page.
 - Reading Claude Code's oversized-result file depends on the wording of its note (pinned by a test).
