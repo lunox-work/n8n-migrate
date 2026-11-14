@@ -346,15 +346,22 @@ One iteration:
 1. Run the bench on `dev`.
 2. Bucket the failures by gate and cause: unmapped node, field map, expression translation, runner bug, skill instruction, flaky model step, bench defect.
 3. Take the largest bucket. A session proposes one general fix to the skill (`nodes.json`, `SKILL.md`, runner, templates).
-4. Re-run `dev`. Accept the fix only if the success count rises by at least max(2, 2 × flips) templates, where flips is the number of templates whose verdict changed between the last two runs on one commit (0 of 10 in Phase 5, with replayed model replies), and no template that passed before now fails. Otherwise discard it and record what was tried.
-5. An accepted fix is one commit with the before and after counts in its message.
+4. Re-run `dev`. While fewer than 5 dev templates pass, accept the fix when all of these hold:
+   - the success count does not fall;
+   - no template's reached gate falls;
+   - the sum of reached gates over `dev` rises, or a template moves to a later blocking cause (a different blocker after the fixed one) with no gate falling;
+   - `node --test` and `scripts/lint-no-template-rules.mjs` pass;
+   - `node evals/convert-coverage.mjs --split dev` does not regress (no template gains a blocked step or a preflight error; the preflight-clean count does not fall).
+
+   From 5 passes on, the bar is the success count rising by at least max(2, 2 × flips) templates, where flips is the number of templates whose verdict changed between the last two runs on one commit (0 of 10 in Phase 5, with replayed model replies), and no template that passed before now fails. A single general fix rarely flips a whole template while every template stops at gate 3 or 4, which is why the gate-sum rule comes first. A discarded fix is recorded in `evals/bench/LOOP.md` (append-only: iteration, bucket, hypothesis, change, before/after, accepted or discarded).
+5. An accepted fix is one commit with the before and after numbers in its message: passes, sum of reached gates, reached gate per template.
 
 Every template that has ever passed joins the regression set, which runs on each change to the skill. That is the check for "did the migration workflow break".
 
 Rules that keep the number honest:
 
 - **`held-out` never steers.** The fixing session cannot read it. It runs only at release points and is reported. With 40 templates (strata of 2–4) one template is 2.5 points and the standard error of the dev − held-out difference is about 10 points near a 50% pass rate, so a fixed 10-point gap is noise. The loop is overfitting when the gap exceeds 1.96 × sqrt(p(1 − p)(1/60 + 1/40)) with p the pooled pass rate (about 20 points at p = 0.5, 12 at p = 0.1) plus 2 × flips templates, at two release points in a row: stop and review. Per-stratum gaps are reported, never gated.
-- **No template-specific rules.** A lint rejects template ids, names or fixture strings in skill files.
+- **No template-specific rules.** `scripts/lint-no-template-rules.mjs` (run by `node --test`) rejects template ids, names or fixture strings in skill files.
 - **The loop cannot loosen the bench.** Changes to fixtures, mocks, gates or the comparer are proposed separately and approved by a person.
 - **The comparer has its own idea of "same effect".** It must not reuse the converter's field map, or a wrong mapping passes on both sides. Its table is hand-checked on `held-out`.
 - **Emulation is checked against the real app.** Weekly, five passing templates are migrated and run in Claude Desktop on the Pro account. A mismatch is a bench defect and goes to the front of the queue.
@@ -407,3 +414,14 @@ Done when: a person can migrate a workflow, and roll it back, without any messag
 - **Loop cost.** Bench runs may draw on the same subscription as everything else, or on a separate pool. A full `dev` pass may take more than one usage window.
 - **Thin moat.** Pasting the JSON into Claude already works for one workflow. The analyzer, the graph and the cutover safety are what this adds; cut anything that does not serve those.
 - **Expression translation.** This is where silent wrong output comes from. Every model-translated step stays flagged until a dry run has passed.
+
+### Known gaps
+
+Blind spots gathered across Phases 1–6, none fixed yet unless marked:
+
+- Steps: `sendAndWait` operations are blocked; role or effect can depend on parameters or content; connector support varies per operation, not per node; `sample` is slow per item.
+- Triggers: persistent connections (Kafka, MQTT, AMQP) need a relay with a bridge; multi-trigger workflows have several targets; Telegram `getUpdates` polling costs 1440 runs a day; timezone defaults when the export sets none.
+- State: in-node state (dedupe history, in-memory vector store, buffer memory) has no home yet; no `db` pruning, and the lease has no release; the `n2c-state` branch grows forever; two cloud runs can overlap.
+- Surfaces: hooks are unconfirmed in cloud and Desktop tasks; form submissions run on the submitter's connectors, not the owner's.
+- Terms (3.7): never script claude.ai; outsiders waiting on a model reply means `hosted`.
+- Analyzer misclassifications found by the refusal labels: media-model calls (Gemini audio or video) must not be swapped to Claude; an LLM call over HTTP is outside I/O for not-an-automation (one labelled template was wrongly excluded); a Meta webhook whose verification GET and message POST share one callback needs a key.
