@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "template": 2860,
+  "sha256": "efedb0d5a29a78114cb2507f5b199e9c1a8e7616ac790a82943af2dd4b853304",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "an upload cut off after 120 bytes (header and the first objects, no xref or trailer) and an email without a top-level domain",
+  "trigger": {
+    "node": "On form submission",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "Name": "Andrea Rossi",
+          "Email": "andrea.rossi@mail",
+          "CV": [
+            {
+              "filename": "CV Andrea Rossi (final) (2).pdf",
+              "mimetype": "application/pdf",
+              "size": 120
+            }
+          ],
+          "submittedAt": "2026-11-16T09:00:00.000-05:00",
+          "formMode": "production"
+        },
+        "binary": {
+          "CV": {
+            "data": "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFs1IDAgUl0gL0NvdW50IDEgPj4KZW5kb2Jq",
+            "mimeType": "application/pdf",
+            "fileName": "CV Andrea Rossi (final) (2).pdf",
+            "fileExtension": "pdf",
+            "fileSize": "0.1 kB"
+          }
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [
+    "Qualifications",
+    "Personal Data",
+    "Summarization Chain",
+    "HR Expert",
+    "OpenAI"
+  ],
+  "writes": [
+    "Google Sheets",
+    "Upload CV"
+  ],
+  "writeReplies": [
+    {
+      "node": "Google Sheets",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1ssz5RvN1Hr20Q31pnYnbjCLu1MGBvoLttBAjXunMRQE",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1ssz5RvN1Hr20Q31pnYnbjCLu1MGBvoLttBAjXunMRQE",
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Foglio1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1ssz5RvN1Hr20Q31pnYnbjCLu1MGBvoLttBAjXunMRQE/values/Foglio1!1:1",
+            "status": 200,
+            "body": {
+              "range": "Foglio1!A1:L1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "DATA",
+                  "NAME",
+                  "PHONE",
+                  "CITY",
+                  "EMAIL",
+                  "DATA NASCITA",
+                  "EDUCATIONAL",
+                  "JOB HISTORY",
+                  "SKILLS",
+                  "SUMMARIZE",
+                  "VOTE",
+                  "CONSIDERATION"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1ssz5RvN1Hr20Q31pnYnbjCLu1MGBvoLttBAjXunMRQE/values/'Foglio1'",
+            "status": 200,
+            "body": {
+              "range": "Foglio1!A1:L1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "DATA",
+                  "NAME",
+                  "PHONE",
+                  "CITY",
+                  "EMAIL",
+                  "DATA NASCITA",
+                  "EDUCATIONAL",
+                  "JOB HISTORY",
+                  "SKILLS",
+                  "SUMMARIZE",
+                  "VOTE",
+                  "CONSIDERATION"
+                ],
+                [
+                  "02/11/2026",
+                  "",
+                  "",
+                  "Bologna",
+                  "luca.ferri@mail.example",
+                  "1994-03-12",
+                  "Laurea in Informatica, Università di Bologna",
+                  "Backend developer at Sintesi Web (2019-2026)",
+                  "PHP, Laravel, MySQL",
+                  "Backend developer in Bologna with seven years of PHP.",
+                  "7",
+                  "Strong PHP, little Python."
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.5 append (defineBelow) on gid=0: sheet properties, the header row, the used rows for the next free row, then PUT values/Foglio1!3:3 (write-default). Order from memory"
+    },
+    {
+      "node": "Upload CV",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1CvUpl0adBench7xYz9AbCdEfGhIjKlMnO",
+              "name": "Untitled",
+              "mimeType": "application/pdf"
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1CvUpl0adBench7xYz9AbCdEfGhIjKlMnO",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1CvUpl0adBench7xYz9AbCdEfGhIjKlMnO",
+              "name": "CV-20261116-CV Andrea Rossi (final) (2).pdf",
+              "mimeType": "application/pdf",
+              "parents": [
+                "1tzeSpx4D3EAGXa3Wg-gqGbdaUk6LIZTV"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Drive v3 upload: POST /upload/drive/v3/files?uploadType=media with the bytes, then PATCH /drive/v3/files/{id}?addParents=<CV folder> {name, mimeType}; whether 2.47.7 uses a resumable session instead is unverified"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Extract from File is expected to fail on the truncated PDF (pdf.js 2.16.105: 'Invalid PDF structure'), so the extractors, the HR chain and Google Sheets do not run; Upload CV runs in parallel and stores the bytes"
+    ],
+    "offline": "No external read: the CV comes in with the form (binary, so --via form) and Extract from File parses it locally with pdf.js. The Sheets NAME column reads $('On form submission').item.json.Nome (Italian) while the form field is Name, so NAME is empty on both sides. DATA and the Drive file name use $now"
+  }
+}

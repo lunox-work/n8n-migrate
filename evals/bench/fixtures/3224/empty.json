@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "template": 3224,
+  "sha256": "c74fec93738b945d6bad0325f296af1352b85d9e41f16ca8a75d510df728fb7d",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the page answers 200 with an empty body",
+  "trigger": {
+    "node": "Landing Page Url",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "Landing Page Url": "https://www.lumenrow.example/coming-soon",
+          "submittedAt": "2026-11-16T04:00:12.301-05:00",
+          "formMode": "production"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Scrape Website",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.lumenrow.example/coming-soon",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8",
+              "content-length": "0"
+            },
+            "body": ""
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a public web page fetched over http on the Claude side"
+      },
+      "note": "HTTP Request v4.2 GET of the submitted URL (no method set, so GET); an HTML reply comes out as {data: <html>}, which both audits read"
+    }
+  ],
+  "models": [
+    "Technical Audit",
+    "OpenAI Chat Model",
+    "Content Audit",
+    "OpenAI Chat Model1"
+  ],
+  "writes": [
+    "Gmail"
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch; both audits get an empty page (what n8n emits for an empty body, {data: ''} or no data, is unverified)"
+    ],
+    "offline": "Gmail sends to the template's example address user@example.com (a placeholder an overlay may replace; the bench compares the target as written)"
+  }
+}

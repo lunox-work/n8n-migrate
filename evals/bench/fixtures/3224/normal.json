@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "template": 3224,
+  "sha256": "c74fec93738b945d6bad0325f296af1352b85d9e41f16ca8a75d510df728fb7d",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "a SaaS landing page with a title and meta description, one H1, a missing alt attribute and a skipped heading level",
+  "trigger": {
+    "node": "Landing Page Url",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "Landing Page Url": "https://www.lumenrow.example/",
+          "submittedAt": "2026-11-16T04:00:12.301-05:00",
+          "formMode": "production"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Scrape Website",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.lumenrow.example/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Lumenrow - Shift scheduling software for restaurants and retail</title>\n<meta name=\"description\" content=\"Build staff rotas in minutes, approve shift swaps by SMS and forecast labour costs. Free 14-day trial.\">\n<link rel=\"canonical\" href=\"https://www.lumenrow.example/\">\n<link rel=\"stylesheet\" href=\"/assets/main.3f9c2a.css\">\n</head>\n<body>\n<header><nav><a href=\"/\">Lumenrow</a><a href=\"/pricing\">Pricing</a><a href=\"/blog\">Blog</a><a href=\"/login\">Log in</a></nav></header>\n<main>\n<section class=\"hero\"><h1>Shift scheduling your team will actually use</h1><p>Lumenrow builds rotas for restaurants and retail in minutes, handles swaps by SMS and keeps you compliant with working-time rules.</p><a class=\"btn\" href=\"/signup\">Start free trial</a></section>\n<section><h2>Why managers switch</h2><ul><li>Build next week's rota in 10 minutes</li><li>Shift swaps approved from your phone</li><li>Labour cost forecast before you publish</li></ul><img src=\"/img/rota-screenshot.png\"></section>\n<section><h3>Trusted by 1,200 venues</h3><p>\"We cut scheduling time by 70%.\" - Maya, GM at Ostro Kitchen</p></section>\n<section><h2>Pricing</h2><p>From $3 per employee per month. No setup fee.</p></section>\n</main>\n<footer><p>&copy; 2026 Lumenrow Ltd</p></footer>\n<script src=\"/assets/app.81bd0e.js\" defer></script>\n</body>\n</html>\n"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a public web page fetched over http on the Claude side"
+      },
+      "note": "HTTP Request v4.2 GET of the submitted URL (no method set, so GET); an HTML reply comes out as {data: <html>}, which both audits read"
+    }
+  ],
+  "models": [
+    "Technical Audit",
+    "OpenAI Chat Model",
+    "Content Audit",
+    "OpenAI Chat Model1"
+  ],
+  "writes": [
+    "Gmail"
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: both audits run on the page, Merge joins them, one email"
+    ],
+    "offline": "Gmail sends to the template's example address user@example.com (a placeholder an overlay may replace; the bench compares the target as written)"
+  }
+}

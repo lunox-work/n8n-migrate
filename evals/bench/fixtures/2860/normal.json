@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "template": 2860,
+  "sha256": "efedb0d5a29a78114cb2507f5b199e9c1a8e7616ac790a82943af2dd4b853304",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "a full-stack developer from Milan uploads a one-page text PDF CV that matches the wanted profile",
+  "trigger": {
+    "node": "On form submission",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "Name": "Giulia Martini",
+          "Email": "giulia.martini@mail.example",
+          "CV": [
+            {
+              "filename": "CV_Giulia_Martini.pdf",
+              "mimetype": "application/pdf",
+              "size": 1662
+            }
+          ],
+          "submittedAt": "2026-11-16T09:00:00.000-05:00",
+          "formMode": "production"
+        },
+        "binary": {
+          "CV": {
+            "data": "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFs1IDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nID4+CmVuZG9iago0IDAgb2JqCjw8IC9MZW5ndGggOTU4ID4+CnN0cmVhbQpCVCAvRjEgMTEgVGYgMTQgVEwgNTYgNzgwIFRkCihHaXVsaWEgTWFydGluaSkgVGogVCoKKEZ1bGwtc3RhY2sgV2ViIERldmVsb3BlcikgVGogVCoKKFZpYSBSb21hIDIxLCAyMDEyMSBNaWxhbm8gXChNSVwpICB8ICArMzkgMzQ3IDU1NSAwMTkyICB8ICBnaXVsaWEubWFydGluaUBtYWlsLmV4YW1wbGUpIFRqIFQqCihCb3JuIDE0LzA2LzE5OTMpIFRqIFQqCigpIFRqIFQqCihFWFBFUklFTkNFKSBUaiBUKgooMjAyMSAtIHByZXNlbnQgIFNlbmlvciBGdWxsLXN0YWNrIERldmVsb3BlciwgT2ZmaWNpbmEgRGlnaXRhbGUgc3JsLCBNaWxhbm8pIFRqIFQqCiggIExhcmF2ZWwgYW5kIFN5bWZvbnkgYmFjayBlbmRzLCBWdWUgMyBmcm9udCBlbmRzLCBSRVNUIEFQSXMgZm9yIGUtY29tbWVyY2UgY2xpZW50cy4pIFRqIFQqCigyMDE3IC0gMjAyMSAgV2ViIERldmVsb3BlciwgUGl4ZWxmYXJtLCBUb3Jpbm8pIFRqIFQqCiggIFdvcmRQcmVzcyBhbmQgV29vQ29tbWVyY2Ugc2l0ZXMsIFB5dGhvbiBcKERqYW5nb1wpIGludGVybmFsIHRvb2xzLikgVGogVCoKKCkgVGogVCoKKEVEVUNBVElPTikgVGogVCoKKDIwMTYgIExhdXJlYSBNYWdpc3RyYWxlIGluIEluZ2VnbmVyaWEgSW5mb3JtYXRpY2EsIFBvbGl0ZWNuaWNvIGRpIFRvcmlubyBcKDEwOC8xMTBcKSkgVGogVCoKKDIwMTIgIERpcGxvbWEgZGkgTGljZW8gU2NpZW50aWZpY28sIExpY2VvIEcuIEdhbGlsZWksIFRvcmlubyBcKDk1LzEwMFwpKSBUaiBUKgooKSBUaiBUKgooU0tJTExTKSBUaiBUKgooUEhQIDgsIExhcmF2ZWwsIFN5bWZvbnksIFB5dGhvbiwgRGphbmdvLCBGYXN0QVBJLCBKYXZhU2NyaXB0LCBUeXBlU2NyaXB0LCBWdWUsIFJlYWN0LCkgVGogVCoKKE15U1FMLCBQb3N0Z3JlU1FMLCBEb2NrZXIsIEdpdCwgQ0kvQ0QpIFRqIFQqCihMYW5ndWFnZXM6IEl0YWxpYW4gXChuYXRpdmVcKSwgRW5nbGlzaCBcKEMxXCkpIFRqIFQqCkVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDU5NSA4NDJdIC9Db250ZW50cyA0IDAgUiAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSAzIDAgUiA+PiA+PiA+PgplbmRvYmoKNiAwIG9iago8PCAvVGl0bGUgKENWIEdpdWxpYSBNYXJ0aW5pKSAvUHJvZHVjZXIgKE1pY3Jvc29mdCBXb3JkIGZvciBNaWNyb3NvZnQgMzY1KSA+PgplbmRvYmoKeHJlZgowIDcKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE1IDAwMDAwIG4gCjAwMDAwMDAwNjQgMDAwMDAgbiAKMDAwMDAwMDEyMSAwMDAwMCBuIAowMDAwMDAwMjE4IDAwMDAwIG4gCjAwMDAwMDEyMjcgMDAwMDAgbiAKMDAwMDAwMTM1MyAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDcgL1Jvb3QgMSAwIFIgL0luZm8gNiAwIFIgPj4Kc3RhcnR4cmVmCjE0NDYKJSVFT0YK",
+            "mimeType": "application/pdf",
+            "fileName": "CV_Giulia_Martini.pdf",
+            "fileExtension": "pdf",
+            "fileSize": "1.6 kB"
+          }
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [
+    "Qualifications",
+    "Personal Data",
+    "Summarization Chain",
+    "HR Expert",
+    "OpenAI"
+  ],
+  "writes": [
+    "Google Sheets",
+    "Upload CV"
+  ],
+  "writeReplies": [
+    {
+      "node": "Google Sheets",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1ssz5RvN1Hr20Q31pnYnbjCLu1MGBvoLttBAjXunMRQE",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1ssz5RvN1Hr20Q31pnYnbjCLu1MGBvoLttBAjXunMRQE",
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Foglio1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1ssz5RvN1Hr20Q31pnYnbjCLu1MGBvoLttBAjXunMRQE/values/Foglio1!1:1",
+            "status": 200,
+            "body": {
+              "range": "Foglio1!A1:L1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "DATA",
+                  "NAME",
+                  "PHONE",
+                  "CITY",
+                  "EMAIL",
+                  "DATA NASCITA",
+                  "EDUCATIONAL",
+                  "JOB HISTORY",
+                  "SKILLS",
+                  "SUMMARIZE",
+                  "VOTE",
+                  "CONSIDERATION"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1ssz5RvN1Hr20Q31pnYnbjCLu1MGBvoLttBAjXunMRQE/values/'Foglio1'",
+            "status": 200,
+            "body": {
+              "range": "Foglio1!A1:L1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "DATA",
+                  "NAME",
+                  "PHONE",
+                  "CITY",
+                  "EMAIL",
+                  "DATA NASCITA",
+                  "EDUCATIONAL",
+                  "JOB HISTORY",
+                  "SKILLS",
+                  "SUMMARIZE",
+                  "VOTE",
+                  "CONSIDERATION"
+                ],
+                [
+                  "02/11/2026",
+                  "",
+                  "",
+                  "Bologna",
+                  "luca.ferri@mail.example",
+                  "1994-03-12",
+                  "Laurea in Informatica, Università di Bologna",
+                  "Backend developer at Sintesi Web (2019-2026)",
+                  "PHP, Laravel, MySQL",
+                  "Backend developer in Bologna with seven years of PHP.",
+                  "7",
+                  "Strong PHP, little Python."
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.5 append (defineBelow) on gid=0: sheet properties, the header row, the used rows for the next free row, then PUT values/Foglio1!3:3 (write-default). Order from memory"
+    },
+    {
+      "node": "Upload CV",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1CvUpl0adBench7xYz9AbCdEfGhIjKlMnO",
+              "name": "Untitled",
+              "mimeType": "application/pdf"
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1CvUpl0adBench7xYz9AbCdEfGhIjKlMnO",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1CvUpl0adBench7xYz9AbCdEfGhIjKlMnO",
+              "name": "CV-20261116-CV_Giulia_Martini.pdf",
+              "mimeType": "application/pdf",
+              "parents": [
+                "1tzeSpx4D3EAGXa3Wg-gqGbdaUk6LIZTV"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Drive v3 upload: POST /upload/drive/v3/files?uploadType=media with the bytes, then PATCH /drive/v3/files/{id}?addParents=<CV folder> {name, mimeType}; whether 2.47.7 uses a resumable session instead is unverified"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: the form fans out to Extract from File (two extractors → Merge → summary → HR Expert → Google Sheets) and Upload CV"
+    ],
+    "offline": "No external read: the CV comes in with the form (binary, so --via form) and Extract from File parses it locally with pdf.js. The Sheets NAME column reads $('On form submission').item.json.Nome (Italian) while the form field is Name, so NAME is empty on both sides. DATA and the Drive file name use $now. The PDF is a valid one-page text PDF; pdf.js 2.16.105 (the legacy build) extracts its 19 lines"
+  }
+}

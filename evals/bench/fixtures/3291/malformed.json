@@ -1,0 +1,258 @@
+{
+  "schemaVersion": 1,
+  "template": 3291,
+  "sha256": "26a23fe061cb9af5a60ff21a8ec6934c397cfd86a1a30bbe883896b8f63356d8",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "Perplexity's reply has search_results but no citations field (the API's newer shape) and a 9,600-character answer; the image CDN refuses the hotlink with 403 HTML",
+  "trigger": {
+    "node": "On form submission",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "Research Query": "What are the most common challenges facing Canadian employers regarding recruitment and why would they want to hire a recruiting firm to solve these problems.",
+          "submittedAt": "2026-11-16T04:00:41.512-05:00",
+          "formMode": "production"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Perplexity Research",
+      "service": "perplexity",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.perplexity.ai/chat/completions",
+            "status": 200,
+            "body": {
+              "id": "5f0c9a7e-2d41-4b8a-9c1e-7a6b5c4d3e2f",
+              "model": "sonar-pro",
+              "created": 1794819600,
+              "usage": {
+                "prompt_tokens": 52,
+                "completion_tokens": 610,
+                "total_tokens": 662,
+                "search_context_size": "low"
+              },
+              "object": "chat.completion",
+              "choices": [
+                {
+                  "index": 0,
+                  "finish_reason": "stop",
+                  "message": {
+                    "role": "assistant",
+                    "content": "Canadian employers face shortages [1][2] and long hiring cycles [3]. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. Further detail. "
+                  }
+                }
+              ],
+              "search_results": [
+                {
+                  "title": "Source 1",
+                  "url": "https://www150.statcan.gc.ca/n1/daily-quotidien/261114/dq261114a-eng.htm",
+                  "date": null
+                },
+                {
+                  "title": "Source 2",
+                  "url": "https://www.bdc.ca/en/articles-tools/employees/recruit/labour-shortage-solutions",
+                  "date": null
+                },
+                {
+                  "title": "Source 3",
+                  "url": "https://www.shrm.org/topics-tools/news/talent-acquisition/time-to-fill-2026",
+                  "date": null
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "an LLM API called over HTTP: answered from the fixture on both sides (not swapped to Claude)"
+      },
+      "note": "HTTP Request v4.2 POST /chat/completions {model: sonar-pro, messages}; Cleanup Links reads choices[0].message.content and citations[0..9]"
+    },
+    {
+      "node": "GET Image",
+      "service": "image-cdn",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://smartcdn.gprod.postmedia.digital/healthing/wp-content/uploads/2024/07/GettyImages-1455799246.jpg",
+            "query": {
+              "w": "704"
+            },
+            "status": 403,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<html><head><title>403 Forbidden</title></head><body><center><h1>403 Forbidden</h1></center><hr><center>Hotlinking not permitted</center></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a public image URL fetched over http on the Claude side"
+      },
+      "note": "HTTP Request v4.2 GET of the fixed cover image URL (query quality, strip, w, h); the JPEG becomes binary 'data'. The bytes are a 1x1 JPEG stand-in"
+    }
+  ],
+  "models": [
+    "Copywriter AI Agent",
+    "gpt-4o-mini",
+    "Create HTML",
+    "Create Title, Slug, Meta",
+    "OpenAI Chat Model"
+  ],
+  "writes": [
+    "Wordpress",
+    "Upload Image to Wordpress",
+    "Set Image on Wordpress Post",
+    "Send Success Message to Telegram"
+  ],
+  "writeReplies": [
+    {
+      "node": "Wordpress",
+      "service": "wordpress",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://commonclone.com/wp-json/wp/v2/posts",
+            "status": 201,
+            "body": {
+              "id": 4182,
+              "date": "2026-11-16T04:01:12",
+              "date_gmt": "2026-11-16T09:01:12",
+              "guid": {
+                "rendered": "https://commonclone.com/?p=4182"
+              },
+              "modified": "2026-11-16T04:01:12",
+              "slug": "",
+              "status": "draft",
+              "type": "post",
+              "link": "https://commonclone.com/?p=4182",
+              "title": {
+                "rendered": ""
+              },
+              "content": {
+                "rendered": "",
+                "protected": false
+              },
+              "excerpt": {
+                "rendered": "",
+                "protected": false
+              },
+              "author": 2,
+              "featured_media": 0,
+              "comment_status": "closed",
+              "ping_status": "open",
+              "sticky": false,
+              "template": "",
+              "format": "standard",
+              "meta": [],
+              "categories": [
+                1
+              ],
+              "tags": []
+            }
+          }
+        ]
+      },
+      "note": "WordPress v1 post create: POST <credential url>/wp-json/wp/v2/posts; the reply's id feeds the media upload's file name and the featured-image call. The bench takes the WordPress credential URL from this route (https://commonclone.com, the host the two HTTP Request nodes hard-code)"
+    },
+    {
+      "node": "Upload Image to Wordpress",
+      "service": "wordpress",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://commonclone.com/wp-json/wp/v2/media",
+            "status": 201,
+            "body": {
+              "id": 4183,
+              "date": "2026-11-16T04:01:14",
+              "slug": "cover-image-4182",
+              "type": "attachment",
+              "link": "https://commonclone.com/cover-image-4182/",
+              "title": {
+                "rendered": "cover-image-4182"
+              },
+              "author": 2,
+              "media_type": "image",
+              "mime_type": "image/jpeg",
+              "source_url": "https://commonclone.com/wp-content/uploads/2026/11/cover-image-4182.jpeg"
+            }
+          }
+        ]
+      },
+      "note": "POST /wp-json/wp/v2/media with the JPEG body; the reply's id becomes featured_media"
+    },
+    {
+      "node": "Set Image on Wordpress Post",
+      "service": "wordpress",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://commonclone.com/wp-json/wp/v2/posts/4182",
+            "status": 200,
+            "body": {
+              "id": 4182,
+              "date": "2026-11-16T04:01:12",
+              "date_gmt": "2026-11-16T09:01:12",
+              "guid": {
+                "rendered": "https://commonclone.com/?p=4182"
+              },
+              "modified": "2026-11-16T04:01:12",
+              "slug": "",
+              "status": "draft",
+              "type": "post",
+              "link": "https://commonclone.com/?p=4182",
+              "title": {
+                "rendered": ""
+              },
+              "content": {
+                "rendered": "",
+                "protected": false
+              },
+              "excerpt": {
+                "rendered": "",
+                "protected": false
+              },
+              "author": 2,
+              "featured_media": 4183,
+              "comment_status": "closed",
+              "ping_status": "open",
+              "sticky": false,
+              "template": "",
+              "format": "standard",
+              "meta": [],
+              "categories": [
+                1
+              ],
+              "tags": []
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Cleanup Links is expected to fail on $json.citations[0] (citations is undefined), so nothing is posted in n8n; had it passed, GET Image's 403 would stop the run after the draft post"
+    ],
+    "offline": "Send Success Message to Telegram reads chatId from $env.TELEGRAM_CHAT_ID: needs an overlay env value (and claude.overrides). The Perplexity, image and WordPress credentials get bench dummies. The cover image is a 1x1 JPEG stand-in. The Telegram text carries $now"
+  }
+}

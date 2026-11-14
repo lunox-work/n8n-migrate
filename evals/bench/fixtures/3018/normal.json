@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "template": 3018,
+  "sha256": "1de68ec9ed24be5aeafbb52a1813ca26d4deb595d5e33ab8bfb9d1d2d031ebcc",
+  "variant": "normal",
+  "now": "2026-11-17T04:00:00.000Z",
+  "about": "the Tuesday noon schedule; Pexels returns one landscape photo for the model's keywords and the post is published with it",
+  "trigger": {
+    "node": "3. Schedule Your Posts",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-17T12:00:00.000+08:00",
+          "Readable date": "November 17th 2026, 12:00:00 pm",
+          "Readable time": "12:00:00 pm",
+          "Day of week": "Tuesday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "17",
+          "Hour": "12",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "Asia/Taipei (UTC+08:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Automated Image Retrieval from Pexels",
+      "service": "pexels",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.pexels.com/v1/search",
+            "query": {
+              "per_page": "1",
+              "orientation": "landscape"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "page": 1,
+              "per_page": 1,
+              "photos": [
+                {
+                  "id": 5490916,
+                  "width": 6000,
+                  "height": 4000,
+                  "url": "https://www.pexels.com/photo/5490916/",
+                  "photographer": "Timo Volz",
+                  "photographer_url": "https://www.pexels.com/@timo-volz",
+                  "photographer_id": 1043577,
+                  "avg_color": "#6E7A80",
+                  "src": {
+                    "original": "https://images.pexels.com/photos/5490916/pexels-photo-5490916.jpeg?auto=compress&cs=tinysrgb",
+                    "large2x": "https://images.pexels.com/photos/5490916/pexels-photo-5490916.jpeg?auto=compress&cs=tinysrgb",
+                    "large": "https://images.pexels.com/photos/5490916/pexels-photo-5490916.jpeg?auto=compress&cs=tinysrgb",
+                    "medium": "https://images.pexels.com/photos/5490916/pexels-photo-5490916.jpeg?auto=compress&cs=tinysrgb",
+                    "small": "https://images.pexels.com/photos/5490916/pexels-photo-5490916.jpeg?auto=compress&cs=tinysrgb",
+                    "portrait": "https://images.pexels.com/photos/5490916/pexels-photo-5490916.jpeg?auto=compress&cs=tinysrgb",
+                    "landscape": "https://images.pexels.com/photos/5490916/pexels-photo-5490916.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200",
+                    "tiny": "https://images.pexels.com/photos/5490916/pexels-photo-5490916.jpeg?auto=compress&cs=tinysrgb"
+                  },
+                  "liked": false,
+                  "alt": "Lantern-lit stairway in Jiufen old street at dusk"
+                }
+              ],
+              "total_results": 812,
+              "next_page": "https://api.pexels.com/v1/search/?orientation=landscape&page=2&per_page=1&query=jiufen+tea+house"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector for Pexels; http with the API key header"
+      },
+      "note": "HTTP Request v4.2 GET /v1/search: per_page, orientation and query sit in the URL (with a trailing newline in the template) and query is sent again as a query parameter, so the match is on per_page and orientation only. The keyword is model-written (Save to Sheet joins the model's keywords with '+')"
+    }
+  ],
+  "models": [
+    "Generate AI Content"
+  ],
+  "writes": [
+    "Save to Sheet",
+    "Create posts on Wordpress"
+  ],
+  "writeReplies": [
+    {
+      "node": "Create posts on Wordpress",
+      "service": "wordpress",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://blog.formosa-travel.example/wp-json/wp/v2/posts",
+            "status": 201,
+            "body": {
+              "id": 911,
+              "date": "2026-11-17T04:12:09",
+              "slug": "",
+              "status": "publish",
+              "type": "post",
+              "link": "https://blog.formosa-travel.example/?p=911",
+              "title": {
+                "rendered": ""
+              },
+              "content": {
+                "rendered": "",
+                "protected": false
+              },
+              "author": 1,
+              "featured_media": 0,
+              "comment_status": "open",
+              "sticky": false,
+              "format": "standard",
+              "categories": [
+                1
+              ],
+              "tags": []
+            }
+          }
+        ]
+      },
+      "note": "WordPress v1 post create (status publish): POST <credential url>/wp-json/wp/v2/posts. The template ships no site URL; this route sets the bench credential's URL (https://blog.formosa-travel.example). The reply is not read"
+    },
+    {
+      "node": "Save to Sheet",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1TaipeiPostsBenchSheet0aB1cD2eF3gH4iJ5kL6mN",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1TaipeiPostsBenchSheet0aB1cD2eF3gH4iJ5kL6mN",
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1TaipeiPostsBenchSheet0aB1cD2eF3gH4iJ5kL6mN/values/Sheet1!1:1",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:C1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "title",
+                  "content",
+                  "Image search keyword"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1TaipeiPostsBenchSheet0aB1cD2eF3gH4iJ5kL6mN/values/'Sheet1'",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:C1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "title",
+                  "content",
+                  "Image search keyword"
+                ],
+                [
+                  "Taipei Night Markets: 5 Stalls Locals Queue For",
+                  "<h1>Taipei Night Markets</h1><p>...</p>",
+                  "night+market+taipei"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.5 append by sheet name: header row, used rows, then PUT values/Sheet1!3:3 (write-default). documentId is the placeholder YOURDOCUMENT_URL: the overlay must set https://docs.google.com/spreadsheets/d/1TaipeiPostsBenchSheet0aB1cD2eF3gH4iJ5kL6mN/edit"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: one sheet row, one Pexels search, one published post"
+    ],
+    "offline": "Processing Delay draws a random 0-6 h delay (Math.random) and Random Wait waits it: the run needs timeCompression, and the drawn value differs per side. Placeholders: Save to Sheet's documentId (YOURDOCUMENT_URL), the Pexels Authorization header (YOUR_PEXELS_API_KEY), the WordPress credential URL, and the prompt's '(YOUR PROMPT)' lines (left as written). The workflow timezone is Asia/Taipei"
+  }
+}

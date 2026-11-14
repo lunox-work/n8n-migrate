@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "template": 3224,
+  "sha256": "c74fec93738b945d6bad0325f296af1352b85d9e41f16ca8a75d510df728fb7d",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the site sits behind a bot challenge and answers 403 with the challenge page",
+  "trigger": {
+    "node": "Landing Page Url",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "Landing Page Url": "https://www.lumenrow.example/pricing",
+          "submittedAt": "2026-11-16T04:00:12.301-05:00",
+          "formMode": "production"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Scrape Website",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.lumenrow.example/pricing",
+            "status": 403,
+            "headers": {
+              "content-type": "text/html; charset=UTF-8",
+              "cf-mitigated": "challenge",
+              "server": "cloudflare"
+            },
+            "body": "<!DOCTYPE html><html lang=\"en-US\"><head><title>Just a moment...</title><meta http-equiv=\"refresh\" content=\"390\"></head><body><div class=\"main-wrapper\" role=\"main\"><div class=\"main-content\"><h1 class=\"zone-name-title h1\">www.lumenrow.example</h1><h2 class=\"h2\" id=\"challenge-running\">Checking if the site connection is secure</h2><noscript><div class=\"h2\">Enable JavaScript and cookies to continue</div></noscript></div></div><script>(function(){window._cf_chl_opt={cvId: '3',cZone: \"www.lumenrow.example\",cType: 'managed'};}());</script></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a public web page fetched over http on the Claude side"
+      },
+      "note": "HTTP Request v4.2 GET of the submitted URL (no method set, so GET); an HTML reply comes out as {data: <html>}, which both audits read"
+    }
+  ],
+  "models": [
+    "Technical Audit",
+    "OpenAI Chat Model",
+    "Content Audit",
+    "OpenAI Chat Model1"
+  ],
+  "writes": [
+    "Gmail"
+  ],
+  "expect": {
+    "branches": [
+      "Scrape Website is expected to fail on the 403 (no error output), so neither audit nor the email runs in n8n"
+    ],
+    "offline": "Gmail sends to the template's example address user@example.com (a placeholder an overlay may replace; the bench compares the target as written)"
+  }
+}
