@@ -61,3 +61,12 @@ From here a run covers the templates whose `definition.json` changed against the
 - Bench `p6-i5` (changed definitions: 2063, 2658, 3086, 4573; 2 `claude -p` runs): 7 of 30 pass (was 6), gate sum 138 (was 133). 4573 4 → 9 (all gates, claude driver included). 2063 stays 5: the malformed fixture's http source holds a `null` cell that its connector source and the real API do not (PROPOSALS P7). 2658, 3086 stay at 3 (other blockers).
 - `convert-coverage --split dev`: full 4 → 6 (2063, 4573), review 16 → 14, blocked 40, preflight clean 21; no regression. `evals/convert-coverage-dev.md` regenerated (it also carries iteration 4's change).
 - Verdict: accepted.
+
+## Iteration 6: headless skill translates flagged steps; plain node commands (discarded)
+
+- Bucket: skill instruction. In the Phase 5 runs the headless skill translated nothing, and the node-only allowlist refused `cd` chains.
+- Hypothesis: telling headless mode to still do step 5 (translate every flagged step, verify it with `try-step.mjs`) and to run each script as one plain `node <relative path>/scripts/<script>.mjs ...` command gives the skill column steps the plain converter leaves flagged.
+- Change: two SKILL.md lines (the script paragraph and the headless paragraph).
+- Bench `p6-i6` (`--skill` on 3025, 2777, 4573: 3 `claude -p` sonnet runs, 8.8–14.6 s and $0.06–0.09 each, plus 4 claude-driver runs): skill column = plain column on all three (3025 3, 2777 9, 4573 9). The sessions ran plain `node` commands with no refusal. 3025's two flagged steps read `$env`, which translation.md keeps blocked, so the session left them, as the rules say; 2777 and 4573 have no flagged steps. The only override steps in the skill folders are the bench overlay's (placeholder fills, time compression). Among the 30, the only other templates with flagged steps (2315, 2803) flag node versions the runtime lacks, which cannot be translated either.
+- `convert-coverage`: unchanged (SKILL.md is not read by the converter).
+- Verdict: discarded (no gate rises, no blocker moves). Reverted. The 30 dev fixture templates hold no flagged step that headless translation could settle, so this change cannot be measured on them.
