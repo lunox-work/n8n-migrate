@@ -11878,7 +11878,7 @@ const { createLookup } = __m_proxy_mjs;
 // Not implemented, on purpose: Markdown (n8n converts with showdown / node-html-markdown;
 // a partial converter would produce silently different HTML), Html "extract" and HTML
 // Extract (need a DOM / cheerio selector engine), Date & Time v1 (moment format strings),
-// Crypto "sign" (private keys), HTTP pagination and binary bodies. Preflight reports them.
+// Crypto "sign" (private keys) and binary bodies. Preflight reports them.
 
 
 const BASE = "n8n-nodes-base.";
@@ -12515,7 +12515,6 @@ function buildHttpRequest(exec, i) {
   if (!url.startsWith("http://") && !url.startsWith("https://")) throw err(exec, `Invalid URL: ${url}. URL must start with "http" or "https".`, { itemIndex: i });
   const method = String(p("method", "GET")).toUpperCase();
   const options = p("options", {});
-  if (options.pagination?.pagination || exec.params.options?.pagination) throw unsupported(exec, "HTTP Request pagination");
   const r = options.response?.response ?? {};
   const responseFormat = r.responseFormat || "autodetect";
   if (responseFormat === "file") throw unsupported(exec, "HTTP Request file responses");
@@ -12570,7 +12569,117 @@ function buildHttpRequest(exec, i) {
   if (options.timeout) req.timeoutMs = options.timeout;
   if (options.redirect?.redirect?.followRedirects === false) req.followRedirects = false;
   req.response = { format: responseFormat, fullResponse: !!r.fullResponse, neverError: !!r.neverError };
+  // n8n reads the pagination settings once, from item 0, with their expressions unevaluated.
+  const pg = exec.param("options.pagination.pagination", 0, null, { rawExpressions: true });
+  if (pg && pg.paginationMode !== "off") req.pagination = paginationOf(exec, pg, req.response);
   return req;
+}
+
+// ---------- HTTP Request pagination (HttpRequestV3 + n8n-core requestWithAuthenticationPaginated) ----------
+// The node turns its settings into a `continue` expression, the request parts to change per
+// page and an optional page limit; n8n-core then requests page after page, each request part
+// evaluated with $response (the last page: body, headers, statusCode), $pageCount (pages so
+// far), $request and $version, until `continue` is false or the limit is reached. Each page
+// is one request here too (its own id, under the allowlist), and each page's body becomes
+// items as a single response would.
+const PAGE_PARTS = ["body", "headers", "qs"];
+function paginationOf(exec, pg, response) {
+  let cont = "={{false}}";
+  const when = pg.paginationCompleteWhen ?? "responseIsEmpty";
+  if (when === "receiveSpecificStatusCodes") {
+    const codes = String(pg.statusCodesWhenComplete ?? "").split(",").map((x) => parseInt(x.trim()));
+    cont = `={{ !${JSON.stringify(codes)}.includes($response.statusCode) }}`;
+  } else if (when === "responseIsEmpty") cont = "={{ Array.isArray($response.body) ? $response.body.length : !!$response.body }}";
+  else {
+    const ce = String(pg.completeExpression ?? "");
+    if (!ce.length || ce[0] !== "=") throw err(exec, "Invalid or empty Complete Expression");
+    const inner = ce.trim().slice(3, -2);
+    cont = response.neverError ? `={{ !(${inner}) }}` : `={{ !(${inner}) || ($response.statusCode < 200 || $response.statusCode >= 300) }}`;
+  }
+  const out = { continue: cont, request: {}, requestInterval: pg.requestInterval };
+  const mode = pg.paginationMode ?? "updateAParameterInEachRequest";
+  if (mode === "updateAParameterInEachRequest") {
+    const list = pg.parameters?.parameters ?? [];
+    if (list.length === 1 && list[0].name === "" && list[0].value === "") throw err(exec, "At least one entry with 'Name' and 'Value' filled must be included in 'Parameters' to use 'Update a Parameter in Each Request' mode ");
+    list.forEach((x, k) => {
+      if ((x.name ?? "") === "") throw err(exec, `Parameter name must be set for parameter [${k + 1}] in pagination settings`);
+      const type = x.type ?? "qs";
+      if (!PAGE_PARTS.includes(type)) throw err(exec, `Parameter type must be one of: body, headers, qs for parameter [${k + 1}] in pagination settings`);
+      if ((x.value ?? "") === "") throw err(exec, `Some value must be provided for parameter [${k + 1}] in pagination settings, omitting it will result in an infinite loop`);
+      (out.request[type] ??= {})[x.name] = x.value;
+    });
+  } else if (mode === "responseContainsNextURL") out.request.url = pg.nextURL;
+  if (pg.limitPagesFetched) out.maxRequests = pg.maxRequests;
+  return out;
+}
+
+// lodash merge, as applyPaginationRequestData merges the page's parts over the request.
+function mergeDeep(a, b) {
+  if (!isObject(a) || !isObject(b)) return b === undefined ? a : deepCopy(b);
+  const o = { ...a };
+  for (const [k, v] of Object.entries(b)) if (v !== undefined) o[k] = isObject(v) && isObject(a[k]) ? mergeDeep(a[k], v) : deepCopy(v);
+  return o;
+}
+// The page body as n8n-core's pagination helper reads it: JSON when the content type says so.
+function pageBody(value) {
+  const headers = Object.fromEntries(Object.entries(value.headers ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
+  let body = value.body;
+  if (typeof body === "string" && String(headers["content-type"] ?? "").includes("application/json")) {
+    try {
+      body = JSON.parse(body);
+    } catch {
+      body = {};
+    }
+  }
+  return { body: body ?? {}, headers, statusCode: Number(value.status ?? value.statusCode ?? 0) };
+}
+
+async function paginate(exec, req, i) {
+  const pg = req.pagination;
+  const { response, pagination, ...base } = req;
+  const $request = { method: base.method, uri: base.url, qs: base.query, headers: base.headers, ...(base.body !== undefined ? { body: base.body } : {}) };
+  const locals = { $request, $response: {}, $version: exec.typeVersion, $pageCount: 0 };
+  const resolve = (v) => resolveParameter(v, () => exec.scope(i, { locals: { ...locals } }));
+  const pages = [];
+  const hash = { identical: 0, length: 0, value: "" };
+  let more;
+  do {
+    const part = resolve(pg.request);
+    const page = mergeDeep(base, { query: part.qs, headers: part.headers, body: part.body, url: part.url });
+    if (typeof part.url === "string") {
+      let parsed = null;
+      try {
+        parsed = new URL(part.url);
+      } catch {}
+      if (!parsed) throw err(exec, `'${part.url}' is not a valid URL.`, { itemIndex: i });
+      for (const k of parsed.searchParams.keys()) delete page.query?.[k];
+    }
+    const [res] = await exec.request([page]);
+    pages.push(res);
+    if (!res.ok) return pages;
+    const shown = pageBody(res.value ?? {});
+    const len = parseInt(shown.headers["content-length"]) || 0;
+    if (hash.length === len) {
+      const h = shown.headers.etag ?? hashHex("md5", typeof shown.body === "string" ? shown.body : JSON.stringify(shown.body));
+      if (hash.value === h) {
+        hash.identical += 1;
+        if (hash.identical > 2) throw err(exec, "The returned response was identical 5x, so requests got stopped", { itemIndex: i, description: 'Check if "Pagination Completed When" has been configured correctly.' });
+      } else hash.identical = 0;
+      hash.value = h;
+    } else hash.identical = 0;
+    hash.length = len;
+    locals.$response = shown;
+    locals.$pageCount += 1;
+    const max = resolve(pg.maxRequests);
+    if (max && locals.$pageCount >= max) break;
+    more = resolve(pg.continue);
+    if (more && (shown.statusCode < 200 || shown.statusCode >= 300)) {
+      const data = typeof shown.body === "object" ? JSON.stringify(shown.body) : String(shown.body);
+      throw err(exec, `${shown.statusCode} - "${data}"`, { itemIndex: i, httpCode: String(shown.statusCode) });
+    }
+    // requestInterval only spaces the pages out in time; nothing waits here.
+  } while (more);
+  return pages;
 }
 
 function httpItems(exec, req, res, i) {
@@ -12663,21 +12772,39 @@ const httpRequest = {
         errors[i] = e.message;
       }
     });
-    const sendable = reqs.map(({ response, ...r }) => r);
-    const results = await exec.request(sendable);
     const out = [];
     let k = 0;
-    items.forEach((_, i) => {
-      if (errors[i] !== undefined) return void out.push({ json: { error: errors[i] }, pairedItem: { item: i } });
-      const req = reqs[k];
-      const res = results[k++];
-      try {
-        out.push(...httpItems(exec, req, res, i));
-      } catch (e) {
-        if (e instanceof UnsupportedNode || !exec.continueOnFail()) throw e;
-        out.push({ json: { error: e.message }, pairedItem: { item: i } });
+    if (reqs.some((r) => r.pagination)) {
+      // Paginated: each item's pages in turn (a page's request depends on the last response).
+      for (let i = 0; i < items.length; i++) {
+        if (errors[i] !== undefined) {
+          out.push({ json: { error: errors[i] }, pairedItem: { item: i } });
+          continue;
+        }
+        const req = reqs[k++];
+        try {
+          const pages = await paginate(exec, req, i);
+          for (const res of pages) out.push(...httpItems(exec, req, res, i));
+        } catch (e) {
+          if (e instanceof UnsupportedNode || e?.name === "Suspend" || e?.name === "ContainmentViolation" || !exec.continueOnFail()) throw e;
+          out.push({ json: { error: e.message }, pairedItem: { item: i } });
+        }
       }
-    });
+    } else {
+      const sendable = reqs.map(({ response, ...r }) => r);
+      const results = await exec.request(sendable);
+      items.forEach((_, i) => {
+        if (errors[i] !== undefined) return void out.push({ json: { error: errors[i] }, pairedItem: { item: i } });
+        const req = reqs[k];
+        const res = results[k++];
+        try {
+          out.push(...httpItems(exec, req, res, i));
+        } catch (e) {
+          if (e instanceof UnsupportedNode || !exec.continueOnFail()) throw e;
+          out.push({ json: { error: e.message }, pairedItem: { item: i } });
+        }
+      });
+    }
     // n8n then checks returnItems[0].json.data for its Split Out hint: a single item without
     // json (an empty body with an explicit json format) fails the node there.
     if (out.length === 1 && out[0].json === undefined) throw err(exec, "Cannot read properties of undefined (reading 'data')");
@@ -15574,7 +15701,10 @@ function preflight(definition, { availableTools, sourceText, pinned } = {}) {
     if (!sec.hosts?.length) err(`$.secrets[${i}]`, `secret "${sec.name}" names no host it may be sent to; add its hosts in overrides.json`);
   });
   (definition.allow?.http ?? []).forEach((a, i) => {
-    if (a.host === "*") err(`$.allow.http[${i}]`, `a request with a URL built at run time is allowed to any host (${a.method} *); narrow it to a host in overrides.json`);
+    // The host of a URL built at run time cannot be known before a run: refused here, by name,
+    // rather than allowed to any host or failed in the middle of a run.
+    const where = /^(step|agent tool) "/.test(a.note ?? "") ? `${a.note.replace(/: URL built at run time$/, "")}: ` : "";
+    if (a.host === "*") err(`$.allow.http[${i}]`, `${where}a request with a URL built at run time is allowed to any host (${a.method} *); its host cannot be known before a run: narrow it to a host in overrides.json`);
   });
   if (!Object.values(steps).some((s) => isTriggerStep(s) && s.settings?.disabled !== true)) warn("$.steps", "no trigger step; runs start at the first step without inputs");
   if (availableTools) {

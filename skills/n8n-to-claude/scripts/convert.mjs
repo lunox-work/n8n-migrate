@@ -1028,7 +1028,7 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         addSecret(step.auth.secret, step.auth.credentialType, target?.host);
         for (const host of refs.toolMaps.credentialHosts?.[step.auth.credentialType] ?? []) addSecret(step.auth.secret, step.auth.credentialType, host);
       }
-      if (params.options?.pagination) translate(step, "node", clone(params.options.pagination), "HTTP pagination is not implemented by the runtime");
+      if (params.options?.pagination?.pagination?.paginationMode === "responseContainsNextURL") review(step, "pagination follows a next URL from the response; a page on another host than the first request's is refused at run time");
       if (params.options?.response?.response?.responseFormat === "file") review(step, "the response is a file (binary data), which the runtime does not keep");
       if (params.sendBody && params.contentType === "binaryData") review(step, "the body is binary data, which the runtime does not send");
       continue;

@@ -56,7 +56,7 @@ Top preflight errors (what stops a run before any effect):
 | Error | Templates | Steps |
 | --- | --- | --- |
 | blocked: file steps need the files lever (not built yet) | 13 | 24 |
-| a request with a URL built at run time is allowed to any host (GET *); narrow it to a host in overrides.json | 13 | 13 |
+| step "…": a request with a URL built at run time is allowed to any host (GET *); its host cannot be known before a run: narrow it to a host in overrides.json | 12 | 12 |
 | blocked: a database step needs the bundled server or a database connector (open decision N) | 8 | 24 |
 | blocked: a vector store needs an MCP server (lever not built yet) | 7 | 10 |
 | blocked: media steps (transcription, image generation) go through the original provider (lever not built yet) | 6 | 7 |
@@ -113,7 +113,7 @@ Top preflight errors (what stops a run before any effect):
 | Error | Templates | Steps |
 | --- | --- | --- |
 | blocked: file steps need the files lever (not built yet) | 13 | 24 |
-| a request with a URL built at run time is allowed to any host (GET *); narrow it to a host in overrides.json | 13 | 13 |
+| step "…": a request with a URL built at run time is allowed to any host (GET *); its host cannot be known before a run: narrow it to a host in overrides.json | 12 | 12 |
 | blocked: a database step needs the bundled server or a database connector (open decision N) | 8 | 24 |
 | blocked: a vector store needs an MCP server (lever not built yet) | 7 | 10 |
 | blocked: media steps (transcription, image generation) go through the original provider (lever not built yet) | 6 | 7 |

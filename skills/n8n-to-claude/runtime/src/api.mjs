@@ -122,7 +122,10 @@ export function preflight(definition, { availableTools, sourceText, pinned } = {
     if (!sec.hosts?.length) err(`$.secrets[${i}]`, `secret "${sec.name}" names no host it may be sent to; add its hosts in overrides.json`);
   });
   (definition.allow?.http ?? []).forEach((a, i) => {
-    if (a.host === "*") err(`$.allow.http[${i}]`, `a request with a URL built at run time is allowed to any host (${a.method} *); narrow it to a host in overrides.json`);
+    // The host of a URL built at run time cannot be known before a run: refused here, by name,
+    // rather than allowed to any host or failed in the middle of a run.
+    const where = /^(step|agent tool) "/.test(a.note ?? "") ? `${a.note.replace(/: URL built at run time$/, "")}: ` : "";
+    if (a.host === "*") err(`$.allow.http[${i}]`, `${where}a request with a URL built at run time is allowed to any host (${a.method} *); its host cannot be known before a run: narrow it to a host in overrides.json`);
   });
   if (!Object.values(steps).some((s) => isTriggerStep(s) && s.settings?.disabled !== true)) warn("$.steps", "no trigger step; runs start at the first step without inputs");
   if (availableTools) {
