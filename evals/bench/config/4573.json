@@ -1,7 +1,7 @@
 {
   "why": "No placeholder fills. See timeCompression.",
   "timeCompression": {
-    "why": "Both Wait nodes are parameterless, so Wait v1.1 waits its default of 1 hour and n8n parks the execution in 'waiting' after the first poll, past the bench's timeout. Shortened to 1 second on both sides. This changes when the run resumes, not what it does: the mock's poll replies do not depend on elapsed time and no expression in the template reads $now. It is not a placeholder fill, so results flag it as time compression (config.nonPlaceholder).",
+    "why": "Both Wait nodes are parameterless Wait v1.1, which waits its default of 5 seconds (n8n 2.47.7 Wait node: the 1-hour default, amount 1 in hours, applies to v1 only; v1.1 defaults to amount 5 in seconds, and the runtime's defaults agree). Shortened to 1 second on both sides to keep the bench's wall time down across the job polls. This changes when the run resumes, not what it does: the mock's poll replies do not depend on elapsed time and no expression in the template reads $now. It is not a placeholder fill, so results flag it as time compression (config.nonPlaceholder).",
     "n8n": {
       "Wait for CoreClaw Leads Job": {
         "parameters.amount": 1,
