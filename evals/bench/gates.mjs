@@ -137,8 +137,8 @@ export function gate7(repeats) {
 
 // 8. Affordable: per-run wall time, turns and cost under the provisional ceiling
 // (evals/bench/ceiling.json), measured on the claude driver's normal run.
-export function gate8(metrics, ceiling, { intervalS } = {}) {
-  if (!metrics) return fail("bench defect", "no claude-driver measurement for this template");
+export function gate8(metrics, ceiling, { intervalS, missing } = {}) {
+  if (!metrics) return fail("bench defect", `no claude-driver measurement for this template${missing ? `: ${missing}` : ""}`);
   const over = [];
   const wallMax = Math.min(ceiling.wallS, intervalS ?? Infinity);
   if (metrics.wallMs / 1000 > wallMax) over.push(`wall ${Math.round(metrics.wallMs / 1000)} s > ${wallMax} s`);
@@ -152,4 +152,65 @@ export function gate8(metrics, ceiling, { intervalS } = {}) {
 export function reached(gates) {
   for (let g = 1; g <= 8; g++) if (!gates[g]?.pass) return g;
   return 9;
+}
+
+// ---------- connector-limited (PROPOSALS P1) ----------
+
+// The connector gaps a fixture declares: reads whose Claude side is a connector (not `none`)
+// and whose `connectorGaps` name facts the http/n8n source carries and the connector cannot.
+export function gapsOf(fx) {
+  const out = [];
+  for (const r of [...(fx?.reads ?? []), ...(fx?.writeReplies ?? [])]) {
+    if (!r.connector || r.connector.none) continue;
+    for (const g of r.connectorGaps ?? []) out.push({ node: r.node, field: String(g).split(":")[0].trim(), text: String(g) });
+  }
+  return out;
+}
+
+const GAP_STOP = new Set(["and", "as", "the", "of", "from", "to", "id", "ids", "name", "names", "value", "values", "text", "html", "raw", "type", "types", "object", "objects", "page", "pages", "option", "options", "full", "field", "fields"]);
+// Word patterns a failure detail must contain to trace to a gap field: its distinctive words
+// (singular or plural), or, when it has none, the whole field phrase.
+export function gapPatterns(field) {
+  const f = String(field).toLowerCase();
+  const words = f.split(/[^a-z0-9_-]+/).filter((w) => w.length >= 3 && !GAP_STOP.has(w));
+  const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const word = (w) => {
+    const stem = w.endsWith("ies") ? w.slice(0, -3) : w.endsWith("s") ? w.slice(0, -1) : w.endsWith("y") ? w.slice(0, -1) : w;
+    const tail = w.endsWith("y") || w.endsWith("ies") ? "(y|ies)" : "s?";
+    return new RegExp(`(^|[^a-z0-9_])${esc(stem)}${tail}($|[^a-z0-9_])`, "i");
+  };
+  return words.length ? words.map(word) : [new RegExp(esc(f.replace(/\s+/g, " ")), "i")];
+}
+
+// The step a failure names: detail entries with `step`, or "step <name>: ..." / "step <name> got ...".
+export function failedStep(failed) {
+  const d = [].concat(failed?.detail ?? []).find((x) => x && typeof x === "object" && x.step);
+  if (d) return d.step;
+  const m = /^step (.+?)(?:: | got )/.exec(failed?.cause ?? "");
+  return m && m[1] !== "?" ? m[1] : null;
+}
+
+// Nodes reachable from `from` over any connection (main, ai_tool, ai_languageModel, ...).
+export function downstreamOf(wf, from) {
+  const seen = new Set([from]);
+  const queue = [from];
+  while (queue.length) {
+    const n = queue.shift();
+    for (const outs of Object.values(wf?.connections?.[n] ?? {})) for (const list of outs ?? []) for (const e of list ?? []) if (e?.node && !seen.has(e.node)) seen.add(e.node), queue.push(e.node);
+  }
+  return seen;
+}
+
+// Is a failed gate connector-limited? Only data failures count (gates 3-5, not a preflight
+// refusal): the failure's cause or detail must mention a gap field, and when the failure names
+// a step, that step must be the gapped read or downstream of it. Returns the matched gaps, or
+// null. The cause bucket is not changed by this.
+export function connectorLimited(failed, gate, gaps, wf) {
+  if (!failed || failed.pass || ![3, 4, 5].includes(gate) || !gaps?.length) return null;
+  if (/^preflight/.test(failed.cause ?? "") || failed.bucket === "fixture" || failed.bucket === "bench defect") return null;
+  // JavaScript's own "Cannot read properties of undefined" names no field.
+  const hay = JSON.stringify([failed.cause ?? "", failed.detail ?? null]).replace(/\\n/g, " ").replace(/cannot (read|set) propert(y|ies) of/gi, "");
+  const step = failedStep(failed);
+  const hits = gaps.filter((g) => (!step || !wf || downstreamOf(wf, g.node).has(step)) && gapPatterns(g.field).some((re) => re.test(hay)));
+  return hits.length ? hits : null;
 }

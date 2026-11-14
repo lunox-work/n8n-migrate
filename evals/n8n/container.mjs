@@ -128,7 +128,17 @@ export async function waitForMemory(min = 30, { log = console.error } = {}) {
 // ---------- lifecycle ----------
 
 // extraEnv: more -e pairs for the n8n container (e.g. HTTP_PROXY for a probe).
+// A running n8n container that lacks one of extraEnv's values is recreated (same volume), so
+// the bench's env overlays (evals/bench/config `env`) always reach n8n.
 export async function up({ fresh = false, extraEnv = {}, log = console.error } = {}) {
+  if (running(NAME) && !fresh && Object.keys(extraEnv).length) {
+    const have = new Set(JSON.parse(docker(["inspect", "-f", "{{json .Config.Env}}", NAME]).stdout || "[]"));
+    const lacking = Object.entries(extraEnv).filter(([k, v]) => !have.has(`${k}=${v}`)).map(([k]) => k);
+    if (lacking.length) {
+      log(`n8n container lacks env ${lacking.join(", ")}: recreating it`);
+      docker(["rm", "-f", NAME], { allowFail: true });
+    }
+  }
   if (running(NAME) && running(MOCK_NAME) && !fresh) {
     await waitHealthy();
     return;

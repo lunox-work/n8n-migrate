@@ -228,6 +228,13 @@
           "description": "when present, this response answers only requests whose query carries these parameters (values compared as strings); without it, any query",
           "type": "object"
         },
+        "bodyMatch": {
+          "description": "when present, this response answers only requests whose body carries it: an object is a subset of the parsed JSON or form body (leaves compared as strings), a string must occur in the raw body. Only to tell apart calls to one method + url that the service answers differently by body",
+          "type": [
+            "object",
+            "string"
+          ]
+        },
         "status": {
           "type": "integer"
         },

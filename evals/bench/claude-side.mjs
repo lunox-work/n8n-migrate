@@ -183,7 +183,7 @@ export async function runInProcess(folder, fx, { wf, recordings = [], mode = "re
       for (const [k, v] of Object.entries(p.query ?? {})) for (const x of [].concat(v)) sp.append(k, typeof x === "string" ? x : JSON.stringify(x));
       const entry = { method: p.method, url: `${u.origin}${u.pathname}`, query: Object.fromEntries(sp), body: p.body, auth: p.auth?.secret ?? null };
       seen.http.push(entry);
-      const r = pickRoute(routes, String(p.method).toUpperCase(), u.origin, u.pathname, sp, routeCounters);
+      const r = pickRoute(routes, String(p.method).toUpperCase(), u.origin, u.pathname, sp, routeCounters, p.body);
       entry.fixture = r?.key ?? null;
       if (!r && ["POST", "PUT", "PATCH", "DELETE"].includes(String(p.method).toUpperCase())) {
         entry.fixture = "write-default";

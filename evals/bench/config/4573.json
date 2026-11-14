@@ -1,0 +1,28 @@
+{
+  "why": "No placeholder fills. See timeCompression.",
+  "timeCompression": {
+    "why": "Both Wait nodes are parameterless, so Wait v1.1 waits its default of 1 hour and n8n parks the execution in 'waiting' after the first poll, past the bench's timeout. Shortened to 1 second on both sides. This changes when the run resumes, not what it does: the mock's poll replies do not depend on elapsed time and no expression in the template reads $now. It is not a placeholder fill, so results flag it as time compression (config.nonPlaceholder).",
+    "n8n": {
+      "Wait for CoreClaw Leads Job": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      },
+      "Wait for CoreClaw Scrape Job": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      }
+    },
+    "claude": {
+      "overrides": {
+        "steps": {
+          "Wait for CoreClaw Leads Job": {
+            "patch": { "params": { "amount": 1, "unit": "seconds" } }
+          },
+          "Wait for CoreClaw Scrape Job": {
+            "patch": { "params": { "amount": 1, "unit": "seconds" } }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,8 @@
 # Bench change proposals
 
-The Phase 6 loop may not change fixtures, mocks, gates, the comparer or the ceiling (PLAN Phase 6). Defects it finds are written here with evidence and wait for a person. Nothing below is applied.
+The Phase 6 loop may not change fixtures, mocks, gates, the comparer or the ceiling (PLAN Phase 6). Defects it finds are written here with evidence and wait for a person.
+
+Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (README "Connector-limited", "Drivers"). Open from P1: the real Gmail `get_message` and Notion `notion-fetch` shapes are still uncaptured, and 4722 and 2415 carry no `connectorGaps` yet, so their gate 4 is not marked connector-limited.
 
 ## P1. Fixture connector rows and n8n-side rows disagree on what the service returns (4722, 2415)
 

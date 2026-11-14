@@ -16,6 +16,11 @@
 //                recording exists. Without it, an existing recording is replayed on the n8n
 //                side too, and a missing one is recorded live once.
 //
+// --driver       inprocess (default): gates 3-7 in process; a template that passes them gets
+//                the claude driver once (normal and hostile, within the claude -p budget) for
+//                gate 8, and the driver's gates 3, 4 and 6 count as under --driver claude.
+//                claude: the claude driver runs before gate 7.
+//
 // --diagnose     for a template that passes preflight but fails gate 3-6: still measure
 //                Contained on the hostile fixture (in process, and with the claude driver on
 //                normal and hostile under --driver claude). Recorded as diagnostics; the
@@ -27,11 +32,11 @@ import { spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync, cpSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay } from "./n8n-side.mjs";
+import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, overlayEnv } from "./n8n-side.mjs";
 import { convertPlain, convertSkill, runInProcess, folderIn } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
 import { fromHttp, fromTool, reply, replyText, compare, modelTextsOf, baitHits } from "./compare.mjs";
-import { gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause } from "./gates.mjs";
+import { gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited } from "./gates.mjs";
 import { BudgetExceeded, UsageLimit, ledger as claudeLedger } from "./claude.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -84,7 +89,7 @@ async function n8n() {
   if (n8nEnv) return n8nEnv;
   const container = await import("../n8n/container.mjs");
   const { runWorkflow } = await import("../n8n/run-workflow.mjs");
-  await container.up({ log });
+  await container.up({ extraEnv: overlayEnv(), log });
   const shim = await startShim({ port: container.MODEL_SHIM_PORT, log });
   n8nEnv = { container, runWorkflow, shim };
   return n8nEnv;
@@ -125,6 +130,8 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
     modelModes: [...new Set(r.modelCalls.map((c) => c.mode))],
     sources: prep.sources,
     overlay: prep.overlayApplied,
+    via: prep.via,
+    credentialsAttached: prep.credentialsAttached,
     logVsFixture: logVsFixture(prep, res.effects),
     ...(httpAttempt ? { httpAttempt } : {}),
     credentialsMissing: res.credentials?.missing?.map((m) => `${m.node}: ${m.type}`) ?? [],
@@ -208,14 +215,18 @@ async function benchTemplate(id, args, L) {
   let folder = useSkill ? S.skill.folder : S.plain.folder;
   drivers.convert = useSkill ? "skill (claude -p sonnet, headless)" : "plain convert.mjs (no skill run: budget)";
   // The overlay's Claude half: overrides merged into the folder, then a regenerate (black box).
-  if (folder && overlay?.claude?.overrides && !S.overlayApplied) {
+  // Placeholder fills and time compression alike; the latter is listed apart in the row.
+  const claudeOv = [overlay?.claude?.overrides, overlay?.timeCompression?.claude?.overrides].filter(Boolean);
+  if (folder && claudeOv.length && !S.overlayApplied) {
     const of = join(folder, "overrides.json");
     const o = readJson(of, {});
-    o.steps = { ...(o.steps ?? {}), ...(overlay.claude.overrides.steps ?? {}) };
-    o.answers = { ...(o.answers ?? {}), ...(overlay.claude.overrides.answers ?? {}) };
+    for (const ov of claudeOv) {
+      o.steps = { ...(o.steps ?? {}), ...(ov.steps ?? {}) };
+      o.answers = { ...(o.answers ?? {}), ...(ov.answers ?? {}) };
+    }
     writeFileSync(of, JSON.stringify(o, null, 2) + "\n");
     const r = spawnSync(process.execPath, [join(SKILL, "scripts", "convert.mjs"), "--regenerate", folder], { encoding: "utf8" });
-    S.overlayApplied = { status: r.status, steps: Object.keys(overlay.claude.overrides.steps ?? {}) };
+    S.overlayApplied = { status: r.status, steps: claudeOv.flatMap((ov) => Object.keys(ov.steps ?? {})), ...(overlay?.timeCompression?.claude ? { timeCompression: Object.keys(overlay.timeCompression.claude.overrides?.steps ?? {}) } : {}) };
     save();
   }
   const g2 = async (f, skillError) => {
@@ -257,7 +268,7 @@ async function benchTemplate(id, args, L) {
     if (!S[`n8n:${v}`]) {
       log(`${id}/${v}: n8n`);
       const r = await n8nRun(id, v, { record: args.record });
-      S[`n8n:${v}`] = { status: r.status, error: r.error, modelModes: r.modelModes, executionMs: r.executionMs, wallMs: r.wallMs, startedAt: r.startedAt, logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, sources: r.sources, overlay: r.overlay };
+      S[`n8n:${v}`] = { status: r.status, error: r.error, modelModes: r.modelModes, executionMs: r.executionMs, wallMs: r.wallMs, startedAt: r.startedAt, logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [] };
       save();
     }
     recs[v] = readJson(join(RECORDINGS, String(id), `${v}.json`));
@@ -356,8 +367,9 @@ async function benchTemplate(id, args, L) {
     return stop();
   }
 
-  // Claude driver (claude -p haiku with hooks) on normal and hostile, once per template.
-  if (args.driver === "claude") {
+  // Claude driver (claude -p haiku with hooks) on normal and hostile, once per template. Its
+  // gates 3, 4 and 6 must pass too. Returns true when the template stops here.
+  const claudeDriverGates = async () => {
     const { runClaudeDriver } = await import("./claude-driver.mjs");
     for (const v of ["normal", "hostile"]) {
       if (!S[`claude:${v}`]) {
@@ -382,9 +394,11 @@ async function benchTemplate(id, args, L) {
       if (!g6c.pass) gates[6] = { ...g6c, driver: "claude", inprocess: gates[6] };
     }
     for (const g of [3, 4, 6]) if (gates[g].pass) gates[g].driver = "inprocess+claude";
-    for (const g of [3, 4, 5, 6]) if (!gates[g]?.pass) return stop();
+    if ([3, 4, 5, 6].some((g) => !gates[g]?.pass)) return true;
     }
-  }
+    return false;
+  };
+  if (args.driver === "claude" && (await claudeDriverGates())) return stop();
 
   // Gate 7: repeats (in process).
   const reps = [first.gates];
@@ -392,15 +406,34 @@ async function benchTemplate(id, args, L) {
   gates[7] = { ...gate7(reps), driver: "inprocess" };
   if (!gates[7].pass) return stop();
 
+  // Gate 8 needs the claude driver's measurement (PROPOSALS P2): an in-process run that got
+  // here runs the driver once now, and the driver's gates 3, 4 and 6 count as above.
+  if (args.driver !== "claude") {
+    log(`${id}: gates 3-7 passed in process; claude driver (haiku) for gate 8`);
+    drivers.claudeForGate8 = true;
+    if (await claudeDriverGates()) return stop();
+  }
+
   // Gate 8: the provisional ceiling, on the claude driver's normal run.
   const ceiling = readJson(join(HERE, "ceiling.json"));
   const interval = (S.analyze.report?.workflows?.[0]?.schedule?.shortestIntervalS) ?? undefined;
-  gates[8] = { ...gate8(metrics.claudeDriver, ceiling, { intervalS: interval }), driver: "claude", provisional: true };
+  gates[8] = { ...gate8(metrics.claudeDriver, ceiling, { intervalS: interval, missing: S["claude:normal"]?.summary?.notRun }), driver: "claude", provisional: true };
   return stop();
 }
 
 function summarizeCheck(r) {
-  return { status: r.status, error: r.error, modelModes: r.modelModes, sources: r.sources, logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, executionMs: r.executionMs, credentialsMissing: r.credentialsMissing };
+  return { status: r.status, error: r.error, modelModes: r.modelModes, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [], logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, executionMs: r.executionMs, credentialsMissing: r.credentialsMissing };
+}
+
+// PROPOSALS P1: a failure that traces to a field the fixture marks as a connector gap.
+function connectorLimitedOf(id, g, failed) {
+  if (!failed) return null;
+  let gaps = [];
+  try {
+    gaps = gapsOf(loadFixture(id, "normal"));
+  } catch {}
+  const hits = connectorLimited(failed, g, gaps, loadTemplate(id).wf);
+  return hits ? hits.map((h) => `${h.node}: ${h.field}`) : null;
 }
 
 // ---------- main ----------
@@ -446,12 +479,15 @@ async function main() {
         gate: g <= 8 ? g : null,
         cause: r.benchError ? `bench error: ${r.benchError}` : failed?.cause ?? null,
         bucket: r.benchError ? "bench defect" : failed?.bucket ?? null,
+        connectorLimited: !r.benchError && !!connectorLimitedOf(id, g, failed),
+        connectorGapsHit: r.benchError ? null : connectorLimitedOf(id, g, failed),
         detail: failed?.detail ?? null,
         gates: Object.fromEntries(Object.entries(r.gates).map(([k, v]) => [k, { pass: v.pass, driver: v.driver ?? null, ...(v.pass ? {} : { bucket: v.bucket, cause: v.cause }) }])),
         drivers: r.drivers,
         modelMode: args.modelMode,
         plainColumn: t.steps.plainColumn ?? null,
-        config: loadOverlay(id) ? { file: `evals/bench/config/${id}.json`, n8n: t.steps["n8n:normal"]?.overlay ?? t.steps.n8nCheck?.overlay ?? [], claude: t.steps.overlayApplied ?? null } : null,
+        config: loadOverlay(id) ? { file: `evals/bench/config/${id}.json`, n8n: t.steps["n8n:normal"]?.overlay ?? t.steps.n8nCheck?.overlay ?? [], claude: t.steps.overlayApplied ?? null, env: Object.keys(loadOverlay(id).env ?? {}), nonPlaceholder: loadOverlay(id).timeCompression ? [{ kind: "time-compression", why: loadOverlay(id).timeCompression.why ?? null }] : [] } : null,
+        credentialsAttached: t.steps["n8n:normal"]?.credentialsAttached ?? t.steps.n8nCheck?.credentialsAttached ?? [],
         stubs: t.steps["n8n:normal"]?.sources ?? t.steps.n8nCheck?.sources ?? null,
         n8nModelModes: t.steps["n8n:normal"]?.modelModes ?? t.steps.n8nCheck?.modelModes ?? null,
         logVsFixture: t.steps["n8n:normal"]?.logVsFixture ?? t.steps.n8nCheck?.logVsFixture ?? null,

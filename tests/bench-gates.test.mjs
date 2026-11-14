@@ -2,7 +2,8 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, BUCKETS } from "../evals/bench/gates.mjs";
+import { gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, BUCKETS, gapsOf, gapPatterns, connectorLimited, failedStep } from "../evals/bench/gates.mjs";
+import { credentialTypeFor, credentialData, modelNodes } from "../evals/bench/n8n-side.mjs";
 import { compare, fromTool, baitHits } from "../evals/bench/compare.mjs";
 
 test("gate 1: unmapped nodes and crashes fail, a clean report passes", () => {
@@ -78,4 +79,50 @@ test("gate 7, gate 8, reached", () => {
   assert.equal(gate8(null, ceiling).bucket, "bench defect");
   assert.equal(reached({ 1: p, 2: p, 3: { pass: false } }), 3);
   assert.equal(reached({ 1: p, 2: p, 3: p, 4: p, 5: p, 6: p, 7: p, 8: p }), 9);
+});
+
+test("gate 8 names why the claude-driver measurement is missing", () => {
+  const g = gate8(undefined, { wallS: 600, turns: 40, costUsd: 0.5 }, { missing: "the folder has http steps" });
+  assert.deepEqual([g.pass, g.bucket], [false, "bench defect"]);
+  assert.match(g.cause, /http steps/);
+});
+
+test("connector-limited: a data failure downstream of a gapped read that mentions the gap field", () => {
+  const fx = { reads: [{ node: "Get", connector: { connector: "gmail", calls: [] }, connectorGaps: ["headers: raw headers", "labels as {id, name}: ids only"] }, { node: "Other", connector: { none: "no connector" }, connectorGaps: ["row_number: x"] }] };
+  const gaps = gapsOf(fx);
+  assert.deepEqual(gaps.map((g) => g.field), ["headers", "labels as {id, name}"], "a read without a connector has no connector gap");
+  const wf = { connections: { Get: { main: [[{ node: "Agent" }]] }, Tool: { ai_tool: [[{ node: "Agent" }]] } } };
+  const g4 = { pass: false, bucket: "field map", cause: "1 replayed model call(s) got a different input", detail: [{ step: "Agent", claude: "List-Unsubscribe Header: ``" }] };
+  assert.equal(failedStep(g4), "Agent");
+  assert.deepEqual(connectorLimited(g4, 4, gaps, wf).map((h) => h.field), ["headers"]);
+  assert.equal(connectorLimited({ ...g4, detail: [{ step: "Elsewhere", claude: "Header" }] }, 4, gaps, wf), null, "the failing step must be downstream of the gapped read");
+  assert.equal(connectorLimited({ pass: false, bucket: "unmapped node", cause: "preflight: blocked steps", detail: ["labels"] }, 3, gaps, wf), null, "a preflight refusal is never connector-limited");
+  assert.equal(connectorLimited({ pass: false, bucket: "field map", cause: "step Agent got input without a field n8n's data has: Cannot read properties of undefined" }, 3, gaps, wf), null, "JavaScript's 'properties' names no field");
+  assert.equal(connectorLimited(g4, 6, gaps, wf), null, "only gates 3-5");
+  assert.ok(gapPatterns("block ids and types")[0].test("a block") && !gapPatterns("block ids and types")[0].test("blocked steps"));
+  assert.ok(gapPatterns("property ids")[0].test("properties"));
+});
+
+test("bench credentials: types for nodes shipped without one, direct services point at the mock, OAuth dummies", () => {
+  assert.equal(credentialTypeFor({ type: "n8n-nodes-base.googleSheets", parameters: {} }), "googleSheetsOAuth2Api");
+  assert.equal(credentialTypeFor({ type: "n8n-nodes-base.googleSheets", parameters: { authentication: "serviceAccount" } }), "googleApi");
+  assert.equal(credentialTypeFor({ type: "n8n-nodes-base.httpRequest", parameters: { authentication: "genericCredentialType", genericAuthType: "httpQueryAuth" } }), "httpQueryAuth");
+  assert.equal(credentialTypeFor({ type: "n8n-nodes-base.httpRequest", parameters: {} }), null);
+  assert.equal(credentialTypeFor({ type: "@n8n/n8n-nodes-langchain.vectorStoreQdrant", parameters: {} }), "qdrantApi");
+  assert.equal(credentialTypeFor({ type: "n8n-nodes-base.googleCalendarTool", parameters: {} }), "googleCalendarOAuth2Api");
+  assert.equal(credentialData("qdrantApi").qdrantUrl, "http://mock:8080");
+  assert.equal(credentialData("supabaseApi").host, "http://mock:8080");
+  assert.equal(credentialData("s3", { s3Endpoint: "https://s3.x.example" }).endpoint, "https://s3.x.example");
+  assert.equal(credentialData("linkedInOAuth2Api").oauthTokenData.access_token, "bench-access-token");
+});
+
+test("model nodes: OpenRouter chat models and the legacy OpenAI node's chat resource", () => {
+  const wf = { nodes: [
+    { name: "OR", type: "@n8n/n8n-nodes-langchain.lmChatOpenRouter", parameters: {} },
+    { name: "Chat", type: "n8n-nodes-base.openAi", parameters: { resource: "chat" } },
+    { name: "Image", type: "n8n-nodes-base.openAi", parameters: { resource: "image" } },
+  ] };
+  const m = modelNodes(wf, { models: ["Chat", "Image"] });
+  assert.deepEqual(m.map((x) => [x.node, x.credType]), [["OR", "openRouterApi"], ["Chat", "openAiApi"]]);
+  assert.equal(m[0].spec.data("http://mock:8080/model/m0").url, "http://mock:8080/model/m0/v1");
 });

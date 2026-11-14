@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fromHttp, fromTool, reply, compare, modelWritten, parseMime, multipartJson, baitHits, replyText, normTarget, modelTextsOf } from "../evals/bench/compare.mjs";
-import { pickRoute } from "../evals/n8n/mock-server.mjs";
+import { pickRoute, routeKey } from "../evals/n8n/mock-server.mjs";
 import { answerOf, runnerValue, jsonFromText, normalize, providerResponse } from "../evals/bench/model-shim.mjs";
 import { pickConnector, sameModelInput, modelKeyFor } from "../evals/bench/claude-side.mjs";
 
@@ -116,6 +116,28 @@ test("mock routes: query subset, most specific, replies in turn, {token}, UUID d
   assert.equal(pickRoute(R, "POST", "https://api.telegram.org", "/bot1:abc/sendMessage", sp(""), c).f.body, "tg");
   assert.equal(pickRoute(R, "GET", "https://api.notion.com", "/v1/databases/3f2c9a7b8e1d4c6fa0b5d2e9c8f7a6b1", sp(""), c).f.body, "n");
   assert.equal(pickRoute(R, "GET", "https://b.test", "/x", sp(""), c), null);
+});
+
+test("mock routes: optional bodyMatch picks among POSTs to one URL; groups reply in turn", () => {
+  const R = [
+    { method: "POST", url: "https://a.test/run", status: 200, body: "any" },
+    { method: "POST", url: "https://a.test/run", bodyMatch: { input: { kind: "maps" } }, status: 200, body: "maps1" },
+    { method: "POST", url: "https://a.test/run", bodyMatch: { input: { kind: "maps" } }, status: 200, body: "maps2" },
+    { method: "POST", url: "https://a.test/run", bodyMatch: { input: { kind: "maps", n: 2 } }, status: 200, body: "maps-n2" },
+    { method: "POST", url: "https://a.test/form", bodyMatch: "position[new_path]", status: 200, body: "text" },
+  ];
+  const c = new Map();
+  const sp = new URLSearchParams("");
+  const pick = (url, body) => pickRoute(R, "POST", "https://a.test", url, sp, c, body);
+  assert.equal(pick("/run", { input: { kind: "web" } }).f.body, "any");
+  assert.equal(pick("/run", { input: { kind: "maps", extra: true } }).f.body, "maps1");
+  assert.equal(pick("/run", JSON.stringify({ input: { kind: "maps" } })).f.body, "maps2", "a JSON string body is parsed");
+  assert.equal(pick("/run", { input: { kind: "maps" } }).f.body, "maps2", "the last reply repeats");
+  assert.equal(pick("/run", { input: { kind: "maps", n: "2" } }).f.body, "maps-n2", "more leaves win; leaves compare as strings");
+  assert.equal(pick("/run", undefined).f.body, "any");
+  assert.equal(pick("/form", "--b\r\nname=\"position[new_path]\"\r\n").f.body, "text");
+  assert.equal(pick("/form", "other"), null);
+  assert.equal(routeKey(R[1]), 'POST https://a.test/run body {"input":{"kind":"maps"}}');
 });
 
 test("model shim: provider formats round-trip, n8n's final-answer tool, JSON in text", () => {

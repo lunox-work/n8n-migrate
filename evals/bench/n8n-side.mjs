@@ -3,21 +3,29 @@
 //
 // What is changed in the template before it runs, and only this (each is recorded):
 //   - credentials: every credential the nodes reference is created with bench dummies
-//     (CREDENTIALS below). Model nodes get their own credential whose base URL is
+//     (credentialData below); a node that needs one but ships without any (a template exported
+//     with its credentials stripped) gets the bench dummy of its node type (credentialTypeFor),
+//     recorded as `credentialsAttached`. Model nodes get their own credential whose base URL is
 //     http://mock:8080/model/<tag>, so the mock forwards their calls to the model shim tagged
 //     with the node (tags m0, m1, ... -> node names in `models`).
-//   - the bench config overlay (evals/bench/config/<id>.json `n8n`): parameter patches by node
-//     name that fill placeholders (an empty chat id, a demo host). Never logic.
+//   - the bench config overlay (evals/bench/config/<id>.json, README): `n8n` parameter patches
+//     by node name that fill placeholders (an empty chat id, a demo host), never logic;
+//     `timeCompression.n8n` patches that only shorten a wait (recorded as non-placeholder);
+//     `env` values the container is started with (overlayEnv).
+//   - the trigger: the fixture's trigger node (not run-workflow's pick among several), pinned
+//     (`--via pin`), or, when the fixture's trigger items carry binary (a
+//     form upload, which a pin drops), replaced by a Code node that returns them (`--via cli`).
 //   - pins: the trigger's items (FIXTURES.md), the template's own pinData, and an `n8n` pin for
 //     a read only when its `http` source cannot be used (no http source, or the node failed
 //     with the http source and the fixture has a pin: `pin-fallback`).
 //   - files: `file` reads are copied into the container's working directory.
 // Everything else (node parameters, connections, settings) is the template as downloaded.
 
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ensureLeaf, ensureServiceAccountKey } from "./tls.mjs";
+import { routeKey } from "../n8n/mock-server.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
@@ -42,6 +50,25 @@ export function loadOverlay(id) {
   }
 }
 
+// The container's bench env: every overlay's `env`, merged over all of config/ (so the
+// container does not restart between templates). With any env value present, n8n's $env
+// block (N8N_BLOCK_ENV_ACCESS_IN_NODE, on by default in 2.x) is lifted for the run.
+export function overlayEnv() {
+  const env = {};
+  let files = [];
+  try {
+    files = readdirSync(join(HERE, "config")).filter((f) => f.endsWith(".json"));
+  } catch {}
+  for (const f of files) {
+    const o = JSON.parse(readFileSync(join(HERE, "config", f), "utf8"));
+    for (const [k, v] of Object.entries(o.env ?? {})) {
+      if (k in env && env[k] !== String(v)) throw new Error(`config/${f}: env ${k} differs from another overlay's value`);
+      env[k] = String(v);
+    }
+  }
+  return Object.keys(env).length ? { ...env, N8N_BLOCK_ENV_ACCESS_IN_NODE: "false" } : {};
+}
+
 // Model credential types by node type; the base-URL field differs per type.
 const MODEL_CRED = {
   lmChatAnthropic: { type: "anthropicApi", data: (url) => ({ apiKey: "bench-dummy", url }) },
@@ -50,17 +77,27 @@ const MODEL_CRED = {
   openAi: { type: "openAiApi", data: (url) => ({ apiKey: "bench-dummy", url: `${url}/v1` }) },
   lmChatGoogleGemini: { type: "googlePalmApi", data: (url) => ({ apiKey: "bench-dummy", host: url }) },
   lmChatOllama: { type: "ollamaApi", data: (url) => ({ baseUrl: url }) },
+  lmChatOpenRouter: { type: "openRouterApi", data: (url) => ({ apiKey: "bench-dummy", url: `${url}/v1` }) },
 };
 
 const oauth = (extra = {}) => ({ clientId: "bench", clientSecret: "bench", oauthTokenData: { access_token: "bench-access-token", refresh_token: "bench-refresh", token_type: "Bearer", expires_in: 315360000, scope: "bench" }, ...extra });
 
 // Dummies per credential type (n8n credential property names). None is a real secret.
-export function credentialData(type, { wordpressUrl } = {}) {
+// Services the fixtures answer `via: direct` (self-hosted Ollama, Qdrant, a Supabase project)
+// point at the mock itself, which matches those requests by path.
+export function credentialData(type, { wordpressUrl, s3Endpoint } = {}) {
   const t = {
     openAiApi: { apiKey: "bench-dummy", url: "https://api.openai.com/v1" },
     anthropicApi: { apiKey: "bench-dummy", url: "https://api.anthropic.com" },
     googlePalmApi: { apiKey: "bench-dummy", host: "https://generativelanguage.googleapis.com" },
-    ollamaApi: { baseUrl: "http://localhost:11434" },
+    // Embeddings and other non-chat Ollama nodes; chat models get their own (MODEL_CRED).
+    ollamaApi: { baseUrl: MOCK },
+    openRouterApi: { apiKey: "bench-dummy", url: "https://openrouter.ai/api/v1" },
+    qdrantApi: { apiKey: "bench-dummy", qdrantUrl: MOCK },
+    supabaseApi: { host: MOCK, serviceRole: "bench-dummy" },
+    s3: { endpoint: s3Endpoint ?? "https://s3.bench.example", region: "us-east-1", accessKeyId: "bench", secretAccessKey: "bench-dummy", forcePathStyle: false, ignoreSSLIssues: false },
+    httpQueryAuth: { name: "api_key", value: "bench-dummy" },
+    httpBearerAuth: { token: "bench-dummy" },
     notionApi: { apiKey: "bench-dummy" },
     telegramApi: { accessToken: "123456:bench-dummy", baseUrl: "https://api.telegram.org" },
     facebookGraphApi: { accessToken: "bench-dummy" },
@@ -73,7 +110,38 @@ export function credentialData(type, { wordpressUrl } = {}) {
     googleSheetsOAuth2Api: oauth(),
     googleApi: { email: "bench@bench-project.iam.gserviceaccount.com", privateKey: readFileSync(ensureServiceAccountKey(), "utf8"), region: "us-central1" },
   }[type];
-  return t ?? { apiKey: "bench-dummy", accessToken: "bench-dummy", token: "bench-dummy" };
+  if (t) return t;
+  if (/OAuth2/i.test(type)) return oauth();
+  return { apiKey: "bench-dummy", accessToken: "bench-dummy", token: "bench-dummy" };
+}
+
+// The credential type a node of this type uses when the template ships it without one.
+// Google nodes follow their `authentication` parameter; an HTTP Request node its generic or
+// predefined credential type. Null: the node needs none (or the bench cannot tell).
+const google = (oauthType) => (n) => (n.parameters?.authentication === "serviceAccount" ? "googleApi" : oauthType);
+const NODE_CREDENTIAL = {
+  googleSheets: google("googleSheetsOAuth2Api"),
+  googleDrive: google("googleDriveOAuth2Api"),
+  gmail: google("gmailOAuth2"),
+  googleDocs: google("googleDocsOAuth2Api"),
+  googleCalendar: google("googleCalendarOAuth2Api"),
+  embeddingsGoogleGemini: () => "googlePalmApi",
+  lmChatGoogleGemini: () => "googlePalmApi",
+  embeddingsOpenAi: () => "openAiApi",
+  lmChatOpenAi: () => "openAiApi",
+  embeddingsOllama: () => "ollamaApi",
+  lmChatOllama: () => "ollamaApi",
+  vectorStoreQdrant: () => "qdrantApi",
+  vectorStoreSupabase: () => "supabaseApi",
+  supabase: () => "supabaseApi",
+  vectorStorePinecone: () => "pineconeApi",
+  telegram: () => "telegramApi",
+  notion: () => "notionApi",
+  httpRequest: (n) => (n.parameters?.authentication === "genericCredentialType" ? n.parameters.genericAuthType : n.parameters?.authentication === "predefinedCredentialType" ? n.parameters.nodeCredentialType : null) ?? null,
+};
+export function credentialTypeFor(node) {
+  const f = NODE_CREDENTIAL[node.type.replace(LC, "").replace("n8n-nodes-base.", "").replace(/Tool$/, "")];
+  return f ? f(node) : null;
 }
 
 const shortType = (t) => t.replace(LC, "").replace("n8n-nodes-base.", "");
@@ -86,7 +154,10 @@ export function modelNodes(wf, fixture) {
     if (n.disabled) continue;
     const st = shortType(n.type);
     const isSub = /^lm(Chat)?/.test(st) && n.type.startsWith(LC);
-    const isRootModel = st === "openAi" && fixture.models.includes(n.name) && /message|text/i.test(`${n.parameters?.resource ?? "text"}:${n.parameters?.operation ?? "message"}`) && (n.parameters?.resource ?? "text") === "text";
+    // The legacy OpenAI node (n8n-nodes-base.openAi v1) answers its chat resource through
+    // /v1/chat/completions on the credential's base URL, like a chat model.
+    const resource = n.parameters?.resource ?? "text";
+    const isRootModel = st === "openAi" && fixture.models.includes(n.name) && (resource === "text" || (n.type === "n8n-nodes-base.openAi" && resource === "chat"));
     if (!isSub && !isRootModel) continue;
     const spec = MODEL_CRED[st] ?? MODEL_CRED[st.replace(/^lmChat/, "lmChat")];
     out.push({ tag: `m${out.length}`, node: n.name, type: n.type, credType: spec?.type ?? Object.keys(n.credentials ?? {})[0] ?? null, spec });
@@ -114,7 +185,7 @@ export function routesOf(fixture) {
   const hosts = new Set();
   for (const r of [...fixture.reads, ...(fixture.writeReplies ?? [])]) {
     for (const x of r.http?.responses ?? []) {
-      routes.push({ node: r.node, method: x.method, url: x.url, ...(x.query ? { query: x.query } : {}), status: x.status, ...(x.headers ? { headers: x.headers } : {}), ...(x.body !== undefined ? { body: x.body } : {}), ...(x.bodyBase64 !== undefined ? { bodyBase64: x.bodyBase64 } : {}) });
+      routes.push({ node: r.node, method: x.method, url: x.url, ...(x.query ? { query: x.query } : {}), ...(x.bodyMatch !== undefined ? { bodyMatch: x.bodyMatch } : {}), status: x.status, ...(x.headers ? { headers: x.headers } : {}), ...(x.body !== undefined ? { body: x.body } : {}), ...(x.bodyBase64 !== undefined ? { bodyBase64: x.bodyBase64 } : {}) });
       const u = new URL(x.url);
       if (u.protocol === "https:") hosts.add(u.hostname);
     }
@@ -127,18 +198,33 @@ export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = 
   const { wf, name } = loadTemplate(id);
   const fx = loadFixture(id, variant);
   const applied = [];
-  for (const [node, patches] of Object.entries(overlay?.n8n ?? {})) {
-    const n = wf.nodes.find((x) => x.name === node);
-    if (!n) throw new Error(`overlay ${id}: no node "${node}"`);
-    for (const [path, value] of Object.entries(patches)) {
-      setPath(n, path, value);
-      applied.push({ node, path });
+  for (const [kind, section] of [["placeholder", overlay?.n8n], ["time-compression", overlay?.timeCompression?.n8n]]) {
+    for (const [node, patches] of Object.entries(section ?? {})) {
+      const n = wf.nodes.find((x) => x.name === node);
+      if (!n) throw new Error(`overlay ${id}: no node "${node}"`);
+      for (const [path, value] of Object.entries(patches)) {
+        setPath(n, path, value);
+        applied.push({ node, path, ...(kind === "placeholder" ? {} : { kind }) });
+      }
     }
+  }
+  const credentialsAttached = [];
+  for (const n of wf.nodes) {
+    if (n.disabled || Object.keys(n.credentials ?? {}).length) continue;
+    const type = credentialTypeFor(n);
+    if (!type) continue;
+    n.credentials = { [type]: { id: null, name: `${type} (bench)` } };
+    credentialsAttached.push({ node: n.name, type });
   }
   const models = modelNodes(wf, fx);
   const credentials = {};
+  const allResponses = [...fx.reads, ...(fx.writeReplies ?? [])].flatMap((r) => (r.http?.responses ?? []).map((x) => ({ ...x, node: r.node })));
   const wordpressUrl = (fx.writeReplies ?? []).flatMap((r) => r.http?.responses ?? []).map((x) => x.url).find((u) => /\/wp-json\//.test(u))?.replace(/\/wp-json\/.*$/, "");
-  for (const n of wf.nodes) for (const t of Object.keys(n.credentials ?? {})) credentials[t] ??= credentialData(t, { wordpressUrl });
+  // The S3 endpoint: the shortest host among the S3 nodes' routes (virtual-hosted routes put
+  // the bucket in front of it).
+  const s3Nodes = new Set(wf.nodes.filter((n) => n.type === "n8n-nodes-base.s3").map((n) => n.name));
+  const s3Endpoint = allResponses.filter((x) => s3Nodes.has(x.node)).map((x) => new URL(x.url).origin).sort((a, b) => a.length - b.length)[0];
+  for (const n of wf.nodes) for (const t of Object.keys(n.credentials ?? {})) credentials[t] ??= credentialData(t, { wordpressUrl, s3Endpoint });
   for (const m of models) {
     const n = wf.nodes.find((x) => x.name === m.node);
     if (!m.spec) continue;
@@ -173,7 +259,10 @@ export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = 
   const triggerRead = fx.reads.find((r) => r.node === fx.trigger.node && r.http?.responses?.length);
   const pinTrigger = !(triggerRead && fx.trigger.kind === "poll");
   if (!pinTrigger) sources[fx.trigger.node] = `http/${triggerRead.http.via} (trigger polls)`;
-  return { pinTrigger, id, variant, name, wf: { ...wf, name: `${id} ${name}` }, fixture: fx, credentials, routes, models, overlayApplied: applied, sources, files };
+  // Binary trigger items (form uploads) survive only the Code-node swap.
+  const via = pinTrigger && (fx.trigger.items ?? []).some((i) => i && typeof i === "object" && i.binary) ? "cli" : "pin";
+  if (via === "cli") sources[fx.trigger.node] = "cli (Code-node swap: binary trigger items)";
+  return { pinTrigger, via, id, variant, name, wf: { ...wf, name: `${id} ${name}` }, fixture: fx, credentials, credentialsAttached, routes, models, overlayApplied: applied, sources, files };
 }
 
 // Splits the mock log into service calls and model calls.
@@ -201,10 +290,10 @@ export function logVsFixture(prep, effects) {
   const seen = new Set();
   for (const r of prep.routes) {
     if (r.node === "(bench)") continue;
-    const key = `route ${r.method} ${r.url}${r.query && Object.keys(r.query).length ? " " + JSON.stringify(r.query) : ""}`;
+    const key = `route ${routeKey(r)}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    if (!used.has(key)) unused.push({ node: r.node, method: r.method, url: r.url, ...(r.query ? { query: r.query } : {}) });
+    if (!used.has(key)) unused.push({ node: r.node, method: r.method, url: r.url, ...(r.query ? { query: r.query } : {}), ...(r.bodyMatch !== undefined ? { bodyMatch: r.bodyMatch } : {}) });
   }
   return { unanswered, unused, writeDefaults };
 }
@@ -220,7 +309,7 @@ export async function runN8n(prep, { shim, modelSession, runWorkflow, copyIn, ti
     copyIn(local, join("/home/node", f.path));
   }
   shim.setSession({ ...modelSession, label: `${prep.id}/${prep.variant}` });
-  const r = await runWorkflow(prep.wf, { trigger: prep.fixture.trigger.items, mock: { __routes: prep.routes, __writeDefault: { status: 200, body: {} } }, credentials: prep.credentials, via: "pin", keepPin: true, timeoutS, now: prep.fixture.now, pinTrigger: prep.pinTrigger });
+  const r = await runWorkflow(prep.wf, { trigger: prep.fixture.trigger.items, mock: { __routes: prep.routes, __writeDefault: { status: 200, body: {} } }, credentials: prep.credentials, via: prep.via ?? "pin", triggerNode: prep.fixture.trigger.node, keepPin: true, timeoutS, now: prep.fixture.now, pinTrigger: prep.pinTrigger });
   const calls = shim.session.calls.map((c) => ({ ...c, node: tagToNode[c.tag] ?? c.tag }));
   const failedNode = r.error?.node ?? Object.entries(r.nodes ?? {}).find(([, runs]) => runs.some((x) => x.error))?.[0];
   const fallbackable = allowFallback && failedNode && prep.fixture.reads.some((x) => x.node === failedNode && x.n8n && x.http?.responses?.length) && prep.sources[failedNode]?.startsWith("http");

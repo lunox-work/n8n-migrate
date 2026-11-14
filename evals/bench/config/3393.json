@@ -1,0 +1,20 @@
+{
+  "why": "The template ships with its only trigger (Schedule Trigger) disabled, and Send reminder posts to chat id CHAT_ID, the template's placeholder. The trigger is enabled and the chat id filled with a placeholder id on both sides. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "Schedule Trigger": { "disabled": false },
+    "Send reminder": { "parameters.chatId": "100200300" }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Schedule Trigger": { "patch": { "settings": { "disabled": null } } },
+        "Send reminder": {
+          "patch": {
+            "params": { "chatId": "100200300" },
+            "http": { "body": { "chat_id": "100200300" } }
+          }
+        }
+      }
+    }
+  }
+}

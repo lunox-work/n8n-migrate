@@ -16,13 +16,16 @@
 // "body" that is not a string is sent as JSON. "delayMs" delays the reply.
 //
 // Bench routes (evals/bench, FIXTURES.md `http` sources), tried before the keys above:
-//   "__routes": [{method, url, query?, status, headers?, body?, bodyBase64?, delayMs?}]
+//   "__routes": [{method, url, query?, bodyMatch?, status, headers?, body?, bodyBase64?, delayMs?}]
 //   url is the real service URL without query; it is matched against the request's origin and
 //   path (a proxied or TLS-intercepted request), or its path alone for a request made to the
 //   mock directly. `{token}` in the url matches one run of non-slash characters (Telegram's
 //   bot<token>). `query`, when given, must be carried by the request (subset, values compared
-//   as strings; UUIDs match with or without dashes); the most specific match wins (most query keys, then list order). Routes with
-//   the same method + url + query reply in turn and the last repeats. bodyBase64 is binary.
+//   as strings; UUIDs match with or without dashes). `bodyMatch`, when given, must be carried by
+//   the request body: an object is a subset of the parsed body (JSON or form; leaves compared as
+//   strings, arrays element by element), a string must occur in the raw body text. The most
+//   specific match wins (most query keys plus bodyMatch leaves, then list order). Routes with
+//   the same method + url + query + bodyMatch reply in turn and the last repeats. bodyBase64 is binary.
 //
 // TLS (--tls-dir, evals/bench/tls.mjs): a CONNECT to a host with a leaf certificate in
 // <dir>/hosts is answered 200 and the tunnel is terminated here with that leaf, so the
@@ -128,9 +131,37 @@ const safeDecode = (x) => {
 const undash = (s) => s.replace(/([0-9a-f]{8})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{12})/gi, (...m) => m.slice(1, 6).join("").toLowerCase());
 const routeRegex = (url) => new RegExp("^" + undash(safeDecode(url)).split("{token}").map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("[^/]+") + "$");
 
+const isPlain = (x) => x && typeof x === "object" && !Array.isArray(x);
+// Does the request body carry `want` (a bodyMatch)? See the header.
+export function bodyCarries(want, body) {
+  if (typeof want === "string") return (typeof body === "string" ? body : JSON.stringify(body ?? "")).includes(want);
+  let got = body;
+  if (typeof got === "string") {
+    try {
+      got = JSON.parse(got);
+    } catch {
+      return false;
+    }
+  }
+  const sub = (w, g) => {
+    if (Array.isArray(w)) return Array.isArray(g) && w.every((x, i) => sub(x, g[i]));
+    if (isPlain(w)) return isPlain(g) && Object.entries(w).every(([k, v]) => sub(v, g[k]));
+    return g !== undefined && g !== null && String(g) === String(w);
+  };
+  return sub(want, got);
+}
+const leaves = (w) => (typeof w === "string" ? 1 : Array.isArray(w) ? w.reduce((n, x) => n + leaves(x), 0) : isPlain(w) ? Object.values(w).reduce((n, x) => n + leaves(x), 0) : 1);
+
+// The group a route replies in turn with: method, url, query and bodyMatch. Also the log's
+// `fixture` value ("route <key>"), so the request log can be diffed against the fixture.
+export function routeKey(r) {
+  return `${r.method} ${r.url}${r.query && Object.keys(r.query).length ? " " + JSON.stringify(r.query) : ""}${r.bodyMatch !== undefined ? " body " + JSON.stringify(r.bodyMatch) : ""}`;
+}
+
 // Picks the bench route for a request (see the header). `searchParams` is a URLSearchParams;
-// `counters` tracks reply positions per route group. Returns {key, f} or null.
-export function pickRoute(routes, method, origin, path, searchParams, counters) {
+// `counters` tracks reply positions per route group; `body` is the parsed request body (only
+// routes with a bodyMatch read it). Returns {key, f} or null.
+export function pickRoute(routes, method, origin, path, searchParams, counters, body) {
   if (!Array.isArray(routes) || !routes.length) return null;
   const full = undash(safeDecode(`${origin ?? ""}${path}`));
   const bare = undash(safeDecode(path));
@@ -143,12 +174,13 @@ export function pickRoute(routes, method, origin, path, searchParams, counters) 
     if (!hit) continue;
     const q = r.query ?? {};
     if (!Object.entries(q).every(([k, v]) => searchParams.get(k) === String(v))) continue;
-    const n = Object.keys(q).length;
+    if (r.bodyMatch !== undefined && !bodyCarries(r.bodyMatch, body)) continue;
+    const n = Object.keys(q).length + (r.bodyMatch !== undefined ? leaves(r.bodyMatch) : 0);
     if (!best || n > best.n) best = { n, r };
   }
   if (!best) return null;
-  const groupKey = `${best.r.method} ${best.r.url}${best.n ? " " + JSON.stringify(best.r.query) : ""}`;
-  const group = routes.filter((r) => `${r.method} ${r.url}${r.query && Object.keys(r.query).length ? " " + JSON.stringify(r.query) : ""}` === groupKey);
+  const groupKey = routeKey(best.r);
+  const group = routes.filter((r) => routeKey(r) === groupKey);
   const i = counters.get(groupKey) ?? 0;
   counters.set(groupKey, i + 1);
   return { key: `route ${groupKey}`, f: group[Math.min(i, group.length - 1)] };
@@ -201,7 +233,7 @@ export function startMock({ port = 8080, log = null, fixtures = null, host = "0.
       };
       // Model calls go to the host's shim, which answers them (live, replay or canned).
       const tagged = /^\/model\/([^/]+)(\/.*)$/.exec(u.pathname);
-      const route = tagged ? null : pickRoute(map.__routes, req.method, origin, u.pathname, u.searchParams, counters);
+      const route = tagged ? null : pickRoute(map.__routes, req.method, origin, u.pathname, u.searchParams, counters, entry.body);
       const hostOnly = origin ? origin.replace(/^https?:\/\//, "").replace(/:\d+$/, "") : null;
       const modelTag = tagged ? safeDecode(tagged[1]) : !route && hostOnly && MODEL_HOSTS[hostOnly]?.test(u.pathname) ? `host:${hostOnly}` : null;
       if (modelTag && modelShim) {

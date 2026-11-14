@@ -1,0 +1,39 @@
+{
+  "why": "Get Changes and Post Discussions send a PRIVATE-TOKEN header with no value (the template's placeholder for a GitLab token). Filled with a placeholder token on both sides. Placeholder fill only: no logic changes.",
+  "n8n": {
+    "Get Changes": {
+      "parameters.headerParameters.parameters.0.value": "bench-gitlab-token"
+    },
+    "Post Discussions": {
+      "parameters.headerParameters.parameters.0.value": "bench-gitlab-token"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Get Changes": {
+          "patch": {
+            "params": {
+              "headerParameters": {
+                "parameters": [
+                  { "name": "PRIVATE-TOKEN", "value": "bench-gitlab-token" }
+                ]
+              }
+            }
+          }
+        },
+        "Post Discussions": {
+          "patch": {
+            "params": {
+              "headerParameters": {
+                "parameters": [
+                  { "name": "PRIVATE-TOKEN", "value": "bench-gitlab-token" }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
