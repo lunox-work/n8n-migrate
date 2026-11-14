@@ -78,6 +78,24 @@ button { font: inherit; color: inherit; }
 .input-row label { color: var(--muted); font-size: 13px; }
 .input-row input { flex: 1 1 240px; min-width: 0; border: 1px solid var(--line-strong); border-radius: var(--r); background: var(--surface); color: var(--ink); padding: 7px 10px; font: inherit; }
 .mode-note { margin: 0; width: 100%; font-size: 13px; color: var(--muted); }
+.cursor-opt { font-size: 13px; color: var(--muted); }
+
+/* form (n8n Form Trigger fields) */
+.form-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px 16px; display: grid; gap: 12px; max-width: 720px; width: 100%; }
+.form-panel h2 { font-size: 16px; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.form-panel .fdesc { margin: 0; color: var(--muted); font-size: 13px; }
+.field-list { display: grid; gap: 14px; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field > label, .field > .flabel { font-size: 13px; font-weight: 600; }
+.field .req { color: var(--error); font-weight: 600; }
+.field input[type="text"], .field input[type="email"], .field input[type="number"], .field input[type="date"], .field input[type="password"], .field select, .field textarea { width: 100%; min-width: 0; border: 1px solid var(--line-strong); border-radius: var(--r); background: var(--surface); color: var(--ink); padding: 7px 10px; font: inherit; }
+.field textarea { min-height: 88px; resize: vertical; }
+.field .opts { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.field .opts label { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; }
+.field .ferr { color: var(--error); font-size: 12px; margin: 0; }
+.field[data-invalid] input, .field[data-invalid] select, .field[data-invalid] textarea { border-color: var(--error); }
+.form-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.form-note { margin: 0; font-size: 13px; color: var(--muted); }
 .mode-note strong { color: var(--ink); font-weight: 600; }
 
 .banner { border: 1px solid var(--line-strong); border-left-width: 3px; border-radius: var(--r); background: var(--surface); padding: 10px 14px; display: grid; gap: 4px; }
@@ -170,7 +188,7 @@ button { font: inherit; color: inherit; }
 .legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 .pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted); white-space: nowrap; }
 .pill[data-s="done"] { color: var(--done); border-color: color-mix(in srgb, var(--done) 45%, transparent); }
-.pill[data-s="failed"], .pill[data-s="error"], .pill[data-s="preflight-failed"], .pill[data-s="needs-check"], .pill[data-s="unknown"], .pill[data-s="interrupted"] { color: var(--error); border-color: color-mix(in srgb, var(--error) 45%, transparent); }
+.pill[data-s="failed"], .pill[data-s="error"], .pill[data-s="preflight-failed"], .pill[data-s="needs-check"], .pill[data-s="unknown"], .pill[data-s="interrupted"], .pill[data-s="missed"] { color: var(--error); border-color: color-mix(in srgb, var(--error) 45%, transparent); }
 .pill[data-s="running"] { color: var(--run); border-color: color-mix(in srgb, var(--run) 45%, transparent); }
 .pill[data-s="handoff"] { color: var(--handoff); border-color: color-mix(in srgb, var(--handoff) 45%, transparent); }
 .pill[data-s="would-send"], .pill[data-s="dry"] { color: var(--write); border-color: color-mix(in srgb, var(--write) 45%, transparent); }
@@ -216,6 +234,9 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
 .cutover .clabel { font-weight: 600; }
 .cutover li[data-state="n/a"] .clabel { color: var(--faint); font-weight: 400; }
 .cutover .cdetail { grid-column: 2; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.cutover .cact { grid-column: 2; margin-top: 6px; }
+.hmissed { padding: 8px 10px; border-radius: var(--r); background: var(--sunken); display: grid; gap: 2px; }
+.hmissed .facts { font-size: 12px; color: var(--muted); }
 .foot { color: var(--muted); font-size: 12px; display: grid; gap: 4px; }
 .foot p { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 </style>
@@ -229,6 +250,7 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
     </div>
     <div class="controls">
       <label class="switch" for="dry-run"><input type="checkbox" id="dry-run" checked><span>Dry run</span></label>
+      <label class="cursor-opt" id="cursor-opt" hidden><input type="checkbox" id="advance-scheduled"> Also advance the scheduled cursor</label>
       <button type="button" class="btn primary" id="run-now" disabled>Run now</button>
     </div>
     <div class="input-row" id="chat-row" hidden>
@@ -237,6 +259,13 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
     </div>
     <p class="mode-note" id="mode-note"></p>
   </header>
+
+  <form class="form-panel" id="form-panel" novalidate hidden aria-labelledby="form-title">
+    <h2 id="form-title"></h2>
+    <p class="fdesc" id="form-desc" hidden></p>
+    <div id="form-fields" class="field-list"></div>
+    <div class="form-actions"><button type="submit" class="btn primary" id="form-submit" disabled>Submit</button><p class="form-note" id="form-note"></p></div>
+  </form>
 
   <div class="banner" id="banner" role="status" hidden></div>
 
@@ -384,14 +413,95 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
   $("foot-build").textContent = `Built from skill commit ${short(build.commit) || "unknown"}, runtime ${build.runtime}. Definition sha256 ${build.definitionHash}.`;
   if (trig && steps[trig].chat) $("chat-row").hidden = false;
   const dry = $("dry-run");
+  const hasPoll = Object.values(steps).some((st) => st.kind === "trigger" && st.poll && !st.settings?.disabled);
+  const formDef = trig && steps[trig].form ? steps[trig].form : null;
   function modeNote() {
     const n = $("mode-note");
     n.textContent = "";
-    if (dry.checked) n.append(el("strong", {}, "Dry run on. "), "Reads run; writes are shown with their exact arguments and not sent.");
-    else n.append(el("strong", {}, "Dry run off. "), "Writes are sent for real. Each is recorded before it goes out, so an interrupted send is never repeated on its own.");
+    $("cursor-opt").hidden = !hasPoll || dry.checked;
+    dry.closest("label").hidden = !!formDef?.handoff;
+    if (formDef?.handoff) n.append(el("strong", {}, "Form. "), `Each submission is stored here and run by the scheduled ${formDef.handoff.target === "local-task" ? "local" : "cloud"} task, because a step cannot run in this page.`);
+    else if (dry.checked) n.append(el("strong", {}, "Dry run on. "), "Reads run; writes are shown with their exact arguments and not sent.");
+    else n.append(el("strong", {}, "Dry run off. "), "Writes are sent for real, with your own connectors. Each is recorded before it goes out, so an interrupted send is never repeated on its own.", hasPoll ? " Run now works from its own cursor; the scheduled task's cursor moves only if you tick the box." : "");
   }
   dry.addEventListener("change", modeNote);
   modeNote();
+
+  // ---------- form (n8n Form Trigger) ----------
+  const formInputs = {};
+  function drawForm() {
+    if (!formDef) return;
+    $("form-panel").hidden = false;
+    $("form-title").textContent = formDef.title || def.name;
+    if (formDef.description) { $("form-desc").hidden = false; $("form-desc").textContent = formDef.description; }
+    const box = $("form-fields");
+    box.textContent = "";
+    core.formFields(formDef).forEach((f, i) => {
+      const id = `ff-${i}`;
+      const label = [f.label, f.required ? el("span", { class: "req", "aria-hidden": "true" }, " *") : null];
+      let control;
+      if (f.type === "textarea") control = el("textarea", { id, name: f.label, required: f.required, placeholder: f.placeholder || undefined });
+      else if (f.type === "dropdown") control = el("select", { id, name: f.label, required: f.required, multiple: f.multiple || undefined }, f.multiple ? null : el("option", { value: "" }, "Choose…"), f.options.map((o) => el("option", { value: o }, o)));
+      else if (f.type === "checkbox") control = el("div", { class: "opts", role: "group", "aria-labelledby": `${id}-l` }, (f.options.length ? f.options : ["Yes"]).map((o, k) => el("label", {}, el("input", { type: "checkbox", value: o, "data-opt": k }), o)));
+      else control = el("input", { id, name: f.label, type: f.type, required: f.required, placeholder: f.placeholder || undefined, step: f.type === "number" ? "any" : undefined, autocomplete: f.type === "email" ? "email" : "off" });
+      const err = el("p", { class: "ferr", hidden: true, id: `${id}-e` });
+      const wrap = el("div", { class: "field", "data-label": f.label }, f.type === "checkbox" ? el("span", { class: "flabel", id: `${id}-l` }, label) : el("label", { for: id }, label), control, err);
+      formInputs[f.label] = { f, control, err, wrap };
+      box.append(wrap);
+    });
+    $("run-now").hidden = true;
+    $("form-submit").textContent = formDef.handoff ? "Submit for the scheduled task" : "Submit";
+  }
+  function formValues() {
+    const out = {};
+    for (const [label, { f, control }] of Object.entries(formInputs)) {
+      if (f.type === "checkbox") {
+        const picked = [...control.querySelectorAll("input:checked")].map((x) => x.value);
+        out[label] = f.options.length ? picked : picked.length > 0;
+      } else if (f.type === "dropdown" && f.multiple) out[label] = [...control.selectedOptions].map((o) => o.value);
+      else out[label] = control.value;
+    }
+    return out;
+  }
+  function showFormErrors(errors) {
+    for (const { err, wrap } of Object.values(formInputs)) { err.hidden = true; wrap.removeAttribute("data-invalid"); }
+    for (const e of errors || []) {
+      const x = formInputs[e.field];
+      if (!x) continue;
+      x.err.hidden = false;
+      x.err.textContent = e.message;
+      x.wrap.setAttribute("data-invalid", "");
+    }
+    const first = (errors || [])[0];
+    if (first && formInputs[first.field]) (formInputs[first.field].control.querySelector?.("input") || formInputs[first.field].control).focus();
+  }
+  async function submitForm(ev) {
+    ev?.preventDefault();
+    if (!driver || busy) return { refused: true };
+    setBusy(true);
+    banner(null);
+    $("form-note").textContent = "";
+    try {
+      const res = await driver.submitForm(formValues(), { dryRun: dry.checked });
+      if (res.invalid) { showFormErrors(res.errors); $("form-note").textContent = "Check the marked fields."; return res; }
+      showFormErrors([]);
+      if (res.queued) {
+        banner("info", "Submitted", [`Your submission is stored. The scheduled ${res.handoff.target === "local-task" ? "local" : "cloud"} task processes it at its next run; its result appears in the run history then.`]);
+        $("form-note").textContent = `Submission ${res.submissionId} stored.`;
+        $("form-panel").reset();
+      } else if (res.refused) banner("warn", "The form was not submitted", [res.message]);
+      else $("form-note").textContent = res.status === "done" ? (res.record?.dryRun ? "Dry run done: nothing was sent." : "Submitted.") : `The run ended ${res.status}.`;
+      return res;
+    } catch (e) {
+      banner("error", "The form could not be submitted", [String(e?.message || e)]);
+      return { error: String(e?.message || e) };
+    } finally {
+      setBusy(false);
+      refresh();
+    }
+  }
+  $("form-panel").addEventListener("submit", submitForm);
+  drawForm();
 
   // ---------- graph ----------
   const NODE = 100;
@@ -672,6 +782,7 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
     busy = v;
     runBtn.disabled = v || !driver;
     runBtn.textContent = v ? "Running…" : "Run now";
+    $("form-submit").disabled = v || !driver;
   }
   function onUpdate(u) {
     view = { source: "live", runId: u.runId, statuses: u.statuses || {}, runData: u.runData || {}, effects: u.effects || [], held: u.held || {}, sent: u.sent || {}, dryRun: u.dryRun, record: u.record || null, handoff: u.handoff, unknown: u.unknown || [] };
@@ -698,7 +809,7 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
     setBusy(true);
     banner(null);
     try {
-      const res = await driver.runNow({ dryRun: dry.checked, input: $("chat-row").hidden ? undefined : $("chat-input").value });
+      const res = await driver.runNow({ dryRun: dry.checked, input: $("chat-row").hidden ? undefined : $("chat-input").value, advanceScheduled: !dry.checked && $("advance-scheduled").checked });
       if (res.refused) banner("warn", "Run now was refused", [res.message]);
       return res;
     } catch (e) {
@@ -725,6 +836,7 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
 
   // ---------- history and cutover ----------
   let interruptedIds = new Set();
+  let missedInfo = null;
   function showRecord(r) {
     view = { source: "record", runId: r.runId, statuses: r.steps || {}, runData: {}, effects: [], dryRun: r.dryRun, record: r, handoff: r.handoff, unknown: r.unknown || [] };
     paint();
@@ -735,6 +847,9 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
     const ol = $("history");
     ol.textContent = "";
     $("history-note").textContent = runs.length ? `latest ${runs.length}` : "";
+    if (missedInfo?.count) {
+      ol.append(el("li", { class: "hmissed", "data-missed": missedInfo.count }, el("span", {}, el("span", { class: "pill", "data-s": "missed" }, "missed"), " ", `${plural(missedInfo.count, "scheduled run")}${missedInfo.capped ? " or more" : ""} did not happen`), el("span", { class: "facts" }, `since ${fmtTime(missedInfo.since)}; the first was due ${fmtTime(missedInfo.first)}. Check the scheduled task is on.`)));
+    }
     if (!runs.length) {
       ol.append(el("li", {}, el("p", { class: "empty" }, driver ? "No runs yet. Run now records each run here; scheduled runs appear here too." : "Run history appears here when the page runs inside Claude with storage access.")));
       return;
@@ -760,13 +875,25 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
     const list = driver ? await driver.cutover(runs).catch(() => null) : core.cutoverChecklist({ definition: def, definitionHash: build.definitionHash, runs: [] });
     const ol = $("cutover");
     ol.textContent = "";
-    for (const c of list || []) ol.append(el("li", { "data-state": c.state, "data-id": c.id }, el("span", { class: "mark", "aria-hidden": "true" }), el("span", { class: "clabel" }, c.label), el("span", { class: "cdetail" }, c.state === "n/a" ? `Not needed: ${c.detail}` : c.at ? `${c.detail}, ${fmtTime(c.at)}` : c.detail)));
+    for (const c of list || []) {
+      const li = el("li", { "data-state": c.state, "data-id": c.id }, el("span", { class: "mark", "aria-hidden": "true" }), el("span", { class: "clabel" }, c.label), el("span", { class: "cdetail" }, c.state === "n/a" ? `Not needed: ${c.detail}` : c.at ? `${c.detail}, ${fmtTime(c.at)}` : c.detail));
+      if (c.id === "seed-cursor" && c.state === "todo" && driver) li.append(el("div", { class: "cact" }, el("button", { type: "button", class: "btn small", id: "seed-cursor", onclick: seed }, "Seed from the last clean run")));
+      ol.append(li);
+    }
+  }
+  async function seed() {
+    if (!driver || busy) return;
+    const r = await driver.seedCursors().catch((e) => ({ refused: true, message: String(e?.message || e) }));
+    if (r.refused) banner("warn", "Nothing seeded", [r.message]);
+    else banner("info", "Cursor seeded", [`The scheduled task starts after what the dry run read (${r.seeded.join(", ")}), so its first run does not replay history.`]);
+    refresh();
   }
   async function refresh() {
     if (!driver) return renderHistory(), renderCutover();
     try {
       runs = await driver.history();
       interruptedIds = new Set((await driver.interrupted(runs)).map((r) => r.runId));
+      missedInfo = await driver.missed(runs).catch(() => null);
     } catch (e) {
       $("history-note").textContent = "could not load";
     }
@@ -785,14 +912,15 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
   };
   Promise.all([use("mcp"), use("sample"), use("db")]).then(async ([mcp, sample, db]) => {
     if (!mcp && !sample && !db) {
-      banner("info", "Read-only here", ["Run now works when this page is open in Claude as a published artifact with connector, Claude and storage access."]);
+      banner("info", "Read-only here", [formDef ? "The form works when this page is open in Claude as a published artifact with storage access." : "Run now works when this page is open in Claude as a published artifact with connector, Claude and storage access."]);
       return;
     }
     driver = artifact.createArtifactDriver({ core, definition: def, embeddedHash: build.definitionHash, commit: build.commit, servers, rt: { mcp, sample, db }, onUpdate });
     setBusy(false);
-    const pf = await driver.preflight();
+    // A hand-off form runs nothing here: it only stores submissions.
+    const pf = formDef?.handoff ? { issues: db ? [] : [{ level: "error", message: "This view has no storage, so submissions cannot be kept." }] } : await driver.preflight();
     const errs = pf.issues.filter((i) => i.level === "error");
-    if (errs.length) banner("error", "Run now will be refused", errs.map((i) => i.message));
+    if (errs.length) banner("error", formDef ? "The form will be refused" : "Run now will be refused", errs.map((i) => i.message));
     else if (pf.issues.some((i) => i.level === "warning")) banner("info", "Ready, with notes", pf.issues.filter((i) => i.level === "warning").map((i) => i.message).slice(0, 4));
     await refresh();
     if (db) {
@@ -801,6 +929,6 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
       } catch {}
     }
   });
-  window.n2cApp = { runNow, resumeRun, refresh, select, get view() { return view; }, get driver() { return driver; }, get runs() { return runs; } };
+  window.n2cApp = { runNow, resumeRun, refresh, select, submitForm, seed, get missed() { return missedInfo; }, get view() { return view; }, get driver() { return driver; }, get runs() { return runs; } };
 })();
 </script>

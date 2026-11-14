@@ -12,11 +12,13 @@
 // the lock refuses a second Run now (same page, another page, a task-held lock) and a stale task
 // lock is broken; a tampered definition fails preflight with nothing sent; an http step stops
 // the run with "handoff"; a send cut off mid-call is shown as unknown and not resent; the agent
-// workflow runs through sample with tool-call intents; screenshots at 375, 768, 1440 and 1915 px
+// workflow runs through sample with tool-call intents; a form renders every field type,
+// validates, runs with the form item, and a hand-off form stores the submission; missed
+// scheduled runs show in the history; screenshots at 375, 768, 1440 and 1915 px
 // in light and dark, with no horizontal scroll. Screenshots go to --out (scratch), not git.
 
 import { createServer } from "node:http";
-import { readFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
+import { readFileSync, mkdirSync, rmSync, existsSync, writeFileSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { execFileSync } from "node:child_process";
@@ -24,6 +26,7 @@ import { tmpdir } from "node:os";
 import assert from "node:assert/strict";
 import { toolHost, modelHost } from "../../tests/convert-mocks.mjs";
 import { run } from "../../skills/n8n-to-claude/runtime/src/api.mjs";
+import { missedRuns, definitionSchedule } from "../../skills/n8n-to-claude/runtime/src/schedule.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const args = process.argv.slice(2);
@@ -39,8 +42,35 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 rmSync(join(OUT, "folders"), { recursive: true, force: true });
 mkdirSync(join(OUT, "shots"), { recursive: true });
 const folders = {};
-for (const name of ["slice", "poll-code-http", "chat-agent"]) {
-  const res = JSON.parse(execFileSync("node", [join(ROOT, "skills/n8n-to-claude/scripts/convert.mjs"), join(ROOT, "tests/fixtures/convert", `${name}.n8n.json`), "--out", join(OUT, "folders", name)], { encoding: "utf8" }));
+// A form with every field type n8n's Form Trigger offers that the page renders, then a Set.
+const FORM_ALL = {
+  id: "form-all", name: "Every field", settings: { executionOrder: "v1" },
+  nodes: [
+    { id: "1", name: "Signup", type: "n8n-nodes-base.formTrigger", typeVersion: 2.2, position: [0, 0], parameters: { formTitle: "Sign up", formDescription: "All the field types", formFields: { values: [
+      { fieldLabel: "Name", requiredField: true },
+      { fieldLabel: "Seats", fieldType: "number", requiredField: true },
+      { fieldLabel: "Email", fieldType: "email" },
+      { fieldLabel: "Start", fieldType: "date" },
+      { fieldLabel: "Team", fieldType: "dropdown", fieldOptions: { values: [{ option: "Ops" }, { option: "Sales" }] } },
+      { fieldLabel: "Notes", fieldType: "textarea" },
+      { fieldLabel: "Agree", fieldType: "checkbox", fieldOptions: { values: [{ option: "Yes" }] }, requiredField: true },
+    ] }, options: {} } },
+    { id: "2", name: "Tag", type: "n8n-nodes-base.set", typeVersion: 3.4, position: [220, 0], parameters: { assignments: { assignments: [{ id: "a", name: "source", value: "form", type: "string" }] }, includeOtherFields: true, options: {} } },
+  ],
+  connections: { Signup: { main: [[{ node: "Tag", type: "main", index: 0 }]] } },
+};
+mkdirSync(join(OUT, "folders"), { recursive: true });
+writeFileSync(join(OUT, "folders", "form-all.n8n.json"), JSON.stringify(FORM_ALL));
+const SOURCES = {
+  slice: join(ROOT, "tests/fixtures/convert/slice.n8n.json"),
+  "poll-code-http": join(ROOT, "tests/fixtures/convert/poll-code-http.n8n.json"),
+  "chat-agent": join(ROOT, "tests/fixtures/convert/chat-agent.n8n.json"),
+  "form-public": join(ROOT, "tests/fixtures/form-public.json"),
+  "form-artifact": join(ROOT, "tests/fixtures/form-artifact.json"),
+  "form-all": join(OUT, "folders", "form-all.n8n.json"),
+};
+for (const [name, file] of Object.entries(SOURCES)) {
+  const res = JSON.parse(execFileSync("node", [join(ROOT, "skills/n8n-to-claude/scripts/convert.mjs"), file, "--out", join(OUT, "folders", name)], { encoding: "utf8" }));
   folders[name] = join(res.out, res.workflows[0].folder);
 }
 const load = (name) => ({
@@ -48,7 +78,7 @@ const load = (name) => ({
   def: JSON.parse(readFileSync(join(folders[name], "definition.json"), "utf8")),
   caps: JSON.parse(readFileSync(join(folders[name], "artifact.capabilities.json"), "utf8")),
 });
-const pages = { slice: load("slice"), poll: load("poll-code-http"), agent: load("chat-agent") };
+const pages = { slice: load("slice"), poll: load("poll-code-http"), agent: load("chat-agent"), form: load("form-public"), formHandoff: load("form-artifact"), formAll: load("form-all") };
 const buildOf = (html) => JSON.parse(/<script type="application\/json" id="n2c-build">([^<]*)<\/script>/.exec(html)[1]);
 // A tampered copy: the Slack channel changed inside the embedded definition only.
 const tamperedHtml = pages.slice.html.replace(/(<script type="application\/json" id="n2c-definition">[^<]*?)C0123456789/, "$1C0ATTACKER1");
@@ -174,7 +204,7 @@ function backend(caps, servers) {
 
 // ---------- server: the page inside the publish skeleton, with an artifact-like CSP ----------
 const SKELETON_HEAD = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>';
-const served = { slice: pages.slice.html, poll: pages.poll.html, agent: pages.agent.html, tampered: tamperedHtml };
+const served = { slice: pages.slice.html, poll: pages.poll.html, agent: pages.agent.html, tampered: tamperedHtml, form: pages.form.html, formHandoff: pages.formHandoff.html, formAll: pages.formAll.html };
 const extFetches = [];
 const server = createServer((req, res) => {
   const name = /^\/page\/([\w-]+)$/.exec(req.url)?.[1];
@@ -425,6 +455,106 @@ await check("chat agent: sample answers turns, tool-call intents run through the
   assert.deepEqual(output, { output: "Posted. Last tool said ok=true" });
   await ctx.close();
   return `3 sample turns, 1 read through mcp, 1 would-send`;
+});
+
+// 9a. form
+await check("form: fields per type, validation, submit runs with the form item; hand-off stores the submission", async () => {
+  const notes = [];
+  // Every field type renders as its control; the submitted item is n8n's Form Trigger item.
+  {
+    const { ctx, be } = await context("formAll");
+    const page = await open(ctx, "formAll");
+    assert.equal(await page.$eval("#run-now", (b) => b.hidden), true, "a form page submits instead of Run now");
+    const kinds = await page.$$eval("#form-fields .field", (fs) => fs.map((f) => { const c = f.querySelector("input:not([type=checkbox]), select, textarea"); return c ? (c.tagName === "INPUT" ? c.type : c.tagName.toLowerCase()) : f.querySelector("input[type=checkbox]") ? "checkbox" : "?"; }));
+    assert.deepEqual(kinds, ["text", "number", "email", "date", "select", "textarea", "checkbox"]);
+    await page.click("#form-submit");
+    await page.waitForFunction(() => /Check the marked fields/.test(document.getElementById("form-note").textContent));
+    const errs = await page.$$eval(".field[data-invalid]", (fs) => fs.map((f) => f.getAttribute("data-label")));
+    assert.deepEqual(errs, ["Name", "Seats", "Agree"]);
+    assert.equal(be.runs().length, 0, "an invalid form ran nothing");
+    await page.fill("#ff-0", "Ann");
+    await page.fill("#ff-1", "3");
+    await page.fill("#ff-2", "not-an-email");
+    await page.click("#form-submit");
+    await page.waitForFunction(() => document.querySelector('.field[data-label="Email"]')?.hasAttribute("data-invalid"));
+    await page.fill("#ff-2", "ann@example.com");
+    await page.fill("#ff-3", "2026-12-01");
+    await page.selectOption("#ff-4", "Sales");
+    await page.fill("#ff-5", "Window seat");
+    await page.check('.field[data-label="Agree"] input[type=checkbox]');
+    await page.click("#form-submit");
+    await page.waitForFunction(() => /Dry run done/.test(document.getElementById("form-note").textContent), null, { timeout: 15000 });
+    const item = await page.evaluate(() => window.n2cApp.view.runData.Tag[0].data.main[0][0].json);
+    const { submittedAt, ...rest } = item;
+    assert.deepEqual(rest, { Name: "Ann", Seats: 3, Email: "ann@example.com", Start: "2026-12-01", Team: "Sales", Notes: "Window seat", Agree: ["Yes"], formMode: "production", source: "form" });
+    assert.ok(Number.isFinite(Date.parse(submittedAt)));
+    assert.equal(be.runs()[0].status, "done");
+    assert.ok(be.runs()[0].submissionId);
+    for (const width of [375, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await sleep(150);
+      const m = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
+      assert.ok(m.sw <= m.cw, `form ${width}: horizontal scroll`);
+      await page.screenshot({ path: join(OUT, "shots", `form-${width}-light.png`), fullPage: true });
+    }
+    await ctx.close();
+    notes.push("7 field types, 3 required errors, item exact");
+  }
+  // In-artifact form: dry run holds the send; live sends it once through mcp with a ledger entry.
+  {
+    const { ctx, be } = await context("form");
+    const page = await open(ctx, "form");
+    await page.fill("#ff-0", "bo@example.com");
+    await page.fill("#ff-1", "Hello there");
+    await page.click("#form-submit");
+    await page.waitForFunction(() => /Dry run done/.test(document.getElementById("form-note").textContent), null, { timeout: 15000 });
+    assert.equal(be.log.tools.length, 0);
+    assert.equal(be.runs()[0].wouldSend[0].args.subject, "New message from bo@example.com");
+    await page.evaluate(() => document.getElementById("dry-run").click());
+    await page.fill("#ff-0", "bo@example.com");
+    await page.click("#form-submit");
+    await page.waitForFunction(() => document.getElementById("form-note").textContent === "Submitted.", null, { timeout: 15000 });
+    assert.deepEqual(be.log.tools.map((t) => [t.tool, t.args.to, t.args.subject]), [["send_message", ["team@example.com"], "New message from bo@example.com"]]);
+    assert.deepEqual(be.ledgerHistory(be.ledger()[0].effectKey), ["sending", "sent"]);
+    await ctx.close();
+    notes.push("in-artifact: 1 held, 1 sent");
+  }
+  // Hand-off form (its Sheets step needs a task): the submission is stored, nothing runs here.
+  {
+    const { ctx, be } = await context("formHandoff");
+    const page = await open(ctx, "formHandoff");
+    assert.match(await page.$eval("#form-submit", (b) => b.textContent), /scheduled task/);
+    assert.match(await page.$eval("#mode-note", (n) => n.textContent), /run by the scheduled cloud task/);
+    await page.fill("#ff-0", "12.5");
+    await page.click("#form-submit");
+    await page.waitForFunction(() => !document.getElementById("banner").hidden && /Submitted/.test(document.getElementById("banner").textContent));
+    const subs = [...be.docs].filter(([p]) => p.startsWith("submissions/")).map(([, d]) => d);
+    assert.equal(subs.length, 1);
+    assert.deepEqual([subs[0].status, subs[0].trigger, subs[0].item.Amount, subs[0].item.formMode], ["new", "Expense form", 12.5, "production"]);
+    assert.match(await page.$eval("#banner", (b) => b.textContent), /processes it at its next run/);
+    assert.equal(be.runs().length, 0);
+    assert.equal(be.log.tools.length + be.log.samples.length, 0);
+    assert.deepEqual(pages.formHandoff.caps.db.rules, [{ path: "", read: "admin", write: "admin" }, { path: "submissions", read: "admin", write: "interact" }]);
+    await page.screenshot({ path: join(OUT, "shots", "form-handoff-1440-light.png"), fullPage: true });
+    await ctx.close();
+    notes.push("hand-off: 1 submission stored, 0 runs");
+  }
+  return notes.join("; ");
+});
+
+// 9b. missed runs in the history
+await check("missed scheduled runs show in the history", async () => {
+  const { ctx, be } = await context("slice");
+  const lastRunAt = new Date(Date.now() - 3 * 86400000 - 3600000).toISOString();
+  be.docs.set("runs/t-old", { format: 1, runId: "t-old", trigger: "scheduled", driver: "task", status: "done", dryRun: false, startedAt: lastRunAt, effects: { reads: 1, writes: 2, sent: 2, wouldSend: 0, unknown: 0 }, steps: {} });
+  const want = missedRuns({ schedule: definitionSchedule(pages.slice.def), lastRunAt, now: Date.now() }).count;
+  assert.ok(want >= 3, `expected at least 3 missed, computed ${want}`);
+  const page = await open(ctx, "slice");
+  await page.waitForFunction(() => document.querySelector("#history .hmissed"), null, { timeout: 5000 });
+  const text = await page.$eval("#history .hmissed", (x) => x.textContent);
+  assert.match(text, new RegExp(`missed\\s*${want} scheduled runs did not happen`));
+  await ctx.close();
+  return text.replace(/\s+/g, " ").slice(0, 80);
 });
 
 // 9. no runtime: read-only page
