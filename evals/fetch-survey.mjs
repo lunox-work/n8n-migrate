@@ -34,7 +34,7 @@ const pin = opt("--pin", null);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function get(url) {
+export async function get(url) {
   for (let attempt = 1; ; attempt++) {
     try {
       const res = await fetch(url, {
