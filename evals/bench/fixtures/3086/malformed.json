@@ -204,7 +204,7 @@
         "responses": [
           {
             "method": "POST",
-            "url": "https://api.twitter.com/2/tweets",
+            "url": "https://api.x.com/2/tweets",
             "status": 200,
             "body": {
               "data": {
@@ -246,7 +246,7 @@
             }
           },
           {
-            "method": "PUT",
+            "method": "POST",
             "url": "https://www.linkedin.com/dms-uploads/sp/v2/bench-upload-01",
             "status": 201,
             "body": ""
