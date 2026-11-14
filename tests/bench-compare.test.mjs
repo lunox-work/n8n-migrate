@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fromHttp, fromTool, reply, compare, modelWritten, parseMime, multipartJson, baitHits, replyText, normTarget, modelTextsOf, maskRunTime, formStrings, pairWrites, maxAssignment, refsOf, replyFields, decodeQuotedPrintable } from "../evals/bench/compare.mjs";
 import { pickRoute, routeKey, parseMultipart } from "../evals/n8n/mock-server.mjs";
-import { answerOf, runnerValue, jsonFromText, normalize, providerResponse } from "../evals/bench/model-shim.mjs";
+import { answerOf, runnerValue, jsonFromText, normalize, providerResponse, formatOf } from "../evals/bench/model-shim.mjs";
 import { pickConnector, sameModelInput, modelKeyFor, decodeFileParts } from "../evals/bench/claude-side.mjs";
 import { multipartBody } from "../skills/n8n-to-claude/runtime/src/driver.mjs";
 
@@ -156,6 +156,14 @@ test("model shim: provider formats round-trip, n8n's final-answer tool, JSON in 
   assert.deepEqual(n.messages.map((m) => m.role), ["user", "assistant", "tool"]);
   const calls = [{ format: "anthropic", response: providerResponse("anthropic", { text: '{"label":"Marketing","label ID":"Label_5"}' }) }];
   assert.ok(modelTextsOf(calls, answerOf).includes("Label_5"));
+});
+
+test("model shim: Ollama's completion endpoint (/api/generate) round-trips", () => {
+  assert.equal(formatOf("/model/m0/api/generate"), "ollama-generate");
+  assert.deepEqual(normalize("ollama-generate", { prompt: "Q", system: "S" }).messages, [{ role: "user", text: "Q" }]);
+  const r = providerResponse("ollama-generate", { text: '{"Prompt":"a"}' }, { model: "llama3.2:latest" });
+  assert.equal(r.response, '{"Prompt":"a"}');
+  assert.deepEqual(answerOf("ollama-generate", r), { text: '{"Prompt":"a"}' });
 });
 
 test("connector fixtures: args match first, then the node's own, then order; model keys and inputs", () => {

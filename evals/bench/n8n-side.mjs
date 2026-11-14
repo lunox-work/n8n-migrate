@@ -80,6 +80,8 @@ const MODEL_CRED = {
   openAi: { type: "openAiApi", data: (url) => ({ apiKey: "bench-dummy", url: `${url}/v1` }) },
   lmChatGoogleGemini: { type: "googlePalmApi", data: (url) => ({ apiKey: "bench-dummy", host: url }) },
   lmChatOllama: { type: "ollamaApi", data: (url) => ({ baseUrl: url }) },
+  // The completion node (POST /api/generate on the base URL), not the chat model.
+  lmOllama: { type: "ollamaApi", data: (url) => ({ baseUrl: url }) },
   lmChatOpenRouter: { type: "openRouterApi", data: (url) => ({ apiKey: "bench-dummy", url: `${url}/v1` }) },
 };
 
@@ -228,6 +230,13 @@ export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = 
   const s3Nodes = new Set(wf.nodes.filter((n) => n.type === "n8n-nodes-base.s3").map((n) => n.name));
   const s3Endpoint = allResponses.filter((x) => s3Nodes.has(x.node)).map((x) => new URL(x.url).origin).sort((a, b) => a.length - b.length)[0];
   for (const n of wf.nodes) for (const t of Object.keys(n.credentials ?? {})) credentials[t] ??= credentialData(t, { wordpressUrl, s3Endpoint });
+  // Overlay `credentials` (placeholder fills on a dummy, e.g. a service's domain the fixture
+  // assumes): merged over the dummy of that credential type.
+  for (const [t, fields] of Object.entries(overlay?.credentials ?? {})) {
+    if (!credentials[t]) throw new Error(`overlay ${id}: no node uses credential type ${t}`);
+    credentials[t] = { ...credentials[t], ...fields };
+    for (const k of Object.keys(fields)) applied.push({ credential: t, field: k });
+  }
   for (const m of models) {
     const n = wf.nodes.find((x) => x.name === m.node);
     if (!m.spec) continue;

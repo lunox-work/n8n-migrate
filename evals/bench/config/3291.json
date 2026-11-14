@@ -1,0 +1,24 @@
+{
+  "why": "Send Success Message to Telegram takes its chat id from $env.TELEGRAM_CHAT_ID, which the template leaves to the user's environment. The bench sets it as env on the n8n container (the same value as config/3025.json, since env is shared across overlays). The runtime keeps $env blocked by design, so the Claude half carries the same value as a step override. Placeholder fill only: no logic changes.",
+  "env": {
+    "TELEGRAM_CHAT_ID": "100200300"
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Send Success Message to Telegram": {
+          "patch": {
+            "params": {
+              "chatId": "100200300"
+            },
+            "http": {
+              "body": {
+                "chat_id": "100200300"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

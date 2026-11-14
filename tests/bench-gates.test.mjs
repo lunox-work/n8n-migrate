@@ -125,6 +125,9 @@ test("model nodes: OpenRouter chat models and the legacy OpenAI node's chat reso
   const m = modelNodes(wf, { models: ["Chat", "Image"] });
   assert.deepEqual(m.map((x) => [x.node, x.credType]), [["OR", "openRouterApi"], ["Chat", "openAiApi"]]);
   assert.equal(m[0].spec.data("http://mock:8080/model/m0").url, "http://mock:8080/model/m0/v1");
+  const o = modelNodes({ nodes: [{ name: "Ollama Model", type: "@n8n/n8n-nodes-langchain.lmOllama", parameters: {} }] }, { models: [] });
+  assert.deepEqual(o.map((x) => [x.node, x.credType]), [["Ollama Model", "ollamaApi"]], "the Ollama completion node is a model node");
+  assert.equal(o[0].spec.data("http://mock:8080/model/m0").baseUrl, "http://mock:8080/model/m0");
 });
 
 test("P12: a recording interrupted on the model side is told apart from a real baseline failure", () => {

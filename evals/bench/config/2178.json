@@ -1,0 +1,23 @@
+{
+  "why": "The Notion node's parent page is the template placeholder (pageId mode url, empty value), so both sides would fail before writing. Filled with a placeholder parent page URL on both sides; the fixture answers no Notion read, so any page id works. Placeholder fill only: no logic changes.",
+  "n8n": {
+    "Notion": {
+      "parameters.pageId.value": "https://www.notion.so/Audio-Summaries-3f2c9a7b8e1d4c6fa0b5d2e9c8f7a6b1"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Notion": {
+          "patch": {
+            "params": {
+              "pageId": {
+                "value": "https://www.notion.so/Audio-Summaries-3f2c9a7b8e1d4c6fa0b5d2e9c8f7a6b1"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

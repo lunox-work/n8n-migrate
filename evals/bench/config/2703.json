@@ -1,0 +1,35 @@
+{
+  "why": "Both Google Calendar tools leave the calendar empty (mode list, value ''). Filled with the calendar id the fixture's routes assume. Placeholder fill only: no logic changes. The Claude side's calendar steps are blocked (no captured connector), so the Claude half only mirrors the value.",
+  "n8n": {
+    "Google Calendar - Get Events": {
+      "parameters.calendar.value": "claire.martin@agence-lumiere.example"
+    },
+    "Google Calendar - Create events": {
+      "parameters.calendar.value": "claire.martin@agence-lumiere.example"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Google Calendar - Get Events": {
+          "patch": {
+            "params": {
+              "calendar": {
+                "value": "claire.martin@agence-lumiere.example"
+              }
+            }
+          }
+        },
+        "Google Calendar - Create events": {
+          "patch": {
+            "params": {
+              "calendar": {
+                "value": "claire.martin@agence-lumiere.example"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,283 @@
+{
+  "why": "Placeholders the template leaves to the user: every Sheets node's documentId and sheetName ('='), filled with the fixture's sheet (gid 0, 'Videos'); the Blotato API key header (YOUR_API_HERE) on the ten Blotato requests; and the eleven social account ids (all 1111 in the template), filled with distinct dummies. Placeholder fills only: no logic changes. See timeCompression.",
+  "n8n": {
+    "Get my video": {
+      "parameters.documentId.value": "1Yt0VeoAutoPost9kLmN3pQ7rS2tU5vW8xZ1aB4cD6eF",
+      "parameters.sheetName.value": "0"
+    },
+    "Google Sheets": {
+      "parameters.documentId.value": "1Yt0VeoAutoPost9kLmN3pQ7rS2tU5vW8xZ1aB4cD6eF",
+      "parameters.sheetName.value": "0"
+    },
+    "Google Sheets: Save Script Idea": {
+      "parameters.documentId.value": "1Yt0VeoAutoPost9kLmN3pQ7rS2tU5vW8xZ1aB4cD6eF",
+      "parameters.sheetName.value": "0"
+    },
+    "Google Sheets: Log Final Video Output": {
+      "parameters.documentId.value": "1Yt0VeoAutoPost9kLmN3pQ7rS2tU5vW8xZ1aB4cD6eF",
+      "parameters.sheetName.value": "0"
+    },
+    "Upload Video to Blotato": {
+      "parameters.headerParameters.parameters.0.value": "bench-blotato-key"
+    },
+    "INSTAGRAM": {
+      "parameters.headerParameters.parameters.0.value": "bench-blotato-key"
+    },
+    "YOUTUBE": {
+      "parameters.headerParameters.parameters.0.value": "bench-blotato-key"
+    },
+    "TIKTOK": {
+      "parameters.headerParameters.parameters.0.value": "bench-blotato-key"
+    },
+    "FACEBOOK": {
+      "parameters.headerParameters.parameters.0.value": "bench-blotato-key"
+    },
+    "THREADS": {
+      "parameters.headerParameters.parameters.0.value": "bench-blotato-key"
+    },
+    "TWETTER": {
+      "parameters.headerParameters.parameters.0.value": "bench-blotato-key"
+    },
+    "LINKEDIN": {
+      "parameters.headerParameters.parameters.0.value": "bench-blotato-key"
+    },
+    "BLUESKY": {
+      "parameters.headerParameters.parameters.0.value": "bench-blotato-key"
+    },
+    "PINTEREST": {
+      "parameters.headerParameters.parameters.0.value": "bench-blotato-key"
+    },
+    "Assign Social Media IDs": {
+      "parameters.jsonOutput": "{\n  \"instagram_id\": \"10001\",\n  \"youtube_id\": \"10002\",\n  \"threads_id\": \"10003\",\n  \"tiktok_id\": \"10004\",\n  \"facebook_id\": \"10005\",\n  \"facebook_page_id\": \"10006\",\n  \"twitter_id\": \"10007\",\n  \"linkedin_id\": \"10008\",\n  \"pinterest_id\": \"10009\",\n  \"pinterest_board_id\": \"10010\",\n  \"bluesky_id\": \"10011\"\n}\n"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Get my video": {
+          "patch": {
+            "params": {
+              "documentId": {
+                "value": "1Yt0VeoAutoPost9kLmN3pQ7rS2tU5vW8xZ1aB4cD6eF"
+              },
+              "sheetName": {
+                "value": "0"
+              }
+            },
+            "tool": {
+              "args": {
+                "fileId": "1Yt0VeoAutoPost9kLmN3pQ7rS2tU5vW8xZ1aB4cD6eF"
+              }
+            }
+          }
+        },
+        "Google Sheets": {
+          "patch": {
+            "params": {
+              "documentId": {
+                "value": "1Yt0VeoAutoPost9kLmN3pQ7rS2tU5vW8xZ1aB4cD6eF"
+              },
+              "sheetName": {
+                "value": "0"
+              }
+            }
+          }
+        },
+        "Google Sheets: Save Script Idea": {
+          "patch": {
+            "params": {
+              "documentId": {
+                "value": "1Yt0VeoAutoPost9kLmN3pQ7rS2tU5vW8xZ1aB4cD6eF"
+              },
+              "sheetName": {
+                "value": "0"
+              }
+            }
+          }
+        },
+        "Google Sheets: Log Final Video Output": {
+          "patch": {
+            "params": {
+              "documentId": {
+                "value": "1Yt0VeoAutoPost9kLmN3pQ7rS2tU5vW8xZ1aB4cD6eF"
+              },
+              "sheetName": {
+                "value": "0"
+              }
+            }
+          }
+        },
+        "Upload Video to Blotato": {
+          "patch": {
+            "params": {
+              "headerParameters": {
+                "parameters": [
+                  {
+                    "name": "blotato-api-key",
+                    "value": "bench-blotato-key"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "INSTAGRAM": {
+          "patch": {
+            "params": {
+              "headerParameters": {
+                "parameters": [
+                  {
+                    "name": "blotato-api-key",
+                    "value": "bench-blotato-key"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "YOUTUBE": {
+          "patch": {
+            "params": {
+              "headerParameters": {
+                "parameters": [
+                  {
+                    "name": "blotato-api-key",
+                    "value": "bench-blotato-key"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "TIKTOK": {
+          "patch": {
+            "params": {
+              "headerParameters": {
+                "parameters": [
+                  {
+                    "name": "blotato-api-key",
+                    "value": "bench-blotato-key"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "FACEBOOK": {
+          "patch": {
+            "params": {
+              "headerParameters": {
+                "parameters": [
+                  {
+                    "name": "blotato-api-key",
+                    "value": "bench-blotato-key"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "THREADS": {
+          "patch": {
+            "params": {
+              "headerParameters": {
+                "parameters": [
+                  {
+                    "name": "blotato-api-key",
+                    "value": "bench-blotato-key"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "TWETTER": {
+          "patch": {
+            "params": {
+              "headerParameters": {
+                "parameters": [
+                  {
+                    "name": "blotato-api-key",
+                    "value": "bench-blotato-key"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "LINKEDIN": {
+          "patch": {
+            "params": {
+              "headerParameters": {
+                "parameters": [
+                  {
+                    "name": "blotato-api-key",
+                    "value": "bench-blotato-key"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "BLUESKY": {
+          "patch": {
+            "params": {
+              "headerParameters": {
+                "parameters": [
+                  {
+                    "name": "blotato-api-key",
+                    "value": "bench-blotato-key"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "PINTEREST": {
+          "patch": {
+            "params": {
+              "headerParameters": {
+                "parameters": [
+                  {
+                    "name": "blotato-api-key",
+                    "value": "bench-blotato-key"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "Assign Social Media IDs": {
+          "patch": {
+            "params": {
+              "jsonOutput": "{\n  \"instagram_id\": \"10001\",\n  \"youtube_id\": \"10002\",\n  \"threads_id\": \"10003\",\n  \"tiktok_id\": \"10004\",\n  \"facebook_id\": \"10005\",\n  \"facebook_page_id\": \"10006\",\n  \"twitter_id\": \"10007\",\n  \"linkedin_id\": \"10008\",\n  \"pinterest_id\": \"10009\",\n  \"pinterest_board_id\": \"10010\",\n  \"bluesky_id\": \"10011\"\n}\n"
+            }
+          }
+        }
+      }
+    }
+  },
+  "timeCompression": {
+    "why": "'Wait for Veo3 Processing (5 mins)' has no parameters, so Wait v1.1 waits its default of 1 hour and n8n parks the execution in 'waiting', past the bench's timeout. Shortened to 1 second on both sides. This changes when the run resumes, not what it does: the fal mock's replies do not depend on elapsed time. Not a placeholder fill, so results flag it as time compression (config.nonPlaceholder).",
+    "n8n": {
+      "Wait for Veo3 Processing (5 mins)": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      }
+    },
+    "claude": {
+      "overrides": {
+        "steps": {
+          "Wait for Veo3 Processing (5 mins)": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "why": "Every Jira node uses one jiraSoftwareCloudApi credential, which the bench fills with a dummy that has no Jira Cloud domain; the fixture's routes assume https://acme-support.atlassian.net. The overlay sets the domain (and a dummy email and API token) on that dummy credential. Placeholder fill only: no logic changes. The Claude side's Jira steps have no tool map, so no Claude half is needed.",
+  "credentials": {
+    "jiraSoftwareCloudApi": {
+      "domain": "https://acme-support.atlassian.net",
+      "email": "bench@bench.example",
+      "apiToken": "bench-dummy"
+    }
+  }
+}

@@ -4,7 +4,7 @@
 //   n8n side   each model node's credential points at http://mock:8080/model/<tag> (the mock
 //              forwards to this server with x-bench-model-tag); the shim speaks Anthropic
 //              /v1/messages, OpenAI /v1/chat/completions, Gemini :generateContent and Ollama
-//              /api/chat, with or without streaming.
+//              /api/chat and /api/generate (the completion node), with or without streaming.
 //   Claude side the in-process driver hands the runner's `model` / `agent` requests to
 //              answerRunnerRequest(), which replays n8n's recorded reply for the same node and
 //              call index (replay), or asks the model (live).
@@ -74,6 +74,10 @@ export function normalize(format, body = {}) {
     out.tools = (body.tools ?? []).flatMap((t) => t.functionDeclarations ?? []).map((f) => ({ name: f.name, description: f.description ?? "", schema: f.parameters ?? {} }));
   } else if (format === "openai-completions") {
     out.messages.push({ role: "user", text: [].concat(body.prompt ?? "").join("\n") });
+  } else if (format === "ollama-generate") {
+    out.system = body.system ?? "";
+    out.messages.push({ role: "user", text: String(body.prompt ?? "") });
+    if (body.format === "json" || (body.format && typeof body.format === "object")) out.wantJson = typeof body.format === "object" ? body.format : true;
   } else if (format === "ollama") {
     for (const m of body.messages ?? []) {
       if (m.role === "system") out.system += (out.system ? "\n" : "") + textOf(m.content);
@@ -181,6 +185,7 @@ export function providerResponse(format, answer, body = {}) {
     const parts = calls.length ? calls.map((c) => ({ functionCall: { name: c.name, args: c.input } })) : [{ text }];
     return { candidates: [{ content: { role: "model", parts }, finishReason: "STOP", index: 0 }], usageMetadata: { promptTokenCount: 0, candidatesTokenCount: 0, totalTokenCount: 0 } };
   }
+  if (format === "ollama-generate") return { model: body.model ?? "ollama-bench", created_at: "2026-11-16T09:00:00Z", response: text, done: true, done_reason: "stop" };
   return { model: body.model ?? "ollama-bench", created_at: "2026-11-16T09:00:00Z", message: { role: "assistant", content: text }, done: true, done_reason: "stop" };
 }
 
@@ -201,6 +206,7 @@ export function answerOf(format, resp) {
     const calls = parts.filter((p) => p.functionCall).map((p) => ({ name: p.functionCall.name, input: p.functionCall.args ?? {} }));
     return calls.length ? { calls } : { text: parts.map((p) => p.text ?? "").join("") };
   }
+  if (format === "ollama-generate") return { text: resp.response ?? "" };
   return { text: resp.message?.content ?? "" };
 }
 
@@ -227,6 +233,7 @@ function sse(format, resp) {
     return `data: ${JSON.stringify({ ...base, choices: [{ index: 0, delta, finish_reason: null }] })}\n\ndata: ${JSON.stringify({ ...base, choices: [{ index: 0, delta: {}, finish_reason: resp.choices[0].finish_reason }] })}\n\ndata: [DONE]\n\n`;
   }
   if (format === "gemini" || format === "openai-completions") return `data: ${JSON.stringify(resp)}\n\n${format === "gemini" ? "" : "data: [DONE]\n\n"}`;
+  if (format === "ollama-generate") return JSON.stringify({ ...resp, done: false, done_reason: undefined }) + "\n" + JSON.stringify({ ...resp, response: "", done: true }) + "\n";
   return JSON.stringify({ ...resp, done: false }) + "\n" + JSON.stringify({ ...resp, message: { role: "assistant", content: "" }, done: true }) + "\n";
 }
 
@@ -236,6 +243,7 @@ export function formatOf(path) {
   if (/\/v1\/completions$/.test(path)) return "openai-completions";
   if (/:(stream)?generateContent$/i.test(path)) return "gemini";
   if (/\/api\/chat$/.test(path)) return "ollama";
+  if (/\/api\/generate$/.test(path)) return "ollama-generate";
   return null;
 }
 
@@ -284,9 +292,9 @@ export function startShim({ port = 5691, host = "127.0.0.1", log = console.error
         rec.response = resp;
         rec.ms = Date.now() - t0;
         s.calls.push(rec);
-        const stream = body.stream === true || /:streamGenerateContent$/i.test(path) || (format === "ollama" && body.stream !== false);
+        const stream = body.stream === true || /:streamGenerateContent$/i.test(path) || (/^ollama/.test(format) && body.stream !== false);
         if (stream) {
-          res.writeHead(200, { "content-type": format === "ollama" ? "application/x-ndjson" : "text/event-stream" });
+          res.writeHead(200, { "content-type": /^ollama/.test(format) ? "application/x-ndjson" : "text/event-stream" });
           return res.end(sse(format, resp));
         }
         res.writeHead(200, { "content-type": "application/json" });

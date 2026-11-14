@@ -1,0 +1,67 @@
+{
+  "why": "Placeholders the template leaves to the user: Save to Sheet's documentId (YOURDOCUMENT_URL), filled with the fixture's sheet; and the Pexels Authorization header (YOUR_PEXELS_API_KEY), filled with a dummy key. The WordPress credential URL comes from the fixture's routes (bench credential). The prompt's '(YOUR PROMPT)' lines stay as written. Placeholder fills only: no logic changes. See timeCompression.",
+  "n8n": {
+    "Save to Sheet": {
+      "parameters.documentId.value": "https://docs.google.com/spreadsheets/d/1TaipeiPostsBenchSheet0aB1cD2eF3gH4iJ5kL6mN/edit"
+    },
+    "Automated Image Retrieval from Pexels": {
+      "parameters.headerParameters.parameters.0.value": "bench-pexels-key"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Save to Sheet": {
+          "patch": {
+            "params": {
+              "documentId": {
+                "value": "https://docs.google.com/spreadsheets/d/1TaipeiPostsBenchSheet0aB1cD2eF3gH4iJ5kL6mN/edit"
+              }
+            }
+          }
+        },
+        "Automated Image Retrieval from Pexels": {
+          "patch": {
+            "params": {
+              "headerParameters": {
+                "parameters": [
+                  {
+                    "name": "Authorization",
+                    "value": "bench-pexels-key"
+                  },
+                  {
+                    "name": "Content-Type",
+                    "value": "application/json"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "timeCompression": {
+    "why": "Processing Delay draws a random delay of up to 6 hours (Math.random) and Random Wait waits it, past the bench's timeout; the drawn value also differs per side. Random Wait is set to 1 second on both sides. This changes when the run resumes, not what it does: the delay is used by nothing else. Not a placeholder fill, so results flag it as time compression (config.nonPlaceholder).",
+    "n8n": {
+      "Random Wait": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      }
+    },
+    "claude": {
+      "overrides": {
+        "steps": {
+          "Random Wait": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
