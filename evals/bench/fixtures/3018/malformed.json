@@ -47,7 +47,7 @@
               "x-ratelimit-remaining": "0",
               "x-ratelimit-reset": "1794873600"
             },
-            "body": "Too Many Requests"
+            "body": "Rate limit exceeded for this API key. Monthly quota resets on the 1st."
           }
         ]
       },
