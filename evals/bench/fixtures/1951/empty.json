@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "template": 1951,
+  "sha256": "22036d84bd0b38be8713ebd14d9cd64c6d34fa3bc9418340ff995d82002e8f05",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the index page loads but has no nested table, so the selector finds no essay link",
+  "trigger": {
+    "node": "When clicking \"Execute Workflow\"",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Fetch Essay List",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "http://www.paulgraham.com/articles.html",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html"
+            },
+            "body": "<html><head><title>Essays</title></head><body><p>This page has moved. See <a href=\"index.html\">the index</a>.</p></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a public web page fetched over http on the Claude side"
+      },
+      "note": "HTTP Request v4.2 GET http://www.paulgraham.com/articles.html (plain http through the proxy); Extract essay names takes the href of every 'table table a'"
+    },
+    {
+      "node": "Fetch essay texts",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "public web pages fetched over http on the Claude side"
+      },
+      "note": "GET http://www.paulgraham.com/<href> for the first 3 links (Limit to first 3). Essay texts are short paraphrased stand-ins, each under the 6,000-character chunk size"
+    }
+  ],
+  "models": [
+    "Summarization Chain",
+    "OpenAI Chat Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "Extract essay names returns an empty essay array; Split out into items emits nothing, so nothing is fetched or summarized"
+    ],
+    "offline": "No write: the run's result is Clean up's three items (title, summary, url), which the bench sees only as node output. Clean up's url always uses the first essay's href ($('Limit to first 3').first()), a template quirk both sides should keep"
+  }
+}

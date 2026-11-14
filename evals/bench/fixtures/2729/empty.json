@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "template": 2729,
+  "sha256": "842c3e34254b3647b3af46840f40ebf04eef10d2f67b27059ea662487e9eaf93",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "an empty chat message",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "a7e4c2d9f1b84a6c8e2d0f3b5a7c9e1d",
+          "action": "sendMessage",
+          "chatInput": ""
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [
+    "Basic LLM Chain",
+    "Ollama Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "Basic LLM Chain runs with an empty question; the path taken depends on the model's reply (model-driven)"
+    ],
+    "offline": "No external read: the only call is the model. Ollama Model is the completion node lmOllama (POST /api/generate on the credential's base URL), not lmChatOllama; the reply is recorded at run time, so whether JSON to Object parses it is model-driven"
+  }
+}

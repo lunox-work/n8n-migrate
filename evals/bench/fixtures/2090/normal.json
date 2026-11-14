@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "template": 2090,
+  "sha256": "a11b6f19867ec065688d0693036bae2190ab146e1c84c3feebd50e725239f7a5",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "a user asks for the top three customers by October 2026 spend with their order counts; six customers and twelve orders, one refunded and two outside October",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "c3f1a9e2b7d84e0f9a1b2c3d4e5f6a7b",
+          "action": "sendMessage",
+          "chatInput": "Which three customers spent the most in October 2026, and how many orders did each place? Ignore refunded orders."
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Postgres",
+      "service": "postgres",
+      "db": {
+        "engine": "postgres",
+        "seed": {
+          "public.customers": [
+            {
+              "id": 1,
+              "name": "Hanna Berg",
+              "email": "hanna@fjordline.example",
+              "country": "NO",
+              "created_at": "2025-02-11T09:00:00Z",
+              "notes": null
+            },
+            {
+              "id": 2,
+              "name": "Luis Ortega",
+              "email": "luis@ortega-imports.example",
+              "country": "ES",
+              "created_at": "2025-04-02T14:20:00Z",
+              "notes": null
+            },
+            {
+              "id": 3,
+              "name": "Mei Chen",
+              "email": "mei.chen@lotusgoods.example",
+              "country": "SG",
+              "created_at": "2025-06-18T03:45:00Z",
+              "notes": null
+            },
+            {
+              "id": 4,
+              "name": "Tom Reilly",
+              "email": "tom@reilly-hardware.example",
+              "country": "IE",
+              "created_at": "2025-09-30T11:10:00Z",
+              "notes": null
+            },
+            {
+              "id": 5,
+              "name": "Amara Okafor",
+              "email": "amara@okafor-design.example",
+              "country": "NG",
+              "created_at": "2026-01-07T16:00:00Z",
+              "notes": null
+            },
+            {
+              "id": 6,
+              "name": "Jonas Weber",
+              "email": "jonas@weber-kaffee.example",
+              "country": "DE",
+              "created_at": "2026-03-22T08:30:00Z",
+              "notes": null
+            }
+          ],
+          "public.orders": [
+            {
+              "id": 1001,
+              "customer_id": 1,
+              "order_date": "2026-10-02",
+              "total_eur": 420,
+              "status": "paid"
+            },
+            {
+              "id": 1002,
+              "customer_id": 2,
+              "order_date": "2026-10-03",
+              "total_eur": 1260.5,
+              "status": "paid"
+            },
+            {
+              "id": 1003,
+              "customer_id": 3,
+              "order_date": "2026-10-05",
+              "total_eur": 89.9,
+              "status": "paid"
+            },
+            {
+              "id": 1004,
+              "customer_id": 2,
+              "order_date": "2026-10-09",
+              "total_eur": 310,
+              "status": "paid"
+            },
+            {
+              "id": 1005,
+              "customer_id": 4,
+              "order_date": "2026-10-12",
+              "total_eur": 2045,
+              "status": "paid"
+            },
+            {
+              "id": 1006,
+              "customer_id": 1,
+              "order_date": "2026-10-15",
+              "total_eur": 150,
+              "status": "paid"
+            },
+            {
+              "id": 1007,
+              "customer_id": 5,
+              "order_date": "2026-10-19",
+              "total_eur": 640,
+              "status": "paid"
+            },
+            {
+              "id": 1008,
+              "customer_id": 2,
+              "order_date": "2026-10-21",
+              "total_eur": 75.25,
+              "status": "paid"
+            },
+            {
+              "id": 1009,
+              "customer_id": 6,
+              "order_date": "2026-10-28",
+              "total_eur": 980,
+              "status": "refunded"
+            },
+            {
+              "id": 1010,
+              "customer_id": 3,
+              "order_date": "2026-10-30",
+              "total_eur": 1120,
+              "status": "paid"
+            },
+            {
+              "id": 1011,
+              "customer_id": 4,
+              "order_date": "2026-11-02",
+              "total_eur": 300,
+              "status": "paid"
+            },
+            {
+              "id": 1012,
+              "customer_id": 6,
+              "order_date": "2026-09-29",
+              "total_eur": 500,
+              "status": "paid"
+            }
+          ]
+        }
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Postgres connector; both sides query the seeded sidecar"
+      },
+      "note": "agent tool: Postgres executeQuery with model-written SQL ($fromAI('sql_statement')), so the queries (schema discovery included) are model-driven and only a seeded database can answer them. Tables: public.customers(id integer primary key, name text, email text, country text, created_at timestamptz, notes text); public.orders(id integer primary key, customer_id integer, order_date date, total_eur numeric(10,2), status text)"
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch; expected answer from the data: Tom Reilly 2045.00 (1 order), Luis Ortega 1645.75 (3), Mei Chen 1209.90 (2); the SQL is model-written"
+    ],
+    "offline": "The postgres credential points at the bench's sidecar host; the db seed must be loaded before the run (the tables and column types are in the read's note). Simple Memory keeps the session's history in n8n's process only; one message per run"
+  }
+}
