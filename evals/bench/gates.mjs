@@ -48,7 +48,10 @@ export function runFailureCause(r) {
   }
   if (/no recorded model reply/.test(msg)) return fail("bench defect", `model replay missed: ${msg}`);
   if (/Invalid arguments|ToolError|Unknown tool|lacks required/.test(msg)) return fail("field map", `step ${r.error?.node ?? "?"}: ${msg.slice(0, 200)}`);
-  if (/expression|is not defined|Cannot read properties|undefined/i.test(msg)) return fail("expression translation", `step ${r.error?.node ?? "?"}: ${msg.slice(0, 200)}`);
+  // A step that finds a field missing or null in its input ran on data shaped differently from
+  // n8n's: the upstream step's output (a connector's result adapter) is the usual cause.
+  if (/Cannot (read|convert|destructure)[^\n]*(undefined|null)|is not iterable|of undefined|of null/i.test(msg)) return fail("field map", `step ${r.error?.node ?? "?"} got input without a field n8n's data has: ${msg.slice(0, 200)}`);
+  if (/expression|is not defined|undefined/i.test(msg)) return fail("expression translation", `step ${r.error?.node ?? "?"}: ${msg.slice(0, 200)}`);
   if (/not implemented|unsupported|binary/i.test(msg)) return fail("unmapped node", `step ${r.error?.node ?? "?"}: ${msg.slice(0, 200)}`);
   return fail("runner bug", `step ${r?.error?.node ?? "?"}: ${msg.slice(0, 200)}`);
 }

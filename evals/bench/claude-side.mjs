@@ -185,6 +185,10 @@ export async function runInProcess(folder, fx, { wf, recordings = [], mode = "re
       seen.http.push(entry);
       const r = pickRoute(routes, String(p.method).toUpperCase(), u.origin, u.pathname, sp, routeCounters);
       entry.fixture = r?.key ?? null;
+      if (!r && ["POST", "PUT", "PATCH", "DELETE"].includes(String(p.method).toUpperCase())) {
+        entry.fixture = "write-default";
+        return { status: 200, headers: { "content-type": "application/json" }, body: "{}" };
+      }
       if (!r) return { status: 404, headers: { "content-type": "application/json" }, body: JSON.stringify({ error: "no fixture" }) };
       const f = r.f;
       if (f.bodyBase64 !== undefined) return { status: f.status ?? 200, headers: { "content-type": "application/octet-stream", ...(f.headers ?? {}) }, body: Buffer.from(f.bodyBase64, "base64").toString("latin1") };

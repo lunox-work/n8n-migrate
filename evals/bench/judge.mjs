@@ -59,14 +59,23 @@ async function calibrate(ids, variant) {
   try {
     for (const id of ids) {
       const runs = [];
-      for (const k of [0, 1]) {
+      // Draw A can be the committed recording when its replies were produced live (not replayed).
+      const recFile = join(HERE, "recordings", String(id), `${variant}.json`);
+      const rec = existsSync(recFile) ? JSON.parse(readFileSync(recFile, "utf8")) : null;
+      if (rec && rec.recorded?.modes?.some((m) => m === "live")) {
+        const fx = prepare(id, variant).fixture;
+        const effects = rec.effects.map((e) => fromHttp(e, "n8n")).filter(Boolean);
+        if (["chat", "form"].includes(fx.trigger.kind)) effects.push(reply(replyText((rec.lastItems ?? []).map((j) => ({ json: j }))), "n8n"));
+        runs.push({ status: rec.status, error: rec.error ?? null, effects, calls: rec.modelCalls, from: `recordings/${id}/${variant}.json (${rec.recorded.at})` });
+      }
+      for (const k of [runs.length, 1].slice(0, 2 - runs.length)) {
         const prep = prepare(id, variant);
         const r = await runN8n(prep, { shim, modelSession: { mode: "live", noCache: true }, runWorkflow, copyIn: container.copyIn, timeoutS: 900 });
         const lastItems = r.result.nodes?.[r.result.lastNode]?.at(-1)?.items?.main?.[0] ?? [];
         const fx = prep.fixture;
         const effects = splitLog(r.result.effects).service.map((e) => fromHttp(e, k ? "claude" : "n8n")).filter(Boolean);
         if (["chat", "form"].includes(fx.trigger.kind)) effects.push(reply(replyText(lastItems.map((j) => ({ json: j }))), k ? "claude" : "n8n"));
-        runs.push({ status: r.result.status, error: r.result.error ?? null, effects, calls: r.modelCalls });
+        runs.push({ status: r.result.status, error: r.result.error ?? null, effects, calls: r.modelCalls, from: "fresh live run, no cache" });
       }
       const texts = [...modelTextsOf(runs[0].calls, answerOf), ...modelTextsOf(runs[1].calls, answerOf)];
       const cmp = compare(runs[0].effects, runs[1].effects, { modelTexts: texts, mode: "live" });
@@ -74,6 +83,7 @@ async function calibrate(ids, variant) {
       report.templates[id] = {
         variant,
         statuses: runs.map((r) => r.status),
+        draws: runs.map((r) => r.from),
         modelCalls: runs.map((r) => r.calls.length),
         pairs: judged.length,
         worse: judged.filter((j) => j.verdict === "worse").length,

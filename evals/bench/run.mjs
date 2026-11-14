@@ -5,7 +5,7 @@
 //   node evals/bench/run.mjs [<templateId>...] [--split dev] [--limit n]
 //        [--variants normal,empty,malformed,hostile] [--repeats 3] [--model-mode replay|live]
 //        [--driver inprocess|claude] [--skill <id,id|all|none>] [--tag <run tag>]
-//        [--reuse-convert <tag>] [--record] [--no-n8n-check]
+//        [--reuse-convert <tag>] [--record] [--no-n8n-check] [--diagnose]
 //
 // --skill        templates whose gate 2 is the headless skill run (claude -p sonnet); the rest
 //                use the plain converter (budget). Every template also gets the plain column.
@@ -15,6 +15,11 @@
 // --record       (re)record n8n's model replies live into evals/bench/recordings/ even when a
 //                recording exists. Without it, an existing recording is replayed on the n8n
 //                side too, and a missing one is recorded live once.
+//
+// --diagnose     for a template that passes preflight but fails gate 3-6: still measure
+//                Contained on the hostile fixture (in process, and with the claude driver on
+//                normal and hostile under --driver claude). Recorded as diagnostics; the
+//                verdict stays the first failed gate.
 //
 // A template stops at its first failed gate. One row per template goes to evals/results.jsonl.
 
@@ -38,7 +43,7 @@ const RESULTS = join(ROOT, "evals", "results.jsonl");
 const VARIANTS = ["normal", "empty", "malformed", "hostile"];
 
 function parseArgs(argv) {
-  const a = { ids: [], variants: VARIANTS, repeats: 3, modelMode: "replay", driver: "inprocess", skill: [], tag: null, reuseConvert: null, record: false, n8nCheck: true, split: null, limit: null };
+  const a = { diagnose: false, ids: [], variants: VARIANTS, repeats: 3, modelMode: "replay", driver: "inprocess", skill: [], tag: null, reuseConvert: null, record: false, n8nCheck: true, split: null, limit: null };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     const v = () => argv[++i];
@@ -51,6 +56,7 @@ function parseArgs(argv) {
     else if (k === "--reuse-convert") a.reuseConvert = v();
     else if (k === "--record") a.record = true;
     else if (k === "--no-n8n-check") a.n8nCheck = false;
+    else if (k === "--diagnose") a.diagnose = true;
     else if (k === "--split") a.split = v();
     else if (k === "--limit") a.limit = Number(v());
     else if (k.startsWith("--")) throw new Error(`unknown flag ${k}`);
@@ -123,7 +129,10 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
     ...(httpAttempt ? { httpAttempt } : {}),
     credentialsMissing: res.credentials?.missing?.map((m) => `${m.node}: ${m.type}`) ?? [],
   };
-  if (!canned && (!existing || record || session.mode === "live")) writeJson(recFile, out);
+  // The file always holds the latest run (replayed replies are the recorded ones), and keeps
+  // when and how its model replies were first produced.
+  out.recorded = existing && session.mode === "replay" ? existing.recorded : { at: new Date().toISOString(), modes: out.modelModes };
+  if (!canned) writeJson(recFile, out);
   return out;
 }
 
@@ -308,7 +317,44 @@ async function benchTemplate(id, args, L) {
     judged: first.judged ?? null,
   };
   save();
-  for (const g of [3, 4, 5, 6]) if (!gates[g]?.pass) return stop();
+  if ([3, 4, 5, 6].some((g) => !gates[g]?.pass)) {
+    // Diagnostics: the verdict stands (first failed gate), but Contained is measured anyway on
+    // the hostile fixture, in process and with the claude driver, because it is about a model
+    // reading hostile data and says nothing about equivalence.
+    if (args.diagnose) {
+      t.diagnostics ??= {};
+      const D = t.diagnostics;
+      if (!D.inprocessHostile && args.variants.includes("hostile")) {
+        const fx = loadFixture(id, "hostile");
+        const rec = await need("hostile");
+        const run = await runInProcess(folder, fx, { wf, recordings: rec?.modelCalls ?? [], mode: args.modelMode, startedAt: rec?.startedAt, log });
+        const n8nHits = baitHits(n8nEffects(rec, fx), fx.expect.bait ?? []);
+        D.inprocessHostile = { run: { status: run.res.status, error: run.res.error?.message ?? null }, n8n: rec?.status, gate6: gate6({ claudeCalls: run.seen, allow: run.definition.allow ?? {}, claudeEffects: claudeEffects(run, fx), n8nBaitHits: n8nHits, bait: fx.expect.bait ?? [], baitHits }), calls: [...run.seen.tools.map((x) => `${x.connector}.${x.tool}`), ...run.seen.http.map((h) => `${h.method} ${h.url}`)] };
+        save();
+      }
+      if (args.driver === "claude") {
+        const { runClaudeDriver } = await import("./claude-driver.mjs");
+        for (const v of ["normal", "hostile"]) {
+          if (D[`claude:${v}`]) continue;
+          log(`${id}/${v}: claude driver (haiku), diagnostic`);
+          const rec = await need(v);
+          const fx = loadFixture(id, v);
+          const r = await runClaudeDriver(folder, fx, { wf, recordings: rec?.modelCalls ?? [], startedAt: rec?.startedAt, label: `${args.tag}-${id}-${v}`, log });
+          if (r.run || r.summary?.notRun) {
+            const ce = r.effects.map((e) => (e.connector ? fromTool(e, "claude") : fromHttp(e, "claude"))).filter(Boolean);
+            r.gate6 = gate6({ claudeCalls: { tools: r.effects.filter((e) => e.connector), http: r.effects.filter((e) => e.url) }, allow: r.allow ?? {}, claudeEffects: ce, n8nBaitHits: baitHits(n8nEffects(rec, fx), fx.expect.bait ?? []), bait: v === "hostile" ? fx.expect.bait ?? [] : [], baitHits });
+            if (v === "normal" && rec) r.cmp = compare(n8nEffects(rec, fx), ce.concat(["chat", "form"].includes(fx.trigger.kind) && r.run?.status === "done" ? [reply(replyText(r.run.output), "claude")] : []), { modelTexts: modelTextsOf(rec.modelCalls, answerOf), mode: args.modelMode });
+          }
+          D[`claude:${v}`] = r;
+          save();
+        }
+        drivers.claudeDiagnostic = Object.fromEntries(["normal", "hostile"].map((v) => [v, { ...D[`claude:${v}`]?.summary, gate6: D[`claude:${v}`]?.gate6 && { pass: D[`claude:${v}`].gate6.pass, cause: D[`claude:${v}`].gate6.cause ?? null }, writesMatchN8n: D[`claude:${v}`]?.cmp ? D[`claude:${v}`].cmp.ok : undefined, metrics: D[`claude:${v}`]?.metrics }]));
+        metrics.claudeDriver = D["claude:normal"]?.metrics;
+      }
+      metrics.diagnostics = { inprocessHostileGate6: D.inprocessHostile?.gate6 ?? null };
+    }
+    return stop();
+  }
 
   // Claude driver (claude -p haiku with hooks) on normal and hostile, once per template.
   if (args.driver === "claude") {
@@ -324,6 +370,7 @@ async function benchTemplate(id, args, L) {
     const ch = S["claude:hostile"];
     drivers.claude = { normal: cn.summary, hostile: ch.summary };
     metrics.claudeDriver = cn.metrics;
+    if (!cn.summary?.notRun) {
     const cNormal = cn.run && compare(n8nEffects(recs.normal, fxN), cn.effects.map((e) => (e.connector ? fromTool(e, "claude") : fromHttp(e, "claude"))).filter(Boolean).concat(["chat", "form"].includes(fxN.trigger.kind) && cn.run.status === "done" ? [reply(replyText(cn.run.output), "claude")] : []), { modelTexts: modelTextsOf(recs.normal?.modelCalls, answerOf), mode: args.modelMode });
     const g3c = cn.run?.status === "done" ? { pass: true } : { ...runFailureCause({ error: cn.run?.error ?? { message: cn.summary?.problem ?? "no run" } }) };
     if (!g3c.pass) gates[3] = { ...g3c, driver: "claude", inprocess: gates[3] };
@@ -336,6 +383,7 @@ async function benchTemplate(id, args, L) {
     }
     for (const g of [3, 4, 6]) if (gates[g].pass) gates[g].driver = "inprocess+claude";
     for (const g of [3, 4, 5, 6]) if (!gates[g]?.pass) return stop();
+    }
   }
 
   // Gate 7: repeats (in process).

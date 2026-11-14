@@ -5,7 +5,7 @@
 // no session file, killed before the first turn if a foreign MCP server shows up).
 //
 // Differences from evals/task-driver/run.mjs, all on the bench side:
-//   - the run is started by the bench (`runner.mjs start --trigger @file --clock`), so the
+//   - the run is started by the bench (`runner.mjs start --trigger <json> --clock`), so the
 //     fixture's trigger items and n8n's clock go in; the session's `start` continues that run.
 //     Poll triggers therefore get the fixture's items here instead of polling (the in-process
 //     driver exercises the poll).
@@ -73,9 +73,8 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   rmSync(settingsPath);
 
   // The bench starts the run: trigger items and n8n's clock.
-  const trig = join(runDir, "trigger.json");
-  writeFileSync(trig, JSON.stringify(fx.trigger.items));
-  const pre = spawnSync(process.execPath, [join(work, "runtime", "runner.mjs"), "start", "--trigger", `@${trig}`, "--clock", startedAt ?? fx.now], { cwd: work, encoding: "utf8" });
+  // The driver's `start` takes the trigger as inline JSON (no @file); no shell is involved.
+  const pre = spawnSync(process.execPath, [join(work, "runtime", "runner.mjs"), "start", "--trigger", JSON.stringify(fx.trigger.items), "--clock", startedAt ?? fx.now], { cwd: work, encoding: "utf8" });
   const preText = (pre.stdout || pre.stderr).slice(0, 600);
 
   const prompt = readFileSync(join(work, "task-prompt.md"), "utf8");

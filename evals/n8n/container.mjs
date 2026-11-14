@@ -88,6 +88,9 @@ export const ENV = {
   // Read once at process start by Node (main process and task runners): every TLS client in
   // n8n then accepts the mock's per-host leaves. Mounted from TLS_DIR/ca.pem.
   NODE_EXTRA_CA_CERTS: "/bench-ca/ca.pem",
+  // 2.x confines Read/Write Files from Disk to ~/.n8n-files by default; fixtures with a
+  // `file` source are copied into /home/node.
+  N8N_RESTRICT_FILE_ACCESS_TO: "/home/node",
 };
 
 // ---------- docker ----------

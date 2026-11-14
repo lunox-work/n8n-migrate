@@ -72,6 +72,8 @@ export function normalize(format, body = {}) {
       if (text || calls.length) out.messages.push({ role: c.role === "model" ? "assistant" : "user", text, ...(calls.length ? { calls } : {}) });
     }
     out.tools = (body.tools ?? []).flatMap((t) => t.functionDeclarations ?? []).map((f) => ({ name: f.name, description: f.description ?? "", schema: f.parameters ?? {} }));
+  } else if (format === "openai-completions") {
+    out.messages.push({ role: "user", text: [].concat(body.prompt ?? "").join("\n") });
   } else if (format === "ollama") {
     for (const m of body.messages ?? []) {
       if (m.role === "system") out.system += (out.system ? "\n" : "") + textOf(m.content);
@@ -172,6 +174,7 @@ export function providerResponse(format, answer, body = {}) {
     const message = calls.length ? { role: "assistant", content: null, tool_calls: calls.map((c, i) => ({ id: `call_bench_${n}_${i}`, type: "function", function: { name: c.name, arguments: JSON.stringify(c.input) } })) } : { role: "assistant", content: text };
     return { id: `chatcmpl-bench-${n}`, object: "chat.completion", created: 1763280000, model: body.model ?? "gpt-bench", choices: [{ index: 0, message, finish_reason: calls.length ? "tool_calls" : "stop", logprobs: null }], usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 } };
   }
+  if (format === "openai-completions") return { id: `cmpl-bench-${n}`, object: "text_completion", created: 1763280000, model: body.model ?? "gpt-bench", choices: [{ index: 0, text, finish_reason: "stop", logprobs: null }], usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 } };
   if (format === "gemini") {
     const parts = calls.length ? calls.map((c) => ({ functionCall: { name: c.name, args: c.input } })) : [{ text }];
     return { candidates: [{ content: { role: "model", parts }, finishReason: "STOP", index: 0 }], usageMetadata: { promptTokenCount: 0, candidatesTokenCount: 0, totalTokenCount: 0 } };
@@ -190,6 +193,7 @@ export function answerOf(format, resp) {
     const m = resp.choices?.[0]?.message ?? {};
     return m.tool_calls?.length ? { calls: m.tool_calls.map((c) => ({ name: c.function?.name, input: safeParse(c.function?.arguments) })) } : { text: m.content ?? "" };
   }
+  if (format === "openai-completions") return { text: resp.choices?.[0]?.text ?? "" };
   if (format === "gemini") {
     const parts = resp.candidates?.[0]?.content?.parts ?? [];
     const calls = parts.filter((p) => p.functionCall).map((p) => ({ name: p.functionCall.name, input: p.functionCall.args ?? {} }));
@@ -220,13 +224,14 @@ function sse(format, resp) {
     const delta = m.tool_calls ? { role: "assistant", tool_calls: m.tool_calls.map((c, index) => ({ index, ...c })) } : { role: "assistant", content: m.content };
     return `data: ${JSON.stringify({ ...base, choices: [{ index: 0, delta, finish_reason: null }] })}\n\ndata: ${JSON.stringify({ ...base, choices: [{ index: 0, delta: {}, finish_reason: resp.choices[0].finish_reason }] })}\n\ndata: [DONE]\n\n`;
   }
-  if (format === "gemini") return `data: ${JSON.stringify(resp)}\n\n`;
+  if (format === "gemini" || format === "openai-completions") return `data: ${JSON.stringify(resp)}\n\n${format === "gemini" ? "" : "data: [DONE]\n\n"}`;
   return JSON.stringify({ ...resp, done: false }) + "\n" + JSON.stringify({ ...resp, message: { role: "assistant", content: "" }, done: true }) + "\n";
 }
 
 export function formatOf(path) {
   if (/\/messages$/.test(path)) return "anthropic";
   if (/\/chat\/completions$/.test(path)) return "openai";
+  if (/\/v1\/completions$/.test(path)) return "openai-completions";
   if (/:(stream)?generateContent$/i.test(path)) return "gemini";
   if (/\/api\/chat$/.test(path)) return "ollama";
   return null;

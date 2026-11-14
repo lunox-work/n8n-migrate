@@ -229,7 +229,10 @@ export function startMock({ port = 8080, log = null, fixtures = null, host = "0.
         fwd.end(raw);
         return;
       }
-      const { key, f } = route ?? pickFixture(map, req.method, u.pathname, query, counters, origin);
+      // A write no fixture answers is accepted (200 {}), as the mock MCP server answers an
+      // unfixtured call with {"ok": true}; reads still get the 404 so fixture gaps show.
+      const writeDefault = !route && map.__writeDefault && ["POST", "PUT", "PATCH", "DELETE"].includes(req.method) && origin ? { key: "write-default", f: map.__writeDefault } : null;
+      const { key, f } = route ?? writeDefault ?? pickFixture(map, req.method, u.pathname, query, counters, origin);
       entry.fixture = key;
       if (log) appendFileSync(log, JSON.stringify(entry) + "\n");
       const send = () => {

@@ -195,6 +195,7 @@ export function logVsFixture(prep, effects) {
     .filter((e) => !e.fixture || e.fixture === "default")
     .filter((e) => !(e.method === "CONNECT" && /oauth2\.googleapis/.test(e.path)))
     .map((e) => ({ method: e.method, url: e.method === "CONNECT" ? `CONNECT ${e.path}` : `${e.proxied ?? ""}${e.path}`, query: e.rawQuery ?? "" }));
+  const writeDefaults = service.filter((e) => e.fixture === "write-default").map((e) => ({ method: e.method, url: `${e.proxied ?? ""}${e.path}` }));
   const used = new Set(service.map((e) => e.fixture).filter(Boolean));
   const unused = [];
   const seen = new Set();
@@ -205,7 +206,7 @@ export function logVsFixture(prep, effects) {
     seen.add(key);
     if (!used.has(key)) unused.push({ node: r.node, method: r.method, url: r.url, ...(r.query ? { query: r.query } : {}) });
   }
-  return { unanswered, unused };
+  return { unanswered, unused, writeDefaults };
 }
 
 // Runs one prepared template in n8n. `shim` is the started model shim; `modelSession` its
@@ -219,7 +220,7 @@ export async function runN8n(prep, { shim, modelSession, runWorkflow, copyIn, ti
     copyIn(local, join("/home/node", f.path));
   }
   shim.setSession({ ...modelSession, label: `${prep.id}/${prep.variant}` });
-  const r = await runWorkflow(prep.wf, { trigger: prep.fixture.trigger.items, mock: { __routes: prep.routes }, credentials: prep.credentials, via: "pin", keepPin: true, timeoutS, now: prep.fixture.now, pinTrigger: prep.pinTrigger });
+  const r = await runWorkflow(prep.wf, { trigger: prep.fixture.trigger.items, mock: { __routes: prep.routes, __writeDefault: { status: 200, body: {} } }, credentials: prep.credentials, via: "pin", keepPin: true, timeoutS, now: prep.fixture.now, pinTrigger: prep.pinTrigger });
   const calls = shim.session.calls.map((c) => ({ ...c, node: tagToNode[c.tag] ?? c.tag }));
   const failedNode = r.error?.node ?? Object.entries(r.nodes ?? {}).find(([, runs]) => runs.some((x) => x.error))?.[0];
   const fallbackable = allowFallback && failedNode && prep.fixture.reads.some((x) => x.node === failedNode && x.n8n && x.http?.responses?.length) && prep.sources[failedNode]?.startsWith("http");
