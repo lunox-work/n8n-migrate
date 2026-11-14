@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "template": 2468,
+  "sha256": "704b9300a64c4605e2c00dc449aae705fe813a042e8ab1edb5f1bc8cef28d7bb",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the JQL search finds no open issue older than seven days",
+  "trigger": {
+    "node": "Schedule Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T04:00:00.000-05:00",
+          "Readable date": "November 16th 2026, 4:00:00 am",
+          "Readable time": "4:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "04",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get List of Unresolved Long Lived Issues",
+      "service": "jira",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://acme-support.atlassian.net/rest/api/2/search",
+            "bodyMatch": "created <= -7d",
+            "status": 200,
+            "body": {
+              "expand": "schema,names",
+              "startAt": 0,
+              "maxResults": 10,
+              "total": 0,
+              "issues": []
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://acme-support.atlassian.net/rest/api/2/search/jql",
+            "bodyMatch": "created <= -7d",
+            "status": 200,
+            "body": {
+              "expand": "schema,names",
+              "startAt": 0,
+              "maxResults": 10,
+              "total": 0,
+              "issues": []
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "atlassian",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "searchJiraIssuesUsingJql",
+            "args": {
+              "jql": "status IN (\"To Do\", \"In Progress\") AND created <= -7d",
+              "maxResults": 10
+            },
+            "result": {
+              "issues": [],
+              "total": 0,
+              "startAt": 0,
+              "maxResults": 10
+            }
+          }
+        ]
+      },
+      "note": "Jira v1 issue getAll with limit 10 and a JQL option: POST /rest/api/2/search {jql, maxResults: 10} (v2, so description is a plain string, which Simplify Thread For AI needs). Atlassian retired /rest/api/2/search on Cloud in 2025; whether n8n 2.47.7 calls /search or /search/jql is unverified, so both are answered. The Jira domain comes from the credential: the bench credential must set domain https://acme-support.atlassian.net"
+    },
+    {
+      "node": "Get Issue Comments",
+      "service": "jira",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "connector": "atlassian",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "listJiraIssueComments",
+            "args": {},
+            "result": {
+              "startAt": 0,
+              "maxResults": 50,
+              "total": 0,
+              "comments": []
+            }
+          }
+        ]
+      },
+      "note": "issueComment getAll per issue (runs once per sub-execution): GET /rest/api/3/issue/{key}/comment on Cloud, bodies in ADF, which Simplify Thread For AI walks (body.content[].content[].text)"
+    },
+    {
+      "node": "Find Simlar Issues",
+      "service": "jira",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://acme-support.atlassian.net/rest/api/2/search",
+            "bodyMatch": "text ~",
+            "status": 200,
+            "body": {
+              "expand": "schema,names",
+              "startAt": 0,
+              "maxResults": 10,
+              "total": 0,
+              "issues": []
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://acme-support.atlassian.net/rest/api/2/search/jql",
+            "bodyMatch": "text ~",
+            "status": 200,
+            "body": {
+              "expand": "schema,names",
+              "startAt": 0,
+              "maxResults": 10,
+              "total": 0,
+              "issues": []
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "atlassian",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "searchJiraIssuesUsingJql",
+            "args": {
+              "maxResults": 4
+            },
+            "result": {
+              "issues": [],
+              "total": 0,
+              "startAt": 0,
+              "maxResults": 4
+            }
+          }
+        ]
+      },
+      "note": "agent tool: same search endpoint as the list, told apart by the JQL in the body (text ~ \"<title>\" AND status IN (\"In Progress\", \"Done\")); the title is model-chosen"
+    },
+    {
+      "node": "Query KnowledgeBase",
+      "service": "notion",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.notion.com/v1/search",
+            "status": 200,
+            "body": {
+              "object": "list",
+              "results": [],
+              "next_cursor": null,
+              "has_more": false,
+              "type": "page_or_database",
+              "page_or_database": {},
+              "request_id": "b3f0c2a1-6d4e-4f5a-9b8c-7d6e5f4a3b2c"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "notion",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "notion-search",
+            "args": {
+              "query": "<model-chosen search terms>"
+            },
+            "result": {
+              "results": []
+            }
+          }
+        ]
+      },
+      "note": "agent tool: Notion v2.2 search, limit 4: POST /v1/search {query, page_size}; the query is model-chosen. Only titles come back (simplified), as from the connector"
+    }
+  ],
+  "models": [
+    "Classify Current Issue State",
+    "OpenAI Chat Model",
+    "Customer Satisfaction Agent",
+    "OpenAI Chat Model4",
+    "KnowledgeBase Agent",
+    "OpenAI Chat Model1",
+    "Issue Reminder Agent",
+    "OpenAI Chat Model3"
+  ],
+  "writes": [
+    "Close Issue",
+    "Send Reminder",
+    "Add Autoclose Message",
+    "Ask For Feedback Message",
+    "Reply to Issue",
+    "Notify Slack Channel",
+    "Close Issue2",
+    "Report Unhappy Resolution"
+  ],
+  "expect": {
+    "branches": [
+      "no issue, so Execute Workflow and the whole sub-execution do not run; no write"
+    ],
+    "offline": "Execute Workflow runs this same workflow ($workflow.id, mode each) from the Execute Workflow Trigger once per issue, so the bench must activate or save the workflow; Execute Workflow itself is not a read (validate may warn). The Jira credential needs a domain (bench credential). Close Issue/Close Issue2 send statusId 31 (Done) as a transition; no reply is read"
+  }
+}

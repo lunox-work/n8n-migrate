@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "template": 3986,
+  "sha256": "4657f455cc33c35a932ef6635c47c8e36c8177da8abefb6604cdf684bdd39256",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "every feed is valid but carries no item",
+  "trigger": {
+    "node": "Get Articles Daily",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T04:00:00.000-05:00",
+          "Readable date": "November 16th 2026, 4:00:00 am",
+          "Readable time": "4:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "04",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Read RSS News Feeds",
+      "service": "rss",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.engadget.com/rss.xml",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=utf-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n<channel>\n<title>Engadget</title>\n<link>https://www.engadget.com/</link>\n<description>Engadget</description>\n<language>en-US</language>\n<lastBuildDate>Mon, 16 Nov 2026 08:30:00 +0000</lastBuildDate>\n\n</channel>\n</rss>\n"
+          },
+          {
+            "method": "GET",
+            "url": "https://feeds.arstechnica.com/arstechnica/index",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=utf-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n<channel>\n<title>Ars Technica - All content</title>\n<link>https://arstechnica.com</link>\n<description>Ars Technica - All content</description>\n<language>en-US</language>\n<lastBuildDate>Mon, 16 Nov 2026 08:30:00 +0000</lastBuildDate>\n\n</channel>\n</rss>\n"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.theverge.com/rss/index.xml",
+            "status": 200,
+            "headers": {
+              "content-type": "application/xml; charset=utf-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\" xml:lang=\"en-US\">\n<title>The Verge</title>\n<link href=\"https://www.theverge.com/\" rel=\"alternate\" type=\"text/html\"/>\n<id>https://www.theverge.com/rss/index.xml</id>\n<updated>2026-11-16T08:20:00-05:00</updated>\n\n</feed>\n"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.wired.com/feed/rss",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=utf-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n<channel>\n<title>WIRED</title>\n<link>https://www.wired.com</link>\n<description>WIRED</description>\n<language>en-US</language>\n<lastBuildDate>Mon, 16 Nov 2026 08:30:00 +0000</lastBuildDate>\n\n</channel>\n</rss>\n"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.technologyreview.com/topnews.rss",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=utf-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n<channel>\n<title>MIT Technology Review</title>\n<link>https://www.technologyreview.com</link>\n<description>MIT Technology Review</description>\n<language>en-US</language>\n<lastBuildDate>Mon, 16 Nov 2026 08:30:00 +0000</lastBuildDate>\n\n</channel>\n</rss>\n"
+          },
+          {
+            "method": "GET",
+            "url": "https://techcrunch.com/feed/",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=utf-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n<channel>\n<title>TechCrunch</title>\n<link>https://techcrunch.com</link>\n<description>TechCrunch</description>\n<language>en-US</language>\n<lastBuildDate>Mon, 16 Nov 2026 08:30:00 +0000</lastBuildDate>\n\n</channel>\n</rss>\n"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no connector: the feeds are public URLs, fetched over http on the Claude side"
+      },
+      "note": "RSS Feed Read v1.1, once per feed URL (6 items from Split Out): rss-parser GETs the URL and parses RSS 2.0 or Atom (The Verge). rss-parser fetches with Node's own http(s) client; whether that honours the bench proxy is unverified"
+    },
+    {
+      "node": "Embeddings OpenAI",
+      "service": "openai-embeddings",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/embeddings",
+            "status": 200,
+            "body": {
+              "object": "list",
+              "data": [
+                {
+                  "object": "embedding",
+                  "index": 0,
+                  "embedding": "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"
+                }
+              ],
+              "model": "text-embedding-3-small",
+              "usage": {
+                "prompt_tokens": 60,
+                "total_tokens": 60
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "embeddings stay with the provider; the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "Store News Articles (in-memory insert) embeds every chunk with POST /v1/embeddings. The reply carries 1 vectors, one per article (each article is under the 3,000-character chunk size): LangChain reads one vector per input, so the same reply serves one batched call or one call per item. Vectors are synthetic"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Store News Articles",
+    "Send Newsletter"
+  ],
+  "expect": {
+    "branches": [
+      "Read RSS News Feeds emits nothing, so Set and Normalize Fields and Store News Articles do not run"
+    ],
+    "offline": "The daily trigger is fixtured because it is the path that reads the outside world. Send Weekly Summary's agent reads only the in-process store (memoryKey news_store_key) that earlier daily runs filled, so a single run cannot exercise it: Get News Articles is left unlisted (validate warns) and Send Newsletter (sendTo the placeholder your@email.com, an overlay) is not reached. Store News Articles writes to n8n's process memory, which neither side can observe as an outgoing effect"
+  }
+}

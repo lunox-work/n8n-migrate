@@ -1,0 +1,803 @@
+{
+  "schemaVersion": 1,
+  "template": 2468,
+  "sha256": "704b9300a64c4605e2c00dc449aae705fe813a042e8ab1edb5f1bc8cef28d7bb",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "an issue with a null description (Jira sends null for an empty one) and a comment holding a rule, a mention and a media node; a second issue with a 255-character title, a very long description, an invalid created date and an empty comment",
+  "trigger": {
+    "node": "Schedule Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T04:00:00.000-05:00",
+          "Readable date": "November 16th 2026, 4:00:00 am",
+          "Readable time": "4:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "04",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get List of Unresolved Long Lived Issues",
+      "service": "jira",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://acme-support.atlassian.net/rest/api/2/search",
+            "bodyMatch": "created <= -7d",
+            "status": 200,
+            "body": {
+              "expand": "schema,names",
+              "startAt": 0,
+              "maxResults": 10,
+              "total": 2,
+              "issues": [
+                {
+                  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+                  "id": "14330",
+                  "self": "https://acme-support.atlassian.net/rest/api/2/issue/14330",
+                  "key": "SUP-4130",
+                  "fields": {
+                    "summary": "API rate limit errors",
+                    "description": null,
+                    "reporter": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "displayName": "Omar Haddad",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "creator": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "displayName": "Omar Haddad",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "assignee": null,
+                    "created": "2026-11-02T07:00:00.000+0000",
+                    "updated": "2026-11-02T07:00:00.000+0000",
+                    "status": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/status/10000",
+                      "name": "To Do",
+                      "id": "10000",
+                      "statusCategory": {
+                        "id": 2,
+                        "key": "new",
+                        "name": "To Do"
+                      }
+                    },
+                    "priority": {
+                      "name": "Medium",
+                      "id": "3"
+                    },
+                    "issuetype": {
+                      "name": "Support",
+                      "id": "10004",
+                      "subtask": false
+                    },
+                    "project": {
+                      "key": "SUP",
+                      "name": "Customer Support",
+                      "id": "10001"
+                    },
+                    "labels": []
+                  }
+                },
+                {
+                  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+                  "id": "14331",
+                  "self": "https://acme-support.atlassian.net/rest/api/2/issue/14331",
+                  "key": "SUP-4131",
+                  "fields": {
+                    "summary": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                    "description": "Paste from our log:\nERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=",
+                    "reporter": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "accountId": "712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "displayName": "Lena Kowalski",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "creator": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "accountId": "712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "displayName": "Lena Kowalski",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "assignee": null,
+                    "created": "not-a-date",
+                    "updated": "not-a-date",
+                    "status": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/status/10000",
+                      "name": "To Do",
+                      "id": "10000",
+                      "statusCategory": {
+                        "id": 2,
+                        "key": "new",
+                        "name": "To Do"
+                      }
+                    },
+                    "priority": {
+                      "name": "Medium",
+                      "id": "3"
+                    },
+                    "issuetype": {
+                      "name": "Support",
+                      "id": "10004",
+                      "subtask": false
+                    },
+                    "project": {
+                      "key": "SUP",
+                      "name": "Customer Support",
+                      "id": "10001"
+                    },
+                    "labels": []
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://acme-support.atlassian.net/rest/api/2/search/jql",
+            "bodyMatch": "created <= -7d",
+            "status": 200,
+            "body": {
+              "expand": "schema,names",
+              "startAt": 0,
+              "maxResults": 10,
+              "total": 2,
+              "issues": [
+                {
+                  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+                  "id": "14330",
+                  "self": "https://acme-support.atlassian.net/rest/api/2/issue/14330",
+                  "key": "SUP-4130",
+                  "fields": {
+                    "summary": "API rate limit errors",
+                    "description": null,
+                    "reporter": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "displayName": "Omar Haddad",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "creator": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "displayName": "Omar Haddad",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "assignee": null,
+                    "created": "2026-11-02T07:00:00.000+0000",
+                    "updated": "2026-11-02T07:00:00.000+0000",
+                    "status": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/status/10000",
+                      "name": "To Do",
+                      "id": "10000",
+                      "statusCategory": {
+                        "id": 2,
+                        "key": "new",
+                        "name": "To Do"
+                      }
+                    },
+                    "priority": {
+                      "name": "Medium",
+                      "id": "3"
+                    },
+                    "issuetype": {
+                      "name": "Support",
+                      "id": "10004",
+                      "subtask": false
+                    },
+                    "project": {
+                      "key": "SUP",
+                      "name": "Customer Support",
+                      "id": "10001"
+                    },
+                    "labels": []
+                  }
+                },
+                {
+                  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+                  "id": "14331",
+                  "self": "https://acme-support.atlassian.net/rest/api/2/issue/14331",
+                  "key": "SUP-4131",
+                  "fields": {
+                    "summary": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                    "description": "Paste from our log:\nERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=",
+                    "reporter": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "accountId": "712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "displayName": "Lena Kowalski",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "creator": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "accountId": "712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "displayName": "Lena Kowalski",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "assignee": null,
+                    "created": "not-a-date",
+                    "updated": "not-a-date",
+                    "status": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/status/10000",
+                      "name": "To Do",
+                      "id": "10000",
+                      "statusCategory": {
+                        "id": 2,
+                        "key": "new",
+                        "name": "To Do"
+                      }
+                    },
+                    "priority": {
+                      "name": "Medium",
+                      "id": "3"
+                    },
+                    "issuetype": {
+                      "name": "Support",
+                      "id": "10004",
+                      "subtask": false
+                    },
+                    "project": {
+                      "key": "SUP",
+                      "name": "Customer Support",
+                      "id": "10001"
+                    },
+                    "labels": []
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "atlassian",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "searchJiraIssuesUsingJql",
+            "args": {
+              "jql": "status IN (\"To Do\", \"In Progress\") AND created <= -7d",
+              "maxResults": 10
+            },
+            "result": {
+              "issues": [
+                {
+                  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+                  "id": "14330",
+                  "self": "https://acme-support.atlassian.net/rest/api/2/issue/14330",
+                  "key": "SUP-4130",
+                  "fields": {
+                    "summary": "API rate limit errors",
+                    "description": null,
+                    "reporter": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "displayName": "Omar Haddad",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "creator": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "displayName": "Omar Haddad",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "assignee": null,
+                    "created": "2026-11-02T07:00:00.000+0000",
+                    "updated": "2026-11-02T07:00:00.000+0000",
+                    "status": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/status/10000",
+                      "name": "To Do",
+                      "id": "10000",
+                      "statusCategory": {
+                        "id": 2,
+                        "key": "new",
+                        "name": "To Do"
+                      }
+                    },
+                    "priority": {
+                      "name": "Medium",
+                      "id": "3"
+                    },
+                    "issuetype": {
+                      "name": "Support",
+                      "id": "10004",
+                      "subtask": false
+                    },
+                    "project": {
+                      "key": "SUP",
+                      "name": "Customer Support",
+                      "id": "10001"
+                    },
+                    "labels": []
+                  }
+                },
+                {
+                  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+                  "id": "14331",
+                  "self": "https://acme-support.atlassian.net/rest/api/2/issue/14331",
+                  "key": "SUP-4131",
+                  "fields": {
+                    "summary": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                    "description": "Paste from our log:\nERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=ERROR 429 Too Many Requests /v2/contacts?page=",
+                    "reporter": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "accountId": "712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "displayName": "Lena Kowalski",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "creator": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "accountId": "712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "displayName": "Lena Kowalski",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "assignee": null,
+                    "created": "not-a-date",
+                    "updated": "not-a-date",
+                    "status": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/status/10000",
+                      "name": "To Do",
+                      "id": "10000",
+                      "statusCategory": {
+                        "id": 2,
+                        "key": "new",
+                        "name": "To Do"
+                      }
+                    },
+                    "priority": {
+                      "name": "Medium",
+                      "id": "3"
+                    },
+                    "issuetype": {
+                      "name": "Support",
+                      "id": "10004",
+                      "subtask": false
+                    },
+                    "project": {
+                      "key": "SUP",
+                      "name": "Customer Support",
+                      "id": "10001"
+                    },
+                    "labels": []
+                  }
+                }
+              ],
+              "total": 2,
+              "startAt": 0,
+              "maxResults": 10
+            }
+          }
+        ]
+      },
+      "note": "Jira v1 issue getAll with limit 10 and a JQL option: POST /rest/api/2/search {jql, maxResults: 10} (v2, so description is a plain string, which Simplify Thread For AI needs). Atlassian retired /rest/api/2/search on Cloud in 2025; whether n8n 2.47.7 calls /search or /search/jql is unverified, so both are answered. The Jira domain comes from the credential: the bench credential must set domain https://acme-support.atlassian.net"
+    },
+    {
+      "node": "Get Issue Comments",
+      "service": "jira",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4130/comment",
+            "status": 200,
+            "body": {
+              "startAt": 0,
+              "maxResults": 50,
+              "total": 1,
+              "comments": [
+                {
+                  "self": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4130/comment/30506",
+                  "id": "30506",
+                  "author": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "accountId": "5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "displayName": "Sam Ortiz (Support)",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "body": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                      {
+                        "type": "rule"
+                      },
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "mention",
+                            "attrs": {
+                              "id": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                              "text": "@Omar Haddad"
+                            }
+                          },
+                          {
+                            "type": "text",
+                            "text": " which endpoint returns 429?"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "mediaSingle",
+                        "attrs": {
+                          "layout": "center"
+                        },
+                        "content": [
+                          {
+                            "type": "media",
+                            "attrs": {
+                              "type": "file",
+                              "id": "c1b2a3d4-0000-4e5f-9a8b-7c6d5e4f3a2b",
+                              "collection": ""
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "updateAuthor": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "accountId": "5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "displayName": "Sam Ortiz (Support)",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "created": "2026-11-03T09:00:00.000+0000",
+                  "updated": "2026-11-03T09:00:00.000+0000",
+                  "jsdPublic": true
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4131/comment",
+            "status": 200,
+            "body": {
+              "startAt": 0,
+              "maxResults": 50,
+              "total": 1,
+              "comments": [
+                {
+                  "self": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4131/comment/30507",
+                  "id": "30507",
+                  "author": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                    "accountId": "712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                    "displayName": "Lena Kowalski",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "body": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": ""
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "updateAuthor": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                    "accountId": "712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                    "displayName": "Lena Kowalski",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "created": "2026-11-04T10:00:00.000+0000",
+                  "updated": "2026-11-04T10:00:00.000+0000",
+                  "jsdPublic": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "atlassian",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "listJiraIssueComments",
+            "args": {
+              "issueIdOrKey": "SUP-4130"
+            },
+            "result": {
+              "startAt": 0,
+              "maxResults": 50,
+              "total": 1,
+              "comments": [
+                {
+                  "self": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4130/comment/30506",
+                  "id": "30506",
+                  "author": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "accountId": "5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "displayName": "Sam Ortiz (Support)",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "body": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                      {
+                        "type": "rule"
+                      },
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "mention",
+                            "attrs": {
+                              "id": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                              "text": "@Omar Haddad"
+                            }
+                          },
+                          {
+                            "type": "text",
+                            "text": " which endpoint returns 429?"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "mediaSingle",
+                        "attrs": {
+                          "layout": "center"
+                        },
+                        "content": [
+                          {
+                            "type": "media",
+                            "attrs": {
+                              "type": "file",
+                              "id": "c1b2a3d4-0000-4e5f-9a8b-7c6d5e4f3a2b",
+                              "collection": ""
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "updateAuthor": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "accountId": "5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "displayName": "Sam Ortiz (Support)",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "created": "2026-11-03T09:00:00.000+0000",
+                  "updated": "2026-11-03T09:00:00.000+0000",
+                  "jsdPublic": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "listJiraIssueComments",
+            "args": {
+              "issueIdOrKey": "SUP-4131"
+            },
+            "result": {
+              "startAt": 0,
+              "maxResults": 50,
+              "total": 1,
+              "comments": [
+                {
+                  "self": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4131/comment/30507",
+                  "id": "30507",
+                  "author": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                    "accountId": "712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                    "displayName": "Lena Kowalski",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "body": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": ""
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "updateAuthor": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                    "accountId": "712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                    "displayName": "Lena Kowalski",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "created": "2026-11-04T10:00:00.000+0000",
+                  "updated": "2026-11-04T10:00:00.000+0000",
+                  "jsdPublic": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "note": "issueComment getAll per issue (runs once per sub-execution): GET /rest/api/3/issue/{key}/comment on Cloud, bodies in ADF, which Simplify Thread For AI walks (body.content[].content[].text)"
+    },
+    {
+      "node": "Find Simlar Issues",
+      "service": "jira",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://acme-support.atlassian.net/rest/api/2/search",
+            "bodyMatch": "text ~",
+            "status": 200,
+            "body": {
+              "expand": "schema,names",
+              "startAt": 0,
+              "maxResults": 10,
+              "total": 0,
+              "issues": []
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://acme-support.atlassian.net/rest/api/2/search/jql",
+            "bodyMatch": "text ~",
+            "status": 200,
+            "body": {
+              "expand": "schema,names",
+              "startAt": 0,
+              "maxResults": 10,
+              "total": 0,
+              "issues": []
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "atlassian",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "searchJiraIssuesUsingJql",
+            "args": {
+              "maxResults": 4
+            },
+            "result": {
+              "issues": [],
+              "total": 0,
+              "startAt": 0,
+              "maxResults": 4
+            }
+          }
+        ]
+      },
+      "note": "agent tool: same search endpoint as the list, told apart by the JQL in the body (text ~ \"<title>\" AND status IN (\"In Progress\", \"Done\")); the title is model-chosen"
+    },
+    {
+      "node": "Query KnowledgeBase",
+      "service": "notion",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.notion.com/v1/search",
+            "status": 200,
+            "body": {
+              "object": "list",
+              "results": [],
+              "next_cursor": null,
+              "has_more": false,
+              "type": "page_or_database",
+              "page_or_database": {},
+              "request_id": "b3f0c2a1-6d4e-4f5a-9b8c-7d6e5f4a3b2c"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "notion",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "notion-search",
+            "args": {
+              "query": "<model-chosen search terms>"
+            },
+            "result": {
+              "results": []
+            }
+          }
+        ]
+      },
+      "note": "agent tool: Notion v2.2 search, limit 4: POST /v1/search {query, page_size}; the query is model-chosen. Only titles come back (simplified), as from the connector"
+    }
+  ],
+  "models": [
+    "Classify Current Issue State",
+    "OpenAI Chat Model",
+    "Customer Satisfaction Agent",
+    "OpenAI Chat Model4",
+    "KnowledgeBase Agent",
+    "OpenAI Chat Model1",
+    "Issue Reminder Agent",
+    "OpenAI Chat Model3"
+  ],
+  "writes": [
+    "Close Issue",
+    "Send Reminder",
+    "Add Autoclose Message",
+    "Ask For Feedback Message",
+    "Reply to Issue",
+    "Notify Slack Channel",
+    "Close Issue2",
+    "Report Unhappy Resolution"
+  ],
+  "expect": {
+    "branches": [
+      "Get Issue Metadata: DateTime.fromISO('not-a-date') formats as 'Invalid DateTime' for SUP-4131",
+      "Simplify Thread For AI is expected to fail on SUP-4130: description.replaceAll of null, and the rule node has no content array",
+      "SUP-4131's empty paragraph renders an empty message; classification is model-driven"
+    ]
+  }
+}

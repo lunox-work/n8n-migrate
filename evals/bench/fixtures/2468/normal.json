@@ -1,0 +1,1422 @@
+{
+  "schemaVersion": 1,
+  "template": 2468,
+  "sha256": "704b9300a64c4605e2c00dc449aae705fe813a042e8ab1edb5f1bc8cef28d7bb",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "three week-old open issues: one resolved with a thankful reporter, one waiting on the reporter, one with only an automated acknowledgement; the knowledge base has an export article",
+  "trigger": {
+    "node": "Schedule Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T04:00:00.000-05:00",
+          "Readable date": "November 16th 2026, 4:00:00 am",
+          "Readable time": "4:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "04",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get List of Unresolved Long Lived Issues",
+      "service": "jira",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://acme-support.atlassian.net/rest/api/2/search",
+            "bodyMatch": "created <= -7d",
+            "status": 200,
+            "body": {
+              "expand": "schema,names",
+              "startAt": 0,
+              "maxResults": 10,
+              "total": 3,
+              "issues": [
+                {
+                  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+                  "id": "14302",
+                  "self": "https://acme-support.atlassian.net/rest/api/2/issue/14302",
+                  "key": "SUP-4102",
+                  "fields": {
+                    "summary": "Invoices PDF download returns a blank page",
+                    "description": "Since last week, when I click Download PDF on any invoice in Billing > Invoices, a new tab opens and stays blank. Chrome 131 on macOS. Our accountant needs the October invoices.",
+                    "reporter": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                      "accountId": "712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                      "displayName": "Dana Whitfield",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "creator": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                      "accountId": "712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                      "displayName": "Dana Whitfield",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "assignee": null,
+                    "created": "2026-11-03T08:14:22.000+0000",
+                    "updated": "2026-11-03T08:14:22.000+0000",
+                    "status": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/status/10000",
+                      "name": "In Progress",
+                      "id": "3",
+                      "statusCategory": {
+                        "id": 4,
+                        "key": "indeterminate",
+                        "name": "In Progress"
+                      }
+                    },
+                    "priority": {
+                      "name": "Medium",
+                      "id": "3"
+                    },
+                    "issuetype": {
+                      "name": "Support",
+                      "id": "10004",
+                      "subtask": false
+                    },
+                    "project": {
+                      "key": "SUP",
+                      "name": "Customer Support",
+                      "id": "10001"
+                    },
+                    "labels": []
+                  }
+                },
+                {
+                  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+                  "id": "14317",
+                  "self": "https://acme-support.atlassian.net/rest/api/2/issue/14317",
+                  "key": "SUP-4117",
+                  "fields": {
+                    "summary": "SSO login loop after changing our Okta domain",
+                    "description": "We moved Okta from acme.okta.com to login.acme-corp.example. Users now loop between our login page and Okta. Workspace id ws_8812.",
+                    "reporter": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "displayName": "Omar Haddad",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "creator": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "displayName": "Omar Haddad",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "assignee": null,
+                    "created": "2026-11-05T11:40:05.000+0000",
+                    "updated": "2026-11-05T11:40:05.000+0000",
+                    "status": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/status/10000",
+                      "name": "In Progress",
+                      "id": "3",
+                      "statusCategory": {
+                        "id": 4,
+                        "key": "indeterminate",
+                        "name": "In Progress"
+                      }
+                    },
+                    "priority": {
+                      "name": "Medium",
+                      "id": "3"
+                    },
+                    "issuetype": {
+                      "name": "Support",
+                      "id": "10004",
+                      "subtask": false
+                    },
+                    "project": {
+                      "key": "SUP",
+                      "name": "Customer Support",
+                      "id": "10001"
+                    },
+                    "labels": []
+                  }
+                },
+                {
+                  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+                  "id": "14323",
+                  "self": "https://acme-support.atlassian.net/rest/api/2/issue/14323",
+                  "key": "SUP-4123",
+                  "fields": {
+                    "summary": "How do I export all contacts to CSV?",
+                    "description": "Is there a way to export every contact including custom fields to CSV? The export button only gives me the current page.",
+                    "reporter": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "accountId": "712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "displayName": "Lena Kowalski",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "creator": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "accountId": "712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "displayName": "Lena Kowalski",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "assignee": null,
+                    "created": "2026-11-08T13:01:37.000+0000",
+                    "updated": "2026-11-08T13:01:37.000+0000",
+                    "status": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/status/10000",
+                      "name": "To Do",
+                      "id": "10000",
+                      "statusCategory": {
+                        "id": 2,
+                        "key": "new",
+                        "name": "To Do"
+                      }
+                    },
+                    "priority": {
+                      "name": "Medium",
+                      "id": "3"
+                    },
+                    "issuetype": {
+                      "name": "Support",
+                      "id": "10004",
+                      "subtask": false
+                    },
+                    "project": {
+                      "key": "SUP",
+                      "name": "Customer Support",
+                      "id": "10001"
+                    },
+                    "labels": []
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://acme-support.atlassian.net/rest/api/2/search/jql",
+            "bodyMatch": "created <= -7d",
+            "status": 200,
+            "body": {
+              "expand": "schema,names",
+              "startAt": 0,
+              "maxResults": 10,
+              "total": 3,
+              "issues": [
+                {
+                  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+                  "id": "14302",
+                  "self": "https://acme-support.atlassian.net/rest/api/2/issue/14302",
+                  "key": "SUP-4102",
+                  "fields": {
+                    "summary": "Invoices PDF download returns a blank page",
+                    "description": "Since last week, when I click Download PDF on any invoice in Billing > Invoices, a new tab opens and stays blank. Chrome 131 on macOS. Our accountant needs the October invoices.",
+                    "reporter": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                      "accountId": "712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                      "displayName": "Dana Whitfield",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "creator": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                      "accountId": "712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                      "displayName": "Dana Whitfield",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "assignee": null,
+                    "created": "2026-11-03T08:14:22.000+0000",
+                    "updated": "2026-11-03T08:14:22.000+0000",
+                    "status": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/status/10000",
+                      "name": "In Progress",
+                      "id": "3",
+                      "statusCategory": {
+                        "id": 4,
+                        "key": "indeterminate",
+                        "name": "In Progress"
+                      }
+                    },
+                    "priority": {
+                      "name": "Medium",
+                      "id": "3"
+                    },
+                    "issuetype": {
+                      "name": "Support",
+                      "id": "10004",
+                      "subtask": false
+                    },
+                    "project": {
+                      "key": "SUP",
+                      "name": "Customer Support",
+                      "id": "10001"
+                    },
+                    "labels": []
+                  }
+                },
+                {
+                  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+                  "id": "14317",
+                  "self": "https://acme-support.atlassian.net/rest/api/2/issue/14317",
+                  "key": "SUP-4117",
+                  "fields": {
+                    "summary": "SSO login loop after changing our Okta domain",
+                    "description": "We moved Okta from acme.okta.com to login.acme-corp.example. Users now loop between our login page and Okta. Workspace id ws_8812.",
+                    "reporter": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "displayName": "Omar Haddad",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "creator": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "displayName": "Omar Haddad",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "assignee": null,
+                    "created": "2026-11-05T11:40:05.000+0000",
+                    "updated": "2026-11-05T11:40:05.000+0000",
+                    "status": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/status/10000",
+                      "name": "In Progress",
+                      "id": "3",
+                      "statusCategory": {
+                        "id": 4,
+                        "key": "indeterminate",
+                        "name": "In Progress"
+                      }
+                    },
+                    "priority": {
+                      "name": "Medium",
+                      "id": "3"
+                    },
+                    "issuetype": {
+                      "name": "Support",
+                      "id": "10004",
+                      "subtask": false
+                    },
+                    "project": {
+                      "key": "SUP",
+                      "name": "Customer Support",
+                      "id": "10001"
+                    },
+                    "labels": []
+                  }
+                },
+                {
+                  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+                  "id": "14323",
+                  "self": "https://acme-support.atlassian.net/rest/api/2/issue/14323",
+                  "key": "SUP-4123",
+                  "fields": {
+                    "summary": "How do I export all contacts to CSV?",
+                    "description": "Is there a way to export every contact including custom fields to CSV? The export button only gives me the current page.",
+                    "reporter": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "accountId": "712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "displayName": "Lena Kowalski",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "creator": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "accountId": "712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "displayName": "Lena Kowalski",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "assignee": null,
+                    "created": "2026-11-08T13:01:37.000+0000",
+                    "updated": "2026-11-08T13:01:37.000+0000",
+                    "status": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/status/10000",
+                      "name": "To Do",
+                      "id": "10000",
+                      "statusCategory": {
+                        "id": 2,
+                        "key": "new",
+                        "name": "To Do"
+                      }
+                    },
+                    "priority": {
+                      "name": "Medium",
+                      "id": "3"
+                    },
+                    "issuetype": {
+                      "name": "Support",
+                      "id": "10004",
+                      "subtask": false
+                    },
+                    "project": {
+                      "key": "SUP",
+                      "name": "Customer Support",
+                      "id": "10001"
+                    },
+                    "labels": []
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "atlassian",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "searchJiraIssuesUsingJql",
+            "args": {
+              "jql": "status IN (\"To Do\", \"In Progress\") AND created <= -7d",
+              "maxResults": 10
+            },
+            "result": {
+              "issues": [
+                {
+                  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+                  "id": "14302",
+                  "self": "https://acme-support.atlassian.net/rest/api/2/issue/14302",
+                  "key": "SUP-4102",
+                  "fields": {
+                    "summary": "Invoices PDF download returns a blank page",
+                    "description": "Since last week, when I click Download PDF on any invoice in Billing > Invoices, a new tab opens and stays blank. Chrome 131 on macOS. Our accountant needs the October invoices.",
+                    "reporter": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                      "accountId": "712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                      "displayName": "Dana Whitfield",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "creator": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                      "accountId": "712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                      "displayName": "Dana Whitfield",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "assignee": null,
+                    "created": "2026-11-03T08:14:22.000+0000",
+                    "updated": "2026-11-03T08:14:22.000+0000",
+                    "status": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/status/10000",
+                      "name": "In Progress",
+                      "id": "3",
+                      "statusCategory": {
+                        "id": 4,
+                        "key": "indeterminate",
+                        "name": "In Progress"
+                      }
+                    },
+                    "priority": {
+                      "name": "Medium",
+                      "id": "3"
+                    },
+                    "issuetype": {
+                      "name": "Support",
+                      "id": "10004",
+                      "subtask": false
+                    },
+                    "project": {
+                      "key": "SUP",
+                      "name": "Customer Support",
+                      "id": "10001"
+                    },
+                    "labels": []
+                  }
+                },
+                {
+                  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+                  "id": "14317",
+                  "self": "https://acme-support.atlassian.net/rest/api/2/issue/14317",
+                  "key": "SUP-4117",
+                  "fields": {
+                    "summary": "SSO login loop after changing our Okta domain",
+                    "description": "We moved Okta from acme.okta.com to login.acme-corp.example. Users now loop between our login page and Okta. Workspace id ws_8812.",
+                    "reporter": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "displayName": "Omar Haddad",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "creator": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "displayName": "Omar Haddad",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "assignee": null,
+                    "created": "2026-11-05T11:40:05.000+0000",
+                    "updated": "2026-11-05T11:40:05.000+0000",
+                    "status": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/status/10000",
+                      "name": "In Progress",
+                      "id": "3",
+                      "statusCategory": {
+                        "id": 4,
+                        "key": "indeterminate",
+                        "name": "In Progress"
+                      }
+                    },
+                    "priority": {
+                      "name": "Medium",
+                      "id": "3"
+                    },
+                    "issuetype": {
+                      "name": "Support",
+                      "id": "10004",
+                      "subtask": false
+                    },
+                    "project": {
+                      "key": "SUP",
+                      "name": "Customer Support",
+                      "id": "10001"
+                    },
+                    "labels": []
+                  }
+                },
+                {
+                  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+                  "id": "14323",
+                  "self": "https://acme-support.atlassian.net/rest/api/2/issue/14323",
+                  "key": "SUP-4123",
+                  "fields": {
+                    "summary": "How do I export all contacts to CSV?",
+                    "description": "Is there a way to export every contact including custom fields to CSV? The export button only gives me the current page.",
+                    "reporter": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "accountId": "712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "displayName": "Lena Kowalski",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "creator": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "accountId": "712020:1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c03",
+                      "displayName": "Lena Kowalski",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "assignee": null,
+                    "created": "2026-11-08T13:01:37.000+0000",
+                    "updated": "2026-11-08T13:01:37.000+0000",
+                    "status": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/status/10000",
+                      "name": "To Do",
+                      "id": "10000",
+                      "statusCategory": {
+                        "id": 2,
+                        "key": "new",
+                        "name": "To Do"
+                      }
+                    },
+                    "priority": {
+                      "name": "Medium",
+                      "id": "3"
+                    },
+                    "issuetype": {
+                      "name": "Support",
+                      "id": "10004",
+                      "subtask": false
+                    },
+                    "project": {
+                      "key": "SUP",
+                      "name": "Customer Support",
+                      "id": "10001"
+                    },
+                    "labels": []
+                  }
+                }
+              ],
+              "total": 3,
+              "startAt": 0,
+              "maxResults": 10
+            }
+          }
+        ]
+      },
+      "note": "Jira v1 issue getAll with limit 10 and a JQL option: POST /rest/api/2/search {jql, maxResults: 10} (v2, so description is a plain string, which Simplify Thread For AI needs). Atlassian retired /rest/api/2/search on Cloud in 2025; whether n8n 2.47.7 calls /search or /search/jql is unverified, so both are answered. The Jira domain comes from the credential: the bench credential must set domain https://acme-support.atlassian.net"
+    },
+    {
+      "node": "Get Issue Comments",
+      "service": "jira",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4102/comment",
+            "status": 200,
+            "body": {
+              "startAt": 0,
+              "maxResults": 50,
+              "total": 2,
+              "comments": [
+                {
+                  "self": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4102/comment/30501",
+                  "id": "30501",
+                  "author": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "accountId": "5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "displayName": "Sam Ortiz (Support)",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "body": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Hi Dana, thanks for reporting. We shipped a fix for the PDF renderer on 5 Nov. Could you clear your cache and try again?"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "updateAuthor": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "accountId": "5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "displayName": "Sam Ortiz (Support)",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "created": "2026-11-04T09:30:00.000+0000",
+                  "updated": "2026-11-04T09:30:00.000+0000",
+                  "jsdPublic": true
+                },
+                {
+                  "self": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4102/comment/30502",
+                  "id": "30502",
+                  "author": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                    "accountId": "712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                    "displayName": "Dana Whitfield",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "body": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "That worked, all October invoices download fine now. Thanks for the quick help!"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "updateAuthor": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                    "accountId": "712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                    "displayName": "Dana Whitfield",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "created": "2026-11-06T15:02:10.000+0000",
+                  "updated": "2026-11-06T15:02:10.000+0000",
+                  "jsdPublic": true
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4117/comment",
+            "status": 200,
+            "body": {
+              "startAt": 0,
+              "maxResults": 50,
+              "total": 2,
+              "comments": [
+                {
+                  "self": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4117/comment/30503",
+                  "id": "30503",
+                  "author": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "accountId": "5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "displayName": "Sam Ortiz (Support)",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "body": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Hi Omar, to update the SSO configuration we need the new Okta metadata URL and confirmation from a workspace owner. Could you send both?"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "updateAuthor": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "accountId": "5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "displayName": "Sam Ortiz (Support)",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "created": "2026-11-06T10:05:00.000+0000",
+                  "updated": "2026-11-06T10:05:00.000+0000",
+                  "jsdPublic": true
+                },
+                {
+                  "self": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4117/comment/30504",
+                  "id": "30504",
+                  "author": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                    "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                    "displayName": "Omar Haddad",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "body": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "I'll ask our IT owner for the metadata URL and come back to you."
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "updateAuthor": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                    "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                    "displayName": "Omar Haddad",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "created": "2026-11-07T08:20:44.000+0000",
+                  "updated": "2026-11-07T08:20:44.000+0000",
+                  "jsdPublic": true
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4123/comment",
+            "status": 200,
+            "body": {
+              "startAt": 0,
+              "maxResults": 50,
+              "total": 1,
+              "comments": [
+                {
+                  "self": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4123/comment/30505",
+                  "id": "30505",
+                  "author": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=557058:f58131cb-b67d-43c7-b30d-6b58d40bd077",
+                    "accountId": "557058:f58131cb-b67d-43c7-b30d-6b58d40bd077",
+                    "displayName": "Automation for Jira",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "body": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Thanks for contacting Acme Support. An agent will look at your request shortly.\n(this is an automated message)"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "updateAuthor": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=557058:f58131cb-b67d-43c7-b30d-6b58d40bd077",
+                    "accountId": "557058:f58131cb-b67d-43c7-b30d-6b58d40bd077",
+                    "displayName": "Automation for Jira",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "created": "2026-11-08T13:01:40.000+0000",
+                  "updated": "2026-11-08T13:01:40.000+0000",
+                  "jsdPublic": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "atlassian",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "listJiraIssueComments",
+            "args": {
+              "issueIdOrKey": "SUP-4102"
+            },
+            "result": {
+              "startAt": 0,
+              "maxResults": 50,
+              "total": 2,
+              "comments": [
+                {
+                  "self": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4102/comment/30501",
+                  "id": "30501",
+                  "author": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "accountId": "5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "displayName": "Sam Ortiz (Support)",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "body": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Hi Dana, thanks for reporting. We shipped a fix for the PDF renderer on 5 Nov. Could you clear your cache and try again?"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "updateAuthor": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "accountId": "5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "displayName": "Sam Ortiz (Support)",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "created": "2026-11-04T09:30:00.000+0000",
+                  "updated": "2026-11-04T09:30:00.000+0000",
+                  "jsdPublic": true
+                },
+                {
+                  "self": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4102/comment/30502",
+                  "id": "30502",
+                  "author": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                    "accountId": "712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                    "displayName": "Dana Whitfield",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "body": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "That worked, all October invoices download fine now. Thanks for the quick help!"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "updateAuthor": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                    "accountId": "712020:4b1e6c0a-0d7e-4c55-9a3e-1f2a3b4c5d01",
+                    "displayName": "Dana Whitfield",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "created": "2026-11-06T15:02:10.000+0000",
+                  "updated": "2026-11-06T15:02:10.000+0000",
+                  "jsdPublic": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "listJiraIssueComments",
+            "args": {
+              "issueIdOrKey": "SUP-4117"
+            },
+            "result": {
+              "startAt": 0,
+              "maxResults": 50,
+              "total": 2,
+              "comments": [
+                {
+                  "self": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4117/comment/30503",
+                  "id": "30503",
+                  "author": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "accountId": "5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "displayName": "Sam Ortiz (Support)",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "body": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Hi Omar, to update the SSO configuration we need the new Okta metadata URL and confirmation from a workspace owner. Could you send both?"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "updateAuthor": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "accountId": "5f8e1c2d3b4a5c6d7e8f9a0b",
+                    "displayName": "Sam Ortiz (Support)",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "created": "2026-11-06T10:05:00.000+0000",
+                  "updated": "2026-11-06T10:05:00.000+0000",
+                  "jsdPublic": true
+                },
+                {
+                  "self": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4117/comment/30504",
+                  "id": "30504",
+                  "author": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                    "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                    "displayName": "Omar Haddad",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "body": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "I'll ask our IT owner for the metadata URL and come back to you."
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "updateAuthor": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                    "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                    "displayName": "Omar Haddad",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "created": "2026-11-07T08:20:44.000+0000",
+                  "updated": "2026-11-07T08:20:44.000+0000",
+                  "jsdPublic": true
+                }
+              ]
+            }
+          },
+          {
+            "tool": "listJiraIssueComments",
+            "args": {
+              "issueIdOrKey": "SUP-4123"
+            },
+            "result": {
+              "startAt": 0,
+              "maxResults": 50,
+              "total": 1,
+              "comments": [
+                {
+                  "self": "https://acme-support.atlassian.net/rest/api/3/issue/SUP-4123/comment/30505",
+                  "id": "30505",
+                  "author": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=557058:f58131cb-b67d-43c7-b30d-6b58d40bd077",
+                    "accountId": "557058:f58131cb-b67d-43c7-b30d-6b58d40bd077",
+                    "displayName": "Automation for Jira",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "body": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Thanks for contacting Acme Support. An agent will look at your request shortly.\n(this is an automated message)"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "updateAuthor": {
+                    "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=557058:f58131cb-b67d-43c7-b30d-6b58d40bd077",
+                    "accountId": "557058:f58131cb-b67d-43c7-b30d-6b58d40bd077",
+                    "displayName": "Automation for Jira",
+                    "active": true,
+                    "timeZone": "Europe/London",
+                    "accountType": "atlassian"
+                  },
+                  "created": "2026-11-08T13:01:40.000+0000",
+                  "updated": "2026-11-08T13:01:40.000+0000",
+                  "jsdPublic": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "note": "issueComment getAll per issue (runs once per sub-execution): GET /rest/api/3/issue/{key}/comment on Cloud, bodies in ADF, which Simplify Thread For AI walks (body.content[].content[].text)"
+    },
+    {
+      "node": "Find Simlar Issues",
+      "service": "jira",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://acme-support.atlassian.net/rest/api/2/search",
+            "bodyMatch": "text ~",
+            "status": 200,
+            "body": {
+              "expand": "schema,names",
+              "startAt": 0,
+              "maxResults": 10,
+              "total": 1,
+              "issues": [
+                {
+                  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+                  "id": "14188",
+                  "self": "https://acme-support.atlassian.net/rest/api/2/issue/14188",
+                  "key": "SUP-3988",
+                  "fields": {
+                    "summary": "Export contacts with custom fields",
+                    "description": "Customer asked how to export contacts with custom fields. Answer: Contacts > ... > Export all (CSV), tick 'Include custom fields'.",
+                    "reporter": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "displayName": "Omar Haddad",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "creator": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "displayName": "Omar Haddad",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "assignee": null,
+                    "created": "2026-10-12T10:00:00.000+0000",
+                    "updated": "2026-10-12T10:00:00.000+0000",
+                    "status": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/status/10000",
+                      "name": "Done",
+                      "id": "3",
+                      "statusCategory": {
+                        "id": 4,
+                        "key": "indeterminate",
+                        "name": "Done"
+                      }
+                    },
+                    "priority": {
+                      "name": "Medium",
+                      "id": "3"
+                    },
+                    "issuetype": {
+                      "name": "Support",
+                      "id": "10004",
+                      "subtask": false
+                    },
+                    "project": {
+                      "key": "SUP",
+                      "name": "Customer Support",
+                      "id": "10001"
+                    },
+                    "labels": []
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://acme-support.atlassian.net/rest/api/2/search/jql",
+            "bodyMatch": "text ~",
+            "status": 200,
+            "body": {
+              "expand": "schema,names",
+              "startAt": 0,
+              "maxResults": 10,
+              "total": 1,
+              "issues": [
+                {
+                  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+                  "id": "14188",
+                  "self": "https://acme-support.atlassian.net/rest/api/2/issue/14188",
+                  "key": "SUP-3988",
+                  "fields": {
+                    "summary": "Export contacts with custom fields",
+                    "description": "Customer asked how to export contacts with custom fields. Answer: Contacts > ... > Export all (CSV), tick 'Include custom fields'.",
+                    "reporter": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "displayName": "Omar Haddad",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "creator": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "displayName": "Omar Haddad",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "assignee": null,
+                    "created": "2026-10-12T10:00:00.000+0000",
+                    "updated": "2026-10-12T10:00:00.000+0000",
+                    "status": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/status/10000",
+                      "name": "Done",
+                      "id": "3",
+                      "statusCategory": {
+                        "id": 4,
+                        "key": "indeterminate",
+                        "name": "Done"
+                      }
+                    },
+                    "priority": {
+                      "name": "Medium",
+                      "id": "3"
+                    },
+                    "issuetype": {
+                      "name": "Support",
+                      "id": "10004",
+                      "subtask": false
+                    },
+                    "project": {
+                      "key": "SUP",
+                      "name": "Customer Support",
+                      "id": "10001"
+                    },
+                    "labels": []
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "atlassian",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "searchJiraIssuesUsingJql",
+            "args": {
+              "maxResults": 4
+            },
+            "result": {
+              "issues": [
+                {
+                  "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+                  "id": "14188",
+                  "self": "https://acme-support.atlassian.net/rest/api/2/issue/14188",
+                  "key": "SUP-3988",
+                  "fields": {
+                    "summary": "Export contacts with custom fields",
+                    "description": "Customer asked how to export contacts with custom fields. Answer: Contacts > ... > Export all (CSV), tick 'Include custom fields'.",
+                    "reporter": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "displayName": "Omar Haddad",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "creator": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/user?accountId=712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "accountId": "712020:9c2d7e1b-5a6f-4e88-b1c2-3d4e5f6a7b02",
+                      "displayName": "Omar Haddad",
+                      "active": true,
+                      "timeZone": "Europe/London",
+                      "accountType": "atlassian"
+                    },
+                    "assignee": null,
+                    "created": "2026-10-12T10:00:00.000+0000",
+                    "updated": "2026-10-12T10:00:00.000+0000",
+                    "status": {
+                      "self": "https://acme-support.atlassian.net/rest/api/2/status/10000",
+                      "name": "Done",
+                      "id": "3",
+                      "statusCategory": {
+                        "id": 4,
+                        "key": "indeterminate",
+                        "name": "Done"
+                      }
+                    },
+                    "priority": {
+                      "name": "Medium",
+                      "id": "3"
+                    },
+                    "issuetype": {
+                      "name": "Support",
+                      "id": "10004",
+                      "subtask": false
+                    },
+                    "project": {
+                      "key": "SUP",
+                      "name": "Customer Support",
+                      "id": "10001"
+                    },
+                    "labels": []
+                  }
+                }
+              ],
+              "total": 1,
+              "startAt": 0,
+              "maxResults": 4
+            }
+          }
+        ]
+      },
+      "note": "agent tool: same search endpoint as the list, told apart by the JQL in the body (text ~ \"<title>\" AND status IN (\"In Progress\", \"Done\")); the title is model-chosen"
+    },
+    {
+      "node": "Query KnowledgeBase",
+      "service": "notion",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.notion.com/v1/search",
+            "status": 200,
+            "body": {
+              "object": "list",
+              "results": [
+                {
+                  "object": "page",
+                  "id": "1a2f3e4d5c6b4a7980f1e2d3c4b5a697",
+                  "created_time": "2026-03-02T10:00:00.000Z",
+                  "last_edited_time": "2026-10-21T09:12:00.000Z",
+                  "archived": false,
+                  "url": "https://www.notion.so/Exporting-contacts-CSV-and-XLSX-1a2f3e4d5c6b4a7980f1e2d3c4b5a697",
+                  "parent": {
+                    "type": "workspace",
+                    "workspace": true
+                  },
+                  "properties": {
+                    "title": {
+                      "id": "title",
+                      "type": "title",
+                      "title": [
+                        {
+                          "type": "text",
+                          "text": {
+                            "content": "Exporting contacts (CSV and XLSX)",
+                            "link": null
+                          },
+                          "plain_text": "Exporting contacts (CSV and XLSX)",
+                          "annotations": {
+                            "bold": false,
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                            "code": false,
+                            "color": "default"
+                          },
+                          "href": null
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "object": "page",
+                  "id": "2b3c4d5e6f704a1b8c9d0e1f2a3b4c5d",
+                  "created_time": "2026-03-02T10:00:00.000Z",
+                  "last_edited_time": "2026-09-30T16:40:00.000Z",
+                  "archived": false,
+                  "url": "https://www.notion.so/Custom-fields-limits-and-export-behaviour-2b3c4d5e6f704a1b8c9d0e1f2a3b4c5d",
+                  "parent": {
+                    "type": "workspace",
+                    "workspace": true
+                  },
+                  "properties": {
+                    "title": {
+                      "id": "title",
+                      "type": "title",
+                      "title": [
+                        {
+                          "type": "text",
+                          "text": {
+                            "content": "Custom fields: limits and export behaviour",
+                            "link": null
+                          },
+                          "plain_text": "Custom fields: limits and export behaviour",
+                          "annotations": {
+                            "bold": false,
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                            "code": false,
+                            "color": "default"
+                          },
+                          "href": null
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "next_cursor": null,
+              "has_more": false,
+              "type": "page_or_database",
+              "page_or_database": {},
+              "request_id": "b3f0c2a1-6d4e-4f5a-9b8c-7d6e5f4a3b2c"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "notion",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "notion-search",
+            "args": {
+              "query": "<model-chosen search terms>"
+            },
+            "result": {
+              "results": [
+                {
+                  "id": "1a2f3e4d5c6b4a7980f1e2d3c4b5a697",
+                  "title": "Exporting contacts (CSV and XLSX)",
+                  "url": "https://www.notion.so/Exporting-contacts-CSV-and-XLSX-1a2f3e4d5c6b4a7980f1e2d3c4b5a697",
+                  "type": "page",
+                  "timestamp": "2026-10-21T09:12:00.000Z"
+                },
+                {
+                  "id": "2b3c4d5e6f704a1b8c9d0e1f2a3b4c5d",
+                  "title": "Custom fields: limits and export behaviour",
+                  "url": "https://www.notion.so/Custom-fields-limits-and-export-behaviour-2b3c4d5e6f704a1b8c9d0e1f2a3b4c5d",
+                  "type": "page",
+                  "timestamp": "2026-09-30T16:40:00.000Z"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "note": "agent tool: Notion v2.2 search, limit 4: POST /v1/search {query, page_size}; the query is model-chosen. Only titles come back (simplified), as from the connector"
+    }
+  ],
+  "models": [
+    "Classify Current Issue State",
+    "OpenAI Chat Model",
+    "Customer Satisfaction Agent",
+    "OpenAI Chat Model4",
+    "KnowledgeBase Agent",
+    "OpenAI Chat Model1",
+    "Issue Reminder Agent",
+    "OpenAI Chat Model3"
+  ],
+  "writes": [
+    "Close Issue",
+    "Send Reminder",
+    "Add Autoclose Message",
+    "Ask For Feedback Message",
+    "Reply to Issue",
+    "Notify Slack Channel",
+    "Close Issue2",
+    "Report Unhappy Resolution"
+  ],
+  "expect": {
+    "branches": [
+      "Classify Current Issue State (model-driven): SUP-4102 resolved → Customer Satisfaction Agent (expected Positive → Ask For Feedback Message → Close Issue); SUP-4117 pending more information → Last Message is Not Bot true → Issue Reminder Agent → Send Reminder; SUP-4123 still waiting → KnowledgeBase Agent",
+      "Solution Found? (model-driven): true expected for SUP-4123 (KB article and a Done issue answer it) → Reply to Issue → Close Issue2; false would go Notify Slack Channel → Reply to Issue",
+      "Customer Satisfaction Agent outputs: Positive (Ask For Feedback Message), Neutral (Add Autoclose Message), Negative (Report Unhappy Resolution)"
+    ],
+    "offline": "Execute Workflow runs this same workflow ($workflow.id, mode each) from the Execute Workflow Trigger once per issue, so the bench must activate or save the workflow; Execute Workflow itself is not a read (validate may warn). The Jira credential needs a domain (bench credential). Close Issue/Close Issue2 send statusId 31 (Done) as a transition; no reply is read"
+  }
+}
