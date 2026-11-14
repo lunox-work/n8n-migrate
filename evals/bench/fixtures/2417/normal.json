@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "template": 2417,
+  "sha256": "23df8cdb3a2b455981140c56e8e0ca4fd2a606e359d0c12b7462c92ab6f7cbcb",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "an astronaut prompt in the Neon Fauvism style; Hugging Face returns a JPEG, S3 stores it and the form shows the result page",
+  "trigger": {
+    "node": "n8n Form Trigger",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "Prompt to flux": "An astronaut riding a horse across a salt flat at dusk, 35mm film",
+          "submittedAt": "2026-11-16T08:59:41.512+00:00",
+          "formMode": "production",
+          "Style": "Neon Fauvism"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Call hugginface inference api",
+      "service": "huggingface-inference",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
+            "status": 200,
+            "headers": {
+              "content-type": "image/jpeg"
+            },
+            "bodyBase64": "/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAIKADAAQAAAABAAAAGAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAGAAgAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMAAgICAgICAwICAwUDAwMFBgUFBQUGCAYGBgYGCAoICAgICAgKCgoKCgoKCgwMDAwMDA4ODg4ODw8PDw8PDw8PD//bAEMBAgICBAQEBwQEBxALCQsQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEP/dAAQAAv/aAAwDAQACEQMRAD8A5eiiiv6MP53CiiigD//Q5eiiiv6MP53CiiigD//Z"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media lever)"
+      },
+      "note": "Hugging Face serverless inference: POST the model URL with JSON {inputs}; a 200 is the image bytes (image/jpeg), which HTTP Request v4.2 stores as binary `data`. The node has an error output (continueErrorOutput) to Respond with error"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Upload image to S3",
+    "Serve webpage",
+    "Respond with error"
+  ],
+  "writeReplies": [
+    {
+      "node": "Upload image to S3",
+      "service": "s3",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://flux-generator.s3.bench.example/",
+            "query": {
+              "location": ""
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "application/xml"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<LocationConstraint xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">eu-west-1</LocationConstraint>"
+          },
+          {
+            "method": "GET",
+            "url": "https://s3.bench.example/flux-generator",
+            "query": {
+              "location": ""
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "application/xml"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<LocationConstraint xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">eu-west-1</LocationConstraint>"
+          },
+          {
+            "method": "PUT",
+            "url": "https://flux-generator.s3.bench.example/{token}",
+            "status": 200,
+            "headers": {
+              "etag": "\"9b2cf535f27731c974343645a3985328\""
+            },
+            "body": ""
+          },
+          {
+            "method": "PUT",
+            "url": "https://s3.bench.example/flux-generator/{token}",
+            "status": 200,
+            "headers": {
+              "etag": "\"9b2cf535f27731c974343645a3985328\""
+            },
+            "body": ""
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured S3 connector"
+      },
+      "note": "S3 node v1 upload to bucket flux-generator as fg-<execution id>.jpg: n8n first GETs the bucket ?location for the region, then PUTs the object. The s3 credential's endpoint is not in the template; s3.bench.example stands in, served both virtual-hosted (default) and path-style. Error output to Respond with error"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Route by style: Neon Fauvism",
+      "Call hugginface inference api: success output",
+      "Upload image to S3: success output → Serve webpage"
+    ],
+    "offline": "api-inference.huggingface.co moved to router.huggingface.co in 2025; the fixture answers as the old endpoint did. The image is a real 32x24 JPEG. The s3 credential has no bench dummy with an endpoint"
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "template": 2417,
+  "sha256": "23df8cdb3a2b455981140c56e8e0ca4fd2a606e359d0c12b7462c92ab6f7cbcb",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "an empty prompt and no style; Hugging Face returns a zero-byte image",
+  "trigger": {
+    "node": "n8n Form Trigger",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "Prompt to flux": "",
+          "submittedAt": "2026-11-16T08:59:41.512+00:00",
+          "formMode": "production"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Call hugginface inference api",
+      "service": "huggingface-inference",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
+            "status": 200,
+            "headers": {
+              "content-type": "image/jpeg"
+            },
+            "bodyBase64": ""
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media lever)"
+      },
+      "note": "Hugging Face serverless inference: POST the model URL with JSON {inputs}; a 200 is the image bytes (image/jpeg), which HTTP Request v4.2 stores as binary `data`. The node has an error output (continueErrorOutput) to Respond with error"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Upload image to S3",
+    "Serve webpage",
+    "Respond with error"
+  ],
+  "writeReplies": [
+    {
+      "node": "Upload image to S3",
+      "service": "s3",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://flux-generator.s3.bench.example/",
+            "query": {
+              "location": ""
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "application/xml"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<LocationConstraint xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">eu-west-1</LocationConstraint>"
+          },
+          {
+            "method": "GET",
+            "url": "https://s3.bench.example/flux-generator",
+            "query": {
+              "location": ""
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "application/xml"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<LocationConstraint xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">eu-west-1</LocationConstraint>"
+          },
+          {
+            "method": "PUT",
+            "url": "https://flux-generator.s3.bench.example/{token}",
+            "status": 200,
+            "headers": {
+              "etag": "\"9b2cf535f27731c974343645a3985328\""
+            },
+            "body": ""
+          },
+          {
+            "method": "PUT",
+            "url": "https://s3.bench.example/flux-generator/{token}",
+            "status": 200,
+            "headers": {
+              "etag": "\"9b2cf535f27731c974343645a3985328\""
+            },
+            "body": ""
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured S3 connector"
+      },
+      "note": "S3 node v1 upload to bucket flux-generator as fg-<execution id>.jpg: n8n first GETs the bucket ?location for the region, then PUTs the object. The s3 credential's endpoint is not in the template; s3.bench.example stands in, served both virtual-hosted (default) and path-style. Error output to Respond with error"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Route by style: fallback output (extra) → None",
+      "Call hugginface inference api: success output with an empty binary",
+      "Upload image to S3 → Serve webpage"
+    ],
+    "offline": "api-inference.huggingface.co moved to router.huggingface.co in 2025; the fixture answers as the old endpoint did. The image is a real 32x24 JPEG. The s3 credential has no bench dummy with an endpoint"
+  }
+}
