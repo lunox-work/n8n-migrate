@@ -1,0 +1,551 @@
+{
+  "schemaVersion": 1,
+  "template": 2320,
+  "sha256": "c4ebc020648c8992145f935535a1b47a3603ec4a1e08432b07f4f49fc8994f36",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the only matching email is already labelled invoice synced",
+  "trigger": {
+    "node": "Receiving Invoices",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {
+          "id": "19a8e2000000f002",
+          "threadId": "19a8e2000000f002",
+          "labelIds": [
+            "INBOX",
+            "Label_5511644430826409825"
+          ],
+          "sizeEstimate": 4210,
+          "headers": {
+            "from": "\"Contoso Paper Accounts\" <user@example.com>",
+            "to": "\"AP Inbox\" <ap@northwind-traders.example>",
+            "subject": "Invoice INV-7790 (resent)",
+            "date": "Mon, 16 Nov 2026 08:10:00 +0000",
+            "message-id": "<19a8e2000000f002@mail.example>",
+            "content-type": "multipart/mixed; boundary=\"=_bench_19a8e2000000f002\""
+          },
+          "html": false,
+          "text": "Resending invoice INV-7790 as requested.\n",
+          "textAsHtml": "<p>Resending invoice INV-7790 as requested.</p>",
+          "subject": "Invoice INV-7790 (resent)",
+          "date": "2026-11-16T08:10:00.000Z",
+          "to": {
+            "value": [
+              {
+                "address": "ap@northwind-traders.example",
+                "name": "AP Inbox"
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">AP Inbox</span> &lt;<a href=\"mailto:ap@northwind-traders.example\" class=\"mp_address_email\">ap@northwind-traders.example</a>&gt;</span>",
+            "text": "\"AP Inbox\" <ap@northwind-traders.example>"
+          },
+          "from": {
+            "value": [
+              {
+                "address": "user@example.com",
+                "name": "Contoso Paper Accounts"
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">Contoso Paper Accounts</span> &lt;<a href=\"mailto:user@example.com\" class=\"mp_address_email\">user@example.com</a>&gt;</span>",
+            "text": "\"Contoso Paper Accounts\" <user@example.com>"
+          },
+          "messageId": "<19a8e2000000f002@mail.example>"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Receiving Invoices",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages",
+            "query": {
+              "q": "has:attachment from:user@example.com"
+            },
+            "status": 200,
+            "body": {
+              "messages": [
+                {
+                  "id": "19a8e2000000f002",
+                  "threadId": "19a8e2000000f002"
+                }
+              ],
+              "resultSizeEstimate": 1
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8e2000000f002",
+            "query": {
+              "format": "raw"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a8e2000000f002",
+              "threadId": "19a8e2000000f002",
+              "labelIds": [
+                "INBOX",
+                "Label_5511644430826409825"
+              ],
+              "snippet": "Resending invoice INV-7790 as requested.",
+              "sizeEstimate": 4210,
+              "historyId": "5531000",
+              "internalDate": "1794811200000",
+              "raw": "RnJvbTogIkNvbnRvc28gUGFwZXIgQWNjb3VudHMiIDx1c2VyQGV4YW1wbGUuY29tPg0KVG86ICJBUCBJbmJveCIgPGFwQG5vcnRod2luZC10cmFkZXJzLmV4YW1wbGU-DQpTdWJqZWN0OiBJbnZvaWNlIElOVi03NzkwIChyZXNlbnQpDQpEYXRlOiBNb24sIDE2IE5vdiAyMDI2IDA4OjEwOjAwICswMDAwDQpNZXNzYWdlLUlEOiA8MTlhOGUyMDAwMDAwZjAwMkBtYWlsLmV4YW1wbGU-DQpNSU1FLVZlcnNpb246IDEuMA0KQ29udGVudC1UeXBlOiBtdWx0aXBhcnQvbWl4ZWQ7IGJvdW5kYXJ5PSI9X2JlbmNoXzE5YThlMjAwMDAwMGYwMDIiDQoNCi0tPV9iZW5jaF8xOWE4ZTIwMDAwMDBmMDAyDQpDb250ZW50LVR5cGU6IHRleHQvcGxhaW47IGNoYXJzZXQ9VVRGLTgNCg0KUmVzZW5kaW5nIGludm9pY2UgSU5WLTc3OTAgYXMgcmVxdWVzdGVkLg0KLS09X2JlbmNoXzE5YThlMjAwMDAwMGYwMDINCkNvbnRlbnQtVHlwZTogYXBwbGljYXRpb24vcGRmOyBuYW1lPSJJTlYtNzc5MC5wZGYiDQpDb250ZW50LURpc3Bvc2l0aW9uOiBhdHRhY2htZW50OyBmaWxlbmFtZT0iSU5WLTc3OTAucGRmIg0KQ29udGVudC1UcmFuc2Zlci1FbmNvZGluZzogYmFzZTY0DQoNCkpWQkVSaTB4TGpRS01TQXdJRzlpYWdvOFBDQXZWSGx3WlNBdlEyRjBZV3h2WnlBdlVHRm5aWE1nTWlBd0lGSWdQajRLWlc1a2IySnENCkNqSWdNQ0J2WW1vS1BEd2dMMVI1Y0dVZ0wxQmhaMlZ6SUM5TGFXUnpJRnN6SURBZ1VsMGdMME52ZFc1MElERWdQajRLWlc1a2IySnENCkNqTWdNQ0J2WW1vS1BEd2dMMVI1Y0dVZ0wxQmhaMlVnTDFCaGNtVnVkQ0F5SURBZ1VpQXZUV1ZrYVdGQ2IzZ2dXekFnTUNBMU9UVWcNCk9EUXlYU0F2VW1WemIzVnlZMlZ6SUR3OElDOUdiMjUwSUR3OElDOUdNU0ExSURBZ1VpQStQaUErUGlBdlEyOXVkR1Z1ZEhNZ05DQXcNCklGSWdQajRLWlc1a2IySnFDalFnTUNCdlltb0tQRHdnTDB4bGJtZDBhQ0F5TURFZ1BqNEtjM1J5WldGdENrSlVJQzlHTVNBeE1TQlUNClppQTFNQ0EzT0RBZ1ZHUWdNVFFnVkV3Z0tFTnZiblJ2YzI4Z1VHRndaWElnVEhSa0lDMGdTVTVXVDBsRFJTQkpUbFl0Tnpnd01pa2cNCkp5QW9SR0YwWlRvZ01USWdUbTkyWlcxaVpYSWdNakF5TmlBZ0lGQlBPaUJRVHkweU1qRTBLU0FuSUNoQk5DQmpiM0JwWlhJZ2NHRncNClpYSWdPREJuYzIwZ2VESXdJQ0FnTkRBNExqVXdLU0FuSUNoRVRDQmxiblpsYkc5d1pYTWdlRFFnSUNBMU5pNHdNQ2tnSnlBb1ZHOTANCllXd2dSMEpRSURVMU55NDBNQ2tnSnlCRlZBcGxibVJ6ZEhKbFlXMEtaVzVrYjJKcUNqVWdNQ0J2WW1vS1BEd2dMMVI1Y0dVZ0wwWnYNCmJuUWdMMU4xWW5SNWNHVWdMMVI1Y0dVeElDOUNZWE5sUm05dWRDQXZTR1ZzZG1WMGFXTmhJRDQrQ21WdVpHOWlhZ3A0Y21WbUNqQWcNCk5nb3dNREF3TURBd01EQXdJRFkxTlRNMUlHWWdDakF3TURBd01EQXdNRGtnTURBd01EQWdiaUFLTURBd01EQXdNREExT0NBd01EQXcNCk1DQnVJQW93TURBd01EQXdNVEUxSURBd01EQXdJRzRnQ2pBd01EQXdNREF5TkRFZ01EQXdNREFnYmlBS01EQXdNREF3TURRNU15QXcNCk1EQXdNQ0J1SUFwMGNtRnBiR1Z5Q2p3OElDOVRhWHBsSURZZ0wxSnZiM1FnTVNBd0lGSWdQajRLYzNSaGNuUjRjbVZtQ2pVMk13b2wNCkpVVlBSZ289DQotLT1fYmVuY2hfMTlhOGUyMDAwMDAwZjAwMi0tDQo="
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_threads",
+            "args": {
+              "query": "has:attachment from:user@example.com"
+            },
+            "result": {
+              "threads": [
+                {
+                  "id": "19a8e2000000f002",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8e2000000f002",
+                  "messages": [
+                    {
+                      "id": "19a8e2000000f002",
+                      "snippet": "Resending invoice INV-7790 as requested.",
+                      "subject": "Invoice INV-7790 (resent)",
+                      "sender": "user@example.com",
+                      "toRecipients": [
+                        "ap@northwind-traders.example"
+                      ],
+                      "date": "2026-11-16T08:10:00.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "Label_5511644430826409825"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "tool": "get_message",
+            "args": {
+              "messageId": "19a8e2000000f002"
+            },
+            "result": {
+              "id": "19a8e2000000f002",
+              "threadId": "19a8e2000000f002",
+              "snippet": "Resending invoice INV-7790 as requested.",
+              "subject": "Invoice INV-7790 (resent)",
+              "sender": "user@example.com",
+              "toRecipients": [
+                "ap@northwind-traders.example"
+              ],
+              "ccRecipients": [],
+              "bccRecipients": [],
+              "date": "2026-11-16T08:10:00.000Z",
+              "labelIds": [
+                "INBOX",
+                "Label_5511644430826409825"
+              ],
+              "plaintextBody": "Resending invoice INV-7790 as requested.",
+              "attachmentIds": [
+                "ANGjdJ000000f002"
+              ],
+              "attachments": [
+                {
+                  "attachmentId": "ANGjdJ000000f002",
+                  "filename": "INV-7790.pdf",
+                  "mimeType": "application/pdf",
+                  "size": 746
+                }
+              ],
+              "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8e2000000f002"
+            }
+          },
+          {
+            "tool": "download_gmail_attachment",
+            "args": {
+              "messageId": "19a8e2000000f002",
+              "attachmentId": "ANGjdJ000000f002",
+              "filename": "INV-7790.pdf"
+            },
+            "result": {
+              "filename": "INV-7790.pdf",
+              "mimeType": "application/pdf",
+              "size": 746,
+              "content": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA1IDAgUiA+PiA+PiAvQ29udGVudHMgNCAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCAyMDEgPj4Kc3RyZWFtCkJUIC9GMSAxMSBUZiA1MCA3ODAgVGQgMTQgVEwgKENvbnRvc28gUGFwZXIgTHRkIC0gSU5WT0lDRSBJTlYtNzgwMikgJyAoRGF0ZTogMTIgTm92ZW1iZXIgMjAyNiAgIFBPOiBQTy0yMjE0KSAnIChBNCBjb3BpZXIgcGFwZXIgODBnc20geDIwICAgNDA4LjUwKSAnIChETCBlbnZlbG9wZXMgeDQgICA1Ni4wMCkgJyAoVG90YWwgR0JQIDU1Ny40MCkgJyBFVAplbmRzdHJlYW0KZW5kb2JqCjUgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyNDEgMDAwMDAgbiAKMDAwMDAwMDQ5MyAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDYgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjU2MwolJUVPRgo="
+            }
+          }
+        ]
+      },
+      "note": "binary attachments cannot be pinned, so trigger.items lacks attachment_0; the n8n side should let the trigger poll once through tls-intercept: GET messages?q=has:attachment from:user@example.com (maxResults 1 in manual mode), then GET messages/{id}?format=raw (simple off, downloadAttachments on: mailparser output with attachment_0). Poll source for the Claude side via the connector",
+      "connectorGaps": [
+        "labelIds: the trigger output keeps Gmail label ids; the connector's message carries the same ids, but label names need the label lookups below"
+      ]
+    },
+    {
+      "node": "Get Labels Names",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/labels/INBOX",
+            "status": 200,
+            "body": {
+              "id": "INBOX",
+              "name": "INBOX",
+              "type": "system",
+              "messageListVisibility": "hide",
+              "labelListVisibility": "labelShow",
+              "messagesTotal": 12,
+              "messagesUnread": 1,
+              "threadsTotal": 12,
+              "threadsUnread": 1
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/labels/Label_5511644430826409825",
+            "status": 200,
+            "body": {
+              "id": "Label_5511644430826409825",
+              "name": "invoice synced",
+              "type": "user",
+              "messageListVisibility": "show",
+              "labelListVisibility": "labelShow",
+              "messagesTotal": 12,
+              "messagesUnread": 1,
+              "threadsTotal": 12,
+              "threadsUnread": 1
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "list_labels",
+            "args": {},
+            "result": {
+              "labels": [
+                {
+                  "id": "INBOX",
+                  "name": "INBOX",
+                  "type": "system"
+                },
+                {
+                  "id": "UNREAD",
+                  "name": "UNREAD",
+                  "type": "system"
+                },
+                {
+                  "id": "IMPORTANT",
+                  "name": "IMPORTANT",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_UPDATES",
+                  "name": "CATEGORY_UPDATES",
+                  "type": "system"
+                },
+                {
+                  "id": "Label_5511644430826409825",
+                  "name": "invoice synced",
+                  "type": "user"
+                },
+                {
+                  "id": "Label_88213",
+                  "name": "Suppliers",
+                  "type": "user"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Gmail v2.1 label get, once per label id of the message (Split Out Labels): GET /gmail/v1/users/me/labels/{id}; Combine Label Names collects the names"
+    },
+    {
+      "node": "Upload to LlamaParse",
+      "service": "llamaparse",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.cloud.llamaindex.ai/api/parsing/upload",
+            "status": 200,
+            "body": {
+              "id": "6c2a1f0e-9b3d-4e5f-8a7b-1c2d3e4f5a02",
+              "status": "PENDING"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "document parsing stays with the provider; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2 multipart POST /api/parsing/upload (file part from attachment_0, accept application/json, Authorization from httpHeaderAuth); answers the job id"
+    },
+    {
+      "node": "Get Processing Status",
+      "service": "llamaparse",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.cloud.llamaindex.ai/api/parsing/job/6c2a1f0e-9b3d-4e5f-8a7b-1c2d3e4f5a02",
+            "status": 200,
+            "body": {
+              "id": "6c2a1f0e-9b3d-4e5f-8a7b-1c2d3e4f5a02",
+              "status": "SUCCESS"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "document parsing stays with the provider; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "GET /api/parsing/job/{id}, polled through Is Job Ready? (PENDING → Wait, 1 second at the Wait v1.1 default unit) until SUCCESS; answered in turn, last repeats"
+    },
+    {
+      "node": "Get Parsed Invoice Data",
+      "service": "llamaparse",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.cloud.llamaindex.ai/api/parsing/job/6c2a1f0e-9b3d-4e5f-8a7b-1c2d3e4f5a02/result/markdown",
+            "status": 200,
+            "body": {
+              "markdown": "",
+              "job_metadata": {
+                "credits_used": 1,
+                "job_credits_usage": 1,
+                "job_pages": 1,
+                "job_auto_mode_triggered_pages": 0,
+                "job_is_cache_hit": false
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "document parsing stays with the provider; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "GET /api/parsing/job/{id}/result/markdown; markdown feeds the extraction chain"
+    }
+  ],
+  "models": [
+    "Apply Data Extraction Rules",
+    "OpenAI Model"
+  ],
+  "writes": [
+    "Append to Reconciliation Sheet",
+    "Add \"invoice synced\" Label"
+  ],
+  "writeReplies": [
+    {
+      "node": "Append to Reconciliation Sheet",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1omHDl1jpjHyrtga2ZHBddUkbkdatEr1ga9vHc4fQ1pI",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Reconciliation",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1omHDl1jpjHyrtga2ZHBddUkbkdatEr1ga9vHc4fQ1pI/values/'Reconciliation'",
+            "status": 200,
+            "body": {
+              "range": "Reconciliation!A1:Z1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Invoice date",
+                  "invoice number",
+                  "Purchase order number",
+                  "Supplier name",
+                  "Supplier address",
+                  "Supplier VAT identification number",
+                  "Customer name",
+                  "Customer address",
+                  "Customer VAT identification number",
+                  "Shipping addresses",
+                  "Line items",
+                  "Subtotal without VAT",
+                  "Subtotal with VAT",
+                  "Total price"
+                ],
+                [
+                  "2026-10-30",
+                  "INV-7781",
+                  "PO-2201",
+                  "Contoso Paper",
+                  "{}",
+                  "GB123456789",
+                  "Northwind Traders",
+                  "{}",
+                  "GB987654321",
+                  "[]",
+                  "[]",
+                  "410",
+                  "492",
+                  "492"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1omHDl1jpjHyrtga2ZHBddUkbkdatEr1ga9vHc4fQ1pI/values/Reconciliation!1:1",
+            "status": 200,
+            "body": {
+              "range": "Reconciliation!A1:Z1",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Invoice date",
+                  "invoice number",
+                  "Purchase order number",
+                  "Supplier name",
+                  "Supplier address",
+                  "Supplier VAT identification number",
+                  "Customer name",
+                  "Customer address",
+                  "Customer VAT identification number",
+                  "Shipping addresses",
+                  "Line items",
+                  "Subtotal without VAT",
+                  "Subtotal with VAT",
+                  "Total price"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1omHDl1jpjHyrtga2ZHBddUkbkdatEr1ga9vHc4fQ1pI:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1omHDl1jpjHyrtga2ZHBddUkbkdatEr1ga9vHc4fQ1pI",
+              "replies": [
+                {}
+              ]
+            }
+          },
+          {
+            "method": "PUT",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1omHDl1jpjHyrtga2ZHBddUkbkdatEr1ga9vHc4fQ1pI/values/Reconciliation!3:3",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1omHDl1jpjHyrtga2ZHBddUkbkdatEr1ga9vHc4fQ1pI",
+              "updatedRange": "Reconciliation!A3:N3",
+              "updatedRows": 1,
+              "updatedColumns": 14,
+              "updatedCells": 14
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Sheets connector for writes"
+      },
+      "note": "Sheets v4.3 append, autoMapInputData, gid=0: sheet properties, GET values/'Reconciliation' (header + one row), batchUpdate appendDimension, PUT row 3; keys outside the header (model-written) would widen the header first"
+    },
+    {
+      "node": "Add \"invoice synced\" Label",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8e2000000f002/modify",
+            "status": 200,
+            "body": {
+              "id": "19a8e2000000f002",
+              "threadId": "19a8e2000000f002",
+              "labelIds": [
+                "INBOX",
+                "Label_5511644430826409825",
+                "Label_5511644430826409825"
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "label_message",
+            "args": {
+              "messageId": "19a8e2000000f002",
+              "labelIds": [
+                "Label_5511644430826409825"
+              ]
+            },
+            "result": {
+              "id": "19a8e2000000f002",
+              "labelIds": [
+                "INBOX",
+                "Label_5511644430826409825",
+                "Label_5511644430826409825"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Gmail v2.1 message addLabels: POST /messages/{id}/modify {addLabelIds: [Label_5511644430826409825]}"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Should Process Email?: false (labels include invoice synced), so nothing is parsed or written"
+    ],
+    "offline": "a poll with no new mail does not start a run on either side; this is the smallest run that does. The trigger polls once through the mock for the attachment bytes (a pin drops binary data). The OpenAI Model is the completion LLM lmOpenAi (gpt-3.5-turbo-1106, /v1/completions), which the bench README does not list among the shimmed chat models; if it is not shimmed its call reaches the proxy unanswered. The PDF is a one-page stand-in; the parsed markdown is fixed by the fixture"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "why": "Upload image, Set image and Set metatag call the template's placeholder host URL (https://URL/wp-json/\u2026). Filled with the bench's WordPress host (https://wordpress.example, the default wordpressApi credential URL the WordPress node and the fixture's routes use), keeping each path and expression as written. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "Upload image": {
+      "parameters.url": "https://wordpress.example/wp-json/wp/v2/media"
+    },
+    "Set image": {
+      "parameters.url": "=https://wordpress.example/wp-json/wp/v2/posts/{{ $('Add draft to WP').item.json.id }}"
+    },
+    "Set metatag": {
+      "parameters.url": "=https://wordpress.example/wp-json/wp/v2/posts/{{ $('Add draft to WP').item.json.id }}"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Upload image": {
+          "patch": {
+            "params": {
+              "url": "https://wordpress.example/wp-json/wp/v2/media"
+            }
+          }
+        },
+        "Set image": {
+          "patch": {
+            "params": {
+              "url": "=https://wordpress.example/wp-json/wp/v2/posts/{{ $('Add draft to WP').item.json.id }}"
+            }
+          }
+        },
+        "Set metatag": {
+          "patch": {
+            "params": {
+              "url": "=https://wordpress.example/wp-json/wp/v2/posts/{{ $('Add draft to WP').item.json.id }}"
+            }
+          }
+        }
+      }
+    }
+  }
+}

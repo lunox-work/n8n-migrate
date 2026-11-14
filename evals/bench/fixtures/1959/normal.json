@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "template": 1959,
+  "sha256": "812fc020cefa1b66263208b5a08f85f205f207beb1b256bc64018ad72523b728",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the user asks who won yesterday's Formula 1 race and how old the circuit is; search and Wikipedia both have answers",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "1a3c5e7a9c1e4a3c5e7a9c1e3a5c7e9a",
+          "action": "sendMessage",
+          "chatInput": "Who won the Formula 1 race yesterday, and when was that circuit first used?"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "SerpAPI",
+      "service": "serpapi",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://serpapi.com/search",
+            "status": 200,
+            "body": {
+              "search_metadata": {
+                "id": "bench",
+                "status": "Success",
+                "total_time_taken": 0.84
+              },
+              "search_parameters": {
+                "engine": "google",
+                "google_domain": "google.com",
+                "hl": "en",
+                "gl": "us"
+              },
+              "search_information": {
+                "total_results": 1840000
+              },
+              "organic_results": [
+                {
+                  "position": 1,
+                  "title": "Las Vegas Grand Prix 2026: race results",
+                  "link": "https://www.formula1.example/en/results/2026/races/las-vegas",
+                  "displayed_link": "www.formula1.example",
+                  "snippet": "Lando Norris wins the 2026 Las Vegas Grand Prix ahead of Charles Leclerc and Max Verstappen.",
+                  "date": "Nov 15, 2026"
+                },
+                {
+                  "position": 2,
+                  "title": "Norris takes Vegas win under the lights",
+                  "link": "https://motorsport-news.example/f1/vegas-2026-report",
+                  "displayed_link": "motorsport-news.example",
+                  "snippet": "Norris converted pole into victory on Saturday night...",
+                  "date": "Nov 15, 2026"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured search connector; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "agent tool: LangChain SerpAPI, GET https://serpapi.com/search?q=<model-written>&api_key=…; the query is model-written, so replies answer in turn (last repeats)"
+    },
+    {
+      "node": "Wikipedia",
+      "service": "wikipedia",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://en.wikipedia.org/w/api.php",
+            "query": {
+              "list": "search"
+            },
+            "status": 200,
+            "body": {
+              "batchcomplete": "",
+              "query": {
+                "searchinfo": {
+                  "totalhits": 80
+                },
+                "search": [
+                  {
+                    "ns": 0,
+                    "title": "Las Vegas Strip Circuit",
+                    "pageid": 68110431,
+                    "size": 24000,
+                    "wordcount": 3800,
+                    "snippet": "Las Vegas Strip Circuit",
+                    "timestamp": "2026-11-01T10:00:00Z"
+                  },
+                  {
+                    "ns": 0,
+                    "title": "2026 Las Vegas Grand Prix",
+                    "pageid": 75012345,
+                    "size": 24000,
+                    "wordcount": 3800,
+                    "snippet": "2026 Las Vegas Grand Prix",
+                    "timestamp": "2026-11-01T10:00:00Z"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://en.wikipedia.org/w/api.php",
+            "query": {
+              "prop": "extracts",
+              "titles": "Las Vegas Strip Circuit"
+            },
+            "status": 200,
+            "body": {
+              "batchcomplete": "",
+              "query": {
+                "pages": {
+                  "68110431": {
+                    "pageid": 68110431,
+                    "ns": 0,
+                    "title": "Las Vegas Strip Circuit",
+                    "extract": "The Las Vegas Strip Circuit is a street circuit in Paradise, Nevada. It was first used for the 2023 Las Vegas Grand Prix and runs along the Las Vegas Strip."
+                  }
+                }
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://en.wikipedia.org/w/api.php",
+            "query": {
+              "prop": "extracts",
+              "titles": "2026 Las Vegas Grand Prix"
+            },
+            "status": 200,
+            "body": {
+              "batchcomplete": "",
+              "query": {
+                "pages": {
+                  "75012345": {
+                    "pageid": 75012345,
+                    "ns": 0,
+                    "title": "2026 Las Vegas Grand Prix",
+                    "extract": "The 2026 Las Vegas Grand Prix was a Formula One motor race held on 14 November 2026 at the Las Vegas Strip Circuit."
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Wikipedia connector; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "agent tool: LangChain WikipediaQueryRun, GET /w/api.php?action=query&list=search&srsearch=<model-written>&format=json, then prop=extracts&explaintext&titles=<title> for the top results (topKResults 3)"
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: the agent answers, optionally after SerpAPI and/or Wikipedia calls",
+      "expected: SerpAPI for the result, Wikipedia for the circuit"
+    ],
+    "offline": "The agent picks SerpAPI, Wikipedia or neither (model-driven); search queries are model-written, so SerpAPI replies answer in turn and Wikipedia answers by title. Simple Memory holds one turn per run. \"Yesterday\" is relative to n8n's wall clock; the fixture's results assume a run on 16 November 2026"
+  }
+}

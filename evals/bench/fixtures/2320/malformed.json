@@ -1,0 +1,586 @@
+{
+  "schemaVersion": 1,
+  "template": 2320,
+  "sha256": "c4ebc020648c8992145f935535a1b47a3603ec4a1e08432b07f4f49fc8994f36",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "an email with no sender name, an empty body, a 2,700-character subject and a damaged PDF; LlamaParse answers PENDING, then ERROR (PDF_IS_BROKEN)",
+  "trigger": {
+    "node": "Receiving Invoices",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {
+          "id": "19a8e2000000f003",
+          "threadId": "19a8e2000000f003",
+          "labelIds": [
+            "INBOX",
+            "UNREAD",
+            "CATEGORY_UPDATES"
+          ],
+          "sizeEstimate": 4210,
+          "headers": {
+            "from": "\"\" <user@example.com>",
+            "to": "\"AP Inbox\" <ap@northwind-traders.example>",
+            "subject": "Invoice Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé ",
+            "date": "Mon, 16 Nov 2026 08:20:00 +0000",
+            "message-id": "<19a8e2000000f003@mail.example>",
+            "content-type": "multipart/mixed; boundary=\"=_bench_19a8e2000000f003\""
+          },
+          "html": false,
+          "text": "\n",
+          "textAsHtml": "<p></p>",
+          "subject": "Invoice Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé ",
+          "date": "2026-11-16T08:20:00.000Z",
+          "to": {
+            "value": [
+              {
+                "address": "ap@northwind-traders.example",
+                "name": "AP Inbox"
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">AP Inbox</span> &lt;<a href=\"mailto:ap@northwind-traders.example\" class=\"mp_address_email\">ap@northwind-traders.example</a>&gt;</span>",
+            "text": "\"AP Inbox\" <ap@northwind-traders.example>"
+          },
+          "from": {
+            "value": [
+              {
+                "address": "user@example.com",
+                "name": ""
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\"></span> &lt;<a href=\"mailto:user@example.com\" class=\"mp_address_email\">user@example.com</a>&gt;</span>",
+            "text": "\"\" <user@example.com>"
+          },
+          "messageId": "<19a8e2000000f003@mail.example>"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Receiving Invoices",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages",
+            "query": {
+              "q": "has:attachment from:user@example.com"
+            },
+            "status": 200,
+            "body": {
+              "messages": [
+                {
+                  "id": "19a8e2000000f003",
+                  "threadId": "19a8e2000000f003"
+                }
+              ],
+              "resultSizeEstimate": 1
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8e2000000f003",
+            "query": {
+              "format": "raw"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a8e2000000f003",
+              "threadId": "19a8e2000000f003",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_UPDATES"
+              ],
+              "snippet": "",
+              "sizeEstimate": 4210,
+              "historyId": "5531000",
+              "internalDate": "1794811200000",
+              "raw": "RnJvbTogIiIgPHVzZXJAZXhhbXBsZS5jb20-DQpUbzogIkFQIEluYm94IiA8YXBAbm9ydGh3aW5kLXRyYWRlcnMuZXhhbXBsZT4NClN1YmplY3Q6IEludm9pY2Ugw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgw5xuw69jw7hkw6kgDQpEYXRlOiBNb24sIDE2IE5vdiAyMDI2IDA4OjIwOjAwICswMDAwDQpNZXNzYWdlLUlEOiA8MTlhOGUyMDAwMDAwZjAwM0BtYWlsLmV4YW1wbGU-DQpNSU1FLVZlcnNpb246IDEuMA0KQ29udGVudC1UeXBlOiBtdWx0aXBhcnQvbWl4ZWQ7IGJvdW5kYXJ5PSI9X2JlbmNoXzE5YThlMjAwMDAwMGYwMDMiDQoNCi0tPV9iZW5jaF8xOWE4ZTIwMDAwMDBmMDAzDQpDb250ZW50LVR5cGU6IHRleHQvcGxhaW47IGNoYXJzZXQ9VVRGLTgNCg0KDQotLT1fYmVuY2hfMTlhOGUyMDAwMDAwZjAwMw0KQ29udGVudC1UeXBlOiBhcHBsaWNhdGlvbi9wZGY7IG5hbWU9InNjYW4gMDAwMSAoMSkuUERGIg0KQ29udGVudC1EaXNwb3NpdGlvbjogYXR0YWNobWVudDsgZmlsZW5hbWU9InNjYW4gMDAwMSAoMSkuUERGIg0KQ29udGVudC1UcmFuc2Zlci1FbmNvZGluZzogYmFzZTY0DQoNCkpWQkVSaTB4TGpRS0pXSnliMnRsYmdveElEQWdiMkpxSUR3OElDOVVlWEJsSUM5RFlYUmhiRzluSUQ0K0NuUnlZV2xzWlhJZ1BEdysNClBnb2xKVVZQUmc9PQ0KLS09X2JlbmNoXzE5YThlMjAwMDAwMGYwMDMtLQ0K"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_threads",
+            "args": {
+              "query": "has:attachment from:user@example.com"
+            },
+            "result": {
+              "threads": [
+                {
+                  "id": "19a8e2000000f003",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8e2000000f003",
+                  "messages": [
+                    {
+                      "id": "19a8e2000000f003",
+                      "snippet": "",
+                      "subject": "Invoice Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé ",
+                      "sender": "user@example.com",
+                      "toRecipients": [
+                        "ap@northwind-traders.example"
+                      ],
+                      "date": "2026-11-16T08:20:00.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "UNREAD",
+                        "CATEGORY_UPDATES"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "tool": "get_message",
+            "args": {
+              "messageId": "19a8e2000000f003"
+            },
+            "result": {
+              "id": "19a8e2000000f003",
+              "threadId": "19a8e2000000f003",
+              "snippet": "",
+              "subject": "Invoice Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé Ünïcødé ",
+              "sender": "user@example.com",
+              "toRecipients": [
+                "ap@northwind-traders.example"
+              ],
+              "ccRecipients": [],
+              "bccRecipients": [],
+              "date": "2026-11-16T08:20:00.000Z",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_UPDATES"
+              ],
+              "plaintextBody": "",
+              "attachmentIds": [
+                "ANGjdJ000000f003"
+              ],
+              "attachments": [
+                {
+                  "attachmentId": "ANGjdJ000000f003",
+                  "filename": "scan 0001 (1).PDF",
+                  "mimeType": "application/pdf",
+                  "size": 64
+                }
+              ],
+              "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8e2000000f003"
+            }
+          },
+          {
+            "tool": "download_gmail_attachment",
+            "args": {
+              "messageId": "19a8e2000000f003",
+              "attachmentId": "ANGjdJ000000f003",
+              "filename": "scan 0001 (1).PDF"
+            },
+            "result": {
+              "filename": "scan 0001 (1).PDF",
+              "mimeType": "application/pdf",
+              "size": 64,
+              "content": "JVBERi0xLjQKJWJyb2tlbgoxIDAgb2JqIDw8IC9UeXBlIC9DYXRhbG9nID4+CnRyYWlsZXIgPDw+PgolJUVPRg=="
+            }
+          }
+        ]
+      },
+      "note": "binary attachments cannot be pinned, so trigger.items lacks attachment_0; the n8n side should let the trigger poll once through tls-intercept: GET messages?q=has:attachment from:user@example.com (maxResults 1 in manual mode), then GET messages/{id}?format=raw (simple off, downloadAttachments on: mailparser output with attachment_0). Poll source for the Claude side via the connector",
+      "connectorGaps": [
+        "labelIds: the trigger output keeps Gmail label ids; the connector's message carries the same ids, but label names need the label lookups below"
+      ]
+    },
+    {
+      "node": "Get Labels Names",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/labels/INBOX",
+            "status": 200,
+            "body": {
+              "id": "INBOX",
+              "name": "INBOX",
+              "type": "system",
+              "messageListVisibility": "hide",
+              "labelListVisibility": "labelShow",
+              "messagesTotal": 12,
+              "messagesUnread": 1,
+              "threadsTotal": 12,
+              "threadsUnread": 1
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/labels/UNREAD",
+            "status": 200,
+            "body": {
+              "id": "UNREAD",
+              "name": "UNREAD",
+              "type": "system",
+              "messageListVisibility": "hide",
+              "labelListVisibility": "labelShow",
+              "messagesTotal": 12,
+              "messagesUnread": 1,
+              "threadsTotal": 12,
+              "threadsUnread": 1
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/labels/CATEGORY_UPDATES",
+            "status": 200,
+            "body": {
+              "id": "CATEGORY_UPDATES",
+              "name": "CATEGORY_UPDATES",
+              "type": "system",
+              "messageListVisibility": "hide",
+              "labelListVisibility": "labelShow",
+              "messagesTotal": 12,
+              "messagesUnread": 1,
+              "threadsTotal": 12,
+              "threadsUnread": 1
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "list_labels",
+            "args": {},
+            "result": {
+              "labels": [
+                {
+                  "id": "INBOX",
+                  "name": "INBOX",
+                  "type": "system"
+                },
+                {
+                  "id": "UNREAD",
+                  "name": "UNREAD",
+                  "type": "system"
+                },
+                {
+                  "id": "IMPORTANT",
+                  "name": "IMPORTANT",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_UPDATES",
+                  "name": "CATEGORY_UPDATES",
+                  "type": "system"
+                },
+                {
+                  "id": "Label_5511644430826409825",
+                  "name": "invoice synced",
+                  "type": "user"
+                },
+                {
+                  "id": "Label_88213",
+                  "name": "Suppliers",
+                  "type": "user"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Gmail v2.1 label get, once per label id of the message (Split Out Labels): GET /gmail/v1/users/me/labels/{id}; Combine Label Names collects the names"
+    },
+    {
+      "node": "Upload to LlamaParse",
+      "service": "llamaparse",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.cloud.llamaindex.ai/api/parsing/upload",
+            "status": 200,
+            "body": {
+              "id": "6c2a1f0e-9b3d-4e5f-8a7b-1c2d3e4f5a03",
+              "status": "PENDING"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "document parsing stays with the provider; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2 multipart POST /api/parsing/upload (file part from attachment_0, accept application/json, Authorization from httpHeaderAuth); answers the job id"
+    },
+    {
+      "node": "Get Processing Status",
+      "service": "llamaparse",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.cloud.llamaindex.ai/api/parsing/job/6c2a1f0e-9b3d-4e5f-8a7b-1c2d3e4f5a03",
+            "status": 200,
+            "body": {
+              "id": "6c2a1f0e-9b3d-4e5f-8a7b-1c2d3e4f5a03",
+              "status": "PENDING"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.cloud.llamaindex.ai/api/parsing/job/6c2a1f0e-9b3d-4e5f-8a7b-1c2d3e4f5a03",
+            "status": 200,
+            "body": {
+              "id": "6c2a1f0e-9b3d-4e5f-8a7b-1c2d3e4f5a03",
+              "status": "ERROR",
+              "error_code": "PDF_IS_BROKEN",
+              "error_message": "The PDF could not be opened: xref table is damaged"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "document parsing stays with the provider; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "GET /api/parsing/job/{id}, polled through Is Job Ready? (PENDING → Wait, 1 second at the Wait v1.1 default unit) until SUCCESS; answered in turn, last repeats"
+    },
+    {
+      "node": "Get Parsed Invoice Data",
+      "service": "llamaparse",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.cloud.llamaindex.ai/api/parsing/job/6c2a1f0e-9b3d-4e5f-8a7b-1c2d3e4f5a03/result/markdown",
+            "status": 200,
+            "body": {
+              "markdown": "",
+              "job_metadata": {
+                "credits_used": 1,
+                "job_credits_usage": 1,
+                "job_pages": 1,
+                "job_auto_mode_triggered_pages": 0,
+                "job_is_cache_hit": false
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "document parsing stays with the provider; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "GET /api/parsing/job/{id}/result/markdown; markdown feeds the extraction chain"
+    }
+  ],
+  "models": [
+    "Apply Data Extraction Rules",
+    "OpenAI Model"
+  ],
+  "writes": [
+    "Append to Reconciliation Sheet",
+    "Add \"invoice synced\" Label"
+  ],
+  "writeReplies": [
+    {
+      "node": "Append to Reconciliation Sheet",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1omHDl1jpjHyrtga2ZHBddUkbkdatEr1ga9vHc4fQ1pI",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Reconciliation",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1omHDl1jpjHyrtga2ZHBddUkbkdatEr1ga9vHc4fQ1pI/values/'Reconciliation'",
+            "status": 200,
+            "body": {
+              "range": "Reconciliation!A1:Z1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Invoice date",
+                  "invoice number",
+                  "Purchase order number",
+                  "Supplier name",
+                  "Supplier address",
+                  "Supplier VAT identification number",
+                  "Customer name",
+                  "Customer address",
+                  "Customer VAT identification number",
+                  "Shipping addresses",
+                  "Line items",
+                  "Subtotal without VAT",
+                  "Subtotal with VAT",
+                  "Total price"
+                ],
+                [
+                  "2026-10-30",
+                  "INV-7781",
+                  "PO-2201",
+                  "Contoso Paper",
+                  "{}",
+                  "GB123456789",
+                  "Northwind Traders",
+                  "{}",
+                  "GB987654321",
+                  "[]",
+                  "[]",
+                  "410",
+                  "492",
+                  "492"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1omHDl1jpjHyrtga2ZHBddUkbkdatEr1ga9vHc4fQ1pI/values/Reconciliation!1:1",
+            "status": 200,
+            "body": {
+              "range": "Reconciliation!A1:Z1",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Invoice date",
+                  "invoice number",
+                  "Purchase order number",
+                  "Supplier name",
+                  "Supplier address",
+                  "Supplier VAT identification number",
+                  "Customer name",
+                  "Customer address",
+                  "Customer VAT identification number",
+                  "Shipping addresses",
+                  "Line items",
+                  "Subtotal without VAT",
+                  "Subtotal with VAT",
+                  "Total price"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1omHDl1jpjHyrtga2ZHBddUkbkdatEr1ga9vHc4fQ1pI:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1omHDl1jpjHyrtga2ZHBddUkbkdatEr1ga9vHc4fQ1pI",
+              "replies": [
+                {}
+              ]
+            }
+          },
+          {
+            "method": "PUT",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1omHDl1jpjHyrtga2ZHBddUkbkdatEr1ga9vHc4fQ1pI/values/Reconciliation!3:3",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1omHDl1jpjHyrtga2ZHBddUkbkdatEr1ga9vHc4fQ1pI",
+              "updatedRange": "Reconciliation!A3:N3",
+              "updatedRows": 1,
+              "updatedColumns": 14,
+              "updatedCells": 14
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Sheets connector for writes"
+      },
+      "note": "Sheets v4.3 append, autoMapInputData, gid=0: sheet properties, GET values/'Reconciliation' (header + one row), batchUpdate appendDimension, PUT row 3; keys outside the header (model-written) would widen the header first"
+    },
+    {
+      "node": "Add \"invoice synced\" Label",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8e2000000f003/modify",
+            "status": 200,
+            "body": {
+              "id": "19a8e2000000f003",
+              "threadId": "19a8e2000000f003",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_UPDATES",
+                "Label_5511644430826409825"
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "label_message",
+            "args": {
+              "messageId": "19a8e2000000f003",
+              "labelIds": [
+                "Label_5511644430826409825"
+              ]
+            },
+            "result": {
+              "id": "19a8e2000000f003",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_UPDATES",
+                "Label_5511644430826409825"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Gmail v2.1 message addLabels: POST /messages/{id}/modify {addLabelIds: [Label_5511644430826409825]}"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Should Process Email?: attachment_0 is a PDF and the labels do not include invoice synced",
+      "Is Job Ready? (all matching outputs): PENDING → Wait → poll again; SUCCESS → Get Parsed Invoice Data; ERROR and CANCELED are unconnected",
+      "Is Job Ready?: ERROR output is unconnected, so the run ends without a sheet row or label"
+    ],
+    "offline": "The trigger polls once through the mock for the attachment bytes (a pin drops binary data). The OpenAI Model is the completion LLM lmOpenAi (gpt-3.5-turbo-1106, /v1/completions), which the bench README does not list among the shimmed chat models; if it is not shimmed its call reaches the proxy unanswered. The PDF is a one-page stand-in; the parsed markdown is fixed by the fixture"
+  }
+}

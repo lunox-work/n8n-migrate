@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "template": 2006,
+  "sha256": "463f4781599a67d94567a155b3128d76d522a7e47da9fca120f952ed3d3ef33c",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the named page answers 500 with an HTML fragment that has no <body> tag, and a second link is a PDF served as octet-stream",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "8e0a2c4e6a8c4e0a2c4e6a8c0e2a4c70",
+          "action": "sendMessage",
+          "chatInput": "Read https://legacy-intranet.example/report and also https://legacy-intranet.example/q3.pdf and tell me the totals"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "HTTP Request",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://legacy-intranet.example/report",
+            "status": 500,
+            "headers": {
+              "content-type": "text/html"
+            },
+            "body": "<h1>Internal Server Error</h1><p>Traceback (most recent call last): ..."
+          },
+          {
+            "method": "GET",
+            "url": "https://legacy-intranet.example/q3.pdf",
+            "status": 200,
+            "headers": {
+              "content-type": "application/octet-stream"
+            },
+            "body": "%PDF-1.7\n%âã\n1 0 obj << >> endobj"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a plain web fetch, no connector"
+      },
+      "note": "reached through the agent tool HTTP_Request_Tool, which runs this same workflow ($workflow.id) with a query string \"?url=…&method=full|simplified\": HTTP Request v4.2 GET encodeURI(url) (neverError, allowUnauthorizedCerts); the HTML is in $json.data, the body is cut out, scripts/styles removed and converted to Markdown. The URL is model-chosen; the fixture answers the one the user names"
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model1"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "Is error? (inside the tool sub-execution): false for a fetched page → Exctract HTML Body → Remove extra tags → Simplify? (method simplified) → Convert to Markdown → Send Page Content; true → Stringify error message",
+      "neverError passes the 500 page on; the body regex finds no <body> and [1] of null throws in Exctract HTML Body (a tool error back to the agent)"
+    ],
+    "offline": "The agent decides whether and how to call HTTP_Request_Tool (model-driven); each call is a sub-execution of this workflow. Pages over maxlimit (70,000 characters by default) come back as \"ERROR: PAGE CONTENT TOO LONG\""
+  }
+}

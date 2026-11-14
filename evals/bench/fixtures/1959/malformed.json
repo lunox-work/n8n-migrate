@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "template": 1959,
+  "sha256": "812fc020cefa1b66263208b5a08f85f205f207beb1b256bc64018ad72523b728",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "SerpAPI answers 200 with an error body and Wikipedia's extract is null for one title and 8,000 characters for another",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "1a3c5e7a9c1e4a3c5e7a9c1e3a5c7e9c",
+          "action": "sendMessage",
+          "chatInput": "tell me about the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea the history of tea "
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "SerpAPI",
+      "service": "serpapi",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://serpapi.com/search",
+            "status": 200,
+            "body": {
+              "error": "Google hasn't returned any results for this query.",
+              "search_metadata": {
+                "status": "Success"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured search connector; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "agent tool: LangChain SerpAPI, GET https://serpapi.com/search?q=<model-written>&api_key=…; the query is model-written, so replies answer in turn (last repeats)"
+    },
+    {
+      "node": "Wikipedia",
+      "service": "wikipedia",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://en.wikipedia.org/w/api.php",
+            "query": {
+              "list": "search"
+            },
+            "status": 200,
+            "body": {
+              "batchcomplete": "",
+              "query": {
+                "searchinfo": {
+                  "totalhits": 80
+                },
+                "search": [
+                  {
+                    "ns": 0,
+                    "title": "History of tea",
+                    "pageid": 1001,
+                    "size": 24000,
+                    "wordcount": 3800,
+                    "snippet": "History of tea",
+                    "timestamp": "2026-11-01T10:00:00Z"
+                  },
+                  {
+                    "ns": 0,
+                    "title": "Tea",
+                    "pageid": 1002,
+                    "size": 24000,
+                    "wordcount": 3800,
+                    "snippet": "Tea",
+                    "timestamp": "2026-11-01T10:00:00Z"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://en.wikipedia.org/w/api.php",
+            "query": {
+              "prop": "extracts",
+              "titles": "History of tea"
+            },
+            "status": 200,
+            "body": {
+              "batchcomplete": "",
+              "query": {
+                "pages": {
+                  "1001": {
+                    "pageid": 1001,
+                    "ns": 0,
+                    "title": "History of tea",
+                    "extract": null
+                  }
+                }
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://en.wikipedia.org/w/api.php",
+            "query": {
+              "prop": "extracts",
+              "titles": "Tea"
+            },
+            "status": 200,
+            "body": {
+              "batchcomplete": "",
+              "query": {
+                "pages": {
+                  "1002": {
+                    "pageid": 1002,
+                    "ns": 0,
+                    "title": "Tea",
+                    "extract": "Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea Tea "
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Wikipedia connector; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "agent tool: LangChain WikipediaQueryRun, GET /w/api.php?action=query&list=search&srsearch=<model-written>&format=json, then prop=extracts&explaintext&titles=<title> for the top results (topKResults 3)"
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: the agent answers, optionally after SerpAPI and/or Wikipedia calls",
+      "LangChain SerpAPI throws on the error body (a tool error back to the agent); a null extract is skipped or rendered as null"
+    ],
+    "offline": "The agent picks SerpAPI, Wikipedia or neither (model-driven); search queries are model-written, so SerpAPI replies answer in turn and Wikipedia answers by title. Simple Memory holds one turn per run"
+  }
+}

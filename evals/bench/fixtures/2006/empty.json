@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "template": 2006,
+  "sha256": "463f4781599a67d94567a155b3128d76d522a7e47da9fca120f952ed3d3ef33c",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "an empty chat message; the article page in the fixture is never asked for",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "8e0a2c4e6a8c4e0a2c4e6a8c0e2a4c6f",
+          "action": "sendMessage",
+          "chatInput": ""
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "HTTP Request",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.cityweekly.example/2026/11/15/bike-lanes-council-vote",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html"
+            },
+            "body": "<!doctype html><html lang=\"en\"><head><title></title><script>window.dataLayer=[];</script><style>body{font-family:serif}</style></head><body><header><a href=\"/\">Home</a></header><article><h1></h1></article><footer><a href=\"/privacy\">Privacy</a></footer></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a plain web fetch, no connector"
+      },
+      "note": "reached through the agent tool HTTP_Request_Tool, which runs this same workflow ($workflow.id) with a query string \"?url=…&method=full|simplified\": HTTP Request v4.2 GET encodeURI(url) (neverError, allowUnauthorizedCerts); the HTML is in $json.data, the body is cut out, scripts/styles removed and converted to Markdown. The URL is model-chosen; the fixture answers the one the user names"
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model1"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no URL to fetch: no tool call expected (model-driven)"
+    ],
+    "offline": "The agent decides whether and how to call HTTP_Request_Tool (model-driven); each call is a sub-execution of this workflow. Pages over maxlimit (70,000 characters by default) come back as \"ERROR: PAGE CONTENT TOO LONG\""
+  }
+}

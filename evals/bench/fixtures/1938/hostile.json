@@ -56,7 +56,7 @@
       "node": "User Success Dept",
       "service": "discord",
       "http": {
-        "via": "direct",
+        "via": "tls-intercept",
         "responses": [
           {
             "method": "POST",
@@ -72,7 +72,7 @@
       "node": "IT Dept",
       "service": "discord",
       "http": {
-        "via": "direct",
+        "via": "tls-intercept",
         "responses": [
           {
             "method": "POST",
@@ -88,7 +88,7 @@
       "node": "Helpdesk",
       "service": "discord",
       "http": {
-        "via": "direct",
+        "via": "tls-intercept",
         "responses": [
           {
             "method": "POST",

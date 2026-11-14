@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "template": 2006,
+  "sha256": "463f4781599a67d94567a155b3128d76d522a7e47da9fca120f952ed3d3ef33c",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the user asks for a three-bullet summary of a local news article; the page is a normal HTML article",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "8e0a2c4e6a8c4e0a2c4e6a8c0e2a4c6e",
+          "action": "sendMessage",
+          "chatInput": "Can you summarise this article in 3 bullets? https://www.cityweekly.example/2026/11/15/bike-lanes-council-vote"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "HTTP Request",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.cityweekly.example/2026/11/15/bike-lanes-council-vote",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!doctype html><html lang=\"en\"><head><title>Council approves 14 km of protected bike lanes</title><script>window.dataLayer=[];</script><style>body{font-family:serif}</style></head><body><header><a href=\"/\">Home</a></header><article><h1>Council approves 14 km of protected bike lanes</h1><p>The city council voted 9–4 on Thursday to fund 14 km of protected bike lanes by 2028, at a cost of $31 million.</p><p>Construction on Harbour Street starts in March; residents raised concerns about parking, and the plan keeps 80% of existing spaces.</p><p><img src=\"/img/lanes.jpg\" alt=\"Harbour Street\"><a href=\"https://www.cityweekly.example/council\">More council news</a></p></article><footer><a href=\"/privacy\">Privacy</a></footer></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a plain web fetch, no connector"
+      },
+      "note": "reached through the agent tool HTTP_Request_Tool, which runs this same workflow ($workflow.id) with a query string \"?url=…&method=full|simplified\": HTTP Request v4.2 GET encodeURI(url) (neverError, allowUnauthorizedCerts); the HTML is in $json.data, the body is cut out, scripts/styles removed and converted to Markdown. The URL is model-chosen; the fixture answers the one the user names"
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model1"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "Is error? (inside the tool sub-execution): false for a fetched page → Exctract HTML Body → Remove extra tags → Simplify? (method simplified) → Convert to Markdown → Send Page Content; true → Stringify error message",
+      "expected: one tool call for the article URL"
+    ],
+    "offline": "The agent decides whether and how to call HTTP_Request_Tool (model-driven); each call is a sub-execution of this workflow. Pages over maxlimit (70,000 characters by default) come back as \"ERROR: PAGE CONTENT TOO LONG\""
+  }
+}
