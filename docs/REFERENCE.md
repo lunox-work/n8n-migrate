@@ -133,7 +133,8 @@ n8n goes off before the task goes on.
 | `parity`                    | Optional: replays the export's `pinData` and compares each pinned node                       |
 | `deactivate-n8n`            | Unpublishes the n8n workflow, waits for running executions, records n8n's cursor             |
 | `seed`                      | Sets the scheduled cursor from n8n's cursor, or `--from <time\|row>`                         |
-| `enable`                    | Opens the gate (owner `claude`) and prints the task setup                                    |
+| `enable`                    | Opens the gate (owner `claude`), prints the task setup and schedule times missed in the gap  |
+| `run-now`                   | For those missed times: how to run the task once (never automatic), or `--skip`              |
 | `rollback`                  | Closes the gate, writes the cursor back into n8n's static data, republishes the live version |
 | `checklist`, `shared-moved` | The artifact's checklist; marks shared n8n state as moved out                                |
 

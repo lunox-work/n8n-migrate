@@ -315,3 +315,106 @@ test("the n8n client never prints its key and falls back to the deprecated activ
   assert.deepEqual(seen.map((x) => x.join(" ")), ["POST /api/v1/workflows/w1/unpublish", "POST /api/v1/workflows/w1/deactivate", "POST /api/v1/workflows/w1/publish", "POST /api/v1/workflows/w1/activate"]);
   await assert.rejects(c.getWorkflow("w1"), (e) => !e.message.includes("secret-key") && /\[key\]/.test(e.message));
 });
+
+test("schedule times between deactivate-n8n and enable are reported as run by neither side; run-now says how, finds the run, or records --skip", async () => {
+  const { paths, loadTask, openStore } = await import("../skills/n8n-to-claude/runtime/src/driver.mjs");
+  // slice: a Schedule Trigger daily at 08:00 Asia/Singapore (00:00 UTC), Gmail -> model -> Slack.
+  const { dir, folder } = folderFor("tests/fixtures/convert/slice.n8n.json", { task: { store: { kind: "file" } } });
+  let clock = "2026-11-14T23:30:00.000Z";
+  const step = (name, flags = {}) => runStep(folder, name, { flags, env: {}, now: () => clock });
+  try {
+    const def = readJson(join(folder, "definition.json"));
+    assert.deepEqual(def.steps["Every morning"].schedule.cron, ["0 0 8 * * *"]);
+    // A clean dry run in the task's records (the session that ran it is not needed here).
+    const P = paths(folder, folder);
+    const store = openStore(P, loadTask(P));
+    const hash = core.definitionHash(def);
+    store.set(core.runPath("run-dry"), core.runRecord({ runId: "run-dry", trigger: "manual", driver: "task", status: "done", dryRun: true, startedAt: "2026-11-14T23:00:00.000Z", endedAt: "2026-11-14T23:01:00.000Z", definitionHash: hash }));
+    store.set("meta/dry-run", { runId: "run-dry", status: "done", definitionHash: hash, startedAt: "2026-11-14T23:00:00.000Z", endedAt: "2026-11-14T23:01:00.000Z", wouldSend: 1 });
+    store.flush?.("test");
+    // By hand, switched off at 23:30 UTC.
+    assert.equal((await step("deactivate-n8n", { done: true, "off-at": "2026-11-20T00:00:00Z" })).code, 2, "--off-at in the future is refused");
+    const off = await step("deactivate-n8n", { done: true, "off-at": "2026-11-14T23:30:00Z" });
+    assert.equal(off.code, 0, off.text);
+    assert.equal((await step("seed")).code, 0, "no poll trigger: nothing to seed");
+    // Before enable, status counts the fires so far; enable stays the next step.
+    clock = "2026-11-15T01:00:00.000Z";
+    const st = await step("status");
+    assert.deepEqual([st.data.gap.count, st.data.gap.times, st.data.next], [1, ["2026-11-15T00:00:00.000Z"], "enable"]);
+    assert.match(st.text, /\[ \] Schedule times while neither side ran: 1 schedule time\(s\) \(cron 0 0 8 \* \* \* in Asia\/Singapore\): 2026-11-15T00:00:00\.000Z, between n8n going off \(2026-11-14T23:30:00\.000Z\) and now/);
+    // Enable a day later: two fires ran nowhere; reported, never run by itself.
+    clock = "2026-11-16T02:00:00.000Z";
+    const en = await step("enable");
+    assert.equal(en.code, 0, en.text);
+    assert.deepEqual(en.data.missedWhileOff, { from: "2026-11-14T23:30:00.000Z", to: "2026-11-16T02:00:00.000Z", exact: true, count: 2, capped: false, times: ["2026-11-15T00:00:00.000Z", "2026-11-16T00:00:00.000Z"] });
+    assert.match(en.text, /Missed while neither side ran: 2 schedule time\(s\).*Neither n8n nor the task ran them, and nothing runs them by itself\. To run the workflow once now: cutover\.mjs .* run-now/s);
+    assert.deepEqual(readdirSync(join(folder, ".n2c/records/runs")), ["run-dry.json"], "enable ran nothing");
+    const list = (await step("checklist")).data;
+    assert.deepEqual([list.checklist.at(-1).id, list.checklist.at(-1).state, list.next], ["missed-in-gap", "todo", "run-now"]);
+    // run-now: how, for this target (exit 3: the person runs it).
+    const how = await step("run-now");
+    assert.equal(how.code, 3);
+    assert.match(how.text, /run it once now; it should end with DONE\. It is one run at the current time/);
+    // The task's run after enable (before the next 08:00) answers it, found in its records.
+    store.set(core.runPath("run-catchup"), core.runRecord({ runId: "run-catchup", trigger: "scheduled", driver: "task", status: "done", startedAt: "2026-11-16T02:05:00.000Z", endedAt: "2026-11-16T02:06:00.000Z" }));
+    store.flush?.("test");
+    clock = "2026-11-16T02:10:00.000Z";
+    const found = await step("run-now");
+    assert.deepEqual([found.code, found.data.runId], [0, "run-catchup"]);
+    const after = (await step("checklist")).data;
+    assert.deepEqual([after.checklist.at(-1).state, after.next], ["done", null]);
+    assert.match(after.checklist.at(-1).detail, /the task ran once after enable: run run-catchup \(done\)/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("missed schedule times: none when enable follows at once, --skip records the person's choice, poll triggers never count, API deactivation stamps n8n's stop", async () => {
+  const { dir, folders } = folderFor("tests/fixtures/convert/slice.n8n.json", { task: { store: { kind: "file" } } });
+  const folder = folders[0];
+  let clock = "2026-11-14T23:50:00.000Z";
+  const step = (f, name, flags = {}, extra = {}) => runStep(f, name, { flags, env: {}, now: () => clock, ...extra });
+  try {
+    assert.equal((await step(folder, "run-now")).code, 1, "run-now before enable is refused");
+    await step(folder, "deactivate-n8n", { done: true, force: true });
+    clock = "2026-11-14T23:55:00.000Z";
+    await step(folder, "seed");
+    const en = await step(folder, "enable");
+    assert.equal(en.data.missedWhileOff.count, 0);
+    assert.equal(en.data.missedWhileOff.exact, false, "by hand without --off-at: counted from when it was recorded");
+    assert.doesNotMatch(en.text, /Missed while/);
+    const item = (await step(folder, "checklist")).data.checklist.at(-1);
+    assert.deepEqual([item.state, /none: no schedule time fell/.test(item.detail)], ["done", true]);
+    assert.match((await step(folder, "run-now")).text, /nothing to catch up/);
+    // A round with a gap, left unrun on purpose.
+    clock = "2026-11-15T00:30:00.000Z";
+    await step(folder, "rollback", { done: true });
+    clock = "2026-11-15T01:00:00.000Z";
+    await step(folder, "deactivate-n8n", { done: true, force: true });
+    clock = "2026-11-17T01:00:00.000Z";
+    assert.equal((await step(folder, "enable")).data.missedWhileOff.count, 2, "a new round counts from its own deactivation");
+    clock = "2026-11-17T01:05:00.000Z";
+    const skip = await step(folder, "run-now", { skip: true });
+    assert.equal(skip.code, 0);
+    assert.deepEqual((await step(folder, "checklist")).data.checklist.at(-1).state, "done");
+    assert.match((await step(folder, "run-now")).text, /stay unrun/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  // A poll trigger's items wait behind the cursor: no such item; through n8n's API offAt is
+  // stamped just before the unpublish.
+  const poll = folderFor("tests/fixtures/convert/poll-code-http.n8n.json", { task: { store: { kind: "file" } } });
+  const wf = { id: "poll01", name: "Invoice mail to accounts", activeVersionId: "v1", nodes: [{ name: POLL }], connections: {}, settings: { executionOrder: "v1" }, staticData: { [`node:${POLL}`]: { [POLL]: { lastTimeChecked: 1794614460 } } } };
+  const api = await fakeN8n(wf);
+  try {
+    clock = "2026-11-15T03:00:00.000Z";
+    const d = await step(poll.folder, "deactivate-n8n", { force: true }, { env: { N8N_BASE_URL: api.base, N8N_API_KEY: "test-key" }, sleep: async () => {} });
+    assert.equal(d.code, 0, d.text);
+    const entry = readdirSync(join(poll.folder, ".n2c/records/cutover")).map((f) => readJson(join(poll.folder, ".n2c/records/cutover", f))).find((e) => e.step === "deactivate-n8n");
+    assert.deepEqual([entry.detail.offAtExact, entry.detail.offAt < entry.at], [true, true]);
+    assert.equal((await step(poll.folder, "checklist")).data.checklist.some((c) => c.id === "missed-in-gap"), false);
+  } finally {
+    api.server.close();
+    rmSync(poll.dir, { recursive: true, force: true });
+  }
+});

@@ -10,10 +10,14 @@
 //                               or run it here when the workflow has no connector or model step
 //   parity                      replay the export's pinData through the definition (writes
 //                               stubbed) and show n8n's pinned output next to ours
-//   deactivate-n8n [--n8n-id id] [--done] [--n8n-export file]
-//                               unpublish the n8n workflow and record its poll cursor
+//   deactivate-n8n [--n8n-id id] [--done] [--n8n-export file] [--off-at ISO]
+//                               unpublish the n8n workflow, record its poll cursor and when
+//                               n8n stopped (--off-at: when the person switched it off by hand)
 //   seed [--from n8n|<ISO time>|<row>]  set the scheduled cursor (default: n8n's cursor)
-//   enable                      let the task send; prints the exact task setup
+//   enable                      let the task send; prints the exact task setup and the
+//                               schedule times that fell while neither side ran
+//   run-now [--skip]            after enable: how to run the task once now for those times
+//                               (it is never run by itself), or record that they stay unrun
 //   rollback [--done]           stop the task sending, carry its cursor into n8n, re-publish n8n
 //   checklist                   the checklist, as the artifact shows it
 //   shared-moved <kind:name> [--to where]  the person moved shared n8n state out of n8n
@@ -155,13 +159,69 @@ function checklist(C) {
   const dry = C.store.get(META_DRY_RUN);
   if (dry && !runs.some((r) => r.runId === dry.runId)) runs.unshift({ runId: dry.runId, dryRun: true, status: dry.status, definitionHash: dry.definitionHash, startedAt: dry.startedAt });
   const cursors = core.cursorsFromDocs(C.store.list(core.COLLECTIONS.cursors).map((x) => x.data));
-  return core.cutoverChecklist({ definition: C.definition, definitionHash: C.hash, runs, cursors, cutover: C.store.get(core.META_CUTOVER) ?? {}, log: logOf(C) });
+  const list = core.cutoverChecklist({ definition: C.definition, definitionHash: C.hash, runs, cursors, cutover: C.store.get(core.META_CUTOVER) ?? {}, log: logOf(C) });
+  const gap = gapItem(C, roundOf(C), runs);
+  return gap ? [...list, gap] : list;
+}
+
+// ---------- schedule times while neither side runs ----------
+//
+// Between deactivate-n8n and enable neither n8n nor the task runs the workflow. A poll trigger
+// loses nothing (its items wait behind n8n's cursor, which the task starts from), but a
+// schedule trigger's fires in that window run nowhere. They are counted from the schedule of
+// the definition's schedule trigger, from the moment n8n stopped (deactivate-n8n's offAt) to
+// enable (or now, before enable), reported by enable, status and checklist, and caught up only
+// when the person runs the task once (run-now says how) or decides not to (run-now --skip).
+const GAP_SHOWN = 12;
+const DAY_MS = 86400_000;
+function scheduleTrigger(def) {
+  for (const s of Object.values(def.steps ?? {})) if (s.kind === "trigger" && s.schedule && !s.poll && s.settings?.disabled !== true) return s.schedule;
+  return null;
+}
+const isoOf = (t) => new Date(t).toISOString();
+// {schedule, from, to, exact, enabled, count, capped, times, last} or null (no schedule trigger,
+// or n8n not deactivated in this round). `until`: the end before enable (default now).
+function gapOf(C, round = roundOf(C), until = null) {
+  const schedule = scheduleTrigger(C.definition);
+  const deact = lastOf(round, "deactivate-n8n");
+  if (!schedule || !deact) return null;
+  const enabled = lastOf(round, "enable");
+  const from = deact.detail?.offAt ?? deact.at;
+  const to = enabled ? enabled.detail?.missedWhileOff?.to ?? enabled.at : until ?? C.now();
+  const { times, capped } = core.expectedRuns(schedule, Date.parse(from), Date.parse(to), { limit: 1000 });
+  return { schedule, from, to, exact: deact.detail?.offAtExact !== false, enabled: !!enabled, count: times.length, capped, times: times.slice(0, GAP_SHOWN).map(isoOf), last: times.length ? isoOf(times.at(-1)) : null };
+}
+const gapWhen = (g) => `${g.count}${g.capped ? "+" : ""} schedule time(s) (${g.schedule.cron?.length ? `cron ${g.schedule.cron.join(", ")}` : `every ${g.schedule.everySeconds} s`} in ${g.schedule.timezone ?? "UTC"}): ${g.times.join(", ")}${g.count > g.times.length ? `, … ${g.last}` : ""}`;
+const gapSpan = (g) => `between n8n going off (${g.from}${g.exact ? "" : ", when deactivate-n8n was recorded: it may have been off earlier"}) and ${g.enabled ? `enable (${g.to})` : "now"}`;
+// After enable: the person's answer to the gap: a task run after enable and before the next
+// schedule time (a run made for it), or run-now --skip. Null while none.
+function catchUpOf(C, round, gap, runs) {
+  const enabled = lastOf(round, "enable");
+  const skip = [...round].reverse().find((e) => e.step === "run-now" && e.ok && e.at >= enabled.at);
+  if (skip) return { skipped: true, at: skip.at };
+  const next = core.expectedRuns(gap.schedule, Date.parse(enabled.at), Date.parse(enabled.at) + 40 * DAY_MS, { limit: 1 }).times[0];
+  const run = (runs ?? []).filter((r) => !r.dryRun && r.trigger === "scheduled" && String(r.startedAt) > enabled.at && (next === undefined || Date.parse(r.startedAt) < next)).sort((a, b) => String(a.startedAt).localeCompare(String(b.startedAt)))[0];
+  return run ? { runId: run.runId, at: run.startedAt, status: run.status } : null;
+}
+function taskRuns(C) {
+  return C.store.list(core.COLLECTIONS.runs).map((x) => x.data).filter((r) => r && r.runId);
+}
+function gapItem(C, round, runs) {
+  const g = gapOf(C, round);
+  if (!g) return null;
+  const base = { id: "missed-in-gap", label: "Schedule times while neither side ran", at: null };
+  if (!g.enabled) return { ...base, state: g.count ? "todo" : "optional", detail: g.count ? `${gapWhen(g)}, ${gapSpan(g)}; neither n8n nor the task runs them. Enable soon; run-now then says how to run the task once` : `none so far since n8n went off (${g.from})` };
+  if (!g.count) return { ...base, state: "done", detail: `none: no schedule time fell ${gapSpan(g)}` };
+  const c = catchUpOf(C, round, g, runs);
+  if (c?.skipped) return { ...base, state: "done", at: c.at, detail: `${gapWhen(g)}, ${gapSpan(g)}; left unrun by the person (run-now --skip)` };
+  if (c) return { ...base, state: "done", at: c.at, detail: `${gapWhen(g)}, ${gapSpan(g)}; the task ran once after enable: run ${c.runId} (${c.status})` };
+  return { ...base, state: "todo", detail: `${gapWhen(g)}, ${gapSpan(g)}, ran on neither side and nothing runs them by itself. Run the task once now (cutover.mjs ${C.dir} run-now says how) or leave them (run-now --skip)` };
 }
 const markOf = (s) => ({ done: "[x]", todo: "[ ]", "n/a": "[-]", optional: "[~]" })[s] ?? "[?]";
 const checklistText = (list) => list.map((c) => `${markOf(c.state)} ${c.label}: ${c.state === "n/a" ? `not needed (${c.detail})` : c.detail}${c.at ? ` (${c.at})` : ""}`).join("\n");
 function nextStep(list) {
   const todo = list.find((c) => c.state === "todo");
-  return todo ? { "dry-run": "dry-run", "deactivate-n8n": "deactivate-n8n", "seed-cursor": "seed", "enable-schedule": "enable" }[todo.id] : null;
+  return todo ? { "dry-run": "dry-run", "deactivate-n8n": "deactivate-n8n", "seed-cursor": "seed", "enable-schedule": "enable", "missed-in-gap": "run-now" }[todo.id] : null;
 }
 
 // ---------- steps ----------
@@ -173,6 +233,8 @@ async function status(C, flags, ctx) {
   const polls = pollSteps(C.definition);
   const cursors = { scheduled: core.cursorsFromDocs(C.store.list(core.COLLECTIONS.cursors).map((x) => x.data), "scheduled"), manual: core.cursorsFromDocs(C.store.list(core.COLLECTIONS.cursors).map((x) => x.data), "manual") };
   const data = { workflow: C.definition.name, folder: C.dir, target: target(C), store: C.store.kind, owner, openRun: C.store.get(OPEN)?.runId ?? null, checklist: list, next: nextStep(list), cursors, sharedPending: sharedPending(C).map((s) => s.key), log: logOf(C).map((e) => ({ step: e.step, at: e.at, by: e.by, ok: e.ok, forced: e.forced })) };
+  const gap = gapOf(C);
+  if (gap) data.gap = { from: gap.from, to: gap.to, enabled: gap.enabled, count: gap.count, capped: gap.capped, times: gap.times, exact: gap.exact };
   const client = n8nClient(C, ctx);
   if (client) {
     try {
@@ -342,6 +404,8 @@ async function deactivate(C, flags, ctx) {
     if (!wf) throw new Refused(`n8n has no workflow ${id}; pass --n8n-id <id> (the id in the workflow's URL).`);
     const wasPublished = client.isPublished(wf);
     const activeVersionId = wf.activeVersionId ?? null;
+    // When n8n stopped running it: schedule times after this run on neither side until enable.
+    const offAt = C.now();
     if (wasPublished) await client.unpublish(id);
     const settled = await client.settledStaticData(id);
     if (client.isPublished(settled.workflow)) throw new Refused(`n8n still shows workflow ${id} as published; nothing recorded.`);
@@ -360,7 +424,7 @@ async function deactivate(C, flags, ctx) {
     mapped.missing = mapped.missing.filter((s) => !cursor[s]);
     startCutover(C);
     setOwner(C, "n8n", { workflowId: id, published: false });
-    record(C, "deactivate-n8n", { via: "api", workflowId: id, wasPublished, activeVersionId, staticData: settled.staticData, cursorFromStaticData: mapped.cursors, cursorFromExecutions: fromRuns.cursors, cursor: Object.keys(cursor).length ? cursor : null, missing: mapped.missing, unsupported: mapped.unsupported, ...(ahead.length ? { executionsAhead: ahead } : {}), ...(runsNote ? { note: runsNote } : {}), ...(wf.name !== C.definition.name ? { nameDiffers: wf.name } : {}) }, { forced });
+    record(C, "deactivate-n8n", { via: "api", workflowId: id, wasPublished, activeVersionId, offAt, offAtExact: wasPublished, staticData: settled.staticData, cursorFromStaticData: mapped.cursors, cursorFromExecutions: fromRuns.cursors, cursor: Object.keys(cursor).length ? cursor : null, missing: mapped.missing, unsupported: mapped.unsupported, ...(ahead.length ? { executionsAhead: ahead } : {}), ...(runsNote ? { note: runsNote } : {}), ...(wf.name !== C.definition.name ? { nameDiffers: wf.name } : {}) }, { forced });
     flush(C, "deactivate n8n");
     const lines = [`n8n workflow ${id} ${wasPublished ? "unpublished" : "was already unpublished"}; no execution of it is running. From now on neither side sends until enable; new items wait behind n8n's cursor.`];
     if (wf.name !== C.definition.name) lines.push(`Note: n8n names it "${wf.name}", the folder "${C.definition.name}". Check it is the same workflow.`);
@@ -379,17 +443,25 @@ async function deactivate(C, flags, ctx) {
         `  1. In n8n, open the workflow "${C.definition.name}"${id ? ` (id ${id})` : ""} and switch it off (unpublish).`,
         "  2. Wait until its executions list shows none running.",
         `  3. Export it after it is off, with its static data: on the n8n host, n8n export:workflow --id=${id ?? "<id>"} --output=workflow.json`,
-        `  4. Record it: cutover.mjs ${C.dir} deactivate-n8n --done --n8n-export workflow.json`,
+        `  4. Record it: cutover.mjs ${C.dir} deactivate-n8n --done --n8n-export workflow.json --off-at <when you switched it off, ISO time>`,
         "Without the export, seed needs --from <the time n8n last polled>, which can repeat or skip items around that time.",
       ].join("\n"),
     };
   }
   const exported = typeof flags["n8n-export"] === "string" ? readExport(flags["n8n-export"], id, C.definition.name) : null;
+  let offAt = null;
+  if (flags["off-at"] !== undefined) {
+    const t = Date.parse(String(flags["off-at"]));
+    if (typeof flags["off-at"] !== "string" || !Number.isFinite(t)) throw new Refused(`--off-at takes the ISO time the workflow was switched off in n8n; got ${JSON.stringify(flags["off-at"])}.`, 2);
+    if (t > Date.parse(C.now())) throw new Refused("--off-at is in the future: give the time the workflow was switched off.", 2);
+    offAt = isoOf(t);
+  }
   if (exported && (exported.active === true || exported.activeVersionId)) throw new Refused("The export shows the workflow still on: export it again after switching it off.");
   const mapped = exported ? cursorsFromStaticData(C.definition, exported.staticData ?? null) : null;
   startCutover(C);
   setOwner(C, "n8n", { workflowId: id, published: false });
-  record(C, "deactivate-n8n", { via: "manual", workflowId: id, staticData: exported ? exported.staticData ?? null : undefined, cursor: mapped && Object.keys(mapped.cursors).length ? mapped.cursors : null, missing: mapped?.missing ?? null, unsupported: mapped?.unsupported ?? [] }, { forced });
+  const recAt = C.now();
+  record(C, "deactivate-n8n", { via: "manual", workflowId: id, offAt: offAt ?? recAt, offAtExact: !!offAt, staticData: exported ? exported.staticData ?? null : undefined, cursor: mapped && Object.keys(mapped.cursors).length ? mapped.cursors : null, missing: mapped?.missing ?? null, unsupported: mapped?.unsupported ?? [] }, { forced });
   flush(C, "deactivate n8n");
   return { code: 0, text: `Recorded: the n8n workflow is off${mapped ? `; n8n's cursor ${clipText(mapped.cursors, 300)}` : " (no export: seed needs --from)"}. Next: cutover.mjs ${C.dir} seed`, data: { cursor: mapped?.cursors ?? null } };
 }
@@ -480,10 +552,44 @@ async function enable(C, flags) {
     if (!flags.force) throw new Refused(`Seed the cursor first (cutover.mjs ${C.dir} seed). --force enables without it: the first run then only reads, sends nothing and starts from there, so items between n8n's last poll and that run are never sent.`);
     forced = true;
   }
+  const gap = gapOf(C, round, C.now());
   setOwner(C, "claude");
-  record(C, "enable", { target: target(C), schedule: core.definitionSchedule(C.definition), seeded: !!seeded }, { forced });
+  const missedWhileOff = gap ? { from: gap.from, to: gap.to, exact: gap.exact, count: gap.count, capped: gap.capped, times: gap.times } : null;
+  record(C, "enable", { target: target(C), schedule: core.definitionSchedule(C.definition), seeded: !!seeded, ...(missedWhileOff ? { missedWhileOff } : {}) }, { forced });
   flush(C, "enable");
-  return { code: 0, text: `The task may send from now on (its gate is open).\n\n${setupText(C)}`, data: { target: target(C) } };
+  const lines = [`The task may send from now on (its gate is open).`, "", setupText(C)];
+  if (gap?.count) lines.push("", `Missed while neither side ran: ${gapWhen({ ...gap, enabled: true })}, ${gapSpan({ ...gap, enabled: true })}. Neither n8n nor the task ran them, and nothing runs them by itself. To run the workflow once now: cutover.mjs ${C.dir} run-now (it says how for this task); to leave them unrun: cutover.mjs ${C.dir} run-now --skip.`);
+  return { code: 0, text: lines.join("\n"), data: { target: target(C), missedWhileOff } };
+}
+
+// The person's answer to schedule times that fell while neither side ran: how to run the task
+// once now (never run from here: the task's session has the connectors and secrets), found in
+// the task's records once it ran, or --skip to leave them unrun. Nothing to do without them.
+async function runNow(C, flags) {
+  const round = roundOf(C);
+  const enabled = lastOf(round, "enable");
+  if (!enabled) throw new Refused(`Enable first (cutover.mjs ${C.dir} enable): until then the task's runs are held and send nothing.`);
+  const g = gapOf(C, round);
+  if (!g) return { code: 0, text: "No schedule trigger (or n8n was not deactivated in this cutover): nothing to catch up.", data: { count: 0 } };
+  if (!g.count) return { code: 0, text: `No schedule time fell ${gapSpan(g)}: nothing to catch up.`, data: { count: 0 } };
+  const c = catchUpOf(C, round, g, taskRuns(C));
+  if (c?.skipped) return { code: 0, text: `Recorded at ${c.at}: the ${g.count} missed schedule time(s) stay unrun.`, data: { count: g.count, skipped: true } };
+  if (c) return { code: 0, text: `The task ran once after enable: run ${c.runId} at ${c.at} (${c.status}). Nothing more to do.`, data: { count: g.count, runId: c.runId } };
+  if (flags.skip) {
+    record(C, "run-now", { skipped: true, missed: g.count, from: g.from, to: g.to });
+    flush(C, "missed schedule times left unrun");
+    return { code: 0, text: `Recorded: the ${g.count} schedule time(s) ${gapSpan(g)} stay unrun.`, data: { count: g.count, skipped: true } };
+  }
+  const how = target(C) === "cloud-task" ? "Open the cloud task's page in Claude and run it once now" : "In the Claude desktop app, open the scheduled task and run it once now";
+  return {
+    code: 3,
+    text: [
+      `${gapWhen(g)} fell ${gapSpan(g)}; neither side ran them.`,
+      `To run the workflow once now: ${how}; it should end with DONE. It is one run at the current time, as the next scheduled one would be: it does not replay each missed time.`,
+      `Then run cutover.mjs ${C.dir} run-now again: it finds the run in the task's records. To leave them unrun instead: cutover.mjs ${C.dir} run-now --skip.`,
+    ].join("\n"),
+    data: { count: g.count, times: g.times },
+  };
 }
 
 async function rollback(C, flags, ctx) {
@@ -560,6 +666,7 @@ export const STEPS = {
   "deactivate-n8n": deactivate,
   seed,
   enable,
+  "run-now": runNow,
   rollback,
   checklist: async (C) => {
     const list = checklist(C);
@@ -584,7 +691,7 @@ export async function runStep(folder, step, ctx = {}) {
 function parse(argv) {
   const pos = [];
   const flags = {};
-  const BOOL = new Set(["json", "force", "done"]);
+  const BOOL = new Set(["json", "force", "done", "skip"]);
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a.startsWith("--")) {
