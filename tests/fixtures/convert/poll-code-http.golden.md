@@ -15,12 +15,15 @@ Code that runs as written (read it before the first run):
 Known differences from n8n:
 
 - New invoice email: The cursor reads each message's date; Gmail's after: has one-second resolution, so ids seen at the cursor are remembered.
+- New invoice email: Each new message is read again with get\_message, one call per message, as n8n's trigger reads each one again.
+- New invoice email: From, To, Cc and Bcc are rebuilt as "Name" \<address\> from the addresses and display names get\_message returns; n8n copies the raw header, whose quoting can differ.
 
 ## Allowed targets
 
 The run can only reach these. Anything else is refused.
 
 - tool gmail `search_threads`
+- tool gmail `get_message`
 - POST api.accounts.example.com/v1/invoices
 
 ## Secrets

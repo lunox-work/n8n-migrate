@@ -130,7 +130,11 @@ test("(b2) poll trigger + Code + If + HTTP with a stored secret: cursor in, new 
   const r = await run(def, { clock: CLOCK, virtualTime: true, cursors, host });
   assert.equal(r.status, "done", JSON.stringify(r.error));
   assert.deepEqual(calls[0].args, { query: "subject:invoice after:1794621600", pageSize: 50 });
-  assert.deepEqual(http.map((q) => [q.method, q.url, q.body, q.auth]), [["POST", "https://api.accounts.example.com/v1/invoices", { from: "ann@example.com", subject: "Invoice 42", amount: 250 }, { credentialType: "httpHeaderAuth", secret: "Accounts API key" }]]);
+  // Each new message is read again, as n8n's trigger does; the item is the detail result, so
+  // From carries the display name and threadId comes from the list.
+  assert.deepEqual(calls.slice(1).map((c) => [c.tool, c.args]), [["gmail.get_message", { messageFormat: "MINIMAL", messageId: "m1" }], ["gmail.get_message", { messageFormat: "MINIMAL", messageId: "m2" }]]);
+  assert.deepEqual(r.runData["New invoice email"][0].data.main[0][0].json, { id: "m1", threadId: "t1", snippet: "Invoice 42: total $250.00 due on 1 Dec", From: '"Ann Lee" <ann@example.com>', To: "me@example.com", Subject: "Invoice 42" });
+  assert.deepEqual(http.map((q) => [q.method, q.url, q.body, q.auth]), [["POST", "https://api.accounts.example.com/v1/invoices", { from: '"Ann Lee" <ann@example.com>', subject: "Invoice 42", amount: 250 }, { credentialType: "httpHeaderAuth", secret: "Accounts API key" }]]);
   assert.deepEqual(r.runData.Ignore[0].data.main[0].map((i) => i.json), [{ from: "bo@example.com", subject: "Re: Invoice 42", amount: 40 }]);
   assert.deepEqual(r.cursors, { "New invoice email": { value: "2026-11-14T02:45:00Z", ids: ["m2"] } });
   // The next run with that cursor sees nothing new and stops at the trigger.

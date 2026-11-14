@@ -135,7 +135,9 @@ function rtFor(def, docsDb, mail) {
     async callTool(server, tool, args) {
       const connector = Object.keys(servers).find((c) => servers[c] === server);
       calls.push({ connector, tool, args });
-      const value = connector === "gmail" && tool === "search_threads" && mail ? mail() : await host({ connector, tool, args });
+      // The poll reads each new message again (get_message): answer it from the same mailbox.
+      const listed = (id) => mail().threads.flatMap((t) => t.messages).find((m) => m.id === id);
+      const value = connector === "gmail" && tool === "search_threads" && mail ? mail() : connector === "gmail" && tool === "get_message" && mail ? listed(args.messageId) : await host({ connector, tool, args });
       return { payload: value };
     },
   };

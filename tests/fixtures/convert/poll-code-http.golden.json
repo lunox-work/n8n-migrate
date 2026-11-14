@@ -89,9 +89,53 @@
           "sizeEstimate"
         ],
         "caveats": [
-          "The cursor reads each message's date; Gmail's after: has one-second resolution, so ids seen at the cursor are remembered."
+          "The cursor reads each message's date; Gmail's after: has one-second resolution, so ids seen at the cursor are remembered.",
+          "Each new message is read again with get_message, one call per message, as n8n's trigger reads each one again.",
+          "From, To, Cc and Bcc are rebuilt as \"Name\" <address> from the addresses and display names get_message returns; n8n copies the raw header, whose quoting can differ."
         ],
-        "map": "n8n-nodes-base.gmailTrigger@>=1 poll"
+        "map": "n8n-nodes-base.gmailTrigger@>=1 poll",
+        "detail": {
+          "tool": {
+            "connector": "gmail",
+            "name": "get_message",
+            "args": {
+              "messageFormat": "MINIMAL"
+            },
+            "coerce": {
+              "messageFormat": "string"
+            }
+          },
+          "idArg": "messageId",
+          "idField": "id",
+          "keep": [
+            "threadId"
+          ],
+          "result": {
+            "shape": "gmail-message",
+            "passthrough": false,
+            "fields": {
+              "id": "id",
+              "threadId": "threadId",
+              "snippet": "snippet",
+              "sizeEstimate": "sizeEstimate",
+              "historyId": "historyId",
+              "internalDate": "internalDate",
+              "From": {
+                "addressLine": "from"
+              },
+              "To": {
+                "addressLine": "to"
+              },
+              "Cc": {
+                "addressLine": "cc"
+              },
+              "Bcc": {
+                "addressLine": "bcc"
+              },
+              "Subject": "subject"
+            }
+          }
+        }
       },
       "schedule": {
         "cron": [
@@ -247,6 +291,10 @@
       {
         "connector": "gmail",
         "tool": "search_threads"
+      },
+      {
+        "connector": "gmail",
+        "tool": "get_message"
       }
     ],
     "http": [

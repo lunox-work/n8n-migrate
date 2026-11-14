@@ -7,7 +7,8 @@
     "understood: parameters this entry reads or accepts; any other parameter set on the node makes the step `review` (it has no counterpart in the tool). review: [{param, equals?, reason}] flags the step when a parameter has that value (any value when equals is absent).",
     "The converter checks every args field against the tool's input JSON schema: required fields present, no unknown fields.",
     "lookup: true (Google Sheets reads): the node's filtersUI rows become tool.lookup, applied by the runtime to the adapted rows as n8n's lookupValues does (cell text equals the value; OR or AND by combineFilters; first match per filter unless all matches are asked for).",
-    "Or rest (a REST program in runtime/src/rest.mjs, for an operation that takes several requests: a read decides the write) with credentialType and hosts [{method, host, pathPrefix}]; the n8n parameters stay in step.params. Keeping the same service over its REST API with the person's own credential is the default mapping, not a substitution (references/translation.md)."
+    "Or rest (a REST program in runtime/src/rest.mjs, for an operation that takes several requests: a read decides the write) with credentialType and hosts [{method, host, pathPrefix}]; the n8n parameters stay in step.params. Keeping the same service over its REST API with the person's own credential is the default mapping, not a substitution (references/translation.md).",
+    "detail (poll triggers whose n8n node reads each new item again, as Gmail's GET per message): {tool, args, idArg, idField, keep, result, resultWhen, missingFields}. After the cursor, the runner calls the tool once per new item with args plus idArg set to the list item's idField; the item becomes the adapted detail result (the resultWhen branch the node's parameters pick, which may carry its own missingFields); keep names list-item fields used when the detail result lacks them. The step's missingFields are the detail's."
   ],
   "version": "1",
   "maps": {
@@ -342,10 +343,39 @@
             "cursor": { "field": "date", "strategy": "max", "idField": "id", "arg": "query", "template": "after:{seconds}" },
             "fidelity": "unverified",
             "missingFields": ["historyId", "internalDate", "labels", "payload", "sizeEstimate"],
-            "caveats": ["The cursor reads each message's date; Gmail's after: has one-second resolution, so ids seen at the cursor are remembered."],
+            "detail": {
+              "tool": "get_message",
+              "args": { "messageFormat": { "if": { "param": "simple", "equals": false, "default": true }, "then": { "const": "FULL_CONTENT" }, "else": { "const": "MINIMAL" } } },
+              "idArg": "messageId",
+              "idField": "id",
+              "keep": ["threadId"],
+              "result": {
+                "shape": "gmail-message",
+                "passthrough": false,
+                "fields": { "id": "id", "threadId": "threadId", "snippet": "snippet", "sizeEstimate": "sizeEstimate", "historyId": "historyId", "internalDate": "internalDate", "From": { "addressLine": "from" }, "To": { "addressLine": "to" }, "Cc": { "addressLine": "cc" }, "Bcc": { "addressLine": "bcc" }, "Subject": "subject" }
+              },
+              "resultWhen": [
+                {
+                  "param": "simple",
+                  "equals": false,
+                  "default": true,
+                  "result": {
+                    "shape": "gmail-message",
+                    "passthrough": false,
+                    "fields": { "id": "id", "threadId": "threadId", "labelIds": "labelIds", "sizeEstimate": "sizeEstimate", "headers": { "headerLines": "headers" }, "html": { "path": "html", "default": false }, "text": "text", "subject": "subject", "date": "date", "to": { "addresses": "to" }, "from": { "addresses": "from" }, "cc": { "addresses": "cc" }, "bcc": { "addresses": "bcc" }, "replyTo": { "addresses": "replyTo" }, "messageId": "messageId", "inReplyTo": "inReplyTo", "references": "references" }
+                  },
+                  "missingFields": ["sizeEstimate", "textAsHtml"]
+                }
+              ],
+              "missingFields": ["historyId", "internalDate", "labels", "payload", "sizeEstimate"]
+            },
+            "caveats": [
+              "The cursor reads each message's date; Gmail's after: has one-second resolution, so ids seen at the cursor are remembered.",
+              "Each new message is read again with get_message, one call per message, as n8n's trigger reads each one again.",
+              { "text": "From, To, Cc and Bcc are rebuilt as \"Name\" <address> from the addresses and display names get_message returns; n8n copies the raw header, whose quoting can differ.", "unless": { "param": "simple", "equals": false } }
+            ],
             "understood": ["pollTimes", "simple", "filters.q", "filters.sender", "filters.readStatus", "filters.includeSpamTrash", "options.downloadAttachments", "event"],
             "review": [
-              { "param": "simple", "equals": false, "reason": "n8n's raw message format is not mapped" },
               { "param": "filters.labelIds", "reason": "label ids filter has no tool argument; add label:<name> to the query" },
               { "param": "options.downloadAttachments", "equals": true, "reason": "attachments are not downloaded by search_threads" }
             ]

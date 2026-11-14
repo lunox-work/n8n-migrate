@@ -271,6 +271,24 @@
                 "properties": { "connector": { "type": "string" }, "name": { "type": "string" }, "args": { "type": "object" }, "coerce": { "type": "object" } }
               },
               "result": { "$ref": "#/$defs/adapter" },
+              "detail": {
+                "type": "object",
+                "required": ["tool", "idArg", "idField"],
+                "additionalProperties": false,
+                "description": "The n8n trigger reads each new item again (Gmail: GET per message): after the cursor, one call per item with idArg set to the list item's idField; the item becomes the adapted detail result, with `keep` fields from the list item where it lacks them.",
+                "properties": {
+                  "tool": {
+                    "type": "object",
+                    "required": ["connector", "name"],
+                    "additionalProperties": false,
+                    "properties": { "connector": { "type": "string" }, "name": { "type": "string" }, "args": { "type": "object" }, "coerce": { "type": "object" } }
+                  },
+                  "idArg": { "type": "string" },
+                  "idField": { "type": "string" },
+                  "keep": { "type": "array", "items": { "type": "string" } },
+                  "result": { "$ref": "#/$defs/adapter" }
+                }
+              },
               "cursor": {
                 "type": "object",
                 "required": ["field", "strategy"],

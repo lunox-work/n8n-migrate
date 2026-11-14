@@ -904,6 +904,28 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
           addTool(e.connector, e.tool);
           const chk = checkArgs(schema, args);
           if (!chk.ok) review(step, `poll arguments do not fit ${e.tool}: ${[...chk.missing, ...chk.unknown].join(", ")}`);
+          // A trigger whose n8n node reads each new item again (Gmail: GET per message): one
+          // detail call per item after the cursor; the item is the detail result.
+          if (e.detail) {
+            const d = e.detail;
+            const dArgs = {};
+            for (const [k, spec] of Object.entries(d.args ?? {})) {
+              const val = resolveSpec(spec, params, issues);
+              if (val !== undefined) dArgs[k] = val;
+            }
+            const dSchema = toolSchema(refs, e.connector, d.tool);
+            const branch = (d.resultWhen ?? []).find((c) => {
+              const raw = getParam(params, c.param);
+              return (raw === undefined ? c.default : unwrapParam(raw, c.param, [])) === c.equals;
+            });
+            step.poll.detail = { tool: { connector: e.connector, name: d.tool, args: dArgs, coerce: coerceFor(dSchema, dArgs) }, idArg: d.idArg, idField: d.idField, ...(d.keep?.length ? { keep: d.keep } : {}), result: resultFor(d, params) };
+            const miss = branch?.missingFields ?? d.missingFields ?? [];
+            if (miss.length) step.poll.missingFields = miss;
+            else delete step.poll.missingFields;
+            addTool(e.connector, d.tool);
+            const dChk = checkArgs(dSchema, { ...dArgs, [d.idArg]: "id" });
+            if (!dChk.ok) review(step, `poll detail arguments do not fit ${d.tool}: ${[...dChk.missing, ...dChk.unknown].join(", ")}`);
+          }
           for (const r of [...issues, ...mapReviews(params, e)]) review(step, r);
           for (const p of unexplainedParams(params, e)) review(step, `parameter "${p}" has no counterpart in ${e.tool}`);
         } else if (wake === "poll" || /Trigger$/.test(type)) {
@@ -1169,7 +1191,7 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
   const missingOf = new Map();
   for (const [n, s] of Object.entries(steps)) {
     const miss = s.tool?.missingFields ?? s.poll?.missingFields;
-    if (miss?.length) missingOf.set(n, { fields: new Set(miss.map((f) => f.split(".")[0])), what: `${(s.tool ?? s.poll.tool).connector} ${(s.tool ?? s.poll.tool).name}` });
+    if (miss?.length) missingOf.set(n, { fields: new Set(miss.map((f) => f.split(".")[0])), what: `${(s.tool ?? s.poll.detail?.tool ?? s.poll.tool).connector} ${(s.tool ?? s.poll.detail?.tool ?? s.poll.tool).name}` });
   }
   if (missingOf.size) {
     const REF = /\$\(\s*(['"`])((?:(?!\1).)+)\1\s*\)(?:\.(?:item|first\(\s*\)|last\(\s*\)|all\(\s*\)\[\d+\]|itemMatching\([^)]*\)))?\.json(?:\.([A-Za-z_$][\w$]*)|\[\s*(['"])([^'"]+)\4\s*\])/g;

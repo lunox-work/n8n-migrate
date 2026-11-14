@@ -12953,7 +12953,8 @@ const agentStep = {
 // Otherwise the runner polls: it calls the tool with the cursor in its arguments, adapts the
 // output to n8n's item shape, keeps the items after the cursor and records the next cursor
 // (run result `cursors`). With no cursor yet, a production run emits nothing and seeds the
-// cursor (the first run never replays history); a manual run emits what it read.
+// cursor (the first run never replays history); a manual run emits what it read. With
+// `poll.detail`, each item to emit is read again (see below).
 
 const pollTrigger = {
   versions: () => true,
@@ -12970,7 +12971,32 @@ const pollTrigger = {
     const all = adaptResult(p.result, r.value);
     const { items, cursor: next } = advanceCursor(p.cursor ?? {}, all, cursor);
     run.cursorsOut[exec.name] = next;
-    const emit = cursor || run.mode === "manual" ? items : [];
+    let emit = cursor || run.mode === "manual" ? items : [];
+    // poll.detail: n8n's trigger reads each new item again (Gmail: GET per message), so the
+    // item carries what the list does not (display names, bodies). One call per emitted item,
+    // after the cursor; the item is the detail result adapted by its own spec, with `keep`
+    // fields taken from the list item when the detail result lacks them.
+    const d = p.detail;
+    if (isObject(d) && emit.length) {
+      const base = coerceArgs(d.tool.coerce, exec.evaluate(d.tool.args ?? {}, 0));
+      const rs = await exec.request(emit.map((j, k) => ({ kind: "tool", itemIndex: k, connector: d.tool.connector, tool: d.tool.name, args: { ...base, [d.idArg]: String(getAt(j, d.idField) ?? "") }, effect: "read" })));
+      emit = rs.map((r, k) => {
+        if (!r.ok) throw err(exec, r.error?.message ?? "poll detail failed", { itemIndex: k });
+        const got = adaptResult(d.result ?? {}, r.value)[0] ?? {};
+        const keep = (d.keep ?? []).filter((f) => got[f] === undefined && emit[k][f] !== undefined);
+        if (!keep.length) return got;
+        // Keep the adapter's field order: a kept field goes where the result spec lists it.
+        const order = Object.keys(d.result?.fields ?? {});
+        const out = {};
+        for (const f of order) {
+          if (got[f] !== undefined) out[f] = got[f];
+          else if (keep.includes(f)) out[f] = deepCopy(emit[k][f]);
+        }
+        for (const [f, v] of Object.entries(got)) if (!(f in out)) out[f] = v;
+        for (const f of keep) if (!(f in out)) out[f] = deepCopy(emit[k][f]);
+        return out;
+      });
+    }
     return [emit.map((json) => ({ json }))];
   },
 };

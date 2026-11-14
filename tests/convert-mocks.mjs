@@ -33,6 +33,11 @@ export const CANNED = {
     ],
     query: args.query ?? "",
   }),
+  // get_message returns the message as search_threads lists it, plus display names (MINIMAL).
+  "gmail.get_message": (args) => {
+    const m = CANNED["gmail.search_threads"]({}).threads.flatMap((t) => t.messages).find((x) => x.id === args.messageId);
+    return m ? { ...m, addressDisplayNames: m.sender === "ann@example.com" ? { "ann@example.com": "Ann Lee" } : {} } : { error: "not found" };
+  },
   "slack.slack_send_message": (args) => ({ channel: args.channel_id, ts: "1763100000.000100", message_link: `https://example.slack.com/archives/${args.channel_id}/p1763100000000100` }),
 };
 

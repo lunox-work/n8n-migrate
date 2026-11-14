@@ -128,7 +128,7 @@ test("an http step stops the run with handoff and the pending request, without s
   const res = await driverFor(def, fake).runNow({ dryRun: true });
   assert.equal(res.status, "handoff");
   assert.equal(res.record.handoff.step, "Notify accounts");
-  assert.deepEqual(res.record.handoff.request, { kind: "http", step: "Notify accounts", method: "POST", url: "https://api.accounts.example.com/v1/invoices", secret: "Accounts API key", body: { from: "ann@example.com", subject: "Invoice 42", amount: 250 } });
+  assert.deepEqual(res.record.handoff.request, { kind: "http", step: "Notify accounts", method: "POST", url: "https://api.accounts.example.com/v1/invoices", secret: "Accounts API key", body: { from: '"Ann Lee" <ann@example.com>', subject: "Invoice 42", amount: 250 } });
   assert.equal(res.record.effects.wouldSend, 0);
   assert.equal(res.record.steps["Notify accounts"].status, "handoff");
 });
