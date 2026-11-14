@@ -34,7 +34,7 @@
 import { readFileSync, appendFileSync, existsSync, realpathSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { limitErrors, pageResult } from "./limits.mjs";
+import { connectorRefusal, limitErrors, pageResult } from "./limits.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
@@ -156,6 +156,12 @@ export function createServer({ connector, doc, fixtures = {}, log }) {
       if (over.length) {
         record({ tool: name, args, valid: false, error: over.join("; "), limit: true });
         return reply({ content: [{ type: "text", text: `Invalid arguments for ${name}: ${over.join("; ")}` }], isError: true });
+      }
+      // PROPOSALS P33: what the real service refuses (no effect, logged invalid like a limit).
+      const refused = connectorRefusal(connector, name, args);
+      if (refused) {
+        record({ tool: name, args, valid: false, error: refused, refusal: true });
+        return reply({ content: [{ type: "text", text: refused }], isError: true });
       }
       record({ tool: name, args, valid: true });
       return reply(respond(name, args));

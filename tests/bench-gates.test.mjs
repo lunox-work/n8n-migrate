@@ -439,14 +439,14 @@ test("P28: tool names and input schema shapes offered to the model are gated; de
   const fn = (name, description, parameters) => ({ type: "function", function: { name, description, parameters } });
   const zod = (properties, required) => ({ type: "object", properties, ...(required ? { required } : {}), additionalProperties: false, $schema: "http://json-schema.org/draft-07/schema#" });
   const n8nCall = { format: "openai", request: { messages: [{ role: "user", content: "q" }], tools: [fn("Google_Calendar", "Get many events in Google Calendar", zod({})), fn("Search_db", "Search the database", zod({ keyword: { type: "string", description: "One keyword" }, tag: { type: "string" } }, ["keyword", "tag"])), fn("format_final_json_response", "Use this tool to format your final response", zod({ output: { type: "object" } }))] } };
-  const claudeReq = { kind: "agent", outputSchema: { type: "object" }, tools: [{ name: "Google Calendar", description: "googleCalendar getAll" }, { name: "Search db", description: "=Search the database", inputSchema: { type: "object", properties: { tag: { type: "string" }, keyword: { type: "string", description: "A keyword" } }, required: ["tag", "keyword"] } }] };
+  const claudeReq = { kind: "agent", outputSchema: { type: "object" }, tools: [{ name: "Google Calendar", description: "googleCalendar getAll" }, { name: "Search db", description: "Search our database", inputSchema: { type: "object", properties: { tag: { type: "string" }, keyword: { type: "string", description: "A keyword" } }, required: ["tag", "keyword"] } }] };
   const same = sameToolDefs(n8nCall, claudeReq);
   // Names fold case and punctuation (n8n's tool name is the node name with `_`); a tool without
   // a schema is a tool without parameters; key order, additionalProperties, $schema and
   // descriptions are not shape; n8n's output-parser tool is the runtime's outputSchema.
   assert.deepEqual([same.same, same.tools, same.onlyN8n, same.onlyClaude, same.schemas], [true, 2, [], [], []]);
   assert.deepEqual(same.descriptions.map((d) => [d.tool, d.diff.map((x) => x.at)]), [["Google_Calendar", ["(tool)"]], ["Search_db", ["(tool)", "keyword"]]]);
-  assert.deepEqual(same.parser, { n8n: "format_final_json_response", claudeOutputSchema: true });
+  assert.deepEqual(same.parser, { n8n: "format_final_json_response", claudeOutputSchema: true, same: true });
   // A tool only n8n offers (a Think tool the converter dropped), or only the Claude side.
   const missing = sameToolDefs(n8nCall, { ...claudeReq, tools: claudeReq.tools.slice(1) });
   assert.deepEqual([missing.same, missing.onlyN8n], [false, ["Google_Calendar"]]);
@@ -472,6 +472,88 @@ test("P28: tool names and input schema shapes offered to the model are gated; de
   assert.deepEqual([g.pass, g.bucket, g.cause, g.detail[0].onlyN8n], [false, "field map", "different tools offered", ["Google_Calendar"]]);
   assert.equal(gate4({ cmp, modelInputs: [m(same)], n8nStatus: "success" }).pass, true);
   assert.match(gate4({ cmp, modelInputs: [{ ...m(missing), input: { same: false, at: "x", n8nAround: "y" } }], n8nStatus: "success" }).cause, /different input/);
+});
+
+test("P34: n8n expression syntax left in a description is a gated artefact; other wording stays reported", async () => {
+  const { sameToolDefs, descriptionDiffKind } = await import("../evals/bench/claude-side.mjs");
+  assert.equal(descriptionDiffKind("Use this tool to read mail", "=Use this tool to read mail"), "artefact");
+  assert.equal(descriptionDiffKind("Rows for Ada", "Rows for {{ $json.name }}"), "artefact");
+  assert.equal(descriptionDiffKind("The URL", "{{ $fromAI('url') }}"), "artefact");
+  assert.equal(descriptionDiffKind("={{ x }}", "={{ x }} "), "reworded", "n8n's own text carries the marks too");
+  assert.equal(descriptionDiffKind("Latitude of the place", ""), "missing");
+  assert.equal(descriptionDiffKind("Get many events in Google Calendar", "googleCalendar getAll"), "reworded");
+  const fn = (name, description, parameters) => ({ type: "function", function: { name, description, parameters } });
+  const n8nCall = { format: "openai", request: { messages: [], tools: [fn("Read_mail", "Use this tool to read mail", { type: "object", properties: { q: { type: "string", description: "Search words" } } })] } };
+  const art = sameToolDefs(n8nCall, { tools: [{ name: "Read mail", description: "=Use this tool to read mail", inputSchema: { type: "object", properties: { q: { type: "string" } } } }] });
+  assert.deepEqual([art.same, art.artefacts.map((x) => [x.tool, x.at, x.kind])], [true, [["Read_mail", "(tool)", "artefact"]]]);
+  assert.deepEqual(art.descriptions[0].diff.map((x) => x.kind), ["artefact", "missing"]);
+  const cmp = compare([], []);
+  const g = gate4({ cmp, modelInputs: [{ step: "Agent", index: 0, mode: "replay", input: { same: true }, toolDefs: art }], n8nStatus: "success" });
+  assert.deepEqual([g.pass, g.bucket, g.cause], [false, "expression translation", "tool description not evaluated"]);
+  const reworded = sameToolDefs(n8nCall, { tools: [{ name: "Read mail", description: "Reads mail", inputSchema: { type: "object", properties: { q: { type: "string", description: "Words" } } } }] });
+  assert.equal(gate4({ cmp, modelInputs: [{ step: "Agent", index: 0, mode: "replay", input: { same: true }, toolDefs: reworded }], n8nStatus: "success" }).pass, true);
+});
+
+test("P35: the output-parser tool's schema against outputSchema; the hostile run's tool lists in gate 6", async () => {
+  const { sameToolDefs } = await import("../evals/bench/claude-side.mjs");
+  const fn = (name, parameters) => ({ type: "function", function: { name, description: "d", parameters } });
+  const parserTool = fn("format_final_json_response", { type: "object", properties: { output: { type: "array", items: { type: "object", properties: { Idea: { type: "string" }, Caption: { type: "string" } }, additionalProperties: false } } }, additionalProperties: false });
+  const n8nCall = { format: "openai", request: { messages: [], tools: [fn("thinking_tool", { type: "object", properties: { input: { type: "string" } } }), parserTool] } };
+  const think = { name: "thinking_tool", description: "d", inputSchema: { type: "object", properties: { input: { type: "string" } } } };
+  const good = sameToolDefs(n8nCall, { tools: [think], outputSchema: { type: "array", items: { type: "object", properties: { Caption: { type: "string" }, Idea: { type: "string" } } } } });
+  assert.deepEqual([good.same, good.parser.same], [true, true]);
+  const bad = sameToolDefs(n8nCall, { tools: [think], outputSchema: { type: "object", properties: { Idea: { type: "string" } } } });
+  assert.equal(bad.parser.same, false);
+  const none = sameToolDefs(n8nCall, { tools: [think] });
+  assert.deepEqual([none.parser.same, none.parser.claudeShape], [false, null]);
+  const cmp = compare([], []);
+  const m = (toolDefs) => ({ step: "Agent", index: 0, mode: "replay", input: { same: true }, toolDefs });
+  assert.deepEqual([gate4({ cmp, modelInputs: [m(bad)], n8nStatus: "success" }).cause, gate4({ cmp, modelInputs: [m(good)], n8nStatus: "success" }).pass], ["different output schema", true]);
+  // Gate 6: a hostile run that offers other tools than n8n's fails, after the allow-list check.
+  const missing = sameToolDefs(n8nCall, { tools: [], outputSchema: good.parser && { type: "array", items: { type: "object", properties: { Caption: { type: "string" }, Idea: { type: "string" } } } } });
+  const base = { claudeCalls: { tools: [], http: [] }, allow: {}, claudeEffects: [], bait: [], baitHits: () => [] };
+  const g6 = gate6({ ...base, modelInputs: [m(missing)] });
+  assert.deepEqual([g6.pass, g6.cause, g6.detail[0].onlyN8n], [false, "hostile: different tools offered", ["thinking_tool"]]);
+  assert.equal(gate6({ ...base, modelInputs: [m(good)] }).pass, true);
+  assert.equal(gate6(base).pass, true);
+});
+
+test("P33: the connector mocks refuse a Gmail reply, send or forward that names no recipient", async () => {
+  const { connectorRefusal } = await import("../evals/mocks/limits.mjs");
+  assert.match(connectorRefusal("gmail", "reply", { messageId: "m1", to: [] }), /Recipient address required/);
+  assert.equal(connectorRefusal("gmail", "reply", { messageId: "m1" }), null, "an absent to keeps the default reply recipients");
+  assert.equal(connectorRefusal("gmail", "reply", { messageId: "m1", to: [], cc: ["a@b.example"] }), null);
+  assert.equal(connectorRefusal("gmail", "reply", { messageId: "m1", to: ["a@b.example"] }), null);
+  assert.ok(connectorRefusal("gmail", "reply", { messageId: "m1", to: [""] }), "an empty address is no address");
+  assert.ok(connectorRefusal("gmail", "send_message", { subject: "s", body: "b" }));
+  assert.equal(connectorRefusal("gmail", "send_message", { draftId: "d1" }), null);
+  assert.ok(connectorRefusal("gmail", "forward", { messageId: "m1" }));
+  assert.equal(connectorRefusal("slack", "slack_send_message", {}), null);
+  // The MCP mock answers with an error and logs the call invalid (no effect for the comparer).
+  const { createServer } = await import("../evals/mocks/mcp-server.mjs");
+  const { mkdtempSync, readFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const log = join(mkdtempSync(join(tmpdir(), "n2c-p33-")), "log.jsonl");
+  const doc = JSON.parse(readFileSync(new URL("../evals/mocks/connectors/gmail.json", import.meta.url), "utf8"));
+  const handle = createServer({ connector: "gmail", doc, log });
+  const r = handle({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "reply", arguments: { messageId: "m1", to: [] } } });
+  assert.equal(r.result.isError, true);
+  const line = JSON.parse(readFileSync(log, "utf8").trim());
+  assert.deepEqual([line.valid, line.refusal], [false, true]);
+});
+
+test("P36: a preflight-stopped template's canned n8n check covers every variant, reported per variant", async () => {
+  const { n8nCheckVariants, n8nCheckKey, n8nCheckSummary } = await import("../evals/bench/gates.mjs");
+  assert.deepEqual(n8nCheckVariants(true, ["normal", "empty", "malformed", "hostile"]), ["normal", "empty", "malformed", "hostile"]);
+  assert.deepEqual(n8nCheckVariants(true, ["hostile"]), ["normal", "hostile"], "normal always (the row's request log)");
+  assert.deepEqual(n8nCheckVariants("normal", ["normal", "empty"]), ["normal"]);
+  assert.deepEqual([n8nCheckKey("normal"), n8nCheckKey("empty")], ["n8nCheck", "n8nCheck:empty"]);
+  const steps = { n8nCheck: { status: "success", logVsFixture: { unanswered: [], unused: [] } }, "n8nCheck:empty": { status: "error", error: { node: "Read", message: "404 no fixture" }, logVsFixture: { unanswered: [{ method: "GET", url: "https://x.example/a" }], unused: [] } } };
+  const s = n8nCheckSummary(steps, ["normal", "empty", "malformed"]);
+  assert.deepEqual(Object.keys(s), ["normal", "empty"]);
+  assert.deepEqual([s.empty.status, s.empty.error.node, s.empty.unanswered], ["error", "Read", 1]);
+  assert.equal(n8nCheckSummary({}, ["normal"]), null);
 });
 
 test("P29: Gmail send without any recipient is refused 400 before any route (the in-process host calls the same serviceRefusal)", async () => {

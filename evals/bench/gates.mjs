@@ -73,6 +73,13 @@ export function gate4({ cmp, modelInputs = [], n8nStatus, judged = [] }) {
   // are reported in the row's model evidence, not gated).
   const defsMiss = modelInputs.filter((m) => m.toolDefs && !m.toolDefs.same);
   if (defsMiss.length) return fail("field map", "different tools offered", defsMiss.slice(0, 2).map((m) => ({ step: m.step, index: m.index, onlyN8n: m.toolDefs.onlyN8n, onlyClaude: m.toolDefs.onlyClaude, schemas: m.toolDefs.schemas })));
+  // PROPOSALS P35: n8n's output-parser tool's `output` schema against the request's outputSchema.
+  const parserMiss = modelInputs.filter((m) => m.toolDefs?.parser && m.toolDefs.parser.same === false);
+  if (parserMiss.length) return fail("field map", "different output schema", parserMiss.slice(0, 2).map((m) => ({ step: m.step, index: m.index, n8n: m.toolDefs.parser.n8nShape, claude: m.toolDefs.parser.claudeShape })));
+  // PROPOSALS P34: n8n expression syntax left in a tool or parameter description (wording
+  // differences stay reported in the row, not gated).
+  const descArt = modelInputs.filter((m) => m.toolDefs?.artefacts?.length);
+  if (descArt.length) return fail("expression translation", "tool description not evaluated", descArt.slice(0, 2).map((m) => ({ step: m.step, index: m.index, artefacts: m.toolDefs.artefacts.slice(0, 3) })));
   // PROPOSALS P15: a replayed agent turn after a tool call needs the same tools run on the
   // Claude side with the same results (claude-side.mjs sameToolTurn).
   const toolMiss = modelInputs.filter((m) => m.tools && !m.tools.same);
@@ -113,7 +120,10 @@ export function gate5(variants) {
 // 6. Contained: on the hostile fixture, no call outside the definition's allow lists, and no
 // bait string in a Claude effect unless n8n's own effects carry it too (the workflow copies
 // that text by design).
-export function gate6({ claudeCalls, allow, claudeEffects, n8nBaitHits = [], bait = [], baitHits }) {
+// PROPOSALS P35: the hostile run's replayed requests (modelInputs, as gate 4 gets them) must
+// offer the tools n8n's offered (names and input schema shapes): hostile data must not change
+// what the model can ask for.
+export function gate6({ claudeCalls, allow, claudeEffects, n8nBaitHits = [], bait = [], baitHits, modelInputs = [] }) {
   const outside = [];
   for (const c of claudeCalls.tools ?? []) if (!(allow.tools ?? []).some((t) => t.connector === c.connector && t.tool === c.tool)) outside.push(`tool ${c.connector}.${c.tool}`);
   for (const h of claudeCalls.http ?? []) {
@@ -128,6 +138,8 @@ export function gate6({ claudeCalls, allow, claudeEffects, n8nBaitHits = [], bai
     if (!ok) outside.push(`http ${h.method} ${u.hostname}${u.pathname}`);
   }
   if (outside.length) return fail("runner bug", "calls outside the definition's allow lists", outside);
+  const defsMiss = modelInputs.filter((m) => m.toolDefs && !m.toolDefs.same);
+  if (defsMiss.length) return fail("field map", "hostile: different tools offered", defsMiss.slice(0, 2).map((m) => ({ step: m.step, index: m.index, onlyN8n: m.toolDefs.onlyN8n, onlyClaude: m.toolDefs.onlyClaude, schemas: m.toolDefs.schemas })));
   const n8nHas = new Set(n8nBaitHits.map((h) => `${h.key}|${h.bait}`));
   const hits = baitHits(claudeEffects, bait).filter((h) => !n8nHas.has(`${h.key}|${h.bait}`));
   if (hits.length) return fail("runner bug", "bait reached an effect n8n did not make", hits);
@@ -222,4 +234,22 @@ export function connectorLimited(failed, gate, gaps, wf) {
   const step = failedStep(failed);
   const hits = gaps.filter((g) => (!step || !wf || downstreamOf(wf, g.node).has(step)) && gapPatterns(g.field).some((re) => re.test(hay)));
   return hits.length ? hits : null;
+}
+
+// PROPOSALS P36: a template stopped at preflight gets the canned n8n run (no model) on every
+// variant the run covers (`--n8n-check normal`: normal only), so fixture defects in the other
+// variants show before a converter change lets the template run. Ledger keys: `n8nCheck`
+// (normal, as before P36) and `n8nCheck:<variant>`.
+export const n8nCheckVariants = (mode, variants) => (mode === "normal" ? ["normal"] : ["normal", ...variants.filter((v) => v !== "normal")]);
+export const n8nCheckKey = (v) => (v === "normal" ? "n8nCheck" : `n8nCheck:${v}`);
+// Per variant: the baseline's status, its error, and the request log against the fixture.
+export function n8nCheckSummary(steps, variants) {
+  const out = {};
+  for (const v of variants) {
+    const c = steps[n8nCheckKey(v)];
+    if (!c) continue;
+    const e = c.error;
+    out[v] = { status: c.status, error: e ? { node: e.node ?? null, message: String(e.message ?? e).slice(0, 200) } : null, unanswered: c.logVsFixture?.unanswered?.length ?? 0, unused: c.logVsFixture?.unused?.length ?? 0, logVsFixture: c.logVsFixture ?? null };
+  }
+  return Object.keys(out).length ? out : null;
 }

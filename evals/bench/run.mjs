@@ -5,7 +5,7 @@
 //   node evals/bench/run.mjs [<templateId>...] [--split dev] [--limit n]
 //        [--variants normal,empty,malformed,hostile] [--repeats 3] [--model-mode replay|live]
 //        [--driver inprocess|claude] [--skill <id,id|all|none>] [--tag <run tag>]
-//        [--reuse-convert <tag>] [--record] [--no-n8n-check] [--diagnose]
+//        [--reuse-convert <tag>] [--record] [--n8n-check all|normal] [--no-n8n-check] [--diagnose]
 //
 // Without ids (or with --split dev): the current round's dev templates that have fixtures
 // (splits.json `rounds`, evals/bench/rounds.mjs).
@@ -40,7 +40,7 @@ import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loa
 import { convertPlain, convertSkill, runInProcess, folderIn, claudeDriverModelInputs } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
 import { fromHttp, fromTool, replyOf, compare, modelTextsOf, baitHits, refsOf } from "./compare.mjs";
-import { gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited } from "./gates.mjs";
+import { n8nCheckVariants, n8nCheckKey, n8nCheckSummary, gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited } from "./gates.mjs";
 import { BudgetExceeded, UsageLimit, ledger as claudeLedger, memoryGate } from "./claude.mjs";
 import { readSplits, devWithFixtures } from "./rounds.mjs";
 
@@ -69,6 +69,7 @@ function parseArgs(argv) {
     else if (k === "--reuse-convert") a.reuseConvert = v();
     else if (k === "--record") a.record = true;
     else if (k === "--no-n8n-check") a.n8nCheck = false;
+    else if (k === "--n8n-check") a.n8nCheck = v() === "normal" ? "normal" : true;
     else if (k === "--diagnose") a.diagnose = true;
     else if (k === "--split") a.split = v();
     else if (k === "--limit") a.limit = Number(v());
@@ -288,9 +289,17 @@ async function benchTemplate(id, args, L) {
   // replies; its n8n baseline still runs once with canned models, for the request log.
   if (!under.preflight.ok) {
     gates[3] = { ...runFailureCause({ error: { name: "PreflightFailed", issues: under.preflight.issues } }), driver: "inprocess (preflight)" };
-    if (args.n8nCheck && !S.n8nCheck) {
-      S.n8nCheck = summarizeCheck(await n8nRun(id, "normal", { canned: true }));
-      save();
+    // PROPOSALS P36: every variant gets the canned run (`--n8n-check normal`: normal only), so
+    // fixture defects in the other variants show before a converter change lets the template
+    // run. No model is called; nothing is saved as a recording.
+    if (args.n8nCheck) {
+      for (const v of n8nCheckVariants(args.n8nCheck, args.variants)) {
+        if (S[n8nCheckKey(v)]) continue;
+        log(`${id}/${v}: n8n check (canned)`);
+        S[n8nCheckKey(v)] = summarizeCheck(await n8nRun(id, v, { canned: true }));
+        save();
+      }
+      drivers.n8nCheck = n8nCheckSummary(S, VARIANTS);
     }
     return stop();
   }
@@ -349,7 +358,7 @@ async function benchTemplate(id, args, L) {
       const fx = loadFixture(id, "hostile");
       const run = await runV("hostile");
       const n8nHits = baitHits(n8nEffects(recs.hostile, fx), fx.expect.bait ?? []);
-      g[6] = { ...gate6({ claudeCalls: run.seen, allow: run.definition.allow ?? {}, claudeEffects: claudeEffects(run, fx), n8nBaitHits: n8nHits, bait: fx.expect.bait ?? [], baitHits }), driver: "inprocess" };
+      g[6] = { ...gate6({ claudeCalls: run.seen, allow: run.definition.allow ?? {}, claudeEffects: claudeEffects(run, fx), n8nBaitHits: n8nHits, bait: fx.expect.bait ?? [], baitHits, modelInputs: run.seen.models.filter((m) => m.mode === "replay") }), driver: "inprocess" };
     }
     return out;
   };
@@ -431,7 +440,11 @@ async function benchTemplate(id, args, L) {
       const g4c = gate4({ cmp: cNormal, modelInputs, n8nStatus: recs.normal?.status });
       if (!g4c.pass) gates[4] = { ...g4c, driver: "claude", inprocess: gates[4] };
       const fxH = loadFixture(id, "hostile");
-      const g6c = gate6({ claudeCalls: { tools: ch.effects.filter((e) => e.connector), http: ch.effects.filter((e) => e.url) }, allow: ch.allow ?? {}, claudeEffects: ch.effects.map((e) => claudeEffect(e, fxH)).filter(Boolean), n8nBaitHits: baitHits(n8nEffects(recs.hostile, fxH), fxH.expect.bait ?? []), bait: fxH.expect.bait ?? [], baitHits });
+      // PROPOSALS P35: the hostile run's replayed requests get the tool-list check (P28).
+      const recH = await need("hostile");
+      const hostileInputs = claudeDriverModelInputs({ replayLog: ch.replayLog ?? [], effects: ch.effects ?? [], recordings: recH?.modelCalls ?? [], n8nEffects: recH?.effects ?? [], n8nSources: recH?.sources ?? {}, runTime: runTime(recH) });
+      drivers.claude.hostileToolDefs = toolDefsSummary(hostileInputs);
+      const g6c = gate6({ claudeCalls: { tools: ch.effects.filter((e) => e.connector), http: ch.effects.filter((e) => e.url) }, allow: ch.allow ?? {}, claudeEffects: ch.effects.map((e) => claudeEffect(e, fxH)).filter(Boolean), n8nBaitHits: baitHits(n8nEffects(recs.hostile, fxH), fxH.expect.bait ?? []), bait: fxH.expect.bait ?? [], baitHits, modelInputs: hostileInputs });
       if (!g6c.pass) gates[6] = { ...g6c, driver: "claude", inprocess: gates[6] };
     }
     for (const g of [3, 4, 6]) if (gates[g].pass) gates[g].driver = "inprocess+claude";
@@ -469,7 +482,11 @@ function toolDefsSummary(models) {
   if (!withDefs.length) return null;
   const desc = [...new Set(withDefs.flatMap((m) => m.toolDefs.descriptions.map((d) => d.tool)))];
   const parser = withDefs.find((m) => m.toolDefs.parser)?.toolDefs.parser ?? null;
-  return { requests: withDefs.length, differ: withDefs.filter((m) => !m.toolDefs.same).length, descriptionsDiffer: desc, ...(parser ? { parser } : {}) };
+  // PROPOSALS P34: description differences by kind (artefacts are gated in gate 4).
+  const kinds = {};
+  for (const m of withDefs) for (const d of m.toolDefs.descriptions) for (const x of d.diff) (kinds[x.kind ?? "reworded"] ??= new Set()).add(`${d.tool}${x.at === "(tool)" ? "" : "." + x.at}`);
+  const descriptionKinds = Object.fromEntries(Object.entries(kinds).map(([k, v]) => [k, [...v]]));
+  return { requests: withDefs.length, differ: withDefs.filter((m) => !m.toolDefs.same).length, descriptionsDiffer: desc, ...(desc.length ? { descriptionKinds } : {}), ...(parser ? { parser } : {}) };
 }
 
 function summarizeCheck(r) {

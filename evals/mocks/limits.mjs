@@ -24,6 +24,27 @@ export function limitErrors(connector, tool, args = {}) {
   return out;
 }
 
+// PROPOSALS P33: calls the real service refuses whatever the fixture says, as P29's
+// serviceRefusal() does for the REST send. Gmail sends nothing without a recipient (the API's
+// 400 "Recipient address required"); the connector's answer to such a call is not captured,
+// so the refusal carries the API's message and is marked assumed in the mock's log:
+//   - reply: `to` given and empty (the schema: "If specified, overrides the default reply
+//     recipients") with no address in cc or bcc; an absent `to` keeps the default recipients.
+//   - send_message: no address in to, cc or bcc and no draftId ("Required if draftId is not
+//     provided").
+//   - forward: no address in to, cc or bcc.
+// Returns the refusal message or null.
+const addresses = (v) => (Array.isArray(v) ? v : v == null ? [] : [v]).filter((x) => typeof x === "string" && x.trim());
+export function connectorRefusal(connector, tool, args = {}) {
+  if (connector !== "gmail") return null;
+  const any = ["to", "cc", "bcc"].some((k) => addresses(args?.[k]).length);
+  const none = "Recipient address required (assumed: the Gmail API's refusal; the connector's answer is not captured)";
+  if (tool === "reply") return Array.isArray(args?.to) && !any ? none : null;
+  if (tool === "send_message") return !any && !args?.draftId ? none : null;
+  if (tool === "forward") return !any ? none : null;
+  return null;
+}
+
 // A canned or fixture result cut to the page size the real tool returns.
 export function pageResult(connector, tool, args = {}, result) {
   const p = LIMITS[`${connector}.${tool}`]?.page;

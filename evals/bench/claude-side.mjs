@@ -18,7 +18,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { pickRoute, serviceRefusal } from "../n8n/mock-server.mjs";
 import { checkSchema, schemaFile } from "../mocks/mcp-server.mjs";
-import { limitErrors, pageResult } from "../mocks/limits.mjs";
+import { connectorRefusal, limitErrors, pageResult } from "../mocks/limits.mjs";
 import { answerOf, liveAnswer, normalize, normalizeRunnerRequest, runnerValue } from "./model-shim.mjs";
 import { claudeP } from "./claude.mjs";
 import { modelConsumers } from "./n8n-side.mjs";
@@ -213,11 +213,35 @@ export function sameToolDefs(n8nCall, claudeReq) {
     if (a !== b) schemas.push({ tool: t.name, n8n: a.slice(0, 300), claude: b.slice(0, 300) });
     const dn = { "": t.description, ...descriptionsOf(t.schema) };
     const dc = { "": x.description, ...descriptionsOf(x.schema) };
-    const diff = [...new Set([...Object.keys(dn), ...Object.keys(dc)])].filter((k) => squash(dn[k]) !== squash(dc[k])).map((k) => ({ at: k || "(tool)", n8n: String(dn[k] ?? "").slice(0, 160), claude: String(dc[k] ?? "").slice(0, 160) }));
+    const diff = [...new Set([...Object.keys(dn), ...Object.keys(dc)])].filter((k) => squash(dn[k]) !== squash(dc[k])).map((k) => ({ at: k || "(tool)", kind: descriptionDiffKind(dn[k], dc[k]), n8n: String(dn[k] ?? "").slice(0, 160), claude: String(dc[k] ?? "").slice(0, 160) }));
     if (diff.length) descriptions.push({ tool: t.name, diff });
   }
-  const parser = all.some((t) => t.name === N8N_PARSER_TOOL) ? { n8n: N8N_PARSER_TOOL, claudeOutputSchema: !!claudeReq?.outputSchema } : null;
-  return { same: !onlyN8n.length && !onlyClaude.length && !schemas.length, tools: n.length, onlyN8n, onlyClaude, schemas, descriptions, ...(parser ? { parser } : {}) };
+  // PROPOSALS P34: an n8n expression left in a description the model reads is a converter
+  // artefact (gated); other wording differences stay reported.
+  const artefacts = descriptions.flatMap((d) => d.diff.filter((x) => x.kind === "artefact").map((x) => ({ tool: d.tool, ...x })));
+  // PROPOSALS P35: n8n's output-parser tool asks for {output: <schema>}; the runtime asks with
+  // the request's outputSchema, so the shapes of the two must match.
+  const parserTool = all.find((t) => t.name === N8N_PARSER_TOOL);
+  let parser = null;
+  if (parserTool) {
+    const want = canon(schemaShape(parserTool.schema?.properties?.output));
+    const got = claudeReq?.outputSchema ? canon(schemaShape(claudeReq.outputSchema)) : null;
+    parser = { n8n: N8N_PARSER_TOOL, claudeOutputSchema: !!claudeReq?.outputSchema, same: want === got, ...(want === got ? {} : { n8nShape: want.slice(0, 300), claudeShape: got ? got.slice(0, 300) : null }) };
+  }
+  return { same: !onlyN8n.length && !onlyClaude.length && !schemas.length, tools: n.length, onlyN8n, onlyClaude, schemas, descriptions, artefacts, ...(parser ? { parser } : {}) };
+}
+
+// PROPOSALS P34: how a description differs. "artefact": the Claude side's text carries n8n
+// expression syntax that n8n's text (what n8n evaluated and sent) does not: a leading `=`
+// expression marker, `{{ … }}`, or a $fromAI() call. "missing": the Claude side sends no text
+// where n8n sends some. "reworded": any other difference (n8n writes some descriptions itself).
+export function descriptionDiffKind(n8nText, claudeText) {
+  const n = String(n8nText ?? "");
+  const c = String(claudeText ?? "");
+  const marks = [/^\s*=/, /\{\{[\s\S]*?\}\}/, /\$fromAI\s*\(/i];
+  if (marks.some((re) => re.test(c) && !re.test(n))) return "artefact";
+  if (!c.trim() && n.trim()) return "missing";
+  return "reworded";
 }
 
 // ---------- replayed agent turns against the tools the Claude side ran (PROPOSALS P15) ----------
@@ -432,6 +456,13 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
       if (errs.length) {
         entry.invalid = errs.join("; ");
         throw Object.assign(new Error(`Invalid arguments for ${p.tool}: ${entry.invalid}`), { name: "ToolError" });
+      }
+      // PROPOSALS P33: what the real service refuses, as the MCP mock (no effect).
+      const refused = connectorRefusal(p.connector, p.tool, p.args ?? {});
+      if (refused) {
+        entry.invalid = refused;
+        entry.fixture = "service refusal";
+        throw Object.assign(new Error(refused), { name: "ToolError" });
       }
       // Read or write by the comparer's own table (effects.json), not the runner's claim.
       const read = fromTool({ connector: p.connector, tool: p.tool, args: p.args ?? {}, effect: p.effect }).effect === "read";

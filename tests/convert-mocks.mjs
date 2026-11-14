@@ -9,7 +9,7 @@
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { limitErrors, pageResult } from "../evals/mocks/limits.mjs";
+import { connectorRefusal, limitErrors, pageResult } from "../evals/mocks/limits.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const schemas = {};
@@ -56,6 +56,8 @@ export function toolHost(log = []) {
     }
     const over = limitErrors(p.connector, p.tool, p.args);
     if (over.length) throw new Error(`mock: ${key}: ${over.join("; ")}`);
+    const refused = connectorRefusal(p.connector, p.tool, p.args);
+    if (refused) throw new Error(`mock: ${key}: ${refused}`);
     log.push({ tool: key, args: p.args });
     return pageResult(p.connector, p.tool, p.args, (CANNED[key] ?? (() => ({ ok: true })))(p.args ?? {}));
   };
