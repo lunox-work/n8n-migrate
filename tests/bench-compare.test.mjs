@@ -6,7 +6,8 @@ import assert from "node:assert/strict";
 import { fromHttp, fromTool, reply, compare, modelWritten, parseMime, multipartJson, baitHits, replyText, normTarget, modelTextsOf, maskRunTime, formStrings, pairWrites, maxAssignment } from "../evals/bench/compare.mjs";
 import { pickRoute, routeKey, parseMultipart } from "../evals/n8n/mock-server.mjs";
 import { answerOf, runnerValue, jsonFromText, normalize, providerResponse } from "../evals/bench/model-shim.mjs";
-import { pickConnector, sameModelInput, modelKeyFor } from "../evals/bench/claude-side.mjs";
+import { pickConnector, sameModelInput, modelKeyFor, decodeFileParts } from "../evals/bench/claude-side.mjs";
+import { multipartBody } from "../skills/n8n-to-claude/runtime/src/driver.mjs";
 
 const log = (method, url, body, extra = {}) => {
   const u = new URL(url);
@@ -200,6 +201,18 @@ test("P3: n8n's multipart/form-data body is decoded and compared as string field
   const j = fromHttp({ method: "POST", url: "https://gitlab.com/api/v4/projects/4821/merge_requests/57/discussions", query: {}, body: { body: "# Review", "position[new_line]": 48, "position[old_line]": "" } }, "claude");
   assert.equal(compare([n], [j]).ok, false, "a JSON body keeps its types: only form bodies compare as strings");
   assert.deepEqual(formStrings({ b: { x: 1 }, a: [1, "2"] }), { a: ["1", "2"], b: '{"x":1}' });
+});
+
+test("P9: an in-process file part is recorded as the mock decodes the bytes sent for it", () => {
+  const data = Buffer.from("%PDF-1.4 invoice\r\n\x00\xff", "latin1").toString("base64");
+  const fields = { note: "two\nlines", file: { $file: { fileName: "dir/invoice.pdf", mimeType: "application/pdf; charset=binary", data } }, tags: ["a", { $file: { fileName: "b.txt", mimeType: "text/plain", data: "aGk=" } }] };
+  const mp = multipartBody(fields);
+  const wire = parseMultipart(mp.body, /boundary=(.+)$/.exec(mp.contentType)[1]);
+  assert.deepEqual(decodeFileParts(fields), wire, "the in-process record equals the mock's decoding of the task driver's bytes");
+  const n = fromHttp(log("POST", "https://api.example.test/upload", wire, { bodyEncoding: "multipart" }));
+  const c = fromHttp({ method: "POST", url: "https://api.example.test/upload", query: {}, body: decodeFileParts(fields), contentType: "multipart-form-data" }, "claude");
+  assert.equal(compare([n], [c]).ok, true, "same file on both sides compares equal");
+  assert.equal(decodeFileParts(fields).file.size, Buffer.from(data, "base64").length);
 });
 
 test("P4: run-time timestamps are masked only where the sides differ by them alone", () => {

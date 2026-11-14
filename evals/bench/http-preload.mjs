@@ -5,6 +5,10 @@
 // (origin https://host), as it does for n8n. The Claude Code binary does not read
 // NODE_OPTIONS, so the session's own traffic is untouched; hooks and other scripts keep the
 // real fetch, and they make no http calls anyway.
+// Each request goes out on its own connection (`agent: false`, `Connection: close`, PROPOSALS
+// P8): the runner can be busy for longer than the mock's keep-alive timeout between two
+// requests, and a pooled socket the mock has closed meanwhile fails the next request with
+// `socket hang up` / `ECONNRESET`, a transport race of the bench's own making.
 
 import { request } from "node:http";
 
@@ -22,7 +26,8 @@ if (mock && /[\\/]runtime[\\/]runner\.mjs$/.test(process.argv[1] ?? "")) {
         headers["content-type"] ??= "application/x-www-form-urlencoded;charset=UTF-8";
       }
       if (body !== undefined && body !== null && typeof body !== "string" && !Buffer.isBuffer(body)) body = Buffer.from(body);
-      const req = request({ host: m.hostname, port: m.port, method: init.method ?? "GET", path: u.href, headers: { ...headers, host: u.host } }, (res) => {
+      delete headers.connection;
+      const req = request({ host: m.hostname, port: m.port, method: init.method ?? "GET", path: u.href, agent: false, headers: { ...headers, host: u.host, connection: "close" } }, (res) => {
         const chunks = [];
         res.on("data", (c) => chunks.push(c));
         res.on("end", () => {

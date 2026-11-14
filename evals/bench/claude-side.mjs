@@ -12,8 +12,9 @@
 
 import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { pickRoute } from "../n8n/mock-server.mjs";
 import { checkSchema, schemaFile } from "../mocks/mcp-server.mjs";
@@ -162,6 +163,22 @@ export function httpRoutes(fx) {
   return [...fx.reads, ...(fx.writeReplies ?? [])].flatMap((r) => (r.http?.responses ?? []).map((x) => ({ ...x, node: r.node })));
 }
 
+// A runner multipart body as the mock decodes a real one (PROPOSALS P9, README "Form bodies"):
+// a file part ({$file: {fileName, mimeType, data (base64)}}) becomes {filename, contentType,
+// size, sha256} of its decoded bytes; text fields stay as they are (formStrings() compares
+// them as strings). Only what the runner's request states is recorded, no defaults: a part
+// without a file name or type records null, as the mock does for a part without them.
+export function decodeFileParts(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return body;
+  const one = (v) => {
+    const f = v && typeof v === "object" && !Array.isArray(v) ? v.$file : null;
+    if (!f) return v;
+    const raw = Buffer.from(String(f.data ?? ""), "base64");
+    return { filename: f.fileName == null ? null : basename(String(f.fileName)), contentType: f.mimeType ? String(f.mimeType).split(";")[0].trim() : null, size: raw.length, sha256: createHash("sha256").update(raw).digest("hex") };
+  };
+  return Object.fromEntries(Object.entries(body).map(([k, v]) => [k, Array.isArray(v) ? v.map(one) : one(v)]));
+}
+
 export async function runInProcess(folder, fx, { wf, recordings = [], mode = "replay", liveFallback = true, startedAt, runTime = null, log = console.error } = {}) {
   const def = JSON.parse(readFileSync(join(folder, "definition.json"), "utf8"));
   const core = await import(pathToFileURL(join(folder, "runtime", "runner-core.mjs")).href);
@@ -197,9 +214,10 @@ export async function runInProcess(folder, fx, { wf, recordings = [], mode = "re
       const u = new URL(p.url);
       const sp = new URLSearchParams(u.search);
       for (const [k, v] of Object.entries(p.query ?? {})) for (const x of [].concat(v)) sp.append(k, typeof x === "string" ? x : JSON.stringify(x));
-      const entry = { method: p.method, url: `${u.origin}${u.pathname}`, query: Object.fromEntries(sp), body: p.body, ...(p.contentType ? { contentType: p.contentType } : {}), auth: p.auth?.secret ?? null };
+      const body = p.contentType === "multipart-form-data" ? decodeFileParts(p.body) : p.body;
+      const entry = { method: p.method, url: `${u.origin}${u.pathname}`, query: Object.fromEntries(sp), body, ...(p.contentType ? { contentType: p.contentType } : {}), auth: p.auth?.secret ?? null };
       seen.http.push(entry);
-      const r = pickRoute(routes, String(p.method).toUpperCase(), u.origin, u.pathname, sp, routeCounters, p.body);
+      const r = pickRoute(routes, String(p.method).toUpperCase(), u.origin, u.pathname, sp, routeCounters, body);
       entry.fixture = r?.key ?? null;
       if (!r && ["POST", "PUT", "PATCH", "DELETE"].includes(String(p.method).toUpperCase())) {
         entry.fixture = "write-default";
