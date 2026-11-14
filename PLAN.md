@@ -396,6 +396,8 @@ Status 2026-11-14 (P6, bench P8–P9 and iterations 9–10): P8 (fresh http conn
 
 Status 2026-11-14 (release point 1, [evals/bench/RELEASE-1.md](evals/bench/RELEASE-1.md); fixing sessions must not read it): bench P10–P12 applied, held-out overlays set; dev **9 of 30** (30.0%), held-out 1–20 **2 of 20** (10.0%), gap 20.0 points against a bound of 23.4 (pooled p 22%, n = 30 and 20 fixtured, 0 flips over a repeated held-out run): inside the bound, reported only. Bench defects left: stand-in reply envelope (P13), NUL prompts (P14), replayed agent turns unchecked against executed tools (P15), no database sidecar.
 
+Status 2026-11-15 (loop round 2, bench maintenance): P13 (stand-in envelope unwrapped, never re-drawn), P14 (prompts on stdin) and P15 (replayed agent turns checked against the tools the Claude side ran) applied; rolling held-out in place (round 2: held-out 1–20 join dev, release point 2 scores held-out 21–40). Baseline `r2-base50` over the 50 dev fixture templates: **11 of 50 pass**, gate sum 222 (release-1 rows of the same 50: 11, 220). P15 turned 6270 and 2703 from passes into gate-4 failures and moved 1953 from gate 6 to 4 (an agent tool missing on the Claude side): the bench got stricter, not the skill worse; P13 and P14 removed the bench defects behind 5035 and 2729, which now pass. Dev coverage (80 templates): full 9, review 18, blocked 53, preflight clean 29. Open bench proposals: P16 (claude driver checks no model input or tool turn), P17 (tool results without a read uncompared), P1's uncaptured shapes. Ranked failure kinds in [evals/bench/LOOP.md](evals/bench/LOOP.md).
+
 ## Phase 7: parity and cutover
 
 - Dry run: write tools are stubbed and their inputs shown, so nothing is sent twice while n8n is still live.

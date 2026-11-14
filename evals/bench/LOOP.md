@@ -133,3 +133,36 @@ From here a run covers the templates whose `definition.json` changed against the
 - Bench `p6-i10b` (all 30, no rows carried forward; 18 `claude -p` runs, ledger 246 → 264): **9 of 30 pass** (was 8: adds 2063), **gate sum 147** (was 142). Reached: 1747 2063 2167 2197 2413 2777 3102 4573 6270 9; 1953 2415 4722 4; 18 others 3. Every other template has the same gate, cause and detail as `p6-i9`.
 - `convert-coverage --split dev`: unchanged (full 7, review 13, blocked 40, preflight clean 21; the converter is untouched). `node --test` 281 pass, lint included.
 - Verdict: accepted (from 5 passes: +1 pass ≥ max(1, 2 × 0 flips), no pass lost, no gate falls).
+
+## Loop round 2: bench P13–P15, rolling held-out, baseline `r2-base50` (50 dev fixture templates)
+
+- Bench changes approved by a person and applied: P14 (every `claude -p` gets its prompt on stdin, commit aab3800), P13 (the stand-in's answer envelope in the reply text is unwrapped, never re-drawn, commit 6cedef7), P15 (replayed agent turns checked against the tools the Claude side ran, commit e263967). Recordings that carried an envelope (5035 every variant, 2703 hostile) were moved to `.work/recordings-pre-p13/`; 5035 re-recorded from the model cache (the same draws, unwrapped, 0 `claude -p` runs).
+- Rolling held-out (commit dc3c0d3, PLAN Phase 6): held-out 1–20, scored at release point 1, join dev; release point 2 scores held-out 21–40. Dev is now 80 templates, 50 with fixtures (the 30 seeded ones plus the 20 promoted). The promoted templates were run once by the bench at release point 1 and never read by a fixing session; from this round fixing sessions may read them.
+- `r2-base50` (commit dc3c0d3, plain `convert.mjs`, replayed models, all 50 run, no row carried forward; 24 `claude -p` runs, ledger 331 → 355: 22 claude-driver runs, 2 live n8n model calls for 2729): **11 of 50 pass** (1747, 2063, 2167, 2197, 2413, 2473, 2729, 2777, 3102, 4573, 5035), **gate sum 222**. Failures by gate: 3: 33, 4: 6. By bucket: unmapped node 27, field map 6, runner bug 4, expression translation 1, fixture 1. Connector-limited 0.
+- Against the release-1 rows of the same 50 (`rel1-dev` + `rel1-held`: 11 pass, gate sum 220), 45 templates have the same gate and cause. Changed:
+  - Stricter bench, not a skill regression (P15): 6270 9 → 4 and 2703 9 → 4 (`tool call not executed`: the agent's news-feed or calendar tool is not in the Claude agent's tool list, `unknown tool`; both passed before only because n8n's replies were replayed over the missing tool); 1953 6 → 4 (same cause, its calendar tool; the gate-6 Reply-To difference is still behind it).
+  - Bench defects removed: 5035 4 → 9 (P13: the replayed reply was the envelope, so the Claude side parsed different JSON than n8n's text); 2729 0 → 9 (P14: the malformed fixture's NUL prompt now records).
+- P15 coverage in this run: 16 replayed agent turns after a tool call; 3 missed a tool (above); 1 had its reads compared and equal (2413); 12 had their reads unchecked because n8n served the tool without http (2090's Postgres ×9 with no database sidecar, 4722's pin-fallback ×3 behind an earlier failure). PROPOSALS P17.
+- `convert-coverage --split dev` (round 2, 80 templates): full 9, review 18, blocked 53, preflight clean 29.
+- Starting point for loop round 2: 11 of 50, gate sum 222, the per-template rows of `r2-base50`. Acceptance rules as PLAN Phase 6 (from 5 passes on), flips 0.
+
+Open failure kinds over the 39 failing templates of `r2-base50`, by general cause, ranked by templates blocked (a template counts under every kind its first failed gate names; sole blocker in brackets):
+
+1. **App REST request templates missing** (WordPress, Facebook Graph, X, LinkedIn, S3, RSS reads): 8 [3 sole] — 2187, 2803, 3086, 2417, 3986, 3291, 3018, 2139.
+2. **Files** (PDF and CSV extraction, spreadsheet files, image resize, local disk): 7 [4] — 2508, 2614, 3016, 2420, 2860, 1826, 2275.
+3. **Vector stores**: 5 [3] — 2165, 5148, 5993, 2658, 3986 (2165 and 5148 also load PDFs, iteration 10).
+4. **Connector operations without a tool map** (Drive move, Jira issue and comment operations, Excel append, editing a document in place, a connector whose schemas are not captured): 5 [1] — 3016, 3393, 3025, 2468, 2275.
+5. **Database steps** (open decision 1): 5 [0] — 2508, 2803, 2315, 3393, 5993; never the only blocker.
+6. **Media through the original provider** (image generation, transcription): 4 [1] — 2187, 1900, 3086, 2178.
+7. **Request URL built at run time** (allowed to any host until narrowed): 4 [1] — 2315, 3291, 3224, 4846.
+8. **Agent tool missing on the Claude side** (an agent tool sub-node the converter does not carry into the agent's tool list while preflight stays clean; the agent then calls an unknown tool): 3 [3] — 1953, 6270, 2703. The same gap sits under 2090 (database tool).
+9. **Model step not converted** (question-answer chain, OpenAI Assistants): 2 [2] — 2395, 2098.
+10. **Option refused at run time after a clean preflight** (HTTP Request pagination, HTML extraction): 2 [2] — 3904, 1951.
+11. **Agent prompt built from connector data the assumed shapes lack** (P1: Gmail headers, Notion property ids): 2 [2] — 4722, 2415.
+12. **Forms that wait for a person** (out of scope v1): 2 [1] — 2187, 3669.
+13. **Core logic node version not implemented**: 2 [0] — 3986, 3224.
+14. **Connector write left without its required arguments** (needs the skill's translation): 2 [0] — 2468, 2178.
+15. **Agent iteration cap one turn late**: 1 [1] — 2090 (n8n stops at its limit; the Claude side asks the model once more and answers, so the chat reply differs; its baseline also has no database sidecar).
+16. **Stand-in baseline failed** (bench side, not a migration failure): 1 [1] — 2271 (the draw omits a level of n8n's structured-output wrapper; not re-drawn, P13).
+
+Not a blocker today but known: a model reply that is itself JSON text stays a string in n8n and becomes an object on the Claude side (release point 1, kind 6); with P13 no dev template triggers it.
