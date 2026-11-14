@@ -78,7 +78,9 @@ export function tutorialExclusion(name, wf, report) {
 
 // Hand exclusions (EXCLUSIONS.md rule `hand`): id -> one-line reason, decided from the
 // template alone. Empty until a reader adds one.
-export const HAND = {};
+export const HAND = {
+  2358: "meetup demo of n8n's AI nodes: three unrelated example flows on one canvas (its description says so)",
+};
 
 // ---------- fetch ----------
 
@@ -144,6 +146,10 @@ async function main() {
   let stopReason = null;
 
   outer: for (let page = 1; ; page++) {
+    if (rank >= max) {
+      stopReason = `--max ${max} listing entries`;
+      break;
+    }
     const listing = await listingPage(page, offline);
     total ??= listing.totalWorkflows;
     if (!listing.workflows?.length) {
@@ -163,7 +169,9 @@ async function main() {
       const e = { rank, id: w.id };
       entries.push(e);
       let wf = null;
-      if (!((w.price ?? 0) > 0 || w.purchaseUrl)) {
+      // Paid templates are excluded, but within the top 100 they are still analyzed so
+      // that the raw coverage figure counts every one of the 100.
+      if (!((w.price ?? 0) > 0 || w.purchaseUrl) || rank <= 100) {
         try {
           wf = JSON.parse(await template(w.id, offline))?.workflow?.workflow ?? null;
         } catch (err) {
@@ -172,6 +180,10 @@ async function main() {
       }
       if (wf) e.sha256 = createHash("sha256").update(canonical(wf)).digest("hex");
       const structural = structuralExclusion(w, wf);
+      if (structural === "paid" && wf) {
+        const report = analyze(unwrap({ workflow: { id: String(w.id), name: w.name, workflow: wf } }, String(w.id)), opts).workflows[0];
+        Object.assign(e, { outcome: report.outcome.kind, target: report.outcome.target, wakeup: report.wakeup.kind });
+      }
       if (structural) {
         e.excluded = structural;
         continue;
@@ -235,6 +247,9 @@ async function main() {
   const excludedCounts = {};
   for (const e of entries) if (e.excluded) excludedCounts[e.excluded] = (excludedCounts[e.excluded] ?? 0) + 1;
 
+  // An --offline rebuild keeps the request counts of the run that downloaded the data.
+  let requests = stats;
+  if (offline && existsSync(out)) requests = JSON.parse(readFileSync(out, "utf8")).counts?.requests ?? stats;
   const doc = {
     source: `${API}/search?rows=${ROWS}&page=<n>&sort=views:desc, then ${API}/workflows/<id>`,
     fetched: new Date().toLocaleDateString("sv"),
@@ -247,7 +262,7 @@ async function main() {
     stopReason: missing === 0 && Object.keys(shortfall).length ? `${stopReason}; quota shortfall filled from overflow` : stopReason,
     counts: {
       listingEntries: entries.length,
-      requests: stats,
+      requests,
       excluded: excludedCounts,
       eligible: eligible.length,
       overflow: entries.filter((e) => e.pool === "overflow").length,
