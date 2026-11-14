@@ -166,6 +166,110 @@
               "content-type": "text/html"
             },
             "body": "<html><body><h1>503 Service Unavailable</h1></body></html>"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/labels",
+            "status": 200,
+            "body": {
+              "labels": [
+                {
+                  "id": "INBOX",
+                  "name": "INBOX",
+                  "type": "system"
+                },
+                {
+                  "id": "SENT",
+                  "name": "SENT",
+                  "type": "system"
+                },
+                {
+                  "id": "UNREAD",
+                  "name": "UNREAD",
+                  "type": "system"
+                },
+                {
+                  "id": "STARRED",
+                  "name": "STARRED",
+                  "type": "system"
+                },
+                {
+                  "id": "IMPORTANT",
+                  "name": "IMPORTANT",
+                  "type": "system"
+                },
+                {
+                  "id": "SPAM",
+                  "name": "SPAM",
+                  "type": "system"
+                },
+                {
+                  "id": "TRASH",
+                  "name": "TRASH",
+                  "type": "system"
+                },
+                {
+                  "id": "DRAFT",
+                  "name": "DRAFT",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_PERSONAL",
+                  "name": "CATEGORY_PERSONAL",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_SOCIAL",
+                  "name": "CATEGORY_SOCIAL",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_PROMOTIONS",
+                  "name": "CATEGORY_PROMOTIONS",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_UPDATES",
+                  "name": "CATEGORY_UPDATES",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_FORUMS",
+                  "name": "CATEGORY_FORUMS",
+                  "type": "system"
+                },
+                {
+                  "id": "Label_5151750749488724401",
+                  "name": "To Respond",
+                  "type": "user"
+                },
+                {
+                  "id": "Label_7518716752151077752",
+                  "name": "FYI",
+                  "type": "user"
+                },
+                {
+                  "id": "Label_1470120230130814788",
+                  "name": "Comment",
+                  "type": "user"
+                },
+                {
+                  "id": "Label_9",
+                  "name": "Notification",
+                  "type": "user"
+                },
+                {
+                  "id": "Label_7958083858424702466",
+                  "name": "Meeting Update",
+                  "type": "user"
+                },
+                {
+                  "id": "Label_5274550748854913384",
+                  "name": "Marketing",
+                  "type": "user"
+                }
+              ]
+            }
           }
         ]
       },
@@ -185,7 +289,8 @@
             "error": "Gmail API error: backendError (503)"
           }
         ]
-      }
+      },
+      "note": "GET /labels added by the bench (P5b): n8n 2.47.7 Gmail getAll resolves label names with it before reading messages, seen in the first run's request log; the user labels are the six the AI Agent's system message names."
     },
     {
       "node": "Check Sent",
