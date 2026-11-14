@@ -227,7 +227,9 @@ export function summariseRunData(runData = {}) {
   return out;
 }
 
-export async function runWorkflow(workflow, { trigger, mock, credentials = {}, via = "pin", triggerNode, keepPin = false, keep = false, stats = false, timeoutS = 120, now = "2026-11-16T09:00:00Z" } = {}) {
+// pinTrigger false (pin mode): the trigger is not pinned, so a poll trigger polls once in manual
+// mode through the mock (binary data, such as Gmail attachments, cannot be pinned).
+export async function runWorkflow(workflow, { trigger, mock, credentials = {}, via = "pin", triggerNode, keepPin = false, keep = false, stats = false, timeoutS = 120, now = "2026-11-16T09:00:00Z", pinTrigger = true } = {}) {
   await waitHealthy(30_000);
   const wf = structuredClone(workflow);
   const t = pickTrigger(wf, triggerNode);
@@ -255,7 +257,10 @@ export async function runWorkflow(workflow, { trigger, mock, credentials = {}, v
 
   let body = { name: `bench: ${wf.name ?? "workflow"}`, nodes: wf.nodes, connections: wf.connections ?? {}, settings: wf.settings ?? { executionOrder: "v1" }, staticData: wf.staticData ?? undefined, meta: wf.meta ?? undefined };
   const pin = keepPin ? { ...(wf.pinData ?? {}) } : {};
-  if (via === "pin") pin[t.name] = items;
+  if (via === "pin") {
+    if (pinTrigger) pin[t.name] = items;
+    else delete pin[t.name];
+  }
   else if (via === "cli") body = { ...body, ...swapTrigger({ nodes: body.nodes, connections: body.connections }, t, items) };
   else if (via === "webhook") {
     if (t.type !== "n8n-nodes-base.webhook") throw new Error(`--via webhook needs a Webhook trigger, not ${t.type}`);

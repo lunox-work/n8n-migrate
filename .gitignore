@@ -2,3 +2,5 @@ evals/survey/data/
 evals/n8n/.work/
 evals/diff/.work/
 evals/bench/data/
+evals/bench/.tls/
+evals/bench/.work/

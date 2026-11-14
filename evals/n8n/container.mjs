@@ -42,6 +42,11 @@ export const WORK = resolve(process.env.N8N_BENCH_WORK || join(HERE, ".work"));
 export const OWNER_EMAIL = "bench@example.com";
 export const OWNER_PASSWORD = "Bench-only-pass-1";
 const OWNER_HASH = "$2a$10$0d25sQavlnXIlqc9ULyWquYP6.jOU47UnxfMHrI86M8oZ9jVcRCsa"; // bcrypt of OWNER_PASSWORD
+// TLS interception (evals/bench/tls.mjs): the mock gets the leaves, n8n trusts only the CA.
+export const TLS_DIR = resolve(process.env.N2C_BENCH_TLS || join(HERE, "..", "bench", ".tls"));
+// The bench's model shim runs on the host (evals/bench/model-shim.mjs); the mock forwards to
+// it over the edge network. n8n itself still reaches nothing but the mock.
+export const MODEL_SHIM_PORT = Number(process.env.N2C_MODEL_SHIM_PORT || 5691);
 export const ENCRYPTION_KEY = "n8n2claude-bench-key-not-a-secret";
 const CLI_BROKER_PORT = "5681"; // `n8n execute` and friends start a second task broker
 
@@ -80,6 +85,9 @@ export const ENV = {
   HTTP_PROXY: `${MOCK_URL}`,
   HTTPS_PROXY: `${MOCK_URL}`,
   NO_PROXY: "localhost,127.0.0.1,::1,mock",
+  // Read once at process start by Node (main process and task runners): every TLS client in
+  // n8n then accepts the mock's per-host leaves. Mounted from TLS_DIR/ca.pem.
+  NODE_EXTRA_CA_CERTS: "/bench-ca/ca.pem",
 };
 
 // ---------- docker ----------
@@ -123,6 +131,8 @@ export async function up({ fresh = false, extraEnv = {}, log = console.error } =
     return;
   }
   await waitForMemory(30, { log });
+  const { ensureCa } = await import("../bench/tls.mjs");
+  ensureCa(TLS_DIR);
   if (fresh) {
     docker(["rm", "-f", NAME, MOCK_NAME], { allowFail: true });
     docker(["volume", "rm", VOLUME], { allowFail: true });
@@ -139,10 +149,10 @@ export async function up({ fresh = false, extraEnv = {}, log = console.error } =
       "run", "-d", "--name", MOCK_NAME,
       "--memory=128m", "--memory-swap=128m",
       "--network", EDGE, "-p", `127.0.0.1:${HOST_PORT}:${HOST_PORT}`,
-      "-v", `${HERE}:/bench:ro`, "-v", `${WORK}:/work`,
+      "-v", `${HERE}:/bench:ro`, "-v", `${WORK}:/work`, "-v", `${TLS_DIR}:/tls:ro`,
       SIDECAR_IMAGE,
       "node", "/bench/mock-server.mjs", "--port", "8080", "--log", "/work/effects.jsonl", "--fixtures", "/work/fixtures.json",
-      "--relay", `${HOST_PORT}=${NAME}:5678`,
+      "--relay", `${HOST_PORT}=${NAME}:5678`, "--tls-dir", "/tls", "--model-shim", `http://host.docker.internal:${MODEL_SHIM_PORT}`,
     ]);
     docker(["network", "connect", "--alias", "mock", NET, MOCK_NAME]);
   }
@@ -153,7 +163,7 @@ export async function up({ fresh = false, extraEnv = {}, log = console.error } =
       "run", "-d", "--name", NAME,
       "--memory=1g", "--memory-swap=1g",
       "--network", NET,
-      "-v", `${VOLUME}:/home/node/.n8n`,
+      "-v", `${VOLUME}:/home/node/.n8n`, "-v", `${join(TLS_DIR, "ca.pem")}:/bench-ca/ca.pem:ro`,
       ...env,
       IMAGE,
     ]);
