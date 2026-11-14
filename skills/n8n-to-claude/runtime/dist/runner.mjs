@@ -25,7 +25,7 @@
 import { readFileSync, writeFileSync, existsSync, renameSync } from "node:fs";
 import { dirname, join, resolve, basename } from "node:path";
 import { fileURLToPath } from "node:url";
-import { start, resume, preflight, fromN8n, BadInput } from "./runner-core.mjs";
+import { start, resume, preflight, fromN8n, BadInput, runRecord, stepStatuses, cursorRecord, runPath, cursorPath } from "./runner-core.mjs";
 import { command as driverCommand } from "./driver.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -132,7 +132,7 @@ async function main() {
     return 0;
   }
   if (["start", "next", "show", "answer", "result", "status"].includes(cmd)) {
-    const r = await driverCommand(cmd, pos, flags, { core: { start, resume }, stdin: () => readFileSync(0, "utf8") });
+    const r = await driverCommand(cmd, pos, flags, { core: { start, resume, runRecord, stepStatuses, cursorRecord, runPath, cursorPath }, stdin: () => readFileSync(0, "utf8") });
     process.stdout.write(r.text + "\n");
     return r.code;
   }

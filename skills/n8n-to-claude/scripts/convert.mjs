@@ -23,6 +23,9 @@
 //                    check each connector call against the runner's request and capture its
 //                    response (runtime/hook.mjs)
 //   MIGRATION.md     what moved, what is flagged, the questions, the requirements per surface
+//   artifact.html    the artifact page (references/artifact.html): graph, Run now, history,
+//                    with the definition, its hash and the runtime inlined
+//   artifact.capabilities.json  what the page declares at publish (mcp tools, sample, db)
 //
 // The analyzer runs first. A workflow whose outcome is not `subscription` is refused: its
 // folder gets report.json and MIGRATION.md only, unless --force-convert, which converts it
@@ -50,7 +53,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { execFileSync } from "node:child_process";
 import { analyze, loadInput, unwrap, redactSecrets, legacyCron, simulateCron, parseCron, httpTarget } from "./analyze.mjs";
 import { fromN8n, urlTarget } from "../runtime/src/convert.mjs";
-import { preflight, expressionSupport, nodeImplFor, RUNTIME_VERSION } from "../runtime/src/api.mjs";
+import { preflight, expressionSupport, nodeImplFor, definitionHash, RUNTIME_VERSION } from "../runtime/src/api.mjs";
 
 export const CONVERTER_VERSION = "0.1.0";
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -1434,6 +1437,7 @@ export function migrationMd(wr, def, { refused, overrides } = {}) {
     L.push("- A scheduled task (cloud or local) opened on this folder runs `task-prompt.md` as its prompt. The runner decides every step; the session only makes the calls it prints.");
     L.push("- `.claude/settings.json` allows only `node runtime/runner.mjs`, writes to `.n2c/inbox/` and the connector tools listed above, in dontAsk mode, and adds the hooks that refuse any other connector call. A `claude -p` run ignores this allowlist in a folder nobody has trusted (CLI 2.1.323): open the folder once in Claude Code and accept the trust prompt.");
     if (def.secrets.length) L.push("- Secrets on a local task: set `N2C_SECRET_<NAME>` (the credential name in capitals, other characters as `_`). On a cloud task, add them as network secrets for the hosts above.");
+    L.push(`- \`artifact.html\` is the artifact page: the graph, Run now (dry run on by default: reads run, writes are shown and not sent) and the run history. Publish it with the capabilities in \`artifact.capabilities.json\`.${Object.values(def.steps).some((st) => st.kind === "http") ? " Its HTTP steps run only in the scheduled task: a run from the page stops there." : ""}`);
     L.push("");
   }
   if (wr.questions?.length) {
@@ -1543,6 +1547,62 @@ export function writeTaskFiles(dir, def, refs) {
   copyFileSync(join(REFS, "task-prompt.md"), join(dir, "task-prompt.md"));
 }
 
+// ---------- artifact page ----------
+
+// Connectors whose schemas the converter does not load but whose tools it maps (capabilities.json);
+// tool-name prefixes as seen in a Claude Code session on the author's account (evals/mocks/connectors).
+const EXTRA_TOOL_PREFIXES = { atlassian: "mcp__claude_ai_Atlassian_MCP__", clickup: "mcp__claude_ai_ClickUp__", hubspot: "mcp__claude_ai_HubSpot__" };
+// The connector display name a page passes to mcp.callTool, from the session's tool-name segment
+// (mcp__claude_ai_Google_Drive__ -> "Google Drive"). Unverified until the first publish result
+// states each display name (references/artifact-runtime.md).
+export function artifactServers(def, refs) {
+  const out = {};
+  for (const t of def.allow?.tools ?? []) {
+    if (out[t.connector]) continue;
+    const prefix = refs.connectors[t.connector]?.toolPrefix ?? EXTRA_TOOL_PREFIXES[t.connector];
+    out[t.connector] = prefix ? prefix.replace(/^mcp__/, "").replace(/__$/, "").replace(/^claude_ai_/, "").replace(/_/g, " ") : t.connector;
+  }
+  return out;
+}
+// The capabilities the page declares at publish: only the connector tools the definition allows,
+// `sample` when a step asks Claude, and `db` readable and writable by the owner and editors only,
+// because run records hold connector data.
+export function artifactCapabilities(def, refs) {
+  const servers = artifactServers(def, refs);
+  const byServer = new Map();
+  for (const t of def.allow?.tools ?? []) {
+    const name = servers[t.connector];
+    if (!byServer.has(name)) byServer.set(name, new Set());
+    byServer.get(name).add(t.tool);
+  }
+  const caps = {};
+  if (byServer.size) caps.mcp = { servers: [...byServer].map(([server, tools]) => ({ server, tools: [...tools].sort() })) };
+  if (Object.values(def.steps).some((st) => (st.kind === "model" || st.kind === "agent") && !st.subnode)) caps.sample = {};
+  caps.db = { rules: [{ path: "", read: "admin", write: "admin" }] };
+  return caps;
+}
+const htmlEscape = (v) => String(v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const scriptJson = (v) => JSON.stringify(v).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
+// artifact.html from references/artifact.html: the definition, its hash and the skill commit
+// embedded, the runtime inlined (no CDN), and artifact.capabilities.json beside it.
+export function artifactHtml(def, refs, commit = skillCommit()) {
+  const tpl = readFileSync(join(REFS, "artifact.html"), "utf8");
+  const runtime = readFileSync(join(SKILL, "runtime", "dist", "artifact-runtime.js"), "utf8");
+  const hash = definitionHash(def);
+  const build = { definitionHash: hash, commit, runtime: RUNTIME_VERSION, converter: CONVERTER_VERSION, servers: artifactServers(def, refs) };
+  const fill = { __N2C_TITLE__: htmlEscape(def.name), __N2C_HASH__: hash, __N2C_COMMIT__: htmlEscape(commit), __N2C_DEFINITION__: scriptJson(def), __N2C_BUILD__: scriptJson(build), __N2C_RUNTIME__: runtime };
+  let html = tpl;
+  for (const [marker, value] of Object.entries(fill)) {
+    if (!html.includes(marker)) throw new Error(`references/artifact.html has no ${marker}`);
+    html = html.split(marker).join(value);
+  }
+  return html;
+}
+export function writeArtifact(dir, def, refs) {
+  writeFileSync(join(dir, "artifact.html"), artifactHtml(def, refs));
+  writeJson(join(dir, "artifact.capabilities.json"), artifactCapabilities(def, refs));
+}
+
 // Writes one result folder. overrides.json is created when missing and never rewritten.
 export function writeFolder(outDir, res, { overrides, refs } = {}) {
   const dir = join(outDir, res.slug);
@@ -1559,8 +1619,9 @@ export function writeFolder(outDir, res, { overrides, refs } = {}) {
     writeJson(join(dir, "definition.json"), def);
     writeRuntime(dir);
     writeTaskFiles(dir, def, refs ?? loadReferences());
+    writeArtifact(dir, def, refs ?? loadReferences());
   } else {
-    for (const f of ["definition.json", "task.json", "task-prompt.md", ".claude/settings.json"]) if (existsSync(join(dir, f))) rmSync(join(dir, f));
+    for (const f of ["definition.json", "task.json", "task-prompt.md", ".claude/settings.json", "artifact.html", "artifact.capabilities.json"]) if (existsSync(join(dir, f))) rmSync(join(dir, f));
   }
   writeFileSync(join(dir, "MIGRATION.md"), migrationMd(res.report.workflows[0], res.definition, { refused: res.refused, overrides: ov }));
   return dir;

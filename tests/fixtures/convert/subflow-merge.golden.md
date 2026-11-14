@@ -22,3 +22,4 @@ The run can only reach these. Anything else is refused.
 
 - A scheduled task (cloud or local) opened on this folder runs `task-prompt.md` as its prompt. The runner decides every step; the session only makes the calls it prints.
 - `.claude/settings.json` allows only `node runtime/runner.mjs`, writes to `.n2c/inbox/` and the connector tools listed above, in dontAsk mode, and adds the hooks that refuse any other connector call. A `claude -p` run ignores this allowlist in a folder nobody has trusted (CLI 2.1.323): open the folder once in Claude Code and accept the trust prompt.
+- `artifact.html` is the artifact page: the graph, Run now (dry run on by default: reads run, writes are shown and not sent) and the run history. Publish it with the capabilities in `artifact.capabilities.json`.

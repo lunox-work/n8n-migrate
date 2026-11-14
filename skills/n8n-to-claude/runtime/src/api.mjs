@@ -4,7 +4,7 @@
 //     -> {status: "done"|"failed", runData, effects, resultLog, output, response, error?}
 //     In-process: host.{tool, model, agent, http, sleep}(payload, {id, effectKey, runId}).
 //   start(definition, {trigger, clock, runId, batchSize, mode}) / resume(state, results)
-//     -> {status: "needs", requests, state} | {status: "done"|"failed", state, ...}
+//     -> {status: "needs", requests, runData, state} | {status: "done"|"failed", state, ...}
 //     Step mode for the task driver: all state is in `state` (plain JSON). A resume
 //     replays the run from the start with the logged results (same clock, same seeds),
 //     so it reaches the same point and continues past it.
@@ -260,7 +260,8 @@ async function step(state) {
   state.effects = res.effects;
   if (res.status !== "needs") state.result = { runData: res.runData, output: res.output, lastNodeExecuted: res.lastNodeExecuted, ...(res.cursors ? { cursors: res.cursors } : {}), ...(res.response !== undefined ? { response: res.response } : {}), ...(res.error ? { error: res.error } : {}), endedAt: res.endedAt };
   const out = { status: res.status, runId: state.runId, state };
-  if (res.status === "needs") out.requests = res.requests;
+  // runData so far rides along with a suspension, so a driver can show finished steps live.
+  if (res.status === "needs") (out.requests = res.requests), (out.runData = res.runData);
   else {
     out.output = res.output;
     out.runData = res.runData;

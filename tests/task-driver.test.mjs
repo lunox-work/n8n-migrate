@@ -107,6 +107,10 @@ test("hooks on: pre-hook containment and fidelity, post-hook capture, placeholde
     assert.equal(state.status, "done");
     assert.deepEqual(state.resultLog["Get unread mail#0#0"].value, MAIL);
     assert.ok(existsSync(join(folder, `.n2c/runs/${state.runId}.json`)));
+    // The same run record the artifact page writes (runtime/src/records.mjs), for the artifact's db.
+    const rec = readJson(join(folder, `.n2c/records/runs/${state.runId}.json`));
+    assert.deepEqual([rec.status, rec.trigger, rec.driver, rec.effects.sent, rec.definitionHash], ["done", "scheduled", "task", 1, state.definitionHash]);
+    assert.equal(rec.steps["Post to Slack"].status, "done");
     assert.match(runner(folder, ["start"]).out, /^DONE: .*A run just finished; a new one starts only on the next schedule\./, "a second start right after a run does not run it again");
     const events = readFileSync(join(folder, ".n2c/events.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
     assert.deepEqual(events.filter((e) => e.event.startsWith("hook-")).map((e) => e.event), ["hook-deny", "hook-deny", "hook-deny", "hook-deny", "hook-allow", "hook-capture", "hook-deny", "hook-deny", "hook-allow", "hook-capture"]);

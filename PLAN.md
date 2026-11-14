@@ -215,6 +215,8 @@ Still needs a real Pro account:
 - the connector names and output shapes in a task;
 - the usage-window share per run.
 
+Status 2026-11-14, artifact driver: built and checked against a local shim of the runtime contract (0.2.96, [artifact-runtime.md](skills/n8n-to-claude/references/artifact-runtime.md)); see Phase 4. Item 5 (a run record after each kind of run) has the shared record shape in `runtime/src/records.mjs`: the page writes it to `db`, the task driver writes the same documents to `.n2c/records/`. Copying those into the artifact's `db` waits on Phase 0 check 6.
+
 ## Phase 3: workflow definition and converter
 
 One neutral file per workflow, read by both drivers.
@@ -266,6 +268,14 @@ Run safety:
 - **Poll cursor.** Work from a cursor, never from "since the last interval", because missed runs collapse into one.
 
 Done when: one `schedule` and one `poll` workflow run unattended for three days with no duplicate, no missed item and every interruption recorded.
+
+Status 2026-11-14, artifact page: `convert.mjs` writes `artifact.html` (from `references/artifact.html`) and `artifact.capabilities.json` into every converted folder. The page is about 670 KB with Luxon, the runner core and the driver inlined as one script (`dist/artifact-runtime.js`), so it loads nothing from a CDN; the page limit is 16 MB.
+
+- Graph from the n8n positions and edges, sub-nodes as circles under their parent, blocked and review steps greyed with the reason, list view under 600 px; per-step status and items; Run now with dry run on by default; history of the latest 50 runs; the cutover checklist read from records.
+- Driver: `tool` → `mcp.callTool`, `model` → `sample`, `agent` → `sample.json` with the runner executing tool-call intents, `http` and long waits → `handoff`. Preflight checks the embedded hash, the connectors listed, the runner's `preflight()` and the task's `meta/current` hash, and fails closed. The lock is a `db` lease; the effect ledger writes `sending` before each real write, and on resume a `sending` entry stops the run as unknown until the person decides.
+- `evals/artifact/check.mjs` (Playwright, with `evals/artifact/shim.js`) passes 11 of 11: positions, dry-run would-send arguments equal to the in-process runner's, ledger `sending → sent`, the lock (same page, another page, a task lock, a stale lock), a tampered definition sending nothing, the http handoff, an interrupted send not resent, the chat agent through `sample`, screenshots at 375 to 1915 px in both themes with no horizontal scroll.
+
+Still needs the real runtime: one publish on the author's account with the declared capabilities, then one `mcp` read, one `sample` call and one `db` write and read; the connector display names the publish result states; real connector payloads (adapters are still `unverified`); the consent prompts a viewer sees; and whether a scheduled task can write the `db` (Phase 0 check 6), which decides whether scheduled runs appear in the history.
 
 ## Phase 5: evaluation bench
 

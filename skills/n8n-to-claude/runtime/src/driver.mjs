@@ -25,6 +25,7 @@
 //   .n2c/results/<q>.json results waiting for the next resume ({ok, value} | {ok:false, error})
 //   .n2c/events.jsonl     one line per driver or hook decision (evals read it)
 //   .n2c/runs/<runId>.json finished runs
+//   .n2c/records/          the run record and cursors in the artifact db's shapes (records.mjs)
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, readdirSync, rmSync, appendFileSync, openSync, closeSync, statSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -399,9 +400,23 @@ function pageText(handle, parts, k) {
 
 // ---------- the loop ----------
 
-function archive(P, state) {
+function archive(P, state, core) {
   if (!state || state.status === "needs") return;
   writeJson(join(P.runs, `${state.runId}.json`), state);
+  if (core?.runRecord) writeRecords(P, state, core);
+}
+// The run record and cursors in the artifact db's shapes (runtime/src/records.mjs), under
+// .n2c/records/<collection>/<id>.json, for whatever copies them into the artifact's db.
+function writeRecords(P, state, core) {
+  const res = state.result ?? {};
+  const sent = {};
+  for (const e of state.effects ?? []) if (e.effectKey && state.resultLog?.[e.id]?.ok) sent[e.effectKey] = true;
+  const steps = core.stepStatuses(state.definition, { runData: res.runData ?? {}, effects: state.effects ?? [], final: true, error: res.error, sent });
+  const version = existsSync(join(P.dir, "runtime", "VERSION")) ? readFileSync(join(P.dir, "runtime", "VERSION"), "utf8") : "";
+  const at = res.endedAt ?? new Date().toISOString();
+  const rec = core.runRecord({ runId: state.runId, workflow: state.definition?.name, trigger: "scheduled", driver: "task", status: state.status, dryRun: false, startedAt: state.startedAt, endedAt: at, definitionHash: state.definitionHash, commit: /^skill (\S+)/m.exec(version)?.[1] ?? null, effects: state.effects, sent, steps, runData: res.runData, error: res.error, cursorsSaved: !!res.cursors });
+  writeJson(join(P.n2c, "records", core.runPath(state.runId) + ".json"), rec);
+  if (state.status === "done") for (const [step, cursor] of Object.entries(res.cursors ?? {})) writeJson(join(P.n2c, "records", core.cursorPath(step) + ".json"), core.cursorRecord({ step, cursor, runId: state.runId, at, definitionHash: state.definitionHash }));
 }
 function clearResults(P) {
   for (const d of [P.results, join(P.n2c, "pages"), join(P.n2c, "inbox")]) if (existsSync(d)) for (const f of readdirSync(d)) rmSync(join(d, f), { force: true });
@@ -410,7 +425,7 @@ function clearResults(P) {
 async function advance(P, core, task, state, opts = {}) {
   for (let guard = 0; guard < 10_000; guard++) {
     if (state.status !== "needs") {
-      archive(P, state);
+      archive(P, state, core);
       logEvent(P, { event: state.status, runId: state.runId, error: state.result?.error?.message });
       return finalText(state);
     }
@@ -507,7 +522,7 @@ export async function command(cmd, pos, flags, { core, dir, stdin, fetch } = {})
         const ended = existsSync(P.state) ? statSync(P.state).mtimeMs : 0;
         if (Date.now() - ended < RECENT_MS) return { code: 0, text: `${finalText(state)} (A run just finished; a new one starts only on the next schedule.)` };
       }
-      archive(P, state);
+      archive(P, state, core);
       clearResults(P);
       const definition = readJson(P.definition);
       const res = await core.start(definition, {
