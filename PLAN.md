@@ -386,6 +386,8 @@ Done when: ten unattended iterations have run, `dev` success has risen, `held-ou
 
 Status 2026-11-14 (P6, first iterations, a person approving): iteration 0 added the lint and `convert-coverage --split dev`; three fixes accepted, none discarded ([evals/bench/LOOP.md](evals/bench/LOOP.md)): tolerant connector result shapes, preflight ignoring steps no trigger reaches, classifier prompts as n8n sends them. On the 10 dev fixture templates (plain converter, replayed models) the gate sum went 31 → 37 and 2777 passes every gate under `--driver claude`, the first pass (1 of 10); dev coverage preflight clean 15 → 17 of 60. Two bench proposals wait in [evals/bench/PROPOSALS.md](evals/bench/PROPOSALS.md). Next: OpenAI-compatible LLM APIs over HTTP kept as `http` with a stored key when the substitution is not approved; the ReAct agent prompt; Sheets and files levers; headless translation in SKILL.md.
 
+Status 2026-11-14 (P6, iterations 4–7 on the 30 dev fixture templates): bench changes P3–P5 applied first (baseline `p6-base30c`: 6 of 30 pass, gate sum 130). Three fixes accepted, one discarded ([evals/bench/LOOP.md](evals/bench/LOOP.md)): the same service over REST with the person's credential (`rest` programs, Google Sheets writes; unapproved LLM API calls stay `http`), Google Sheets read row filters, the ReAct agent prompt; the headless-translation instruction moved nothing and was reverted. Now 7 of 30 pass (adds 4573), gate sum 138; dev coverage preflight clean 17 → 21, full 4 → 6. Open bench proposals: P6 (same-target writes paired by order, 2167), P7 (a `null` Sheets cell in 2063's malformed fixture), P1's uncaptured shapes (2415).
+
 ## Phase 7: parity and cutover
 
 - Dry run: write tools are stubbed and their inputs shown, so nothing is sent twice while n8n is still live.
@@ -432,6 +434,8 @@ Done when: a person can migrate a workflow, and roll it back, without any messag
 ### Known gaps
 
 Blind spots gathered across Phases 1–6, none fixed yet unless marked:
+
+- REST with a stored credential: Google access tokens expire after an hour and no service-account sign-in exists, so Sheets writes need a refreshed token; on cloud tasks the proxy injects only a static header. The task driver sends a `multipart-form-data` body as JSON (`executeHttp`), unlike n8n and the in-process host.
 
 - Steps: `sendAndWait` operations are blocked; role or effect can depend on parameters or content; connector support varies per operation, not per node; `sample` is slow per item.
 - Triggers: persistent connections (Kafka, MQTT, AMQP) need a relay with a bridge; multi-trigger workflows have several targets; Telegram `getUpdates` polling costs 1440 runs a day; timezone defaults when the export sets none.
