@@ -189,6 +189,11 @@ function gitBackend(P, opts) {
 export function createStore(P, task = {}, opts = {}) {
   const spec = typeof task.store === "string" ? { kind: task.store } : task.store ?? { kind: "file" };
   const kind = spec.kind ?? "file";
+  // N2C_STORE=file keeps records in the folder whatever task.json says: the bench, tests and
+  // local trial runs live inside a real checkout and must never push a branch to its remote.
+  if (kind === "git" && !opts.git && process.env.N2C_STORE === "file") {
+    return { ...createStore(P, { ...task, store: { kind: "file", dir: spec.dir } }), fellBack: "git store not used: N2C_STORE=file; records stay in the folder" };
+  }
   if (kind === "git") {
     // A folder not yet in a git checkout with the remote (converted, not committed; a local
     // test run) uses the file store when the spec allows it; a cloud task's checkout always

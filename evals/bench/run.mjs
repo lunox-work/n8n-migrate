@@ -30,6 +30,7 @@
 
 import { spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync, cpSync, rmSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, overlayEnv, recordingInterrupted, modelConsumers } from "./n8n-side.mjs";
@@ -38,6 +39,9 @@ import { startShim, answerOf } from "./model-shim.mjs";
 import { fromHttp, fromTool, reply, replyText, compare, modelTextsOf, baitHits, refsOf } from "./compare.mjs";
 import { gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited } from "./gates.mjs";
 import { BudgetExceeded, UsageLimit, ledger as claudeLedger, memoryGate } from "./claude.mjs";
+
+// Bench folders sit inside this checkout: keep run records local, never push an n2c-state branch.
+process.env.N2C_STORE = "file";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
@@ -513,7 +517,7 @@ async function main() {
         httpAttempt: t.steps["n8n:normal"]?.httpAttempt ?? t.steps.n8nCheck?.httpAttempt ?? null,
         metrics: { benchWallMs: Date.now() - t0, ...r.metrics, claudeRuns: runs.length, claudeCostUsd: Math.round(runs.reduce((s, x) => s + (x.costUsd ?? 0), 0) * 10000) / 10000 },
       };
-      appendFileSync(RESULTS, JSON.stringify(row) + "\n");
+      appendFileSync(RESULTS, JSON.stringify(row).split(homedir()).join("~") + "\n"); // rows are committed: no home path
       t.done = true;
       t.row = row;
       writeJson(file, L.data);

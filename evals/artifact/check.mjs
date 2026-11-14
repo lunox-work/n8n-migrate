@@ -33,7 +33,8 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const args = process.argv.slice(2);
 const flag = (k, d) => (args.includes(k) ? args[args.indexOf(k) + 1] : d);
 const OUT = resolve(flag("--out", join(tmpdir(), "n2c-artifact-check")));
-const PW = flag("--playwright", "/Users/charlieangriawan/Repositories/lunox-work/public/sandbox-factory/node_modules/playwright/index.mjs");
+// Playwright is borrowed from a sibling checkout by default; pass --playwright or N2C_PLAYWRIGHT to point elsewhere.
+const PW = flag("--playwright", process.env.N2C_PLAYWRIGHT ?? resolve(ROOT, "../sandbox-factory/node_modules/playwright/index.mjs"));
 const { chromium } = await import(pathToFileURL(PW).href);
 const SHIM = readFileSync(join(ROOT, "evals/artifact/shim.js"), "utf8");
 const CLOCK = { startedAt: "2026-11-14T03:00:00Z" };
