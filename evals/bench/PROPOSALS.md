@@ -16,3 +16,21 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Evidence.** `p6-i2` and `p6-i3`: 2777 passes gates 3–7 in process and stops at gate 8 with `bench defect: no claude-driver measurement for this template`; the same commit under `--driver claude` (`p6-i2c`, 2 `claude -p` runs) passes gate 8.
 - **Proposed change.** Either document in `evals/bench/README.md` that the loop re-runs `--driver claude` on every template that reaches gate 8 in process (2 runs each), or let `run.mjs` do that automatically within the claude budget. The gate itself stays as it is.
 - **Why not in the loop.** It changes how the bench reports a gate.
+
+## P3. The comparer reads n8n's multipart bodies as raw text (2167)
+
+- **Evidence.** `p6-base30`: 2167 stops at gate 4, `flaky model step: model-written fields differ in replay`. n8n's Post Discussions body (HTTP Request, `multipart-form-data`) is logged by `mock-server.mjs` `decodeBody()` as one string with the boundary and every part; the Claude side's body is the field object (`body`, `position[old_path]`, …, `position[new_line]: 48`). The model-written `body` text is the same on both sides; only the encoding differs, and `new_line`/`old_line` are strings in a form part and numbers on the Claude side.
+- **Proposed change.** Decode `multipart/form-data` in the mock log into `{field: value}` (files as `{filename, contentType, size, sha256}`) and compare form fields as strings.
+- **Why not applied here.** It changes the comparer, which was not among the approved bench changes.
+
+## P4. n8n's clock and timezone differ from the Claude side's (1953, 6270)
+
+- **Evidence.** `p6-base30`: 1953 and 6270 stop at gate 4 on the agent's prompt, whose `$now` renders `2026-11-14T04:55:48.679Z` on n8n and `2026-11-13T23:55:40.374-05:00` on the Claude side. Two causes: the bench's n8n runs with `GENERIC_TIMEZONE=UTC` (`evals/n8n/container.mjs`) while the runtime takes n8n's default `America/New_York` for a template without a timezone (`runtime/src/engine.mjs` DEFAULT_TIMEZONE); and n8n's `$now` is the container's wall clock (8 s after the run started in 1953, after two live model calls) while the Claude side's clock is virtual from n8n's `startedAt`.
+- **Proposed change.** Run the bench's n8n with n8n's default timezone (`America/New_York`, and `scheduleItem()` with it), re-recording the templates whose prompts carry dates; and either freeze n8n's clock (libfaketime in the image) or compare `$now`-derived text up to the timezone-normalised minute.
+- **Why not applied here.** It changes every baseline recording and the environment, beyond the approved changes.
+
+## P5. Gate 8 cannot be measured for folders with `http` steps (3102, 2413)
+
+- **Evidence.** `p6-base30`: 3102 and 2413 pass gates 3–7 in process; the claude driver does not run folders with `http` steps (`claude-driver.mjs`), so gate 8 stays `bench defect: no claude-driver measurement … the folder has http steps`.
+- **Proposed change.** Route the task driver's `http` through the bench mock (the runner's HTTP host pointed at the mock, as the in-process driver does), so the claude driver can run these folders.
+- **Why not applied here.** It changes the claude driver, beyond the approved P2.
