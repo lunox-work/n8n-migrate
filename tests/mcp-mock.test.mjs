@@ -121,3 +121,34 @@ test("mock MCP server names itself like the real connector", async () => {
   assert.equal(name("slack"), "claude_ai_Slack");
   assert.equal(name("google-drive"), "claude_ai_Google_Drive");
 });
+
+test("mock MCP server enforces known real limits: Slack text length, Gmail page size", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "n2c-mcp-"));
+  try {
+    const fixtures = join(dir, "fixtures.json");
+    const log = join(dir, "effects.jsonl");
+    writeFileSync(fixtures, JSON.stringify({ gmail: { search_threads: { default: { result: { threads: Array.from({ length: 60 }, (_, i) => ({ id: `t${i}` })) } } } } }));
+    const g = client(["--connector", "gmail", "--fixtures", fixtures, "--log", log]);
+    await g.request("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "0" } });
+    const page = JSON.parse((await g.request("tools/call", { name: "search_threads", arguments: { query: "x", pageSize: 10 } })).result.content[0].text);
+    assert.equal(page.threads.length, 10);
+    assert.ok(page.nextPageToken);
+    assert.equal(JSON.parse((await g.request("tools/call", { name: "search_threads", arguments: {} })).result.content[0].text).threads.length, 20, "default page 20");
+    const big = await g.request("tools/call", { name: "search_threads", arguments: { pageSize: 500 } });
+    assert.equal(big.result.isError, true);
+    assert.match(big.result.content[0].text, /at most 50/);
+    await g.close();
+    const s = client(["--connector", "slack", "--log", log]);
+    await s.request("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "0" } });
+    const long = await s.request("tools/call", { name: "slack_send_message", arguments: { channel_id: "C1", message: "x".repeat(40_001) } });
+    assert.equal(long.result.isError, true);
+    assert.match(long.result.content[0].text, /40001 characters/);
+    const ok = await s.request("tools/call", { name: "slack_send_message", arguments: { channel_id: "C1", message: "x".repeat(40_000) } });
+    assert.notEqual(ok.result.isError, true);
+    await s.close();
+    const entries = readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+    assert.deepEqual(entries.filter((e) => e.limit).map((e) => e.tool), ["search_threads", "slack_send_message"]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

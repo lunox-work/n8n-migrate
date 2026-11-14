@@ -19,7 +19,9 @@
 //
 // Every tools/call is validated against the tool's input schema (type, required,
 // properties, enum, items, additionalProperties: false). An invalid call gets a tool error
-// and nothing else; an unknown tool gets JSON-RPC error -32602. Every call, valid or not, is
+// and nothing else; an unknown tool gets JSON-RPC error -32602. Known real limits
+// (evals/mocks/limits.mjs: Slack message length, Gmail page size) are enforced the same way,
+// and a fixture list longer than the tool's page is cut to the page with a nextPageToken. Every call, valid or not, is
 // appended to --log as {t, connector, tool, args, valid, error?}.
 //
 // Protocol: JSON-RPC 2.0, newline-delimited, over stdio: initialize, notifications/initialized,
@@ -29,6 +31,7 @@
 import { readFileSync, appendFileSync, existsSync, realpathSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { limitErrors, pageResult } from "./limits.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
@@ -99,7 +102,7 @@ export function createServer({ connector, doc, fixtures = {}, log }) {
     if (r === null || typeof r !== "object" || Array.isArray(r) || !("result" in r || "text" in r || "error" in r)) r = { result: r };
     if ("error" in r) return { content: [{ type: "text", text: String(r.error) }], isError: true };
     if ("text" in r) return { content: [{ type: "text", text: String(fill(r.text, args)) }] };
-    return { content: [{ type: "text", text: JSON.stringify(fill(r.result, args)) }] };
+    return { content: [{ type: "text", text: JSON.stringify(pageResult(connector, tool, args, fill(r.result, args))) }] };
   };
   return function handle(msg) {
     const { id, method, params } = msg ?? {};
@@ -129,6 +132,11 @@ export function createServer({ connector, doc, fixtures = {}, log }) {
       if (errors.length) {
         record({ tool: name, args, valid: false, error: errors.join("; ") });
         return reply({ content: [{ type: "text", text: `Invalid arguments for ${name}: ${errors.join("; ")}` }], isError: true });
+      }
+      const over = limitErrors(connector, name, args);
+      if (over.length) {
+        record({ tool: name, args, valid: false, error: over.join("; "), limit: true });
+        return reply({ content: [{ type: "text", text: `Invalid arguments for ${name}: ${over.join("; ")}` }], isError: true });
       }
       record({ tool: name, args, valid: true });
       return reply(respond(name, args));

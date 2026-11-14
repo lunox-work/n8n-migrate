@@ -9,6 +9,7 @@
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { limitErrors, pageResult } from "../evals/mocks/limits.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const schemas = {};
@@ -48,8 +49,10 @@ export function toolHost(log = []) {
       const actual = Array.isArray(v) ? "array" : Number.isInteger(v) ? "integer" : typeof v;
       if (t && !(t === actual || (t === "number" && actual === "integer"))) throw new Error(`mock: ${key}.${k} should be ${t}, got ${actual}`);
     }
+    const over = limitErrors(p.connector, p.tool, p.args);
+    if (over.length) throw new Error(`mock: ${key}: ${over.join("; ")}`);
     log.push({ tool: key, args: p.args });
-    return (CANNED[key] ?? (() => ({ ok: true })))(p.args ?? {});
+    return pageResult(p.connector, p.tool, p.args, (CANNED[key] ?? (() => ({ ok: true })))(p.args ?? {}));
   };
 }
 

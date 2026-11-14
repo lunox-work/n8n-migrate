@@ -40,7 +40,7 @@
 // {iso}. Missed runs collapse into one run that reads everything after the cursor, never
 // "since the last interval" (PLAN Phase 4).
 
-import { isObject, deepCopy } from "./util.mjs";
+import { isObject, deepCopy, NodeError } from "./util.mjs";
 
 // ---------- paths ----------
 
@@ -196,9 +196,22 @@ function csvElements(s, root) {
     });
 }
 
+// A text answer where the adapter reads JSON structure (an items path or field paths) would
+// select nothing and emit 0 items, a silent "done" (seen when a tool answered with an error
+// sentence). It fails the step instead. CSV adapters expect text; an adapter with no items
+// path and no fields keeps text as {text} as before.
+function expectsJson(s) {
+  if (s.parse === "csv") return false;
+  if (s.items !== undefined && s.items !== "") return true;
+  return Object.values(s.fields ?? {}).some((f) => typeof f === "string" ? f !== "" && f !== "." && f !== "$" : isObject(f) && !("const" in f));
+}
 export function adaptResult(spec, output) {
   const root = parseToolOutput(output);
   const s = spec ?? {};
+  if (typeof output === "string" && isObject(root) && Object.keys(root).length === 1 && root.text === output && expectsJson(s)) {
+    const preview = output.replace(/\s+/g, " ").trim().slice(0, 60);
+    throw new NodeError(`the tool answered with text where this step reads JSON (${output.length} characters: "${preview}${output.length > 60 ? "…" : ""}"); refusing to continue with 0 items`);
+  }
   const wrap = s.wrap ?? "value";
   const els = s.parse === "csv" ? csvElements(s, root) : s.items === undefined || s.items === "" ? (Array.isArray(root) ? root.map((v) => ({ value: v, parents: [root] })) : root === null || root === undefined ? [] : [{ value: root, parents: [] }]) : select(root, s.items);
   const out = [];

@@ -165,3 +165,21 @@ test("poll trigger: first production run seeds the cursor and emits nothing; the
   const manual = await run(def, { host, mode: "manual" });
   assert.equal(out(manual, "Keep").length, 2);
 });
+
+test("adaptResult: a text answer where JSON is read fails the step instead of emitting 0 items", async () => {
+  assert.throws(() => adaptResult({ items: "threads[*].messages[*]" }, "Error: rate limit exceeded, try later"), /answered with text where this step reads JSON/);
+  assert.throws(() => adaptResult({ fields: { id: "message.id" } }, "not json"), /reads JSON/);
+  assert.deepEqual(adaptResult({ items: "threads[*]" }, '{"threads":[]}'), [], "JSON text still parses");
+  assert.deepEqual(adaptResult({ parse: "csv" }, "a,b\n1,2"), [{ a: "1", b: "2" }], "CSV expects text");
+  assert.deepEqual(adaptResult({ fields: { kind: { const: "x" } } }, "hello"), [{ text: "hello", kind: "x" }], "no paths read: text kept");
+  // In a run: the step fails with the node named, not "done" with nothing.
+  const def = wf([
+    node("Go", "n8n-nodes-base.manualTrigger", {}, { kind: "trigger" }),
+    node("Read", "n8n-nodes-base.gmail", {}, { kind: "tool", tool: { connector: "gmail", name: "search_threads", args: {}, effect: "read", result: { items: "threads[*]" } }, pos: [200, 0] }),
+  ], [["Go", "Read"]]);
+  def.allow = { tools: [{ connector: "gmail", tool: "search_threads" }], http: [], sql: [] };
+  const r = await run(def, { host: { tool: async () => "Quota exceeded for this user" } });
+  assert.equal(r.status, "failed");
+  assert.equal(r.error.node, "Read");
+  assert.match(r.error.message, /answered with text/);
+});
