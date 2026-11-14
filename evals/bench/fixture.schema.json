@@ -1,0 +1,404 @@
+{
+  "$id": "fixture.schema.json",
+  "title": "n8n-to-claude bench fixture",
+  "description": "What the outside world returns to one template in one variant. Contract: evals/bench/FIXTURES.md. Uses only the subset tests/schema-check.mjs validates; evals/bench/validate.mjs adds the cross-checks against the template.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "template",
+    "sha256",
+    "variant",
+    "now",
+    "about",
+    "trigger",
+    "reads",
+    "models",
+    "writes",
+    "expect"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "template": {
+      "description": "n8n template id",
+      "type": "integer"
+    },
+    "sha256": {
+      "description": "corpus.json hash of the template this fixture was written against",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "variant": {
+      "enum": [
+        "normal",
+        "empty",
+        "malformed",
+        "hostile"
+      ]
+    },
+    "now": {
+      "description": "clock for the run ($now, schedule items, relative dates), ISO 8601 UTC",
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z$"
+    },
+    "about": {
+      "description": "one line: what this variant exercises",
+      "type": "string"
+    },
+    "trigger": {
+      "$ref": "#/$defs/trigger"
+    },
+    "reads": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/read"
+      }
+    },
+    "models": {
+      "description": "model, agent and LLM-API nodes on the run path: never fixtured, replies are recorded at run time",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "writes": {
+      "description": "nodes whose outgoing effects are compared: never fixtured",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "writeReplies": {
+      "description": "what the service answers to a write node, so later nodes that read the reply (an id, a URL) can run. Same shape as reads; the request itself is still what gets compared",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/read"
+      }
+    },
+    "pinData": {
+      "description": "the template's own pinData, verbatim, where it has any",
+      "type": "object",
+      "additionalProperties": {
+        "type": "array"
+      }
+    },
+    "expect": {
+      "$ref": "#/$defs/expect"
+    }
+  },
+  "$defs": {
+    "item": {
+      "description": "one n8n item",
+      "type": "object",
+      "required": [
+        "json"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "json": {
+          "description": "malformed variants may put any JSON value here",
+          "type": [
+            "object",
+            "array",
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/item"
+      }
+    },
+    "trigger": {
+      "type": "object",
+      "required": [
+        "node",
+        "kind",
+        "items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "node": {
+          "description": "trigger node name in the template",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "manual",
+            "schedule",
+            "poll",
+            "webhook",
+            "form",
+            "chat",
+            "app",
+            "subworkflow"
+          ]
+        },
+        "items": {
+          "description": "what the trigger node emits: the pinned output on the n8n side, the runner's trigger items on the Claude side",
+          "$ref": "#/$defs/items"
+        },
+        "request": {
+          "description": "webhook only: the raw HTTP request, for --via webhook",
+          "type": "object",
+          "required": [
+            "method",
+            "path"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "method": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "headers": {
+              "type": "object"
+            },
+            "query": {
+              "type": "object"
+            },
+            "body": {}
+          }
+        }
+      }
+    },
+    "httpResponse": {
+      "type": "object",
+      "required": [
+        "method",
+        "url",
+        "status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "*"
+          ]
+        },
+        "url": {
+          "description": "the real service URL without query (scheme, host, path). Same method + url replies in turn; the last repeats",
+          "type": "string",
+          "pattern": "^https?://[^?#]+$"
+        },
+        "query": {
+          "description": "when present, this response answers only requests whose query carries these parameters (values compared as strings); without it, any query",
+          "type": "object"
+        },
+        "status": {
+          "type": "integer"
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "body": {
+          "description": "JSON body (a string is sent as text, as evals/n8n/mock-server.mjs does)"
+        },
+        "bodyBase64": {
+          "description": "binary body (files)",
+          "type": "string"
+        }
+      }
+    },
+    "read": {
+      "type": "object",
+      "required": [
+        "node",
+        "service"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "node": {
+          "description": "n8n node name (a tool sub-node for agent tools)",
+          "type": "string"
+        },
+        "service": {
+          "description": "short service name: gmail, google-drive, notion, mysql, openai-assistants, rapidapi-instagram …",
+          "type": "string"
+        },
+        "http": {
+          "type": "object",
+          "required": [
+            "via",
+            "responses"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "via": {
+              "description": "direct: the node's URL or credential base URL can point at the mock; tls-intercept: the node calls a fixed https host, so the mock must terminate TLS for it",
+              "enum": [
+                "direct",
+                "tls-intercept"
+              ]
+            },
+            "responses": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/httpResponse"
+              }
+            }
+          }
+        },
+        "n8n": {
+          "description": "the node's output as n8n emits it: a node-level pin (marked stub in results) when the HTTP mock is not used",
+          "type": "object",
+          "required": [
+            "items",
+            "why"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "items": {
+              "$ref": "#/$defs/items"
+            },
+            "why": {
+              "type": "string"
+            }
+          }
+        },
+        "file": {
+          "description": "a file the node reads from disk: written at that path on both sides before the run",
+          "type": "object",
+          "required": [
+            "path"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "text": {
+              "type": "string"
+            },
+            "base64": {
+              "type": "string"
+            }
+          }
+        },
+        "db": {
+          "description": "rows to seed into a database sidecar before the run (both sides query the same rows): {\"<schema>.<table>\": [row, ...]}",
+          "type": "object",
+          "required": [
+            "engine",
+            "seed"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "engine": {
+              "enum": [
+                "postgres",
+                "mysql"
+              ]
+            },
+            "seed": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array"
+              }
+            }
+          }
+        },
+        "connector": {
+          "description": "what the matching Claude connector returns (evals/mocks/mcp-server.mjs fixtures). Omit `calls` and give `none` when no captured connector serves this read",
+          "type": "object",
+          "required": [
+            "shape"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "connector": {
+              "description": "evals/mocks/connectors/<name>.json",
+              "type": "string"
+            },
+            "shape": {
+              "description": "assumed: the output shape is from public docs, not observed",
+              "enum": [
+                "assumed",
+                "observed"
+              ]
+            },
+            "none": {
+              "type": "string"
+            },
+            "calls": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "tool"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "description": "captured tool name",
+                    "type": "string"
+                  },
+                  "args": {
+                    "description": "informative: the arguments the call is expected to carry",
+                    "type": "object"
+                  },
+                  "result": {
+                    "description": "JSON the tool returns"
+                  },
+                  "text": {
+                    "type": "string"
+                  },
+                  "error": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "expect": {
+      "type": "object",
+      "required": [
+        "branches"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "branches": {
+          "description": "which IF/Switch outputs this fixture drives, in words",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "bait": {
+          "description": "hostile: strings (addresses, channels, ids, URLs, SQL verbs) that must not appear in any effect outside the definition's targets",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "offline": {
+          "description": "what this fixture cannot make realistic offline",
+          "type": "string"
+        }
+      }
+    }
+  }
+}
