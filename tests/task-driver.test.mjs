@@ -43,10 +43,17 @@ test("converted folders carry the task files: settings with the minimal allowlis
     const s = readJson(join(folder, ".claude/settings.json"));
     assert.deepEqual(s.permissions, { defaultMode: "dontAsk", allow: ["Bash(node runtime/runner.mjs *)", "Edit(.n2c/inbox/**)", GMAIL, SLACK], deny: ["WebFetch", "WebSearch"] });
     assert.deepEqual(Object.keys(s.hooks), ["PreToolUse", "PostToolUse"]);
-    assert.equal(s.hooks.PreToolUse[0].matcher, "^mcp__");
+    assert.equal(s.hooks.PreToolUse[0].matcher, "^(mcp__.*|ArtifactData)$");
     assert.equal(s.hooks.PreToolUse[0].hooks[0].command, 'node "$CLAUDE_PROJECT_DIR/runtime/hook.mjs" pre');
-    assert.deepEqual(readJson(join(folder, "task.json")), { hooks: true, compactWhole: true, compactOver: 80, hideToolOutput: true, secrets: "env", toolPrefixes: { gmail: "mcp__claude_ai_Gmail__", slack: "mcp__claude_ai_Slack__" } });
-    assert.equal(readFileSync(join(folder, "task-prompt.md"), "utf8"), readFileSync(join(ROOT, "skills/n8n-to-claude/references/task-prompt.md"), "utf8"));
+    // A cloud task: records go to the n2c-state branch once the folder is in a checkout.
+    assert.deepEqual(readJson(join(folder, "task.json")), { hooks: true, compactWhole: true, compactOver: 80, hideToolOutput: true, secrets: "env", toolPrefixes: { gmail: "mcp__claude_ai_Gmail__", slack: "mcp__claude_ai_Slack__" }, store: { kind: "git", fallback: "file" } });
+    const slug = folder.split("/").pop();
+    assert.equal(readFileSync(join(folder, "task-prompt.md"), "utf8"), readFileSync(join(ROOT, "skills/n8n-to-claude/references/task-prompt.md"), "utf8").split("__N2C_RUNNER__").join(`node ${slug}/runtime/runner.mjs`));
+    // The repository root (the --out folder) gets the union settings and the hook dispatcher.
+    const root = readJson(join(dir, ".claude/settings.json"));
+    assert.deepEqual(root.permissions.allow, [`Bash(node ${slug}/runtime/runner.mjs *)`, `Edit(${slug}/.n2c/inbox/**)`, GMAIL, SLACK]);
+    assert.equal(root.hooks.PostToolUse[0].hooks[0].command, 'node "$CLAUDE_PROJECT_DIR/n2c-hook.mjs" post');
+    assert.ok(existsSync(join(dir, "n2c-hook.mjs")));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

@@ -8,7 +8,9 @@
 //
 // Isolation, checked on every run:
 //   - a fresh working directory under the scratch folder (N2C_SCRATCH, default <tmpdir>/n2c-task-driver),
-//     holding a copy of the folder; nothing above it has a .claude folder or CLAUDE.md;
+//     laid out as convert.mjs writes a repo: the folder copied into it, the root
+//     .claude/settings.json and n2c-hook.mjs beside it; the session starts at that root;
+//     nothing above it has a .claude folder or CLAUDE.md;
 //   - --strict-mcp-config with our mock config only, plus ENABLE_CLAUDEAI_MCP_SERVERS=false;
 //     the run is killed before its first model turn if the init message lists any MCP server
 //     that is not ours;
@@ -164,12 +166,17 @@ async function main() {
   const label = flags.label ?? `${basename(folder)}-${model}-hooks-${hooks ? "on" : "off"}`;
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const runDir = join(SCRATCH, `${stamp}-${label.replace(/[^\w.-]+/g, "_")}`);
-  const work = join(runDir, "work");
+  // The repository layout convert.mjs writes: the workflow folder inside a repo whose root
+  // holds the union settings and the hook dispatcher; the session starts at the root.
+  const repo = join(runDir, "work");
+  const work = join(repo, basename(folder));
   mkdirSync(runDir, { recursive: true });
-  cpSync(folder, work, { recursive: true, filter: (src) => !src.includes(`${folder}/.n2c`) });
+  cpSync(folder, work, { recursive: true, filter: (src) => !src.includes(`${folder}/.n2c`) && !src.includes(`${folder}/skill`) });
+  const { writeRootSettings } = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/scripts/convert.mjs")).href);
+  writeRootSettings(repo);
 
   // Hooks on/off and the settings variant.
-  const settingsPath = join(work, ".claude/settings.json");
+  const settingsPath = join(repo, ".claude/settings.json");
   const settings = applySettingsVariant(settingsPath, flags.settings);
   const task = readJson(join(work, "task.json"), {});
   task.hooks = hooks;
@@ -218,7 +225,7 @@ async function main() {
   const transcript = join(runDir, "stream.jsonl");
   writeFileSync(transcript, "");
   const t0 = Date.now();
-  const child = spawn(bin, args, { cwd: work, env, stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn(bin, args, { cwd: repo, env, stdio: ["ignore", "pipe", "pipe"] });
   const ours = new Set(Object.keys(mcpServers));
   const summary = { init: null, result: null, toolUses: {}, isolation: "unchecked", stderr: "" };
   let buf = "";

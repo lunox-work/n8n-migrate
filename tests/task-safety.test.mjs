@@ -334,3 +334,67 @@ test("poll-submissions: refused without the artifact-db flag; with it, each subm
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("several workflow folders in one repo: root settings are the union, n2c-hook.mjs routes each call to its folder", () => {
+  const out = mkdtempSync(join(tmpdir(), "n2c-repo-"));
+  try {
+    const items = [...loadInput(join(ROOT, "tests/fixtures/convert/slice.n8n.json")).items, ...loadInput(join(ROOT, "tests/fixtures/form-public.json")).items];
+    const results = convertItems(items, { refs, now: NOW });
+    const folders = results.map((r) => writeFolder(out, r, { refs }));
+    const slugs = folders.map((f) => f.split("/").pop());
+    const root = readJson(join(out, ".claude/settings.json"));
+    for (const s of slugs) {
+      assert.ok(root.permissions.allow.includes(`Bash(node ${s}/runtime/runner.mjs *)`));
+      assert.ok(root.permissions.allow.includes(`Edit(${s}/.n2c/inbox/**)`));
+    }
+    assert.ok(root.permissions.allow.includes("mcp__claude_ai_Gmail__send_message") && root.permissions.allow.includes("mcp__claude_ai_Slack__slack_send_message"));
+    // A session started at the repo root: commands are printed with the folder path.
+    const [digest] = folders;
+    const r = spawnSync(process.execPath, [join(digest, "runtime/runner.mjs"), "start"], { cwd: out, encoding: "utf8" });
+    assert.match(r.stdout, new RegExp(`run: node ${slugs[0]}/runtime/runner.mjs next`));
+    const dispatch = (which, input) => {
+      const x = spawnSync(process.execPath, [join(out, "n2c-hook.mjs"), which], { cwd: out, encoding: "utf8", input: JSON.stringify({ cwd: out, ...input }) });
+      assert.equal(x.status, 0, x.stderr);
+      return x.stdout.trim() ? JSON.parse(x.stdout) : null;
+    };
+    // The outstanding Gmail read of the digest run is allowed (no decision: the allowlist decides).
+    const req = readJson(join(digest, ".n2c/run.json")).requests[0];
+    assert.equal(dispatch("pre", { tool_name: "mcp__claude_ai_Gmail__search_threads", tool_input: req.args, tool_use_id: "u1" }), null);
+    assert.ok(existsSync(join(digest, ".n2c/calls/u1.json")), "routed to the digest folder's hook");
+    // A call no run asked for is denied; so is the right tool with other arguments.
+    assert.equal(dispatch("pre", { tool_name: "mcp__claude_ai_Gmail__send_message", tool_input: { to: ["x@example.com"] }, tool_use_id: "u2" }).hookSpecificOutput.permissionDecision, "deny");
+    assert.equal(dispatch("pre", { tool_name: "mcp__claude_ai_Gmail__search_threads", tool_input: { query: "in:anywhere" }, tool_use_id: "u3" }).hookSpecificOutput.permissionDecision, "deny");
+    // post goes to the folder that recorded the call.
+    const post = dispatch("post", { tool_name: "mcp__claude_ai_Gmail__search_threads", tool_input: req.args, tool_use_id: "u1", tool_response: [{ type: "text", text: JSON.stringify(CANNED["gmail.search_threads"](req.args)) }] });
+    assert.match(post.hookSpecificOutput.updatedMCPToolOutput[0].text, new RegExp(`Saved as result q1 .*Now run: node ${slugs[0]}/runtime/runner.mjs next`));
+    // With no run in progress anywhere, every call is denied.
+    rmSync(join(digest, ".n2c"), { recursive: true, force: true });
+    assert.equal(dispatch("pre", { tool_name: "mcp__claude_ai_Slack__slack_send_message", tool_input: { channel_id: "C1", message: "hi" } }).hookSpecificOutput.permissionDecision, "deny");
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test("a chat workflow gets a self-contained skill; run from a project root it prints paths relative to there", () => {
+  const { dir, folder } = folderFor("tests/fixtures/convert/chat-agent.n8n.json");
+  try {
+    const sk = join(folder, "skill");
+    for (const f of ["SKILL.md", "definition.json", "source.n8n.json", "task.json", "runtime/runner.mjs", "runtime/hook.mjs", "runtime/store.mjs"]) assert.ok(existsSync(join(sk, f)), f);
+    const md = readFileSync(join(sk, "SKILL.md"), "utf8");
+    assert.match(md, /^---\nname: n8n-inbox-assistant-chat\ndescription: "Runs the migrated n8n chat workflow \\"Inbox assistant chat\\" on Claude/);
+    assert.match(md, /command: "node \\"\$\{CLAUDE_SKILL_DIR\}\/runtime\/hook\.mjs\\" pre"/);
+    assert.match(md, /allowed-tools: "Bash\(node \*runtime\/runner\.mjs \*\), Write, Read, mcp__claude_ai_Gmail__search_threads, mcp__claude_ai_Slack__slack_send_message"/);
+    assert.deepEqual(readJson(join(sk, "task.json")).store, { kind: "file" });
+    // Installed under a project's .claude/skills/, driven from the project root.
+    const project = join(dir, "project");
+    mkdirSync(join(project, ".claude/skills"), { recursive: true });
+    cpSync(sk, join(project, ".claude/skills/n8n-inbox-assistant-chat"), { recursive: true });
+    const r = spawnSync(process.execPath, [".claude/skills/n8n-inbox-assistant-chat/runtime/runner.mjs", "chat", "--new-session", "--text", "What did Ann send?"], { cwd: project, encoding: "utf8" });
+    assert.match(r.stdout, /^NEXT: take one agent turn yourself/);
+    assert.match(r.stdout, /run: node \.claude\/skills\/n8n-inbox-assistant-chat\/runtime\/runner\.mjs answer q1/);
+    // Converting a workflow without a chat trigger leaves no skill folder.
+    assert.equal(existsSync(join(folderFor("tests/fixtures/convert/slice.n8n.json").folder, "skill")), false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

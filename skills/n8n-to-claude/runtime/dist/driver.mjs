@@ -47,7 +47,7 @@
 //   .n2c/runs/<runId>.json finished runs
 //   record store          runs/, cursors/, ledger/, meta/ (store.mjs; default .n2c/records/)
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, readdirSync, rmSync, appendFileSync, openSync, closeSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, readdirSync, rmSync, appendFileSync, openSync, closeSync, statSync, realpathSync } from "node:fs";
 import { join, dirname, relative, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createStore } from "./store.mjs";
@@ -56,8 +56,15 @@ import { createStore } from "./store.mjs";
 // workflow folders runs `node <folder>/runtime/runner.mjs` from its root (one root
 // .claude/settings.json); a folder opened on its own runs `node runtime/runner.mjs`.
 export let RUNNER_CMD = "node runtime/runner.mjs";
+const real = (p) => {
+  try {
+    return realpathSync(p);
+  } catch {
+    return p;
+  }
+};
 export function setRunner(dir, cwd = process.cwd()) {
-  const rel = relative(cwd, dir);
+  const rel = relative(real(cwd), real(dir));
   RUNNER_CMD = `node ${!rel ? "" : rel.startsWith("..") || isAbsolute(rel) ? `${dir}/` : `${rel}/`}runtime/runner.mjs`;
   return RUNNER_CMD;
 }
@@ -557,7 +564,7 @@ async function startRun(P, core, task, store, { kind = "scheduled", trigger, mod
   store.set(core.META_CURRENT, { definitionHash: state.definitionHash, commit: commitOf(P), updatedAt: new Date().toISOString() });
   writeRunRecord(P, core, store, state, "running");
   persistState(P, core, store, state);
-  logEvent(P, { event: "start", runId: state.runId, hooks: task.hooks, kind, store: store.kind, missed: missed?.count });
+  logEvent(P, { event: "start", runId: state.runId, hooks: task.hooks, kind, store: store.kind, missed: missed?.count, ...(store.fellBack ? { storeNote: store.fellBack } : {}) });
   if (missed) {
     const alert = core.alertRequest(definition, "missed", { runId: state.runId, count: missed.count, since: missed.since, capped: missed.capped });
     if (alert) queueExtra(P, alert);

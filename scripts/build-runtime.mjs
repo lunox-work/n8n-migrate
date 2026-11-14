@@ -6,6 +6,7 @@
 //   dist/driver.mjs       the task driver (Node), copied from src as is
 //   dist/hook.mjs         the Claude Code hooks (Node), copied from src as is
 //   dist/store.mjs        the task driver's record store (Node), copied from src as is
+//   dist/dispatch.mjs     the repo-root hook dispatcher (convert.mjs writes it as n2c-hook.mjs)
 //   dist/artifact-runtime.js  Luxon + core + artifact driver as one classic script for the page
 //
 //   node scripts/build-runtime.mjs [--check]
@@ -117,7 +118,7 @@ function bundleCli() {
 }
 
 // Node-side files that import nothing from the core: copied with a GENERATED line.
-export const NODE_FILES = ["cli.mjs", "driver.mjs", "hook.mjs", "store.mjs"];
+export const NODE_FILES = ["cli.mjs", "driver.mjs", "hook.mjs", "store.mjs", "dispatch.mjs"];
 function copied(name) {
   const src = readFileSync(join(SRC, name), "utf8");
   for (const m of src.matchAll(/^import\s.*?from\s+"(\.[^"]+)";/gm)) if (!["./driver.mjs", "./store.mjs"].includes(m[1])) throw new Error(`${name}: may import only ./driver.mjs and ./store.mjs, not ${m[1]}`);
@@ -175,6 +176,7 @@ export function buildRuntime() {
     "driver.mjs": copied("driver.mjs"),
     "hook.mjs": copied("hook.mjs"),
     "store.mjs": copied("store.mjs"),
+    "dispatch.mjs": copied("dispatch.mjs"),
   };
 }
 

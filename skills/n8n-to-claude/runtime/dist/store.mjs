@@ -6,7 +6,7 @@
 // task.json `store`:
 //   {kind: "file", dir?}   local tasks. Files under <folder>/.n2c/records/ (or `dir`, relative to
 //                          the folder). Writes are immediate.
-//   {kind: "git", branch?, remote?}
+//   {kind: "git", branch?, remote?, fallback?: "file"}
 //                          cloud tasks, whose checkout is new on every run. Documents are
 //                          committed to a dedicated branch (default n2c-state) under the
 //                          folder's path in the repo, and pushed. The checkout itself is never
@@ -189,7 +189,23 @@ function gitBackend(P, opts) {
 export function createStore(P, task = {}, opts = {}) {
   const spec = typeof task.store === "string" ? { kind: task.store } : task.store ?? { kind: "file" };
   const kind = spec.kind ?? "file";
-  if (kind === "git") return gitBackend(P, { ...spec, ...opts });
+  if (kind === "git") {
+    // A folder not yet in a git checkout with the remote (converted, not committed; a local
+    // test run) uses the file store when the spec allows it; a cloud task's checkout always
+    // has both. A push that fails later still fails the run (fail closed).
+    if (spec.fallback === "file" && !opts.git) {
+      const git = gitRunner(P.dir);
+      let reason = null;
+      try {
+        git(["rev-parse", "--is-inside-work-tree"]);
+        git(["remote", "get-url", spec.remote ?? "origin"]);
+      } catch (e) {
+        reason = /not a git repository/i.test(String(e.stderr ?? e.message)) ? "the folder is not in a git checkout" : `the checkout has no remote ${spec.remote ?? "origin"}`;
+      }
+      if (reason) return { ...createStore(P, { ...task, store: { kind: "file", dir: spec.dir } }), fellBack: `git store not used: ${reason}; records stay in the folder` };
+    }
+    return gitBackend(P, { ...spec, ...opts });
+  }
   const files = fileBackend(spec.dir ? resolve(P.dir, spec.dir) : join(P.n2c, "records"));
   if (kind === "artifact-db") {
     if (!task.artifactDb) throw new Error('store "artifact-db" needs task.json artifactDb: true (only once Phase 0 shows a task can call ArtifactData)');

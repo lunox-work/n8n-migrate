@@ -31,8 +31,10 @@ Store each under its n8n credential name. The value is never written to these fi
 
 ## Running it
 
-- A scheduled task (cloud or local) opened on this folder runs `task-prompt.md` as its prompt. The runner decides every step; the session only makes the calls it prints.
-- `.claude/settings.json` allows only `node runtime/runner.mjs`, writes to `.n2c/inbox/` and the connector tools listed above, in dontAsk mode, and adds the hooks that refuse any other connector call. A `claude -p` run ignores this allowlist in a folder nobody has trusted (CLI 2.1.323): open the folder once in Claude Code and accept the trust prompt.
+- A scheduled task (cloud or local) on the repository that holds this folder runs `task-prompt.md` as its prompt. The runner decides every step; the session only makes the calls it prints. Steps: the skill's `references/setup-cloud-task.md` and `setup-local-task.md`.
+- The repository root's `.claude/settings.json` (written beside the folders) allows only each folder's runner, writes to its `.n2c/inbox/` and the connector tools listed above, in dontAsk mode, with hooks (`n2c-hook.mjs`) that refuse any other connector call. This folder's own `.claude/settings.json` does the same when the folder is opened on its own. A `claude -p` run ignores the allowlist in a folder nobody has trusted (CLI 2.1.323): open it once in Claude Code and accept the trust prompt.
+- Run safety: every write is recorded before it goes out, so a run cut off by a usage limit is resumed by the next run without sending anything twice. Records, cursors and the ledger are kept in `.n2c/records/` on a local task and on the `n2c-state` branch on a cloud task.
+- Alerts: none chosen, so a failed or missed run is reported in the task's final message. To get a Slack or Gmail alert, set `alerts` in overrides.json (the skill's `references/alerts.md`) and regenerate.
 - Secrets on a local task: set `N2C_SECRET_<NAME>` (the credential name in capitals, other characters as `_`). On a cloud task, add them as network secrets for the hosts above.
 - `artifact.html` is the artifact page: the graph, Run now (dry run on by default: reads run, writes are shown and not sent) and the run history. Publish it with the capabilities in `artifact.capabilities.json`. Its HTTP steps run only in the scheduled task: a run from the page stops there.
 
