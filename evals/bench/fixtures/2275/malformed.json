@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "template": 2275,
+  "sha256": "57436a5c4118e0358d0617b3d1bbbe021b4b76c8a159d396c37c03ba893ba3f2",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "a book without a price element, one whose link has no title attribute, one priced '£1,051.77' and one with a 600-character title",
+  "trigger": {
+    "node": "When clicking \"Test workflow\"",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Fetch website content",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "http://books.toscrape.com/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html"
+            },
+            "body": "<!DOCTYPE html>\n<!--[if lt IE 7]> <html lang=\"en-us\" class=\"no-js lt-ie9 lt-ie8 lt-ie7\"> <![endif]-->\n<html lang=\"en-us\" class=\"no-js\">\n<head><title>\n    All products | Books to Scrape - Sandbox\n</title><meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"></head>\n<body id=\"default\" class=\"default\">\n<div class=\"container-fluid page\"><div class=\"page_inner\"><div class=\"row\">\n<aside class=\"sidebar col-sm-4 col-md-3\"></aside>\n<div class=\"col-sm-8 col-md-9\">\n<div class=\"page-header action\"><h1>All products</h1></div>\n<section>\n<div class=\"alert alert-warning\" role=\"alert\"><strong>Warning!</strong> This is a demo website for web scraping purposes. Prices and ratings here were randomly assigned and have no real meaning.</div>\n<div>\n<ol class=\"row\">\n<li class=\"col-xs-6 col-sm-4 col-md-3 col-lg-3\">\n<article class=\"product_pod\">\n<div class=\"image_container\"><a href=\"catalogue/a-light-in-the-attic_1000/index.html\"><img src=\"media/cache/2c/da/2cdad67c44b002e7ead0cc35693c0e8b.jpg\" alt=\"A Light in the Attic\" class=\"thumbnail\"></a></div>\n<p class=\"star-rating Three\"><i class=\"icon-star\"></i></p>\n<h3><a href=\"catalogue/a-light-in-the-attic_1000/index.html\" title=\"A Light in the Attic\">A Light in the Attic...</a></h3>\n<div class=\"product_price\">\n<p class=\"price_color\">£51.77</p>\n<p class=\"instock availability\"><i class=\"icon-ok\"></i> In stock</p>\n<form><button type=\"submit\" class=\"btn btn-primary btn-block\" data-loading-text=\"Adding...\">Add to basket</button></form>\n</div>\n</article>\n</li>\n<li class=\"col-xs-6 col-sm-4 col-md-3 col-lg-3\">\n<article class=\"product_pod\">\n<div class=\"image_container\"><a href=\"catalogue/no-price_995/index.html\"><img src=\"media/cache/aa/bb/aabb.jpg\" alt=\"The Price Is Missing\" class=\"thumbnail\"></a></div>\n<p class=\"star-rating Three\"><i class=\"icon-star\"></i></p>\n<h3><a href=\"catalogue/no-price_995/index.html\" title=\"The Price Is Missing\">The Price Is Missing...</a></h3>\n<div class=\"product_price\">\n<p class=\"instock availability\"><i class=\"icon-ok\"></i> In stock</p>\n<form><button type=\"submit\" class=\"btn btn-primary btn-block\" data-loading-text=\"Adding...\">Add to basket</button></form>\n</div>\n</article>\n</li>\n<li class=\"col-xs-6 col-sm-4 col-md-3 col-lg-3\">\n<article class=\"product_pod\">\n<div class=\"image_container\"><a href=\"catalogue/untitled_994/index.html\"><img src=\"media/cache/cc/dd/ccdd.jpg\" alt=\"\" class=\"thumbnail\"></a></div>\n<p class=\"star-rating Three\"><i class=\"icon-star\"></i></p>\n<h3><a href=\"catalogue/untitled_994/index.html\">untitled_994...</a></h3>\n<div class=\"product_price\">\n<p class=\"price_color\">£12.00</p>\n<p class=\"instock availability\"><i class=\"icon-ok\"></i> In stock</p>\n<form><button type=\"submit\" class=\"btn btn-primary btn-block\" data-loading-text=\"Adding...\">Add to basket</button></form>\n</div>\n</article>\n</li>\n<li class=\"col-xs-6 col-sm-4 col-md-3 col-lg-3\">\n<article class=\"product_pod\">\n<div class=\"image_container\"><a href=\"catalogue/collectors-edition_993/index.html\"><img src=\"media/cache/ee/ff/eeff.jpg\" alt=\"Collector's Edition\" class=\"thumbnail\"></a></div>\n<p class=\"star-rating Three\"><i class=\"icon-star\"></i></p>\n<h3><a href=\"catalogue/collectors-edition_993/index.html\" title=\"Collector's Edition\">Collector's Edition...</a></h3>\n<div class=\"product_price\">\n<p class=\"price_color\">£1,051.77</p>\n<p class=\"instock availability\"><i class=\"icon-ok\"></i> In stock</p>\n<form><button type=\"submit\" class=\"btn btn-primary btn-block\" data-loading-text=\"Adding...\">Add to basket</button></form>\n</div>\n</article>\n</li>\n<li class=\"col-xs-6 col-sm-4 col-md-3 col-lg-3\">\n<article class=\"product_pod\">\n<div class=\"image_container\"><a href=\"catalogue/long_992/index.html\"><img src=\"media/cache/11/22/1122.jpg\" alt=\"The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The \" class=\"thumbnail\"></a></div>\n<p class=\"star-rating Three\"><i class=\"icon-star\"></i></p>\n<h3><a href=\"catalogue/long_992/index.html\" title=\"The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The \">The The The The The The The Th...</a></h3>\n<div class=\"product_price\">\n<p class=\"price_color\">£9.99</p>\n<p class=\"instock availability\"><i class=\"icon-ok\"></i> In stock</p>\n<form><button type=\"submit\" class=\"btn btn-primary btn-block\" data-loading-text=\"Adding...\">Add to basket</button></form>\n</div>\n</article>\n</li>\n</ol>\n</div>\n</section>\n</div>\n</div></div></div>\n</body>\n</html>\n"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a public web page fetched over http on the Claude side"
+      },
+      "note": "HTTP Request v4.1 GET http://books.toscrape.com (path /); '.row > li' returns each book's HTML, then 'h3 > a' title and '.price_color' text. The page keeps the real markup but lists fewer books than the site's 20"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Save to Google Sheets",
+    "Save to Microsoft Excel 365",
+    "Send CSV via e-mail"
+  ],
+  "writeReplies": [
+    {
+      "node": "Save to Google Sheets",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1zyiRT7iIlfzZiskC9vDVoAFnW_UNMVXX0-ESVU1yYxY",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1zyiRT7iIlfzZiskC9vDVoAFnW_UNMVXX0-ESVU1yYxY",
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1zyiRT7iIlfzZiskC9vDVoAFnW_UNMVXX0-ESVU1yYxY/values/Sheet1!1:1",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:B1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "title",
+                  "price"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1zyiRT7iIlfzZiskC9vDVoAFnW_UNMVXX0-ESVU1yYxY/values/'Sheet1'",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:B1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "title",
+                  "price"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.2 append (autoMapInputData): sheet properties, header row, used rows, then PUT values/Sheet1!2:<n> (write-default). Order from memory"
+    },
+    {
+      "node": "Save to Microsoft Excel 365",
+      "service": "microsoft-excel",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://graph.microsoft.com/v1.0/me/drive/items/EA8A73F11507ECE9!24392/workbook/worksheets/%7B+1234567890+1234567890%7D/usedRange",
+            "status": 200,
+            "body": {
+              "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#workbookRange",
+              "@odata.type": "#microsoft.graph.workbookRange",
+              "address": "Sheet1!A1:B1",
+              "addressLocal": "Sheet1!A1:B1",
+              "columnCount": 2,
+              "columnIndex": 0,
+              "rowCount": 1,
+              "rowIndex": 0,
+              "values": [
+                [
+                  "title",
+                  "price"
+                ]
+              ],
+              "text": [
+                [
+                  "title",
+                  "price"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Excel v2.1 worksheet append (autoMap): GET …/worksheets/{id}/usedRange for the header, then PATCH …/range(address='A2:B<n>') with the rows (write-default). The worksheet id {+1234567890+1234567890} is sent percent-encoded here; whether n8n encodes the braces and the '!' of the workbook id is unverified. Workbook and worksheet ids are the template's (the worksheet id looks like a placeholder)"
+    },
+    {
+      "node": "Send CSV via e-mail",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/send",
+            "status": 200,
+            "body": {
+              "id": "19a8e1f2a3b4c5d6",
+              "threadId": "19a8e1f2a3b4c5d6",
+              "labelIds": [
+                "SENT"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Gmail v2.1 send with the CSV (binary 'data') attached, as raw MIME"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch; the missing price and title come out empty, and the string sort puts '£9.99' first and '£1,051.77' after '£12.00'"
+    ],
+    "offline": "The email goes to the template's example address user@example.com. Sort by price sorts the price strings ('£51.77'), not numbers, as n8n does. The Excel worksheet id is likely a placeholder (overlay)"
+  }
+}

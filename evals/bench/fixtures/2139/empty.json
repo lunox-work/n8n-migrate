@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "template": 2139,
+  "sha256": "947fd39f8e175f24069947e2b19b72503b6e77e3325129afda676ec818b73f0b",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the same run with X answering 201 with an empty data object (no id)",
+  "trigger": {
+    "node": "Schedule posting every 6 hours",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T04:37:00.000-05:00",
+          "Readable date": "November 16th 2026, 4:37:00 am",
+          "Readable time": "4:37:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "04",
+          "Minute": "37",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [
+    "Generate tweet content"
+  ],
+  "writes": [
+    "Post tweet"
+  ],
+  "writeReplies": [
+    {
+      "node": "Post tweet",
+      "service": "x",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.x.com/2/tweets",
+            "status": 201,
+            "body": {
+              "data": {}
+            }
+          }
+        ]
+      },
+      "note": "Twitter v2 node create tweet: POST https://api.x.com/2/tweets {text}; the reply is not read downstream. An empty data object stands in for 'nothing returned'; there is no read to empty"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Verify tweet constraints (model-driven): true when the tweet is over 280 characters → back to Configure your influencer profile and a new generation; false → Post tweet",
+      "the empty reply ends the run either way (nothing reads it)"
+    ],
+    "offline": "No external read: the profile is static and the tweet is model-written, so the variants differ only in X's reply to the post. The schedule's triggerAtMinute is random (Math.random); the trigger item fixes 4:37. The prompt carries DateTime.now() (run-time masked). twitterOAuth2Api gets a bench OAuth2 dummy"
+  }
+}

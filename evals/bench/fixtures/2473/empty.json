@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "template": 2473,
+  "sha256": "29d9033ea107d954fe77cbc49562570c163342b2dbb428288b04b805eabfc090",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the same manual run: there is no read to empty, and the ICP fields are the template's placeholders",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [],
+  "models": [
+    "AI Agent",
+    "Anthropic Chat Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch; Split Out reads output.answer, which exists only if the agent's text output is an object (it is a string here, so Split Out is expected to fail or emit nothing; model-driven)"
+    ],
+    "offline": "The workflow reads nothing and writes nothing: the ICP is the template's static placeholder text ('**Replace this with …**'), the agent answers from it, and Connect to your own database is a No Operation. All four variants therefore run on the same input; they exist so the bench has a row per variant. Anthropic Chat Model ships without a credential (the bench attaches the per-node model credential)"
+  }
+}
