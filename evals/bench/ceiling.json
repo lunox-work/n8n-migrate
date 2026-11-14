@@ -1,0 +1,15 @@
+{
+  "provisional": true,
+  "set": "2026-11-14, P5b, before any account measured the usage-window share of a run",
+  "measuredOn": "the claude driver's normal run (claude -p --model haiku, hooks on), per template",
+  "wallS": 300,
+  "turns": 60,
+  "costUsd": 0.1,
+  "alsoWallUnderInterval": true,
+  "derivation": [
+    "evals/task-driver/MEASUREMENTS.md: a 3-request workflow (one read, one model step, one write) took 8-12 turns, 13-23 s and $0.006-0.014 at API prices on haiku with hooks on; turns, not payload, drive cost (about 35-45k cached tokens re-read per turn).",
+    "Turns grow by about 2-3 per runner request (call, next, answer). 60 turns allows about 20-25 requests, which covers the largest dev templates measured so far; $0.10 is 7-15x the measured run; 300 s is 13-23x.",
+    "evals/phase0/CHECKS.md: cloud tasks run at most hourly, local tasks down to 1 minute when Claude sets the schedule. A run must end before the next one is due, so wall time is also capped by the trigger's shortest interval.",
+    "Not yet known (CHECKS.md items 8-9): the share of a usage window one run takes. When it is measured, replace costUsd with a window share and drop provisional."
+  ]
+}

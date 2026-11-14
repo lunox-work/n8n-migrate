@@ -1,0 +1,295 @@
+// The comparer: decides whether an n8n effect and a Claude effect are the same effect, using
+// only its own table (effects.json). It never reads the converter's field map (PLAN Phase 6),
+// so a wrong mapping cannot pass on both sides.
+//
+//   canonical effect = {side, service, action, effect: read|write|media, target, fields, raw}
+//   fromHttp(entry)   an n8n mock-log line, or a runner http request ({method, url, query, body})
+//   fromTool(call)    a connector call on the Claude side ({connector, tool, args})
+//   compare(n8n, claude, {modelTexts, mode}) -> {ok, writes, reads, reply, judge: [...]}
+//
+// Writes (and media calls) are matched as multisets by service.action.target, then field by
+// field. Reads are compared as sets of service.action.target and reported; they do not fail
+// the comparison, because a connector legitimately pages or batches differently from n8n's
+// REST calls (a wrong read shows up in the writes it feeds). A text field that holds a model
+// reply is model-written: byte-identical in replay mode, handed to the judge in live mode.
+
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+let TABLE = null;
+export function table() {
+  TABLE ??= JSON.parse(readFileSync(join(HERE, "effects.json"), "utf8"));
+  return TABLE;
+}
+
+// ---------- small decoders ----------
+
+function b64(s) {
+  return Buffer.from(String(s).replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+}
+
+// A Gmail raw message (RFC 2822, base64url): headers and the first text/plain part.
+export function parseMime(raw) {
+  const text = b64(raw);
+  const [head, ...rest] = text.split(/\r?\n\r?\n/);
+  const headers = {};
+  for (const line of head.replace(/\r?\n[ \t]+/g, " ").split(/\r?\n/)) {
+    const m = /^([\w-]+):\s*(.*)$/.exec(line);
+    if (m) headers[m[1].toLowerCase()] = m[2];
+  }
+  let body = rest.join("\n\n");
+  const boundary = /boundary="?([^";]+)"?/i.exec(headers["content-type"] ?? "")?.[1];
+  if (boundary) {
+    const part = body.split(`--${boundary}`).find((p) => /content-type:\s*text\/plain/i.test(p)) ?? body.split(`--${boundary}`)[1] ?? "";
+    body = part.split(/\r?\n\r?\n/).slice(1).join("\n\n");
+  }
+  if (/base64/i.test(headers["content-transfer-encoding"] ?? "")) body = b64(body.replace(/\s+/g, ""));
+  return { headers, text: body.trim() };
+}
+
+// The JSON metadata part of a multipart upload body (text, or base64 when binary).
+export function multipartJson(body, encoding) {
+  const s = encoding === "base64" ? Buffer.from(String(body), "base64").toString("latin1") : typeof body === "string" ? body : JSON.stringify(body ?? "");
+  for (const m of s.matchAll(/\{[^{}]*(\{[^{}]*\}[^{}]*)*\}/g)) {
+    try {
+      const v = JSON.parse(m[0]);
+      if (v && typeof v === "object") return v;
+    } catch {}
+  }
+  return {};
+}
+
+// ---------- field extraction ----------
+
+function get(obj, path) {
+  let v = obj;
+  for (const k of path.split(".")) {
+    if (v == null) return undefined;
+    v = v[k];
+  }
+  return v;
+}
+
+function extractor(ctx) {
+  return (spec) => {
+    for (const p of [].concat(spec ?? [])) {
+      if (p === "") return "";
+      const [root, ...rest] = p.split(".");
+      const tail = rest.join(".");
+      let v;
+      if (root === "query") v = tail ? ctx.query?.(tail) : ctx.queryObj;
+      else if (root === "path") v = ctx.groups?.[tail];
+      else if (root === "mime") {
+        ctx.mime ??= ctx.body?.raw ? parseMime(ctx.body.raw) : { headers: {}, text: undefined };
+        v = tail === "text" ? ctx.mime.text : ctx.mime.headers[tail.toLowerCase()];
+      } else if (root === "multipart") {
+        ctx.multipart ??= multipartJson(ctx.body, ctx.bodyEncoding);
+        v = get(ctx.multipart, tail);
+      } else if (root === "body") v = tail ? get(ctx.body, tail) : ctx.body;
+      else if (root === "args") v = tail ? get(ctx.args, tail) : ctx.args;
+      if (v !== undefined && v !== null && v !== "") return v;
+    }
+    return undefined;
+  };
+}
+
+const hostMatch = (pattern, host) => [].concat(pattern).some((p) => p === "*" || p === host || (p.startsWith("*.") && host.endsWith(p.slice(1))));
+
+function build(side, rule, ctx, raw) {
+  const pick = extractor(ctx);
+  const fields = {};
+  for (const [name, f] of Object.entries(rule.fields ?? {})) {
+    const v = pick(f.from);
+    if (v !== undefined) fields[name] = v;
+  }
+  const t = pick(rule.target);
+  return { side, service: rule.service, action: rule.action, effect: rule.effect, target: normTarget(t, rule.targetCmp), fields, cmp: Object.fromEntries(Object.entries(rule.fields ?? {}).map(([k, f]) => [k, f.cmp])), raw };
+}
+
+export function normTarget(t, how) {
+  if (t === undefined || t === null) return "";
+  if (how === "set") return setNorm(t).join(",");
+  if (Array.isArray(t)) return t.map((x) => normTarget(x, how)).sort().join(",");
+  const s = typeof t === "string" ? t : JSON.stringify(t);
+  if (how === "id") return s.toLowerCase().replace(/^.*[/#]/, "").replace(/[^0-9a-z]/g, "").slice(-32);
+  return s.trim();
+}
+
+// An HTTP request: an n8n mock-log line ({method, proxied, path, query, rawQuery, body,
+// bodyEncoding}) or a runner http request ({method, url, query, body}).
+export function fromHttp(entry, side = "n8n") {
+  const T = table();
+  let u;
+  try {
+    u = entry.url ? new URL(entry.url) : new URL(`${entry.proxied ?? "http://mock"}${entry.path}${entry.rawQuery ? "?" + entry.rawQuery : ""}`);
+  } catch {
+    return null;
+  }
+  const method = String(entry.method ?? "GET").toUpperCase();
+  const host = u.hostname.toLowerCase();
+  const sp = new URLSearchParams(u.search);
+  for (const [k, v] of Object.entries(entry.url ? entry.query ?? {} : {})) for (const x of [].concat(v)) sp.append(k, typeof x === "string" ? x : JSON.stringify(x));
+  const path = decodeURIComponent(u.pathname);
+  if (T.ignore.some((r) => (r.method === "*" || r.method === method) && hostMatch(r.host, host) && (!r.path || new RegExp(r.path).test(path)))) return null;
+  const query = (k) => {
+    const all = sp.getAll(k);
+    return all.length > 1 ? all : all[0];
+  };
+  const queryObj = Object.fromEntries([...new Set(sp.keys())].map((k) => [k, query(k)]));
+  for (const rule of T.http) {
+    if (rule.method !== "*" && rule.method !== method) continue;
+    if (!hostMatch(rule.host, host)) continue;
+    const m = new RegExp(rule.path).exec(path);
+    if (!m) continue;
+    if (rule.when && !Object.entries(rule.when).every(([p, v]) => (p.startsWith("query.") ? query(p.slice(6)) === v : true))) continue;
+    return build(side, rule, { body: entry.body, bodyEncoding: entry.bodyEncoding, query, queryObj, groups: m.groups ?? {} }, { method, url: `${u.origin}${u.pathname}`, query: queryObj, body: entry.body });
+  }
+  // No rule: the effect is still recorded, keyed by host and a path with ids generalised, so it
+  // can only match the same raw request on the other side.
+  const generic = path.replace(/\/[0-9A-Za-z_-]{12,}(?=\/|$)/g, "/:id").replace(/\/\d+(?=\/|$)/g, "/:n");
+  return { side, service: host, action: `${method} ${generic}`, effect: ["GET", "HEAD", "OPTIONS"].includes(method) ? "read" : "write", target: path, fields: { body: entry.body, query: queryObj }, cmp: { body: "exact", query: "exact" }, raw: { method, url: `${u.origin}${u.pathname}` }, unmapped: true };
+}
+
+export function fromTool(call, side = "claude") {
+  const rule = table().tools.find((t) => t.connector === call.connector && t.tool === call.tool);
+  if (!rule) return { side, service: call.connector, action: call.tool, effect: call.effect === "read" ? "read" : "write", target: "", fields: { args: call.args }, cmp: { args: "exact" }, raw: call, unmapped: true };
+  return build(side, rule, { args: call.args ?? {} }, call);
+}
+
+export function reply(text, side) {
+  const r = table().reply;
+  return { side, service: r.service, action: r.action, effect: r.effect, target: "", fields: { text }, cmp: { text: "text" }, raw: { text } };
+}
+
+// ---------- comparison ----------
+
+const keyOf = (e) => `${e.service}.${e.action}:${e.target}`;
+const isWrite = (e) => e.effect === "write" || e.effect === "media";
+
+function setNorm(v) {
+  const list = [].concat(v ?? []).flatMap((x) => (typeof x === "string" ? x.split(",") : [x]));
+  return list
+    .map((x) => (typeof x === "string" ? (/<([^>]+)>/.exec(x)?.[1] ?? x).trim().toLowerCase() : JSON.stringify(x)))
+    .filter((x) => x !== "")
+    .sort();
+}
+
+// Model-written: the value is a model reply (or a string leaf of one), holds one of at least
+// 12 characters, or is held in one.
+export function modelWritten(value, modelTexts = []) {
+  if (typeof value !== "string" || !value.trim()) return false;
+  const v = value.trim();
+  return modelTexts.some((t) => {
+    const s = String(t ?? "").trim();
+    if (s.length < 12) return v === s;
+    return v === s || v.includes(s) || (v.length >= 12 && s.includes(v));
+  });
+}
+
+// A field is model-written when its value (or every item of a list) holds a model reply.
+function isModelWritten(v, modelTexts) {
+  if (Array.isArray(v)) return v.length > 0 && v.every((x) => modelWritten(typeof x === "string" ? x : JSON.stringify(x), modelTexts));
+  return modelWritten(typeof v === "string" ? v : v === undefined ? "" : JSON.stringify(v), modelTexts);
+}
+
+export function sameField(cmp, a, b) {
+  if (a === undefined && b === undefined) return true;
+  if (cmp === "set") return JSON.stringify(setNorm(a)) === JSON.stringify(setNorm(b));
+  if (cmp === "id") return normTarget(a, "id") === normTarget(b, "id");
+  if (cmp === "text") return String(a ?? "").trim() === String(b ?? "").trim();
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+// mode: "replay" (model-written text must be byte-identical) or "live" (it goes to the judge).
+export function compare(n8n, claude, { modelTexts = [], mode = "replay" } = {}) {
+  const nW = n8n.filter(isWrite);
+  const cW = claude.filter(isWrite);
+  const used = new Set();
+  const writes = { matched: [], missing: [], extra: [], fieldDiffs: [] };
+  const judge = [];
+  for (const a of nW) {
+    const i = cW.findIndex((b, j) => !used.has(j) && keyOf(b) === keyOf(a));
+    if (i < 0) {
+      writes.missing.push(summary(a));
+      continue;
+    }
+    used.add(i);
+    const b = cW[i];
+    const diffs = [];
+    for (const f of new Set([...Object.keys(a.fields), ...Object.keys(b.fields)])) {
+      const cmp = a.cmp[f] ?? b.cmp[f] ?? "exact";
+      if (sameField(cmp, a.fields[f], b.fields[f])) continue;
+      if (isModelWritten(a.fields[f], modelTexts)) {
+        if (mode === "live") {
+          judge.push({ effect: keyOf(a), field: f, n8n: a.fields[f], claude: b.fields[f] });
+          continue;
+        }
+        diffs.push({ field: f, n8n: a.fields[f], claude: b.fields[f], modelWritten: true });
+        continue;
+      }
+      diffs.push({ field: f, n8n: a.fields[f], claude: b.fields[f] });
+    }
+    writes.matched.push(keyOf(a));
+    if (diffs.length) writes.fieldDiffs.push({ effect: keyOf(a), diffs });
+  }
+  cW.forEach((b, j) => used.has(j) || writes.extra.push(summary(b)));
+  const nR = new Set(n8n.filter((e) => e.effect === "read").map(keyOf));
+  const cR = new Set(claude.filter((e) => e.effect === "read").map(keyOf));
+  const reads = { onlyN8n: [...nR].filter((k) => !cR.has(k)), onlyClaude: [...cR].filter((k) => !nR.has(k)) };
+  const order = nW.map(keyOf).join("|") === cW.map(keyOf).join("|");
+  const ok = !writes.missing.length && !writes.extra.length && !writes.fieldDiffs.length;
+  return { ok, writes, reads, sameOrder: order, judge, unmapped: [...n8n, ...claude].filter((e) => e.unmapped).map(summary) };
+}
+
+function summary(e) {
+  return { key: keyOf(e), effect: e.effect, fields: e.fields, ...(e.unmapped ? { unmapped: true } : {}) };
+}
+
+// Text of every model reply in a recording (and the string leaves of replies that are JSON),
+// used to tell model-written fields from deterministic ones.
+export function modelTextsOf(calls, answerOf) {
+  const out = [];
+  for (const c of calls ?? []) {
+    const a = answerOf(c.format, c.response);
+    if (a.text) {
+      out.push(a.text);
+      const t = a.text.trim();
+      const s = t.indexOf("{");
+      try {
+        leaves(JSON.parse(s >= 0 ? t.slice(s, t.lastIndexOf("}") + 1) : t), out);
+      } catch {}
+    }
+    for (const call of a.calls ?? []) leaves(call.input, out);
+  }
+  return out.filter((x) => typeof x === "string" && x.trim().length >= 3);
+}
+
+function leaves(v, out) {
+  if (typeof v === "string") out.push(v);
+  else if (Array.isArray(v)) v.forEach((x) => leaves(x, out));
+  else if (v && typeof v === "object") Object.values(v).forEach((x) => leaves(x, out));
+}
+
+// The final answer of a chat/form run from the last node's items (n8n's chat trigger replies
+// with output, else text, else the item).
+export function replyText(items) {
+  const last = (items ?? []).at(-1);
+  if (last === undefined) return undefined;
+  const j = last?.json ?? last;
+  if (j && typeof j === "object") return typeof j.output === "string" ? j.output : typeof j.text === "string" ? j.text : JSON.stringify(j.output ?? j.text ?? j);
+  return String(j);
+}
+
+// Where a bait string shows up in a side's outgoing effects (requests, never responses).
+export function baitHits(effects, bait = []) {
+  const hits = [];
+  for (const e of effects) {
+    const s = JSON.stringify({ target: e.target, fields: e.fields }).toLowerCase();
+    for (const b of bait) if (b && s.includes(String(b).toLowerCase())) hits.push({ key: keyOf(e), bait: b });
+  }
+  return hits;
+}
+
+export { keyOf };

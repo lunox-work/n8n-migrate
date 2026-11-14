@@ -1,0 +1,13 @@
+{
+  "why": "Telegram Params leaves telegram_chat_id empty for the user to fill in; every Telegram node sends to it. Filled with a placeholder chat id on both sides. Placeholder only: no logic changes.",
+  "n8n": {
+    "Telegram Params": { "parameters.assignments.assignments.0.value": "100200300" }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Telegram Params": { "patch": { "params": { "assignments": { "assignments": [{ "id": "d18cdca7-d301-4c70-a4d0-8d6e7ecfc2d1", "name": "telegram_chat_id", "type": "string", "value": "100200300" }] } } } }
+      }
+    }
+  }
+}

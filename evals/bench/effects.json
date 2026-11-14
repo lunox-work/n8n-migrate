@@ -1,0 +1,1130 @@
+{
+  "version": 1,
+  "about": "The comparer's own idea of 'the same effect' (PLAN Phase 6: it must not reuse the converter's field map). Hand-written from n8n's public node docs, the services' REST API docs and the captured connector schemas in evals/mocks/connectors. Each rule maps one side's raw call to a canonical effect {service, action, target, fields}. http rules apply to n8n's outgoing requests (the mock log) and to the runner's http requests alike; tool rules apply to connector calls on the Claude side. Field paths: body.x, query.x, path.<group>, args.x, mime.<Header>|mime.text (a Gmail raw message), multipart.<field> (the JSON part of a multipart upload); a list of paths takes the first that is present. Comparison per field: exact (JSON equal), set (lists, order ignored; a single value counts as a one-item list), id (strings, dashes and case ignored), text (model-written when a model reply is in it; else exact after trimming).",
+  "sources": [
+    "https://developers.google.com/gmail/api/reference/rest/v1/users.messages (list, get, modify, send, trash) and users.drafts.create, users.threads.modify",
+    "https://developers.google.com/drive/api/reference/rest/v3/files (get with alt=media, list, create via /upload with uploadType multipart|resumable, update with addParents/removeParents, copy, delete)",
+    "https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/append and spreadsheets.get",
+    "https://developers.notion.com/reference (retrieve a database GET /v1/databases/{id}, query POST /v1/databases/{id}/query, create a page POST /v1/pages, update PATCH /v1/pages/{id}, append children PATCH /v1/blocks/{id}/children)",
+    "https://api.slack.com/methods/chat.postMessage",
+    "https://core.telegram.org/bots/api#sendmessage and #sendphoto",
+    "https://developer.wordpress.org/rest-api/reference/posts/ and /media/",
+    "https://developers.facebook.com/docs/instagram-platform/content-publishing (POST /{ig-user-id}/media, POST /{ig-user-id}/media_publish, GET /{container-id}?fields=status_code)",
+    "https://platform.openai.com/docs/api-reference/images/create and /assistants (threads, runs, messages)",
+    "https://replicate.com/docs/reference/http#models.predictions.create",
+    "https://www.mediawiki.org/wiki/API:Main_page (GET /w/api.php)",
+    "https://docs.n8n.io/integrations/builtin/app-nodes/ (Gmail, Google Drive, Google Sheets, Notion, Slack, Telegram, WordPress, Facebook Graph API node operations, 2026-11-14)",
+    "evals/mocks/connectors/*.json (captured tool names and input schemas)"
+  ],
+  "ignore": [
+    {
+      "why": "OAuth token exchange and refresh: credentials, not an effect",
+      "method": "POST",
+      "host": "oauth2.googleapis.com"
+    },
+    {
+      "why": "OAuth token exchange (legacy endpoint)",
+      "method": "POST",
+      "host": "www.googleapis.com",
+      "path": "^/oauth2/v4/token$"
+    },
+    {
+      "why": "a resumable upload's content PUT continues the create that opened the session",
+      "method": "PUT",
+      "host": "www.googleapis.com",
+      "path": "^/upload/drive/v3/files"
+    }
+  ],
+  "http": [
+    {
+      "service": "gmail",
+      "action": "search",
+      "effect": "read",
+      "method": "GET",
+      "host": [
+        "gmail.googleapis.com",
+        "www.googleapis.com"
+      ],
+      "path": "^/gmail/v1/users/[^/]+/(messages|threads)$",
+      "target": "query.q",
+      "fields": {
+        "query": {
+          "from": "query.q",
+          "cmp": "exact"
+        },
+        "labels": {
+          "from": "query.labelIds",
+          "cmp": "set"
+        }
+      }
+    },
+    {
+      "service": "gmail",
+      "action": "get_message",
+      "effect": "read",
+      "method": "GET",
+      "host": [
+        "gmail.googleapis.com",
+        "www.googleapis.com"
+      ],
+      "path": "^/gmail/v1/users/[^/]+/messages/(?<id>[^/]+)$",
+      "target": "path.id"
+    },
+    {
+      "service": "gmail",
+      "action": "get_thread",
+      "effect": "read",
+      "method": "GET",
+      "host": [
+        "gmail.googleapis.com",
+        "www.googleapis.com"
+      ],
+      "path": "^/gmail/v1/users/[^/]+/threads/(?<id>[^/]+)$",
+      "target": "path.id"
+    },
+    {
+      "service": "gmail",
+      "action": "modify_labels",
+      "effect": "write",
+      "method": "POST",
+      "host": [
+        "gmail.googleapis.com",
+        "www.googleapis.com"
+      ],
+      "path": "^/gmail/v1/users/[^/]+/messages/(?<id>[^/]+)/modify$",
+      "target": "path.id",
+      "fields": {
+        "add": {
+          "from": "body.addLabelIds",
+          "cmp": "set"
+        },
+        "remove": {
+          "from": "body.removeLabelIds",
+          "cmp": "set"
+        }
+      }
+    },
+    {
+      "service": "gmail",
+      "action": "modify_thread_labels",
+      "effect": "write",
+      "method": "POST",
+      "host": [
+        "gmail.googleapis.com",
+        "www.googleapis.com"
+      ],
+      "path": "^/gmail/v1/users/[^/]+/threads/(?<id>[^/]+)/modify$",
+      "target": "path.id",
+      "fields": {
+        "add": {
+          "from": "body.addLabelIds",
+          "cmp": "set"
+        },
+        "remove": {
+          "from": "body.removeLabelIds",
+          "cmp": "set"
+        }
+      }
+    },
+    {
+      "service": "gmail",
+      "action": "send",
+      "effect": "write",
+      "method": "POST",
+      "host": [
+        "gmail.googleapis.com",
+        "www.googleapis.com"
+      ],
+      "path": "^/gmail/v1/users/[^/]+/messages/send$",
+      "target": "mime.To",
+      "fields": {
+        "to": {
+          "from": "mime.To",
+          "cmp": "set"
+        },
+        "cc": {
+          "from": "mime.Cc",
+          "cmp": "set"
+        },
+        "subject": {
+          "from": "mime.Subject",
+          "cmp": "text"
+        },
+        "body": {
+          "from": "mime.text",
+          "cmp": "text"
+        },
+        "thread": {
+          "from": "body.threadId",
+          "cmp": "exact"
+        }
+      },
+      "targetCmp": "set"
+    },
+    {
+      "service": "gmail",
+      "action": "create_draft",
+      "effect": "write",
+      "method": "POST",
+      "host": [
+        "gmail.googleapis.com",
+        "www.googleapis.com"
+      ],
+      "path": "^/gmail/v1/users/[^/]+/drafts$",
+      "target": "mime.To",
+      "fields": {
+        "to": {
+          "from": "mime.To",
+          "cmp": "set"
+        },
+        "subject": {
+          "from": "mime.Subject",
+          "cmp": "text"
+        },
+        "body": {
+          "from": "mime.text",
+          "cmp": "text"
+        }
+      },
+      "targetCmp": "set"
+    },
+    {
+      "service": "gmail",
+      "action": "trash",
+      "effect": "write",
+      "method": "POST",
+      "host": [
+        "gmail.googleapis.com",
+        "www.googleapis.com"
+      ],
+      "path": "^/gmail/v1/users/[^/]+/messages/(?<id>[^/]+)/trash$",
+      "target": "path.id"
+    },
+    {
+      "service": "gmail",
+      "action": "list_labels",
+      "effect": "read",
+      "method": "GET",
+      "host": [
+        "gmail.googleapis.com",
+        "www.googleapis.com"
+      ],
+      "path": "^/gmail/v1/users/[^/]+/labels$",
+      "target": ""
+    },
+    {
+      "service": "drive",
+      "action": "download",
+      "effect": "read",
+      "method": "GET",
+      "host": "www.googleapis.com",
+      "path": "^/drive/v3/files/(?<id>[^/]+)$",
+      "when": {
+        "query.alt": "media"
+      },
+      "target": "path.id"
+    },
+    {
+      "service": "drive",
+      "action": "export",
+      "effect": "read",
+      "method": "GET",
+      "host": "www.googleapis.com",
+      "path": "^/drive/v3/files/(?<id>[^/]+)/export$",
+      "target": "path.id"
+    },
+    {
+      "service": "drive",
+      "action": "get_metadata",
+      "effect": "read",
+      "method": "GET",
+      "host": "www.googleapis.com",
+      "path": "^/drive/v3/files/(?<id>[^/]+)$",
+      "target": "path.id"
+    },
+    {
+      "service": "drive",
+      "action": "search",
+      "effect": "read",
+      "method": "GET",
+      "host": "www.googleapis.com",
+      "path": "^/drive/v3/files$",
+      "target": "query.q",
+      "fields": {
+        "query": {
+          "from": "query.q",
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "service": "drive",
+      "action": "create_file",
+      "effect": "write",
+      "method": "POST",
+      "host": "www.googleapis.com",
+      "path": "^/upload/drive/v3/files$",
+      "target": [
+        "multipart.name",
+        "body.name"
+      ],
+      "fields": {
+        "name": {
+          "from": [
+            "multipart.name",
+            "body.name"
+          ],
+          "cmp": "exact"
+        },
+        "parent": {
+          "from": [
+            "multipart.parents",
+            "body.parents"
+          ],
+          "cmp": "set"
+        },
+        "mimeType": {
+          "from": [
+            "multipart.mimeType",
+            "body.mimeType"
+          ],
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "service": "drive",
+      "action": "create_file",
+      "effect": "write",
+      "method": "POST",
+      "host": "www.googleapis.com",
+      "path": "^/drive/v3/files$",
+      "target": "body.name",
+      "fields": {
+        "name": {
+          "from": "body.name",
+          "cmp": "exact"
+        },
+        "parent": {
+          "from": "body.parents",
+          "cmp": "set"
+        },
+        "mimeType": {
+          "from": "body.mimeType",
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "service": "drive",
+      "action": "update",
+      "effect": "write",
+      "method": "PATCH",
+      "host": "www.googleapis.com",
+      "path": "^/(upload/)?drive/v3/files/(?<id>[^/]+)$",
+      "target": "path.id",
+      "fields": {
+        "name": {
+          "from": "body.name",
+          "cmp": "exact"
+        },
+        "parent": {
+          "from": "query.addParents",
+          "cmp": "set"
+        }
+      }
+    },
+    {
+      "service": "drive",
+      "action": "copy",
+      "effect": "write",
+      "method": "POST",
+      "host": "www.googleapis.com",
+      "path": "^/drive/v3/files/(?<id>[^/]+)/copy$",
+      "target": "path.id",
+      "fields": {
+        "name": {
+          "from": "body.name",
+          "cmp": "exact"
+        },
+        "parent": {
+          "from": "body.parents",
+          "cmp": "set"
+        }
+      }
+    },
+    {
+      "service": "drive",
+      "action": "trash",
+      "effect": "write",
+      "method": "DELETE",
+      "host": "www.googleapis.com",
+      "path": "^/drive/v3/files/(?<id>[^/]+)$",
+      "target": "path.id"
+    },
+    {
+      "service": "sheets",
+      "action": "get",
+      "effect": "read",
+      "method": "GET",
+      "host": "sheets.googleapis.com",
+      "path": "^/v4/spreadsheets/(?<id>[^/]+)(/values/(?<range>.+))?$",
+      "target": "path.id"
+    },
+    {
+      "service": "sheets",
+      "action": "append",
+      "effect": "write",
+      "method": "POST",
+      "host": "sheets.googleapis.com",
+      "path": "^/v4/spreadsheets/(?<id>[^/]+)/values/(?<range>[^:]+):append$",
+      "target": "path.id",
+      "fields": {
+        "range": {
+          "from": "path.range",
+          "cmp": "exact"
+        },
+        "values": {
+          "from": "body.values",
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "service": "sheets",
+      "action": "update",
+      "effect": "write",
+      "method": "PUT",
+      "host": "sheets.googleapis.com",
+      "path": "^/v4/spreadsheets/(?<id>[^/]+)/values/(?<range>.+)$",
+      "target": "path.id",
+      "fields": {
+        "range": {
+          "from": "path.range",
+          "cmp": "exact"
+        },
+        "values": {
+          "from": "body.values",
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "service": "notion",
+      "action": "fetch",
+      "effect": "read",
+      "method": "GET",
+      "host": "api.notion.com",
+      "path": "^/v1/(databases|pages|blocks|data_sources)/(?<id>[^/]+)$",
+      "target": "path.id",
+      "targetCmp": "id"
+    },
+    {
+      "service": "notion",
+      "action": "query",
+      "effect": "read",
+      "method": "POST",
+      "host": "api.notion.com",
+      "path": "^/v1/(databases|data_sources)/(?<id>[^/]+)/query$",
+      "target": "path.id",
+      "targetCmp": "id"
+    },
+    {
+      "service": "notion",
+      "action": "search",
+      "effect": "read",
+      "method": "POST",
+      "host": "api.notion.com",
+      "path": "^/v1/search$",
+      "target": "body.query"
+    },
+    {
+      "service": "notion",
+      "action": "create_page",
+      "effect": "write",
+      "method": "POST",
+      "host": "api.notion.com",
+      "path": "^/v1/pages$",
+      "target": [
+        "body.parent.database_id",
+        "body.parent.page_id",
+        "body.parent.data_source_id"
+      ],
+      "targetCmp": "id",
+      "fields": {
+        "properties": {
+          "from": "body.properties",
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "service": "notion",
+      "action": "update_page",
+      "effect": "write",
+      "method": "PATCH",
+      "host": "api.notion.com",
+      "path": "^/v1/pages/(?<id>[^/]+)$",
+      "target": "path.id",
+      "targetCmp": "id",
+      "fields": {
+        "properties": {
+          "from": "body.properties",
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "service": "notion",
+      "action": "append_blocks",
+      "effect": "write",
+      "method": "PATCH",
+      "host": "api.notion.com",
+      "path": "^/v1/blocks/(?<id>[^/]+)/children$",
+      "target": "path.id",
+      "targetCmp": "id",
+      "fields": {
+        "children": {
+          "from": "body.children",
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "service": "slack",
+      "action": "post_message",
+      "effect": "write",
+      "method": "POST",
+      "host": "slack.com",
+      "path": "^/api/chat\\.postMessage$",
+      "target": "body.channel",
+      "fields": {
+        "text": {
+          "from": "body.text",
+          "cmp": "text"
+        },
+        "thread": {
+          "from": "body.thread_ts",
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "service": "telegram",
+      "action": "send_message",
+      "effect": "write",
+      "method": "POST",
+      "host": "api.telegram.org",
+      "path": "^/bot[^/]+/sendMessage$",
+      "target": "body.chat_id",
+      "fields": {
+        "text": {
+          "from": "body.text",
+          "cmp": "text"
+        }
+      }
+    },
+    {
+      "service": "telegram",
+      "action": "send_photo",
+      "effect": "write",
+      "method": "POST",
+      "host": "api.telegram.org",
+      "path": "^/bot[^/]+/sendPhoto$",
+      "target": "body.chat_id",
+      "fields": {
+        "photo": {
+          "from": "body.photo",
+          "cmp": "exact"
+        },
+        "caption": {
+          "from": "body.caption",
+          "cmp": "text"
+        }
+      }
+    },
+    {
+      "service": "wordpress",
+      "action": "create_post",
+      "effect": "write",
+      "method": "POST",
+      "host": "*",
+      "path": "^/wp-json/wp/v2/posts$",
+      "target": "",
+      "fields": {
+        "title": {
+          "from": "body.title",
+          "cmp": "text"
+        },
+        "content": {
+          "from": "body.content",
+          "cmp": "text"
+        },
+        "status": {
+          "from": "body.status",
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "service": "wordpress",
+      "action": "update_post",
+      "effect": "write",
+      "method": "POST",
+      "host": "*",
+      "path": "^/wp-json/wp/v2/posts/(?<id>\\d+)$",
+      "target": "path.id",
+      "fields": {
+        "featured_media": {
+          "from": [
+            "body.featured_media",
+            "query.featured_media"
+          ],
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "service": "wordpress",
+      "action": "upload_media",
+      "effect": "write",
+      "method": "POST",
+      "host": "*",
+      "path": "^/wp-json/wp/v2/media$",
+      "target": ""
+    },
+    {
+      "service": "instagram",
+      "action": "create_media",
+      "effect": "write",
+      "method": "POST",
+      "host": "graph.facebook.com",
+      "path": "^/v[\\d.]+/(?<id>[^/]+)/media$",
+      "target": "path.id",
+      "fields": {
+        "image_url": {
+          "from": [
+            "body.image_url",
+            "query.image_url"
+          ],
+          "cmp": "exact"
+        },
+        "caption": {
+          "from": [
+            "body.caption",
+            "query.caption"
+          ],
+          "cmp": "text"
+        }
+      }
+    },
+    {
+      "service": "instagram",
+      "action": "publish",
+      "effect": "write",
+      "method": "POST",
+      "host": "graph.facebook.com",
+      "path": "^/v[\\d.]+/(?<id>[^/]+)/media_publish$",
+      "target": "path.id",
+      "fields": {
+        "creation_id": {
+          "from": [
+            "body.creation_id",
+            "query.creation_id"
+          ],
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "service": "instagram",
+      "action": "get",
+      "effect": "read",
+      "method": "GET",
+      "host": "graph.facebook.com",
+      "path": "^/v[\\d.]+/(?<id>[^/]+)$",
+      "target": "path.id"
+    },
+    {
+      "service": "openai",
+      "action": "image_generate",
+      "effect": "media",
+      "method": "POST",
+      "host": "api.openai.com",
+      "path": "^/v1/images/generations$",
+      "target": "",
+      "fields": {
+        "prompt": {
+          "from": "body.prompt",
+          "cmp": "text"
+        }
+      }
+    },
+    {
+      "service": "openai",
+      "action": "assistant",
+      "effect": "read",
+      "method": "*",
+      "host": "api.openai.com",
+      "path": "^/v1/(threads|assistants)(/|$)",
+      "target": ""
+    },
+    {
+      "service": "replicate",
+      "action": "predict",
+      "effect": "media",
+      "method": "POST",
+      "host": "api.replicate.com",
+      "path": "^/v1/models/(?<model>.+)/predictions$",
+      "target": "path.model",
+      "fields": {
+        "prompt": {
+          "from": "body.input.prompt",
+          "cmp": "text"
+        }
+      }
+    },
+    {
+      "service": "rapidapi",
+      "action": "get",
+      "effect": "read",
+      "method": "GET",
+      "host": "*.p.rapidapi.com",
+      "path": "^(?<p>/.*)$",
+      "target": "path.p",
+      "fields": {
+        "query": {
+          "from": "query",
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "service": "wikipedia",
+      "action": "query",
+      "effect": "read",
+      "method": "GET",
+      "host": "*.wikipedia.org",
+      "path": "^/w/api\\.php$",
+      "target": [
+        "query.srsearch",
+        "query.titles",
+        "query.page"
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "connector": "gmail",
+      "tool": "search_threads",
+      "service": "gmail",
+      "action": "search",
+      "effect": "read",
+      "target": "args.query",
+      "fields": {
+        "query": {
+          "from": "args.query",
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "connector": "gmail",
+      "tool": "get_message",
+      "service": "gmail",
+      "action": "get_message",
+      "effect": "read",
+      "target": "args.messageId"
+    },
+    {
+      "connector": "gmail",
+      "tool": "get_thread",
+      "service": "gmail",
+      "action": "get_thread",
+      "effect": "read",
+      "target": "args.threadId"
+    },
+    {
+      "connector": "gmail",
+      "tool": "label_message",
+      "service": "gmail",
+      "action": "modify_labels",
+      "effect": "write",
+      "target": "args.messageId",
+      "fields": {
+        "add": {
+          "from": "args.labelIds",
+          "cmp": "set"
+        }
+      }
+    },
+    {
+      "connector": "gmail",
+      "tool": "unlabel_message",
+      "service": "gmail",
+      "action": "modify_labels",
+      "effect": "write",
+      "target": "args.messageId",
+      "fields": {
+        "remove": {
+          "from": "args.labelIds",
+          "cmp": "set"
+        }
+      }
+    },
+    {
+      "connector": "gmail",
+      "tool": "update_message_labels",
+      "service": "gmail",
+      "action": "modify_labels",
+      "effect": "write",
+      "target": "args.messageId",
+      "fields": {
+        "add": {
+          "from": "args.addLabelIds",
+          "cmp": "set"
+        },
+        "remove": {
+          "from": "args.removeLabelIds",
+          "cmp": "set"
+        }
+      }
+    },
+    {
+      "connector": "gmail",
+      "tool": "label_thread",
+      "service": "gmail",
+      "action": "modify_thread_labels",
+      "effect": "write",
+      "target": "args.threadId",
+      "fields": {
+        "add": {
+          "from": "args.labelIds",
+          "cmp": "set"
+        }
+      }
+    },
+    {
+      "connector": "gmail",
+      "tool": "unlabel_thread",
+      "service": "gmail",
+      "action": "modify_thread_labels",
+      "effect": "write",
+      "target": "args.threadId",
+      "fields": {
+        "remove": {
+          "from": "args.labelIds",
+          "cmp": "set"
+        }
+      }
+    },
+    {
+      "connector": "gmail",
+      "tool": "send_message",
+      "service": "gmail",
+      "action": "send",
+      "effect": "write",
+      "target": "args.to",
+      "fields": {
+        "to": {
+          "from": "args.to",
+          "cmp": "set"
+        },
+        "cc": {
+          "from": "args.cc",
+          "cmp": "set"
+        },
+        "subject": {
+          "from": "args.subject",
+          "cmp": "text"
+        },
+        "body": {
+          "from": [
+            "args.body",
+            "args.htmlBody"
+          ],
+          "cmp": "text"
+        },
+        "thread": {
+          "from": "args.replyThreadId",
+          "cmp": "exact"
+        }
+      },
+      "targetCmp": "set"
+    },
+    {
+      "connector": "gmail",
+      "tool": "reply",
+      "service": "gmail",
+      "action": "send",
+      "effect": "write",
+      "target": "args.to",
+      "fields": {
+        "to": {
+          "from": "args.to",
+          "cmp": "set"
+        },
+        "body": {
+          "from": [
+            "args.body",
+            "args.htmlBody"
+          ],
+          "cmp": "text"
+        }
+      },
+      "targetCmp": "set"
+    },
+    {
+      "connector": "gmail",
+      "tool": "create_draft",
+      "service": "gmail",
+      "action": "create_draft",
+      "effect": "write",
+      "target": "args.to",
+      "fields": {
+        "to": {
+          "from": "args.to",
+          "cmp": "set"
+        },
+        "subject": {
+          "from": "args.subject",
+          "cmp": "text"
+        },
+        "body": {
+          "from": [
+            "args.body",
+            "args.htmlBody"
+          ],
+          "cmp": "text"
+        }
+      },
+      "targetCmp": "set"
+    },
+    {
+      "connector": "gmail",
+      "tool": "trash_message",
+      "service": "gmail",
+      "action": "trash",
+      "effect": "write",
+      "target": "args.messageId"
+    },
+    {
+      "connector": "gmail",
+      "tool": "list_labels",
+      "service": "gmail",
+      "action": "list_labels",
+      "effect": "read",
+      "target": ""
+    },
+    {
+      "connector": "google-drive",
+      "tool": "download_file_content",
+      "service": "drive",
+      "action": "download",
+      "effect": "read",
+      "target": "args.fileId"
+    },
+    {
+      "connector": "google-drive",
+      "tool": "read_file_content",
+      "service": "drive",
+      "action": "download",
+      "effect": "read",
+      "target": "args.fileId"
+    },
+    {
+      "connector": "google-drive",
+      "tool": "get_file_metadata",
+      "service": "drive",
+      "action": "get_metadata",
+      "effect": "read",
+      "target": "args.fileId"
+    },
+    {
+      "connector": "google-drive",
+      "tool": "search_files",
+      "service": "drive",
+      "action": "search",
+      "effect": "read",
+      "target": "args.query",
+      "fields": {
+        "query": {
+          "from": "args.query",
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "connector": "google-drive",
+      "tool": "create_file",
+      "service": "drive",
+      "action": "create_file",
+      "effect": "write",
+      "target": "args.title",
+      "fields": {
+        "name": {
+          "from": "args.title",
+          "cmp": "exact"
+        },
+        "parent": {
+          "from": "args.parentId",
+          "cmp": "set"
+        },
+        "mimeType": {
+          "from": [
+            "args.contentMimeType",
+            "args.mimeType"
+          ],
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "connector": "google-drive",
+      "tool": "update_file",
+      "service": "drive",
+      "action": "update",
+      "effect": "write",
+      "target": "args.fileId",
+      "fields": {
+        "name": {
+          "from": "args.title",
+          "cmp": "exact"
+        },
+        "parent": {
+          "from": "args.parentId",
+          "cmp": "set"
+        }
+      }
+    },
+    {
+      "connector": "google-drive",
+      "tool": "copy_file",
+      "service": "drive",
+      "action": "copy",
+      "effect": "write",
+      "target": "args.fileId",
+      "fields": {
+        "name": {
+          "from": "args.title",
+          "cmp": "exact"
+        },
+        "parent": {
+          "from": "args.parentId",
+          "cmp": "set"
+        }
+      }
+    },
+    {
+      "connector": "google-drive",
+      "tool": "trash_file",
+      "service": "drive",
+      "action": "trash",
+      "effect": "write",
+      "target": "args.fileId"
+    },
+    {
+      "connector": "notion",
+      "tool": "notion-fetch",
+      "service": "notion",
+      "action": "fetch",
+      "effect": "read",
+      "target": "args.id",
+      "targetCmp": "id"
+    },
+    {
+      "connector": "notion",
+      "tool": "notion-search",
+      "service": "notion",
+      "action": "search",
+      "effect": "read",
+      "target": "args.query"
+    },
+    {
+      "connector": "notion",
+      "tool": "notion-query-data-sources",
+      "service": "notion",
+      "action": "query",
+      "effect": "read",
+      "target": "args.data.data_source_urls",
+      "targetCmp": "id"
+    },
+    {
+      "connector": "notion",
+      "tool": "notion-create-pages",
+      "service": "notion",
+      "action": "create_page",
+      "effect": "write",
+      "target": [
+        "args.parent.database_id",
+        "args.parent.page_id",
+        "args.parent.data_source_id"
+      ],
+      "targetCmp": "id",
+      "fields": {
+        "properties": {
+          "from": "args.pages",
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "connector": "notion",
+      "tool": "notion-update-page",
+      "service": "notion",
+      "action": "update_page",
+      "effect": "write",
+      "target": "args.data.page_id",
+      "targetCmp": "id",
+      "fields": {
+        "properties": {
+          "from": "args.data.properties",
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "connector": "slack",
+      "tool": "slack_send_message",
+      "service": "slack",
+      "action": "post_message",
+      "effect": "write",
+      "target": "args.channel_id",
+      "fields": {
+        "text": {
+          "from": "args.message",
+          "cmp": "text"
+        },
+        "thread": {
+          "from": "args.thread_ts",
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "connector": "slack",
+      "tool": "slack_read_channel",
+      "service": "slack",
+      "action": "read_channel",
+      "effect": "read",
+      "target": "args.channel_id"
+    },
+    {
+      "connector": "slack",
+      "tool": "slack_search_public",
+      "service": "slack",
+      "action": "search",
+      "effect": "read",
+      "target": [
+        "args.keywords",
+        "args.natural_language_query"
+      ]
+    }
+  ],
+  "reply": {
+    "about": "a chat or form workflow's answer to the person: the last node's item (chat: output, else text, else the item) on both sides; compared as text",
+    "service": "chat",
+    "action": "reply",
+    "effect": "write"
+  }
+}
