@@ -2,7 +2,7 @@
 
 The Phase 6 loop may not change fixtures, mocks, gates, the comparer or the ceiling (PLAN Phase 6). Defects it finds are written here with evidence and wait for a person.
 
-Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (README "Connector-limited", "Drivers"). P3, P4 and P5 approved and applied (README "Form bodies", "Timezone and run-time timestamps", "Drivers"); baseline `p6-base30c`. P6 and P7 approved and applied (README "Effects"; fixture 2063), full re-run `p6-full30`. P8 and P9 approved and applied (README "Drivers", "Form bodies"), full re-run `p6-a1`. P10, P11 and P12 approved and applied at release point 1 (README "Effects", "Connector rows", "Model replies"), measured in `rel1-dev`. Open from P1: the real Gmail `get_message` and Notion `notion-fetch` shapes are still uncaptured, and 4722 and 2415 carry no `connectorGaps` yet, so their gate 4 is not marked connector-limited.
+Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (README "Connector-limited", "Drivers"). P3, P4 and P5 approved and applied (README "Form bodies", "Timezone and run-time timestamps", "Drivers"); baseline `p6-base30c`. P6 and P7 approved and applied (README "Effects"; fixture 2063), full re-run `p6-full30`. P8 and P9 approved and applied (README "Drivers", "Form bodies"), full re-run `p6-a1`. P10, P11 and P12 approved and applied at release point 1 (README "Effects", "Connector rows", "Model replies"), measured in `rel1-dev`. Open from release point 1: P13 (stand-in reply envelope), P14 (prompts with NUL bytes), P15 (replayed agent turns not checked against the tools the Claude side ran). Open from P1: the real Gmail `get_message` and Notion `notion-fetch` shapes are still uncaptured, and 4722 and 2415 carry no `connectorGaps` yet, so their gate 4 is not marked connector-limited.
 
 ## P1. Fixture connector rows and n8n-side rows disagree on what the service returns (4722, 2415)
 
@@ -86,3 +86,21 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Proposed change.** Check memory once before a live-recorded n8n run starts (enough headroom for its model calls), not per call in the middle of it; and never save a recording whose run failed because the shim did not answer (mark the row `bench defect: recording interrupted` instead). Optionally run the live recording with the container's model requests on a longer timeout.
 - **Why not in the loop.** It changes the bench's environment handling and the recordings.
 - **Status: applied** (approved 2026-11-14, release point 1). `run.mjs` `n8nRun()`: a run with model nodes checks memory once before it starts (`memoryGate({need: 25})`, CLAUDE.md's floor: the recording is one sequential job) and marks the shim session `memoryChecked`, so `claudeP()` skips the per-call gate for its model calls; `n8n-side.mjs` `recordingInterrupted()` (a shim error, or a model node or its root failing on a transport error) stops the template with `recording interrupted (…, not saved)` before the recording is written. A model node failing on what the model answered stays a baseline.
+
+## P13. The stand-in model sometimes returns its answer envelope as the reply text
+
+- **Evidence.** Release point 1 (`evals/bench/RELEASE-1.md`, held-out runs, which the loop does not read): `claude -p` answers through `ANSWER_SCHEMA` (`{type, text}`), and haiku sometimes writes that envelope as a JSON string inside `text`, so the provider reply n8n receives is `{"type":"text","text":"…"}`. In one run it also dropped a wrapper level of n8n's structured-output schema, and n8n's own parser failed the baseline (bucket `fixture`). Replays then carry the envelope to the Claude side.
+- **Proposed change.** In `liveAnswer()`, when the answer's text is itself a JSON object of the envelope's shape, unwrap it (repeat while it nests). Do not re-draw a reply because n8n rejected it: that would select baselines.
+- **Why not in the loop.** It changes the bench's model shim and the recordings it writes.
+
+## P14. A prompt with a NUL byte cannot be passed to `claude -p` as an argument
+
+- **Evidence.** Release point 1 (RELEASE-1.md): a malformed fixture's chat text holds a NUL byte; `claudeP()` passes the prompt in argv, Node refuses (`must be a string without null bytes`), the shim answers with an error, and P12 stops the template as `recording interrupted` (nothing saved).
+- **Proposed change.** Send the prompt on stdin (`claude -p` reads it there) for every bench `claude -p`.
+- **Why not in the loop.** It changes how the bench calls the model.
+
+## P15. Replayed agent turns are not checked against the tools the Claude side ran
+
+- **Evidence.** `sameModelInput()` compares the Claude request's system and user text with n8n's recorded request; tool results in the transcript are not compared, and reads are reported, not gated. With n8n's replies replayed, an agent on the Claude side that never ran a read tool (the tool blocked or missing) still gets n8n's next turn and its final answer, and the template passes. Dev 6270 (`rel1-dev`) passes with a read only n8n made (`feeds.bbci.co.uk … rss.xml`); release point 1 found a held-out pass of the same kind.
+- **Proposed change.** For each replayed agent turn after a tool call, check that the Claude side executed the tool calls n8n's reply asked for (same tool, matched by name) and that the tool results it fed back equal n8n's (as the reads' effects, keyed like `compare()` keys reads); a miss fails gate 4 as `field map: tool call not executed` or `different tool result`.
+- **Why not in the loop.** It changes a gate.
