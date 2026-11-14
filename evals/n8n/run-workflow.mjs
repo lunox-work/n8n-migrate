@@ -235,7 +235,7 @@ export function summariseRunData(runData = {}) {
 
 // pinTrigger false (pin mode): the trigger is not pinned, so a poll trigger polls once in manual
 // mode through the mock (binary data, such as Gmail attachments, cannot be pinned).
-export async function runWorkflow(workflow, { trigger, mock, credentials = {}, via = "pin", triggerNode, keepPin = false, keep = false, stats = false, timeoutS = 120, now = "2026-11-16T09:00:00Z", pinTrigger = true } = {}) {
+export async function runWorkflow(workflow, { trigger, mock, credentials = {}, via = "pin", triggerNode, keepPin = false, keep = false, stats = false, timeoutS = 120, now = "2026-11-16T09:00:00Z", pinTrigger = true, activate = false } = {}) {
   await waitHealthy(30_000);
   const wf = structuredClone(workflow);
   const t = pickTrigger(wf, triggerNode);
@@ -288,6 +288,9 @@ export async function runWorkflow(workflow, { trigger, mock, credentials = {}, v
   try {
     try {
       if (via === "pin") {
+        // A workflow that calls itself (Execute Workflow / workflow tool on $workflow.id) needs
+        // to be active: n8n 2.x refuses to run an inactive workflow as a sub-workflow.
+        if (activate) await rest("POST", `/workflows/${wid}/activate`, { versionId: res.versionId });
         const r = await rest("POST", `/workflows/${wid}/run`, { triggerToStartFrom: { name: t.name } });
         if (!r.executionId) throw new Error(`n8n did not start a run: ${JSON.stringify(r)}`);
         ex = await waitExecution(r.executionId, timeoutS * 1000);
@@ -332,7 +335,7 @@ export async function runWorkflow(workflow, { trigger, mock, credentials = {}, v
     };
   } finally {
     if (!keep) {
-      if (via === "webhook" || via === "form") await rest("POST", `/workflows/${wid}/deactivate`, {}).catch(() => {});
+      if (via === "webhook" || via === "form" || activate) await rest("POST", `/workflows/${wid}/deactivate`, {}).catch(() => {});
       if (ex) await rest("POST", "/executions/delete", { ids: [ex.id] }).catch(() => {});
       await rest("POST", `/workflows/${wid}/archive`, {}).catch(() => {});
       await rest("DELETE", `/workflows/${wid}`).catch(() => {});

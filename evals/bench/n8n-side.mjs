@@ -12,6 +12,8 @@
 //     by node name that fill placeholders (an empty chat id, a demo host), never logic;
 //     `timeCompression.n8n` patches that only shorten a wait (recorded as non-placeholder);
 //     `env` values the container is started with (overlayEnv).
+//   - activation: a workflow that calls itself (sub-workflow or workflow tool on $workflow.id)
+//     is activated for the run, since n8n 2.x runs only active workflows as sub-workflows.
 //   - the trigger: the fixture's trigger node (not run-workflow's pick among several), pinned
 //     (`--via pin`); when the fixture's trigger items carry binary (an upload, which a pin
 //     drops), a Form Trigger gets a multipart submission (`--via form`) and any other trigger is
@@ -266,7 +268,9 @@ export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = 
   const isForm = wf.nodes.find((n) => n.name === fx.trigger.node)?.type === "n8n-nodes-base.formTrigger";
   const via = binary ? (isForm ? "form" : "cli") : "pin";
   if (via !== "pin") sources[fx.trigger.node] = via === "form" ? "form (multipart submission: binary trigger items)" : "cli (Code-node swap: binary trigger items)";
-  return { pinTrigger, via, id, variant, name, wf: { ...wf, name: `${id} ${name}` }, fixture: fx, credentials, credentialsAttached, routes, models, overlayApplied: applied, sources, files };
+  // A workflow that calls itself must be active for its sub-workflow calls to run (n8n 2.x).
+  const selfCall = wf.nodes.some((n) => !n.disabled && /\.(executeWorkflow|toolWorkflow)$/.test(n.type) && /\$workflow\.id/.test(JSON.stringify(n.parameters?.workflowId ?? "")));
+  return { pinTrigger, via, activate: selfCall, id, variant, name, wf: { ...wf, name: `${id} ${name}` }, fixture: fx, credentials, credentialsAttached, routes, models, overlayApplied: applied, sources, files };
 }
 
 // Splits the mock log into service calls and model calls.
@@ -313,7 +317,7 @@ export async function runN8n(prep, { shim, modelSession, runWorkflow, copyIn, ti
     copyIn(local, join("/home/node", f.path));
   }
   shim.setSession({ ...modelSession, label: `${prep.id}/${prep.variant}` });
-  const r = await runWorkflow(prep.wf, { trigger: prep.fixture.trigger.items, mock: { __routes: prep.routes, __writeDefault: { status: 200, body: {} } }, credentials: prep.credentials, via: prep.via ?? "pin", triggerNode: prep.fixture.trigger.node, keepPin: true, timeoutS, now: prep.fixture.now, pinTrigger: prep.pinTrigger });
+  const r = await runWorkflow(prep.wf, { trigger: prep.fixture.trigger.items, mock: { __routes: prep.routes, __writeDefault: { status: 200, body: {} } }, credentials: prep.credentials, via: prep.via ?? "pin", triggerNode: prep.fixture.trigger.node, activate: !!prep.activate, keepPin: true, timeoutS, now: prep.fixture.now, pinTrigger: prep.pinTrigger });
   const calls = shim.session.calls.map((c) => ({ ...c, node: tagToNode[c.tag] ?? c.tag }));
   const failedNode = r.error?.node ?? Object.entries(r.nodes ?? {}).find(([, runs]) => runs.some((x) => x.error))?.[0];
   const fallbackable = allowFallback && failedNode && prep.fixture.reads.some((x) => x.node === failedNode && x.n8n && x.http?.responses?.length) && prep.sources[failedNode]?.startsWith("http");
