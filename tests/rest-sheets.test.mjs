@@ -119,3 +119,22 @@ test("convert: an LLM API call over HTTP stays an http step with the person's ke
   assert.ok(def.allow.http.some((a) => a.host === "api.openai.com" && a.method === "POST"));
   assert.deepEqual(def.secrets.find((x) => x.name === "OpenAI").hosts, ["api.openai.com"]);
 });
+
+test("Sheets read row filters follow n8n's lookupValues: first match per filter, OR order, AND, 4.6 stop", async () => {
+  const { applyLookup } = await import("../skills/n8n-to-claude/runtime/src/nodes2.mjs");
+  const rows = [
+    { row_number: 2, q: "a", status: "false" },
+    { row_number: 3, q: "b", status: "" },
+    { row_number: 4, q: "c" },
+    { row_number: 5, q: "d", status: "false" },
+  ];
+  const exec = { name: "Read" };
+  const nums = (r) => r.map((x) => x.row_number);
+  assert.deepEqual(nums(applyLookup(exec, rows, { filters: [{ lookupColumn: "status", lookupValue: "false" }] })), [2], "first match only by default");
+  assert.deepEqual(nums(applyLookup(exec, rows, { filters: [{ lookupColumn: "status", lookupValue: "false" }], returnAll: true })), [2, 5]);
+  assert.deepEqual(nums(applyLookup(exec, rows, { filters: [{ lookupColumn: "status", lookupValue: "" }] })), [3], "a missing cell is empty text too, but the first match wins");
+  assert.deepEqual(nums(applyLookup(exec, rows, { filters: [{ lookupColumn: "q", lookupValue: "d" }, { lookupColumn: "q", lookupValue: "a" }] })), [5, 2], "OR keeps filter order");
+  assert.deepEqual(nums(applyLookup(exec, rows, { filters: [{ lookupColumn: "q", lookupValue: "d" }, { lookupColumn: "q", lookupValue: "a" }], stopAtFirst: true })), [5]);
+  assert.deepEqual(nums(applyLookup(exec, rows, { filters: [{ lookupColumn: "status", lookupValue: "false" }, { lookupColumn: "q", lookupValue: "d" }], combine: "AND", returnAll: true })), [5]);
+  assert.throws(() => applyLookup(exec, rows, { filters: [{ lookupColumn: "nope", lookupValue: "x" }] }), /could not be found/);
+});

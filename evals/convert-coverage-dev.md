@@ -6,8 +6,8 @@ Classes: **full** (no review flag, no blocked step), **review** (some step is fl
 
 | Mode | full | review | blocked | refused | crash | schema-invalid | preflight clean |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| default | 4 | 9 | 47 | 0 | 0 | 0 | 17 |
-| forced | 4 | 9 | 47 | 0 | 0 | 0 | 17 |
+| default | 6 | 14 | 40 | 0 | 0 | 0 | 21 |
+| forced | 6 | 14 | 40 | 0 | 0 | 0 | 21 |
 
 ## Default (refusals honoured)
 
@@ -15,21 +15,21 @@ Top reasons for blocked steps:
 
 | Reason | Templates | Steps |
 | --- | --- | --- |
-| no-tool: no Sheets tool: rows cannot be updated through the Drive connector | 13 | 26 |
 | unsupported: file steps need the files lever (not built yet) | 10 | 19 |
 | unsupported: a database step needs the bundled server or a database connector (open decision N) | 8 | 26 |
 | unsupported: a vector store needs an MCP server (lever not built yet) | 6 | 28 |
-| no-tool: no Sheets tool: rows cannot be appended through the Drive connector | 6 | 9 |
-| substitution: a request to an LLM API with an API key | 5 | 7 |
 | unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet) | 5 | 6 |
 | no-tool: no request template for facebookGraphApi yet (it needs the app's REST API with a stored secret) | 4 | 8 |
-| no-tool: no Sheets tool: rows cannot be written through the Drive connector | 4 | 4 |
 | no-tool: no request template for wordpress post:create yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | unsupported: form waits for a person (out of scope v1) | 2 | 6 |
 | unsupported: toolThink cannot run in the runtime | 2 | 3 |
 | no-tool: no request template for discord channel:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
 | no-tool: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
 | no-tool: no request template for rssFeedRead yet (it needs the app's REST API with a stored secret) | 2 | 2 |
+| no-tool: no request template for twitter tweet:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
+| not-captured: connector needs sign-in on this account; schemas not captured; map event:getAll once they are | 2 | 2 |
+| no-tool: no request template for blotato yet (it needs the app's REST API with a stored secret) | 1 | 10 |
+| no-tool: no tool map for microsoftOutlook message:update yet | 1 | 7 |
 
 Top reasons for review flags:
 
@@ -37,11 +37,10 @@ Top reasons for review flags:
 | --- | --- | --- |
 | the request URL is built at run time; narrow allow.http to its host in overrides.json | 9 | 11 |
 | the file arrives as base64 text, not as binary data: steps that read $binary need translation | 8 | 10 |
-| row filters need a Filter step after the read | 7 | 10 |
+| an LLM API called with your own API key, as n8n does; approve --approve llm-api-to-claude to run it as a model step on Claude instead | 5 | 7 |
 | the chat page is public: outsiders cannot reach a Claude skill | 5 | 5 |
 | the legacy OpenAI node's output (choices) is rebuilt from n8n's simplified shape; check the fields the next steps read | 4 | 12 |
 | the sheet "…" may not be the first tab; the export reads the first tab only | 4 | 6 |
-| first-match lookups need a Filter and Limit step after the read | 4 | 4 |
 | the body is binary data, which the runtime does not send | 4 | 4 |
 | tool "…" is left out: a vector store needs an MCP server (lever not built yet) | 4 | 4 |
 | the file comes from n8n binary data; check that the step before it puts the file into the item | 3 | 6 |
@@ -50,21 +49,22 @@ Top reasons for review flags:
 | parameter "…" has no counterpart in share_file | 2 | 4 |
 | tool "…" is left out: toolThink cannot run in the runtime | 2 | 4 |
 | htmlExtract v1 is not implemented by the runtime | 2 | 3 |
+| image messages are not mapped | 2 | 2 |
 
 Top preflight errors (what stops a run before any effect):
 
 | Error | Templates | Steps |
 | --- | --- | --- |
-| blocked: no Sheets tool: rows cannot be updated through the Drive connector | 13 | 26 |
 | blocked: file steps need the files lever (not built yet) | 10 | 19 |
 | a request with a URL built at run time is allowed to any host (GET *); narrow it to a host in overrides.json | 10 | 10 |
 | blocked: a database step needs the bundled server or a database connector (open decision N) | 8 | 24 |
 | blocked: a vector store needs an MCP server (lever not built yet) | 6 | 9 |
-| blocked: no Sheets tool: rows cannot be appended through the Drive connector | 6 | 9 |
 | blocked: media steps (transcription, image generation) go through the original provider (lever not built yet) | 5 | 6 |
 | blocked: no request template for facebookGraphApi yet (it needs the app's REST API with a stored secret) | 4 | 8 |
-| blocked: no Sheets tool: rows cannot be written through the Drive connector | 4 | 4 |
-| blocked: a request to an LLM API with an API key | 3 | 3 |
+| blocked: no request template for wordpress post:create yet (it needs the app's REST API with a stored secret) | 3 | 3 |
+| blocked: form waits for a person (out of scope v1) | 2 | 6 |
+| not implemented: n8n-nodes-base.htmlExtract v1 (kind logic) | 2 | 3 |
+| blocked: no request template for discord channel:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
 
 ## Forced (every template converted)
 
@@ -72,21 +72,21 @@ Top reasons for blocked steps:
 
 | Reason | Templates | Steps |
 | --- | --- | --- |
-| no-tool: no Sheets tool: rows cannot be updated through the Drive connector | 13 | 26 |
 | unsupported: file steps need the files lever (not built yet) | 10 | 19 |
 | unsupported: a database step needs the bundled server or a database connector (open decision N) | 8 | 26 |
 | unsupported: a vector store needs an MCP server (lever not built yet) | 6 | 28 |
-| no-tool: no Sheets tool: rows cannot be appended through the Drive connector | 6 | 9 |
-| substitution: a request to an LLM API with an API key | 5 | 7 |
 | unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet) | 5 | 6 |
 | no-tool: no request template for facebookGraphApi yet (it needs the app's REST API with a stored secret) | 4 | 8 |
-| no-tool: no Sheets tool: rows cannot be written through the Drive connector | 4 | 4 |
 | no-tool: no request template for wordpress post:create yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | unsupported: form waits for a person (out of scope v1) | 2 | 6 |
 | unsupported: toolThink cannot run in the runtime | 2 | 3 |
 | no-tool: no request template for discord channel:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
 | no-tool: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
 | no-tool: no request template for rssFeedRead yet (it needs the app's REST API with a stored secret) | 2 | 2 |
+| no-tool: no request template for twitter tweet:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
+| not-captured: connector needs sign-in on this account; schemas not captured; map event:getAll once they are | 2 | 2 |
+| no-tool: no request template for blotato yet (it needs the app's REST API with a stored secret) | 1 | 10 |
+| no-tool: no tool map for microsoftOutlook message:update yet | 1 | 7 |
 
 Top reasons for review flags:
 
@@ -94,11 +94,10 @@ Top reasons for review flags:
 | --- | --- | --- |
 | the request URL is built at run time; narrow allow.http to its host in overrides.json | 9 | 11 |
 | the file arrives as base64 text, not as binary data: steps that read $binary need translation | 8 | 10 |
-| row filters need a Filter step after the read | 7 | 10 |
+| an LLM API called with your own API key, as n8n does; approve --approve llm-api-to-claude to run it as a model step on Claude instead | 5 | 7 |
 | the chat page is public: outsiders cannot reach a Claude skill | 5 | 5 |
 | the legacy OpenAI node's output (choices) is rebuilt from n8n's simplified shape; check the fields the next steps read | 4 | 12 |
 | the sheet "…" may not be the first tab; the export reads the first tab only | 4 | 6 |
-| first-match lookups need a Filter and Limit step after the read | 4 | 4 |
 | the body is binary data, which the runtime does not send | 4 | 4 |
 | tool "…" is left out: a vector store needs an MCP server (lever not built yet) | 4 | 4 |
 | the file comes from n8n binary data; check that the step before it puts the file into the item | 3 | 6 |
@@ -107,25 +106,26 @@ Top reasons for review flags:
 | parameter "…" has no counterpart in share_file | 2 | 4 |
 | tool "…" is left out: toolThink cannot run in the runtime | 2 | 4 |
 | htmlExtract v1 is not implemented by the runtime | 2 | 3 |
+| image messages are not mapped | 2 | 2 |
 
 Top preflight errors (what stops a run before any effect):
 
 | Error | Templates | Steps |
 | --- | --- | --- |
-| blocked: no Sheets tool: rows cannot be updated through the Drive connector | 13 | 26 |
 | blocked: file steps need the files lever (not built yet) | 10 | 19 |
 | a request with a URL built at run time is allowed to any host (GET *); narrow it to a host in overrides.json | 10 | 10 |
 | blocked: a database step needs the bundled server or a database connector (open decision N) | 8 | 24 |
 | blocked: a vector store needs an MCP server (lever not built yet) | 6 | 9 |
-| blocked: no Sheets tool: rows cannot be appended through the Drive connector | 6 | 9 |
 | blocked: media steps (transcription, image generation) go through the original provider (lever not built yet) | 5 | 6 |
 | blocked: no request template for facebookGraphApi yet (it needs the app's REST API with a stored secret) | 4 | 8 |
-| blocked: no Sheets tool: rows cannot be written through the Drive connector | 4 | 4 |
-| blocked: a request to an LLM API with an API key | 3 | 3 |
+| blocked: no request template for wordpress post:create yet (it needs the app's REST API with a stored secret) | 3 | 3 |
+| blocked: form waits for a person (out of scope v1) | 2 | 6 |
+| not implemented: n8n-nodes-base.htmlExtract v1 (kind logic) | 2 | 3 |
+| blocked: no request template for discord channel:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
 
 ## Tool maps
 
-62 operation entries in `references/tool-maps.json`: 50 connector tools, 4 REST request templates, 8 explained no-tool blocks; 2 substitutions (smtp-to-gmail, imap-to-gmail-poll). Fidelity of the mapped ones: unverified 50, exact 4. 4 connector entries need their arguments translated by the skill (Notion property formats).
+65 operation entries in `references/tool-maps.json`: 53 connector tools, 4 REST request templates, 8 explained no-tool blocks; 2 substitutions (smtp-to-gmail, imap-to-gmail-poll). Fidelity of the mapped ones: unverified 50, exact 7. 4 connector entries need their arguments translated by the skill (Notion property formats).
 
 Steps in the forced run by fidelity: tools unverified 56; REST templates exact 7.
 

@@ -808,9 +808,50 @@ const toolStep = {
     const reqs = items.map((_, i) => ({ kind: "tool", itemIndex: i, connector: t.connector, tool: t.name, args: toolArgs(exec, t, i), effect: t.effect }));
     const results = await exec.request(reqs);
     if (!t.result) return [toItems(exec, results, items, "tool")];
-    return [adaptedItems(exec, results, t.result, "tool")];
+    const adapted = adaptedItems(exec, results, t.result, "tool");
+    if (!t.lookup) return [adapted];
+    // Row filters per input item, on that item's rows (n8n reads once per item from 4.2).
+    const out = [];
+    items.forEach((_, i) => {
+      const rows = adapted.filter((it) => it.pairedItem?.item === i && !it.json.error);
+      const errs = adapted.filter((it) => it.pairedItem?.item === i && it.json.error);
+      out.push(...errs, ...applyLookup(exec, rows.map((it) => it.json), exec.evaluate(t.lookup, i)).map((json) => ({ json, pairedItem: { item: i } })));
+    });
+    return [out];
   },
 };
+
+// n8n's GoogleSheet.lookupValues on rows already keyed by the header: a cell matches when its
+// text equals the filter value (missing cells are ""); OR takes, per filter, the matching rows
+// in sheet order (only the first unless returnAll; from 4.6 the first match ends the lookup),
+// AND keeps rows matching every filter. A filter column the sheet lacks fails the step.
+export function applyLookup(exec, rows, lookup) {
+  const filters = lookup.filters ?? [];
+  const keys = new Set(rows.flatMap((r) => Object.keys(r)));
+  for (const f of filters) if (rows.length && !keys.has(String(f.lookupColumn))) throw err(exec, `The column "${f.lookupColumn}" could not be found`);
+  const cell = (r, f) => String(r[f.lookupColumn] ?? "");
+  const hit = (r, f) => cell(r, f) === String(f.lookupValue ?? "");
+  const picked = [];
+  if (lookup.combine === "AND") {
+    for (const r of rows) {
+      if (!filters.every((f) => hit(r, f))) continue;
+      picked.push(r);
+      if (!lookup.returnAll) break;
+    }
+    return picked;
+  }
+  outer: for (const f of filters) {
+    for (const r of rows) {
+      if (!hit(r, f)) continue;
+      if (!picked.includes(r)) picked.push(r);
+      if (!lookup.returnAll) {
+        if (lookup.stopAtFirst) break outer;
+        continue outer;
+      }
+    }
+  }
+  return picked;
+}
 
 function toolArgs(exec, t, i, locals) {
   const raw = locals ? resolveParameter(t.args ?? {}, () => exec.scope(i, { locals })) : exec.evaluate(t.args ?? {}, i);

@@ -43,3 +43,9 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Evidence.** `p6-base30c`: 2167 stops at gate 4, `field map: different fields`. Both sides post the same two GitLab discussions to the same merge request (one per changed file, `position[new_path]` `src/invoice.ts` and `test/invoice.test.ts`, bodies and positions equal). n8n's HTTP Request node sends the two items concurrently, so the mock logged the test-file post first; the runner sends them in item order. `compare()` pairs same-key writes in list order, so each n8n post is compared with the other file's post and both pairs differ.
 - **Proposed change.** Among unused Claude writes with the same `service.action.target`, pair an n8n write first with one whose fields all match (`sameField`, run-time masking included), and only then fall back to list order for the field diff. Order stays reported (`sameOrder`).
 - **Why not applied here.** It changes the comparer beyond the approved P3–P5.
+
+## P7. A Sheets `values` fixture holds a JSON `null` cell that the real API never sends (2063 malformed)
+
+- **Evidence.** `p6-i5`: 2063 stops at gate 5, malformed: n8n updates `Add your search here!B3`, the Claude side `!B2`. The malformed fixture's `http` source for "Google Sheets - Get searches to scrap" returns row 2 as `[url, null]`; its `connector` source (the CSV export) has an empty cell there. n8n's `lookupValues` compares `null?.toString()` (undefined) with the filter value `""`, so it skips row 2 and takes row 3; with an empty cell it would take row 2, as the Claude side does. The Sheets API `values.get` leaves trailing empty cells out of a row and never writes `null`.
+- **Proposed change.** Write row 2 of that response as `[url]` (or `[url, ""]`), so the http and connector sources state the same sheet.
+- **Why not in the loop.** It changes a fixture.

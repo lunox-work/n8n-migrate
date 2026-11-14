@@ -52,3 +52,12 @@ From here a run covers the templates whose `definition.json` changed against the
 - Bench `p6-i4` (changed definitions: 1900, 2063, 2614, 2658, 2777, 3016, 3086, 3102, 4573; 4 `claude -p` runs): 6 of 30 pass (was 6), gate sum 133 (was 130). 2063 3 → 5 (all Sheets writes equal n8n's on the normal fixture; malformed differs in the updated row because the Sheets read does not apply `filtersUI`); 4573 3 → 4 (its Sheets writes equal n8n's; an extra CoreClaw POST from the same unfiltered read). 2777 and 3102 still pass; the rest unchanged.
 - `convert-coverage --split dev`: full 4 → 4, review 9 → 16, blocked 47 → 40, preflight clean 17 → 21; no template gains a blocked step or a preflight error (19 lose some).
 - Verdict: accepted (gate sum rises, no pass lost, no gate falls).
+
+## Iteration 5: Google Sheets read row filters (accepted)
+
+- Bucket: field map (connector read). Found in `p6-i4`: the Sheets read through the Drive CSV export returned every row and only flagged `filtersUI` for review. n8n applies the filters with `lookupValues`, so 4573 read one pending query (two on the Claude side, hence an extra CoreClaw POST) and 2063's update row came from a different first row.
+- Hypothesis: applying n8n's `lookupValues` semantics to the adapted rows (cell text equals the value, `lookupValue` defaulting to `""`, OR in filter order, first match per filter unless all are asked for, 4.6+ stops at the first match, AND) makes the read feed the same rows.
+- Change: tool-map `lookup: true` on the Sheets read (the two review lines go; the parameters are understood); converter writes `tool.lookup` (filters, combine, returnAll by version, stopAtFirst for 4.6+; review for 4.1 and older, which pool every item's filters); runtime `applyLookup()` after the adapter, per input item; schema `tool.lookup`.
+- Bench `p6-i5` (changed definitions: 2063, 2658, 3086, 4573; 2 `claude -p` runs): 7 of 30 pass (was 6), gate sum 138 (was 133). 4573 4 → 9 (all gates, claude driver included). 2063 stays 5: the malformed fixture's http source holds a `null` cell that its connector source and the real API do not (PROPOSALS P7). 2658, 3086 stay at 3 (other blockers).
+- `convert-coverage --split dev`: full 4 → 6 (2063, 4573), review 16 → 14, blocked 40, preflight clean 21; no regression. `evals/convert-coverage-dev.md` regenerated (it also carries iteration 4's change).
+- Verdict: accepted.

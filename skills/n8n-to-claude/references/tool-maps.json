@@ -6,6 +6,7 @@
     "caveats: plain-words differences from n8n; an object {text, unless: {param, equals}} is left out when the parameter has that value. result: the declarative result adapter evaluated by the runtime (runtime/src/adapt.mjs), so downstream expressions see n8n's field names. fidelity: exact | adapted | partial | none | unverified. The tool schemas captured on 2026-11-14 carry input schemas only, so no tool output shape is known: every adapter that depends on one is unverified until the bench's emulation check runs it against real output. missingFields: n8n output fields (from n8n's own output schemas, n8n-nodes-base 2.47.5) that the adapter cannot supply.",
     "understood: parameters this entry reads or accepts; any other parameter set on the node makes the step `review` (it has no counterpart in the tool). review: [{param, equals?, reason}] flags the step when a parameter has that value (any value when equals is absent).",
     "The converter checks every args field against the tool's input JSON schema: required fields present, no unknown fields.",
+    "lookup: true (Google Sheets reads): the node's filtersUI rows become tool.lookup, applied by the runtime to the adapted rows as n8n's lookupValues does (cell text equals the value; OR or AND by combineFilters; first match per filter unless all matches are asked for).",
     "Or rest (a REST program in runtime/src/rest.mjs, for an operation that takes several requests: a read decides the write) with credentialType and hosts [{method, host, pathPrefix}]; the n8n parameters stay in step.params. Keeping the same service over its REST API with the person's own credential is the default mapping, not a substitution (references/translation.md)."
   ],
   "version": "1",
@@ -710,11 +711,8 @@
             "result": { "parse": "csv", "text": "content", "decode": "base64", "rowNumber": { "field": "row_number", "start": 2 } },
             "fidelity": "unverified",
             "caveats": ["The CSV export holds the first tab only.", "Values arrive as text; n8n gives numbers and booleans as such."],
-            "understood": ["operation", "resource", "documentId", "sheetName", "options.dataLocationOnSheet", "options.outputFormatting"],
-            "review": [
-              { "param": "filtersUI", "reason": "row filters need a Filter step after the read" },
-              { "param": "options.returnFirstMatch", "reason": "first-match lookups need a Filter and Limit step after the read" }
-            ],
+            "understood": ["operation", "resource", "documentId", "sheetName", "options.dataLocationOnSheet", "options.outputFormatting", "filtersUI", "combineFilters", "options.returnAllMatches", "options.returnFirstMatch"],
+            "lookup": true,
             "reviewSheetNotFirstTab": true
           },
           "append": {

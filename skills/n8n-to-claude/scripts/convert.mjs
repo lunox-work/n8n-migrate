@@ -739,6 +739,13 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         argsCheck: { ok: argsCheck.ok, missing: argsCheck.missing, unknown: argsCheck.unknown },
         map: key,
       };
+      // Google Sheets row filters (n8n readSheet + lookupValues): applied by the runtime.
+      if (entry.lookup && Array.isArray(params.filtersUI?.values) && params.filtersUI.values.length) {
+        const v = step.n8n.typeVersion ?? 1;
+        const returnAll = v < 4.5 ? params.options?.returnAllMatches === "returnAllMatches" : !params.options?.returnFirstMatch;
+        step.tool.lookup = { filters: clone(params.filtersUI.values).map((f) => ({ lookupColumn: f.lookupColumn ?? "", lookupValue: f.lookupValue ?? "" })), combine: params.combineFilters === "AND" ? "AND" : "OR", returnAll, ...(v >= 4.6 ? { stopAtFirst: true } : {}) };
+        if (v <= 4.1) review(step, "n8n 4.1 and older pool the row filters of every input item; each item's own filters apply here");
+      }
       if (argsCheck.noSchema) review(step, `no captured input schema for ${entry.connector}.${entry.tool}`);
       if (argsCheck.unknown.length) review(step, `arguments the tool does not take: ${argsCheck.unknown.join(", ")}`);
       if (entry.argsNeedTranslation) translate(step, "code", clone(params), entry.argsNeedTranslation);

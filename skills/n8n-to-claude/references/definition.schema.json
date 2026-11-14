@@ -103,6 +103,18 @@
                 "description": "exact: the tool returns what n8n returns; adapted: the adapter reshapes, and the fields it lists carry n8n's names; partial: some n8n fields have no source (missingFields); none: no adapter; unverified: the tool's real output shape is not known yet, so the adapter is a best reading of the tool description, to be checked by the bench's emulation run."
               },
               "missingFields": { "type": "array", "items": { "type": "string" }, "description": "n8n output fields the tool cannot supply." },
+              "lookup": {
+                "type": "object",
+                "description": "Row filters applied to the adapted rows as n8n's Google Sheets lookupValues does (runtime nodes2.mjs applyLookup). filters may hold expressions, evaluated per item.",
+                "required": ["filters"],
+                "additionalProperties": false,
+                "properties": {
+                  "filters": { "type": "array", "items": { "type": "object" } },
+                  "combine": { "enum": ["OR", "AND"] },
+                  "returnAll": { "type": "boolean" },
+                  "stopAtFirst": { "type": "boolean", "description": "n8n 4.6+: with OR and first-match, the first match ends the whole lookup." }
+                }
+              },
               "argsCheck": {
                 "type": "object",
                 "additionalProperties": false,
