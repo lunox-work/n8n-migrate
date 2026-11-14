@@ -2,7 +2,7 @@
 
 The Phase 6 loop may not change fixtures, mocks, gates, the comparer or the ceiling (PLAN Phase 6). Defects it finds are written here with evidence and wait for a person.
 
-Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (README "Connector-limited", "Drivers"). P3, P4 and P5 approved and applied (README "Form bodies", "Timezone and run-time timestamps", "Drivers"); baseline `p6-base30c`. P6 and P7 approved and applied (README "Effects"; fixture 2063), full re-run `p6-full30`. P8 and P9 approved and applied (README "Drivers", "Form bodies"), full re-run `p6-a1`. P10, P11 and P12 approved and applied at release point 1 (README "Effects", "Connector rows", "Model replies"), measured in `rel1-dev`. P13, P14 and P15 approved and applied for loop round 2 (README "Model replies", `claude.mjs`), measured in `r2-base50`. Open: P16 (the claude driver checks no model input or tool turn), P17 (tool results without a read are not compared). Open from P1: the real Gmail `get_message` and Notion `notion-fetch` shapes are still uncaptured, and 4722 and 2415 carry no `connectorGaps` yet, so their gate 4 is not marked connector-limited.
+Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (README "Connector-limited", "Drivers"). P3, P4 and P5 approved and applied (README "Form bodies", "Timezone and run-time timestamps", "Drivers"); baseline `p6-base30c`. P6 and P7 approved and applied (README "Effects"; fixture 2063), full re-run `p6-full30`. P8 and P9 approved and applied (README "Drivers", "Form bodies"), full re-run `p6-a1`. P10, P11 and P12 approved and applied at release point 1 (README "Effects", "Connector rows", "Model replies"), measured in `rel1-dev`. P13, P14 and P15 approved and applied for loop round 2 (README "Model replies", `claude.mjs`), measured in `r2-base50`. Open: P16 (the claude driver checks no model input or tool turn), P17 (tool results without a read are not compared). Open from writing the round-2 held-out fixtures (2026-11-15): P18 (unshimmed model types), P19 (model-written read URLs), P20 (form pages and child executions), P21 (templates n8n cannot run on the image), P22 (poll mode). Open from P1: the real Gmail `get_message` and Notion `notion-fetch` shapes are still uncaptured, and 4722 and 2415 carry no `connectorGaps` yet, so their gate 4 is not marked connector-limited.
 
 ## P1. Fixture connector rows and n8n-side rows disagree on what the service returns (4722, 2415)
 
@@ -119,3 +119,33 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Evidence.** P15 compares a turn's results through the reads its tool calls made. A tool n8n serves from a pin or without http (a database tool with no sidecar), a Code tool or a sub-workflow tool makes no read to key, so what it fed back is never compared: in `r2-base50`, 12 of the 13 agent turns that passed the execution check had their reads unchecked (`tools.reads: unchecked …`: 2090 ×9, 4722 ×3; 2413's one turn was compared). A Code tool would compare two empty sets and pass.
 - **Proposed change.** Also compare the fed-back value with n8n's tool message for the same call: parse n8n's serialisation per provider format (OpenAI and Anthropic content text, Gemini `functionResponse.response.result`), compare as JSON when both parse, else as squashed text, with run-time masking (P4); fail as `different tool result`.
 - **Why not in the loop.** It changes a gate, and n8n's serialisation of tool output per tool node needs checking against the n8n 2.47.7 image first.
+
+## P18. A model node the shim does not answer has no source at all
+
+- **Evidence.** Writing the round-2 held-out fixtures (2026-11-15; templates not named here, since they are held out): `models` are never fixtured, but the README routes only some model types to the shim (OpenAI, Anthropic, Gemini, Ollama chat and completion, OpenRouter, legacy OpenAI). Two held-out fixtures list a LangChain LLM node whose type is not on that list as a model, with nothing to answer it: on the n8n side the call reaches the proxy unrouted, and `validate.mjs` cannot tell.
+- **Proposed change.** Keep in `n8n-side.mjs` one list of the model node types the shim answers, have `validate.mjs` error on a `models` entry whose type is not on it, and route the missing LLM types whose credentials take a base URL or endpoint to the shim (the held-out fixtures' notes name them, for whoever applies this at a release point).
+- **Why not in the loop.** It changes the bench's credentials and the validator.
+
+## P19. Reads whose URL or query the model writes cannot be answered by URL
+
+- **Evidence.** Round-2 held-out fixtures: agent search tools send a model-written query, and agent page tools and an image fetch GET a model-chosen URL. A fixture can only answer such reads in turn (the last repeats) or guess likely URLs; the contract does not say what the mock answers for a read no route matches (writes get `200 {}`, `write-default`), so a guessed-wrong URL behaves differently from a missing one.
+- **Proposed change.** Document the mock's answer to an unrouted read (or make it a 404 logged as `read-default`), and add an optional per-read `any: true` on a response that answers every path under its host, so a fixture can say "this site answers this page for any URL" instead of guessing.
+- **Why not in the loop.** It changes the mock and the fixture schema.
+
+## P20. Form pages after the trigger, and child executions, cannot be driven
+
+- **Evidence.** Round-2 held-out fixtures: one template's form trigger page is followed by Form node pages (the research prompt, then one page per model-written question), so `--via form` leaves n8n waiting at the first of them and nothing after it runs; its work happens in child executions of the same workflow (`executeWorkflow` with `waitForSubWorkflow: false`), which a single-execution comparison does not follow. Its fixtures answer the child executions' reads for a bench that could.
+- **Proposed change.** Add `trigger.formPages` (field answers per Form node page, in order) that `--via form` submits as n8n serves each page, and collect the effects of child executions the run starts (by parent execution id) into the same effect list.
+- **Why not in the loop.** It changes the fixture schema and how runs are collected.
+
+## P21. Templates n8n cannot run on the bench image are not marked as such
+
+- **Evidence.** Round-2 held-out fixtures: a Code node in a language the bench image has no runner for (`container.mjs`) cannot run, so the n8n baseline stops there and every later read and write is unreached. Read and write binary-file nodes depend on `N8N_RESTRICT_FILE_ACCESS_TO`, which the contract does not mention: a `file` source at an absolute path outside `~/.n8n-files`, or at a relative path, may be refused by n8n 2.x. Today this is free text in `expect.offline`.
+- **Proposed change.** Add `expect.n8nCannotRun` (a short reason) that `summary.mjs` reports apart, like connector-limited; and state in FIXTURES.md which directory `file` paths resolve against and that the bench sets `N8N_RESTRICT_FILE_ACCESS_TO` to allow them.
+- **Why not in the loop.** It changes the fixture schema, the summary and the n8n container's environment.
+
+## P22. The poll mode is not part of the contract
+
+- **Evidence.** Round-2 held-out fixtures: the Gmail trigger in manual mode asks for `maxResults=1` and drops `receivedAfter`; in a scheduled poll it keeps both. A trigger that polls once through the mock (binary attachments) is answered with whatever list the fixture holds, so one fixture can mean one message to n8n's request and two to the Claude side's poll.
+- **Proposed change.** State in FIXTURES.md which mode the bench's single poll runs in, and have `validate.mjs` warn when a poll trigger's `http` list holds more items than that mode asks for.
+- **Why not in the loop.** It changes the fixture contract and the validator.
