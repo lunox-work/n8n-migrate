@@ -178,3 +178,15 @@ test("RSS Read: a step with a literal URL, and an agent tool whose URL the model
   assert.equal(pf.ok, false);
   assert.match(pf.issues.find((i) => i.level === "error").message, /agent tool "Any Feed": a request with a URL built at run time/);
 });
+
+test("an agent tool the converter cannot carry (a database tool) is refused by preflight, by name; a disabled one is not", () => {
+  const pg = (name, extra = {}) => ({ parameters: { query: "{{ $fromAI('sql_statement') }}", operation: "executeQuery", options: {} }, name, type: "n8n-nodes-base.postgresTool", typeVersion: 2.5, position: [0, 200], credentials: { postgres: { id: "1", name: "DB" } }, ...extra });
+  const def = convertJson(agentWf([pg("Postgres")]));
+  assert.equal(def.steps.Postgres.kind, "blocked");
+  assert.deepEqual(def.steps.Agent.agent.tools, []);
+  const pf = preflight(def, {});
+  assert.equal(pf.ok, false);
+  const e = pf.issues.find((i) => i.level === "error" && i.step === "Agent");
+  assert.match(e.message, /^blocked: agent tool "Postgres" cannot be carried \(a database step needs .*\); without it the agent would answer without a tool n8n gives it$/);
+  assert.equal(preflight(convertJson(agentWf([pg("Postgres", { disabled: true })])), {}).ok, true, "n8n skips a disabled tool too");
+});

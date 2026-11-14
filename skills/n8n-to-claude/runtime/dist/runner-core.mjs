@@ -7986,6 +7986,16 @@ function preflight(definition, { availableTools, sourceText, pinned } = {}) {
     }
     if (s.kind === "code" && /python/i.test(s.params?.language ?? "")) err(`$.steps.${name}`, "Python Code nodes need translation (review)", { step: name });
     if (s.kind === "tool" && s.tool?.argsCheck?.missing?.length) err(`$.steps.${name}.tool`, `tool ${s.tool.connector}.${s.tool.name} lacks required arguments: ${s.tool.argsCheck.missing.join(", ")}`, { step: name });
+    // An agent tool sub-node the converter could not carry (blocked: a database or vector
+    // store tool, a sub-workflow not in the export) would leave the agent without a tool n8n
+    // gives it: the agent would answer without it. Refused here, by name, instead.
+    if (s.kind === "agent") {
+      for (const sub of (definition.subnodes ?? []).filter((x) => x.to === name && x.type === "ai_tool")) {
+        const ts = steps[sub.from];
+        if (!ts || ts.settings?.disabled === true || ts.kind !== "blocked") continue;
+        err(`$.steps.${name}.agent`, `blocked: agent tool "${sub.from}" cannot be carried (${ts.blocked?.reason ?? "no reason given"}); without it the agent would answer without a tool n8n gives it`, { step: name });
+      }
+    }
     for (const t of s.agent?.tools ?? []) {
       const sub = t.node ? steps[t.node] : undefined;
       const tool = sub?.tool ?? (t.connector ? { connector: t.connector, name: t.tool } : undefined);

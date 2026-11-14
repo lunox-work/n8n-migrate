@@ -357,7 +357,8 @@ previews; this list is dated 2026-11-14 and re-runnable
 
 - **Not built yet:** files, databases, vector stores, media through the
   original provider, many apps' request templates. Those steps stay greyed
-  out in the graph with the reason.
+  out in the graph with the reason; an agent whose tool is one of them is
+  refused before a run rather than run without that tool.
 - **Out of scope for v1:** synchronous webhook replies and public chat pages
   (reported as `hosted`), anything that must react in under a minute, a
   forwarder for relay workflows, Wait nodes that resume on a webhook, forms
