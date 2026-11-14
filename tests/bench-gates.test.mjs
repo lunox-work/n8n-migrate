@@ -433,3 +433,106 @@ test("P20: form pages by label or position, the execution id in n8n's form-waiti
   assert.ok(errors.some((e) => /formPages: "Set" is not an enabled Form node/.test(e)), errors.join("\n"));
   assert.ok(!errors.some((e) => /"Page 1"/.test(e)), errors.join("\n"));
 });
+
+test("P28: tool names and input schema shapes offered to the model are gated; descriptions are reported", async () => {
+  const { sameToolDefs, schemaShape } = await import("../evals/bench/claude-side.mjs");
+  const fn = (name, description, parameters) => ({ type: "function", function: { name, description, parameters } });
+  const zod = (properties, required) => ({ type: "object", properties, ...(required ? { required } : {}), additionalProperties: false, $schema: "http://json-schema.org/draft-07/schema#" });
+  const n8nCall = { format: "openai", request: { messages: [{ role: "user", content: "q" }], tools: [fn("Google_Calendar", "Get many events in Google Calendar", zod({})), fn("Search_db", "Search the database", zod({ keyword: { type: "string", description: "One keyword" }, tag: { type: "string" } }, ["keyword", "tag"])), fn("format_final_json_response", "Use this tool to format your final response", zod({ output: { type: "object" } }))] } };
+  const claudeReq = { kind: "agent", outputSchema: { type: "object" }, tools: [{ name: "Google Calendar", description: "googleCalendar getAll" }, { name: "Search db", description: "=Search the database", inputSchema: { type: "object", properties: { tag: { type: "string" }, keyword: { type: "string", description: "A keyword" } }, required: ["tag", "keyword"] } }] };
+  const same = sameToolDefs(n8nCall, claudeReq);
+  // Names fold case and punctuation (n8n's tool name is the node name with `_`); a tool without
+  // a schema is a tool without parameters; key order, additionalProperties, $schema and
+  // descriptions are not shape; n8n's output-parser tool is the runtime's outputSchema.
+  assert.deepEqual([same.same, same.tools, same.onlyN8n, same.onlyClaude, same.schemas], [true, 2, [], [], []]);
+  assert.deepEqual(same.descriptions.map((d) => [d.tool, d.diff.map((x) => x.at)]), [["Google_Calendar", ["(tool)"]], ["Search_db", ["(tool)", "keyword"]]]);
+  assert.deepEqual(same.parser, { n8n: "format_final_json_response", claudeOutputSchema: true });
+  // A tool only n8n offers (a Think tool the converter dropped), or only the Claude side.
+  const missing = sameToolDefs(n8nCall, { ...claudeReq, tools: claudeReq.tools.slice(1) });
+  assert.deepEqual([missing.same, missing.onlyN8n], [false, ["Google_Calendar"]]);
+  assert.deepEqual(sameToolDefs(n8nCall, { ...claudeReq, tools: [...claudeReq.tools, { name: "Extra" }] }).onlyClaude, ["Extra"]);
+  // A parameter missing, of another type, or no longer required: a different shape.
+  const shape = (properties, required) => sameToolDefs(n8nCall, { ...claudeReq, tools: [claudeReq.tools[0], { ...claudeReq.tools[1], inputSchema: { type: "object", properties, required } }] });
+  assert.equal(shape({ keyword: { type: "string" } }, ["keyword"]).schemas[0].tool, "Search_db");
+  assert.equal(shape({ keyword: { type: "number" }, tag: { type: "string" } }, ["keyword", "tag"]).same, false);
+  assert.equal(shape({ keyword: { type: "string" }, tag: { type: "string" } }, ["keyword"]).same, false);
+  // Nested shapes: array items and object properties count, descriptions inside do not.
+  assert.deepEqual(schemaShape({ type: "array", items: { type: "object", properties: { a: { type: "string", description: "x" } } } }), { type: "array", items: { type: "object", properties: { a: { type: "string" } }, required: [] } });
+  // Gemini and Anthropic tool lists are read the same way; no tools on either side: no check.
+  const gem = { format: "gemini", request: { contents: [], tools: [{ functionDeclarations: [{ name: "Get_Weather", description: "w", parameters: { type: "object", properties: { lat: { type: "string" } } } }] }] } };
+  assert.equal(sameToolDefs(gem, { tools: [{ name: "Get Weather", inputSchema: { type: "object", properties: { lat: { type: "string" } } } }] }).same, true);
+  const ant = { format: "anthropic", request: { messages: [], tools: [{ name: "Check_Sent", description: "Get many messages in Gmail", input_schema: zod({ email: { type: "string" } }, ["email"]) }] } };
+  assert.equal(sameToolDefs(ant, { tools: [{ name: "Check Sent", inputSchema: { type: "object", properties: { email: { type: "string" } }, required: ["email"] } }] }).same, true);
+  assert.equal(sameToolDefs({ format: "openai", request: { messages: [] } }, { kind: "model" }), null);
+
+  // Gate 4: after the model-input check, before the tool turns; descriptions never fail it.
+  const cmp = compare([], []);
+  const m = (toolDefs, extra = {}) => ({ step: "Agent", index: 0, mode: "replay", input: { same: true }, toolDefs, ...extra });
+  const g = gate4({ cmp, modelInputs: [m(missing, { tools: { same: false, cause: "tool call not executed" } })], n8nStatus: "success" });
+  assert.deepEqual([g.pass, g.bucket, g.cause, g.detail[0].onlyN8n], [false, "field map", "different tools offered", ["Google_Calendar"]]);
+  assert.equal(gate4({ cmp, modelInputs: [m(same)], n8nStatus: "success" }).pass, true);
+  assert.match(gate4({ cmp, modelInputs: [{ ...m(missing), input: { same: false, at: "x", n8nAround: "y" } }], n8nStatus: "success" }).cause, /different input/);
+});
+
+test("P29: Gmail send without any recipient is refused 400 before any route (the in-process host calls the same serviceRefusal)", async () => {
+  const { serviceRefusal, mimeRecipients, startMock } = await import("../evals/n8n/mock-server.mjs");
+  const { mkdtempSync, writeFileSync, readFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const raw = (head) => Buffer.from(`${head}Subject: Re: hi\r\nContent-Type: text/html\r\n\r\nBody with To: x@y.example in the text`).toString("base64url");
+  const G = "https://www.googleapis.com";
+  const send = "/gmail/v1/users/me/messages/send";
+  const none = serviceRefusal("POST", G, send, { raw: raw("In-Reply-To: <a@b>\r\n"), threadId: "t1" });
+  assert.deepEqual([none.f.status, none.f.body.error.message, none.f.body.error.status], [400, "Recipient address required", "INVALID_ARGUMENT"]);
+  assert.ok(serviceRefusal("POST", G, send, { raw: raw("To: \r\n") }), "an empty To header names no one");
+  assert.equal(serviceRefusal("POST", G, send, { raw: raw("To: Marco <marco@harbour.example>\r\n") }), null);
+  assert.equal(serviceRefusal("POST", G, send, { raw: raw("Bcc: a@b.example\r\n") }), null, "Cc or Bcc alone is enough");
+  assert.deepEqual(mimeRecipients("To: a@b.example,\r\n c@d.example\r\nCc: e@f.example\r\n\r\nTo: not@header.example"), ["a@b.example", "c@d.example", "e@f.example"], "folded headers, never the body");
+  assert.ok(serviceRefusal("POST", G, `/upload${send}`, "Subject: x\r\n\r\nbody"), "the upload endpoint's MIME text too");
+  assert.equal(serviceRefusal("POST", "https://api.example", send, { raw: raw("") }), null, "only Gmail's hosts");
+  assert.equal(serviceRefusal("POST", G, "/gmail/v1/users/me/drafts", { raw: raw("") }), null);
+  assert.equal(serviceRefusal("GET", G, send, null), null);
+
+  // On the mock: refused even though a route answers the send; the log names why.
+  const dir = mkdtempSync(join(tmpdir(), "n2c-p29-"));
+  const fixtures = join(dir, "fx.json");
+  const log = join(dir, "log.jsonl");
+  writeFileSync(fixtures, JSON.stringify({ __routes: [{ method: "POST", url: `${G}${send}`, status: 200, body: { id: "m1" } }], __writeDefault: { status: 200, body: {} } }));
+  writeFileSync(log, "");
+  const server = await startMock({ port: 0, host: "127.0.0.1", log, fixtures });
+  const post = async (body) => (await fetch(`http://127.0.0.1:${server.address().port}${send}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })).status;
+  const statuses = [await post({ raw: raw("") }), await post({ raw: raw("To: a@b.example\r\n") })];
+  await new Promise((ok) => server.close(ok));
+  assert.deepEqual(statuses, [400, 200]);
+  assert.deepEqual(readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l).fixture), ["service: gmail send without recipients", `route POST ${G}${send}`]);
+});
+
+test("P32: a new preflight error on a step the runtime refused when it ran is moved earlier, not a regression", async () => {
+  const { coverageDiff, runTimeRefusals } = await import("../evals/coverage-diff.mjs");
+  const rows = [
+    { tag: "old", template: 1, gate: 3, cause: 'step Extract names: Html operation "extractHtmlContent" (needs an HTML parser) is not supported by the runtime' },
+    { tag: "new", template: 1, gate: 3, cause: 'step Extract names: Html operation "extractHtmlContent" (needs an HTML parser) is not supported by the runtime' },
+    { tag: "new", template: 2, gate: 3, cause: "step Parse: Cannot read properties of undefined (reading 'x')" },
+    { tag: "new", template: 3, gate: 3, cause: "preflight: blocked steps", detail: ["Files: blocked: file steps need the files lever"] },
+    { tag: "new", template: 4, gate: 4, cause: "different writes" },
+    { tag: "new", template: 5, gate: 3, cause: "step Sort: Sort with custom code is not supported by the runtime" },
+  ];
+  const ref = runTimeRefusals(rows);
+  assert.deepEqual(Object.fromEntries(Object.entries(ref).map(([k, v]) => [k, [...v]])), { 1: ["Extract names"], 5: ["Sort"] }, "a crash, a preflight stop and a later gate are not run-time refusals");
+  assert.deepEqual(Object.keys(runTimeRefusals(rows, { tag: "old" })), ["1"]);
+  const t = (errors, blockedSteps = 0) => ({ class: "full", preflightErrors: errors.length, blockedSteps, errors });
+  const before = { 1: t([]), 2: t([]), 5: t([{ step: "Other", message: "blocked: x" }]), 6: t([]) };
+  const after = {
+    1: t([{ step: "Extract names", message: 'Html operation "extractHtmlContent" is refused when it runs' }]),
+    2: t([{ step: "Parse", message: "refused when it runs" }]),
+    5: t([{ step: "Other", message: "blocked: x" }, { step: "Sort", message: "Sort with custom code is refused when it runs" }]),
+    6: t([], 1),
+  };
+  const d = coverageDiff(before, after, ref);
+  assert.deepEqual(d.movedEarlier.map((m) => [m.id, m.step]), [["1", "Extract names"], ["5", "Sort"]]);
+  assert.deepEqual(d.regressions.map((r) => [r.id, r.kind]), [["2", "preflight error"], ["2", "preflight clean lost"], ["6", "blocked step"]], "a step that crashed (not refused) at run time still counts");
+  assert.deepEqual(d.preflightClean, { before: 3, after: 1, afterWithMovedEarlier: 2 }, "1 keeps its place; 6 is clean but gained a blocked step");
+  // An unchanged error is not new; a per-template file without error lists is refused.
+  assert.deepEqual(coverageDiff(after, after, {}).regressions, []);
+  assert.throws(() => coverageDiff({ 1: { preflightErrors: 0, blockedSteps: 0 } }, after, {}), /regenerate/);
+});

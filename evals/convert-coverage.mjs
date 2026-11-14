@@ -6,6 +6,7 @@
 //   node evals/convert-coverage.mjs [--corpus evals/survey/data/wf] [--out evals/convert-coverage.md] [--now ISO]
 //   node evals/convert-coverage.mjs --split dev [--out evals/convert-coverage-dev.md]   (bench dev ids only)
 //   node evals/convert-coverage.mjs --ids 2415,4722 --corpus evals/bench/data/wf
+//   node evals/convert-coverage.mjs --split dev --per-template after.json --compare before.json [--results-tag <tag>]
 //
 // --split dev reads the current round's dev ids from evals/bench/splits.json (rolling held-out:
 // the seeded dev plus the held-out templates already scored; evals/bench/rounds.mjs) over the
@@ -97,7 +98,7 @@ for (const f of files) {
       const pfErrors = preflight(def).issues.filter((x) => x.level === "error");
       for (const i of pfErrors) tally(m.preflightErrors, norm(i.message), id);
       if (!pfErrors.length) m.counts.preflightClean = (m.counts.preflightClean ?? 0) + 1;
-      (m.perTemplate ??= {})[id] = { class: c, preflightErrors: pfErrors.length, blockedSteps: Object.values(def.steps).filter((s) => s.kind === "blocked" && !s.settings?.disabled).length };
+      (m.perTemplate ??= {})[id] = { class: c, preflightErrors: pfErrors.length, blockedSteps: Object.values(def.steps).filter((s) => s.kind === "blocked" && !s.settings?.disabled).length, errors: pfErrors.map((i) => ({ ...(i.step ? { step: i.step } : {}), message: i.message })) };
     }
   }
 }
@@ -140,3 +141,19 @@ writeFileSync(outFile, L.join("\n") + "\n");
 const perFile = flag("--per-template", null);
 if (perFile) writeFileSync(resolve(perFile), JSON.stringify(Object.fromEntries(Object.entries(modes).map(([k, m]) => [k, m.perTemplate ?? {}])), null, 1) + "\n");
 console.log(JSON.stringify(Object.fromEntries(Object.entries(modes).map(([k, m]) => [k, { ...m.counts, crashes: m.crashes.length, invalid: m.invalid.length }]))));
+// --compare <before per-template file> [--results-tag <tag>]: the loop's coverage rule
+// (evals/coverage-diff.mjs, PROPOSALS P32) on the default mode, against the bench's last rows
+// in evals/results.jsonl (or one tag's): a new preflight error on a step the runtime refused
+// when it ran is "moved earlier", not a regression. Exits 1 on a regression.
+const compareFile = flag("--compare", null);
+if (compareFile) {
+  const { coverageDiff, runTimeRefusals } = await import("./coverage-diff.mjs");
+  const rowsFile = join(ROOT, "evals", "results.jsonl");
+  const after = modes.default.perTemplate ?? {};
+  // Only the rows of the templates compared (dev, with --split dev).
+  const rows = readFileSync(rowsFile, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((r) => String(r.template) in after);
+  const before = JSON.parse(readFileSync(resolve(compareFile), "utf8")).default;
+  const d = coverageDiff(before, after, runTimeRefusals(rows, { tag: flag("--results-tag", null) }));
+  console.log(JSON.stringify({ regressions: d.regressions, movedEarlier: d.movedEarlier, preflightClean: d.preflightClean }, null, 1));
+  if (d.regressions.length) process.exitCode = 1;
+}

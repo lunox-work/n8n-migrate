@@ -363,7 +363,7 @@ One iteration:
    - no template's reached gate falls;
    - the sum of reached gates over `dev` rises, or a template moves to a later blocking cause (a different blocker after the fixed one) with no gate falling;
    - `node --test` and `scripts/lint-no-template-rules.mjs` pass;
-   - `node evals/convert-coverage.mjs --split dev` does not regress (no template gains a blocked step or a preflight error; the preflight-clean count does not fall).
+   - `node evals/convert-coverage.mjs --split dev` does not regress (no template gains a blocked step or a preflight error; the preflight-clean count does not fall). A new preflight error on a step the bench's last run refused at run time is counted as moved earlier, not as a regression (`--per-template after.json --compare before.json`, `evals/coverage-diff.mjs`, PROPOSALS P32).
 
    From 5 passes on, a fix must also raise the success count by at least max(1, 2 × flips) templates or meet the gate-sum rule, where flips is the number of templates whose verdict changed between the last two runs on one commit (0 of 30 so far, with replayed model replies, so one template is above noise), and no template that passed before now fails. The bar was max(2, …) until the 30-template runs showed zero flips; a deterministic +1 with no regression is signal, not noise. A single general fix rarely flips a whole template while every template stops at gate 3 or 4, which is why the gate-sum rule comes first. A discarded fix is recorded in `evals/bench/LOOP.md` (append-only: iteration, bucket, hypothesis, change, before/after, accepted or discarded).
 

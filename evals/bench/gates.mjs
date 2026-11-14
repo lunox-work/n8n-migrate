@@ -69,6 +69,10 @@ export function gate4({ cmp, modelInputs = [], n8nStatus, judged = [] }) {
   if (n8nStatus !== "success") return fail("fixture", `n8n baseline did not succeed on the normal fixture (${n8nStatus})`);
   const differs = modelInputs.filter((m) => m.input && !m.input.same);
   if (differs.length) return fail("field map", `${differs.length} replayed model call(s) got a different input`, differs.slice(0, 2).map((m) => ({ step: m.step, index: m.index, claude: m.input.at, n8n: m.input.n8nAround })));
+  // PROPOSALS P28: the tools offered to the model, names and input schema shapes (descriptions
+  // are reported in the row's model evidence, not gated).
+  const defsMiss = modelInputs.filter((m) => m.toolDefs && !m.toolDefs.same);
+  if (defsMiss.length) return fail("field map", "different tools offered", defsMiss.slice(0, 2).map((m) => ({ step: m.step, index: m.index, onlyN8n: m.toolDefs.onlyN8n, onlyClaude: m.toolDefs.onlyClaude, schemas: m.toolDefs.schemas })));
   // PROPOSALS P15: a replayed agent turn after a tool call needs the same tools run on the
   // Claude side with the same results (claude-side.mjs sameToolTurn).
   const toolMiss = modelInputs.filter((m) => m.tools && !m.tools.same);

@@ -16,7 +16,7 @@ import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { pickRoute } from "../n8n/mock-server.mjs";
+import { pickRoute, serviceRefusal } from "../n8n/mock-server.mjs";
 import { checkSchema, schemaFile } from "../mocks/mcp-server.mjs";
 import { limitErrors, pageResult } from "../mocks/limits.mjs";
 import { answerOf, liveAnswer, normalize, normalizeRunnerRequest, runnerValue } from "./model-shim.mjs";
@@ -156,6 +156,68 @@ export function sameModelInput(n8nCall, claudeReq, runTime = null) {
   let k = 0;
   while (k < p.length && hay.includes(p.slice(0, k + 1))) k++;
   return { same: false, at: p.slice(Math.max(0, k - 60), k + 120), n8nAround: hay.slice(Math.max(0, hay.indexOf(p.slice(0, k)) + k - 60), hay.indexOf(p.slice(0, k)) + k + 120) };
+}
+
+// ---------- tool definitions offered to the model (PROPOSALS P28) ----------
+//
+// The tools a replayed request offers the model, against n8n's for the same model node and
+// call. Gated: the set of tool names (as runnerValue() maps names: case and punctuation
+// folded, since n8n turns a node name into a tool name by replacing other characters with
+// `_`) and each tool's input schema shape (property names, types, required, nested object
+// properties and array items). Reported, not gated: descriptions of tools and parameters (n8n
+// writes some itself, e.g. "Get many events in Google Calendar" from the node's action label;
+// wording is not behaviour the bench can score), and n8n's own output-parser tool
+// (format_final_json_response), which the runtime replaces with the request's outputSchema.
+const N8N_PARSER_TOOL = "format_final_json_response";
+const typeOf = (s) => {
+  const t = s?.type ?? (s?.properties ? "object" : s?.items ? "array" : s?.enum ? typeof s.enum[0] : "any");
+  return Array.isArray(t) ? [...t].sort().join("|") : String(t);
+};
+export function schemaShape(s) {
+  if (!s || typeof s !== "object") return { type: "any" };
+  const t = typeOf(s);
+  const out = { type: t };
+  if (t === "object" || s.properties) {
+    out.properties = Object.fromEntries(Object.keys(s.properties ?? {}).sort().map((k) => [k, schemaShape(s.properties[k])]));
+    out.required = [...(s.required ?? [])].sort();
+  }
+  if (t === "array" || s.items) out.items = schemaShape(s.items);
+  return out;
+}
+const descriptionsOf = (s, at = "", out = {}) => {
+  if (!s || typeof s !== "object") return out;
+  if (at && s.description) out[at] = String(s.description);
+  for (const [k, v] of Object.entries(s.properties ?? {})) descriptionsOf(v, at ? `${at}.${k}` : k, out);
+  if (s.items) descriptionsOf(s.items, `${at}[]`, out);
+  return out;
+};
+// A tool's input schema: absent or empty means a tool without parameters, as an object schema
+// with no properties does (1953's n8n calendar tool sends the latter, the runtime the former).
+const toolShape = (s) => schemaShape(s && typeof s === "object" && (s.type || s.properties) ? s : { type: "object", properties: {} });
+// Returns null when neither side offers a tool, else {same, onlyN8n, onlyClaude, schemas,
+// descriptions, parser?}: schemas and descriptions list the tools whose shape / wording differ.
+export function sameToolDefs(n8nCall, claudeReq) {
+  const all = normalize(n8nCall.format, n8nCall.request).tools;
+  const n = all.filter((t) => t.name !== N8N_PARSER_TOOL);
+  const c = (claudeReq?.tools ?? []).map((t) => ({ name: t.name, description: t.description ?? "", schema: t.inputSchema ?? {} }));
+  if (!all.length && !c.length) return null;
+  const onlyN8n = n.filter((t) => !c.some((x) => toolNorm(x.name) === toolNorm(t.name))).map((t) => t.name);
+  const onlyClaude = c.filter((t) => !n.some((x) => toolNorm(x.name) === toolNorm(t.name))).map((t) => t.name);
+  const schemas = [];
+  const descriptions = [];
+  for (const t of n) {
+    const x = c.find((y) => toolNorm(y.name) === toolNorm(t.name));
+    if (!x) continue;
+    const a = canon(toolShape(t.schema));
+    const b = canon(toolShape(x.schema));
+    if (a !== b) schemas.push({ tool: t.name, n8n: a.slice(0, 300), claude: b.slice(0, 300) });
+    const dn = { "": t.description, ...descriptionsOf(t.schema) };
+    const dc = { "": x.description, ...descriptionsOf(x.schema) };
+    const diff = [...new Set([...Object.keys(dn), ...Object.keys(dc)])].filter((k) => squash(dn[k]) !== squash(dc[k])).map((k) => ({ at: k || "(tool)", n8n: String(dn[k] ?? "").slice(0, 160), claude: String(dc[k] ?? "").slice(0, 160) }));
+    if (diff.length) descriptions.push({ tool: t.name, diff });
+  }
+  const parser = all.some((t) => t.name === N8N_PARSER_TOOL) ? { n8n: N8N_PARSER_TOOL, claudeOutputSchema: !!claudeReq?.outputSchema } : null;
+  return { same: !onlyN8n.length && !onlyClaude.length && !schemas.length, tools: n.length, onlyN8n, onlyClaude, schemas, descriptions, ...(parser ? { parser } : {}) };
 }
 
 // ---------- replayed agent turns against the tools the Claude side ran (PROPOSALS P15) ----------
@@ -311,6 +373,8 @@ export function claudeDriverModelInputs({ replayLog = [], effects = [], recordin
     const rec = byKey[e.key]?.[e.index];
     if (!rec) continue;
     const m = { step, key: e.key, index: e.index, kind: e.req.kind, mode: "replay", input: sameModelInput(rec, e.req, runTime) };
+    const defs = sameToolDefs(rec, e.req);
+    if (defs) m.toolDefs = defs;
     const tools = claudeTurn && sameToolTurn({ n8nPrev: byKey[e.key]?.[e.index - 1], n8nCall: rec, n8nEffects, n8nSources, claudeTurn, runTime });
     if (tools) m.tools = tools;
     out.push(m);
@@ -386,6 +450,12 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
       const body = p.contentType === "multipart-form-data" ? decodeFileParts(p.body) : p.body;
       const entry = { method: p.method, url: `${u.origin}${u.pathname}`, query: Object.fromEntries(sp), body, ...(p.contentType ? { contentType: p.contentType } : {}), auth: p.auth?.secret ?? null };
       seen.http.push(entry);
+      // PROPOSALS P29: what the real service refuses whatever the fixture says, as the mock.
+      const refused = serviceRefusal(p.method, u.origin, u.pathname, body);
+      if (refused) {
+        entry.fixture = refused.key;
+        return { status: refused.f.status, headers: { "content-type": "application/json" }, body: JSON.stringify(refused.f.body) };
+      }
       const r = pickRoute(routes, String(p.method).toUpperCase(), u.origin, u.pathname, sp, routeCounters, body);
       entry.fixture = r?.key ?? null;
       if (!r && ["POST", "PUT", "PATCH", "DELETE"].includes(String(p.method).toUpperCase())) {
@@ -423,6 +493,8 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
     if (mode === "replay" && rec) {
       entry.mode = "replay";
       entry.input = sameModelInput(rec, req, runTime);
+      const defs = sameToolDefs(rec, req);
+      if (defs) entry.toolDefs = defs;
       const tools = claudeTurn && sameToolTurn({ n8nPrev: byKey[key]?.[i - 1], n8nCall: rec, n8nEffects, n8nSources, claudeTurn, runTime });
       if (tools) entry.tools = tools;
       return runnerValue(req, answerOf(rec.format, rec.response));

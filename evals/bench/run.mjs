@@ -39,7 +39,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers } from "./n8n-side.mjs";
 import { convertPlain, convertSkill, runInProcess, folderIn, claudeDriverModelInputs } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
-import { fromHttp, fromTool, reply, replyText, compare, modelTextsOf, baitHits, refsOf } from "./compare.mjs";
+import { fromHttp, fromTool, replyOf, compare, modelTextsOf, baitHits, refsOf } from "./compare.mjs";
 import { gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited } from "./gates.mjs";
 import { BudgetExceeded, UsageLimit, ledger as claudeLedger, memoryGate } from "./claude.mjs";
 import { readSplits, devWithFixtures } from "./rounds.mjs";
@@ -181,7 +181,7 @@ const byTag = (calls) => {
 
 function n8nEffects(rec, fx) {
   const list = rec.effects.map((e) => fromHttp(e, "n8n")).filter(Boolean);
-  if (["chat", "form"].includes(fx.trigger.kind)) list.push(reply(replyText(rec.lastItems?.map((j) => ({ json: j }))), "n8n"));
+  if (["chat", "form"].includes(fx.trigger.kind)) list.push(replyOf(rec.lastItems?.map((j) => ({ json: j })), "n8n"));
   return list;
 }
 
@@ -191,7 +191,7 @@ const claudeEffect = (e, fx) => (e.connector ? fromTool(e, "claude", refsOf(fx))
 
 function claudeEffects(run, fx) {
   const list = [...run.seen.tools.filter((t) => !t.invalid).map((t) => fromTool(t, "claude", refsOf(fx))), ...run.seen.http.map((h) => fromHttp(h, "claude")).filter(Boolean)];
-  if (["chat", "form"].includes(fx.trigger.kind) && run.res.status === "done") list.push(reply(replyText(run.res.output), "claude"));
+  if (["chat", "form"].includes(fx.trigger.kind) && run.res.status === "done") list.push(replyOf(run.res.output, "claude"));
   return list;
 }
 
@@ -356,6 +356,9 @@ async function benchTemplate(id, args, L) {
 
   const first = await evaluate(1);
   Object.assign(gates, first.gates);
+  // PROPOSALS P28: tool definitions offered to the model; descriptions reported, not gated.
+  const defs = toolDefsSummary(first.runs.normal?.seen.models ?? []);
+  if (defs) drivers.toolDefs = defs;
   t.evidence = {
     normal: first.runs.normal && { status: first.runs.normal.res.status, error: first.runs.normal.res.error, models: first.runs.normal.seen.models, tools: first.runs.normal.seen.tools.map((x) => `${x.connector}.${x.tool}${x.invalid ? " (invalid: " + x.invalid + ")" : ""} <- ${x.fixture}`), http: first.runs.normal.seen.http.map((h) => `${h.method} ${h.url} <- ${h.fixture}`) },
     cmp: first.cmp && { ok: first.cmp.ok, writes: first.cmp.writes, reads: first.cmp.reads, unmapped: first.cmp.unmapped, runTimeMasked: first.cmp.runTimeMasked },
@@ -389,7 +392,7 @@ async function benchTemplate(id, args, L) {
           if (r.run || r.summary?.notRun) {
             const ce = r.effects.map((e) => claudeEffect(e, fx)).filter(Boolean);
             r.gate6 = gate6({ claudeCalls: { tools: r.effects.filter((e) => e.connector), http: r.effects.filter((e) => e.url) }, allow: r.allow ?? {}, claudeEffects: ce, n8nBaitHits: baitHits(n8nEffects(rec, fx), fx.expect.bait ?? []), bait: v === "hostile" ? fx.expect.bait ?? [] : [], baitHits });
-            if (v === "normal" && rec) r.cmp = compare(n8nEffects(rec, fx), ce.concat(["chat", "form"].includes(fx.trigger.kind) && r.run?.status === "done" ? [reply(replyText(r.run.output), "claude")] : []), { modelTexts: modelTextsOf(rec.modelCalls, answerOf), mode: args.modelMode, runTime: runTime(rec) });
+            if (v === "normal" && rec) r.cmp = compare(n8nEffects(rec, fx), ce.concat(["chat", "form"].includes(fx.trigger.kind) && r.run?.status === "done" ? [replyOf(r.run.output, "claude")] : []), { modelTexts: modelTextsOf(rec.modelCalls, answerOf), mode: args.modelMode, runTime: runTime(rec) });
           }
           D[`claude:${v}`] = r;
           save();
@@ -418,13 +421,13 @@ async function benchTemplate(id, args, L) {
     drivers.claude = { normal: cn.summary, hostile: ch.summary };
     metrics.claudeDriver = cn.metrics;
     if (!cn.summary?.notRun) {
-    const cNormal = cn.run && compare(n8nEffects(recs.normal, fxN), cn.effects.map((e) => claudeEffect(e, fxN)).filter(Boolean).concat(["chat", "form"].includes(fxN.trigger.kind) && cn.run.status === "done" ? [reply(replyText(cn.run.output), "claude")] : []), { modelTexts: modelTextsOf(recs.normal?.modelCalls, answerOf), mode: args.modelMode, runTime: runTime(recs.normal) });
+    const cNormal = cn.run && compare(n8nEffects(recs.normal, fxN), cn.effects.map((e) => claudeEffect(e, fxN)).filter(Boolean).concat(["chat", "form"].includes(fxN.trigger.kind) && cn.run.status === "done" ? [replyOf(cn.run.output, "claude")] : []), { modelTexts: modelTextsOf(recs.normal?.modelCalls, answerOf), mode: args.modelMode, runTime: runTime(recs.normal) });
     const g3c = cn.run?.status === "done" ? { pass: true } : { ...runFailureCause({ error: cn.run?.error ?? { message: cn.summary?.problem ?? "no run" } }) };
     if (!g3c.pass) gates[3] = { ...g3c, driver: "claude", inprocess: gates[3] };
     else {
       // PROPOSALS P16: the driver's replayed requests are checked like the in-process ones.
       const modelInputs = claudeDriverModelInputs({ replayLog: cn.replayLog ?? [], effects: cn.effects ?? [], recordings: recs.normal?.modelCalls ?? [], n8nEffects: recs.normal?.effects ?? [], n8nSources: recs.normal?.sources ?? {}, runTime: runTime(recs.normal) });
-      drivers.claude.modelChecks = { replayed: modelInputs.length, inputsDiffer: modelInputs.filter((m) => !m.input?.same).length, toolTurns: modelInputs.filter((m) => m.tools).length, toolTurnsFailed: modelInputs.filter((m) => m.tools && !m.tools.same).length, ...(cn.replayLog ? {} : { note: "run made before P16: no replayed requests kept" }) };
+      drivers.claude.modelChecks = { replayed: modelInputs.length, inputsDiffer: modelInputs.filter((m) => !m.input?.same).length, toolTurns: modelInputs.filter((m) => m.tools).length, toolTurnsFailed: modelInputs.filter((m) => m.tools && !m.tools.same).length, toolDefs: toolDefsSummary(modelInputs), ...(cn.replayLog ? {} : { note: "run made before P16: no replayed requests kept" }) };
       const g4c = gate4({ cmp: cNormal, modelInputs, n8nStatus: recs.normal?.status });
       if (!g4c.pass) gates[4] = { ...g4c, driver: "claude", inprocess: gates[4] };
       const fxH = loadFixture(id, "hostile");
@@ -457,6 +460,16 @@ async function benchTemplate(id, args, L) {
   const interval = (S.analyze.report?.workflows?.[0]?.schedule?.shortestIntervalS) ?? undefined;
   gates[8] = { ...gate8(metrics.claudeDriver, ceiling, { intervalS: interval, missing: S["claude:normal"]?.summary?.notRun }), driver: "claude", provisional: true };
   return stop();
+}
+
+// PROPOSALS P28: per run, how many replayed requests offered tools, how many differ from n8n's
+// in names or schema shapes (gated), and which tools' descriptions differ (reported only).
+function toolDefsSummary(models) {
+  const withDefs = models.filter((m) => m.toolDefs);
+  if (!withDefs.length) return null;
+  const desc = [...new Set(withDefs.flatMap((m) => m.toolDefs.descriptions.map((d) => d.tool)))];
+  const parser = withDefs.find((m) => m.toolDefs.parser)?.toolDefs.parser ?? null;
+  return { requests: withDefs.length, differ: withDefs.filter((m) => !m.toolDefs.same).length, descriptionsDiffer: desc, ...(parser ? { parser } : {}) };
 }
 
 function summarizeCheck(r) {

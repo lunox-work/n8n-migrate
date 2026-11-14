@@ -30,6 +30,8 @@
 //   method + url + any + query + bodyMatch reply in turn and the last repeats. bodyBase64 is
 //   binary. With __routes present, a write no route answers gets __writeDefault (logged
 //   write-default) and a read gets 404 {"error":"no fixture"}, logged read-default.
+//   A request the real service always refuses (serviceRefusal: Gmail send without
+//   recipients, PROPOSALS P29) gets the service's error before any route, logged `service: …`.
 //
 // TLS (--tls-dir, evals/bench/tls.mjs): a CONNECT to a host with a leaf certificate in
 // <dir>/hosts is answered 200 and the tunnel is terminated here with that leaf, so the
@@ -134,6 +136,28 @@ function decodeBody(buf, contentType) {
     return { body: text, bodyEncoding: "text" };
   }
   return { body: buf.toString("base64"), bodyEncoding: "base64" };
+}
+
+// Requests the real service refuses whatever a fixture says (PROPOSALS P29), answered before
+// any route: Gmail's messages.send (JSON {raw} or the upload endpoint's MIME text) with no
+// address in To, Cc or Bcc gets the API's 400 "Recipient address required", so a baseline that
+// sends a recipient-less message fails as it would for real. Returns {key, f} or null.
+const GMAIL_SEND = /^\/(upload\/)?gmail\/v1\/users\/[^/]+\/messages\/send$/;
+const GMAIL_HOSTS = new Set(["https://www.googleapis.com", "https://gmail.googleapis.com"]);
+export function mimeRecipients(mime) {
+  const text = String(mime ?? "");
+  const cut = text.search(/\r?\n\r?\n/);
+  const head = (cut < 0 ? text : text.slice(0, cut)).replace(/\r?\n[ \t]+/g, " ");
+  return head.split(/\r?\n/).filter((l) => /^(to|cc|bcc):/i.test(l)).flatMap((l) => l.slice(l.indexOf(":") + 1).split(",")).map((x) => x.trim()).filter((x) => x.includes("@"));
+}
+export function serviceRefusal(method, origin, path, body) {
+  if (String(method).toUpperCase() !== "POST" || !GMAIL_SEND.test(path) || (origin && !GMAIL_HOSTS.has(origin))) return null;
+  let mime = null;
+  if (body && typeof body === "object" && typeof body.raw === "string") mime = Buffer.from(body.raw.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+  else if (typeof body === "string") mime = body;
+  if (mime === null || mimeRecipients(mime).length) return null;
+  const message = "Recipient address required";
+  return { key: "service: gmail send without recipients", f: { status: 400, body: { error: { code: 400, message, errors: [{ message, domain: "global", reason: "invalidArgument" }], status: "INVALID_ARGUMENT" } } } };
 }
 
 // Picks the fixture for a request; `counters` tracks list positions.
@@ -326,7 +350,7 @@ export function startMock({ port = 8080, log = null, fixtures = null, host = "0.
       // A write no fixture answers is accepted (200 {}), as the mock MCP server answers an
       // unfixtured call with {"ok": true}; reads still get the 404 so fixture gaps show.
       const writeDefault = !route && map.__writeDefault && ["POST", "PUT", "PATCH", "DELETE"].includes(req.method) && origin ? { key: "write-default", f: map.__writeDefault } : null;
-      let { key, f } = route ?? writeDefault ?? pickFixture(map, req.method, u.pathname, query, counters, origin);
+      let { key, f } = serviceRefusal(req.method, origin, u.pathname, entry.body) ?? route ?? writeDefault ?? pickFixture(map, req.method, u.pathname, query, counters, origin);
       // A read no bench route answers (PROPOSALS P19): 404, logged as read-default, the twin of
       // write-default, so a fixture gap shows in the request log.
       if (key === null && Array.isArray(map.__routes)) key = "read-default";

@@ -337,3 +337,53 @@ test("P11: a read's rows are served again by args and per calling step; writes s
   const plain = [{ node: "Poll", result: "a" }, { node: "Poll", result: "b" }];
   assert.equal(pickConnector(plain, {}, new Set(), "Later", { read: true }).result, "a", "another step reuses the read's rows from the start");
 });
+
+// PROPOSALS P30: an agent's final answer that reads as JSON, through the task driver path the
+// claude driver uses (replay hook value -> `runner answer` -> run output -> chat reply effect).
+test("P30: the chat reply carries its value type, so JSON text and an object with the same characters differ", async () => {
+  const { replyOf, replyValueType } = await import("../evals/bench/compare.mjs");
+  const text = '{"verdict":"spam","score":0.9}';
+  assert.deepEqual([replyValueType([{ json: { output: text } }]), replyValueType([{ output: JSON.parse(text) }]), replyValueType([{ json: { text: "hi" } }]), replyValueType([{ json: { a: 1 } }]), replyValueType([])], ["text", "json", "text", "json", undefined]);
+  const n8n = replyOf([{ json: { output: text } }], "n8n");
+  const typed = replyOf([{ output: JSON.parse(text) }], "claude");
+  assert.equal(typed.fields.text, text, "the serialised object reads the same as n8n's text");
+  const c = compare([n8n], [typed]);
+  assert.equal(c.ok, false);
+  assert.deepEqual(c.writes.fieldDiffs[0].diffs.map((d) => [d.field, d.n8n, d.claude, !!d.modelWritten]), [["valueType", "text", "json", false]]);
+  assert.equal(compare([n8n], [replyOf([{ output: text }], "claude")]).ok, true);
+});
+
+test("P30: through the task driver, an agent answer that reads as JSON stays text, as n8n's agent output", { todo: "the task driver types JSON-looking agent text as an object (skill fix outside the loop)" }, async () => {
+  const { command, paths } = await import("../skills/n8n-to-claude/runtime/src/driver.mjs");
+  const core = await import("../skills/n8n-to-claude/runtime/src/index.mjs");
+  const { replyOf } = await import("../evals/bench/compare.mjs");
+  const { mkdtempSync, writeFileSync, readFileSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = mkdtempSync(join(tmpdir(), "n2c-p30-"));
+  try {
+    const def = {
+      schemaVersion: 1,
+      name: "JSON-looking answer",
+      steps: {
+        Chat: { kind: "trigger", n8n: { type: "@n8n/n8n-nodes-langchain.chatTrigger", typeVersion: 1.1 }, params: {}, chat: true },
+        Agent: { kind: "agent", n8n: { type: "@n8n/n8n-nodes-langchain.agent", typeVersion: 1.7 }, params: {}, agent: { prompt: "={{ $json.chatInput }}", system: "Answer with a JSON verdict.", tools: [] } },
+      },
+      edges: [{ from: "Chat", fromOutput: 0, to: "Agent", toInput: 0 }],
+      allow: { tools: [], http: [], sql: [] },
+      secrets: [],
+    };
+    writeFileSync(join(dir, "definition.json"), JSON.stringify(def));
+    const run = (cmd, pos = [], flags = {}, input = "") => command(cmd, pos, flags, { core, dir, cwd: dir, stdin: () => input });
+    await run("start", [], { trigger: JSON.stringify([{ chatInput: "Is this spam?" }]) });
+    // The replay hook writes runnerValue(req, n8n's reply): the reply's text, unchanged.
+    const text = '{"verdict": "spam", "score": 0.9}';
+    assert.equal(runnerValue({ kind: "agent", tools: [] }, { text }), text);
+    assert.match((await run("answer", ["q1"], {}, text)).text, /DONE/);
+    const out = JSON.parse(readFileSync(join(paths(dir).runs, `${JSON.parse(readFileSync(paths(dir).state, "utf8")).runId}.json`), "utf8")).result.output;
+    const n8n = replyOf([{ json: { output: text } }], "n8n");
+    assert.deepEqual(compare([n8n], [replyOf(out, "claude")]).writes.fieldDiffs, [], `task driver output ${JSON.stringify(out)}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

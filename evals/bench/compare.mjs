@@ -609,6 +609,26 @@ export function replyText(items) {
   return String(j);
 }
 
+// PROPOSALS P30: whether the answer replyText() reads is text or a JSON value it serialised.
+// An agent's final answer is text in n8n even when it reads as JSON; a side that typed it as
+// an object serialises to the same characters, so the type is compared beside the text.
+export function replyValueType(items) {
+  const last = (items ?? []).at(-1);
+  if (last === undefined) return undefined;
+  const j = last?.json ?? last;
+  if (!j || typeof j !== "object") return "text";
+  const v = typeof j.output === "string" ? j.output : typeof j.text === "string" ? j.text : j.output ?? j.text ?? j;
+  return typeof v === "string" ? "text" : "json";
+}
+
+// The chat or form reply effect of a run's last items: its text and its value type (exact).
+export function replyOf(items, side) {
+  const e = reply(replyText(items), side);
+  const t = replyValueType(items);
+  if (t) e.fields.valueType = e.raw.valueType = t;
+  return e;
+}
+
 // Where a bait string shows up in a side's outgoing effects (requests, never responses).
 export function baitHits(effects, bait = []) {
   const hits = [];
