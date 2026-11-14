@@ -175,6 +175,9 @@ async function benchTemplate(id, args, L) {
   const drivers = {};
   const metrics = {};
   const save = () => writeJson(L.file, L.data);
+  // PROPOSALS P4: timestamps of the run itself are masked where the sides differ only by them;
+  // the window is around n8n's start, the zone is the template's (n8n's default otherwise).
+  const runTime = (rec) => (rec?.startedAt ? { startMs: Date.parse(rec.startedAt), zone: wf.settings?.timezone || "America/New_York" } : null);
   const stop = (g) => ({ gates, reached: reached(gates), drivers, metrics });
 
   // Gate 1: analyze.
@@ -280,7 +283,7 @@ async function benchTemplate(id, args, L) {
   const evaluate = async (rep) => {
     const out = { runs: {}, gates: {} };
     const g = out.gates;
-    const runV = async (v) => (out.runs[v] ??= await runInProcess(folder, loadFixture(id, v), { wf, recordings: (await need(v))?.modelCalls ?? [], mode: args.modelMode, startedAt: recs[v]?.startedAt, log }));
+    const runV = async (v) => (out.runs[v] ??= await runInProcess(folder, loadFixture(id, v), { wf, recordings: (await need(v))?.modelCalls ?? [], mode: args.modelMode, startedAt: recs[v]?.startedAt, runTime: runTime(recs[v]), log }));
     const N = await runV("normal");
     g[3] = { ...gate3(N.res), driver: "inprocess" };
     // In replay mode the Claude side runs on n8n's recorded replies: a baseline that failed
@@ -288,7 +291,7 @@ async function benchTemplate(id, args, L) {
     if (recs.normal?.status !== "success") g[3] = { pass: false, bucket: "fixture", cause: `n8n baseline failed on the normal fixture: ${recs.normal?.error?.node ?? "?"}: ${recs.normal?.error?.message ?? recs.normal?.status}`, detail: { claudeSide: g[3] }, driver: "inprocess" };
     if (!g[3].pass) return out;
     const modelTexts = modelTextsOf(recs.normal?.modelCalls, answerOf);
-    const cmp = compare(n8nEffects(recs.normal, fxN), claudeEffects(N, fxN), { modelTexts, mode: args.modelMode });
+    const cmp = compare(n8nEffects(recs.normal, fxN), claudeEffects(N, fxN), { modelTexts, mode: args.modelMode, runTime: runTime(recs.normal) });
     out.cmp = cmp;
     let judged = [];
     if (args.modelMode === "live" && cmp.judge.length) {
@@ -304,7 +307,7 @@ async function benchTemplate(id, args, L) {
       const run = await runV(v);
       const n8nOk = recs[v]?.status === "success";
       const claudeOk = run.res.status === "done";
-      const c = n8nOk && claudeOk ? compare(n8nEffects(recs[v], fx), claudeEffects(run, fx), { modelTexts: modelTextsOf(recs[v]?.modelCalls, answerOf), mode: args.modelMode }) : null;
+      const c = n8nOk && claudeOk ? compare(n8nEffects(recs[v], fx), claudeEffects(run, fx), { modelTexts: modelTextsOf(recs[v]?.modelCalls, answerOf), mode: args.modelMode, runTime: runTime(recs[v]) }) : null;
       vr[v] = { n8nOk, claudeOk, relation: robustness(n8nOk, claudeOk, c), claudeRun: { status: run.res.status, error: run.res.error }, n8nError: recs[v]?.error ?? null, ...(c && !c.ok ? { writes: c.writes } : {}) };
     }
     g[5] = { ...gate5(vr), driver: "inprocess" };
@@ -323,7 +326,7 @@ async function benchTemplate(id, args, L) {
   Object.assign(gates, first.gates);
   t.evidence = {
     normal: first.runs.normal && { status: first.runs.normal.res.status, error: first.runs.normal.res.error, models: first.runs.normal.seen.models, tools: first.runs.normal.seen.tools.map((x) => `${x.connector}.${x.tool}${x.invalid ? " (invalid: " + x.invalid + ")" : ""} <- ${x.fixture}`), http: first.runs.normal.seen.http.map((h) => `${h.method} ${h.url} <- ${h.fixture}`) },
-    cmp: first.cmp && { ok: first.cmp.ok, writes: first.cmp.writes, reads: first.cmp.reads, unmapped: first.cmp.unmapped },
+    cmp: first.cmp && { ok: first.cmp.ok, writes: first.cmp.writes, reads: first.cmp.reads, unmapped: first.cmp.unmapped, runTimeMasked: first.cmp.runTimeMasked },
     robust: first.robust ?? null,
     judged: first.judged ?? null,
   };
@@ -338,7 +341,7 @@ async function benchTemplate(id, args, L) {
       if (!D.inprocessHostile && args.variants.includes("hostile")) {
         const fx = loadFixture(id, "hostile");
         const rec = await need("hostile");
-        const run = await runInProcess(folder, fx, { wf, recordings: rec?.modelCalls ?? [], mode: args.modelMode, startedAt: rec?.startedAt, log });
+        const run = await runInProcess(folder, fx, { wf, recordings: rec?.modelCalls ?? [], mode: args.modelMode, startedAt: rec?.startedAt, runTime: runTime(rec), log });
         const n8nHits = baitHits(n8nEffects(rec, fx), fx.expect.bait ?? []);
         D.inprocessHostile = { run: { status: run.res.status, error: run.res.error?.message ?? null }, n8n: rec?.status, gate6: gate6({ claudeCalls: run.seen, allow: run.definition.allow ?? {}, claudeEffects: claudeEffects(run, fx), n8nBaitHits: n8nHits, bait: fx.expect.bait ?? [], baitHits }), calls: [...run.seen.tools.map((x) => `${x.connector}.${x.tool}`), ...run.seen.http.map((h) => `${h.method} ${h.url}`)] };
         save();
@@ -354,7 +357,7 @@ async function benchTemplate(id, args, L) {
           if (r.run || r.summary?.notRun) {
             const ce = r.effects.map((e) => (e.connector ? fromTool(e, "claude") : fromHttp(e, "claude"))).filter(Boolean);
             r.gate6 = gate6({ claudeCalls: { tools: r.effects.filter((e) => e.connector), http: r.effects.filter((e) => e.url) }, allow: r.allow ?? {}, claudeEffects: ce, n8nBaitHits: baitHits(n8nEffects(rec, fx), fx.expect.bait ?? []), bait: v === "hostile" ? fx.expect.bait ?? [] : [], baitHits });
-            if (v === "normal" && rec) r.cmp = compare(n8nEffects(rec, fx), ce.concat(["chat", "form"].includes(fx.trigger.kind) && r.run?.status === "done" ? [reply(replyText(r.run.output), "claude")] : []), { modelTexts: modelTextsOf(rec.modelCalls, answerOf), mode: args.modelMode });
+            if (v === "normal" && rec) r.cmp = compare(n8nEffects(rec, fx), ce.concat(["chat", "form"].includes(fx.trigger.kind) && r.run?.status === "done" ? [reply(replyText(r.run.output), "claude")] : []), { modelTexts: modelTextsOf(rec.modelCalls, answerOf), mode: args.modelMode, runTime: runTime(rec) });
           }
           D[`claude:${v}`] = r;
           save();
@@ -383,7 +386,7 @@ async function benchTemplate(id, args, L) {
     drivers.claude = { normal: cn.summary, hostile: ch.summary };
     metrics.claudeDriver = cn.metrics;
     if (!cn.summary?.notRun) {
-    const cNormal = cn.run && compare(n8nEffects(recs.normal, fxN), cn.effects.map((e) => (e.connector ? fromTool(e, "claude") : fromHttp(e, "claude"))).filter(Boolean).concat(["chat", "form"].includes(fxN.trigger.kind) && cn.run.status === "done" ? [reply(replyText(cn.run.output), "claude")] : []), { modelTexts: modelTextsOf(recs.normal?.modelCalls, answerOf), mode: args.modelMode });
+    const cNormal = cn.run && compare(n8nEffects(recs.normal, fxN), cn.effects.map((e) => (e.connector ? fromTool(e, "claude") : fromHttp(e, "claude"))).filter(Boolean).concat(["chat", "form"].includes(fxN.trigger.kind) && cn.run.status === "done" ? [reply(replyText(cn.run.output), "claude")] : []), { modelTexts: modelTextsOf(recs.normal?.modelCalls, answerOf), mode: args.modelMode, runTime: runTime(recs.normal) });
     const g3c = cn.run?.status === "done" ? { pass: true } : { ...runFailureCause({ error: cn.run?.error ?? { message: cn.summary?.problem ?? "no run" } }) };
     if (!g3c.pass) gates[3] = { ...g3c, driver: "claude", inprocess: gates[3] };
     else {

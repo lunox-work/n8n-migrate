@@ -94,31 +94,34 @@ const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const ordinal = (d) => `${d}${d % 10 === 1 && d !== 11 ? "st" : d % 10 === 2 && d !== 12 ? "nd" : d % 10 === 3 && d !== 13 ? "rd" : "th"}`;
 
-// The item n8n 2.47's Schedule Trigger emits, in UTC (the bench's GENERIC_TIMEZONE).
-export function scheduleItem(iso) {
+// The item n8n 2.47's Schedule Trigger emits, in the workflow's timezone (the bench's
+// GENERIC_TIMEZONE, n8n's default America/New_York, unless the template sets one).
+export function scheduleItem(iso, timeZone = "America/New_York") {
   const d = new Date(iso);
-  const h12 = d.getUTCHours() % 12 || 12;
-  const ampm = d.getUTCHours() < 12 ? "am" : "pm";
-  const time = `${h12}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())} ${ampm}`;
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", weekday: "long" }).formatToParts(d).map((p) => [p.type, p.value]));
+  const [Y, M, D, h, mi, se] = ["year", "month", "day", "hour", "minute", "second"].map((k) => Number(parts[k]));
+  const offMin = Math.round((Date.UTC(Y, M - 1, D, h, mi, se) - Math.floor(d.getTime() / 1000) * 1000) / 60000);
+  const off = `${offMin < 0 ? "-" : "+"}${pad(Math.floor(Math.abs(offMin) / 60))}:${pad(Math.abs(offMin) % 60)}`;
+  const time = `${h % 12 || 12}:${pad(mi)}:${pad(se)} ${h < 12 ? "am" : "pm"}`;
   return {
-    timestamp: d.toISOString().replace("Z", "+00:00").replace(/\.\d{3}/, ".000"),
-    "Readable date": `${MONTHS[d.getUTCMonth()]} ${ordinal(d.getUTCDate())} ${d.getUTCFullYear()}, ${time}`,
+    timestamp: `${Y}-${pad(M)}-${pad(D)}T${pad(h)}:${pad(mi)}:${pad(se)}.000${off}`,
+    "Readable date": `${MONTHS[M - 1]} ${ordinal(D)} ${Y}, ${time}`,
     "Readable time": time,
-    "Day of week": DAYS[d.getUTCDay()],
-    Year: String(d.getUTCFullYear()),
-    Month: MONTHS[d.getUTCMonth()],
-    "Day of month": pad(d.getUTCDate()),
-    Hour: pad(d.getUTCHours()),
-    Minute: pad(d.getUTCMinutes()),
-    Second: pad(d.getUTCSeconds()),
-    Timezone: "UTC (UTC+00:00)",
+    "Day of week": parts.weekday,
+    Year: String(Y),
+    Month: MONTHS[M - 1],
+    "Day of month": pad(D),
+    Hour: pad(h),
+    Minute: pad(mi),
+    Second: pad(se),
+    Timezone: `${timeZone} (UTC${off})`,
   };
 }
 
 const asItem = (x) => (x && typeof x === "object" && !Array.isArray(x) && "json" in x ? x : { json: x ?? {} });
 
 // The trigger's output items for pin and cli modes.
-export function triggerItems(node, input, now) {
+export function triggerItems(node, input, now, timeZone) {
   if (Array.isArray(input)) return input.map(asItem);
   if (input && Array.isArray(input.items)) return input.items.map(asItem);
   if (input && input.request) {
@@ -127,7 +130,7 @@ export function triggerItems(node, input, now) {
     return [{ json: { headers: lowerKeys(q.headers ?? {}), params: q.params ?? {}, query: q.query ?? {}, body: q.body ?? {}, webhookUrl: `${BASE}/webhook/${path}`, executionMode: "production" } }];
   }
   if (input !== undefined) return [asItem(input)];
-  if (/scheduleTrigger$/.test(node.type)) return [{ json: scheduleItem(now) }];
+  if (/scheduleTrigger$/.test(node.type)) return [{ json: scheduleItem(now, timeZone || undefined) }];
   return [{ json: {} }];
 }
 
@@ -239,7 +242,7 @@ export async function runWorkflow(workflow, { trigger, mock, credentials = {}, v
   await waitHealthy(30_000);
   const wf = structuredClone(workflow);
   const t = pickTrigger(wf, triggerNode);
-  const items = triggerItems(t, trigger, now);
+  const items = triggerItems(t, trigger, now, workflow.settings?.timezone);
 
   // Credentials first, so node references point at real ids.
   const created = [];

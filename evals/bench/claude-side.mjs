@@ -21,6 +21,7 @@ import { limitErrors, pageResult } from "../mocks/limits.mjs";
 import { answerOf, liveAnswer, normalize, normalizeRunnerRequest, runnerValue } from "./model-shim.mjs";
 import { claudeP } from "./claude.mjs";
 import { modelConsumers } from "./n8n-side.mjs";
+import { maskRunTime } from "./compare.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
@@ -129,15 +130,24 @@ const squash = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 
 // Does the Claude request ask the model the same thing as n8n's recorded request? The Claude
 // system text and prompt must appear in n8n's request (n8n adds its own wrappers: tool
-// descriptions, format instructions).
-export function sameModelInput(n8nCall, claudeReq) {
+// descriptions, format instructions). runTime ({startMs, zone}, PROPOSALS P4): when the texts
+// differ, timestamps of the run itself are masked on both sides (compare.mjs maskRunTime) and
+// the check is repeated; a match then is reported with runTimeMasked: true.
+export function sameModelInput(n8nCall, claudeReq, runTime = null) {
   const n = normalize(n8nCall.format, n8nCall.request);
   const hay = squash([n.system, ...n.messages.map((m) => m.text)].join(" "));
   const c = normalizeRunnerRequest(claudeReq);
   const parts = [c.system, ...c.messages.filter((m) => m.role === "user").map((m) => m.text)].map(squash).filter(Boolean);
   const missing = parts.filter((p) => !hay.includes(p));
   if (!missing.length) return { same: true };
-  const p = missing[0];
+  let still = missing;
+  if (runTime) {
+    const mh = maskRunTime(hay, runTime);
+    still = missing.filter((p) => !mh.includes(maskRunTime(p, runTime)));
+    if (!still.length) return { same: true, runTimeMasked: true };
+  }
+  // The diff shows the first part that still differs (after masking, when it applies).
+  const p = still[0];
   let k = 0;
   while (k < p.length && hay.includes(p.slice(0, k + 1))) k++;
   return { same: false, at: p.slice(Math.max(0, k - 60), k + 120), n8nAround: hay.slice(Math.max(0, hay.indexOf(p.slice(0, k)) + k - 60), hay.indexOf(p.slice(0, k)) + k + 120) };
@@ -146,12 +156,18 @@ export function sameModelInput(n8nCall, claudeReq) {
 // Runs a definition with every request answered by the bench. Returns the run result and what
 // the bench saw: tool calls, http requests and model answers, each with where its answer came
 // from. recordings: n8n's model calls [{node, index, format, request, response}].
-export async function runInProcess(folder, fx, { wf, recordings = [], mode = "replay", liveFallback = true, startedAt, log = console.error } = {}) {
+// The fixture's http routes (FIXTURES.md `http` sources), as the in-process host and the
+// claude driver's mock answer them.
+export function httpRoutes(fx) {
+  return [...fx.reads, ...(fx.writeReplies ?? [])].flatMap((r) => (r.http?.responses ?? []).map((x) => ({ ...x, node: r.node })));
+}
+
+export async function runInProcess(folder, fx, { wf, recordings = [], mode = "replay", liveFallback = true, startedAt, runTime = null, log = console.error } = {}) {
   const def = JSON.parse(readFileSync(join(folder, "definition.json"), "utf8"));
   const core = await import(pathToFileURL(join(folder, "runtime", "runner-core.mjs")).href);
   const conn = connectorFixtures(fx);
   const usedConn = new Map();
-  const routes = [...fx.reads, ...(fx.writeReplies ?? [])].flatMap((r) => (r.http?.responses ?? []).map((x) => ({ ...x, node: r.node })));
+  const routes = httpRoutes(fx);
   const routeCounters = new Map();
   const byKey = {};
   for (const c of recordings) (byKey[c.node] ??= []).push(c);
@@ -181,7 +197,7 @@ export async function runInProcess(folder, fx, { wf, recordings = [], mode = "re
       const u = new URL(p.url);
       const sp = new URLSearchParams(u.search);
       for (const [k, v] of Object.entries(p.query ?? {})) for (const x of [].concat(v)) sp.append(k, typeof x === "string" ? x : JSON.stringify(x));
-      const entry = { method: p.method, url: `${u.origin}${u.pathname}`, query: Object.fromEntries(sp), body: p.body, auth: p.auth?.secret ?? null };
+      const entry = { method: p.method, url: `${u.origin}${u.pathname}`, query: Object.fromEntries(sp), body: p.body, ...(p.contentType ? { contentType: p.contentType } : {}), auth: p.auth?.secret ?? null };
       seen.http.push(entry);
       const r = pickRoute(routes, String(p.method).toUpperCase(), u.origin, u.pathname, sp, routeCounters, p.body);
       entry.fixture = r?.key ?? null;
@@ -209,7 +225,7 @@ export async function runInProcess(folder, fx, { wf, recordings = [], mode = "re
     seen.models.push(entry);
     if (mode === "replay" && rec) {
       entry.mode = "replay";
-      entry.input = sameModelInput(rec, req);
+      entry.input = sameModelInput(rec, req, runTime);
       return runnerValue(req, answerOf(rec.format, rec.response));
     }
     if (mode === "replay" && !liveFallback) {

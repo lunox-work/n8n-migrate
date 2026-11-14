@@ -3,8 +3,8 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fromHttp, fromTool, reply, compare, modelWritten, parseMime, multipartJson, baitHits, replyText, normTarget, modelTextsOf } from "../evals/bench/compare.mjs";
-import { pickRoute, routeKey } from "../evals/n8n/mock-server.mjs";
+import { fromHttp, fromTool, reply, compare, modelWritten, parseMime, multipartJson, baitHits, replyText, normTarget, modelTextsOf, maskRunTime, formStrings } from "../evals/bench/compare.mjs";
+import { pickRoute, routeKey, parseMultipart } from "../evals/n8n/mock-server.mjs";
 import { answerOf, runnerValue, jsonFromText, normalize, providerResponse } from "../evals/bench/model-shim.mjs";
 import { pickConnector, sameModelInput, modelKeyFor } from "../evals/bench/claude-side.mjs";
 
@@ -171,4 +171,62 @@ test("connector fixtures: args match first, then the node's own, then order; mod
   assert.equal(sameModelInput(rec, { kind: "agent", system: "Classify the mail from ann@x.test.", prompt: "Run the task." }).same, true);
   const d = sameModelInput(rec, { kind: "agent", system: "Classify the mail from .", prompt: "Run the task." });
   assert.equal(d.same, false);
+});
+
+test("P3: n8n's multipart/form-data body is decoded and compared as string fields", () => {
+  const b = "XyZb0undary";
+  const file = Buffer.from([0, 255, 1, 2, 3]);
+  const raw = Buffer.concat([
+    Buffer.from(`--${b}\r\nContent-Disposition: form-data; name="body"\r\n\r\n# Review\nline two\r\n`),
+    Buffer.from(`--${b}\r\nContent-Disposition: form-data; name="position[new_line]"\r\n\r\n48\r\n`),
+    Buffer.from(`--${b}\r\nContent-Disposition: form-data; name="tag"\r\n\r\na\r\n--${b}\r\nContent-Disposition: form-data; name="tag"\r\n\r\nb\r\n`),
+    Buffer.from(`--${b}\r\nContent-Disposition: form-data; name="file"; filename="x.bin"\r\nContent-Type: application/octet-stream\r\n\r\n`),
+    file,
+    Buffer.from(`\r\n--${b}--\r\n`),
+  ]);
+  const body = parseMultipart(raw, b);
+  assert.equal(body.body, "# Review\nline two");
+  assert.equal(body["position[new_line]"], "48");
+  assert.deepEqual(body.tag, ["a", "b"]);
+  assert.equal(body.file.filename, "x.bin");
+  assert.equal(body.file.size, 5);
+  assert.equal(body.file.contentType, "application/octet-stream");
+  assert.match(body.file.sha256, /^[0-9a-f]{64}$/);
+  const n = fromHttp(log("POST", "https://gitlab.com/api/v4/projects/4821/merge_requests/57/discussions", { body: "# Review", "position[new_line]": "48", "position[old_line]": "" }, { bodyEncoding: "multipart" }));
+  const c = fromHttp({ method: "POST", url: "https://gitlab.com/api/v4/projects/4821/merge_requests/57/discussions", query: {}, body: { "position[old_line]": null, body: "# Review", "position[new_line]": 48 }, contentType: "multipart-form-data" }, "claude");
+  assert.equal(compare([n], [c]).ok, true, "same fields, numbers and strings alike, any key order");
+  const w = fromHttp({ method: "POST", url: "https://gitlab.com/api/v4/projects/4821/merge_requests/57/discussions", query: {}, body: { body: "# Review", "position[new_line]": 49, "position[old_line]": "" }, contentType: "multipart-form-data" }, "claude");
+  assert.equal(compare([n], [w]).ok, false, "a different value still differs");
+  const j = fromHttp({ method: "POST", url: "https://gitlab.com/api/v4/projects/4821/merge_requests/57/discussions", query: {}, body: { body: "# Review", "position[new_line]": 48, "position[old_line]": "" } }, "claude");
+  assert.equal(compare([n], [j]).ok, false, "a JSON body keeps its types: only form bodies compare as strings");
+  assert.deepEqual(formStrings({ b: { x: 1 }, a: [1, "2"] }), { a: ["1", "2"], b: '{"x":1}' });
+});
+
+test("P4: run-time timestamps are masked only where the sides differ by them alone", () => {
+  const rt = { startMs: Date.parse("2026-11-14T05:00:43.621Z"), zone: "America/New_York" };
+  const n8nIso = "Today is 2026-11-14T00:00:51.679-05:00.";
+  const claudeIso = "Today is 2026-11-14T00:00:43.655-05:00.";
+  assert.equal(maskRunTime(n8nIso, rt), maskRunTime(claudeIso, rt));
+  assert.equal(maskRunTime(n8nIso, rt), "Today is <run-time:####-##-##T##:##:##.###>-05:00.");
+  assert.notEqual(maskRunTime("at 2026-11-14T05:00:51.679Z", rt), maskRunTime("at 2026-11-14T00:00:43.655-05:00", rt), "a zone difference still shows");
+  assert.equal(maskRunTime("due 2026-11-14T05:30:00Z", rt), "due 2026-11-14T05:30:00Z", "outside ±10 minutes: kept");
+  assert.equal(maskRunTime("on 2026-11-14", rt), "on 2026-11-14", "date-only: kept");
+  assert.equal(maskRunTime("2026-11-14 00:02", rt), "<run-time:####-##-## ##:##>", "no zone: read in the run's zone");
+  assert.equal(maskRunTime("2026-11-14 05:02", rt), "2026-11-14 05:02", "a UTC wall time without zone is 5 hours off in New York");
+  assert.equal(maskRunTime("Sat Nov 14 2026 00:03:00 GMT-0500 (Eastern Standard Time)", rt), "<run-time:Sat Nov ## #### ##:##:##> GMT-0500 (Eastern Standard Time)");
+  assert.equal(maskRunTime("Sat, 14 Nov 2026 05:04:00 GMT", rt), "<run-time:Sat, ## Nov #### ##:##:##> GMT");
+  assert.equal(maskRunTime("11/14/2026, 12:05:10 AM", rt), "<run-time:##/##/####, ##:##:## AM>");
+  assert.equal(maskRunTime("November 14th 2026, 12:01:00 am", rt), "<run-time:November ##th ####, ##:##:## am>");
+  assert.equal(maskRunTime(`id ${rt.startMs + 4000}`, rt), "id <run-time:#############>");
+  const write = (text) => fromHttp(log("POST", "https://slack.com/api/chat.postMessage", { channel: "C1", text }));
+  const tool = (text) => fromTool({ connector: "slack", tool: "slack_send_message", args: { channel_id: "C1", message: text } });
+  const a = compare([write(n8nIso)], [tool(claudeIso)], { runTime: rt });
+  assert.equal(a.ok, true, JSON.stringify(a.writes));
+  assert.equal(a.runTimeMasked.length, 1);
+  assert.equal(compare([write(n8nIso)], [tool(claudeIso)]).ok, false, "without the run's start nothing is masked");
+  assert.equal(compare([write(n8nIso)], [tool(claudeIso + " Extra.")], { runTime: rt }).ok, false, "any other difference keeps the field different");
+  const rec = { format: "anthropic", request: { system: `Assistant. ${n8nIso}`, messages: [{ role: "user", content: "Hi" }] } };
+  const m = sameModelInput(rec, { kind: "agent", system: `Assistant. ${claudeIso}`, prompt: "Hi" }, rt);
+  assert.deepEqual(m, { same: true, runTimeMasked: true });
+  assert.equal(sameModelInput(rec, { kind: "agent", system: `Assistant. ${claudeIso}`, prompt: "Hi" }).same, false);
 });

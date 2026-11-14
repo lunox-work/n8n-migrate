@@ -34,10 +34,14 @@ test("trigger choice, injected items, schedule item, swap", () => {
   assert.throws(() => pickTrigger(wf, "Nope"));
 
   const s = scheduleItem("2026-11-16T09:05:07Z");
-  assert.equal(s.timestamp, "2026-11-16T09:05:07.000+00:00");
-  assert.equal(s["Readable date"], "November 16th 2026, 9:05:07 am");
+  assert.equal(s.timestamp, "2026-11-16T04:05:07.000-05:00", "n8n's default timezone, as the bench's n8n runs");
+  assert.equal(s["Readable date"], "November 16th 2026, 4:05:07 am");
   assert.equal(s["Day of week"], "Monday");
-  assert.equal(s.Hour, "09");
+  assert.equal(s.Hour, "04");
+  assert.equal(s.Timezone, "America/New_York (UTC-05:00)");
+  const u = scheduleItem("2026-11-16T09:05:07Z", "UTC");
+  assert.equal(u.timestamp, "2026-11-16T09:05:07.000+00:00");
+  assert.equal(u["Readable date"], "November 16th 2026, 9:05:07 am");
   assert.deepEqual(triggerItems(wf.nodes[1], undefined, "2026-11-16T09:05:07Z"), [{ json: s }]);
   assert.deepEqual(triggerItems(wf.nodes[0], [{ a: 1 }, { json: { b: 2 } }]), [{ json: { a: 1 } }, { json: { b: 2 } }]);
   assert.deepEqual(triggerItems(wf.nodes[0], { items: [{ a: 1 }] }), [{ json: { a: 1 } }]);

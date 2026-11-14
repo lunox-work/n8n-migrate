@@ -16,6 +16,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DateTime } from "../../skills/n8n-to-claude/runtime/vendor/luxon.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 let TABLE = null;
@@ -129,6 +130,10 @@ export function fromHttp(entry, side = "n8n") {
   }
   const method = String(entry.method ?? "GET").toUpperCase();
   const host = u.hostname.toLowerCase();
+  // A multipart/form-data body (PROPOSALS P3): the mock decodes n8n's into {field: value}; the
+  // runner's request carries the same fields with JSON types. Form fields are strings on the
+  // wire, so both sides are compared as strings (file parts stay objects).
+  if (entry.bodyEncoding === "multipart" || /multipart/i.test(entry.contentType ?? "")) entry = { ...entry, body: formStrings(entry.body) };
   const sp = new URLSearchParams(u.search);
   for (const [k, v] of Object.entries(entry.url ? entry.query ?? {} : {})) for (const x of [].concat(v)) sp.append(k, typeof x === "string" ? x : JSON.stringify(x));
   const path = decodeURIComponent(u.pathname);
@@ -150,6 +155,13 @@ export function fromHttp(entry, side = "n8n") {
   // can only match the same raw request on the other side.
   const generic = path.replace(/\/[0-9A-Za-z_-]{12,}(?=\/|$)/g, "/:id").replace(/\/\d+(?=\/|$)/g, "/:n");
   return { side, service: host, action: `${method} ${generic}`, effect: ["GET", "HEAD", "OPTIONS"].includes(method) ? "read" : "write", target: path, fields: { body: entry.body, query: queryObj }, cmp: { body: "exact", query: "exact" }, raw: { method, url: `${u.origin}${u.pathname}` }, unmapped: true };
+}
+
+const isFile = (v) => v && typeof v === "object" && !Array.isArray(v) && "filename" in v && "sha256" in v;
+export function formStrings(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return body;
+  const one = (v) => (isFile(v) ? v : v === null || v === undefined ? "" : typeof v === "object" ? JSON.stringify(v) : String(v));
+  return Object.fromEntries(Object.keys(body).sort().map((k) => [k, Array.isArray(body[k]) ? body[k].map(one) : one(body[k])]));
 }
 
 export function fromTool(call, side = "claude") {
@@ -202,13 +214,89 @@ export function sameField(cmp, a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
+// ---------- run-time timestamps (PROPOSALS P4) ----------
+//
+// n8n's $now/$today read the container's wall clock; the Claude side's clock is virtual from
+// n8n's startedAt. A timestamp of the run itself therefore differs by seconds between the
+// sides. maskRunTime() replaces each timestamp that lies within ±10 minutes of the run's start
+// with a token. Only the clock digits are masked: the token keeps the format's shape (every
+// non-digit character) and the zone or offset is kept verbatim, so a format or timezone
+// difference still shows. Strings without a zone are read in the run's timezone (the
+// template's settings.timezone, else n8n's default America/New_York), never in UTC, so a
+// wrong-zone local time stays 5 hours off. Date-only strings are never masked.
+// runTime: {startMs, zone, windowMs?}.
+
+const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+const MONTH_RE = "(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)";
+const DAY_RE = "(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)[a-z]*";
+const hour12 = (h, ap) => (ap ? (Number(h) % 12) + (/^p/i.test(ap) ? 12 : 0) : Number(h));
+const RUN_TIME_FORMATS = [
+  // Date.prototype.toString: Sat Nov 14 2026 00:01:23 GMT-0500 (Eastern Standard Time)
+  { re: new RegExp(`\\b${DAY_RE} ${MONTH_RE} \\d{2} \\d{4} \\d{2}:\\d{2}:\\d{2}(?= GMT[+-]\\d{4})`, "g"), zone: / GMT[+-]\d{4}(?: \([^)]*\))?/y, ms: (m, z) => Date.parse(`${m}${z.replace(/ \(.*$/, "")}`) },
+  // RFC 1123 / 2822: Sat, 14 Nov 2026 05:01:23 GMT
+  { re: new RegExp(`\\b(?:${DAY_RE}, )?\\d{1,2} ${MONTH_RE} \\d{4} \\d{2}:\\d{2}(?::\\d{2})?(?= (?:GMT|UTC|[+-]\\d{4}))`, "g"), zone: / (?:GMT|UTC|[+-]\d{4})/y, ms: (m, z) => Date.parse(`${m}${z}`) },
+  // ISO 8601 with T or a space, optional seconds, fraction and zone
+  {
+    re: /\b(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?(?![\d:])/g,
+    zone: /(?:Z|[+-]\d{2}:?\d{2})(?!\d)/y,
+    ms: (m, z, g, zone) => (z ? Date.parse(`${g[1]}-${g[2]}-${g[3]}T${g[4]}:${g[5]}:${g[6] ?? "00"}${g[7] ? "." + g[7].slice(0, 3) : ""}${z.length === 5 ? z.slice(0, 3) + ":" + z.slice(3) : z}`) : local(zone, +g[1], +g[2], +g[3], +g[4], +g[5], +(g[6] ?? 0))),
+  },
+  // en-US locale: 11/14/2026, 12:01:23 AM
+  { re: /\b(\d{1,2})\/(\d{1,2})\/(\d{4}),? (\d{1,2}):(\d{2})(?::(\d{2}))?(?: ?([AaPp][Mm]))?/g, ms: (m, z, g, zone) => local(zone, +g[3], +g[1], +g[2], hour12(g[4], g[7]), +g[5], +(g[6] ?? 0)) },
+  // Long English: November 14th 2026, 12:01:23 am / Nov 14, 2026 at 12:01 AM
+  { re: new RegExp(`\\b(${MONTH_RE}) (\\d{1,2})(?:st|nd|rd|th)?,? (\\d{4}),? (?:at )?(\\d{1,2}):(\\d{2})(?::(\\d{2}))?(?: ?([AaPp])\\.?[Mm]\\.?)?`, "g"), ms: (m, z, g, zone) => local(zone, +g[3], MON[g[1].slice(0, 3).toLowerCase()], +g[2], hour12(g[4], g[7]), +g[5], +(g[6] ?? 0)) },
+  // Epoch milliseconds and seconds
+  { re: /(?<![\d.])\d{13}(?![\d.])/g, ms: (m) => Number(m) },
+  { re: /(?<![\d.])\d{10}(?![\d.])/g, ms: (m) => Number(m) * 1000 },
+];
+
+function local(zone, y, mo, d, h, mi, s) {
+  if (!mo) return NaN;
+  const dt = DateTime.fromObject({ year: y, month: mo, day: d, hour: h, minute: mi, second: s }, { zone: zone || "America/New_York" });
+  return dt.isValid ? dt.toMillis() : NaN;
+}
+
+export function maskRunTime(text, runTime) {
+  if (typeof text !== "string" || !runTime || !Number.isFinite(runTime.startMs)) return text;
+  const win = runTime.windowMs ?? 10 * 60 * 1000;
+  let s = text;
+  for (const f of RUN_TIME_FORMATS) {
+    s = s.replace(f.re, (m, ...rest) => {
+      const offset = rest.find((x) => typeof x === "number");
+      const groups = [m, ...rest.slice(0, rest.indexOf(offset))];
+      let z = "";
+      if (f.zone) {
+        f.zone.lastIndex = offset + m.length;
+        z = f.zone.exec(s)?.[0] ?? "";
+      }
+      const t = f.ms(m, z, groups, runTime.zone);
+      return Number.isFinite(t) && Math.abs(t - runTime.startMs) <= win ? `<run-time:${m.replace(/\d/g, "#")}>` : m;
+    });
+  }
+  return s;
+}
+
+// Are a and b the same once run-time timestamps are masked on both sides? (exact and text
+// fields only; ids and sets never carry them.)
+export function sameUpToRunTime(cmp, a, b, runTime) {
+  if (!runTime || cmp === "set" || cmp === "id") return false;
+  const str = (v) => (typeof v === "string" ? v : JSON.stringify(v ?? null));
+  const ma = maskRunTime(str(a), runTime);
+  const mb = maskRunTime(str(b), runTime);
+  if (ma === str(a) && mb === str(b)) return false;
+  return cmp === "text" ? ma.trim() === mb.trim() : ma === mb;
+}
+
 // mode: "replay" (model-written text must be byte-identical) or "live" (it goes to the judge).
-export function compare(n8n, claude, { modelTexts = [], mode = "replay" } = {}) {
+// runTime ({startMs, zone}): timestamps of the run itself are masked in fields that differ
+// only by them (maskRunTime); such fields are listed in `runTimeMasked`.
+export function compare(n8n, claude, { modelTexts = [], mode = "replay", runTime = null } = {}) {
   const nW = n8n.filter(isWrite);
   const cW = claude.filter(isWrite);
   const used = new Set();
   const writes = { matched: [], missing: [], extra: [], fieldDiffs: [] };
   const judge = [];
+  const runTimeMasked = [];
   for (const a of nW) {
     const i = cW.findIndex((b, j) => !used.has(j) && keyOf(b) === keyOf(a));
     if (i < 0) {
@@ -221,6 +309,10 @@ export function compare(n8n, claude, { modelTexts = [], mode = "replay" } = {}) 
     for (const f of new Set([...Object.keys(a.fields), ...Object.keys(b.fields)])) {
       const cmp = a.cmp[f] ?? b.cmp[f] ?? "exact";
       if (sameField(cmp, a.fields[f], b.fields[f])) continue;
+      if (sameUpToRunTime(cmp, a.fields[f], b.fields[f], runTime)) {
+        runTimeMasked.push({ effect: keyOf(a), field: f });
+        continue;
+      }
       if (isModelWritten(a.fields[f], modelTexts)) {
         if (mode === "live") {
           judge.push({ effect: keyOf(a), field: f, n8n: a.fields[f], claude: b.fields[f] });
@@ -240,7 +332,7 @@ export function compare(n8n, claude, { modelTexts = [], mode = "replay" } = {}) 
   const reads = { onlyN8n: [...nR].filter((k) => !cR.has(k)), onlyClaude: [...cR].filter((k) => !nR.has(k)) };
   const order = nW.map(keyOf).join("|") === cW.map(keyOf).join("|");
   const ok = !writes.missing.length && !writes.extra.length && !writes.fieldDiffs.length;
-  return { ok, writes, reads, sameOrder: order, judge, unmapped: [...n8n, ...claude].filter((e) => e.unmapped).map(summary) };
+  return { ok, writes, reads, sameOrder: order, judge, runTimeMasked, unmapped: [...n8n, ...claude].filter((e) => e.unmapped).map(summary) };
 }
 
 function summary(e) {

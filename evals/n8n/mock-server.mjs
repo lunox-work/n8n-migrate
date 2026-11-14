@@ -41,8 +41,9 @@
 // Log line: {seq, t, method, [proxied], path, query, [rawQuery], headers, body, bodyEncoding, fixture}
 // (query keeps the last value of a repeated key; rawQuery is the query string as sent)
 // (proxied: the origin, when the client used this mock as its HTTP proxy)
-// where body is parsed JSON when it parses, else text (or base64 when it is
-// not UTF-8), and fixture is the key that answered (null when none did).
+// where body is parsed JSON when it parses, multipart/form-data as {field: value} (files as
+// {filename, contentType, size, sha256}; bodyEncoding "multipart"), else text (or base64 when it
+// is not UTF-8), and fixture is the key that answered (null when none did).
 // The log is the ordered list of outgoing effects; truncate it between runs.
 //
 // --relay forwards TCP from a port in this process to another host, so the
@@ -54,6 +55,7 @@ import { TLSSocket } from "node:tls";
 import { appendFileSync, readFileSync, existsSync, statSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { resolve, join } from "node:path";
+import { createHash } from "node:crypto";
 
 export function parseArgs(argv) {
   const a = { port: 8080, log: null, fixtures: null, relays: [], tlsDir: null, modelShim: null };
@@ -77,8 +79,36 @@ export function parseArgs(argv) {
   return a;
 }
 
+// multipart/form-data (PROPOSALS P3): {field: value}, a repeated field as a list, a file part as
+// {filename, contentType, size, sha256}. Field values stay strings, as they are on the wire.
+export function parseMultipart(buf, boundary) {
+  const out = {};
+  const s = buf.toString("latin1");
+  const delim = `--${boundary}`;
+  for (let part of s.split(delim).slice(1)) {
+    if (part.startsWith("--")) break;
+    part = part.replace(/^\r?\n/, "").replace(/\r?\n$/, "");
+    const cut = part.search(/\r?\n\r?\n/);
+    if (cut < 0) continue;
+    const head = part.slice(0, cut);
+    const raw = Buffer.from(part.slice(cut).replace(/^\r?\n\r?\n/, ""), "latin1");
+    const disp = /content-disposition:[^\r\n]*/i.exec(head)?.[0] ?? "";
+    const name = /\bname="([^"]*)"/i.exec(disp)?.[1];
+    if (name === undefined) continue;
+    const filename = /\bfilename="([^"]*)"/i.exec(disp)?.[1];
+    const value =
+      filename !== undefined
+        ? { filename, contentType: /content-type:\s*([^\r\n;]+)/i.exec(head)?.[1]?.trim() ?? null, size: raw.length, sha256: createHash("sha256").update(raw).digest("hex") }
+        : raw.toString("utf8");
+    out[name] = name in out ? [].concat(out[name], [value]) : value;
+  }
+  return out;
+}
+
 function decodeBody(buf, contentType) {
   if (!buf.length) return { body: null, bodyEncoding: null };
+  const boundary = /multipart\/form-data/i.test(contentType || "") ? /boundary="?([^";]+)"?/i.exec(contentType)?.[1] : null;
+  if (boundary) return { body: parseMultipart(buf, boundary), bodyEncoding: "multipart" };
   const text = buf.toString("utf8");
   if (Buffer.from(text, "utf8").equals(buf)) {
     if (/json/i.test(contentType || "") || /^\s*[[{]/.test(text)) {

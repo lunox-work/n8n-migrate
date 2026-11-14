@@ -52,8 +52,12 @@ const CLI_BROKER_PORT = "5681"; // `n8n execute` and friends start a second task
 
 export const ENV = {
   N8N_ENCRYPTION_KEY: ENCRYPTION_KEY,
-  GENERIC_TIMEZONE: "UTC",
-  TZ: "UTC",
+  // n8n's default timezone (PROPOSALS P4): the runtime takes it too for a template without
+  // settings.timezone, so both sides render $now, $today and schedules in the same zone.
+  // GENERIC_TIMEZONE drives n8n (Luxon's default zone, the Schedule Trigger); TZ the
+  // process's own Date (Code nodes' new Date().toString(), task runners).
+  GENERIC_TIMEZONE: "America/New_York",
+  TZ: "America/New_York",
   N8N_DIAGNOSTICS_ENABLED: "false",
   N8N_PERSONALIZATION_ENABLED: "false",
   N8N_VERSION_NOTIFICATIONS_ENABLED: "false",
@@ -131,12 +135,13 @@ export async function waitForMemory(min = 30, { log = console.error } = {}) {
 // ---------- lifecycle ----------
 
 // extraEnv: more -e pairs for the n8n container (e.g. HTTP_PROXY for a probe).
-// A running n8n container that lacks one of extraEnv's values is recreated (same volume), so
-// the bench's env overlays (evals/bench/config `env`) always reach n8n.
+// A running n8n container that lacks one of ENV's or extraEnv's values is recreated (same
+// volume), so the bench's env overlays (evals/bench/config `env`) and a changed ENV always
+// reach n8n.
 export async function up({ fresh = false, extraEnv = {}, log = console.error } = {}) {
-  if (running(NAME) && !fresh && Object.keys(extraEnv).length) {
+  if (running(NAME) && !fresh) {
     const have = new Set(JSON.parse(docker(["inspect", "-f", "{{json .Config.Env}}", NAME]).stdout || "[]"));
-    const lacking = Object.entries(extraEnv).filter(([k, v]) => !have.has(`${k}=${v}`)).map(([k]) => k);
+    const lacking = Object.entries({ ...ENV, ...extraEnv }).filter(([k, v]) => !have.has(`${k}=${v}`)).map(([k]) => k);
     if (lacking.length) {
       log(`n8n container lacks env ${lacking.join(", ")}: recreating it`);
       docker(["rm", "-f", NAME], { allowFail: true });

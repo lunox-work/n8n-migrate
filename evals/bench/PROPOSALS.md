@@ -2,7 +2,7 @@
 
 The Phase 6 loop may not change fixtures, mocks, gates, the comparer or the ceiling (PLAN Phase 6). Defects it finds are written here with evidence and wait for a person.
 
-Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (README "Connector-limited", "Drivers"). Open from P1: the real Gmail `get_message` and Notion `notion-fetch` shapes are still uncaptured, and 4722 and 2415 carry no `connectorGaps` yet, so their gate 4 is not marked connector-limited.
+Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (README "Connector-limited", "Drivers"). P3, P4 and P5 approved and applied (README "Form bodies", "Timezone and run-time timestamps", "Drivers"); baseline `p6-base30c`. Open from P1: the real Gmail `get_message` and Notion `notion-fetch` shapes are still uncaptured, and 4722 and 2415 carry no `connectorGaps` yet, so their gate 4 is not marked connector-limited.
 
 ## P1. Fixture connector rows and n8n-side rows disagree on what the service returns (4722, 2415)
 
@@ -22,15 +22,24 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Evidence.** `p6-base30`: 2167 stops at gate 4, `flaky model step: model-written fields differ in replay`. n8n's Post Discussions body (HTTP Request, `multipart-form-data`) is logged by `mock-server.mjs` `decodeBody()` as one string with the boundary and every part; the Claude side's body is the field object (`body`, `position[old_path]`, …, `position[new_line]: 48`). The model-written `body` text is the same on both sides; only the encoding differs, and `new_line`/`old_line` are strings in a form part and numbers on the Claude side.
 - **Proposed change.** Decode `multipart/form-data` in the mock log into `{field: value}` (files as `{filename, contentType, size, sha256}`) and compare form fields as strings.
 - **Why not applied here.** It changes the comparer, which was not among the approved bench changes.
+- **Status: applied** (approved 2026-11-14). `mock-server.mjs` `parseMultipart()`; `compare.mjs` `formStrings()` on both sides when the body is a form.
 
 ## P4. n8n's clock and timezone differ from the Claude side's (1953, 6270)
 
 - **Evidence.** `p6-base30`: 1953 and 6270 stop at gate 4 on the agent's prompt, whose `$now` renders `2026-11-14T04:55:48.679Z` on n8n and `2026-11-13T23:55:40.374-05:00` on the Claude side. Two causes: the bench's n8n runs with `GENERIC_TIMEZONE=UTC` (`evals/n8n/container.mjs`) while the runtime takes n8n's default `America/New_York` for a template without a timezone (`runtime/src/engine.mjs` DEFAULT_TIMEZONE); and n8n's `$now` is the container's wall clock (8 s after the run started in 1953, after two live model calls) while the Claude side's clock is virtual from n8n's `startedAt`.
 - **Proposed change.** Run the bench's n8n with n8n's default timezone (`America/New_York`, and `scheduleItem()` with it), re-recording the templates whose prompts carry dates; and either freeze n8n's clock (libfaketime in the image) or compare `$now`-derived text up to the timezone-normalised minute.
 - **Why not applied here.** It changes every baseline recording and the environment, beyond the approved changes.
+- **Status: applied** (approved 2026-11-14, without freezing n8n's clock). n8n runs with `GENERIC_TIMEZONE` and `TZ` `America/New_York`; `scheduleItem()` takes the zone; `compare.mjs` `maskRunTime()` masks timestamps within ±10 minutes of n8n's `startedAt` in write fields, the reply and replayed model inputs that differ only by them (digits only; shape and offset kept). Re-recorded: 1953 and 6270 (their model requests carried `$now` rendered in UTC).
 
 ## P5. Gate 8 cannot be measured for folders with `http` steps (3102, 2413)
 
 - **Evidence.** `p6-base30`: 3102 and 2413 pass gates 3–7 in process; the claude driver does not run folders with `http` steps (`claude-driver.mjs`), so gate 8 stays `bench defect: no claude-driver measurement … the folder has http steps`.
 - **Proposed change.** Route the task driver's `http` through the bench mock (the runner's HTTP host pointed at the mock, as the in-process driver does), so the claude driver can run these folders.
 - **Why not applied here.** It changes the claude driver, beyond the approved P2.
+- **Status: applied** (approved 2026-11-14). `http-preload.mjs`, preloaded with `NODE_OPTIONS --import` into the session's `runtime/runner.mjs` processes only (the Claude Code binary ignores `NODE_OPTIONS`), sends the runner's `fetch` to a host `mock-server.mjs` holding the fixture's http routes; dummy `N2C_SECRET_<NAME>` per declared secret.
+
+## P6. Writes with the same target are paired by order, not by content (2167)
+
+- **Evidence.** `p6-base30c`: 2167 stops at gate 4, `field map: different fields`. Both sides post the same two GitLab discussions to the same merge request (one per changed file, `position[new_path]` `src/invoice.ts` and `test/invoice.test.ts`, bodies and positions equal). n8n's HTTP Request node sends the two items concurrently, so the mock logged the test-file post first; the runner sends them in item order. `compare()` pairs same-key writes in list order, so each n8n post is compared with the other file's post and both pairs differ.
+- **Proposed change.** Among unused Claude writes with the same `service.action.target`, pair an n8n write first with one whose fields all match (`sameField`, run-time masking included), and only then fall back to list order for the field diff. Order stays reported (`sameOrder`).
+- **Why not applied here.** It changes the comparer beyond the approved P3–P5.

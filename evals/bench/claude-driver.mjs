@@ -13,15 +13,20 @@
 //     request (.n2c/inbox/<q>.txt) with n8n's recorded reply for the same model node and call
 //     index (the session still writes and submits it). A miss leaves the model's own answer and
 //     is marked live.
-//   - folders with http steps are not run: the task driver executes http itself, with the real
-//     network, and the bench has no proxy in front of it.
+//   - http steps (PROPOSALS P5): the task driver executes them itself with fetch. The bench
+//     starts a host mock-server.mjs with the fixture's http routes (the routes the in-process
+//     driver answers from) and preloads http-preload.mjs into the session's node processes,
+//     which sends the runner's fetch to that mock; the mock's log is the http half of the
+//     effects. Each secret the definition names gets a dummy N2C_SECRET_<NAME> (the person
+//     stores the real one at setup).
 
 import { spawn, spawnSync } from "node:child_process";
 import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { claudeBin, LEDGER, ledger, MAX_RUNS, memoryGate, BudgetExceeded, UsageLimit } from "./claude.mjs";
-import { connectorFixtures } from "./claude-side.mjs";
+import { connectorFixtures, httpRoutes } from "./claude-side.mjs";
+import { startMock } from "../n8n/mock-server.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
@@ -30,7 +35,6 @@ const readJson = (p, d = null) => (existsSync(p) ? JSON.parse(readFileSync(p, "u
 
 export async function runClaudeDriver(folder, fx, { wf, recordings = [], startedAt, label, model = "haiku", timeoutS = 900, log = console.error }) {
   const def = readJson(join(folder, "definition.json"));
-  if ((def.allow?.http ?? []).length) return { summary: { notRun: "the folder has http steps; the task driver would call the real network" }, effects: [], allow: def.allow };
   if (ledger().length >= MAX_RUNS) throw new BudgetExceeded(`claude -p budget of ${MAX_RUNS} runs used`);
   await memoryGate({ log });
   const runDir = join(HERE, ".work", "claude-driver", label.replace(/[^\w.-]+/g, "_"));
@@ -74,13 +78,39 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
 
   // The bench starts the run: trigger items and n8n's clock.
   // The driver's `start` takes the trigger as inline JSON (no @file); no shell is involved.
-  const pre = spawnSync(process.execPath, [join(work, "runtime", "runner.mjs"), "start", "--trigger", JSON.stringify(fx.trigger.items), "--clock", startedAt ?? fx.now], { cwd: work, encoding: "utf8" });
-  const preText = (pre.stdout || pre.stderr).slice(0, 600);
+  // Asynchronous: the http mock answers from this process, so it must not be blocked.
+  const preStart = (env) =>
+    new Promise((ok) => {
+      const c = spawn(process.execPath, [join(work, "runtime", "runner.mjs"), "start", "--trigger", JSON.stringify(fx.trigger.items), "--clock", startedAt ?? fx.now], { cwd: work, env, stdio: ["ignore", "pipe", "pipe"] });
+      let stdout = "";
+      let stderr = "";
+      c.stdout.on("data", (x) => (stdout += x));
+      c.stderr.on("data", (x) => (stderr += x));
+      c.on("exit", () => ok({ stdout, stderr }));
+    });
+
+  // http steps go to a mock on the host (see the header).
+  const httpLog = join(runDir, "http.jsonl");
+  let httpMock = null;
+  if ((def.allow?.http ?? []).length) {
+    const httpFixtures = join(runDir, "http-fixtures.json");
+    writeFileSync(httpFixtures, JSON.stringify({ __routes: httpRoutes(fx), __writeDefault: { status: 200, body: {} } }));
+    writeFileSync(httpLog, "");
+    httpMock = await startMock({ port: 0, host: "127.0.0.1", log: httpLog, fixtures: httpFixtures });
+  }
 
   const prompt = readFileSync(join(work, "task-prompt.md"), "utf8");
   const args = ["-p", prompt, "--model", model, "--output-format", "stream-json", "--verbose", "--strict-mcp-config", "--mcp-config", mcpConfig, "--setting-sources", "project", "--settings", flagSettings, "--no-session-persistence", "--max-budget-usd", "1.5"];
   const env = { ...process.env, ENABLE_CLAUDEAI_MCP_SERVERS: "false", CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1", DISABLE_AUTOUPDATER: "1", NODE_OPTIONS: "--max-old-space-size=512" };
   for (const k of Object.keys(env)) if (k === "ANTHROPIC_API_KEY" || k.startsWith("N2C_SECRET_") || k === "CLAUDECODE" || k.startsWith("CLAUDE_CODE_MESSAGING") || k === "CLAUDE_CODE_SESSION_ID" || k === "CLAUDE_CODE_CHILD_SESSION") delete env[k];
+  if (httpMock) {
+    env.N2C_BENCH_HTTP_MOCK = `http://127.0.0.1:${httpMock.address().port}`;
+    env.NODE_OPTIONS = `${env.NODE_OPTIONS} --import=${pathToFileURL(join(HERE, "http-preload.mjs")).href}`;
+    for (const sec of def.secrets ?? []) env[`N2C_SECRET_${String(sec.name).toUpperCase().replace(/[^A-Z0-9]+/g, "_")}`] = `bench-secret-${String(sec.credentialType ?? sec.name).replace(/[^\w-]+/g, "-")}`;
+  }
+  // The bench's start runs in the session's environment (it may reach the first http step).
+  const pre = await preStart(env);
+  const preText = (pre.stdout || pre.stderr).slice(0, 600);
   const transcript = join(runDir, "stream.jsonl");
   const ours = new Set(Object.keys(mcpServers));
   const t0 = Date.now();
@@ -126,9 +156,13 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   const effects = existsSync(effectsLog) ? readFileSync(effectsLog, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
   const events = existsSync(join(n2c, "events.jsonl")) ? readFileSync(join(n2c, "events.jsonl"), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
   const replays = readJson(join(runDir, "replay-state.json"), { log: [] }).log;
+  // The runner's http requests as the mock logged them, in the runner's request shape.
+  if (httpMock) await new Promise((ok) => httpMock.close(ok));
+  const httpCalls = httpMock && existsSync(httpLog) ? readFileSync(httpLog, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
+  const httpEffects = httpCalls.map((e) => ({ method: e.method, url: e.method === "CONNECT" ? `https://${e.path}/` : `${e.proxied ?? "http://127.0.0.1"}${e.path}${e.rawQuery ? "?" + e.rawQuery : ""}`, query: {}, body: e.body, bodyEncoding: e.bodyEncoding, contentType: e.headers?.["content-type"] ?? null, fixture: e.fixture }));
   return {
     run: state ? { status: state.status, output: state.result?.output ?? [], error: state.result?.error ?? null } : null,
-    effects: effects.filter((e) => e.valid).map((e) => ({ connector: e.connector, tool: e.tool, args: e.args })),
+    effects: [...effects.filter((e) => e.valid).map((e) => ({ connector: e.connector, tool: e.tool, args: e.args })), ...httpEffects],
     invalidCalls: effects.filter((e) => !e.valid).map((e) => `${e.connector}.${e.tool}: ${e.error}`),
     allow: def.allow,
     metrics: { wallMs, turns: r.num_turns ?? null, costUsd: r.total_cost_usd ?? null, usage: r.usage ? { in: r.usage.input_tokens, out: r.usage.output_tokens, cacheRead: r.usage.cache_read_input_tokens } : null },
@@ -142,6 +176,7 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
       permissionDenials: (r.permission_denials ?? []).map((d) => `${d.tool_name}: ${JSON.stringify(d.tool_input).slice(0, 120)}`),
       hookDenies: events.filter((e) => e.event === "hook-deny").map((e) => String(e.reason).slice(0, 140)),
       replays: replays.map((x) => `${x.key}#${x.index} ${x.mode}`),
+      ...(httpMock ? { http: httpEffects.map((h) => `${h.method} ${h.url.replace(/\?.*$/, "")} <- ${h.fixture ?? "none"}`) } : {}),
       toolUses: summary.toolUses,
       problem: !state ? "no run state" : state.status !== "done" ? `run ${state.status}` : null,
     },
