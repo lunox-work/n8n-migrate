@@ -79,3 +79,13 @@ From here a run covers the templates whose `definition.json` changed against the
 - Bench `p6-i7` (changed definition: 2415 only; 0 `claude -p` runs): 7 of 30 pass, gate sum 138 (both unchanged). 2415 stays at 4 with a later blocker: 2 differing model inputs → 1; the agent's system and human messages now match n8n's except the property ids the `notion-fetch` text lacks (P1); the text classifier's input matches.
 - `convert-coverage --split dev`: unchanged, no regression.
 - Verdict: accepted (rule c: a later blocking cause, no gate falling).
+
+## Bench maintenance P6 and P7; full re-run `p6-full30` (baseline for iterations 8–10)
+
+- Bench changes approved by a person and applied: P6 (writes to one target paired by content, commit 5269638), P7 (2063's malformed Sheets rows carry no `null` cell, commit c7b8dc1). PROPOSALS P8 found in this run.
+- `p6-full30` (commit c7b8dc1, plain `convert.mjs`, replayed models): all 30 dev fixture templates run again, no row carried forward. 2777 and 4573 stopped once on the bench's own memory gate (claude driver waits for 40% free while the n8n container is up; the machine stayed at 34–39% for 30 minutes); both were resumed in the same tag with the container stopped (their n8n runs were already recorded) and pass. 19 `claude -p` runs (ledger 146 → 165).
+- Result: 7 of 30 pass (1747, 2197, 2413, 2777, 3102, 4573, 6270), gate sum 136 (was 138 over the last recorded rows). 28 templates: same gate and cause as their last row (1953's detail differs only in n8n's wall-clock `$now`). Changed:
+  - 2063: 5 → 3. With P7 the malformed fixture agrees with itself and 2063 passes gates 3–7 in process for the first time; the claude driver it then runs for gate 8 fails on `socket hang up` / `ECONNRESET` in the bench's http preload (P8), not in the migration. No pass was lost.
+  - 2167: 4 → 4, later blocker. With P6 it passes gates 3–7 in process; the claude driver fails gate 4 because the task driver sends the GitLab `multipart-form-data` body as JSON (`position[new_line]` 48 instead of "48"), the known gap in PLAN Known gaps.
+- `convert-coverage --split dev`: unchanged (no converter change).
+- From here every measurement runs all 30 templates; rows are not carried forward.
