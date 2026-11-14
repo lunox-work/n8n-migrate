@@ -27,7 +27,7 @@
         "responses": [
           {
             "method": "POST",
-            "url": "https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent",
+            "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent",
             "status": 200,
             "body": {
               "embedding": {
@@ -810,7 +810,7 @@
         "shape": "assumed",
         "none": "embeddings stay with the provider"
       },
-      "note": "Gemini embeddings (text-embedding-004, 768 dims): embedQuery is POST /v1beta/models/text-embedding-004:embedContent on the default googlePalmApi host; only the chat model's credential is pointed at the model shim, so the vector is fixed here"
+      "note": "Gemini embeddings (n8n default model gemini-embedding-001; the fixture vectors keep 768 dims): embedQuery is POST /v1beta/models/gemini-embedding-001:embedContent on the default googlePalmApi host; only the chat model's credential is pointed at the model shim, so the vector is fixed here"
     },
     {
       "node": "Official n8n Documentation",
