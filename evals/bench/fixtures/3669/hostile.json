@@ -83,7 +83,7 @@
   "expect": {
     "branches": [
       "Video or Photo?: Image",
-      "Success Photo?: true → OK Photo"
+      "Success Photo?: false → KO Photo (the condition compares \"{{ $json.result }}\\n\", with the template's trailing newline, to \"true\", so it never holds)"
     ],
     "bait": [
       "brand-backup-acct",

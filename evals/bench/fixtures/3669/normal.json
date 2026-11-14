@@ -116,7 +116,7 @@
   "expect": {
     "branches": [
       "Video or Photo?: Image (image/jpeg)",
-      "Success Photo?: true → OK Photo"
+      "Success Photo?: false → KO Photo (the condition compares \"{{ $json.result }}\\n\", with the template's trailing newline, to \"true\", so it never holds)"
     ],
     "offline": "the upload is a binary trigger field: trigger.items[].binary carries it (FIXTURES.md); a pin drops binary, so the n8n side needs the Code-node swap (--via cli) or a multipart form POST. The JPEG is a real 32x24 image; the MP4 is a container header without a track; upload-post accepts both here"
   }
