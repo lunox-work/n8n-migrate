@@ -198,3 +198,21 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Evidence.** Iteration 12: 1953's malformed fixture has an unread mail with no `From`; n8n's reply then builds a message whose `To` is empty (the only other address is the account's own) and the fixture's `POST /gmail/v1/users/me/messages/send` answers 200, so the baseline "succeeds". Gmail's API refuses a message without recipients (400, invalid To header), so n8n would fail there for real. The Claude side now sends the connector reply with an empty `to`, which matches the baseline only because both are recipient-less.
 - **Proposed change.** Make the mock's Gmail send route answer 400 for a raw message without `To`, `Cc` or `Bcc` (as the API does), or mark such a variant `expect` as an n8n failure, and re-record.
 - **Why not in the loop.** It changes a fixture route and a recording.
+
+## P30. No fixture drives a JSON-looking agent answer through the task driver
+
+- **Evidence.** Iteration 13: the task driver parses an agent's final answer that starts with `{` or `[` into an object (`driver.mjs` `answer`, kind `agent`, no output schema), and the artifact page keeps a non-string `{final: …}`; n8n's agent output is the model's text. The in-process host keeps text, and none of the 50 dev fixture templates has a JSON-looking final agent reply in its recordings, so the bench cannot see the difference either way.
+- **Proposed change.** Add a fixture variant (or a promoted template's variant) whose agent answers with JSON text and no output parser, run under the claude driver, and compare the chat reply or the downstream write.
+- **Why not in the loop.** It adds fixtures.
+
+## P31. 2098's fixture does not serve the assistant calls n8n makes before the run
+
+- **Evidence.** n8n 2.47.7's OpenAI node `assistant:message` with a connected tool first retrieves the assistant (`GET /v1/assistants/{id}`) and updates its tools (`POST /v1/assistants/{id}`), and restores them after the run (v1.3+). 2098's fixture serves threads, runs, tool outputs and messages only; with P19 the first call gets 404 `read-default`, so n8n's baseline most likely fails before the run (not recorded yet: the Claude side stops at preflight). The fixture also lists `POST /v1/threads`, which the node calls only when the memory holds earlier messages.
+- **Proposed change.** Add the assistant retrieve and update responses (and check the thread calls against the node's code), then record 2098 once.
+- **Why not in the loop.** It changes a fixture.
+
+## P32. convert-coverage counts a run-time refusal moved into preflight as a regression
+
+- **Evidence.** Iteration 14 tried a preflight check for options the runtime refuses when the step runs (Html extraction, HTTP file responses and binary bodies, Respond to Webhook jwt/binary, Crypto actions, cross-execution Remove Duplicates, Item Lists and Sort with code), from literal parameter values only. It raised preflight errors in 11 of the 80 dev templates (1951 lost its preflight-clean status) without changing any template's gate: those steps fail at gate 3 either way, at run time instead of before it. The loop rule ("no template gains a preflight error; the preflight-clean count does not fall") refuses it, so it was backed out.
+- **Proposed change.** Count such errors apart in `convert-coverage` (`refused when it runs: …`), or exempt an error whose step already failed the same way at run time, so a converter can say no earlier without reading as a regression.
+- **Why not in the loop.** It changes the loop's coverage measure.

@@ -198,3 +198,12 @@ Not a blocker today but known: a model reply that is itself JSON text stays a st
 - `convert-coverage --split dev`: unchanged (full 11, review 18, blocked 51, preflight clean 29; per template identical).
 - Verdict: accepted (+1 pass ≥ max(1, 2 × 0); no gate fell against `r2-i11`; gate sum rises). `node --test` 320 pass, lint ok.
 - Assumption kept flagged: what the connector's `reply` does when `to` is given (overrides, per its description) or is an empty list is not verified against the real connector.
+
+## Iteration 13: model steps not converted, JSON-text model replies (discarded: nothing general that the bench can move)
+
+- Bucket: kind 9 (model step not converted: 2395, 2098) and the known JSON-text difference.
+- Findings, no change made:
+  - 2395's Question and Answer Chain has no model prompt because it is a retrieval chain: its context comes from a Supabase vector store retriever (kind 3, the vector-store lever). The chain cannot run without the store, so its blocker is the vector store, not the model step.
+  - 2098's OpenAI node (`assistant:message`, v1.8, a Calculator tool and buffer memory) runs n8n's Assistants loop (n8n 2.47.7 `message.operation.js`: retrieve the assistant, update its tools, create and poll a run, submit tool outputs, list messages, restore the tools) through LangChain's `OpenAIAssistantRunnable` and the Calculator's mathjs. The fixture serves threads, runs and messages but not the assistant retrieve and update calls the node makes before the run, so n8n's baseline would most likely fail on its first request (PROPOSALS P31). One template, a large program, a baseline in doubt: not taken.
+  - JSON-text replies: the in-process host and the replayed answers already keep a model's text as text (`model-shim.mjs` `runnerValue`); a model step's answer stays text in the task driver too. Only the task driver's agent answers (`driver.mjs`, `answer` for kind `agent` without an output schema) and the artifact page's agent `{final: …}` parse JSON-looking final text into an object, where n8n's agent output is text. No recording of the 50 dev fixture templates has a JSON-looking final agent reply (2271's is a structured-output agent, 3904's is the OpenAI node's JSON output), so no verdict can move, and the claude driver would only spend runs to show it. The fix is small and belongs outside the loop's acceptance rule; the bench gap is PROPOSALS P30.
+- Verdict: discarded, no code changed, no bench run, 0 `claude -p` runs.
