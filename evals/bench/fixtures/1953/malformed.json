@@ -1,0 +1,376 @@
+{
+  "schemaVersion": 1,
+  "template": 1953,
+  "sha256": "2bc60e7b6a7893d8744130d1ca84a15ac8830819f8f7e0661159fe7702eb6e39",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "an unread mail with no From and no Subject and a 2,000-character snippet; calendar events with missing, null and invalid times",
+  "trigger": {
+    "node": "Gmail Trigger",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {
+          "id": "19a8d60000000f01",
+          "threadId": "19a8d60000000f01",
+          "snippet": "Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: ",
+          "payload": {
+            "mimeType": "multipart/alternative"
+          },
+          "sizeEstimate": 98213,
+          "historyId": "8812044",
+          "internalDate": "1794818100000",
+          "labels": [
+            {
+              "id": "INBOX",
+              "name": "INBOX"
+            },
+            {
+              "id": "UNREAD",
+              "name": "UNREAD"
+            }
+          ],
+          "To": "Dana Whitfield <dana@northwind-studio.example>"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Gmail Trigger",
+      "service": "gmail",
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_threads",
+            "args": {
+              "query": "is:unread"
+            },
+            "result": {
+              "threads": [
+                {
+                  "id": "19a8d60000000f01",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8d60000000f01",
+                  "messages": [
+                    {
+                      "id": "19a8d60000000f01",
+                      "snippet": "Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: ",
+                      "subject": null,
+                      "sender": null,
+                      "toRecipients": [
+                        "dana@northwind-studio.example"
+                      ],
+                      "date": "2026-11-16T08:35:00.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "UNREAD"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "tool": "get_message",
+            "args": {
+              "messageId": "19a8d60000000f01"
+            },
+            "result": {
+              "id": "19a8d60000000f01",
+              "snippet": "Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: ",
+              "subject": null,
+              "sender": null,
+              "toRecipients": [
+                "dana@northwind-studio.example"
+              ],
+              "date": "2026-11-16T08:35:00.000Z",
+              "labelIds": [
+                "INBOX",
+                "UNREAD"
+              ],
+              "addressDisplayNames": {},
+              "plaintextBody": "Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: ",
+              "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8d60000000f01"
+            }
+          }
+        ]
+      },
+      "note": "poll source for the Claude side; the n8n side pins trigger.items (Gmail Trigger, simple output, readStatus unread)",
+      "connectorGaps": [
+        "From display name: n8n's simplified trigger item has From as '\"Name\" <address>'; search_threads gives the bare `sender` address, get_message adds addressDisplayNames",
+        "labels as {id, name}: the trigger maps label ids to names via GET /users/me/labels; the connector gives labelIds only"
+      ]
+    },
+    {
+      "node": "Google Calendar",
+      "service": "google-calendar",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/calendar/v3/calendars/user%40example.com/events",
+            "status": 200,
+            "body": {
+              "kind": "calendar#events",
+              "etag": "\"p33c9d0f1a2b3e0g\"",
+              "summary": "user@example.com",
+              "description": "",
+              "updated": "2026-11-15T18:02:11.000Z",
+              "timeZone": "Europe/London",
+              "accessRole": "owner",
+              "defaultReminders": [
+                {
+                  "method": "popup",
+                  "minutes": 10
+                }
+              ],
+              "items": [
+                {
+                  "kind": "calendar#event",
+                  "id": "badevent0001",
+                  "status": "confirmed",
+                  "summary": null,
+                  "start": {},
+                  "end": null
+                },
+                {
+                  "kind": "calendar#event",
+                  "id": "badevent0002",
+                  "status": "cancelled"
+                },
+                {
+                  "kind": "calendar#event",
+                  "etag": "\"33nt0003\"",
+                  "id": "badevent0003",
+                  "status": "confirmed",
+                  "htmlLink": "https://www.google.com/calendar/event?eid=badevent0003",
+                  "created": "2026-10-20T08:00:00.000Z",
+                  "updated": "2026-11-10T08:00:00.000Z",
+                  "summary": "Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Board meeting Boar",
+                  "creator": {
+                    "email": "user@example.com",
+                    "self": true
+                  },
+                  "organizer": {
+                    "email": "user@example.com",
+                    "self": true
+                  },
+                  "start": {
+                    "dateTime": "2026-11-17T25:00:00Z",
+                    "timeZone": "Europe/London"
+                  },
+                  "end": {
+                    "dateTime": "not-a-date",
+                    "timeZone": "Europe/London"
+                  },
+                  "iCalUID": "badevent0003@google.com",
+                  "sequence": 0,
+                  "reminders": {
+                    "useDefault": true
+                  },
+                  "eventType": "default"
+                },
+                {
+                  "kind": "calendar#event",
+                  "etag": "\"33nt0004\"",
+                  "id": "badevent0004",
+                  "status": "confirmed",
+                  "htmlLink": "https://www.google.com/calendar/event?eid=badevent0004",
+                  "created": "2026-10-20T08:00:00.000Z",
+                  "updated": "2026-11-10T08:00:00.000Z",
+                  "summary": "Lunch",
+                  "creator": {
+                    "email": "user@example.com",
+                    "self": true
+                  },
+                  "organizer": {
+                    "email": "user@example.com",
+                    "self": true
+                  },
+                  "start": {
+                    "date": "2026-11-17"
+                  },
+                  "end": {
+                    "dateTime": 1794830400000
+                  },
+                  "iCalUID": "badevent0004@google.com",
+                  "sequence": 0,
+                  "reminders": {
+                    "useDefault": true
+                  },
+                  "eventType": "default"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Calendar connector; the Claude side serves the same Calendar API responses through its HTTP mock"
+      },
+      "note": "agent tool (googleCalendarTool v1.3, event getAll, returnAll): GET /calendar/v3/calendars/user%40example.com/events with timeMin/timeMax from $now and pageToken paging until no nextPageToken; whether n8n adds singleEvents depends on the recurring-event option, so the response matches any query. The calendar id is the template's placeholder and is served as is"
+    }
+  ],
+  "models": [
+    "Classify appointment",
+    "OpenAI Chat Model",
+    "Agent",
+    "OpenAI Chat Model1"
+  ],
+  "writes": [
+    "Send reply",
+    "Mark as read"
+  ],
+  "writeReplies": [
+    {
+      "node": "Send reply",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8d60000000f01",
+            "query": {
+              "format": "metadata"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a8d60000000f01",
+              "threadId": "19a8d60000000f01",
+              "labelIds": [
+                "INBOX",
+                "UNREAD"
+              ],
+              "snippet": "Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: invoice #4471?? Can we meet re: ",
+              "payload": {
+                "partId": "",
+                "mimeType": "multipart/alternative",
+                "filename": "",
+                "headers": [
+                  {
+                    "name": "To",
+                    "value": "Dana Whitfield <dana@northwind-studio.example>"
+                  },
+                  {
+                    "name": "Subject",
+                    "value": ""
+                  },
+                  {
+                    "name": "Date",
+                    "value": "Mon, 16 Nov 2026 08:41:00 +0000"
+                  },
+                  {
+                    "name": "Message-ID",
+                    "value": "<19a8d60000000f01@mail.example>"
+                  }
+                ]
+              },
+              "sizeEstimate": 4210,
+              "historyId": "8812044",
+              "internalDate": "1794818100000"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/profile",
+            "status": 200,
+            "body": {
+              "emailAddress": "dana@northwind-studio.example",
+              "messagesTotal": 18233,
+              "threadsTotal": 9120,
+              "historyId": "8812051"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/send",
+            "status": 200,
+            "body": {
+              "id": "19a8d9f0aa000001",
+              "threadId": "19a8d60000000f01",
+              "labelIds": [
+                "SENT"
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "reply",
+            "args": {
+              "messageId": "19a8d60000000f01"
+            },
+            "result": {
+              "id": "19a8d9f0aa000001",
+              "threadId": "19a8d60000000f01",
+              "labelIds": [
+                "SENT"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "reply (Gmail v2.1): GET the original with format=metadata for its headers, GET /users/me/profile to drop the own address from the recipients (from n8n's replyToEmail; unsure whether the profile call is made when no sender name is set), then POST /messages/send with threadId"
+    },
+    {
+      "node": "Mark as read",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8d60000000f01/modify",
+            "status": 200,
+            "body": {
+              "id": "19a8d60000000f01",
+              "threadId": "19a8d60000000f01",
+              "labelIds": [
+                "INBOX"
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "update_message_labels",
+            "args": {
+              "messageId": "19a8d60000000f01",
+              "removeLabelIds": [
+                "UNREAD"
+              ]
+            },
+            "result": {
+              "id": "19a8d60000000f01",
+              "threadId": "19a8d60000000f01",
+              "labelIds": [
+                "INBOX"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "markAsRead: POST /messages/{id}/modify {removeLabelIds: [UNREAD]}"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Classify appointment: model-driven on a prompt whose Subject renders empty; if is_appointment, the agent gets events it cannot place and Send reply still targets the first item"
+    ]
+  }
+}

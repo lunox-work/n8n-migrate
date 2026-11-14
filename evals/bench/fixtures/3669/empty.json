@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "template": 3669,
+  "sha256": "96f3a2d599496588c40fd6c794e9d56d5bdf577cdcec393e9e0950433ac993cc",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "a zero-byte JPEG with an empty caption and account; upload-post answers 200 with the platform marked failed",
+  "trigger": {
+    "node": "On form submission",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "Platform": "instagram",
+          "Account": "",
+          "Caption": "",
+          "Upload": {
+            "filename": "empty.jpg",
+            "mimetype": "image/jpeg",
+            "size": 0
+          },
+          "Facebook Id": "",
+          "submittedAt": "2026-11-16T08:59:41.512+00:00",
+          "formMode": "production"
+        },
+        "binary": {
+          "Upload": {
+            "data": "",
+            "mimeType": "image/jpeg",
+            "fileName": "empty.jpg",
+            "fileExtension": "jpg",
+            "fileSize": "0 B"
+          }
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [],
+  "writes": [
+    "Post photo",
+    "Post video",
+    "OK Photo",
+    "KO Photo",
+    "OK Video",
+    "KO Video"
+  ],
+  "writeReplies": [
+    {
+      "node": "Post photo",
+      "service": "upload-post",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.upload-post.com/api/upload_photos",
+            "status": 200,
+            "body": {
+              "success": false,
+              "results": {
+                "instagram": {
+                  "success": false,
+                  "error": "No photos provided or file is empty"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector for upload-post.com; http with the header credential"
+      },
+      "note": "upload-post.com upload_photos: multipart (title, user, platform[], photos[], facebook_id); reply {success, results: {<platform>: {success, ...}}} per the public API docs (shape assumed)"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Video or Photo?: Image",
+      "Success Photo?: false → KO Photo"
+    ],
+    "offline": "the upload is a binary trigger field: trigger.items[].binary carries it (FIXTURES.md); a pin drops binary, so the n8n side needs the Code-node swap (--via cli) or a multipart form POST. The JPEG is a real 32x24 image; the MP4 is a container header without a track; upload-post accepts both here"
+  }
+}

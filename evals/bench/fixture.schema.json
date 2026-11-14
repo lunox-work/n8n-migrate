@@ -107,6 +107,35 @@
             "boolean",
             "null"
           ]
+        },
+        "binary": {
+          "description": "trigger items only: the item's n8n binary by key (IBinaryData: base64 data, mimeType, fileName), for form uploads. A pin cannot carry it; the trigger's Code-node swap (--via cli) can",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "data",
+              "mimeType"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "data": {
+                "type": "string"
+              },
+              "mimeType": {
+                "type": "string"
+              },
+              "fileName": {
+                "type": "string"
+              },
+              "fileExtension": {
+                "type": "string"
+              },
+              "fileSize": {
+                "type": "string"
+              }
+            }
+          }
         }
       }
     },
@@ -370,6 +399,13 @@
         },
         "note": {
           "type": "string"
+        },
+        "connectorGaps": {
+          "description": "facts the http/n8n source carries that the connector's tool cannot express (\"<field>: why\"), so a gate failure on them reads as connector-limited, not as a migration failure",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },

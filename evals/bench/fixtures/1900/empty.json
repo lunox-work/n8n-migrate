@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "template": 1900,
+  "sha256": "6690be2a736b7a81b71284850f91f8399e454210d5a0dbcbae98b0f569cbb606",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "edit returns no choices and the image API returns an empty data list",
+  "trigger": {
+    "node": "When clicking \"Execute Workflow\"",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "davinci-003-edit",
+      "service": "openai-edits",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/edits",
+            "status": 200,
+            "body": {
+              "object": "edit",
+              "created": 1794819600,
+              "choices": [],
+              "usage": {
+                "prompt_tokens": 341,
+                "completion_tokens": 0,
+                "total_tokens": 341
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector for OpenAI edits; the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "legacy OpenAI node, operation edit: POST /v1/edits {model: text-davinci-edit-001, input, instruction}. Not a chat endpoint, so the model shim does not answer it; the reply is fixed here. The default openAiApi base URL is https://api.openai.com/v1, so the mock intercepts TLS; chat/completions calls are left unrouted so the mock forwards them to the model shim"
+    },
+    {
+      "node": "DALLE-ex3.3",
+      "service": "openai-images",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/images/generations",
+            "status": 200,
+            "body": {
+              "created": 1794819660,
+              "data": []
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media lever)"
+      },
+      "note": "legacy OpenAI node, resource image: POST /v1/images/generations {prompt, n: 4, size: 512x512, response_format: b64_json} (response format binaryData); the node turns each b64_json into a binary item"
+    }
+  ],
+  "models": [
+    "davinci-003-complete",
+    "ChatGPT-ex2",
+    "ChatGPT-ex1.1",
+    "ChatGPT-ex1.2",
+    "ChatGPT-ex3.1",
+    "ChatGPT-ex3.2",
+    "ChatGPT-ex4",
+    "ChatGPT-ex"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch; LoadMP3 and Whisper-transcribe are disabled, so the manual item passes through them to Text-example (static transcript) and every branch runs once",
+      "DALLE-ex3.3 emits no binary item"
+    ],
+    "offline": "the transcript is hard-coded in Text-example, so the trigger cannot be empty; only the two fixed replies are"
+  }
+}

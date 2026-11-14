@@ -1,0 +1,571 @@
+{
+  "schemaVersion": 1,
+  "template": 1953,
+  "sha256": "2bc60e7b6a7893d8744130d1ca84a15ac8830819f8f7e0661159fe7702eb6e39",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "two unread mails: a call request (first item, classified is_appointment) and a newsletter (discarded); a busy Tuesday afternoon on the calendar",
+  "trigger": {
+    "node": "Gmail Trigger",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {
+          "id": "19a8d40c1e2f3a01",
+          "threadId": "19a8d40c1e2f3a01",
+          "snippet": "Hi Dana, could we jump on a 30-minute call this week to go over the Q1 brand refresh scope? Tuesday afternoon or Wednesday morning would work best for me. Thanks, Marco",
+          "payload": {
+            "mimeType": "multipart/alternative"
+          },
+          "sizeEstimate": 4210,
+          "historyId": "8812044",
+          "internalDate": "1794818460000",
+          "labels": [
+            {
+              "id": "INBOX",
+              "name": "INBOX"
+            },
+            {
+              "id": "UNREAD",
+              "name": "UNREAD"
+            },
+            {
+              "id": "IMPORTANT",
+              "name": "IMPORTANT"
+            },
+            {
+              "id": "CATEGORY_PERSONAL",
+              "name": "CATEGORY_PERSONAL"
+            }
+          ],
+          "From": "\"Marco Bellini\" <marco.bellini@harbourline.example>",
+          "To": "Dana Whitfield <dana@northwind-studio.example>",
+          "Subject": "Quick call about the Q1 brand refresh?"
+        }
+      },
+      {
+        "json": {
+          "id": "19a8d41b77c0e902",
+          "threadId": "19a8d41b77c0e902",
+          "snippet": "Dev Mode updates, variables for prototyping and five new plugins we love. Read the November roundup.",
+          "payload": {
+            "mimeType": "multipart/alternative"
+          },
+          "sizeEstimate": 4210,
+          "historyId": "8812044",
+          "internalDate": "1794819120000",
+          "labels": [
+            {
+              "id": "INBOX",
+              "name": "INBOX"
+            },
+            {
+              "id": "UNREAD",
+              "name": "UNREAD"
+            },
+            {
+              "id": "CATEGORY_PROMOTIONS",
+              "name": "CATEGORY_PROMOTIONS"
+            }
+          ],
+          "From": "\"Figma\" <no-reply@figma-news.example>",
+          "To": "Dana Whitfield <dana@northwind-studio.example>",
+          "Subject": "What's new in Figma this November"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Gmail Trigger",
+      "service": "gmail",
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_threads",
+            "args": {
+              "query": "is:unread"
+            },
+            "result": {
+              "threads": [
+                {
+                  "id": "19a8d40c1e2f3a01",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8d40c1e2f3a01",
+                  "messages": [
+                    {
+                      "id": "19a8d40c1e2f3a01",
+                      "snippet": "Hi Dana, could we jump on a 30-minute call this week to go over the Q1 brand refresh scope? Tuesday afternoon or Wednesday morning would work best for me. Thanks, Marco",
+                      "subject": "Quick call about the Q1 brand refresh?",
+                      "sender": "marco.bellini@harbourline.example",
+                      "toRecipients": [
+                        "dana@northwind-studio.example"
+                      ],
+                      "date": "2026-11-16T08:41:00.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "UNREAD",
+                        "IMPORTANT",
+                        "CATEGORY_PERSONAL"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "19a8d41b77c0e902",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8d41b77c0e902",
+                  "messages": [
+                    {
+                      "id": "19a8d41b77c0e902",
+                      "snippet": "Dev Mode updates, variables for prototyping and five new plugins we love. Read the November roundup.",
+                      "subject": "What's new in Figma this November",
+                      "sender": "no-reply@figma-news.example",
+                      "toRecipients": [
+                        "dana@northwind-studio.example"
+                      ],
+                      "date": "2026-11-16T08:52:00.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "UNREAD",
+                        "CATEGORY_PROMOTIONS"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "tool": "get_message",
+            "args": {
+              "messageId": "19a8d40c1e2f3a01"
+            },
+            "result": {
+              "id": "19a8d40c1e2f3a01",
+              "snippet": "Hi Dana, could we jump on a 30-minute call this week to go over the Q1 brand refresh scope? Tuesday afternoon or Wednesday morning would work best for me. Thanks, Marco",
+              "subject": "Quick call about the Q1 brand refresh?",
+              "sender": "marco.bellini@harbourline.example",
+              "toRecipients": [
+                "dana@northwind-studio.example"
+              ],
+              "date": "2026-11-16T08:41:00.000Z",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "IMPORTANT",
+                "CATEGORY_PERSONAL"
+              ],
+              "addressDisplayNames": {
+                "marco.bellini@harbourline.example": "Marco Bellini"
+              },
+              "plaintextBody": "Hi Dana, could we jump on a 30-minute call this week to go over the Q1 brand refresh scope? Tuesday afternoon or Wednesday morning would work best for me. Thanks, Marco",
+              "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8d40c1e2f3a01"
+            }
+          },
+          {
+            "tool": "get_message",
+            "args": {
+              "messageId": "19a8d41b77c0e902"
+            },
+            "result": {
+              "id": "19a8d41b77c0e902",
+              "snippet": "Dev Mode updates, variables for prototyping and five new plugins we love. Read the November roundup.",
+              "subject": "What's new in Figma this November",
+              "sender": "no-reply@figma-news.example",
+              "toRecipients": [
+                "dana@northwind-studio.example"
+              ],
+              "date": "2026-11-16T08:52:00.000Z",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_PROMOTIONS"
+              ],
+              "addressDisplayNames": {
+                "no-reply@figma-news.example": "Figma"
+              },
+              "plaintextBody": "Dev Mode updates, variables for prototyping and five new plugins we love. Read the November roundup.",
+              "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8d41b77c0e902"
+            }
+          }
+        ]
+      },
+      "note": "poll source for the Claude side; the n8n side pins trigger.items (Gmail Trigger, simple output, readStatus unread)",
+      "connectorGaps": [
+        "From display name: n8n's simplified trigger item has From as '\"Name\" <address>'; search_threads gives the bare `sender` address, get_message adds addressDisplayNames",
+        "labels as {id, name}: the trigger maps label ids to names via GET /users/me/labels; the connector gives labelIds only"
+      ]
+    },
+    {
+      "node": "Google Calendar",
+      "service": "google-calendar",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/calendar/v3/calendars/user%40example.com/events",
+            "status": 200,
+            "body": {
+              "kind": "calendar#events",
+              "etag": "\"p33c9d0f1a2b3e0g\"",
+              "summary": "user@example.com",
+              "description": "",
+              "updated": "2026-11-15T18:02:11.000Z",
+              "timeZone": "Europe/London",
+              "accessRole": "owner",
+              "defaultReminders": [
+                {
+                  "method": "popup",
+                  "minutes": 10
+                }
+              ],
+              "items": [
+                {
+                  "kind": "calendar#event",
+                  "etag": "\"338a9b0c\"",
+                  "id": "5q1rk0fj2u3v4w5x6y7z8a9b0c",
+                  "status": "confirmed",
+                  "htmlLink": "https://www.google.com/calendar/event?eid=5q1rk0fj2u3v4w5x6y7z8a9b0c",
+                  "created": "2026-10-20T08:00:00.000Z",
+                  "updated": "2026-11-10T08:00:00.000Z",
+                  "summary": "Design review: Harbourline",
+                  "creator": {
+                    "email": "user@example.com",
+                    "self": true
+                  },
+                  "organizer": {
+                    "email": "user@example.com",
+                    "self": true
+                  },
+                  "start": {
+                    "dateTime": "2026-11-17T13:00:00Z",
+                    "timeZone": "Europe/London"
+                  },
+                  "end": {
+                    "dateTime": "2026-11-17T14:00:00Z",
+                    "timeZone": "Europe/London"
+                  },
+                  "iCalUID": "5q1rk0fj2u3v4w5x6y7z8a9b0c@google.com",
+                  "sequence": 0,
+                  "reminders": {
+                    "useDefault": true
+                  },
+                  "eventType": "default"
+                },
+                {
+                  "kind": "calendar#event",
+                  "etag": "\"339b0c1d\"",
+                  "id": "6r2sl1gk3v4w5x6y7z8a9b0c1d",
+                  "status": "confirmed",
+                  "htmlLink": "https://www.google.com/calendar/event?eid=6r2sl1gk3v4w5x6y7z8a9b0c1d",
+                  "created": "2026-10-20T08:00:00.000Z",
+                  "updated": "2026-11-10T08:00:00.000Z",
+                  "summary": "Client workshop (Acme)",
+                  "creator": {
+                    "email": "user@example.com",
+                    "self": true
+                  },
+                  "organizer": {
+                    "email": "user@example.com",
+                    "self": true
+                  },
+                  "start": {
+                    "dateTime": "2026-11-17T14:30:00Z",
+                    "timeZone": "Europe/London"
+                  },
+                  "end": {
+                    "dateTime": "2026-11-17T16:00:00Z",
+                    "timeZone": "Europe/London"
+                  },
+                  "iCalUID": "6r2sl1gk3v4w5x6y7z8a9b0c1d@google.com",
+                  "sequence": 0,
+                  "reminders": {
+                    "useDefault": true
+                  },
+                  "eventType": "default",
+                  "description": "Room 2, bring the moodboards"
+                },
+                {
+                  "kind": "calendar#event",
+                  "etag": "\"330c1d2e\"",
+                  "id": "7s3tm2hl4w5x6y7z8a9b0c1d2e",
+                  "status": "confirmed",
+                  "htmlLink": "https://www.google.com/calendar/event?eid=7s3tm2hl4w5x6y7z8a9b0c1d2e",
+                  "created": "2026-10-20T08:00:00.000Z",
+                  "updated": "2026-11-10T08:00:00.000Z",
+                  "summary": "Team standup",
+                  "creator": {
+                    "email": "user@example.com",
+                    "self": true
+                  },
+                  "organizer": {
+                    "email": "user@example.com",
+                    "self": true
+                  },
+                  "start": {
+                    "dateTime": "2026-11-18T09:00:00Z",
+                    "timeZone": "Europe/London"
+                  },
+                  "end": {
+                    "dateTime": "2026-11-18T09:30:00Z",
+                    "timeZone": "Europe/London"
+                  },
+                  "iCalUID": "7s3tm2hl4w5x6y7z8a9b0c1d2e@google.com",
+                  "sequence": 0,
+                  "reminders": {
+                    "useDefault": true
+                  },
+                  "eventType": "default",
+                  "recurringEventId": "7s3tm2hl4w5x6y7z8a9b0c1d2e",
+                  "originalStartTime": {
+                    "dateTime": "2026-11-18T09:00:00Z",
+                    "timeZone": "Europe/London"
+                  }
+                },
+                {
+                  "kind": "calendar#event",
+                  "etag": "\"331d2e3f\"",
+                  "id": "8t4un3im5x6y7z8a9b0c1d2e3f",
+                  "status": "confirmed",
+                  "htmlLink": "https://www.google.com/calendar/event?eid=8t4un3im5x6y7z8a9b0c1d2e3f",
+                  "created": "2026-10-20T08:00:00.000Z",
+                  "updated": "2026-11-10T08:00:00.000Z",
+                  "summary": "Dentist",
+                  "creator": {
+                    "email": "user@example.com",
+                    "self": true
+                  },
+                  "organizer": {
+                    "email": "user@example.com",
+                    "self": true
+                  },
+                  "start": {
+                    "dateTime": "2026-11-18T11:00:00Z",
+                    "timeZone": "Europe/London"
+                  },
+                  "end": {
+                    "dateTime": "2026-11-18T12:00:00Z",
+                    "timeZone": "Europe/London"
+                  },
+                  "iCalUID": "8t4un3im5x6y7z8a9b0c1d2e3f@google.com",
+                  "sequence": 0,
+                  "reminders": {
+                    "useDefault": true
+                  },
+                  "eventType": "default",
+                  "visibility": "private"
+                },
+                {
+                  "kind": "calendar#event",
+                  "etag": "\"332e3f4g\"",
+                  "id": "9u5vo4jn6y7z8a9b0c1d2e3f4g",
+                  "status": "confirmed",
+                  "htmlLink": "https://www.google.com/calendar/event?eid=9u5vo4jn6y7z8a9b0c1d2e3f4g",
+                  "created": "2026-10-20T08:00:00.000Z",
+                  "updated": "2026-11-10T08:00:00.000Z",
+                  "summary": "Studio offsite",
+                  "creator": {
+                    "email": "user@example.com",
+                    "self": true
+                  },
+                  "organizer": {
+                    "email": "user@example.com",
+                    "self": true
+                  },
+                  "start": {
+                    "date": "2026-11-20"
+                  },
+                  "end": {
+                    "date": "2026-11-21"
+                  },
+                  "iCalUID": "9u5vo4jn6y7z8a9b0c1d2e3f4g@google.com",
+                  "sequence": 0,
+                  "reminders": {
+                    "useDefault": true
+                  },
+                  "eventType": "default"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Calendar connector; the Claude side serves the same Calendar API responses through its HTTP mock"
+      },
+      "note": "agent tool (googleCalendarTool v1.3, event getAll, returnAll): GET /calendar/v3/calendars/user%40example.com/events with timeMin/timeMax from $now and pageToken paging until no nextPageToken; whether n8n adds singleEvents depends on the recurring-event option, so the response matches any query. The calendar id is the template's placeholder and is served as is"
+    }
+  ],
+  "models": [
+    "Classify appointment",
+    "OpenAI Chat Model",
+    "Agent",
+    "OpenAI Chat Model1"
+  ],
+  "writes": [
+    "Send reply",
+    "Mark as read"
+  ],
+  "writeReplies": [
+    {
+      "node": "Send reply",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8d40c1e2f3a01",
+            "query": {
+              "format": "metadata"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a8d40c1e2f3a01",
+              "threadId": "19a8d40c1e2f3a01",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "IMPORTANT",
+                "CATEGORY_PERSONAL"
+              ],
+              "snippet": "Hi Dana, could we jump on a 30-minute call this week to go over the Q1 brand refresh scope? Tuesday afternoon or Wednesday morning would work best for me. Thanks, Marco",
+              "payload": {
+                "partId": "",
+                "mimeType": "multipart/alternative",
+                "filename": "",
+                "headers": [
+                  {
+                    "name": "From",
+                    "value": "\"Marco Bellini\" <marco.bellini@harbourline.example>"
+                  },
+                  {
+                    "name": "To",
+                    "value": "Dana Whitfield <dana@northwind-studio.example>"
+                  },
+                  {
+                    "name": "Subject",
+                    "value": "Quick call about the Q1 brand refresh?"
+                  },
+                  {
+                    "name": "Date",
+                    "value": "Mon, 16 Nov 2026 08:41:00 +0000"
+                  },
+                  {
+                    "name": "Message-ID",
+                    "value": "<19a8d40c1e2f3a01@mail.example>"
+                  }
+                ]
+              },
+              "sizeEstimate": 4210,
+              "historyId": "8812044",
+              "internalDate": "1794818460000"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/profile",
+            "status": 200,
+            "body": {
+              "emailAddress": "dana@northwind-studio.example",
+              "messagesTotal": 18233,
+              "threadsTotal": 9120,
+              "historyId": "8812051"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/send",
+            "status": 200,
+            "body": {
+              "id": "19a8d9f0aa000001",
+              "threadId": "19a8d40c1e2f3a01",
+              "labelIds": [
+                "SENT"
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "reply",
+            "args": {
+              "messageId": "19a8d40c1e2f3a01"
+            },
+            "result": {
+              "id": "19a8d9f0aa000001",
+              "threadId": "19a8d40c1e2f3a01",
+              "labelIds": [
+                "SENT"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "reply (Gmail v2.1): GET the original with format=metadata for its headers, GET /users/me/profile to drop the own address from the recipients (from n8n's replyToEmail; unsure whether the profile call is made when no sender name is set), then POST /messages/send with threadId"
+    },
+    {
+      "node": "Mark as read",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8d40c1e2f3a01/modify",
+            "status": 200,
+            "body": {
+              "id": "19a8d40c1e2f3a01",
+              "threadId": "19a8d40c1e2f3a01",
+              "labelIds": [
+                "INBOX",
+                "IMPORTANT",
+                "CATEGORY_PERSONAL"
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "update_message_labels",
+            "args": {
+              "messageId": "19a8d40c1e2f3a01",
+              "removeLabelIds": [
+                "UNREAD"
+              ]
+            },
+            "result": {
+              "id": "19a8d40c1e2f3a01",
+              "threadId": "19a8d40c1e2f3a01",
+              "labelIds": [
+                "INBOX",
+                "IMPORTANT",
+                "CATEGORY_PERSONAL"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "markAsRead: POST /messages/{id}/modify {removeLabelIds: [UNREAD]}"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Classify appointment: is_appointment for the call request; the newsletter falls to the discard fallback (model-driven)",
+      "Agent, Send reply and Mark as read read $('Gmail Trigger').first(), so every run answers the first trigger item"
+    ]
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "template": 3669,
+  "sha256": "96f3a2d599496588c40fd6c794e9d56d5bdf577cdcec393e9e0950433ac993cc",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "an MP4 for TikTok; upload-post answers 200 without the platform key in results, so results[Platform].success is undefined",
+  "trigger": {
+    "node": "On form submission",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "Platform": "tiktok",
+          "Account": "northwind_studio",
+          "Caption": "Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Behind the scenes ‮\u0000 Be",
+          "Upload": {
+            "filename": "bts.mp4",
+            "mimetype": "video/mp4",
+            "size": 40
+          },
+          "Facebook Id": "",
+          "submittedAt": "2026-11-16T08:59:41.512+00:00",
+          "formMode": "production"
+        },
+        "binary": {
+          "Upload": {
+            "data": "AAAAGGZ0eXBpc29tAAACAGlzb21pc28yAAAACGZyZWUAAAAIbWRhdA==",
+            "mimeType": "video/mp4",
+            "fileName": "bts.mp4",
+            "fileExtension": "mp4",
+            "fileSize": "40 B"
+          }
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [],
+  "writes": [
+    "Post photo",
+    "Post video",
+    "OK Photo",
+    "KO Photo",
+    "OK Video",
+    "KO Video"
+  ],
+  "writeReplies": [
+    {
+      "node": "Post video",
+      "service": "upload-post",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.upload-post.com/api/upload",
+            "status": 200,
+            "body": {
+              "success": true,
+              "results": {
+                "TikTok": null
+              },
+              "request_id": null
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector for upload-post.com; http with the header credential"
+      },
+      "note": "upload-post.com upload (video): multipart (title, user, platform[], video); same reply shape"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Video or Photo?: Video (video/mp4)",
+      "Result Video is expected to fail on results.tiktok being undefined; neither OK Video nor KO Video runs"
+    ],
+    "offline": "the upload is a binary trigger field: trigger.items[].binary carries it (FIXTURES.md); a pin drops binary, so the n8n side needs the Code-node swap (--via cli) or a multipart form POST. The JPEG is a real 32x24 image; the MP4 is a container header without a track; upload-post accepts both here"
+  }
+}

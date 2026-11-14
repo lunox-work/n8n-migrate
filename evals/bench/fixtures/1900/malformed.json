@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "template": 1900,
+  "sha256": "6690be2a736b7a81b71284850f91f8399e454210d5a0dbcbae98b0f569cbb606",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the edit endpoint answers with OpenAI's real retirement error (404) and the image API with a 502 HTML page",
+  "trigger": {
+    "node": "When clicking \"Execute Workflow\"",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "davinci-003-edit",
+      "service": "openai-edits",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/edits",
+            "status": 404,
+            "body": {
+              "error": {
+                "message": "The model `text-davinci-edit-001` has been deprecated, learn more here: https://platform.openai.com/docs/deprecations",
+                "type": "invalid_request_error",
+                "param": null,
+                "code": "model_not_found"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector for OpenAI edits; the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "legacy OpenAI node, operation edit: POST /v1/edits {model: text-davinci-edit-001, input, instruction}. Not a chat endpoint, so the model shim does not answer it; the reply is fixed here. The default openAiApi base URL is https://api.openai.com/v1, so the mock intercepts TLS; chat/completions calls are left unrouted so the mock forwards them to the model shim"
+    },
+    {
+      "node": "DALLE-ex3.3",
+      "service": "openai-images",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/images/generations",
+            "status": 502,
+            "headers": {
+              "content-type": "text/html"
+            },
+            "body": "<html><head><title>502 Bad Gateway</title></head><body><center><h1>502 Bad Gateway</h1></center><hr><center>cloudflare</center></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media lever)"
+      },
+      "note": "legacy OpenAI node, resource image: POST /v1/images/generations {prompt, n: 4, size: 512x512, response_format: b64_json} (response format binaryData); the node turns each b64_json into a binary item"
+    }
+  ],
+  "models": [
+    "davinci-003-complete",
+    "ChatGPT-ex2",
+    "ChatGPT-ex1.1",
+    "ChatGPT-ex1.2",
+    "ChatGPT-ex3.1",
+    "ChatGPT-ex3.2",
+    "ChatGPT-ex4",
+    "ChatGPT-ex"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch; LoadMP3 and Whisper-transcribe are disabled, so the manual item passes through them to Text-example (static transcript) and every branch runs once",
+      "davinci-003-edit and DALLE-ex3.3 are expected to fail (n8n's OpenAI node throws on 4xx/5xx); the other branches still run"
+    ]
+  }
+}

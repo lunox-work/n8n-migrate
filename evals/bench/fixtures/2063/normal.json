@@ -1,0 +1,699 @@
+{
+  "schemaVersion": 1,
+  "template": 2063,
+  "sha256": "2970e8a37b748f7d05e5d99acd7bd416439b48971ad4860f8e36a99973f272f0",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "one pending dentist search; SerpApi returns two pages (4 and 3 places, one duplicate) and Results already holds one of the places",
+  "trigger": {
+    "node": "Run workflow every hours",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T09:00:00.000+00:00",
+          "Readable date": "November 16th 2026, 9:00:00 am",
+          "Readable time": "9:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "09",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "UTC (UTC+00:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Google Sheets - Get searches  to scrap",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Add your search here",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 2023033319,
+                    "title": "Results",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ/values/Add your search here",
+            "status": 200,
+            "body": {
+              "range": "Add your search here!A1:B1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "URL",
+                  "Status"
+                ],
+                [
+                  "https://www.google.com/maps/search/dentist/@40.7455096,-74.0083012,14z?entry=ttu"
+                ],
+                [
+                  "https://www.google.com/maps/search/coffee/@40.7128,-74.0060,13z",
+                  "✅"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ",
+              "exportMimeType": "text/csv"
+            },
+            "result": {
+              "fileId": "170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ",
+              "title": "Google Maps scraper",
+              "mimeType": "text/csv",
+              "content": "VVJMLFN0YXR1cwoiaHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS9tYXBzL3NlYXJjaC9kZW50aXN0L0A0MC43NDU1MDk2LC03NC4wMDgzMDEyLDE0ej9lbnRyeT10dHUiLAoiaHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS9tYXBzL3NlYXJjaC9jb2ZmZWUvQDQwLjcxMjgsLTc0LjAwNjAsMTN6IizinIUK"
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.2 read of gid=0 with a Status filter and an empty lookup value: sheet properties (gid → title), then GET values/<title>; rows with a Status are filtered out by n8n",
+      "connectorGaps": [
+        "row_number: n8n's Sheets node adds row_number to every row; a CSV export has none (it follows from the row position)",
+        "tabs: the Drive export holds the first tab only; there is no captured Sheets connector, so writes go over the Sheets API"
+      ]
+    },
+    {
+      "node": "SERPAPI - Scrape Google Maps URL",
+      "service": "serpapi",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://serpapi.com/search.json",
+            "query": {
+              "engine": "google_maps",
+              "start": "0"
+            },
+            "status": 200,
+            "body": {
+              "search_metadata": {
+                "id": "6738bench0000",
+                "status": "Success",
+                "json_endpoint": "https://serpapi.com/searches/bench/6738bench0000.json",
+                "created_at": "2026-11-16 09:00:02 UTC",
+                "processed_at": "2026-11-16 09:00:02 UTC",
+                "google_maps_url": "https://www.google.com/maps/search/dentist/@40.7455096,-74.0083012,14z?entry=ttu",
+                "total_time_taken": 1.42
+              },
+              "search_parameters": {
+                "engine": "google_maps",
+                "type": "search",
+                "q": "dentist ",
+                "ll": "@40.7455096,-74.0083012,14z",
+                "google_domain": "google.com",
+                "hl": "en",
+                "start": 0
+              },
+              "local_results": [
+                {
+                  "position": 1,
+                  "title": "Hudson Yards Dental Studio",
+                  "place_id": "ChIJBench001xYz0LwRk1aQ",
+                  "data_id": "0x89c259a1b2c3d4e1:0x00015f6a7b8c9d0e1f2",
+                  "data_cid": "14000000000000000001",
+                  "reviews_link": "https://serpapi.com/search.json?data_id=0x89c259a1b2c3d4e1%3A0x00015f6a7b8c9d0e1f2&engine=google_maps_reviews&hl=en",
+                  "photos_link": "https://serpapi.com/search.json?data_id=0x89c259a1b2c3d4e1%3A0x00015f6a7b8c9d0e1f2&engine=google_maps_photos&hl=en",
+                  "gps_coordinates": {
+                    "latitude": 40.741,
+                    "longitude": -74.001
+                  },
+                  "place_id_search": "https://serpapi.com/search.json?engine=google_maps&place_id=ChIJBench001xYz0LwRk1aQ",
+                  "provider_id": "/g/11bench0001",
+                  "rating": 4.9,
+                  "reviews": 318,
+                  "type": "Dentist",
+                  "types": [
+                    "Dentist"
+                  ],
+                  "address": "500 W 33rd St, New York, NY 10001",
+                  "open_state": "Open ⋅ Closes 6 PM",
+                  "phone": "(212) 555-0101",
+                  "website": "https://hydental.example",
+                  "thumbnail": "https://lh5.googleusercontent.com/p/AF1QipBench001=w80-h106-k-no"
+                },
+                {
+                  "position": 2,
+                  "title": "Bright Smile NYC",
+                  "place_id": "ChIJBench002xYz0LwRk1aQ",
+                  "data_id": "0x89c259a1b2c3d4e2:0x00025f6a7b8c9d0e1f2",
+                  "data_cid": "14000000000000000002",
+                  "reviews_link": "https://serpapi.com/search.json?data_id=0x89c259a1b2c3d4e2%3A0x00025f6a7b8c9d0e1f2&engine=google_maps_reviews&hl=en",
+                  "photos_link": "https://serpapi.com/search.json?data_id=0x89c259a1b2c3d4e2%3A0x00025f6a7b8c9d0e1f2&engine=google_maps_photos&hl=en",
+                  "gps_coordinates": {
+                    "latitude": 40.742,
+                    "longitude": -74.002
+                  },
+                  "place_id_search": "https://serpapi.com/search.json?engine=google_maps&place_id=ChIJBench002xYz0LwRk1aQ",
+                  "provider_id": "/g/11bench0002",
+                  "rating": 4.6,
+                  "reviews": 1204,
+                  "type": "Cosmetic dentist",
+                  "types": [
+                    "Cosmetic dentist"
+                  ],
+                  "address": "245 W 29th St, New York, NY 10001",
+                  "open_state": "Open ⋅ Closes 6 PM",
+                  "phone": "(212) 555-0102",
+                  "website": "https://brightsmile.example",
+                  "thumbnail": "https://lh5.googleusercontent.com/p/AF1QipBench002=w80-h106-k-no"
+                },
+                {
+                  "position": 3,
+                  "title": "Chelsea Smiles Dental",
+                  "place_id": "ChIJBench003xYz0LwRk1aQ",
+                  "data_id": "0x89c259a1b2c3d4e3:0x00035f6a7b8c9d0e1f2",
+                  "data_cid": "14000000000000000003",
+                  "reviews_link": "https://serpapi.com/search.json?data_id=0x89c259a1b2c3d4e3%3A0x00035f6a7b8c9d0e1f2&engine=google_maps_reviews&hl=en",
+                  "photos_link": "https://serpapi.com/search.json?data_id=0x89c259a1b2c3d4e3%3A0x00035f6a7b8c9d0e1f2&engine=google_maps_photos&hl=en",
+                  "gps_coordinates": {
+                    "latitude": 40.743,
+                    "longitude": -74.003
+                  },
+                  "place_id_search": "https://serpapi.com/search.json?engine=google_maps&place_id=ChIJBench003xYz0LwRk1aQ",
+                  "provider_id": "/g/11bench0003",
+                  "rating": 4.7,
+                  "reviews": 512,
+                  "type": "Dentist",
+                  "types": [
+                    "Dentist"
+                  ],
+                  "address": "130 W 23rd St, New York, NY 10011",
+                  "open_state": "Open ⋅ Closes 6 PM",
+                  "phone": "(212) 555-0103",
+                  "website": "https://chelseasmiles.example",
+                  "thumbnail": "https://lh5.googleusercontent.com/p/AF1QipBench003=w80-h106-k-no"
+                },
+                {
+                  "position": 4,
+                  "title": "Penn Station Family Dentistry",
+                  "place_id": "ChIJBench004xYz0LwRk1aQ",
+                  "data_id": "0x89c259a1b2c3d4e4:0x00045f6a7b8c9d0e1f2",
+                  "data_cid": "14000000000000000004",
+                  "reviews_link": "https://serpapi.com/search.json?data_id=0x89c259a1b2c3d4e4%3A0x00045f6a7b8c9d0e1f2&engine=google_maps_reviews&hl=en",
+                  "photos_link": "https://serpapi.com/search.json?data_id=0x89c259a1b2c3d4e4%3A0x00045f6a7b8c9d0e1f2&engine=google_maps_photos&hl=en",
+                  "gps_coordinates": {
+                    "latitude": 40.744,
+                    "longitude": -74.004
+                  },
+                  "place_id_search": "https://serpapi.com/search.json?engine=google_maps&place_id=ChIJBench004xYz0LwRk1aQ",
+                  "provider_id": "/g/11bench0004",
+                  "rating": 4.2,
+                  "reviews": 88,
+                  "type": "Dentist",
+                  "types": [
+                    "Dentist"
+                  ],
+                  "address": "2 Penn Plaza, New York, NY 10121",
+                  "open_state": "Open ⋅ Closes 6 PM",
+                  "phone": "(212) 555-0104",
+                  "website": null,
+                  "thumbnail": "https://lh5.googleusercontent.com/p/AF1QipBench004=w80-h106-k-no"
+                }
+              ],
+              "serpapi_pagination": {
+                "current": 0,
+                "next": "https://serpapi.com/search.json?engine=google_maps&hl=en&ll=%4040.7455096%2C-74.0083012%2C14z&q=dentist&start=20&type=search"
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://serpapi.com/search.json",
+            "query": {
+              "engine": "google_maps",
+              "start": "20"
+            },
+            "status": 200,
+            "body": {
+              "search_metadata": {
+                "id": "6738bench0020",
+                "status": "Success",
+                "json_endpoint": "https://serpapi.com/searches/bench/6738bench0020.json",
+                "created_at": "2026-11-16 09:00:02 UTC",
+                "processed_at": "2026-11-16 09:00:02 UTC",
+                "google_maps_url": "https://www.google.com/maps/search/dentist/@40.7455096,-74.0083012,14z?entry=ttu",
+                "total_time_taken": 1.42
+              },
+              "search_parameters": {
+                "engine": "google_maps",
+                "type": "search",
+                "q": "dentist  ",
+                "ll": "@40.7455096,-74.0083012,14z",
+                "google_domain": "google.com",
+                "hl": "en",
+                "start": 20
+              },
+              "local_results": [
+                {
+                  "position": 5,
+                  "title": "Flatiron Orthodontics",
+                  "place_id": "ChIJBench005xYz0LwRk1aQ",
+                  "data_id": "0x89c259a1b2c3d4e5:0x00055f6a7b8c9d0e1f2",
+                  "data_cid": "14000000000000000005",
+                  "reviews_link": "https://serpapi.com/search.json?data_id=0x89c259a1b2c3d4e5%3A0x00055f6a7b8c9d0e1f2&engine=google_maps_reviews&hl=en",
+                  "photos_link": "https://serpapi.com/search.json?data_id=0x89c259a1b2c3d4e5%3A0x00055f6a7b8c9d0e1f2&engine=google_maps_photos&hl=en",
+                  "gps_coordinates": {
+                    "latitude": 40.745,
+                    "longitude": -74.005
+                  },
+                  "place_id_search": "https://serpapi.com/search.json?engine=google_maps&place_id=ChIJBench005xYz0LwRk1aQ",
+                  "provider_id": "/g/11bench0005",
+                  "rating": 4.8,
+                  "reviews": 240,
+                  "type": "Orthodontist",
+                  "types": [
+                    "Orthodontist"
+                  ],
+                  "address": "18 W 21st St, New York, NY 10010",
+                  "open_state": "Open ⋅ Closes 6 PM",
+                  "phone": "(212) 555-0105",
+                  "website": "https://flatironortho.example",
+                  "thumbnail": "https://lh5.googleusercontent.com/p/AF1QipBench005=w80-h106-k-no"
+                },
+                {
+                  "position": 6,
+                  "title": "Midtown Emergency Dental",
+                  "place_id": "ChIJBench006xYz0LwRk1aQ",
+                  "data_id": "0x89c259a1b2c3d4e6:0x00065f6a7b8c9d0e1f2",
+                  "data_cid": "14000000000000000006",
+                  "reviews_link": "https://serpapi.com/search.json?data_id=0x89c259a1b2c3d4e6%3A0x00065f6a7b8c9d0e1f2&engine=google_maps_reviews&hl=en",
+                  "photos_link": "https://serpapi.com/search.json?data_id=0x89c259a1b2c3d4e6%3A0x00065f6a7b8c9d0e1f2&engine=google_maps_photos&hl=en",
+                  "gps_coordinates": {
+                    "latitude": 40.746,
+                    "longitude": -74.006
+                  },
+                  "place_id_search": "https://serpapi.com/search.json?engine=google_maps&place_id=ChIJBench006xYz0LwRk1aQ",
+                  "provider_id": "/g/11bench0006",
+                  "rating": 3.9,
+                  "reviews": 61,
+                  "type": "Emergency dental service",
+                  "types": [
+                    "Emergency dental service"
+                  ],
+                  "address": "1 Penn Plaza, New York, NY 10119",
+                  "open_state": "Open ⋅ Closes 6 PM",
+                  "phone": "(212) 555-0106",
+                  "website": "https://midtownemergency.example",
+                  "thumbnail": "https://lh5.googleusercontent.com/p/AF1QipBench006=w80-h106-k-no"
+                },
+                {
+                  "position": 7,
+                  "title": "Bright Smile NYC",
+                  "place_id": "ChIJBench002xYz0LwRk1aQ",
+                  "data_id": "0x89c259a1b2c3d4e2:0x00025f6a7b8c9d0e1f2",
+                  "data_cid": "14000000000000000002",
+                  "reviews_link": "https://serpapi.com/search.json?data_id=0x89c259a1b2c3d4e2%3A0x00025f6a7b8c9d0e1f2&engine=google_maps_reviews&hl=en",
+                  "photos_link": "https://serpapi.com/search.json?data_id=0x89c259a1b2c3d4e2%3A0x00025f6a7b8c9d0e1f2&engine=google_maps_photos&hl=en",
+                  "gps_coordinates": {
+                    "latitude": 40.742,
+                    "longitude": -74.002
+                  },
+                  "place_id_search": "https://serpapi.com/search.json?engine=google_maps&place_id=ChIJBench002xYz0LwRk1aQ",
+                  "provider_id": "/g/11bench0002",
+                  "rating": 4.6,
+                  "reviews": 1204,
+                  "type": "Cosmetic dentist",
+                  "types": [
+                    "Cosmetic dentist"
+                  ],
+                  "address": "245 W 29th St, New York, NY 10001",
+                  "open_state": "Open ⋅ Closes 6 PM",
+                  "phone": "(212) 555-0102",
+                  "website": "https://brightsmile.example",
+                  "thumbnail": "https://lh5.googleusercontent.com/p/AF1QipBench002=w80-h106-k-no"
+                }
+              ],
+              "serpapi_pagination": {
+                "current": 20
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector for SerpApi; http with the API key"
+      },
+      "note": "SerpApi google_maps: GET /search.json?engine=google_maps&q=<keyword + trailing space>&ll=@lat,lng,zoom&type=search&start=N&api_key=…; the second call repeats search_parameters.q with one more space, so responses match on start only. The node has an error output (continueErrorOutput) to Update Status to Error"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Add rows in Google Sheets",
+    "Update Status to Success",
+    "Update Status to Error"
+  ],
+  "writeReplies": [
+    {
+      "node": "Add rows in Google Sheets",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Add your search here",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 2023033319,
+                    "title": "Results",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ/values/Results",
+            "status": 200,
+            "body": {
+              "range": "Results!A1:N1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "position",
+                  "title",
+                  "phone",
+                  "website",
+                  "rating",
+                  "reviews",
+                  "place_id",
+                  "data_id",
+                  "data_cid",
+                  "reviews_link",
+                  "photos_link",
+                  "gps_coordinates",
+                  "address",
+                  "type"
+                ],
+                [
+                  "3",
+                  "Chelsea Smiles Dental",
+                  "(212) 555-0103",
+                  "https://chelseasmiles.example",
+                  "4.7",
+                  "512",
+                  "ChIJBench003xYz0LwRk1aQ"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ/values/Results:append",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ",
+              "tableRange": "Results!A1:Z10",
+              "updates": {
+                "spreadsheetId": "170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ",
+                "updatedRange": "Results!A11:E16",
+                "updatedRows": 6,
+                "updatedColumns": 14,
+                "updatedCells": 84
+              }
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ/values:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ",
+              "totalUpdatedRows": 1,
+              "totalUpdatedColumns": 14,
+              "totalUpdatedCells": 14,
+              "totalUpdatedSheets": 1,
+              "responses": [
+                {
+                  "spreadsheetId": "170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ",
+                  "updatedRange": "Sheet!A1",
+                  "updatedRows": 1,
+                  "updatedColumns": 14,
+                  "updatedCells": 14
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Sheets connector for writes"
+      },
+      "note": "Sheets v4.2 appendOrUpdate on gid 2023033319 matching place_id: sheet properties, GET values/Results to find existing place_ids, values:append for new rows and values:batchUpdate for matches (exact call order from memory)"
+    },
+    {
+      "node": "Update Status to Success",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Add your search here",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 2023033319,
+                    "title": "Results",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ/values/Add your search here",
+            "status": 200,
+            "body": {
+              "range": "Add your search here!A1:B1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "URL",
+                  "Status"
+                ],
+                [
+                  "https://www.google.com/maps/search/dentist/@40.7455096,-74.0083012,14z?entry=ttu"
+                ],
+                [
+                  "https://www.google.com/maps/search/coffee/@40.7128,-74.0060,13z",
+                  "✅"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ/values:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ",
+              "totalUpdatedRows": 1,
+              "totalUpdatedColumns": 2,
+              "totalUpdatedCells": 2,
+              "totalUpdatedSheets": 1,
+              "responses": [
+                {
+                  "spreadsheetId": "170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ",
+                  "updatedRange": "Sheet!A1",
+                  "updatedRows": 1,
+                  "updatedColumns": 2,
+                  "updatedCells": 2
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Sheets connector for writes"
+      },
+      "note": "Sheets v4.2 update on gid=0 matching URL: sheet properties, GET values to find the URL's row, values:batchUpdate"
+    },
+    {
+      "node": "Update Status to Error",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Add your search here",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 2023033319,
+                    "title": "Results",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ/values/Add your search here",
+            "status": 200,
+            "body": {
+              "range": "Add your search here!A1:B1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "URL",
+                  "Status"
+                ],
+                [
+                  "https://www.google.com/maps/search/dentist/@40.7455096,-74.0083012,14z?entry=ttu"
+                ],
+                [
+                  "https://www.google.com/maps/search/coffee/@40.7128,-74.0060,13z",
+                  "✅"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ/values:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ",
+              "totalUpdatedRows": 1,
+              "totalUpdatedColumns": 2,
+              "totalUpdatedCells": 2,
+              "totalUpdatedSheets": 1,
+              "responses": [
+                {
+                  "spreadsheetId": "170osqaLBql9M-4RAH3_lBKR7ZMaQqyLUkAD-88xGuEQ",
+                  "updatedRange": "Sheet!A1",
+                  "updatedRows": 1,
+                  "updatedColumns": 2,
+                  "updatedCells": 2
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Sheets connector for writes"
+      },
+      "note": "Sheets v4.2 update on gid=0 matching URL: sheet properties, GET values to find the URL's row, values:batchUpdate"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Continue IF Loop is complete: true after page 1 (serpapi_pagination.next present), false after page 2 → Merge all values from SERPAPI",
+      "SERPAPI error output: not taken",
+      "Remove duplicate items drops the second Bright Smile NYC (same place_id)"
+    ]
+  }
+}

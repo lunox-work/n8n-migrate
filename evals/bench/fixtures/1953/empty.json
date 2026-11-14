@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 1,
+  "template": 1953,
+  "sha256": "2bc60e7b6a7893d8744130d1ca84a15ac8830819f8f7e0661159fe7702eb6e39",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "one unread mail with an empty subject and body; the calendar has no events in the window",
+  "trigger": {
+    "node": "Gmail Trigger",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {
+          "id": "19a8d50000000e01",
+          "threadId": "19a8d50000000e01",
+          "snippet": "",
+          "payload": {
+            "mimeType": "multipart/alternative"
+          },
+          "sizeEstimate": 4210,
+          "historyId": "8812044",
+          "internalDate": "1794817800000",
+          "labels": [
+            {
+              "id": "INBOX",
+              "name": "INBOX"
+            },
+            {
+              "id": "UNREAD",
+              "name": "UNREAD"
+            }
+          ],
+          "From": "\"Sam Ortiz\" <sam.ortiz@harbourline.example>",
+          "To": "Dana Whitfield <dana@northwind-studio.example>",
+          "Subject": ""
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Gmail Trigger",
+      "service": "gmail",
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_threads",
+            "args": {
+              "query": "is:unread"
+            },
+            "result": {
+              "threads": [
+                {
+                  "id": "19a8d50000000e01",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8d50000000e01",
+                  "messages": [
+                    {
+                      "id": "19a8d50000000e01",
+                      "snippet": "",
+                      "subject": "",
+                      "sender": "sam.ortiz@harbourline.example",
+                      "toRecipients": [
+                        "dana@northwind-studio.example"
+                      ],
+                      "date": "2026-11-16T08:30:00.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "UNREAD"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "tool": "get_message",
+            "args": {
+              "messageId": "19a8d50000000e01"
+            },
+            "result": {
+              "id": "19a8d50000000e01",
+              "snippet": "",
+              "subject": "",
+              "sender": "sam.ortiz@harbourline.example",
+              "toRecipients": [
+                "dana@northwind-studio.example"
+              ],
+              "date": "2026-11-16T08:30:00.000Z",
+              "labelIds": [
+                "INBOX",
+                "UNREAD"
+              ],
+              "addressDisplayNames": {
+                "sam.ortiz@harbourline.example": "Sam Ortiz"
+              },
+              "plaintextBody": "",
+              "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8d50000000e01"
+            }
+          }
+        ]
+      },
+      "note": "poll source for the Claude side; the n8n side pins trigger.items (Gmail Trigger, simple output, readStatus unread)",
+      "connectorGaps": [
+        "From display name: n8n's simplified trigger item has From as '\"Name\" <address>'; search_threads gives the bare `sender` address, get_message adds addressDisplayNames",
+        "labels as {id, name}: the trigger maps label ids to names via GET /users/me/labels; the connector gives labelIds only"
+      ]
+    },
+    {
+      "node": "Google Calendar",
+      "service": "google-calendar",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/calendar/v3/calendars/user%40example.com/events",
+            "status": 200,
+            "body": {
+              "kind": "calendar#events",
+              "etag": "\"p33c9d0f1a2b3e0g\"",
+              "summary": "user@example.com",
+              "description": "",
+              "updated": "2026-11-15T18:02:11.000Z",
+              "timeZone": "Europe/London",
+              "accessRole": "owner",
+              "defaultReminders": [
+                {
+                  "method": "popup",
+                  "minutes": 10
+                }
+              ],
+              "items": []
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Calendar connector; the Claude side serves the same Calendar API responses through its HTTP mock"
+      },
+      "note": "agent tool (googleCalendarTool v1.3, event getAll, returnAll): GET /calendar/v3/calendars/user%40example.com/events with timeMin/timeMax from $now and pageToken paging until no nextPageToken; whether n8n adds singleEvents depends on the recurring-event option, so the response matches any query. The calendar id is the template's placeholder and is served as is"
+    }
+  ],
+  "models": [
+    "Classify appointment",
+    "OpenAI Chat Model",
+    "Agent",
+    "OpenAI Chat Model1"
+  ],
+  "writes": [
+    "Send reply",
+    "Mark as read"
+  ],
+  "writeReplies": [
+    {
+      "node": "Send reply",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8d50000000e01",
+            "query": {
+              "format": "metadata"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a8d50000000e01",
+              "threadId": "19a8d50000000e01",
+              "labelIds": [
+                "INBOX",
+                "UNREAD"
+              ],
+              "snippet": "",
+              "payload": {
+                "partId": "",
+                "mimeType": "multipart/alternative",
+                "filename": "",
+                "headers": [
+                  {
+                    "name": "From",
+                    "value": "\"Sam Ortiz\" <sam.ortiz@harbourline.example>"
+                  },
+                  {
+                    "name": "To",
+                    "value": "Dana Whitfield <dana@northwind-studio.example>"
+                  },
+                  {
+                    "name": "Subject",
+                    "value": ""
+                  },
+                  {
+                    "name": "Date",
+                    "value": "Mon, 16 Nov 2026 08:30:00 +0000"
+                  },
+                  {
+                    "name": "Message-ID",
+                    "value": "<19a8d50000000e01@mail.example>"
+                  }
+                ]
+              },
+              "sizeEstimate": 4210,
+              "historyId": "8812044",
+              "internalDate": "1794817800000"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/profile",
+            "status": 200,
+            "body": {
+              "emailAddress": "dana@northwind-studio.example",
+              "messagesTotal": 18233,
+              "threadsTotal": 9120,
+              "historyId": "8812051"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/send",
+            "status": 200,
+            "body": {
+              "id": "19a8d9f0aa000001",
+              "threadId": "19a8d50000000e01",
+              "labelIds": [
+                "SENT"
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "reply",
+            "args": {
+              "messageId": "19a8d50000000e01"
+            },
+            "result": {
+              "id": "19a8d9f0aa000001",
+              "threadId": "19a8d50000000e01",
+              "labelIds": [
+                "SENT"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "reply (Gmail v2.1): GET the original with format=metadata for its headers, GET /users/me/profile to drop the own address from the recipients (from n8n's replyToEmail; unsure whether the profile call is made when no sender name is set), then POST /messages/send with threadId"
+    },
+    {
+      "node": "Mark as read",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8d50000000e01/modify",
+            "status": 200,
+            "body": {
+              "id": "19a8d50000000e01",
+              "threadId": "19a8d50000000e01",
+              "labelIds": [
+                "INBOX"
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "update_message_labels",
+            "args": {
+              "messageId": "19a8d50000000e01",
+              "removeLabelIds": [
+                "UNREAD"
+              ]
+            },
+            "result": {
+              "id": "19a8d50000000e01",
+              "threadId": "19a8d50000000e01",
+              "labelIds": [
+                "INBOX"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "markAsRead: POST /messages/{id}/modify {removeLabelIds: [UNREAD]}"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Classify appointment: expected to discard the empty mail (model-driven); if it does not, the agent sees an empty calendar"
+    ],
+    "offline": "a poll with no unread mail starts no run on either side, so empty is one blank mail"
+  }
+}
