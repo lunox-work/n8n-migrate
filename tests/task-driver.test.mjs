@@ -189,6 +189,46 @@ test("long instructions are paged under the Bash output limit; outputSchema answ
   }
 });
 
+test("an agent's final answer that reads as JSON stays text without an output schema; tool-call intents are still JSON", async () => {
+  const { paths, command } = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/runtime/src/driver.mjs")).href);
+  const core = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/runtime/src/index.mjs")).href);
+  const agentDef = (agent) => ({
+    schemaVersion: 1,
+    name: "Agent answers",
+    steps: {
+      Start: { kind: "trigger", n8n: { type: "n8n-nodes-base.manualTrigger", typeVersion: 1 }, params: {} },
+      Agent: { kind: "agent", n8n: { type: "@n8n/n8n-nodes-langchain.agent", typeVersion: 1.7 }, params: {}, agent: { prompt: "Classify the mail.", ...agent } },
+      Note: { kind: "code", n8n: { type: "n8n-nodes-base.code", typeVersion: 2 }, params: { jsCode: "return [{ json: { kind: typeof $input.first().json.output } }];" } },
+    },
+    edges: [{ from: "Start", fromOutput: 0, to: "Agent", toInput: 0 }, { from: "Agent", fromOutput: 0, to: "Note", toInput: 0 }],
+    allow: { tools: [], http: [], sql: [] },
+    secrets: [],
+  });
+  const output = async (agent, answers) => {
+    const dir = mkdtempSync(join(tmpdir(), "n2c-agent-"));
+    try {
+      writeFileSync(join(dir, "definition.json"), JSON.stringify(agentDef(agent)));
+      const run = (cmd, pos = [], input = "") => command(cmd, pos, {}, { core, dir, cwd: dir, stdin: () => input });
+      await run("start");
+      let last;
+      for (const [q, text] of answers) last = await run("answer", [q], text);
+      assert.match(last.text, /DONE/, last.text);
+      return readJson(join(paths(dir).runs, `${readJson(paths(dir).state).runId}.json`)).result.output;
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  };
+  // n8n 2.47.7's ToolsAgent keeps the model's output as text unless an output parser is attached.
+  const text = '{"label": "invoice", "confidence": 0.9}';
+  assert.deepEqual(await output({}, [["q1", text]]), [{ kind: "string" }]);
+  assert.deepEqual(await output({}, [["q1", '[1, 2]']]), [{ kind: "string" }]);
+  // With an output schema the answer is the JSON value, as n8n's parser returns it.
+  assert.deepEqual(await output({ outputSchema: { type: "object", properties: { label: { type: "string" } } } }, [["q1", text]]), [{ kind: "object" }]);
+  // A tool-call intent is still read as JSON (here for a tool the step does not have: the
+  // runner answers the turn with an error and asks again).
+  assert.deepEqual(await output({ tools: [] }, [["q1", '{"intent": "tool-calls", "calls": [{"name": "nope", "args": {}}]}'], ["q2", "plain"]]), [{ kind: "string" }]);
+});
+
 test("http requests run in the driver: the secret comes from its source, goes only into the request, never into output", async () => {
   const { executeHttp, mcpValue, expandArgs, compactArgs } = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/runtime/src/driver.mjs")).href);
   const seen = [];

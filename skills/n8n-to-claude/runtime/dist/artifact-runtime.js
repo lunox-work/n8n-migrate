@@ -16893,10 +16893,13 @@ function composeAgentInput(req, memory = []) {
   return parts.join("\n\n");
 }
 // sample.json's value -> the runner's agent result (a tool-calls intent or the final output).
-function agentValue(v) {
+// Without an output schema the final output is text, as n8n's agent output is (a JSON value
+// the model gave anyway is kept as its JSON text, never as an object).
+function agentValue(v, req = {}) {
   if (isObj(v) && v.intent === "tool-calls" && Array.isArray(v.calls)) return { intent: "tool-calls", calls: v.calls.map((c) => ({ name: String(c?.name ?? ""), args: isObj(c?.args) ? c.args : {} })) };
-  if (isObj(v) && "final" in v) return v.final;
-  return v;
+  const final = isObj(v) && "final" in v ? v.final : v;
+  if (req.outputSchema || typeof final === "string") return final;
+  return final === undefined || final === null ? "" : JSON.stringify(final);
 }
 // mcp CallToolResult -> the value the runner adapts (the task driver's mcpValue, same rule).
 function mcpPayload(result) {
@@ -17042,7 +17045,7 @@ function createArtifactDriver(opts) {
   async function answerAgent(req) {
     if (!rt.sample) throw { code: "not_granted", message: "Claude is not available to this page" };
     const mem = req.memory ? (memory.get(String(req.memory.key)) ?? []).slice(-2 * (req.memory.window ?? 5)) : [];
-    const value = agentValue(await rt.sample.json(composeAgentInput(req, mem), { cache: false }));
+    const value = agentValue(await rt.sample.json(composeAgentInput(req, mem), { cache: false }), req);
     if (req.memory && !(isObj(value) && value.intent === "tool-calls")) {
       const key = String(req.memory.key);
       memory.set(key, [...(memory.get(key) ?? []), { role: "user", content: String(req.prompt ?? "") }, { role: "assistant", content: typeof value === "string" ? value : JSON.stringify(value) }]);

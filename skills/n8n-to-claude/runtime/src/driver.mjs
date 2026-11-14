@@ -1087,7 +1087,11 @@ export async function command(cmd, pos, flags, { core, dir, stdin, fetch, isTTY 
         if (req.outputSchema || req.kind === "agent") {
           if (/^[[{]/.test(t) || req.outputSchema) {
             try {
-              value = JSON.parse(t.replace(/^```(?:json)?\s*|\s*```$/g, ""));
+              const parsed = JSON.parse(t.replace(/^```(?:json)?\s*|\s*```$/g, ""));
+              // An agent without an output parser answers with text in n8n (ToolsAgent keeps the
+              // model's output as it is), even when the text reads as JSON: only a tool-call
+              // intent is taken as JSON here.
+              if (req.outputSchema || (isObj(parsed) && parsed.intent === "tool-calls")) value = parsed;
             } catch (e) {
               if (req.outputSchema) return { code: 2, text: `The answer is not valid JSON (${e.message}). Write one JSON value to ${inboxPath(handle)} and run ${RUNNER_CMD} answer ${handle} again.` };
             }

@@ -200,6 +200,10 @@ test("request mapping: model prompt framing, agent replies, mcp payloads", () =>
   assert.match(input, /JSON Schema/);
   assert.deepEqual(agentValue({ intent: "tool-calls", calls: [{ name: "a", args: { q: 1 } }, { name: "b" }] }), { intent: "tool-calls", calls: [{ name: "a", args: { q: 1 } }, { name: "b", args: {} }] });
   assert.equal(agentValue({ final: "done" }), "done");
+  // Without an output schema the final answer is text, as n8n's agent output; with one, the value.
+  assert.equal(agentValue({ final: { verdict: "spam" } }), '{"verdict":"spam"}');
+  assert.equal(agentValue({ verdict: "spam" }), '{"verdict":"spam"}');
+  assert.deepEqual(agentValue({ final: { verdict: "spam" } }, { outputSchema: { type: "object" } }), { verdict: "spam" });
   assert.deepEqual(mcpPayload({ content: [{ type: "text", text: '{"a":1}' }] }), { a: 1 });
   assert.deepEqual(mcpPayload({ content: [], payload: { b: 2 } }), { b: 2 });
 });

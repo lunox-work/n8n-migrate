@@ -353,7 +353,7 @@ test("P30: the chat reply carries its value type, so JSON text and an object wit
   assert.equal(compare([n8n], [replyOf([{ output: text }], "claude")]).ok, true);
 });
 
-test("P30: through the task driver, an agent answer that reads as JSON stays text, as n8n's agent output", { todo: "the task driver types JSON-looking agent text as an object (skill fix outside the loop)" }, async () => {
+test("P30: through the task driver, an agent answer that reads as JSON stays text, as n8n's agent output", async () => {
   const { command, paths } = await import("../skills/n8n-to-claude/runtime/src/driver.mjs");
   const core = await import("../skills/n8n-to-claude/runtime/src/index.mjs");
   const { replyOf } = await import("../evals/bench/compare.mjs");
