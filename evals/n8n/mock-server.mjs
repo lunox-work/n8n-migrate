@@ -38,6 +38,13 @@
 // api.anthropic.com/v1/messages or api.openai.com/v1/chat/completions that no route answers is
 // forwarded with tag host:<host>. The log line carries model: <tag> and the shim's reply.
 //
+// Forwarding to a host responder ("__forward": [{origin}] in the fixture map, needs --model-shim):
+// a proxied or TLS-intercepted request to one of these origins is forwarded to the --model-shim
+// URL with its path and query and header x-bench-forward-origin: <origin>, and answered with
+// whatever that host server says. Used where the reply depends on state the host keeps (the
+// cutover e2e's feed: Gmail's `after:` filter over items added while n8n runs). The log line
+// carries forwarded: <origin> and the reply.
+//
 // Log line: {seq, t, method, [proxied], path, query, [rawQuery], headers, body, bodyEncoding, fixture}
 // (query keeps the last value of a repeated key; rawQuery is the query string as sent)
 // (proxied: the origin, when the client used this mock as its HTTP proxy)
@@ -266,11 +273,14 @@ export function startMock({ port = 8080, log = null, fixtures = null, host = "0.
       const route = tagged ? null : pickRoute(map.__routes, req.method, origin, u.pathname, u.searchParams, counters, entry.body);
       const hostOnly = origin ? origin.replace(/^https?:\/\//, "").replace(/:\d+$/, "") : null;
       const modelTag = tagged ? safeDecode(tagged[1]) : !route && hostOnly && MODEL_HOSTS[hostOnly]?.test(u.pathname) ? `host:${hostOnly}` : null;
-      if (modelTag && modelShim) {
-        entry.model = modelTag;
-        entry.fixture = "model-shim";
+      const forward = !modelTag && origin && modelShim && Array.isArray(map.__forward) ? map.__forward.find((f) => f && f.origin === origin) : null;
+      if ((modelTag || forward) && modelShim) {
+        if (modelTag) entry.model = modelTag;
+        else entry.forwarded = origin;
+        entry.fixture = modelTag ? "model-shim" : "forward";
         const target = new URL((tagged ? tagged[2] : u.pathname) + u.search, modelShim);
-        const fwd = httpRequest(target, { method: req.method, headers: { ...req.headers, host: target.host, "x-bench-model-tag": modelTag, "content-length": raw.length } }, (up) => {
+        const extra = modelTag ? { "x-bench-model-tag": modelTag } : { "x-bench-forward-origin": origin };
+        const fwd = httpRequest(target, { method: req.method, headers: { ...req.headers, host: target.host, ...extra, "content-length": raw.length } }, (up) => {
           const parts = [];
           up.on("data", (c) => parts.push(c));
           up.on("end", () => {

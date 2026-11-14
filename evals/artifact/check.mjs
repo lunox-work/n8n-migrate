@@ -14,7 +14,8 @@
 // the run with "handoff"; a send cut off mid-call is shown as unknown and not resent; the agent
 // workflow runs through sample with tool-call intents; a form renders every field type,
 // validates, runs with the form item, and a hand-off form stores the submission; missed
-// scheduled runs show in the history; screenshots at 375, 768, 1440 and 1915 px
+// scheduled runs show in the history; cutover: a dry run and Seed are written to the cutover
+// log the checklist reads, and Run now after Seed replays no history; screenshots at 375, 768, 1440 and 1915 px
 // in light and dark, with no horizontal scroll. Screenshots go to --out (scratch), not git.
 
 import { createServer } from "node:http";
@@ -59,8 +60,18 @@ const FORM_ALL = {
   ],
   connections: { Signup: { main: [[{ node: "Tag", type: "main", index: 0 }]] } },
 };
+// A poll workflow that runs wholly in the page (Gmail poll trigger -> Slack): the cutover scenario.
+const POLL_SLACK = {
+  id: "poll-slack", name: "Invoice mail to Slack", settings: { executionOrder: "v1", timezone: "Europe/Berlin" },
+  nodes: [
+    { id: "1", name: "New invoice email", type: "n8n-nodes-base.gmailTrigger", typeVersion: 1.2, position: [0, 0], parameters: { pollTimes: { item: [{ mode: "everyHour", minute: 5 }] }, simple: true, filters: { q: "subject:invoice" }, options: {} }, credentials: { gmailOAuth2: { id: "c1", name: "Gmail account" } } },
+    { id: "2", name: "Post to Slack", type: "n8n-nodes-base.slack", typeVersion: 2.3, position: [240, 0], parameters: { authentication: "oAuth2", select: "channel", channelId: { __rl: true, value: "C0123456789", mode: "id" }, text: "={{ $json.Subject }}", otherOptions: { includeLinkToWorkflow: false } }, credentials: { slackOAuth2Api: { id: "c2", name: "Slack account" } } },
+  ],
+  connections: { "New invoice email": { main: [[{ node: "Post to Slack", type: "main", index: 0 }]] } },
+};
 mkdirSync(join(OUT, "folders"), { recursive: true });
 writeFileSync(join(OUT, "folders", "form-all.n8n.json"), JSON.stringify(FORM_ALL));
+writeFileSync(join(OUT, "folders", "poll-slack.n8n.json"), JSON.stringify(POLL_SLACK));
 const SOURCES = {
   slice: join(ROOT, "tests/fixtures/convert/slice.n8n.json"),
   "poll-code-http": join(ROOT, "tests/fixtures/convert/poll-code-http.n8n.json"),
@@ -68,6 +79,7 @@ const SOURCES = {
   "form-public": join(ROOT, "tests/fixtures/form-public.json"),
   "form-artifact": join(ROOT, "tests/fixtures/form-artifact.json"),
   "form-all": join(OUT, "folders", "form-all.n8n.json"),
+  "poll-slack": join(OUT, "folders", "poll-slack.n8n.json"),
 };
 for (const [name, file] of Object.entries(SOURCES)) {
   const res = JSON.parse(execFileSync("node", [join(ROOT, "skills/n8n-to-claude/scripts/convert.mjs"), file, "--out", join(OUT, "folders", name)], { encoding: "utf8" }));
@@ -78,7 +90,7 @@ const load = (name) => ({
   def: JSON.parse(readFileSync(join(folders[name], "definition.json"), "utf8")),
   caps: JSON.parse(readFileSync(join(folders[name], "artifact.capabilities.json"), "utf8")),
 });
-const pages = { slice: load("slice"), poll: load("poll-code-http"), agent: load("chat-agent"), form: load("form-public"), formHandoff: load("form-artifact"), formAll: load("form-all") };
+const pages = { pollSlack: load("poll-slack"), slice: load("slice"), poll: load("poll-code-http"), agent: load("chat-agent"), form: load("form-public"), formHandoff: load("form-artifact"), formAll: load("form-all") };
 const buildOf = (html) => JSON.parse(/<script type="application\/json" id="n2c-build">([^<]*)<\/script>/.exec(html)[1]);
 // A tampered copy: the Slack channel changed inside the embedded definition only.
 const tamperedHtml = pages.slice.html.replace(/(<script type="application\/json" id="n2c-definition">[^<]*?)C0123456789/, "$1C0ATTACKER1");
@@ -110,7 +122,7 @@ const refAgent = await reference(pages.agent.def, { trigger: [{ sessionId: "s-1"
 function backend(caps, servers) {
   const docs = new Map();
   const leases = new Map();
-  const ctl = { delay: {}, hang: new Set(), clockOffset: 0 };
+  const ctl = { delay: {}, hang: new Set(), clockOffset: 0, newMail: [] };
   const log = { tools: [], samples: [], writes: [] };
   const now = () => Date.now() + ctl.clockOffset;
   const host = toolHost([]);
@@ -131,7 +143,10 @@ function backend(caps, servers) {
       if (ctl.delay[tool]) await sleep(ctl.delay[tool]);
       let value;
       try {
-        value = await host({ connector, tool, args: input });
+        // Mail that arrived after the canned mailbox (ctl.newMail): listed and readable.
+        const extra = ctl.newMail.find((m) => tool === "get_message" && m.id === input.messageId);
+        value = extra ? { ...extra, addressDisplayNames: {} } : await host({ connector, tool, args: input });
+        if (tool === "search_threads" && ctl.newMail.length) value = { ...value, threads: [...value.threads, ...ctl.newMail.map((m) => ({ id: `t-${m.id}`, messageCount: 1, messages: [m] }))] };
       } catch (e) {
         throw { code: "tool_error", message: e.message };
       }
@@ -204,7 +219,7 @@ function backend(caps, servers) {
 
 // ---------- server: the page inside the publish skeleton, with an artifact-like CSP ----------
 const SKELETON_HEAD = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>';
-const served = { slice: pages.slice.html, poll: pages.poll.html, agent: pages.agent.html, tampered: tamperedHtml, form: pages.form.html, formHandoff: pages.formHandoff.html, formAll: pages.formAll.html };
+const served = { pollSlack: pages.pollSlack.html, slice: pages.slice.html, poll: pages.poll.html, agent: pages.agent.html, tampered: tamperedHtml, form: pages.form.html, formHandoff: pages.formHandoff.html, formAll: pages.formAll.html };
 const extFetches = [];
 const server = createServer((req, res) => {
   const name = /^\/page\/([\w-]+)$/.exec(req.url)?.[1];
@@ -555,6 +570,42 @@ await check("missed scheduled runs show in the history", async () => {
   assert.match(text, new RegExp(`missed\\s*${want} scheduled runs did not happen`));
   await ctx.close();
   return text.replace(/\s+/g, " ").slice(0, 80);
+});
+
+// 8b. cutover: dry run, Seed, then Run now replays no history
+await check("cutover: a dry run and Seed write the cutover log the checklist reads; Run now after Seed replays no history", async () => {
+  const { ctx, be } = await context("pollSlack");
+  const page = await open(ctx, "pollSlack");
+  const panel = () => page.$$eval("#cutover li", (lis) => lis.map((li) => [li.getAttribute("data-id"), li.getAttribute("data-state")]));
+  await page.waitForFunction(() => document.querySelectorAll("#cutover li").length === 5, null, { timeout: 5000 });
+  assert.deepEqual(await panel(), [["dry-run", "todo"], ["parity", "optional"], ["deactivate-n8n", "todo"], ["seed-cursor", "todo"], ["enable-schedule", "todo"]], "n8n goes off before the task goes on");
+  // 1. Dry run: the canned mailbox's two messages would be posted; nothing is.
+  const dry = await runAndWait(page, { dry: true });
+  assert.equal(dry.statuses["Post to Slack"], "would-send");
+  assert.equal(be.log.tools.filter((t) => t.tool === "slack_send_message").length, 0);
+  const logDocs = () => [...be.docs].filter(([p]) => p.startsWith("cutover/")).map(([, d]) => d);
+  assert.deepEqual(logDocs().map((d) => [d.step, d.by, d.detail.wouldSend]), [["dry-run", "artifact", 2]]);
+  await page.waitForFunction(() => document.querySelector('#cutover li[data-id="dry-run"]')?.getAttribute("data-state") === "done", null, { timeout: 5000 });
+  // 2. Seed copies the dry run's cursor into the scheduled cursor and logs it.
+  await page.click("#seed-cursor");
+  await page.waitForFunction(() => document.querySelector('#cutover li[data-id="seed-cursor"]')?.getAttribute("data-state") === "done", null, { timeout: 5000 });
+  const sched = [...be.docs].find(([p, d]) => p.startsWith("cursors/c-") && d.kind === "scheduled")?.[1];
+  assert.deepEqual([sched.seeded, sched.copiedFrom, sched.cursor.value, sched.cursor.ids], [true, "manual", "2026-11-14T02:45:00Z", ["m2"]]);
+  assert.deepEqual(logDocs().map((d) => [d.step, d.detail.source ?? null]), [["dry-run", null], ["seed", "dry-run"]]);
+  // 3. Run now, live: the mailbox has only what the dry run read, so nothing is posted.
+  const before = be.log.tools.length;
+  const live = await runAndWait(page, { dry: false });
+  assert.equal(be.log.tools.filter((t) => t.tool === "slack_send_message").length, 0, "Run now replayed history");
+  assert.deepEqual(be.log.tools.slice(before).map((t) => [t.tool, t.args.query ?? t.args.messageId]), [["search_threads", `subject:invoice after:${Math.floor(Date.parse("2026-11-14T02:45:00Z") / 1000)}`]], "it searched from the seeded cursor and found nothing new");
+  assert.notEqual(live.statuses["Post to Slack"], "done");
+  // 4. A message that arrives later is posted exactly once.
+  be.ctl.newMail.push({ id: "m9", snippet: "Invoice 43: total $90.00", subject: "Invoice 43", sender: "cy@example.com", toRecipients: ["me@example.com"], ccRecipients: [], date: "2026-11-14T03:10:00Z", labelIds: ["INBOX"] });
+  await runAndWait(page, { dry: false });
+  const posts = be.log.tools.filter((t) => t.tool === "slack_send_message").map((t) => t.args.message);
+  assert.deepEqual(posts, ["Invoice 43"]);
+  await page.screenshot({ path: join(OUT, "shots", "cutover-1440-light.png"), fullPage: true });
+  await ctx.close();
+  return `cutover log ${JSON.stringify(logDocs().map((d) => d.step))}; live run after Seed: 0 posts; new mail: ${posts.length} post`;
 });
 
 // 9. no runtime: read-only page
