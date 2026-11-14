@@ -1,0 +1,672 @@
+{
+  "schemaVersion": 1,
+  "template": 1992,
+  "sha256": "10e6dcf99ae2b8c67b2db80db85e7c082b0b3325087b4554975c8404510325b8",
+  "variant": "normal",
+  "now": "2026-11-16T05:00:00.000Z",
+  "about": "two unread mails: a quota-phishing mail with two links (one flagged by both scanners) and a plain colleague mail with no link",
+  "trigger": {
+    "node": "Schedule Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T00:00:00.000-05:00",
+          "Readable date": "November 16th 2026, 12:00:00 am",
+          "Readable time": "12:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "00",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get all unread messages",
+      "service": "outlook",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://graph.microsoft.com/v1.0/me/messages",
+            "query": {
+              "$filter": "isRead eq false"
+            },
+            "status": 200,
+            "body": {
+              "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('bench')/messages",
+              "value": [
+                {
+                  "@odata.etag": "W/\"CQAAABYAAADENCH0001\"",
+                  "id": "AAMkAGI2TG93AAABENCH0001",
+                  "createdDateTime": "2026-11-15T22:14:03Z",
+                  "lastModifiedDateTime": "2026-11-15T22:14:03Z",
+                  "receivedDateTime": "2026-11-15T22:14:03Z",
+                  "sentDateTime": "2026-11-15T22:14:03Z",
+                  "hasAttachments": false,
+                  "internetMessageId": "<AAABENCH0001@mail.example>",
+                  "subject": "Action required: your mailbox will be suspended",
+                  "bodyPreview": " html> body> p>Dear user, /p> p>Your mailbox has exceeded its quota and will be suspended in 24 hours. /p> p> a href=\"ht",
+                  "importance": "normal",
+                  "parentFolderId": "AAMkAGI2TG93AAA=",
+                  "conversationId": "AAQkAGI2ABENCH0001",
+                  "isDeliveryReceiptRequested": false,
+                  "isReadReceiptRequested": false,
+                  "isRead": false,
+                  "isDraft": false,
+                  "webLink": "https://outlook.office365.com/owa/?ItemID=AAMkAGI2TG93AAABENCH0001",
+                  "inferenceClassification": "focused",
+                  "body": {
+                    "contentType": "html",
+                    "content": "<html><body><p>Dear user,</p><p>Your mailbox has exceeded its quota and will be suspended in 24 hours.</p><p><a href=\"https://m1crosoft-account-verify.example/login?session=8812\">Verify your account now</a></p><p>Or use this short link: http://bit-ly.example/3xYzQ9a</p><p>IT Helpdesk</p></body></html>"
+                  },
+                  "sender": {
+                    "emailAddress": {
+                      "name": "IT Helpdesk",
+                      "address": "it-helpdesk@m1crosoft-account-verify.example"
+                    }
+                  },
+                  "from": {
+                    "emailAddress": {
+                      "name": "IT Helpdesk",
+                      "address": "it-helpdesk@m1crosoft-account-verify.example"
+                    }
+                  },
+                  "toRecipients": [
+                    {
+                      "emailAddress": {
+                        "name": "SOC Inbox",
+                        "address": "phishing-reports@harborline.example"
+                      }
+                    }
+                  ],
+                  "ccRecipients": [],
+                  "bccRecipients": [],
+                  "replyTo": [],
+                  "flag": {
+                    "flagStatus": "notFlagged"
+                  }
+                },
+                {
+                  "@odata.etag": "W/\"CQAAABYAAADENCH0002\"",
+                  "id": "AAMkAGI2TG93AAABENCH0002",
+                  "createdDateTime": "2026-11-15T23:40:51Z",
+                  "lastModifiedDateTime": "2026-11-15T23:40:51Z",
+                  "receivedDateTime": "2026-11-15T23:40:51Z",
+                  "sentDateTime": "2026-11-15T23:40:51Z",
+                  "hasAttachments": false,
+                  "internetMessageId": "<AAABENCH0002@mail.example>",
+                  "subject": "Lunch on Thursday?",
+                  "bodyPreview": " html> body> p>Hi team, does Thursday at 12:30 still work for the offsite lunch? No links, just reply here. /p> p>Dana /",
+                  "importance": "normal",
+                  "parentFolderId": "AAMkAGI2TG93AAA=",
+                  "conversationId": "AAQkAGI2ABENCH0002",
+                  "isDeliveryReceiptRequested": false,
+                  "isReadReceiptRequested": false,
+                  "isRead": false,
+                  "isDraft": false,
+                  "webLink": "https://outlook.office365.com/owa/?ItemID=AAMkAGI2TG93AAABENCH0002",
+                  "inferenceClassification": "focused",
+                  "body": {
+                    "contentType": "html",
+                    "content": "<html><body><p>Hi team, does Thursday at 12:30 still work for the offsite lunch? No links, just reply here.</p><p>Dana</p></body></html>"
+                  },
+                  "sender": {
+                    "emailAddress": {
+                      "name": "Dana Whitfield",
+                      "address": "dana.whitfield@harborline.example"
+                    }
+                  },
+                  "from": {
+                    "emailAddress": {
+                      "name": "Dana Whitfield",
+                      "address": "dana.whitfield@harborline.example"
+                    }
+                  },
+                  "toRecipients": [
+                    {
+                      "emailAddress": {
+                        "name": "SOC Inbox",
+                        "address": "phishing-reports@harborline.example"
+                      }
+                    }
+                  ],
+                  "ccRecipients": [],
+                  "bccRecipients": [],
+                  "replyTo": [],
+                  "flag": {
+                    "flagStatus": "notFlagged"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Outlook connector; the Claude side serves the same Graph responses through its HTTP mock"
+      },
+      "note": "Outlook v1 message getAll with filter isRead eq false: GET /v1.0/me/messages?$filter=isRead eq false&$top=<limit>; n8n emits value[]"
+    },
+    {
+      "node": "URLScan: Get report",
+      "service": "urlscan",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://urlscan.io/api/v1/result/0f6c2a1e-7b3d-4e58-9a21-5c8d4e2f1a01",
+            "status": 200,
+            "body": {
+              "task": {
+                "uuid": "0f6c2a1e-7b3d-4e58-9a21-5c8d4e2f1a01",
+                "time": "2026-11-16T05:00:41.000Z",
+                "url": "https://m1crosoft-account-verify.example/login?session=8812",
+                "visibility": "public",
+                "method": "api",
+                "reportURL": "https://urlscan.io/result/0f6c2a1e-7b3d-4e58-9a21-5c8d4e2f1a01/",
+                "screenshotURL": "https://urlscan.io/screenshots/0f6c2a1e-7b3d-4e58-9a21-5c8d4e2f1a01.png"
+              },
+              "page": {
+                "url": "https://m1crosoft-account-verify.example/login?session=8812",
+                "domain": "m1crosoft-account-verify.example",
+                "country": "NL",
+                "ip": "203.0.113.59",
+                "status": "200",
+                "title": "Sign in to your account"
+              },
+              "verdicts": {
+                "overall": {
+                  "score": 100,
+                  "malicious": true,
+                  "categories": [
+                    "phishing"
+                  ],
+                  "brands": [
+                    "Microsoft"
+                  ]
+                },
+                "urlscan": {
+                  "score": 100,
+                  "malicious": true
+                }
+              },
+              "stats": {
+                "malicious": 1,
+                "uniqIPs": 3,
+                "uniqCountries": 2
+              },
+              "lists": {
+                "urls": [
+                  "https://m1crosoft-account-verify.example/login?session=8812"
+                ]
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://urlscan.io/api/v1/result/0f6c2a1e-7b3d-4e58-9a21-5c8d4e2f1a02",
+            "status": 200,
+            "body": {
+              "task": {
+                "uuid": "0f6c2a1e-7b3d-4e58-9a21-5c8d4e2f1a02",
+                "time": "2026-11-16T05:00:41.000Z",
+                "url": "http://bit-ly.example/3xYzQ9a",
+                "visibility": "public",
+                "method": "api",
+                "reportURL": "https://urlscan.io/result/0f6c2a1e-7b3d-4e58-9a21-5c8d4e2f1a02/",
+                "screenshotURL": "https://urlscan.io/screenshots/0f6c2a1e-7b3d-4e58-9a21-5c8d4e2f1a02.png"
+              },
+              "page": {
+                "url": "http://bit-ly.example/3xYzQ9a",
+                "domain": "bit-ly.example",
+                "country": "NL",
+                "ip": "203.0.113.29",
+                "status": "200",
+                "title": "Redirecting"
+              },
+              "verdicts": {
+                "overall": {
+                  "score": 0,
+                  "malicious": false,
+                  "categories": [],
+                  "brands": []
+                },
+                "urlscan": {
+                  "score": 0,
+                  "malicious": false
+                }
+              },
+              "stats": {
+                "malicious": 0,
+                "uniqIPs": 3,
+                "uniqCountries": 2
+              },
+              "lists": {
+                "urls": [
+                  "http://bit-ly.example/3xYzQ9a"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured urlscan.io connector"
+      },
+      "note": "urlscan.io v1 node scan get: GET https://urlscan.io/api/v1/result/{scanId} (scanId is the scan reply's uuid, renamed by the node). Runs only when No error? is false (the scan reply has no error), after Wait 1 Minute"
+    },
+    {
+      "node": "VirusTotal: Get report",
+      "service": "virustotal",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.virustotal.com/api/v3/analyses/u-64fa373432dcbd9305c6c045481e1f86623626339ef690fcf6926090480f1c4d-1794805200",
+            "status": 200,
+            "body": {
+              "meta": {
+                "url_info": {
+                  "id": "64fa373432dcbd9305c6c045481e1f86623626339ef690fcf6926090480f1c4d",
+                  "url": "https://m1crosoft-account-verify.example/login?session=8812"
+                }
+              },
+              "data": {
+                "id": "u-64fa373432dcbd9305c6c045481e1f86623626339ef690fcf6926090480f1c4d-1794805200",
+                "type": "analysis",
+                "links": {
+                  "self": "https://www.virustotal.com/api/v3/analyses/u-64fa373432dcbd9305c6c045481e1f86623626339ef690fcf6926090480f1c4d-1794805200",
+                  "item": "https://www.virustotal.com/api/v3/urls/64fa373432dcbd9305c6c045481e1f86623626339ef690fcf6926090480f1c4d"
+                },
+                "attributes": {
+                  "date": 1794805230,
+                  "status": "completed",
+                  "stats": {
+                    "harmless": 52,
+                    "malicious": 7,
+                    "suspicious": 2,
+                    "undetected": 24,
+                    "timeout": 0
+                  },
+                  "results": {
+                    "Kaspersky": {
+                      "method": "blacklist",
+                      "engine_name": "Kaspersky",
+                      "category": "malicious",
+                      "result": "phishing"
+                    },
+                    "Fortinet": {
+                      "method": "blacklist",
+                      "engine_name": "Fortinet",
+                      "category": "malicious",
+                      "result": "phishing"
+                    },
+                    "Sophos": {
+                      "method": "blacklist",
+                      "engine_name": "Sophos",
+                      "category": "suspicious",
+                      "result": "suspicious"
+                    },
+                    "BitDefender": {
+                      "method": "blacklist",
+                      "engine_name": "BitDefender",
+                      "category": "undetected",
+                      "result": "unrated"
+                    },
+                    "Google Safebrowsing": {
+                      "method": "blacklist",
+                      "engine_name": "Google Safebrowsing",
+                      "category": "malicious",
+                      "result": "phishing"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.virustotal.com/api/v3/analyses/u-5107b6b2a81c2603b9cd1431507b7a503490ba920e9fff1a2071f7f715991d1e-1794805200",
+            "status": 200,
+            "body": {
+              "meta": {
+                "url_info": {
+                  "id": "5107b6b2a81c2603b9cd1431507b7a503490ba920e9fff1a2071f7f715991d1e",
+                  "url": "http://bit-ly.example/3xYzQ9a"
+                }
+              },
+              "data": {
+                "id": "u-5107b6b2a81c2603b9cd1431507b7a503490ba920e9fff1a2071f7f715991d1e-1794805200",
+                "type": "analysis",
+                "links": {
+                  "self": "https://www.virustotal.com/api/v3/analyses/u-5107b6b2a81c2603b9cd1431507b7a503490ba920e9fff1a2071f7f715991d1e-1794805200",
+                  "item": "https://www.virustotal.com/api/v3/urls/5107b6b2a81c2603b9cd1431507b7a503490ba920e9fff1a2071f7f715991d1e"
+                },
+                "attributes": {
+                  "date": 1794805230,
+                  "status": "completed",
+                  "stats": {
+                    "harmless": 60,
+                    "malicious": 0,
+                    "suspicious": 1,
+                    "undetected": 24,
+                    "timeout": 0
+                  },
+                  "results": {
+                    "Kaspersky": {
+                      "method": "blacklist",
+                      "engine_name": "Kaspersky",
+                      "category": "harmless",
+                      "result": "clean"
+                    },
+                    "Fortinet": {
+                      "method": "blacklist",
+                      "engine_name": "Fortinet",
+                      "category": "harmless",
+                      "result": "clean"
+                    },
+                    "Sophos": {
+                      "method": "blacklist",
+                      "engine_name": "Sophos",
+                      "category": "suspicious",
+                      "result": "suspicious"
+                    },
+                    "BitDefender": {
+                      "method": "blacklist",
+                      "engine_name": "BitDefender",
+                      "category": "undetected",
+                      "result": "unrated"
+                    },
+                    "Google Safebrowsing": {
+                      "method": "blacklist",
+                      "engine_name": "Google Safebrowsing",
+                      "category": "harmless",
+                      "result": "clean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured VirusTotal connector"
+      },
+      "note": "HTTP Request with the virusTotalApi credential (x-apikey): GET /api/v3/analyses/{data.id}?resource=<a docs URL the template leaves in>. The Slack text takes data.id.split(\"-\")[1] as the URL id"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Mark as read",
+    "URLScan: Scan URL",
+    "VirusTotal: Scan URL",
+    "sends slack message"
+  ],
+  "writeReplies": [
+    {
+      "node": "Mark as read",
+      "service": "outlook",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "PATCH",
+            "url": "https://graph.microsoft.com/v1.0/me/messages/AAMkAGI2TG93AAABENCH0001",
+            "status": 200,
+            "body": {
+              "@odata.etag": "W/\"CQAAABYAAADENCH0001\"",
+              "id": "AAMkAGI2TG93AAABENCH0001",
+              "createdDateTime": "2026-11-15T22:14:03Z",
+              "lastModifiedDateTime": "2026-11-15T22:14:03Z",
+              "receivedDateTime": "2026-11-15T22:14:03Z",
+              "sentDateTime": "2026-11-15T22:14:03Z",
+              "hasAttachments": false,
+              "internetMessageId": "<AAABENCH0001@mail.example>",
+              "subject": "Action required: your mailbox will be suspended",
+              "bodyPreview": " html> body> p>Dear user, /p> p>Your mailbox has exceeded its quota and will be suspended in 24 hours. /p> p> a href=\"ht",
+              "importance": "normal",
+              "parentFolderId": "AAMkAGI2TG93AAA=",
+              "conversationId": "AAQkAGI2ABENCH0001",
+              "isDeliveryReceiptRequested": false,
+              "isReadReceiptRequested": false,
+              "isRead": true,
+              "isDraft": false,
+              "webLink": "https://outlook.office365.com/owa/?ItemID=AAMkAGI2TG93AAABENCH0001",
+              "inferenceClassification": "focused",
+              "body": {
+                "contentType": "html",
+                "content": "<html><body><p>Dear user,</p><p>Your mailbox has exceeded its quota and will be suspended in 24 hours.</p><p><a href=\"https://m1crosoft-account-verify.example/login?session=8812\">Verify your account now</a></p><p>Or use this short link: http://bit-ly.example/3xYzQ9a</p><p>IT Helpdesk</p></body></html>"
+              },
+              "sender": {
+                "emailAddress": {
+                  "name": "IT Helpdesk",
+                  "address": "it-helpdesk@m1crosoft-account-verify.example"
+                }
+              },
+              "from": {
+                "emailAddress": {
+                  "name": "IT Helpdesk",
+                  "address": "it-helpdesk@m1crosoft-account-verify.example"
+                }
+              },
+              "toRecipients": [
+                {
+                  "emailAddress": {
+                    "name": "SOC Inbox",
+                    "address": "phishing-reports@harborline.example"
+                  }
+                }
+              ],
+              "ccRecipients": [],
+              "bccRecipients": [],
+              "replyTo": [],
+              "flag": {
+                "flagStatus": "notFlagged"
+              }
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://graph.microsoft.com/v1.0/me/messages/AAMkAGI2TG93AAABENCH0002",
+            "status": 200,
+            "body": {
+              "@odata.etag": "W/\"CQAAABYAAADENCH0002\"",
+              "id": "AAMkAGI2TG93AAABENCH0002",
+              "createdDateTime": "2026-11-15T23:40:51Z",
+              "lastModifiedDateTime": "2026-11-15T23:40:51Z",
+              "receivedDateTime": "2026-11-15T23:40:51Z",
+              "sentDateTime": "2026-11-15T23:40:51Z",
+              "hasAttachments": false,
+              "internetMessageId": "<AAABENCH0002@mail.example>",
+              "subject": "Lunch on Thursday?",
+              "bodyPreview": " html> body> p>Hi team, does Thursday at 12:30 still work for the offsite lunch? No links, just reply here. /p> p>Dana /",
+              "importance": "normal",
+              "parentFolderId": "AAMkAGI2TG93AAA=",
+              "conversationId": "AAQkAGI2ABENCH0002",
+              "isDeliveryReceiptRequested": false,
+              "isReadReceiptRequested": false,
+              "isRead": true,
+              "isDraft": false,
+              "webLink": "https://outlook.office365.com/owa/?ItemID=AAMkAGI2TG93AAABENCH0002",
+              "inferenceClassification": "focused",
+              "body": {
+                "contentType": "html",
+                "content": "<html><body><p>Hi team, does Thursday at 12:30 still work for the offsite lunch? No links, just reply here.</p><p>Dana</p></body></html>"
+              },
+              "sender": {
+                "emailAddress": {
+                  "name": "Dana Whitfield",
+                  "address": "dana.whitfield@harborline.example"
+                }
+              },
+              "from": {
+                "emailAddress": {
+                  "name": "Dana Whitfield",
+                  "address": "dana.whitfield@harborline.example"
+                }
+              },
+              "toRecipients": [
+                {
+                  "emailAddress": {
+                    "name": "SOC Inbox",
+                    "address": "phishing-reports@harborline.example"
+                  }
+                }
+              ],
+              "ccRecipients": [],
+              "bccRecipients": [],
+              "replyTo": [],
+              "flag": {
+                "flagStatus": "notFlagged"
+              }
+            }
+          }
+        ]
+      },
+      "note": "Outlook v1 message update: PATCH /v1.0/me/messages/{id} {isRead: true}; Graph answers with the updated message, which flows into Split In Batches"
+    },
+    {
+      "node": "URLScan: Scan URL",
+      "service": "urlscan",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://urlscan.io/api/v1/scan",
+            "bodyMatch": {
+              "url": "https://m1crosoft-account-verify.example/login?session=8812"
+            },
+            "status": 200,
+            "body": {
+              "message": "Submission successful",
+              "uuid": "0f6c2a1e-7b3d-4e58-9a21-5c8d4e2f1a01",
+              "result": "https://urlscan.io/result/0f6c2a1e-7b3d-4e58-9a21-5c8d4e2f1a01/",
+              "api": "https://urlscan.io/api/v1/result/0f6c2a1e-7b3d-4e58-9a21-5c8d4e2f1a01/",
+              "visibility": "public",
+              "options": {
+                "useragent": "Mozilla/5.0"
+              },
+              "url": "https://m1crosoft-account-verify.example/login?session=8812",
+              "country": "us"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://urlscan.io/api/v1/scan",
+            "bodyMatch": {
+              "url": "http://bit-ly.example/3xYzQ9a"
+            },
+            "status": 200,
+            "body": {
+              "message": "Submission successful",
+              "uuid": "0f6c2a1e-7b3d-4e58-9a21-5c8d4e2f1a02",
+              "result": "https://urlscan.io/result/0f6c2a1e-7b3d-4e58-9a21-5c8d4e2f1a02/",
+              "api": "https://urlscan.io/api/v1/result/0f6c2a1e-7b3d-4e58-9a21-5c8d4e2f1a02/",
+              "visibility": "public",
+              "options": {
+                "useragent": "Mozilla/5.0"
+              },
+              "url": "http://bit-ly.example/3xYzQ9a",
+              "country": "us"
+            }
+          }
+        ]
+      },
+      "note": "urlscan.io v1 scan perform: POST https://urlscan.io/api/v1/scan {url}; the node renames uuid to scanId"
+    },
+    {
+      "node": "VirusTotal: Scan URL",
+      "service": "virustotal",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.virustotal.com/api/v3/urls",
+            "query": {
+              "url": "https://m1crosoft-account-verify.example/login?session=8812"
+            },
+            "status": 200,
+            "body": {
+              "data": {
+                "type": "analysis",
+                "id": "u-64fa373432dcbd9305c6c045481e1f86623626339ef690fcf6926090480f1c4d-1794805200",
+                "links": {
+                  "self": "https://www.virustotal.com/api/v3/analyses/u-64fa373432dcbd9305c6c045481e1f86623626339ef690fcf6926090480f1c4d-1794805200"
+                }
+              }
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://www.virustotal.com/api/v3/urls",
+            "query": {
+              "url": "http://bit-ly.example/3xYzQ9a"
+            },
+            "status": 200,
+            "body": {
+              "data": {
+                "type": "analysis",
+                "id": "u-5107b6b2a81c2603b9cd1431507b7a503490ba920e9fff1a2071f7f715991d1e-1794805200",
+                "links": {
+                  "self": "https://www.virustotal.com/api/v3/analyses/u-5107b6b2a81c2603b9cd1431507b7a503490ba920e9fff1a2071f7f715991d1e-1794805200"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "note": "HTTP Request POST https://www.virustotal.com/api/v3/urls with url as a query parameter (as the template sends it; the real API wants a form body), answered by URL"
+    },
+    {
+      "node": "sends slack message",
+      "service": "slack",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://slack.com/api/chat.postMessage",
+            "status": 200,
+            "body": {
+              "ok": true,
+              "channel": "C07BENCHSOC",
+              "ts": "1794805300.000100",
+              "message": {
+                "type": "message",
+                "subtype": "bot_message",
+                "text": "*Email Analysis*",
+                "ts": "1794805300.000100",
+                "bot_id": "B07BENCH01"
+              }
+            }
+          }
+        ]
+      },
+      "note": "Slack v2 message post to channel name test-giulio-public: POST /api/chat.postMessage. The text references $('urlscan.io'), a node the template does not have, so n8n fails this expression if it ever gets here"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Has URL?: true for the two links of the phishing mail (both scanners run per link), false for the colleague mail (back to Split In Batches)",
+      "No error?: false for both scans (urlscan replies carry no error) → Wait 1 Minute → URLScan: Get report",
+      "Not empty?: passes the merged reports → one Slack message per link"
+    ],
+    "offline": "Find indicators of compromise is a Python Code node (micropip install of ioc-finder at run time); the bench n8n image has no Python runner, so the n8n side stops there with an error after Mark as read, and nothing past it runs on the n8n side. Wait 1 Minute (60 s) needs a time-compression overlay. The Slack text references a node named urlscan.io that does not exist in the template"
+  }
+}

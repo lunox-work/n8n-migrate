@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "template": 1992,
+  "sha256": "10e6dcf99ae2b8c67b2db80db85e7c082b0b3325087b4554975c8404510325b8",
+  "variant": "empty",
+  "now": "2026-11-16T05:00:00.000Z",
+  "about": "no unread mail",
+  "trigger": {
+    "node": "Schedule Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T00:00:00.000-05:00",
+          "Readable date": "November 16th 2026, 12:00:00 am",
+          "Readable time": "12:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "00",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get all unread messages",
+      "service": "outlook",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://graph.microsoft.com/v1.0/me/messages",
+            "query": {
+              "$filter": "isRead eq false"
+            },
+            "status": 200,
+            "body": {
+              "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('bench')/messages",
+              "value": []
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Outlook connector; the Claude side serves the same Graph responses through its HTTP mock"
+      },
+      "note": "Outlook v1 message getAll with filter isRead eq false: GET /v1.0/me/messages?$filter=isRead eq false&$top=<limit>; n8n emits value[]"
+    },
+    {
+      "node": "URLScan: Get report",
+      "service": "urlscan",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured urlscan.io connector"
+      },
+      "note": "urlscan.io v1 node scan get: GET https://urlscan.io/api/v1/result/{scanId} (scanId is the scan reply's uuid, renamed by the node). Runs only when No error? is false (the scan reply has no error), after Wait 1 Minute"
+    },
+    {
+      "node": "VirusTotal: Get report",
+      "service": "virustotal",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured VirusTotal connector"
+      },
+      "note": "HTTP Request with the virusTotalApi credential (x-apikey): GET /api/v3/analyses/{data.id}?resource=<a docs URL the template leaves in>. The Slack text takes data.id.split(\"-\")[1] as the URL id"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Mark as read",
+    "URLScan: Scan URL",
+    "VirusTotal: Scan URL",
+    "sends slack message"
+  ],
+  "expect": {
+    "branches": [
+      "Get all unread messages returns no items, so nothing downstream runs"
+    ],
+    "offline": "Find indicators of compromise is a Python Code node (micropip install of ioc-finder at run time); the bench n8n image has no Python runner, so the n8n side stops there with an error after Mark as read, and nothing past it runs on the n8n side. Wait 1 Minute (60 s) needs a time-compression overlay. The Slack text references a node named urlscan.io that does not exist in the template"
+  }
+}

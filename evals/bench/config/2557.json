@@ -1,0 +1,62 @@
+{
+  "why": "No placeholder fills (Creatomate's template_id enterTemplateID stays as written: the fixture answers the render whatever the body says). See timeCompression.",
+  "timeCompression": {
+    "why": "Wait1 and Wait6 wait 30 seconds (amount 30, unit left at the Wait v1.1 default of seconds); Wait2 and Wait4 wait 3 minutes. Together that is over six minutes of waiting per related article. All four are shortened to 1 second on both sides. This changes when the run resumes, not what it does: the Leonardo and Runway mocks answer by generation or task id, not by elapsed time, and no expression in the template reads $now. Not a placeholder fill, so results flag it as time compression (config.nonPlaceholder).",
+    "n8n": {
+      "Wait1": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      },
+      "Wait2": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      },
+      "Wait4": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      },
+      "Wait6": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      }
+    },
+    "claude": {
+      "overrides": {
+        "steps": {
+          "Wait1": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          },
+          "Wait2": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          },
+          "Wait4": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          },
+          "Wait6": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

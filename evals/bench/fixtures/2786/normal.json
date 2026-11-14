@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "template": 2786,
+  "sha256": "cdf673ff291e29a441ac09387c1006382595a3005cd9fa4a0565e51ce1bc6d47",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "two tool calls into the sub-workflow: an availability check (five events over the next fortnight, three busy) and a message enquiry from a prospect",
+  "trigger": {
+    "node": "Execute Workflow Trigger",
+    "kind": "subworkflow",
+    "items": [
+      {
+        "json": {
+          "query": "Check availability for Monday at 9am",
+          "route": "availability"
+        }
+      },
+      {
+        "json": {
+          "query": {
+            "name": "Priya Natarajan",
+            "email": "priya@fenwicklabs.example",
+            "company": "Fenwick Labs",
+            "subject": "Website chatbot enquiry: AI support assistant",
+            "message": "Priya from Fenwick Labs (12 staff, B2B SaaS) wants an AI assistant for customer support tickets in Zendesk. Not ready to book yet; would like a ballpark price and timeline by email first. Budget around £8k."
+          },
+          "route": "message"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get Events",
+      "service": "outlook-calendar",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://graph.microsoft.com/v1.0/me/calendarView",
+            "status": 200,
+            "body": {
+              "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('bench')/calendarView(start,end,categories,importance,isAllDay,recurrence,showAs,subject,type)",
+              "value": [
+                {
+                  "@odata.etag": "W/\"DwAAABYAAAB0001\"",
+                  "id": "AAMkAGEvent0001BENCH=",
+                  "subject": "Client workshop – Northgate",
+                  "importance": "normal",
+                  "isAllDay": false,
+                  "showAs": "busy",
+                  "type": "singleInstance",
+                  "categories": [
+                    "Meeting"
+                  ],
+                  "recurrence": null,
+                  "start": {
+                    "dateTime": "2026-11-18T09:00:00.0000000",
+                    "timeZone": "Europe/London"
+                  },
+                  "end": {
+                    "dateTime": "2026-11-18T11:00:00.0000000",
+                    "timeZone": "Europe/London"
+                  }
+                },
+                {
+                  "@odata.etag": "W/\"DwAAABYAAAB0002\"",
+                  "id": "AAMkAGEvent0002BENCH=",
+                  "subject": "Lunch",
+                  "importance": "normal",
+                  "isAllDay": false,
+                  "showAs": "free",
+                  "type": "singleInstance",
+                  "categories": [],
+                  "recurrence": null,
+                  "start": {
+                    "dateTime": "2026-11-18T12:30:00.0000000",
+                    "timeZone": "Europe/London"
+                  },
+                  "end": {
+                    "dateTime": "2026-11-18T13:15:00.0000000",
+                    "timeZone": "Europe/London"
+                  }
+                },
+                {
+                  "@odata.etag": "W/\"DwAAABYAAAB0003\"",
+                  "id": "AAMkAGEvent0003BENCH=",
+                  "subject": "Discovery call – Fenwick Labs",
+                  "importance": "normal",
+                  "isAllDay": false,
+                  "showAs": "busy",
+                  "type": "singleInstance",
+                  "categories": [
+                    "Meeting"
+                  ],
+                  "recurrence": null,
+                  "start": {
+                    "dateTime": "2026-11-19T14:00:00.0000000",
+                    "timeZone": "Europe/London"
+                  },
+                  "end": {
+                    "dateTime": "2026-11-19T14:30:00.0000000",
+                    "timeZone": "Europe/London"
+                  }
+                },
+                {
+                  "@odata.etag": "W/\"DwAAABYAAAB0004\"",
+                  "id": "AAMkAGEvent0004BENCH=",
+                  "subject": "Focus time",
+                  "importance": "normal",
+                  "isAllDay": false,
+                  "showAs": "tentative",
+                  "type": "singleInstance",
+                  "categories": [],
+                  "recurrence": null,
+                  "start": {
+                    "dateTime": "2026-11-20T08:00:00.0000000",
+                    "timeZone": "Europe/London"
+                  },
+                  "end": {
+                    "dateTime": "2026-11-20T10:00:00.0000000",
+                    "timeZone": "Europe/London"
+                  }
+                },
+                {
+                  "@odata.etag": "W/\"DwAAABYAAAB0005\"",
+                  "id": "AAMkAGEvent0005BENCH=",
+                  "subject": "Team sync",
+                  "importance": "normal",
+                  "isAllDay": false,
+                  "showAs": "busy",
+                  "type": "occurrence",
+                  "categories": [
+                    "Internal"
+                  ],
+                  "recurrence": null,
+                  "start": {
+                    "dateTime": "2026-11-23T10:00:00.0000000",
+                    "timeZone": "Europe/London"
+                  },
+                  "end": {
+                    "dateTime": "2026-11-23T10:30:00.0000000",
+                    "timeZone": "Europe/London"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Outlook calendar connector; the Claude side serves the same Graph responses through its HTTP mock"
+      },
+      "note": "HTTP Request with the microsoftOutlookOAuth2Api credential: GET /v1.0/me/calendarView?startDateTime=<now+2d>&endDateTime=<now+16d>&$top=50&select=…&orderby=start/dateTime asc, header Prefer: outlook.timezone=\"Europe/London\" (the dates are computed from the wall clock, so the route matches any query)"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Send Message1"
+  ],
+  "writeReplies": [
+    {
+      "node": "Send Message1",
+      "service": "outlook",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://graph.microsoft.com/v1.0/me/sendMail",
+            "status": 202,
+            "body": ""
+          }
+        ]
+      },
+      "note": "Outlook v2 message send: POST /v1.0/me/sendMail {message: {subject, body (html), toRecipients: user@example.com, importance: High}, saveToSentItems: true}; Graph answers 202 with no body"
+    }
+  ],
+  "pinData": {
+    "Execute Workflow Trigger": [
+      {
+        "query": "Check availability for Monday at 9am",
+        "route": "availability"
+      }
+    ]
+  },
+  "expect": {
+    "branches": [
+      "Switch: availability → Get Events → freeTimeSlots → varResponse; message → Send Message1 → varMessageResponse",
+      "both Switch outputs run: item 1 availability, item 2 message"
+    ],
+    "offline": "The chat path (Chat Trigger → If → AI Agent with its three tools) hangs off a disabled Chat Trigger and is not run; the agent's tools call this workflow with route availability or message, which is the path this fixture drives. freeTimeSlots treats busy events only and computes slots in UTC (08:00-17:30Z); Get Events dates come from n8n's wall clock, so the fixture's events (week of 18 November 2026) assume a run on 16 November 2026"
+  }
+}

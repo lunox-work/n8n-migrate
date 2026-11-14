@@ -1,0 +1,26 @@
+{
+  "why": "No placeholder fills. See timeCompression.",
+  "timeCompression": {
+    "why": "Wait 1 Minute waits 60 seconds before each urlscan.io report is fetched. Shortened to 1 second on both sides. This changes when the run resumes, not what it does: the mock answers the report by scan id, not by elapsed time, and no expression in the template reads $now. Not a placeholder fill, so results flag it as time compression (config.nonPlaceholder).",
+    "n8n": {
+      "Wait 1 Minute": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      }
+    },
+    "claude": {
+      "overrides": {
+        "steps": {
+          "Wait 1 Minute": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,487 @@
+{
+  "schemaVersion": 1,
+  "template": 2557,
+  "sha256": "9404d62bd653a6b84c62383261ebbd86a77372021bb3c78dae74b670ff532f61",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "Hacker News returns no stories",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Hacker News",
+      "service": "hackernews",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "http://hn.algolia.com/api/v1/search",
+            "query": {
+              "hitsPerPage": "100"
+            },
+            "status": 200,
+            "body": {
+              "hits": [],
+              "nbHits": 0,
+              "page": 0,
+              "nbPages": 0,
+              "hitsPerPage": 100,
+              "exhaustiveNbHits": true,
+              "query": "",
+              "params": "tags=&hitsPerPage=100",
+              "processingTimeMS": 3
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Hacker News connector; the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "Hacker News v1 resource all (getAll, no keyword or tags, limit 100): GET http://hn.algolia.com/api/v1/search?tags=&hitsPerPage=100 (plain HTTP); n8n emits hits[]"
+    },
+    {
+      "node": "HTTP Request1",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a plain web fetch, no connector"
+      },
+      "note": "agent tool (toolHttpRequest v1.1, GET {{ $json.url }} of the loop item): the article page; the agent decides whether to call it (model-driven)"
+    },
+    {
+      "node": "Get Image",
+      "service": "image-cdn",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a plain image fetch, no connector"
+      },
+      "note": "HTTP Request v4.2 GET of the agent's 'image urls' (model-chosen; the fixture answers the article's og:image); full response, the PNG becomes binary data"
+    },
+    {
+      "node": "Leo - Improve Prompt",
+      "service": "leonardo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://cloud.leonardo.ai/api/rest/v1/prompt/improve",
+            "status": 200,
+            "body": {
+              "promptGeneration": {
+                "prompt": "A monochrome photo of a robotic arm sorting parcels in a quiet warehouse at dawn, long shadows",
+                "apiCreditCost": 4
+              }
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://cloud.leonardo.ai/api/rest/v1/prompt/improve",
+            "status": 200,
+            "body": {
+              "promptGeneration": {
+                "prompt": "A monochrome close-up of hands typing beside a glowing workflow diagram on a laptop screen",
+                "apiCreditCost": 4
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media lever)"
+      },
+      "note": "Leonardo prompt improve: POST /api/rest/v1/prompt/improve {prompt} (full response, so the next node reads body.promptGeneration.prompt). Leo - Improve Prompt and Leo - Improve Prompt2 call the same URL with model-written prompts, so the replies answer in turn"
+    },
+    {
+      "node": "Leo - Improve Prompt2",
+      "service": "leonardo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://cloud.leonardo.ai/api/rest/v1/prompt/improve",
+            "status": 200,
+            "body": {
+              "promptGeneration": {
+                "prompt": "A monochrome photo of a robotic arm sorting parcels in a quiet warehouse at dawn, long shadows",
+                "apiCreditCost": 4
+              }
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://cloud.leonardo.ai/api/rest/v1/prompt/improve",
+            "status": 200,
+            "body": {
+              "promptGeneration": {
+                "prompt": "A monochrome close-up of hands typing beside a glowing workflow diagram on a laptop screen",
+                "apiCreditCost": 4
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media lever)"
+      },
+      "note": "Leonardo prompt improve: POST /api/rest/v1/prompt/improve {prompt} (full response, so the next node reads body.promptGeneration.prompt). Leo - Improve Prompt and Leo - Improve Prompt2 call the same URL with model-written prompts, so the replies answer in turn"
+    },
+    {
+      "node": "Leo - Generate Image",
+      "service": "leonardo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://cloud.leonardo.ai/api/rest/v1/generations",
+            "bodyMatch": "A monochrome photo of a robotic arm sorting parcels in a quiet warehouse at dawn, long shadows",
+            "status": 200,
+            "body": {
+              "sdGenerationJob": {
+                "generationId": "3b1f0c2e-8d4a-4f6b-9e21-7a5c3d2b1e01",
+                "apiCreditCost": 22
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media lever)"
+      },
+      "note": "Leonardo generation: POST /api/rest/v1/generations (SDXL model 6b645e3a…, MONOCHROME); matched by the improved prompt it carries"
+    },
+    {
+      "node": "Leo - Generate Image2",
+      "service": "leonardo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://cloud.leonardo.ai/api/rest/v1/generations",
+            "bodyMatch": "A monochrome close-up of hands typing beside a glowing workflow diagram on a laptop screen",
+            "status": 200,
+            "body": {
+              "sdGenerationJob": {
+                "generationId": "3b1f0c2e-8d4a-4f6b-9e21-7a5c3d2b1e02",
+                "apiCreditCost": 22
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media lever)"
+      },
+      "note": "as Leo - Generate Image, with the second improved prompt"
+    },
+    {
+      "node": "Leo - Get imageId",
+      "service": "leonardo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://cloud.leonardo.ai/api/rest/v1/generations/3b1f0c2e-8d4a-4f6b-9e21-7a5c3d2b1e01",
+            "status": 200,
+            "body": {
+              "generations_by_pk": {
+                "generated_images": [
+                  {
+                    "url": "https://cdn.leonardo.ai/users/bench-user/generations/3b1f0c2e-8d4a-4f6b-9e21-7a5c3d2b1e01/Leonardo_Lightning_XL_0.jpg",
+                    "nsfw": false,
+                    "id": "3b1f0c2e-img0-4e1f-9c2b-0a1b2c3d4e5f",
+                    "likeCount": 0,
+                    "motionMP4URL": null,
+                    "generated_image_variation_generics": []
+                  }
+                ],
+                "modelId": "6b645e3a-d64f-4341-a6d8-7a3690fbf042",
+                "motion": null,
+                "motionModel": null,
+                "motionStrength": null,
+                "prompt": "A monochrome photo of a robotic arm sorting parcels in a quiet warehouse at dawn, long shadows; Use the rule of thirds, leading lines, & balance. DO NOT INCLUDE ANY WORDS OR LABELS.",
+                "negativePrompt": "",
+                "imageHeight": 768,
+                "imageWidth": 1024,
+                "inferenceSteps": 15,
+                "seed": 418877001,
+                "public": false,
+                "scheduler": "EULER_DISCRETE",
+                "sdVersion": "SDXL_LIGHTNING",
+                "status": "COMPLETE",
+                "presetStyle": "MONOCHROME",
+                "initStrength": null,
+                "guidanceScale": 7,
+                "id": "3b1f0c2e-8d4a-4f6b-9e21-7a5c3d2b1e01",
+                "createdAt": "2026-11-16T09:04:10.000Z",
+                "promptMagic": false,
+                "photoReal": false
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media lever)"
+      },
+      "note": "Leonardo generation status: GET /api/rest/v1/generations/{generationId} after Wait1; generations_by_pk.generated_images[0].url feeds Runway"
+    },
+    {
+      "node": "Leo - Get imageId2",
+      "service": "leonardo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://cloud.leonardo.ai/api/rest/v1/generations/3b1f0c2e-8d4a-4f6b-9e21-7a5c3d2b1e02",
+            "status": 200,
+            "body": {
+              "generations_by_pk": {
+                "generated_images": [
+                  {
+                    "url": "https://cdn.leonardo.ai/users/bench-user/generations/3b1f0c2e-8d4a-4f6b-9e21-7a5c3d2b1e02/Leonardo_Lightning_XL_0.jpg",
+                    "nsfw": false,
+                    "id": "3b1f0c2e-img0-4e1f-9c2b-0a1b2c3d4e5f",
+                    "likeCount": 0,
+                    "motionMP4URL": null,
+                    "generated_image_variation_generics": []
+                  }
+                ],
+                "modelId": "6b645e3a-d64f-4341-a6d8-7a3690fbf042",
+                "motion": null,
+                "motionModel": null,
+                "motionStrength": null,
+                "prompt": "A monochrome close-up of hands typing beside a glowing workflow diagram on a laptop screen; Use the rule of thirds, leading lines, & balance. DO NOT INCLUDE ANY WORDS OR LABELS.",
+                "negativePrompt": "",
+                "imageHeight": 768,
+                "imageWidth": 1024,
+                "inferenceSteps": 15,
+                "seed": 418877001,
+                "public": false,
+                "scheduler": "EULER_DISCRETE",
+                "sdVersion": "SDXL_LIGHTNING",
+                "status": "COMPLETE",
+                "presetStyle": "MONOCHROME",
+                "initStrength": null,
+                "guidanceScale": 7,
+                "id": "3b1f0c2e-8d4a-4f6b-9e21-7a5c3d2b1e02",
+                "createdAt": "2026-11-16T09:04:10.000Z",
+                "promptMagic": false,
+                "photoReal": false
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media lever)"
+      },
+      "note": "as Leo - Get imageId, after Wait6"
+    },
+    {
+      "node": "Runway - Create Video",
+      "service": "runway",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.dev.runwayml.com/v1/image_to_video",
+            "bodyMatch": {
+              "promptImage": "https://cdn.leonardo.ai/users/bench-user/generations/3b1f0c2e-8d4a-4f6b-9e21-7a5c3d2b1e01/Leonardo_Lightning_XL_0.jpg"
+            },
+            "status": 200,
+            "body": {
+              "id": "0f1e2d3c-4b5a-6978-8a9b-0c1d2e3f4a01"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "video generation stays with the provider (media lever)"
+      },
+      "note": "Runway image_to_video: POST https://api.dev.runwayml.com/v1/image_to_video {promptImage, promptText: \"string\", model: gen3a_turbo} with X-Runway-Version 2024-11-06; matched by promptImage"
+    },
+    {
+      "node": "Runway - Create Video2",
+      "service": "runway",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.dev.runwayml.com/v1/image_to_video",
+            "bodyMatch": {
+              "promptImage": "https://cdn.leonardo.ai/users/bench-user/generations/3b1f0c2e-8d4a-4f6b-9e21-7a5c3d2b1e02/Leonardo_Lightning_XL_0.jpg"
+            },
+            "status": 200,
+            "body": {
+              "id": "0f1e2d3c-4b5a-6978-8a9b-0c1d2e3f4a02"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "video generation stays with the provider (media lever)"
+      },
+      "note": "as Runway - Create Video, with the second Leonardo image"
+    },
+    {
+      "node": "Runway - Get Video",
+      "service": "runway",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.dev.runwayml.com/v1/tasks/0f1e2d3c-4b5a-6978-8a9b-0c1d2e3f4a01",
+            "status": 200,
+            "body": {
+              "id": "0f1e2d3c-4b5a-6978-8a9b-0c1d2e3f4a01",
+              "status": "SUCCEEDED",
+              "createdAt": "2026-11-16T09:05:00.000Z",
+              "output": []
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "video generation stays with the provider (media lever)"
+      },
+      "note": "Runway task: GET /v1/tasks/{id} after Wait2 (3 minutes)"
+    },
+    {
+      "node": "Runway - Get Video2",
+      "service": "runway",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.dev.runwayml.com/v1/tasks/0f1e2d3c-4b5a-6978-8a9b-0c1d2e3f4a02",
+            "status": 200,
+            "body": {
+              "id": "0f1e2d3c-4b5a-6978-8a9b-0c1d2e3f4a02",
+              "status": "SUCCEEDED",
+              "createdAt": "2026-11-16T09:05:00.000Z",
+              "output": []
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "video generation stays with the provider (media lever)"
+      },
+      "note": "as Runway - Get Video, after Wait4"
+    },
+    {
+      "node": "Cre - Generate Video1",
+      "service": "creatomate",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.creatomate.com/v1/renders",
+            "status": 200,
+            "body": [
+              {
+                "id": "a9b8c7d6-e5f4-4321-9abc-def012345600",
+                "status": "planned",
+                "url": "https://f002.backblazeb2.com/file/creatomate-c8xg3hsxdu/a9b8c7d6-e5f4-4321-9abc-def012345600.mp4",
+                "snapshot_url": "https://f002.backblazeb2.com/file/creatomate-c8xg3hsxdu/a9b8c7d6-e5f4-4321-9abc-def012345600-snapshot.jpg",
+                "template_id": "enterTemplateID",
+                "template_name": null,
+                "template_tags": [],
+                "output_format": "mp4",
+                "modifications": {}
+              }
+            ]
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "video rendering stays with the provider (media lever)"
+      },
+      "note": "Creatomate render: POST /v1/renders (template_id is the template's placeholder enterTemplateID); answers an array of renders, full response"
+    },
+    {
+      "node": "Cre - Get Video",
+      "service": "creatomate",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.creatomate.com/v1/renders/a9b8c7d6-e5f4-4321-9abc-def012345600",
+            "status": 200,
+            "body": {
+              "id": "a9b8c7d6-e5f4-4321-9abc-def012345600",
+              "status": "succeeded",
+              "url": "https://f002.backblazeb2.com/file/creatomate-c8xg3hsxdu/a9b8c7d6-e5f4-4321-9abc-def012345600.mp4",
+              "snapshot_url": "https://f002.backblazeb2.com/file/creatomate-c8xg3hsxdu/a9b8c7d6-e5f4-4321-9abc-def012345600-snapshot.jpg",
+              "template_id": "enterTemplateID",
+              "template_name": null,
+              "template_tags": [],
+              "output_format": "mp4",
+              "modifications": {},
+              "duration": 28.4,
+              "file_size": 1840221
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "video rendering stays with the provider (media lever)"
+      },
+      "note": "GET /v1/renders/{id}; the template reads $json.body.body[0].id, which does not exist on the full response of Cre - Generate Video1 (Wait3 between them is disabled), so n8n is expected to fail here"
+    }
+  ],
+  "models": [
+    "Article Analysis",
+    "OpenAI Chat Model3",
+    "Image Analysis",
+    "Article Prep"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no items: Limit and Loop Over Items emit nothing, no model call"
+    ],
+    "offline": "Wait1 and Wait6 (30 s: amount 30, unit left at the Wait v1.1 default of seconds) and Wait2/Wait4 (3 minutes) are shortened by a time-compression overlay. The Loop Over Items done output and the publishing nodes (Dropbox, Google Drive, OneDrive, Minio, YouTube, X, LinkedIn, Instagram) are not connected to the run path. After the first related article the chain ends at Cre - Get Video, which never returns to the loop, so later items are not processed. Creatomate template_id is the template placeholder; Leonardo, Runway and Creatomate credentials are stripped (bench dummies)"
+  }
+}

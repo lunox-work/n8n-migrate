@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "template": 2786,
+  "sha256": "cdf673ff291e29a441ac09387c1006382595a3005cd9fa4a0565e51ce1bc6d47",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "an availability check whose events have a null end, an unparseable end date and a null start; a message call whose query is a bare string instead of an object",
+  "trigger": {
+    "node": "Execute Workflow Trigger",
+    "kind": "subworkflow",
+    "items": [
+      {
+        "json": {
+          "query": "Check availability for Monday at 9am",
+          "route": "availability"
+        }
+      },
+      {
+        "json": {
+          "query": "please email Wayne, my name is Sam",
+          "route": "message"
+        }
+      },
+      {
+        "json": {
+          "route": null
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get Events",
+      "service": "outlook-calendar",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://graph.microsoft.com/v1.0/me/calendarView",
+            "status": 200,
+            "body": {
+              "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('bench')/calendarView(start,end,categories,importance,isAllDay,recurrence,showAs,subject,type)",
+              "value": [
+                {
+                  "@odata.etag": "W/\"DwAAABYAAAB0006\"",
+                  "id": "AAMkAGEvent0006BENCH=",
+                  "subject": null,
+                  "importance": "normal",
+                  "isAllDay": false,
+                  "showAs": "busy",
+                  "type": "singleInstance",
+                  "categories": [],
+                  "recurrence": null,
+                  "start": {
+                    "dateTime": "2026-11-18T09:00:00.0000000",
+                    "timeZone": "Europe/London"
+                  },
+                  "end": null
+                },
+                {
+                  "id": "AAMkAGEvent0007BENCH=",
+                  "subject": "All-day offsite",
+                  "isAllDay": true,
+                  "showAs": "oof",
+                  "start": {
+                    "dateTime": "2026-11-19",
+                    "timeZone": "Europe/London"
+                  },
+                  "end": {
+                    "dateTime": "not-a-date",
+                    "timeZone": "Europe/London"
+                  }
+                },
+                {
+                  "id": "AAMkAGEvent0008BENCH=",
+                  "subject": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                  "showAs": "busy",
+                  "start": null,
+                  "end": {
+                    "dateTime": "2026-11-20T10:00:00.0000000"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Outlook calendar connector; the Claude side serves the same Graph responses through its HTTP mock"
+      },
+      "note": "HTTP Request with the microsoftOutlookOAuth2Api credential: GET /v1.0/me/calendarView?startDateTime=<now+2d>&endDateTime=<now+16d>&$top=50&select=…&orderby=start/dateTime asc, header Prefer: outlook.timezone=\"Europe/London\" (the dates are computed from the wall clock, so the route matches any query)"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Send Message1"
+  ],
+  "writeReplies": [
+    {
+      "node": "Send Message1",
+      "service": "outlook",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://graph.microsoft.com/v1.0/me/sendMail",
+            "status": 202,
+            "body": ""
+          }
+        ]
+      },
+      "note": "Outlook v2 message send: POST /v1.0/me/sendMail {message: {subject, body (html), toRecipients: user@example.com, importance: High}, saveToSentItems: true}; Graph answers 202 with no body"
+    }
+  ],
+  "pinData": {
+    "Execute Workflow Trigger": [
+      {
+        "query": "Check availability for Monday at 9am",
+        "route": "availability"
+      }
+    ]
+  },
+  "expect": {
+    "branches": [
+      "Switch: availability → Get Events → freeTimeSlots → varResponse; message → Send Message1 → varMessageResponse",
+      "freeTimeSlots reads event.end.dateTime of a busy event with a null end (expected to throw)",
+      "the message item has no query.subject/email (subject and fields render empty); the route-less item matches no Switch output"
+    ],
+    "offline": "The chat path (Chat Trigger → If → AI Agent with its three tools) hangs off a disabled Chat Trigger and is not run; the agent's tools call this workflow with route availability or message, which is the path this fixture drives. freeTimeSlots treats busy events only and computes slots in UTC (08:00-17:30Z); Get Events dates come from n8n's wall clock, so the fixture's events (week of 18 November 2026) assume a run on 16 November 2026"
+  }
+}

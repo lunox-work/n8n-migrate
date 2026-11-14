@@ -1,0 +1,71 @@
+{
+  "why": "The TikTok and Instagram uploads send the upload-post form field user with the template's placeholder text 'Add user generated in upload-post'. Filled with a dummy user on both sides (the YouTube upload's user 'test2' is a value, not a placeholder, and stays). Placeholder fill only: no logic changes.",
+  "n8n": {
+    "Upload Video and Description to Tiktok": {
+      "parameters.bodyParameters.parameters.3.value": "bench-user"
+    },
+    "Upload Video and Description to Instagram": {
+      "parameters.bodyParameters.parameters.3.value": "bench-user"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Upload Video and Description to Tiktok": {
+          "patch": {
+            "params": {
+              "bodyParameters": {
+                "parameters": [
+                  {
+                    "name": "title",
+                    "value": "={{ $('Generate Description for Videos  in Tiktok and Instagram').item.json.message.content.replaceAll(\"\\\"\", \"\") }}"
+                  },
+                  {
+                    "name": "platform[]",
+                    "value": "tiktok"
+                  },
+                  {
+                    "name": "video",
+                    "parameterType": "formBinaryData",
+                    "inputDataFieldName": "datavideo"
+                  },
+                  {
+                    "name": "user",
+                    "value": "bench-user"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "Upload Video and Description to Instagram": {
+          "patch": {
+            "params": {
+              "bodyParameters": {
+                "parameters": [
+                  {
+                    "name": "title",
+                    "value": "={{ $('Generate Description for Videos  in Tiktok and Instagram').item.json.message.content.replaceAll(\"\\\"\", \"\") }}"
+                  },
+                  {
+                    "name": "platform[]",
+                    "value": "instagram"
+                  },
+                  {
+                    "name": "video",
+                    "parameterType": "formBinaryData",
+                    "inputDataFieldName": "datavideo"
+                  },
+                  {
+                    "name": "user",
+                    "value": "bench-user"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

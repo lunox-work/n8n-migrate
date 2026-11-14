@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "template": 1980,
+  "sha256": "52ea38ddfa232b56d283aac55af5d3d666f634fd16d9a1c33475320fed06b18f",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "a customer asks for help choosing between two plans; the chain answers in one reply",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "c7e2a9f1d3b54e6a8c0f2e4d6b8a1c3e",
+          "action": "sendMessage",
+          "chatInput": "Hi! I run a small bakery with 3 staff. Should I pick your Basic plan (1 user) or Team plan (5 users)? We mostly need online ordering."
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [
+    "Basic LLM Chain",
+    "Hugging Face Inference Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch; the chain answers once (model-driven text)"
+    ],
+    "offline": "No external read: the only call is the model. Hugging Face Inference Model is the LangChain HuggingFaceInference LLM (text generation, mistralai/Mistral-7B-Instruct-v0.1, maxTokens 512); it is not among the chat models the bench README lists as routed to the model shim, so unless the bench routes it, n8n's call goes to the Hugging Face inference host through the proxy (which host depends on the @huggingface/inference version: api-inference.huggingface.co or router.huggingface.co/hf-inference) and no fixture answers it"
+  }
+}

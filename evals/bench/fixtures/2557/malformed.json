@@ -1,0 +1,602 @@
+{
+  "schemaVersion": 1,
+  "template": 2557,
+  "sha256": "9404d62bd653a6b84c62383261ebbd86a77372021bb3c78dae74b670ff532f61",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "an Ask HN item with no title or URL, a 2,000-character title whose page answers 502, and an AI post whose Leonardo generation FAILS with no image, so Runway rejects the empty promptImage",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Hacker News",
+      "service": "hackernews",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "http://hn.algolia.com/api/v1/search",
+            "query": {
+              "hitsPerPage": "100"
+            },
+            "status": 200,
+            "body": {
+              "hits": [
+                {
+                  "created_at": "2026-11-15T10:00:00Z",
+                  "title": null,
+                  "url": null,
+                  "author": "askhn_user",
+                  "points": 77,
+                  "story_text": null,
+                  "comment_text": null,
+                  "num_comments": 12,
+                  "story_id": null,
+                  "story_title": null,
+                  "story_url": null,
+                  "parent_id": null,
+                  "created_at_i": 1794823010,
+                  "_tags": [
+                    "story",
+                    "author_askhn_user",
+                    "story_45123010"
+                  ],
+                  "objectID": "45123010",
+                  "_highlightResult": {
+                    "title": {
+                      "value": null,
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    },
+                    "url": {
+                      "value": "",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    },
+                    "author": {
+                      "value": "askhn_user",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    }
+                  }
+                },
+                {
+                  "created_at": "not-a-date",
+                  "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                  "url": "https://broken-blog.example/post/%ZZ",
+                  "author": "longtitle",
+                  "points": 1,
+                  "story_text": null,
+                  "comment_text": null,
+                  "num_comments": 0,
+                  "story_id": null,
+                  "story_title": null,
+                  "story_url": null,
+                  "parent_id": null,
+                  "created_at_i": 1794823011,
+                  "_tags": [
+                    "story",
+                    "author_longtitle",
+                    "story_45123011"
+                  ],
+                  "objectID": "45123011",
+                  "_highlightResult": {
+                    "title": {
+                      "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    },
+                    "url": {
+                      "value": "https://broken-blog.example/post/%ZZ",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    },
+                    "author": {
+                      "value": "longtitle",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    }
+                  }
+                },
+                {
+                  "created_at": "2026-11-15T12:00:00Z",
+                  "title": "LLM routing in production: lessons from 2 billion requests",
+                  "url": "https://ml-digest.example/llm-routing",
+                  "author": "mlops",
+                  "points": 500,
+                  "story_text": null,
+                  "comment_text": null,
+                  "num_comments": 88,
+                  "story_id": null,
+                  "story_title": null,
+                  "story_url": null,
+                  "parent_id": null,
+                  "created_at_i": 1794823012,
+                  "_tags": [
+                    "story",
+                    "author_mlops",
+                    "story_45123012"
+                  ],
+                  "objectID": "45123012",
+                  "_highlightResult": {
+                    "title": {
+                      "value": "LLM routing in production: lessons from 2 billion requests",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    },
+                    "url": {
+                      "value": "https://ml-digest.example/llm-routing",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    },
+                    "author": {
+                      "value": "mlops",
+                      "matchLevel": "none",
+                      "matchedWords": []
+                    }
+                  }
+                }
+              ],
+              "nbHits": 3,
+              "page": 0,
+              "nbPages": 1,
+              "hitsPerPage": 100,
+              "exhaustiveNbHits": true,
+              "query": "",
+              "params": "tags=&hitsPerPage=100",
+              "processingTimeMS": 3
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Hacker News connector; the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "Hacker News v1 resource all (getAll, no keyword or tags, limit 100): GET http://hn.algolia.com/api/v1/search?tags=&hitsPerPage=100 (plain HTTP); n8n emits hits[]"
+    },
+    {
+      "node": "HTTP Request1",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://broken-blog.example/post/%ZZ",
+            "status": 502,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<html><body><h1>502 Bad Gateway</h1></body></html>"
+          },
+          {
+            "method": "GET",
+            "url": "https://ml-digest.example/llm-routing",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!doctype html><html><head><title>LLM routing in production</title><meta property=\"og:image\" content=\"https://ml-digest.example/cover.webp\"></head><body><article><h1>LLM routing in production</h1><p>Routing prompts between a small and a large model cut cost by 61% at equal quality.</p><img src=\"https://ml-digest.example/cover.webp\" alt=\"cover\"></article></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a plain web fetch, no connector"
+      },
+      "note": "agent tool (toolHttpRequest v1.1, GET {{ $json.url }} of the loop item): the article page; the agent decides whether to call it (model-driven)"
+    },
+    {
+      "node": "Get Image",
+      "service": "image-cdn",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://ml-digest.example/cover.webp",
+            "status": 200,
+            "headers": {
+              "content-type": "image/png"
+            },
+            "bodyBase64": "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAJklEQVR4nGP8z8DAwMDAxMDAwMDAwMDAwMDAwMDAwMDAwMDAAAA6pgYJ0Qm0kwAAAABJRU5ErkJggg=="
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a plain image fetch, no connector"
+      },
+      "note": "HTTP Request v4.2 GET of the agent's 'image urls' (model-chosen; the fixture answers the article's og:image); full response, the PNG becomes binary data"
+    },
+    {
+      "node": "Leo - Improve Prompt",
+      "service": "leonardo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://cloud.leonardo.ai/api/rest/v1/prompt/improve",
+            "status": 200,
+            "body": {
+              "promptGeneration": {
+                "prompt": "A monochrome photo of a robotic arm sorting parcels in a quiet warehouse at dawn, long shadows",
+                "apiCreditCost": 4
+              }
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://cloud.leonardo.ai/api/rest/v1/prompt/improve",
+            "status": 200,
+            "body": {
+              "promptGeneration": {
+                "prompt": "",
+                "apiCreditCost": 4
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media lever)"
+      },
+      "note": "Leonardo prompt improve: POST /api/rest/v1/prompt/improve {prompt} (full response, so the next node reads body.promptGeneration.prompt). Leo - Improve Prompt and Leo - Improve Prompt2 call the same URL with model-written prompts, so the replies answer in turn"
+    },
+    {
+      "node": "Leo - Improve Prompt2",
+      "service": "leonardo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://cloud.leonardo.ai/api/rest/v1/prompt/improve",
+            "status": 200,
+            "body": {
+              "promptGeneration": {
+                "prompt": "A monochrome photo of a robotic arm sorting parcels in a quiet warehouse at dawn, long shadows",
+                "apiCreditCost": 4
+              }
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://cloud.leonardo.ai/api/rest/v1/prompt/improve",
+            "status": 200,
+            "body": {
+              "promptGeneration": {
+                "prompt": "",
+                "apiCreditCost": 4
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media lever)"
+      },
+      "note": "Leonardo prompt improve: POST /api/rest/v1/prompt/improve {prompt} (full response, so the next node reads body.promptGeneration.prompt). Leo - Improve Prompt and Leo - Improve Prompt2 call the same URL with model-written prompts, so the replies answer in turn"
+    },
+    {
+      "node": "Leo - Generate Image",
+      "service": "leonardo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://cloud.leonardo.ai/api/rest/v1/generations",
+            "bodyMatch": "A monochrome photo of a robotic arm sorting parcels in a quiet warehouse at dawn, long shadows",
+            "status": 200,
+            "body": {
+              "sdGenerationJob": {
+                "generationId": "3b1f0c2e-8d4a-4f6b-9e21-7a5c3d2b1e01",
+                "apiCreditCost": 22
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media lever)"
+      },
+      "note": "Leonardo generation: POST /api/rest/v1/generations (SDXL model 6b645e3a…, MONOCHROME); matched by the improved prompt it carries"
+    },
+    {
+      "node": "Leo - Generate Image2",
+      "service": "leonardo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://cloud.leonardo.ai/api/rest/v1/generations",
+            "bodyMatch": "",
+            "status": 200,
+            "body": {
+              "sdGenerationJob": {
+                "generationId": "3b1f0c2e-8d4a-4f6b-9e21-7a5c3d2b1e02",
+                "apiCreditCost": 22
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media lever)"
+      },
+      "note": "as Leo - Generate Image, with the second improved prompt"
+    },
+    {
+      "node": "Leo - Get imageId",
+      "service": "leonardo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://cloud.leonardo.ai/api/rest/v1/generations/3b1f0c2e-8d4a-4f6b-9e21-7a5c3d2b1e01",
+            "status": 200,
+            "body": {
+              "generations_by_pk": {
+                "generated_images": [],
+                "modelId": "6b645e3a-d64f-4341-a6d8-7a3690fbf042",
+                "motion": null,
+                "motionModel": null,
+                "motionStrength": null,
+                "prompt": "A monochrome photo of a robotic arm sorting parcels in a quiet warehouse at dawn, long shadows; Use the rule of thirds, leading lines, & balance. DO NOT INCLUDE ANY WORDS OR LABELS.",
+                "negativePrompt": "",
+                "imageHeight": 768,
+                "imageWidth": 1024,
+                "inferenceSteps": 15,
+                "seed": 418877001,
+                "public": false,
+                "scheduler": "EULER_DISCRETE",
+                "sdVersion": "SDXL_LIGHTNING",
+                "status": "FAILED",
+                "presetStyle": "MONOCHROME",
+                "initStrength": null,
+                "guidanceScale": 7,
+                "id": "3b1f0c2e-8d4a-4f6b-9e21-7a5c3d2b1e01",
+                "createdAt": "2026-11-16T09:04:10.000Z",
+                "promptMagic": false,
+                "photoReal": false
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media lever)"
+      },
+      "note": "Leonardo generation status: GET /api/rest/v1/generations/{generationId} after Wait1; generations_by_pk.generated_images[0].url feeds Runway"
+    },
+    {
+      "node": "Leo - Get imageId2",
+      "service": "leonardo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://cloud.leonardo.ai/api/rest/v1/generations/3b1f0c2e-8d4a-4f6b-9e21-7a5c3d2b1e02",
+            "status": 200,
+            "body": {
+              "generations_by_pk": {
+                "generated_images": [],
+                "modelId": "6b645e3a-d64f-4341-a6d8-7a3690fbf042",
+                "motion": null,
+                "motionModel": null,
+                "motionStrength": null,
+                "prompt": "; Use the rule of thirds, leading lines, & balance. DO NOT INCLUDE ANY WORDS OR LABELS.",
+                "negativePrompt": "",
+                "imageHeight": 768,
+                "imageWidth": 1024,
+                "inferenceSteps": 15,
+                "seed": 418877001,
+                "public": false,
+                "scheduler": "EULER_DISCRETE",
+                "sdVersion": "SDXL_LIGHTNING",
+                "status": "FAILED",
+                "presetStyle": "MONOCHROME",
+                "initStrength": null,
+                "guidanceScale": 7,
+                "id": "3b1f0c2e-8d4a-4f6b-9e21-7a5c3d2b1e02",
+                "createdAt": "2026-11-16T09:04:10.000Z",
+                "promptMagic": false,
+                "photoReal": false
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media lever)"
+      },
+      "note": "as Leo - Get imageId, after Wait6"
+    },
+    {
+      "node": "Runway - Create Video",
+      "service": "runway",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.dev.runwayml.com/v1/image_to_video",
+            "status": 400,
+            "body": {
+              "error": "Validation of body failed",
+              "issues": [
+                {
+                  "code": "invalid_type",
+                  "path": [
+                    "promptImage"
+                  ],
+                  "message": "Required"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "video generation stays with the provider (media lever)"
+      },
+      "note": "Runway image_to_video: POST https://api.dev.runwayml.com/v1/image_to_video {promptImage, promptText: \"string\", model: gen3a_turbo} with X-Runway-Version 2024-11-06; matched by promptImage"
+    },
+    {
+      "node": "Runway - Create Video2",
+      "service": "runway",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.dev.runwayml.com/v1/image_to_video",
+            "status": 400,
+            "body": {
+              "error": "Validation of body failed",
+              "issues": [
+                {
+                  "code": "invalid_type",
+                  "path": [
+                    "promptImage"
+                  ],
+                  "message": "Required"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "video generation stays with the provider (media lever)"
+      },
+      "note": "as Runway - Create Video, with the second Leonardo image"
+    },
+    {
+      "node": "Runway - Get Video",
+      "service": "runway",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "video generation stays with the provider (media lever)"
+      },
+      "note": "Runway task: GET /v1/tasks/{id} after Wait2 (3 minutes)"
+    },
+    {
+      "node": "Runway - Get Video2",
+      "service": "runway",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "video generation stays with the provider (media lever)"
+      },
+      "note": "as Runway - Get Video, after Wait4"
+    },
+    {
+      "node": "Cre - Generate Video1",
+      "service": "creatomate",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.creatomate.com/v1/renders",
+            "status": 200,
+            "body": [
+              {
+                "id": "a9b8c7d6-e5f4-4321-9abc-def012345602",
+                "status": "planned",
+                "url": "https://f002.backblazeb2.com/file/creatomate-c8xg3hsxdu/a9b8c7d6-e5f4-4321-9abc-def012345602.mp4",
+                "snapshot_url": "https://f002.backblazeb2.com/file/creatomate-c8xg3hsxdu/a9b8c7d6-e5f4-4321-9abc-def012345602-snapshot.jpg",
+                "template_id": "enterTemplateID",
+                "template_name": null,
+                "template_tags": [],
+                "output_format": "mp4",
+                "modifications": {}
+              }
+            ]
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "video rendering stays with the provider (media lever)"
+      },
+      "note": "Creatomate render: POST /v1/renders (template_id is the template's placeholder enterTemplateID); answers an array of renders, full response"
+    },
+    {
+      "node": "Cre - Get Video",
+      "service": "creatomate",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.creatomate.com/v1/renders/a9b8c7d6-e5f4-4321-9abc-def012345602",
+            "status": 200,
+            "body": {
+              "id": "a9b8c7d6-e5f4-4321-9abc-def012345602",
+              "status": "succeeded",
+              "url": "https://f002.backblazeb2.com/file/creatomate-c8xg3hsxdu/a9b8c7d6-e5f4-4321-9abc-def012345602.mp4",
+              "snapshot_url": "https://f002.backblazeb2.com/file/creatomate-c8xg3hsxdu/a9b8c7d6-e5f4-4321-9abc-def012345602-snapshot.jpg",
+              "template_id": "enterTemplateID",
+              "template_name": null,
+              "template_tags": [],
+              "output_format": "mp4",
+              "modifications": {},
+              "duration": 28.4,
+              "file_size": 1840221
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "video rendering stays with the provider (media lever)"
+      },
+      "note": "GET /v1/renders/{id}; the template reads $json.body.body[0].id, which does not exist on the full response of Cre - Generate Video1 (Wait3 between them is disabled), so n8n is expected to fail here"
+    }
+  ],
+  "models": [
+    "Article Analysis",
+    "OpenAI Chat Model3",
+    "Image Analysis",
+    "Article Prep"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "the url-less item gives the agent nothing to fetch; the 502 page reaches the agent as a tool error",
+      "Leonardo answers status FAILED with no generated_images, so Runway - Create Video gets an undefined promptImage and answers 400 (the node has no continueOnFail: expected to stop the run)"
+    ],
+    "offline": "Wait1 and Wait6 (30 s: amount 30, unit left at the Wait v1.1 default of seconds) and Wait2/Wait4 (3 minutes) are shortened by a time-compression overlay. The Loop Over Items done output and the publishing nodes (Dropbox, Google Drive, OneDrive, Minio, YouTube, X, LinkedIn, Instagram) are not connected to the run path. After the first related article the chain ends at Cre - Get Video, which never returns to the loop, so later items are not processed. Creatomate template_id is the template placeholder; Leonardo, Runway and Creatomate credentials are stripped (bench dummies)"
+  }
+}
