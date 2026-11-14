@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "template": 2508,
+  "sha256": "88c5df7b28597775426f7723f6dc97f67651d46e73aad5bfd1425856e1e76e71",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "a 20,000-character message without sessionId, a truncated schema file, and rows with nulls, strings for numbers and nested values",
+  "trigger": {
+    "node": "Chat Trigger",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "action": "sendMessage",
+          "chatInput": "List customers by country and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal code ✓ and also by company, city, postal"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Load the schema from the local file",
+      "service": "local-file",
+      "file": {
+        "path": "./chinook_mysql.json",
+        "text": "[{\"Field\":\"AlbumId\",\"Type\":\"int\",\"Null\":\"NO\",\"Key\":\"PRI\",\"Default\":null,\"Extra\":\"auto_increment\",\"table\":\"Album\"},{\"Field\":\"Title\",\"Type\":\"varchar(160)\",\"Null\":\"NO\",\"Key\":\"\",\"Default\":null,\"Extra\":\"\",\"table\":\"Album\"},{\"Field\":\"ArtistId\",\"Type\":\"int\",\"Null\":\"NO\",\"Key\":\"MUL\",\"Default\":null,\"Extra\":\"\",\"table\":\"Album\"},{\"Field\":\"ArtistId\",\"Type\":\"int\",\"Null\":\"NO\",\"Key\":\"PRI\",\"Default\":null,\"Extra\":\"auto_increment\",\"table\":\"Artist\"},{\"Field\":\"Name\",\"Type\":\"varchar(120)\",\"Null\":\"YES\",\"Key\":\"\",\"Default\":null,\"Extra\":\"\",\"table\":\"Artist\"},{\"Field\":\"TrackId\",\"Type\":\"int\",\"Null\":\"NO\",\"Key\":\"PRI\",\"Default\":null,\"Extra\":\"auto_increment\",\"table\":\"Track\"},{\"Field\":\"Name\",\"Type\":\"varchar(200)\",\"Null\":\"NO\",\""
+      },
+      "note": "written by the manual branch's Save file locally in n8n's working directory; the bench writes it before the chat run"
+    },
+    {
+      "node": "Run SQL query",
+      "service": "mysql",
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "Name": null,
+              "TrackCount": "213"
+            }
+          },
+          {
+            "json": {
+              "Name": "AC/DC | Back in Black",
+              "TrackCount": null
+            }
+          },
+          {
+            "json": {
+              "Name": {
+                "first": "Led",
+                "last": "Zeppelin"
+              },
+              "TrackCount": 1.5e+308
+            }
+          }
+        ],
+        "why": "MySQL wire protocol: no HTTP mock; the Claude side's db mock returns the same rows"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured MySQL connector; db through the bundled server or a vendor MCP"
+      },
+      "note": "the query text is written by the model; it is compared as an outgoing effect on the Claude side (the n8n pin does not record it)"
+    },
+    {
+      "node": "List all tables in a database",
+      "service": "mysql",
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "Tables_in_tttytdb2023": null
+            }
+          },
+          {
+            "json": {
+              "Tables_in_other_db": "Album"
+            }
+          }
+        ],
+        "why": "manual branch; MySQL wire protocol"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured MySQL connector"
+      }
+    },
+    {
+      "node": "Extract database schema",
+      "service": "mysql",
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "Field": "AlbumId",
+              "Type": 7,
+              "Null": null
+            }
+          }
+        ],
+        "why": "manual branch, one DESCRIBE per table; a pin returns all rows on every run, so the bench should run this branch with a db mock instead when it matters"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured MySQL connector"
+      }
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model"
+  ],
+  "writes": [
+    "Save file locally"
+  ],
+  "expect": {
+    "branches": [
+      "Extract data from file fails on the truncated JSON in n8n (no error output configured): the run stops before the agent"
+    ]
+  }
+}

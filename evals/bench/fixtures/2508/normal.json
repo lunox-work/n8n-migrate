@@ -1,0 +1,375 @@
+{
+  "schemaVersion": 1,
+  "template": 2508,
+  "sha256": "88c5df7b28597775426f7723f6dc97f67651d46e73aad5bfd1425856e1e76e71",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "a data question the agent answers with one SELECT; rows come back and are appended to the answer",
+  "trigger": {
+    "node": "Chat Trigger",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "b7d1c2e4-5f60-4a1b-9c3d-2e7f8a9b0c11",
+          "action": "sendMessage",
+          "chatInput": "Which five artists have the most tracks? Show the artist name and the number of tracks."
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Load the schema from the local file",
+      "service": "local-file",
+      "file": {
+        "path": "./chinook_mysql.json",
+        "text": "[{\"Field\":\"AlbumId\",\"Type\":\"int\",\"Null\":\"NO\",\"Key\":\"PRI\",\"Default\":null,\"Extra\":\"auto_increment\",\"table\":\"Album\"},{\"Field\":\"Title\",\"Type\":\"varchar(160)\",\"Null\":\"NO\",\"Key\":\"\",\"Default\":null,\"Extra\":\"\",\"table\":\"Album\"},{\"Field\":\"ArtistId\",\"Type\":\"int\",\"Null\":\"NO\",\"Key\":\"MUL\",\"Default\":null,\"Extra\":\"\",\"table\":\"Album\"},{\"Field\":\"ArtistId\",\"Type\":\"int\",\"Null\":\"NO\",\"Key\":\"PRI\",\"Default\":null,\"Extra\":\"auto_increment\",\"table\":\"Artist\"},{\"Field\":\"Name\",\"Type\":\"varchar(120)\",\"Null\":\"YES\",\"Key\":\"\",\"Default\":null,\"Extra\":\"\",\"table\":\"Artist\"},{\"Field\":\"TrackId\",\"Type\":\"int\",\"Null\":\"NO\",\"Key\":\"PRI\",\"Default\":null,\"Extra\":\"auto_increment\",\"table\":\"Track\"},{\"Field\":\"Name\",\"Type\":\"varchar(200)\",\"Null\":\"NO\",\"Key\":\"\",\"Default\":null,\"Extra\":\"\",\"table\":\"Track\"},{\"Field\":\"AlbumId\",\"Type\":\"int\",\"Null\":\"YES\",\"Key\":\"MUL\",\"Default\":null,\"Extra\":\"\",\"table\":\"Track\"},{\"Field\":\"GenreId\",\"Type\":\"int\",\"Null\":\"YES\",\"Key\":\"MUL\",\"Default\":null,\"Extra\":\"\",\"table\":\"Track\"},{\"Field\":\"Milliseconds\",\"Type\":\"int\",\"Null\":\"NO\",\"Key\":\"\",\"Default\":null,\"Extra\":\"\",\"table\":\"Track\"},{\"Field\":\"UnitPrice\",\"Type\":\"decimal(10,2)\",\"Null\":\"NO\",\"Key\":\"\",\"Default\":null,\"Extra\":\"\",\"table\":\"Track\"},{\"Field\":\"GenreId\",\"Type\":\"int\",\"Null\":\"NO\",\"Key\":\"PRI\",\"Default\":null,\"Extra\":\"auto_increment\",\"table\":\"Genre\"},{\"Field\":\"Name\",\"Type\":\"varchar(120)\",\"Null\":\"YES\",\"Key\":\"\",\"Default\":null,\"Extra\":\"\",\"table\":\"Genre\"},{\"Field\":\"CustomerId\",\"Type\":\"int\",\"Null\":\"NO\",\"Key\":\"PRI\",\"Default\":null,\"Extra\":\"auto_increment\",\"table\":\"Customer\"},{\"Field\":\"FirstName\",\"Type\":\"varchar(40)\",\"Null\":\"NO\",\"Key\":\"\",\"Default\":null,\"Extra\":\"\",\"table\":\"Customer\"},{\"Field\":\"LastName\",\"Type\":\"varchar(20)\",\"Null\":\"NO\",\"Key\":\"\",\"Default\":null,\"Extra\":\"\",\"table\":\"Customer\"},{\"Field\":\"Company\",\"Type\":\"varchar(80)\",\"Null\":\"YES\",\"Key\":\"\",\"Default\":null,\"Extra\":\"\",\"table\":\"Customer\"},{\"Field\":\"Country\",\"Type\":\"varchar(40)\",\"Null\":\"YES\",\"Key\":\"\",\"Default\":null,\"Extra\":\"\",\"table\":\"Customer\"},{\"Field\":\"Email\",\"Type\":\"varchar(60)\",\"Null\":\"NO\",\"Key\":\"\",\"Default\":null,\"Extra\":\"\",\"table\":\"Customer\"},{\"Field\":\"InvoiceId\",\"Type\":\"int\",\"Null\":\"NO\",\"Key\":\"PRI\",\"Default\":null,\"Extra\":\"auto_increment\",\"table\":\"Invoice\"},{\"Field\":\"CustomerId\",\"Type\":\"int\",\"Null\":\"NO\",\"Key\":\"MUL\",\"Default\":null,\"Extra\":\"\",\"table\":\"Invoice\"},{\"Field\":\"InvoiceDate\",\"Type\":\"datetime\",\"Null\":\"NO\",\"Key\":\"\",\"Default\":null,\"Extra\":\"\",\"table\":\"Invoice\"},{\"Field\":\"Total\",\"Type\":\"decimal(10,2)\",\"Null\":\"NO\",\"Key\":\"\",\"Default\":null,\"Extra\":\"\",\"table\":\"Invoice\"}]"
+      },
+      "note": "written by the manual branch's Save file locally in n8n's working directory; the bench writes it before the chat run"
+    },
+    {
+      "node": "Run SQL query",
+      "service": "mysql",
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "Name": "Iron Maiden",
+              "TrackCount": 213
+            }
+          },
+          {
+            "json": {
+              "Name": "U2",
+              "TrackCount": 135
+            }
+          },
+          {
+            "json": {
+              "Name": "Led Zeppelin",
+              "TrackCount": 114
+            }
+          },
+          {
+            "json": {
+              "Name": "Metallica",
+              "TrackCount": 112
+            }
+          },
+          {
+            "json": {
+              "Name": "Deep Purple",
+              "TrackCount": 92
+            }
+          }
+        ],
+        "why": "MySQL wire protocol: no HTTP mock; the Claude side's db mock returns the same rows"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured MySQL connector; db through the bundled server or a vendor MCP"
+      },
+      "note": "the query text is written by the model; it is compared as an outgoing effect on the Claude side (the n8n pin does not record it)"
+    },
+    {
+      "node": "List all tables in a database",
+      "service": "mysql",
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "Tables_in_tttytdb2023": "Album"
+            }
+          },
+          {
+            "json": {
+              "Tables_in_tttytdb2023": "Artist"
+            }
+          },
+          {
+            "json": {
+              "Tables_in_tttytdb2023": "Track"
+            }
+          },
+          {
+            "json": {
+              "Tables_in_tttytdb2023": "Genre"
+            }
+          },
+          {
+            "json": {
+              "Tables_in_tttytdb2023": "Customer"
+            }
+          },
+          {
+            "json": {
+              "Tables_in_tttytdb2023": "Invoice"
+            }
+          }
+        ],
+        "why": "manual branch; MySQL wire protocol"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured MySQL connector"
+      }
+    },
+    {
+      "node": "Extract database schema",
+      "service": "mysql",
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "Field": "AlbumId",
+              "Type": "int",
+              "Null": "NO",
+              "Key": "PRI",
+              "Default": null,
+              "Extra": "auto_increment"
+            }
+          },
+          {
+            "json": {
+              "Field": "Title",
+              "Type": "varchar(160)",
+              "Null": "NO",
+              "Key": "",
+              "Default": null,
+              "Extra": ""
+            }
+          },
+          {
+            "json": {
+              "Field": "ArtistId",
+              "Type": "int",
+              "Null": "NO",
+              "Key": "MUL",
+              "Default": null,
+              "Extra": ""
+            }
+          },
+          {
+            "json": {
+              "Field": "ArtistId",
+              "Type": "int",
+              "Null": "NO",
+              "Key": "PRI",
+              "Default": null,
+              "Extra": "auto_increment"
+            }
+          },
+          {
+            "json": {
+              "Field": "Name",
+              "Type": "varchar(120)",
+              "Null": "YES",
+              "Key": "",
+              "Default": null,
+              "Extra": ""
+            }
+          },
+          {
+            "json": {
+              "Field": "TrackId",
+              "Type": "int",
+              "Null": "NO",
+              "Key": "PRI",
+              "Default": null,
+              "Extra": "auto_increment"
+            }
+          },
+          {
+            "json": {
+              "Field": "Name",
+              "Type": "varchar(200)",
+              "Null": "NO",
+              "Key": "",
+              "Default": null,
+              "Extra": ""
+            }
+          },
+          {
+            "json": {
+              "Field": "AlbumId",
+              "Type": "int",
+              "Null": "YES",
+              "Key": "MUL",
+              "Default": null,
+              "Extra": ""
+            }
+          },
+          {
+            "json": {
+              "Field": "GenreId",
+              "Type": "int",
+              "Null": "YES",
+              "Key": "MUL",
+              "Default": null,
+              "Extra": ""
+            }
+          },
+          {
+            "json": {
+              "Field": "Milliseconds",
+              "Type": "int",
+              "Null": "NO",
+              "Key": "",
+              "Default": null,
+              "Extra": ""
+            }
+          },
+          {
+            "json": {
+              "Field": "UnitPrice",
+              "Type": "decimal(10,2)",
+              "Null": "NO",
+              "Key": "",
+              "Default": null,
+              "Extra": ""
+            }
+          },
+          {
+            "json": {
+              "Field": "GenreId",
+              "Type": "int",
+              "Null": "NO",
+              "Key": "PRI",
+              "Default": null,
+              "Extra": "auto_increment"
+            }
+          },
+          {
+            "json": {
+              "Field": "Name",
+              "Type": "varchar(120)",
+              "Null": "YES",
+              "Key": "",
+              "Default": null,
+              "Extra": ""
+            }
+          },
+          {
+            "json": {
+              "Field": "CustomerId",
+              "Type": "int",
+              "Null": "NO",
+              "Key": "PRI",
+              "Default": null,
+              "Extra": "auto_increment"
+            }
+          },
+          {
+            "json": {
+              "Field": "FirstName",
+              "Type": "varchar(40)",
+              "Null": "NO",
+              "Key": "",
+              "Default": null,
+              "Extra": ""
+            }
+          },
+          {
+            "json": {
+              "Field": "LastName",
+              "Type": "varchar(20)",
+              "Null": "NO",
+              "Key": "",
+              "Default": null,
+              "Extra": ""
+            }
+          },
+          {
+            "json": {
+              "Field": "Company",
+              "Type": "varchar(80)",
+              "Null": "YES",
+              "Key": "",
+              "Default": null,
+              "Extra": ""
+            }
+          },
+          {
+            "json": {
+              "Field": "Country",
+              "Type": "varchar(40)",
+              "Null": "YES",
+              "Key": "",
+              "Default": null,
+              "Extra": ""
+            }
+          },
+          {
+            "json": {
+              "Field": "Email",
+              "Type": "varchar(60)",
+              "Null": "NO",
+              "Key": "",
+              "Default": null,
+              "Extra": ""
+            }
+          },
+          {
+            "json": {
+              "Field": "InvoiceId",
+              "Type": "int",
+              "Null": "NO",
+              "Key": "PRI",
+              "Default": null,
+              "Extra": "auto_increment"
+            }
+          },
+          {
+            "json": {
+              "Field": "CustomerId",
+              "Type": "int",
+              "Null": "NO",
+              "Key": "MUL",
+              "Default": null,
+              "Extra": ""
+            }
+          },
+          {
+            "json": {
+              "Field": "InvoiceDate",
+              "Type": "datetime",
+              "Null": "NO",
+              "Key": "",
+              "Default": null,
+              "Extra": ""
+            }
+          },
+          {
+            "json": {
+              "Field": "Total",
+              "Type": "decimal(10,2)",
+              "Null": "NO",
+              "Key": "",
+              "Default": null,
+              "Extra": ""
+            }
+          }
+        ],
+        "why": "manual branch, one DESCRIBE per table; a pin returns all rows on every run, so the bench should run this branch with a db mock instead when it matters"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured MySQL connector"
+      }
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model"
+  ],
+  "writes": [
+    "Save file locally"
+  ],
+  "expect": {
+    "branches": [
+      "Check if query exists: true when the agent's reply holds a SELECT … ; (expected here). The false output needs a reply without SQL, which one chat item cannot force"
+    ],
+    "offline": "the agent's reply is a model reply; whether it contains a SELECT decides the branch"
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "template": 2187,
+  "sha256": "8a0b803bbaa174a2570de61d17de6fd69114fa80aeb2f301f4e02b990da24e52",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "wrong types in the form (chapters 'ten', words -5, 5,000-character keywords), Wikipedia answering an HTML error page, the image API returning no data, and WordPress rejecting the draft",
+  "trigger": {
+    "node": "On form submission",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "Keywords (comma-separated)": "shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, shoes, sh",
+          "Number of chapters": "ten",
+          "Max words count": -5,
+          "submittedAt": "2026-11-16T08:59:41.512+00:00",
+          "formMode": "production"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Wikipedia",
+      "service": "wikipedia",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://en.wikipedia.org/w/api.php",
+            "status": 502,
+            "headers": {
+              "content-type": "text/html"
+            },
+            "body": "<!DOCTYPE html><html><head><title>Wikimedia Error</title></head><body>Our servers are currently under maintenance or experiencing a technical problem.</body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Wikipedia connector; the Claude side serves the same MediaWiki responses through its HTTP mock"
+      },
+      "note": "agent tool of Create post title and structure (LangChain WikipediaQueryRun: list=search, then prop=extracts per title)"
+    },
+    {
+      "node": "Generate featured image",
+      "service": "openai-images",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/images/generations",
+            "status": 200,
+            "body": {
+              "created": 1763283750,
+              "data": []
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media lever)"
+      },
+      "note": "OpenAI credential base URL can point at the mock; the prompt is model-written, the reply is fixed"
+    }
+  ],
+  "models": [
+    "Create post title and structure",
+    "OpenAI"
+  ],
+  "writes": [
+    "Post on Wordpress",
+    "Upload media",
+    "Set image ID for the post",
+    "Form",
+    "Form1"
+  ],
+  "writeReplies": [
+    {
+      "node": "Post on Wordpress",
+      "service": "wordpress",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://wp-demo.mondo.surf/wp-json/wp/v2/posts",
+            "status": 401,
+            "body": {
+              "code": "rest_cannot_create",
+              "message": "Sorry, you are not allowed to create posts as this user.",
+              "data": {
+                "status": 401
+              }
+            }
+          }
+        ]
+      },
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "code": "rest_cannot_create"
+            }
+          }
+        ],
+        "why": "fallback pin; n8n would raise on the 401 instead"
+      }
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Check data consistency: either output, model-driven; Post on Wordpress fails with 401, so Upload media and Set image ID are never reached in n8n"
+    ]
+  }
+}

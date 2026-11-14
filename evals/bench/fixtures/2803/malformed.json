@@ -1,0 +1,461 @@
+{
+  "schemaVersion": 1,
+  "template": 2803,
+  "sha256": "5bd7676d052cd10e681fe9046af23f2b98a17fd53c333fe3a695c1fe18da5d01",
+  "variant": "malformed",
+  "now": "2026-11-16T10:05:00.000Z",
+  "about": "one hashtag answers a 429 HTML page; the other returns a post with a null caption and one with an 8,000-character caption; the table has a row with nulls",
+  "trigger": {
+    "node": "Schedule Trigger1",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T10:05:00.000+00:00",
+          "Readable date": "November 16th 2026, 10:05:00 am",
+          "Readable time": "10:05:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "10",
+          "Minute": "05",
+          "Second": "00",
+          "Timezone": "UTC (UTC+00:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "get  top trends on instagram #blender3d",
+      "service": "rapidapi-instagram-scraper",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://instagram-scraper-api2.p.rapidapi.com/v1/hashtag",
+            "query": {
+              "hashtag": "blender3d",
+              "feed_type": "top"
+            },
+            "status": 429,
+            "body": "<html><body>429 Too Many Requests - You have exceeded the rate limit per second for your plan, BASIC, by the API provider</body></html>"
+          }
+        ]
+      },
+      "n8n": {
+        "items": [
+          {
+            "json": "<html><body>429 Too Many Requests - You have exceeded the rate limit per second for your plan, BASIC, by the API provider</body></html>"
+          }
+        ],
+        "why": "fallback pin"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector; http with the RapidAPI key"
+      }
+    },
+    {
+      "node": "get top trends on instagram #isometric",
+      "service": "rapidapi-instagram-scraper",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://instagram-scraper-api2.p.rapidapi.com/v1/hashtag",
+            "query": {
+              "hashtag": "isometric",
+              "feed_type": "top"
+            },
+            "status": 200,
+            "body": {
+              "data": {
+                "additional_data": {
+                  "name": "blender3d",
+                  "media_count": 2400000,
+                  "formatted_media_count": "2.4M"
+                },
+                "count": 2,
+                "items": [
+                  {
+                    "id": "3501003",
+                    "code": null,
+                    "is_video": null,
+                    "caption": null,
+                    "thumbnail_url": null
+                  },
+                  {
+                    "id": "3501004",
+                    "code": "DBk1aA4",
+                    "is_video": false,
+                    "media_type": 1,
+                    "caption": {
+                      "text": "#blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #bl",
+                      "created_at": 1763100000
+                    },
+                    "thumbnail_url": "https://scontent.cdninstagram.com/v/t51.2885-15/3501004_n.jpg",
+                    "like_count": 1849,
+                    "comment_count": 42,
+                    "taken_at": 1763100000,
+                    "user": {
+                      "username": "polyart.studio",
+                      "is_verified": false
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "data": {
+                "additional_data": {
+                  "name": "blender3d",
+                  "media_count": 2400000,
+                  "formatted_media_count": "2.4M"
+                },
+                "count": 2,
+                "items": [
+                  {
+                    "id": "3501003",
+                    "code": null,
+                    "is_video": null,
+                    "caption": null,
+                    "thumbnail_url": null
+                  },
+                  {
+                    "id": "3501004",
+                    "code": "DBk1aA4",
+                    "is_video": false,
+                    "media_type": 1,
+                    "caption": {
+                      "text": "#blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #blender3d #bl",
+                      "created_at": 1763100000
+                    },
+                    "thumbnail_url": "https://scontent.cdninstagram.com/v/t51.2885-15/3501004_n.jpg",
+                    "like_count": 1849,
+                    "comment_count": 42,
+                    "taken_at": 1763100000,
+                    "user": {
+                      "username": "polyart.studio",
+                      "is_verified": false
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "why": "fallback pin"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector; http with the RapidAPI key"
+      }
+    },
+    {
+      "node": "Check Data on Database Is Exist",
+      "service": "postgres",
+      "db": {
+        "engine": "postgres",
+        "seed": {
+          "public.top_trends": [
+            {
+              "id": 12,
+              "prompt": null,
+              "isposted": null,
+              "code": null,
+              "tag": null,
+              "thumbnail_url": null
+            }
+          ]
+        }
+      },
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "id": 12,
+              "prompt": null,
+              "isposted": null,
+              "code": null,
+              "tag": null,
+              "thumbnail_url": null
+            }
+          }
+        ],
+        "why": "fallback pin: the same rows for every loop item, so the exist/insert branch cannot vary per item; prefer the db seed"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Postgres connector"
+      }
+    },
+    {
+      "node": "Analyze Image and give the content",
+      "service": "instagram-cdn",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://scontent.cdninstagram.com/v/t51.2885-15/3501004_n.jpg",
+            "status": 200,
+            "headers": {
+              "content-type": "image/png"
+            },
+            "bodyBase64": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAgElEQVR4nO3YQQ2AQBAEwROGEkTwRhhyEHMieFQ2dDICur6znvsdvcULAuiCALoggC4IoAsC6IIAuiCALgigCwLoggC64CvgPK7RC6AXQC+AXgC9AHoB9ALoBdALoBdAb/4rwQsC6IIAuiCALgigCwLoggC6IIAuCKALAuiCvwM2i2wslsUiXyUAAAAASUVORK5CYII="
+          }
+        ]
+      },
+      "note": "the thumbnail the vision step looks at: fetched by the model provider on the n8n side (imageUrls), by the runner on the Claude side"
+    },
+    {
+      "node": "Generate image on flux",
+      "service": "replicate",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions",
+            "status": 201,
+            "body": {
+              "id": "bench0x7d2mrj0",
+              "model": "black-forest-labs/flux-schnell",
+              "version": "dp-4d0bcc010b3049749a251855f12800be",
+              "input": {
+                "output_format": "jpg"
+              },
+              "logs": "",
+              "output": [
+                "https://replicate.delivery/xezq/bench-0/out-0.jpg"
+              ],
+              "data_removed": false,
+              "error": null,
+              "status": "succeeded",
+              "created_at": "2026-11-16T10:05:20.000Z",
+              "urls": {
+                "get": "https://api.replicate.com/v1/predictions/bench0x7d2mrj0",
+                "cancel": "https://api.replicate.com/v1/predictions/bench0x7d2mrj0/cancel"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media lever)"
+      }
+    },
+    {
+      "node": "Check Status Of Media Before Uploaded",
+      "service": "instagram-graph",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://graph.facebook.com/v20.0/17900000000000001",
+            "status": 200,
+            "body": {
+              "id": "17900000000000001",
+              "status": "Finished: Media container is ready to be published",
+              "status_code": "FINISHED"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://graph.facebook.com/v20.0/17900000000000001",
+            "status": 200,
+            "body": {
+              "id": "17900000000000001",
+              "status": "Published",
+              "status_code": "PUBLISHED"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector for the Instagram Graph API"
+      }
+    },
+    {
+      "node": "Check status of post ",
+      "service": "instagram-graph",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://graph.facebook.com/v20.0/17900000000000001",
+            "status": 200,
+            "body": {
+              "id": "17900000000000001",
+              "status": "Finished: Media container is ready to be published",
+              "status_code": "FINISHED"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://graph.facebook.com/v20.0/17900000000000001",
+            "status": 200,
+            "body": {
+              "id": "17900000000000001",
+              "status": "Published",
+              "status_code": "PUBLISHED"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector for the Instagram Graph API"
+      },
+      "note": "same URL as the previous node for a published container; replies come in turn (FINISHED, then PUBLISHED)"
+    }
+  ],
+  "models": [
+    "Analyze Image and give the content",
+    "Analyze Content And Generate Instagram Caption"
+  ],
+  "writes": [
+    "insert data on db",
+    "Prepare data on Instagram",
+    "Publish Media on Instagram",
+    "Telegram",
+    "Telegram1",
+    "Telegram2",
+    "send error message to telegram"
+  ],
+  "writeReplies": [
+    {
+      "node": "Prepare data on Instagram",
+      "service": "instagram-graph",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://graph.facebook.com/v20.0/media",
+            "status": 200,
+            "body": {
+              "id": "17900000000000001"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Publish Media on Instagram",
+      "service": "instagram-graph",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://graph.facebook.com/v20.0/media_publish",
+            "status": 200,
+            "body": {
+              "id": "17950000000000001"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Telegram",
+      "service": "telegram",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.telegram.org/bot{token}/sendMessage",
+            "status": 400,
+            "body": {
+              "ok": false,
+              "error_code": 400,
+              "description": "Bad Request: chat not found"
+            }
+          }
+        ]
+      },
+      "note": "Telegram Params leaves telegram_chat_id empty in the template, so the real API refuses; the request is still the effect compared"
+    },
+    {
+      "node": "Telegram1",
+      "service": "telegram",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.telegram.org/bot{token}/sendMessage",
+            "status": 400,
+            "body": {
+              "ok": false,
+              "error_code": 400,
+              "description": "Bad Request: chat not found"
+            }
+          }
+        ]
+      },
+      "note": "Telegram Params leaves telegram_chat_id empty in the template, so the real API refuses; the request is still the effect compared"
+    },
+    {
+      "node": "Telegram2",
+      "service": "telegram",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.telegram.org/bot{token}/sendMessage",
+            "status": 400,
+            "body": {
+              "ok": false,
+              "error_code": 400,
+              "description": "Bad Request: chat not found"
+            }
+          }
+        ]
+      },
+      "note": "Telegram Params leaves telegram_chat_id empty in the template, so the real API refuses; the request is still the effect compared"
+    },
+    {
+      "node": "send error message to telegram",
+      "service": "telegram",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.telegram.org/bot{token}/sendMessage",
+            "status": 400,
+            "body": {
+              "ok": false,
+              "error_code": 400,
+              "description": "Bad Request: chat not found"
+            }
+          }
+        ]
+      },
+      "note": "Telegram Params leaves telegram_chat_id empty in the template, so the real API refuses; the request is still the effect compared"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "the #blender3d request fails with 429 (no continue-on-fail), so the run stops before the loop in n8n; a side that goes on meets item.caption.text on a null caption in filter the image content"
+    ]
+  }
+}

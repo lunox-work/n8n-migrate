@@ -1,0 +1,514 @@
+{
+  "schemaVersion": 1,
+  "template": 3016,
+  "sha256": "0c05bce469f6d9f7de49332c0ee7e1b323537d62777a49ffd9a1c034e43ad850",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "an invoice email whose first attachment is a PNG and whose 'PDF' is truncated, with a 1,500-character subject full of path separators",
+  "trigger": {
+    "node": "Gmail Trigger1",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {
+          "id": "19a8d3000000e004",
+          "threadId": "19a8d3000000e004",
+          "labelIds": [
+            "INBOX",
+            "UNREAD",
+            "CATEGORY_UPDATES"
+          ],
+          "sizeEstimate": 2486,
+          "headers": {
+            "from": "\"Hostinger\" <billing@hostinger.example>",
+            "to": "\"Lucía Fernández\" <facturas@estudio-lf.example>",
+            "cc": "contabilidad@estudio-lf.example",
+            "subject": "Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factur",
+            "date": "Mon, 16 Nov 2026 07:12:00 +0000",
+            "message-id": "<19a8d3000000e004@mail.example>",
+            "content-type": "multipart/mixed; boundary=\"=_bench_boundary_19a8d3000000e004\""
+          },
+          "html": false,
+          "text": "Hola Lucía,\nAdjuntamos la factura de tu pedido.\nGracias por confiar en Hostinger.",
+          "textAsHtml": "<p>Hola Lucía,<br/>Adjuntamos la factura de tu pedido.<br/>Gracias por confiar en Hostinger.</p>",
+          "subject": "Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factur",
+          "date": "2026-11-16T07:12:00.000Z",
+          "to": {
+            "value": [
+              {
+                "address": "facturas@estudio-lf.example",
+                "name": "Lucía Fernández"
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">Lucía Fernández</span> &lt;<a href=\"mailto:facturas@estudio-lf.example\" class=\"mp_address_email\">facturas@estudio-lf.example</a>&gt;</span>",
+            "text": "\"Lucía Fernández\" <facturas@estudio-lf.example>"
+          },
+          "from": {
+            "value": [
+              {
+                "address": "billing@hostinger.example",
+                "name": "Hostinger"
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">Hostinger</span> &lt;<a href=\"mailto:billing@hostinger.example\" class=\"mp_address_email\">billing@hostinger.example</a>&gt;</span>",
+            "text": "\"Hostinger\" <billing@hostinger.example>"
+          },
+          "cc": {
+            "value": [
+              {
+                "address": "contabilidad@estudio-lf.example",
+                "name": ""
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\"></span> &lt;<a href=\"mailto:contabilidad@estudio-lf.example\" class=\"mp_address_email\">contabilidad@estudio-lf.example</a>&gt;</span>",
+            "text": "contabilidad@estudio-lf.example"
+          },
+          "messageId": "<19a8d3000000e004@mail.example>"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Gmail Trigger1",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages",
+            "query": {
+              "q": "is:unread"
+            },
+            "status": 200,
+            "body": {
+              "messages": [
+                {
+                  "id": "19a8d3000000e004",
+                  "threadId": "19a8d3000000e004"
+                }
+              ],
+              "resultSizeEstimate": 1
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8d3000000e004",
+            "query": {
+              "format": "raw"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a8d3000000e004",
+              "threadId": "19a8d3000000e004",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_UPDATES"
+              ],
+              "snippet": "Hola Lucía, Adjuntamos la factura de tu pedido. Gracias por confiar en Hostinger.",
+              "sizeEstimate": 2486,
+              "historyId": "5524600",
+              "internalDate": "1794813120000",
+              "raw": "RnJvbTogIkhvc3RpbmdlciIgPGJpbGxpbmdAaG9zdGluZ2VyLmV4YW1wbGU-DQpUbzogIkx1Y8OtYSBGZXJuw6FuZGV6IiA8ZmFjdHVyYXNAZXN0dWRpby1sZi5leGFtcGxlPg0KQ2M6IGNvbnRhYmlsaWRhZEBlc3R1ZGlvLWxmLmV4YW1wbGUNClN1YmplY3Q6IEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cmEvLi4vLi4vZXRjIEZhY3R1cg0KRGF0ZTogTW9uLCAxNiBOb3YgMjAyNiAwNzoxMjowMCArMDAwMA0KTWVzc2FnZS1JRDogPDE5YThkMzAwMDAwMGUwMDRAbWFpbC5leGFtcGxlPg0KTUlNRS1WZXJzaW9uOiAxLjANCkNvbnRlbnQtVHlwZTogbXVsdGlwYXJ0L21peGVkOyBib3VuZGFyeT0iPV9iZW5jaF9ib3VuZGFyeV8xOWE4ZDMwMDAwMDBlMDA0Ig0KDQotLT1fYmVuY2hfYm91bmRhcnlfMTlhOGQzMDAwMDAwZTAwNA0KQ29udGVudC1UeXBlOiB0ZXh0L3BsYWluOyBjaGFyc2V0PVVURi04DQoNCkhvbGEgTHVjw61hLApBZGp1bnRhbW9zIGxhIGZhY3R1cmEgZGUgdHUgcGVkaWRvLgpHcmFjaWFzIHBvciBjb25maWFyIGVuIEhvc3Rpbmdlci4NCi0tPV9iZW5jaF9ib3VuZGFyeV8xOWE4ZDMwMDAwMDBlMDA0DQpDb250ZW50LVR5cGU6IGltYWdlL3BuZzsgbmFtZT0ibG9nby5wbmciDQpDb250ZW50LURpc3Bvc2l0aW9uOiBhdHRhY2htZW50OyBmaWxlbmFtZT0ibG9nby5wbmciDQpDb250ZW50LVRyYW5zZmVyLUVuY29kaW5nOiBiYXNlNjQNCg0KaVZCT1J3MEtHZ289DQotLT1fYmVuY2hfYm91bmRhcnlfMTlhOGQzMDAwMDAwZTAwNA0KQ29udGVudC1UeXBlOiBhcHBsaWNhdGlvbi9wZGY7IG5hbWU9ImZhY3R1cmEucGRmIg0KQ29udGVudC1EaXNwb3NpdGlvbjogYXR0YWNobWVudDsgZmlsZW5hbWU9ImZhY3R1cmEucGRmIg0KQ29udGVudC1UcmFuc2Zlci1FbmNvZGluZzogYmFzZTY0DQoNCkpWQkVSaTB4TGpRS2RHaHBjeUJwY3lCdWIzUWdjbVZoYkd4NUlHRWdjR1JtTENCcGRDQjNZWE1nZEhKMWJtTmhkR1ZrSUdsdUlIUnkNCllXNXphWFE9DQotLT1fYmVuY2hfYm91bmRhcnlfMTlhOGQzMDAwMDAwZTAwNC0tDQo"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_threads",
+            "args": {
+              "query": "is:unread has:attachment"
+            },
+            "result": {
+              "threads": [
+                {
+                  "id": "19a8d3000000e004",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8d3000000e004",
+                  "messages": [
+                    {
+                      "id": "19a8d3000000e004",
+                      "snippet": "Hola Lucía, Adjuntamos la factura de tu pedido. Gracias por confiar en Hostinger.",
+                      "subject": "Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factur",
+                      "sender": "billing@hostinger.example",
+                      "toRecipients": [
+                        "facturas@estudio-lf.example"
+                      ],
+                      "date": "2026-11-16T07:12:00.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "UNREAD",
+                        "CATEGORY_UPDATES"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "tool": "get_message",
+            "args": {
+              "messageId": "19a8d3000000e004"
+            },
+            "result": {
+              "id": "19a8d3000000e004",
+              "threadId": "19a8d3000000e004",
+              "snippet": "Hola Lucía, Adjuntamos la factura de tu pedido. Gracias por confiar en Hostinger.",
+              "subject": "Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factur",
+              "sender": "billing@hostinger.example",
+              "toRecipients": [
+                "facturas@estudio-lf.example"
+              ],
+              "ccRecipients": [
+                "contabilidad@estudio-lf.example"
+              ],
+              "bccRecipients": [],
+              "addressDisplayNames": {
+                "billing@hostinger.example": "Hostinger",
+                "facturas@estudio-lf.example": "Lucía Fernández"
+              },
+              "date": "2026-11-16T07:12:00.000Z",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_UPDATES"
+              ],
+              "plaintextBody": "Hola Lucía,\nAdjuntamos la factura de tu pedido.\nGracias por confiar en Hostinger.",
+              "attachmentIds": [
+                "ANGjdJ6c6f676f2e706e67",
+                "ANGjdJ666163747572612e706466"
+              ],
+              "attachments": [
+                {
+                  "attachmentId": "ANGjdJ6c6f676f2e706e67",
+                  "filename": "logo.png",
+                  "mimeType": "image/png",
+                  "size": 8
+                },
+                {
+                  "attachmentId": "ANGjdJ666163747572612e706466",
+                  "filename": "factura.pdf",
+                  "mimeType": "application/pdf",
+                  "size": 62
+                }
+              ],
+              "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8d3000000e004"
+            }
+          },
+          {
+            "tool": "download_gmail_attachment",
+            "args": {
+              "messageId": "19a8d3000000e004",
+              "attachmentId": "ANGjdJ6c6f676f2e706e67",
+              "filename": "logo.png"
+            },
+            "result": {
+              "filename": "logo.png",
+              "mimeType": "image/png",
+              "base64Content": "iVBORw0KGgo="
+            }
+          },
+          {
+            "tool": "download_gmail_attachment",
+            "args": {
+              "messageId": "19a8d3000000e004",
+              "attachmentId": "ANGjdJ666163747572612e706466",
+              "filename": "factura.pdf"
+            },
+            "result": {
+              "filename": "factura.pdf",
+              "mimeType": "application/pdf",
+              "base64Content": "JVBERi0xLjQKdGhpcyBpcyBub3QgcmVhbGx5IGEgcGRmLCBpdCB3YXMgdHJ1bmNhdGVkIGluIHRyYW5zaXQ="
+            }
+          }
+        ]
+      },
+      "note": "binary attachments cannot be pinned, so trigger.items lacks attachment_0. For the PDF path the n8n side should let the trigger poll once through tls-intercept (manual mode polls), answered by these http responses"
+    },
+    {
+      "node": "Google Drive",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1UpL0ad1",
+            "query": {
+              "alt": "media"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "application/pdf"
+            },
+            "bodyBase64": "JVBERi0xLjQKdGhpcyBpcyBub3QgcmVhbGx5IGEgcGRmLCBpdCB3YXMgdHJ1bmNhdGVkIGluIHRyYW5zaXQ="
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1UpL0ad1",
+            "status": 200,
+            "body": {
+              "id": "1UpL0ad1",
+              "name": "Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factur_invoice_2026-11-16.pdf",
+              "mimeType": "application/pdf",
+              "size": "62"
+            }
+          }
+        ]
+      },
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "kind": "drive#file",
+              "id": "1UpL0ad1",
+              "name": "Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factur_invoice_2026-11-16.pdf",
+              "mimeType": "application/pdf",
+              "starred": false,
+              "trashed": false,
+              "explicitlyTrashed": false,
+              "parents": [
+                "1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj"
+              ],
+              "spaces": [
+                "drive"
+              ],
+              "version": "3",
+              "webContentLink": "https://drive.google.com/uc?id=1UpL0ad1&export=download",
+              "webViewLink": "https://drive.google.com/file/d/1UpL0ad1/view?usp=drivesdk",
+              "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/application/pdf",
+              "hasThumbnail": true,
+              "viewedByMe": false,
+              "createdTime": "2026-11-16T09:00:00.000Z",
+              "modifiedTime": "2026-11-16T09:00:00.000Z",
+              "modifiedByMeTime": "2026-11-16T09:00:00.000Z",
+              "owners": [
+                {
+                  "kind": "drive#user",
+                  "displayName": "bench-sa",
+                  "emailAddress": "bench-sa@bench-project.iam.gserviceaccount.com",
+                  "me": true
+                }
+              ],
+              "shared": false,
+              "ownedByMe": true,
+              "originalFilename": "Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factur_invoice_2026-11-16.pdf",
+              "fullFileExtension": "pdf",
+              "fileExtension": "pdf",
+              "md5Checksum": "00000000000000000000000000000000",
+              "size": "62",
+              "quotaBytesUsed": "62"
+            }
+          }
+        ],
+        "why": "a pin carries no binary; Extract from File needs tls-intercept"
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1UpL0ad1"
+            },
+            "result": {
+              "fileId": "1UpL0ad1",
+              "title": "Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factur_invoice_2026-11-16.pdf",
+              "mimeType": "application/pdf",
+              "content": "JVBERi0xLjQKdGhpcyBpcyBub3QgcmVhbGx5IGEgcGRmLCBpdCB3YXMgdHJ1bmNhdGVkIGluIHRyYW5zaXQ="
+            }
+          }
+        ]
+      },
+      "note": "downloads the file the workflow just uploaded"
+    }
+  ],
+  "models": [
+    "Apply Data Extraction Rules",
+    "OpenAI Model"
+  ],
+  "writes": [
+    "Upload PDF to Drive1",
+    "Rename file1",
+    "Move to the correct folder1",
+    "Gmail",
+    "Append to Reconciliation Sheet"
+  ],
+  "writeReplies": [
+    {
+      "node": "Upload PDF to Drive1",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "uploadType": "media"
+            },
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1UpL0ad1",
+              "name": "Untitled",
+              "mimeType": "application/pdf"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Rename file1",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1UpL0ad1",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1UpL0ad1",
+              "name": "Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factur_invoice_2026-11-16.pdf",
+              "mimeType": "application/pdf"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Move to the correct folder1",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1UpL0ad1",
+            "query": {
+              "addParents": "1fCWCdqrFP3WrjjLc-gJtxMaiaF5lh8Ko"
+            },
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1UpL0ad1",
+              "name": "Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factura/../../etc Factur_invoice_2026-11-16.pdf",
+              "mimeType": "application/pdf",
+              "parents": [
+                "1fCWCdqrFP3WrjjLc-gJtxMaiaF5lh8Ko"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Gmail",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8d3000000e004/modify",
+            "status": 200,
+            "body": {
+              "id": "19a8d3000000e004",
+              "threadId": "19a8d3000000e004",
+              "labelIds": [
+                "INBOX",
+                "CATEGORY_UPDATES"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Append to Reconciliation Sheet",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1gIUnjSWUhsoTOVVd4ZoVjARCGQfGE8s7FWcju3lNajM",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1gIUnjSWUhsoTOVVd4ZoVjARCGQfGE8s7FWcju3lNajM",
+              "properties": {
+                "title": "facturas"
+              },
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Hoja 1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1gIUnjSWUhsoTOVVd4ZoVjARCGQfGE8s7FWcju3lNajM/values/Hoja%201!1:1",
+            "status": 200,
+            "body": {
+              "range": "'Hoja 1'!A1:Z1",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Invoice date",
+                  "Invoice Description",
+                  "Total price",
+                  "Fichero"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1gIUnjSWUhsoTOVVd4ZoVjARCGQfGE8s7FWcju3lNajM/values/Hoja%201:append",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1gIUnjSWUhsoTOVVd4ZoVjARCGQfGE8s7FWcju3lNajM",
+              "tableRange": "'Hoja 1'!A1:D15",
+              "updates": {
+                "spreadsheetId": "1gIUnjSWUhsoTOVVd4ZoVjARCGQfGE8s7FWcju3lNajM",
+                "updatedRange": "'Hoja 1'!A16:D16",
+                "updatedRows": 1,
+                "updatedColumns": 4,
+                "updatedCells": 4
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Sheets connector"
+      }
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Only invoice mails with attachments: true; Upload PDF to Drive1 picks attachment_1 because attachment_0 is not a PDF; Extract from File2 is expected to fail on the truncated PDF"
+    ]
+  }
+}

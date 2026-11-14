@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "template": 2777,
+  "sha256": "2e159512e4814640ecdb415e590d6ef24099cb50842658379e43b70d22581d57",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "an empty chat message",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "68cb82d504c14f5eb80bdf2478bd39bb",
+          "action": "sendMessage",
+          "chatInput": ""
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [
+    "Basic LLM Chain2",
+    "Ollama DeepSeek"
+  ],
+  "writes": [],
+  "pinData": {
+    "When chat message received": [
+      {
+        "json": {
+          "action": "sendMessage",
+          "chatInput": "provide 10 sentences that end in the word apple.",
+          "sessionId": "68cb82d504c14f5eb80bdf2478bd39bb"
+        }
+      }
+    ]
+  },
+  "expect": {
+    "branches": [
+      "no IF/Switch; the chain gets an empty prompt"
+    ]
+  }
+}

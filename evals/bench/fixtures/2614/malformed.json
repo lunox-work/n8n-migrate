@@ -1,0 +1,414 @@
+{
+  "schemaVersion": 1,
+  "template": 2614,
+  "sha256": "5f79f2f42600185959a078442c4882d97bcd650fe0bfd99e50892dc1bdf0fb4c",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "a Google Doc (neither branch), a '.pdf' whose download is an HTML error page with a 403, and a file with no mimeType",
+  "trigger": {
+    "node": "Get PDF or Images",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {
+          "kind": "drive#file",
+          "id": "1gDoc00000000000000000000000000000",
+          "name": "notes",
+          "mimeType": "application/vnd.google-apps.document",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "parents": [
+            "1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj"
+          ],
+          "spaces": [
+            "drive"
+          ],
+          "version": "3",
+          "webContentLink": "https://drive.google.com/uc?id=1gDoc00000000000000000000000000000&export=download",
+          "webViewLink": "https://drive.google.com/file/d/1gDoc00000000000000000000000000000/view?usp=drivesdk",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/application/vnd.google-apps.document",
+          "hasThumbnail": true,
+          "viewedByMe": false,
+          "createdTime": "2026-11-16T08:57:00.000Z",
+          "modifiedTime": "2026-11-16T08:57:00.000Z",
+          "modifiedByMeTime": "2026-11-16T08:57:00.000Z",
+          "owners": [
+            {
+              "kind": "drive#user",
+              "displayName": "bench-sa",
+              "emailAddress": "bench-sa@bench-project.iam.gserviceaccount.com",
+              "me": true
+            }
+          ],
+          "shared": false,
+          "ownedByMe": true,
+          "originalFilename": "notes",
+          "fullFileExtension": "notes",
+          "fileExtension": "notes",
+          "md5Checksum": "00000000000000000000000000000000",
+          "size": "0",
+          "quotaBytesUsed": "0"
+        }
+      },
+      {
+        "json": {
+          "kind": "drive#file",
+          "id": "1fAkE00000000000000000000000000000",
+          "name": "statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_s.pdf",
+          "mimeType": "application/pdf",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "parents": [
+            "1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj"
+          ],
+          "spaces": [
+            "drive"
+          ],
+          "version": "3",
+          "webContentLink": "https://drive.google.com/uc?id=1fAkE00000000000000000000000000000&export=download",
+          "webViewLink": "https://drive.google.com/file/d/1fAkE00000000000000000000000000000/view?usp=drivesdk",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/application/pdf",
+          "hasThumbnail": true,
+          "viewedByMe": false,
+          "createdTime": "2026-11-16T08:57:30.000Z",
+          "modifiedTime": "2026-11-16T08:57:30.000Z",
+          "modifiedByMeTime": "2026-11-16T08:57:30.000Z",
+          "owners": [
+            {
+              "kind": "drive#user",
+              "displayName": "bench-sa",
+              "emailAddress": "bench-sa@bench-project.iam.gserviceaccount.com",
+              "me": true
+            }
+          ],
+          "shared": false,
+          "ownedByMe": true,
+          "originalFilename": "statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_s.pdf",
+          "fullFileExtension": "pdf",
+          "fileExtension": "pdf",
+          "md5Checksum": "00000000000000000000000000000000",
+          "size": "1234",
+          "quotaBytesUsed": "1234"
+        }
+      },
+      {
+        "json": {
+          "kind": "drive#file",
+          "id": "1nOtYpE0000000000000000000000000000",
+          "name": "upload.bin",
+          "mimeType": null,
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "parents": [
+            "1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj"
+          ],
+          "spaces": [
+            "drive"
+          ],
+          "version": "3",
+          "webContentLink": "https://drive.google.com/uc?id=1nOtYpE0000000000000000000000000000&export=download",
+          "webViewLink": "https://drive.google.com/file/d/1nOtYpE0000000000000000000000000000/view?usp=drivesdk",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/null",
+          "hasThumbnail": true,
+          "viewedByMe": false,
+          "createdTime": null,
+          "modifiedTime": null,
+          "modifiedByMeTime": null,
+          "owners": [
+            {
+              "kind": "drive#user",
+              "displayName": "bench-sa",
+              "emailAddress": "bench-sa@bench-project.iam.gserviceaccount.com",
+              "me": true
+            }
+          ],
+          "shared": false,
+          "ownedByMe": true,
+          "originalFilename": "upload.bin",
+          "fullFileExtension": "bin",
+          "fileExtension": "bin",
+          "md5Checksum": "00000000000000000000000000000000",
+          "size": "0",
+          "quotaBytesUsed": "0"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get PDF or Images",
+      "service": "google-drive",
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_files",
+            "args": {
+              "query": "'1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj' in parents and createdTime > '2026-11-16T08:58:00'"
+            },
+            "result": {
+              "files": [
+                {
+                  "id": "1gDoc00000000000000000000000000000",
+                  "title": "notes",
+                  "mimeType": "application/vnd.google-apps.document",
+                  "createdTime": "2026-11-16T08:57:00.000Z",
+                  "modifiedTime": "2026-11-16T08:57:00.000Z",
+                  "parentId": "1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj",
+                  "viewUrl": "https://drive.google.com/file/d/1gDoc00000000000000000000000000000/view"
+                },
+                {
+                  "id": "1fAkE00000000000000000000000000000",
+                  "title": "statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_s.pdf",
+                  "mimeType": "application/pdf",
+                  "createdTime": "2026-11-16T08:57:30.000Z",
+                  "modifiedTime": "2026-11-16T08:57:30.000Z",
+                  "parentId": "1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj",
+                  "viewUrl": "https://drive.google.com/file/d/1fAkE00000000000000000000000000000/view"
+                },
+                {
+                  "id": "1nOtYpE0000000000000000000000000000",
+                  "title": "upload.bin",
+                  "mimeType": null,
+                  "createdTime": null,
+                  "modifiedTime": null,
+                  "parentId": "1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj",
+                  "viewUrl": "https://drive.google.com/file/d/1nOtYpE0000000000000000000000000000/view"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "note": "poll source for the Claude side; the n8n side pins trigger.items"
+    },
+    {
+      "node": "Download PDF",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1fAkE00000000000000000000000000000",
+            "query": {
+              "alt": "media"
+            },
+            "status": 403,
+            "headers": {
+              "content-type": "text/html"
+            },
+            "body": "<!DOCTYPE html><html><body>We're sorry, but you do not have access to this page.</body></html>"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1fAkE00000000000000000000000000000",
+            "status": 200,
+            "body": {
+              "id": "1fAkE00000000000000000000000000000",
+              "name": "statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_s.pdf",
+              "mimeType": "application/pdf",
+              "size": "1234"
+            }
+          }
+        ]
+      },
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "kind": "drive#file",
+              "id": "1fAkE00000000000000000000000000000",
+              "name": "statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_s.pdf",
+              "mimeType": "application/pdf",
+              "starred": false,
+              "trashed": false,
+              "explicitlyTrashed": false,
+              "parents": [
+                "1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj"
+              ],
+              "spaces": [
+                "drive"
+              ],
+              "version": "3",
+              "webContentLink": "https://drive.google.com/uc?id=1fAkE00000000000000000000000000000&export=download",
+              "webViewLink": "https://drive.google.com/file/d/1fAkE00000000000000000000000000000/view?usp=drivesdk",
+              "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/application/pdf",
+              "hasThumbnail": true,
+              "viewedByMe": false,
+              "createdTime": "2026-11-16T08:57:30.000Z",
+              "modifiedTime": "2026-11-16T08:57:30.000Z",
+              "modifiedByMeTime": "2026-11-16T08:57:30.000Z",
+              "owners": [
+                {
+                  "kind": "drive#user",
+                  "displayName": "bench-sa",
+                  "emailAddress": "bench-sa@bench-project.iam.gserviceaccount.com",
+                  "me": true
+                }
+              ],
+              "shared": false,
+              "ownedByMe": true,
+              "originalFilename": "statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_s.pdf",
+              "fullFileExtension": "pdf",
+              "fileExtension": "pdf",
+              "md5Checksum": "00000000000000000000000000000000",
+              "size": "1234",
+              "quotaBytesUsed": "1234"
+            }
+          }
+        ],
+        "why": "a pin carries JSON only, not the binary `data`, so Extract from File / the vision chain get no file: use tls-intercept"
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1fAkE00000000000000000000000000000"
+            },
+            "result": {
+              "fileId": "1fAkE00000000000000000000000000000",
+              "title": "statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_statement_final_v2_s.pdf",
+              "mimeType": "application/pdf",
+              "content": "PCFET0NUWVBFIGh0bWw+PGh0bWw+PGJvZHk+V2UncmUgc29ycnksIGJ1dCB5b3UgZG8gbm90IGhhdmUgYWNjZXNzIHRvIHRoaXMgcGFnZS48L2JvZHk+PC9odG1sPg=="
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Download Image",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "n8n": {
+        "items": [],
+        "why": "not reached in this variant"
+      },
+      "note": "no item takes this Switch output in this variant"
+    }
+  ],
+  "models": [
+    "Send data to A.I.",
+    "Vertex A.I. extract text",
+    "Google Gemini Chat Model"
+  ],
+  "writes": [
+    "Upload to Google Drive",
+    "Upload to Google Drive1"
+  ],
+  "writeReplies": [
+    {
+      "node": "Upload to Google Drive",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "uploadType": "resumable"
+            },
+            "status": 200,
+            "headers": {
+              "location": "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=bench-1"
+            },
+            "body": ""
+          },
+          {
+            "method": "PUT",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1CsvOut1",
+              "name": "2026-11-16",
+              "mimeType": "text/csv",
+              "parents": [
+                "1Zo4OFCv1qWRX1jo0VL_iqUBf4v0fZEXe"
+              ]
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1CsvOut1",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1CsvOut1",
+              "name": "2026-11-16",
+              "mimeType": "text/csv",
+              "parents": [
+                "1Zo4OFCv1qWRX1jo0VL_iqUBf4v0fZEXe"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Upload to Google Drive1",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "uploadType": "resumable"
+            },
+            "status": 200,
+            "headers": {
+              "location": "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=bench-2"
+            },
+            "body": ""
+          },
+          {
+            "method": "PUT",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1CsvOut2",
+              "name": "2026-11-16",
+              "mimeType": "text/csv",
+              "parents": [
+                "1Zo4OFCv1qWRX1jo0VL_iqUBf4v0fZEXe"
+              ]
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1CsvOut2",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1CsvOut2",
+              "name": "2026-11-16",
+              "mimeType": "text/csv",
+              "parents": [
+                "1Zo4OFCv1qWRX1jo0VL_iqUBf4v0fZEXe"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Route based on PDF or Image: no output for the Google Doc and for the null mimeType; pdf for the fake PDF, whose download fails with 403"
+    ]
+  }
+}

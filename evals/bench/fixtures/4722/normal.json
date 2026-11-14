@@ -1,0 +1,982 @@
+{
+  "schemaVersion": 1,
+  "template": 4722,
+  "sha256": "b8e89ca54e268a4f711b3a7c1380adfe776219ce3a8ef80ad59b65020168577c",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "two new emails: a cold promotional mail (no history) and a meeting acceptance from a contact with history",
+  "trigger": {
+    "node": "Gmail Trigger",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {
+          "id": "19a8c2f0d4e1b301",
+          "threadId": "19a8c2f0d4e1b301",
+          "snippet": "Hi Max, Empower your AI agent with Coresignal's company and employee data. Our new MCP server connects your LLM tools directly to 3B+ record",
+          "payload": {
+            "mimeType": "text/plain"
+          },
+          "sizeEstimate": 660,
+          "historyId": "5524600",
+          "internalDate": "1794818460000",
+          "labels": [
+            {
+              "id": "INBOX",
+              "name": "INBOX"
+            },
+            {
+              "id": "CATEGORY_PROMOTIONS",
+              "name": "CATEGORY_PROMOTIONS"
+            },
+            {
+              "id": "UNREAD",
+              "name": "UNREAD"
+            }
+          ],
+          "From": "\"Coresignal\" <info@coresignal.example>",
+          "To": "\"Max\" <owner@trigify.example>",
+          "Cc": "sales-team@trigify.example",
+          "Subject": "New MCP server: direct data access for smarter AI"
+        }
+      },
+      {
+        "json": {
+          "id": "19a8c31b77a0e902",
+          "threadId": "19a8a0e2c1f3d410",
+          "snippet": "Priya Raman has accepted this invitation. Trigify x Acme weekly sync Tuesday 18 Nov 2026 3pm - 3:30pm (GMT)",
+          "payload": {
+            "mimeType": "text/plain"
+          },
+          "sizeEstimate": 594,
+          "historyId": "5524600",
+          "internalDate": "1794819120000",
+          "labels": [
+            {
+              "id": "INBOX",
+              "name": "INBOX"
+            },
+            {
+              "id": "UNREAD",
+              "name": "UNREAD"
+            },
+            {
+              "id": "CATEGORY_UPDATES",
+              "name": "CATEGORY_UPDATES"
+            }
+          ],
+          "From": "\"Priya Raman\" <priya@acme-logistics.example>",
+          "To": "\"Max\" <owner@trigify.example>",
+          "Cc": "\"Tom Hale\" <tom@acme-logistics.example>",
+          "Subject": "Accepted: Trigify x Acme weekly sync @ Tue 18 Nov 2026 3pm - 3:30pm (GMT)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Gmail Trigger",
+      "service": "gmail",
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_threads",
+            "args": {
+              "query": "in:inbox newer_than:1d"
+            },
+            "result": {
+              "threads": [
+                {
+                  "id": "19a8c2f0d4e1b301",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8c2f0d4e1b301",
+                  "messages": [
+                    {
+                      "id": "19a8c2f0d4e1b301",
+                      "snippet": "Hi Max, Empower your AI agent with Coresignal's company and employee data. Our new MCP server connects your LLM tools directly to 3B+ record",
+                      "subject": "New MCP server: direct data access for smarter AI",
+                      "sender": "info@coresignal.example",
+                      "toRecipients": [
+                        "owner@trigify.example"
+                      ],
+                      "date": "2026-11-16T08:41:00.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "CATEGORY_PROMOTIONS",
+                        "UNREAD"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "19a8a0e2c1f3d410",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8a0e2c1f3d410",
+                  "messages": [
+                    {
+                      "id": "19a8c31b77a0e902",
+                      "snippet": "Priya Raman has accepted this invitation. Trigify x Acme weekly sync Tuesday 18 Nov 2026 3pm - 3:30pm (GMT)",
+                      "subject": "Accepted: Trigify x Acme weekly sync @ Tue 18 Nov 2026 3pm - 3:30pm (GMT)",
+                      "sender": "priya@acme-logistics.example",
+                      "toRecipients": [
+                        "owner@trigify.example"
+                      ],
+                      "date": "2026-11-16T08:52:00.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "UNREAD",
+                        "CATEGORY_UPDATES"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "note": "poll source for the Claude side; the n8n side pins trigger.items"
+    },
+    {
+      "node": "Gmail",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8c2f0d4e1b301",
+            "query": {
+              "format": "raw"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a8c2f0d4e1b301",
+              "threadId": "19a8c2f0d4e1b301",
+              "labelIds": [
+                "INBOX",
+                "CATEGORY_PROMOTIONS",
+                "UNREAD"
+              ],
+              "snippet": "Hi Max, Empower your AI agent with Coresignal's company and employee data. Our new MCP server connects your LLM tools directly to 3B+ record",
+              "sizeEstimate": 660,
+              "historyId": "5524600",
+              "internalDate": "1794818460000",
+              "raw": "RnJvbTogIkNvcmVzaWduYWwiIDxpbmZvQGNvcmVzaWduYWwuZXhhbXBsZT4NClRvOiAiTWF4IiA8b3duZXJAdHJpZ2lmeS5leGFtcGxlPg0KQ2M6IHNhbGVzLXRlYW1AdHJpZ2lmeS5leGFtcGxlDQpTdWJqZWN0OiBOZXcgTUNQIHNlcnZlcjogZGlyZWN0IGRhdGEgYWNjZXNzIGZvciBzbWFydGVyIEFJDQpEYXRlOiBNb24sIDE2IE5vdiAyMDI2IDA4OjQxOjAwICswMDAwDQpNZXNzYWdlLUlEOiA8MTlhOGMyZjBkNGUxYjMwMUBtYWlsLmV4YW1wbGU-DQpNSU1FLVZlcnNpb246IDEuMA0KTGlzdC1VbnN1YnNjcmliZTogPGh0dHBzOi8vY29yZXNpZ25hbC5leGFtcGxlL3UvYWJjPg0KUHJlY2VkZW5jZTogYnVsaw0KQ29udGVudC1UeXBlOiB0ZXh0L3BsYWluOyBjaGFyc2V0PVVURi04DQpDb250ZW50LVRyYW5zZmVyLUVuY29kaW5nOiA4Yml0DQoNCkhpIE1heCwKCkVtcG93ZXIgeW91ciBBSSBhZ2VudCB3aXRoIENvcmVzaWduYWwncyBjb21wYW55IGFuZCBlbXBsb3llZSBkYXRhLiBPdXIgbmV3IE1DUCBzZXJ2ZXIgY29ubmVjdHMgeW91ciBMTE0gdG9vbHMgZGlyZWN0bHkgdG8gM0IrIHJlY29yZHMuCgpCb29rIGEgZGVtbzogaHR0cHM6Ly9jb3Jlc2lnbmFsLmV4YW1wbGUvZGVtbwoKVW5zdWJzY3JpYmU6IGh0dHBzOi8vY29yZXNpZ25hbC5leGFtcGxlL3UvYWJj"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8c31b77a0e902",
+            "query": {
+              "format": "raw"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a8c31b77a0e902",
+              "threadId": "19a8a0e2c1f3d410",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_UPDATES"
+              ],
+              "snippet": "Priya Raman has accepted this invitation. Trigify x Acme weekly sync Tuesday 18 Nov 2026 3pm - 3:30pm (GMT)",
+              "sizeEstimate": 594,
+              "historyId": "5524600",
+              "internalDate": "1794819120000",
+              "raw": "RnJvbTogIlByaXlhIFJhbWFuIiA8cHJpeWFAYWNtZS1sb2dpc3RpY3MuZXhhbXBsZT4NClRvOiAiTWF4IiA8b3duZXJAdHJpZ2lmeS5leGFtcGxlPg0KQ2M6ICJUb20gSGFsZSIgPHRvbUBhY21lLWxvZ2lzdGljcy5leGFtcGxlPg0KU3ViamVjdDogQWNjZXB0ZWQ6IFRyaWdpZnkgeCBBY21lIHdlZWtseSBzeW5jIEAgVHVlIDE4IE5vdiAyMDI2IDNwbSAtIDM6MzBwbSAoR01UKQ0KRGF0ZTogTW9uLCAxNiBOb3YgMjAyNiAwODo1MjowMCArMDAwMA0KTWVzc2FnZS1JRDogPDE5YThjMzFiNzdhMGU5MDJAbWFpbC5leGFtcGxlPg0KTUlNRS1WZXJzaW9uOiAxLjANCkluLVJlcGx5LVRvOiA8MTlhOGEwZTJjMWYzZDQxMEBtYWlsLmV4YW1wbGU-DQpSZWZlcmVuY2VzOiA8MTlhOGEwZTJjMWYzZDQxMEBtYWlsLmV4YW1wbGU-DQpDb250ZW50LVR5cGU6IHRleHQvcGxhaW47IGNoYXJzZXQ9VVRGLTgNCkNvbnRlbnQtVHJhbnNmZXItRW5jb2Rpbmc6IDhiaXQNCg0KUHJpeWEgUmFtYW4gaGFzIGFjY2VwdGVkIHRoaXMgaW52aXRhdGlvbi4KClRyaWdpZnkgeCBBY21lIHdlZWtseSBzeW5jClR1ZXNkYXkgMTggTm92IDIwMjYgM3BtIC0gMzozMHBtIChHTVQp"
+            }
+          }
+        ]
+      },
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "id": "19a8c2f0d4e1b301",
+              "threadId": "19a8c2f0d4e1b301",
+              "labelIds": [
+                "INBOX",
+                "CATEGORY_PROMOTIONS",
+                "UNREAD"
+              ],
+              "sizeEstimate": 660,
+              "headers": {
+                "from": "\"Coresignal\" <info@coresignal.example>",
+                "to": "\"Max\" <owner@trigify.example>",
+                "cc": "sales-team@trigify.example",
+                "subject": "New MCP server: direct data access for smarter AI",
+                "date": "Mon, 16 Nov 2026 08:41:00 +0000",
+                "message-id": "<19a8c2f0d4e1b301@mail.example>",
+                "list-unsubscribe": "<https://coresignal.example/u/abc>",
+                "precedence": "bulk"
+              },
+              "html": false,
+              "text": "Hi Max,\n\nEmpower your AI agent with Coresignal's company and employee data. Our new MCP server connects your LLM tools directly to 3B+ records.\n\nBook a demo: https://coresignal.example/demo\n\nUnsubscribe: https://coresignal.example/u/abc",
+              "textAsHtml": "<p>Hi Max,<br/><br/>Empower your AI agent with Coresignal's company and employee data. Our new MCP server connects your LLM tools directly to 3B+ records.<br/><br/>Book a demo: https://coresignal.example/demo<br/><br/>Unsubscribe: https://coresignal.example/u/abc</p>",
+              "subject": "New MCP server: direct data access for smarter AI",
+              "date": "2026-11-16T08:41:00.000Z",
+              "to": {
+                "value": [
+                  {
+                    "address": "owner@trigify.example",
+                    "name": "Max"
+                  }
+                ],
+                "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">Max</span> &lt;<a href=\"mailto:owner@trigify.example\" class=\"mp_address_email\">owner@trigify.example</a>&gt;</span>",
+                "text": "\"Max\" <owner@trigify.example>"
+              },
+              "from": {
+                "value": [
+                  {
+                    "address": "info@coresignal.example",
+                    "name": "Coresignal"
+                  }
+                ],
+                "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">Coresignal</span> &lt;<a href=\"mailto:info@coresignal.example\" class=\"mp_address_email\">info@coresignal.example</a>&gt;</span>",
+                "text": "\"Coresignal\" <info@coresignal.example>"
+              },
+              "cc": {
+                "value": [
+                  {
+                    "address": "sales-team@trigify.example",
+                    "name": ""
+                  }
+                ],
+                "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\"></span> &lt;<a href=\"mailto:sales-team@trigify.example\" class=\"mp_address_email\">sales-team@trigify.example</a>&gt;</span>",
+                "text": "sales-team@trigify.example"
+              },
+              "messageId": "<19a8c2f0d4e1b301@mail.example>"
+            }
+          },
+          {
+            "json": {
+              "id": "19a8c31b77a0e902",
+              "threadId": "19a8a0e2c1f3d410",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_UPDATES"
+              ],
+              "sizeEstimate": 594,
+              "headers": {
+                "from": "\"Priya Raman\" <priya@acme-logistics.example>",
+                "to": "\"Max\" <owner@trigify.example>",
+                "cc": "\"Tom Hale\" <tom@acme-logistics.example>",
+                "subject": "Accepted: Trigify x Acme weekly sync @ Tue 18 Nov 2026 3pm - 3:30pm (GMT)",
+                "date": "Mon, 16 Nov 2026 08:52:00 +0000",
+                "message-id": "<19a8c31b77a0e902@mail.example>",
+                "in-reply-to": "<19a8a0e2c1f3d410@mail.example>",
+                "references": "<19a8a0e2c1f3d410@mail.example>"
+              },
+              "html": false,
+              "text": "Priya Raman has accepted this invitation.\n\nTrigify x Acme weekly sync\nTuesday 18 Nov 2026 3pm - 3:30pm (GMT)",
+              "textAsHtml": "<p>Priya Raman has accepted this invitation.<br/><br/>Trigify x Acme weekly sync<br/>Tuesday 18 Nov 2026 3pm - 3:30pm (GMT)</p>",
+              "subject": "Accepted: Trigify x Acme weekly sync @ Tue 18 Nov 2026 3pm - 3:30pm (GMT)",
+              "date": "2026-11-16T08:52:00.000Z",
+              "to": {
+                "value": [
+                  {
+                    "address": "owner@trigify.example",
+                    "name": "Max"
+                  }
+                ],
+                "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">Max</span> &lt;<a href=\"mailto:owner@trigify.example\" class=\"mp_address_email\">owner@trigify.example</a>&gt;</span>",
+                "text": "\"Max\" <owner@trigify.example>"
+              },
+              "from": {
+                "value": [
+                  {
+                    "address": "priya@acme-logistics.example",
+                    "name": "Priya Raman"
+                  }
+                ],
+                "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">Priya Raman</span> &lt;<a href=\"mailto:priya@acme-logistics.example\" class=\"mp_address_email\">priya@acme-logistics.example</a>&gt;</span>",
+                "text": "\"Priya Raman\" <priya@acme-logistics.example>"
+              },
+              "cc": {
+                "value": [
+                  {
+                    "address": "tom@acme-logistics.example",
+                    "name": "Tom Hale"
+                  }
+                ],
+                "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">Tom Hale</span> &lt;<a href=\"mailto:tom@acme-logistics.example\" class=\"mp_address_email\">tom@acme-logistics.example</a>&gt;</span>",
+                "text": "\"Tom Hale\" <tom@acme-logistics.example>"
+              },
+              "messageId": "<19a8c31b77a0e902@mail.example>"
+            }
+          }
+        ],
+        "why": "fallback when www.googleapis.com cannot be intercepted"
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "get_message",
+            "args": {
+              "messageId": "19a8c2f0d4e1b301"
+            },
+            "result": {
+              "id": "19a8c2f0d4e1b301",
+              "threadId": "19a8c2f0d4e1b301",
+              "snippet": "Hi Max, Empower your AI agent with Coresignal's company and employee data. Our new MCP server connects your LLM tools directly to 3B+ record",
+              "subject": "New MCP server: direct data access for smarter AI",
+              "sender": "info@coresignal.example",
+              "toRecipients": [
+                "owner@trigify.example"
+              ],
+              "ccRecipients": [
+                "sales-team@trigify.example"
+              ],
+              "bccRecipients": [],
+              "addressDisplayNames": {
+                "info@coresignal.example": "Coresignal",
+                "owner@trigify.example": "Max"
+              },
+              "date": "2026-11-16T08:41:00.000Z",
+              "labelIds": [
+                "INBOX",
+                "CATEGORY_PROMOTIONS",
+                "UNREAD"
+              ],
+              "plaintextBody": "Hi Max,\n\nEmpower your AI agent with Coresignal's company and employee data. Our new MCP server connects your LLM tools directly to 3B+ records.\n\nBook a demo: https://coresignal.example/demo\n\nUnsubscribe: https://coresignal.example/u/abc",
+              "attachmentIds": [],
+              "attachments": [],
+              "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8c2f0d4e1b301"
+            }
+          },
+          {
+            "tool": "get_message",
+            "args": {
+              "messageId": "19a8c31b77a0e902"
+            },
+            "result": {
+              "id": "19a8c31b77a0e902",
+              "threadId": "19a8a0e2c1f3d410",
+              "snippet": "Priya Raman has accepted this invitation. Trigify x Acme weekly sync Tuesday 18 Nov 2026 3pm - 3:30pm (GMT)",
+              "subject": "Accepted: Trigify x Acme weekly sync @ Tue 18 Nov 2026 3pm - 3:30pm (GMT)",
+              "sender": "priya@acme-logistics.example",
+              "toRecipients": [
+                "owner@trigify.example"
+              ],
+              "ccRecipients": [
+                "tom@acme-logistics.example"
+              ],
+              "bccRecipients": [],
+              "addressDisplayNames": {
+                "priya@acme-logistics.example": "Priya Raman",
+                "owner@trigify.example": "Max",
+                "tom@acme-logistics.example": "Tom Hale"
+              },
+              "date": "2026-11-16T08:52:00.000Z",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_UPDATES"
+              ],
+              "plaintextBody": "Priya Raman has accepted this invitation.\n\nTrigify x Acme weekly sync\nTuesday 18 Nov 2026 3pm - 3:30pm (GMT)",
+              "attachmentIds": [],
+              "attachments": [],
+              "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8a0e2c1f3d410"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Get Email",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages",
+            "query": {
+              "q": "from:info@coresignal.example"
+            },
+            "status": 200,
+            "body": {
+              "messages": [
+                {
+                  "id": "19a8c2f0d4e1b301",
+                  "threadId": "19a8c2f0d4e1b301"
+                }
+              ],
+              "resultSizeEstimate": 1
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8c2f0d4e1b301",
+            "query": {
+              "format": "metadata"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a8c2f0d4e1b301",
+              "threadId": "19a8c2f0d4e1b301",
+              "labelIds": [
+                "INBOX",
+                "CATEGORY_PROMOTIONS",
+                "UNREAD"
+              ],
+              "snippet": "Hi Max, Empower your AI agent with Coresignal's company and employee data. Our new MCP server connects your LLM tools directly to 3B+ record",
+              "sizeEstimate": 660,
+              "historyId": "5524600",
+              "internalDate": "1794818460000",
+              "payload": {
+                "mimeType": "text/plain",
+                "headers": [
+                  {
+                    "name": "From",
+                    "value": "\"Coresignal\" <info@coresignal.example>"
+                  },
+                  {
+                    "name": "To",
+                    "value": "\"Max\" <owner@trigify.example>"
+                  },
+                  {
+                    "name": "Cc",
+                    "value": "sales-team@trigify.example"
+                  },
+                  {
+                    "name": "Subject",
+                    "value": "New MCP server: direct data access for smarter AI"
+                  },
+                  {
+                    "name": "Date",
+                    "value": "Mon, 16 Nov 2026 08:41:00 +0000"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages",
+            "query": {
+              "q": "from:priya@acme-logistics.example"
+            },
+            "status": 200,
+            "body": {
+              "messages": [
+                {
+                  "id": "19a8c31b77a0e902",
+                  "threadId": "19a8a0e2c1f3d410"
+                },
+                {
+                  "id": "19a1f00bb0c0d002",
+                  "threadId": "19a1f00bb0c0d002"
+                }
+              ],
+              "resultSizeEstimate": 2
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8c31b77a0e902",
+            "query": {
+              "format": "metadata"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a8c31b77a0e902",
+              "threadId": "19a8a0e2c1f3d410",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_UPDATES"
+              ],
+              "snippet": "Priya Raman has accepted this invitation. Trigify x Acme weekly sync Tuesday 18 Nov 2026 3pm - 3:30pm (GMT)",
+              "sizeEstimate": 594,
+              "historyId": "5524600",
+              "internalDate": "1794819120000",
+              "payload": {
+                "mimeType": "text/plain",
+                "headers": [
+                  {
+                    "name": "From",
+                    "value": "\"Priya Raman\" <priya@acme-logistics.example>"
+                  },
+                  {
+                    "name": "To",
+                    "value": "\"Max\" <owner@trigify.example>"
+                  },
+                  {
+                    "name": "Cc",
+                    "value": "\"Tom Hale\" <tom@acme-logistics.example>"
+                  },
+                  {
+                    "name": "Subject",
+                    "value": "Accepted: Trigify x Acme weekly sync @ Tue 18 Nov 2026 3pm - 3:30pm (GMT)"
+                  },
+                  {
+                    "name": "Date",
+                    "value": "Mon, 16 Nov 2026 08:52:00 +0000"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a1f00bb0c0d002",
+            "query": {
+              "format": "metadata"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a1f00bb0c0d002",
+              "threadId": "19a1f00bb0c0d002",
+              "labelIds": [
+                "INBOX"
+              ],
+              "snippet": "Thanks Max, the scope looks right to us.",
+              "sizeEstimate": 332,
+              "historyId": "5524600",
+              "internalDate": "1793715600000",
+              "payload": {
+                "mimeType": "text/plain",
+                "headers": [
+                  {
+                    "name": "From",
+                    "value": "\"Priya Raman\" <priya@acme-logistics.example>"
+                  },
+                  {
+                    "name": "To",
+                    "value": "\"Max\" <owner@trigify.example>"
+                  },
+                  {
+                    "name": "Subject",
+                    "value": "Re: pilot scope"
+                  },
+                  {
+                    "name": "Date",
+                    "value": "Tue, 03 Nov 2026 14:20:00 +0000"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "id": "19a8c2f0d4e1b301",
+              "threadId": "19a8c2f0d4e1b301",
+              "snippet": "Hi Max, Empower your AI agent with Coresignal's company and employee data. Our new MCP server connects your LLM tools directly to 3B+ record",
+              "payload": {
+                "mimeType": "text/plain"
+              },
+              "sizeEstimate": 660,
+              "historyId": "5524600",
+              "internalDate": "1794818460000",
+              "labels": [
+                {
+                  "id": "INBOX",
+                  "name": "INBOX"
+                },
+                {
+                  "id": "CATEGORY_PROMOTIONS",
+                  "name": "CATEGORY_PROMOTIONS"
+                },
+                {
+                  "id": "UNREAD",
+                  "name": "UNREAD"
+                }
+              ],
+              "From": "\"Coresignal\" <info@coresignal.example>",
+              "To": "\"Max\" <owner@trigify.example>",
+              "Cc": "sales-team@trigify.example",
+              "Subject": "New MCP server: direct data access for smarter AI"
+            }
+          },
+          {
+            "json": {
+              "id": "19a8c31b77a0e902",
+              "threadId": "19a8a0e2c1f3d410",
+              "snippet": "Priya Raman has accepted this invitation. Trigify x Acme weekly sync Tuesday 18 Nov 2026 3pm - 3:30pm (GMT)",
+              "payload": {
+                "mimeType": "text/plain"
+              },
+              "sizeEstimate": 594,
+              "historyId": "5524600",
+              "internalDate": "1794819120000",
+              "labels": [
+                {
+                  "id": "INBOX",
+                  "name": "INBOX"
+                },
+                {
+                  "id": "UNREAD",
+                  "name": "UNREAD"
+                },
+                {
+                  "id": "CATEGORY_UPDATES",
+                  "name": "CATEGORY_UPDATES"
+                }
+              ],
+              "From": "\"Priya Raman\" <priya@acme-logistics.example>",
+              "To": "\"Max\" <owner@trigify.example>",
+              "Cc": "\"Tom Hale\" <tom@acme-logistics.example>",
+              "Subject": "Accepted: Trigify x Acme weekly sync @ Tue 18 Nov 2026 3pm - 3:30pm (GMT)"
+            }
+          },
+          {
+            "json": {
+              "id": "19a1f00bb0c0d002",
+              "threadId": "19a1f00bb0c0d002",
+              "snippet": "Thanks Max, the scope looks right to us.",
+              "payload": {
+                "mimeType": "text/plain"
+              },
+              "sizeEstimate": 332,
+              "historyId": "5524600",
+              "internalDate": "1793715600000",
+              "labels": [
+                {
+                  "id": "INBOX",
+                  "name": "INBOX"
+                }
+              ],
+              "From": "\"Priya Raman\" <priya@acme-logistics.example>",
+              "To": "\"Max\" <owner@trigify.example>",
+              "Subject": "Re: pilot scope"
+            }
+          }
+        ],
+        "why": "agent tool: n8n cannot pin a tool sub-node per call; prefer http"
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_threads",
+            "args": {
+              "query": "from:info@coresignal.example"
+            },
+            "result": {
+              "threads": [
+                {
+                  "id": "19a8c2f0d4e1b301",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8c2f0d4e1b301",
+                  "messages": [
+                    {
+                      "id": "19a8c2f0d4e1b301",
+                      "snippet": "Hi Max, Empower your AI agent with Coresignal's company and employee data. Our new MCP server connects your LLM tools directly to 3B+ record",
+                      "subject": "New MCP server: direct data access for smarter AI",
+                      "sender": "info@coresignal.example",
+                      "toRecipients": [
+                        "owner@trigify.example"
+                      ],
+                      "date": "2026-11-16T08:41:00.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "CATEGORY_PROMOTIONS",
+                        "UNREAD"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "tool": "search_threads",
+            "args": {
+              "query": "from:priya@acme-logistics.example"
+            },
+            "result": {
+              "threads": [
+                {
+                  "id": "19a8a0e2c1f3d410",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8a0e2c1f3d410",
+                  "messages": [
+                    {
+                      "id": "19a8c31b77a0e902",
+                      "snippet": "Priya Raman has accepted this invitation. Trigify x Acme weekly sync Tuesday 18 Nov 2026 3pm - 3:30pm (GMT)",
+                      "subject": "Accepted: Trigify x Acme weekly sync @ Tue 18 Nov 2026 3pm - 3:30pm (GMT)",
+                      "sender": "priya@acme-logistics.example",
+                      "toRecipients": [
+                        "owner@trigify.example"
+                      ],
+                      "date": "2026-11-16T08:52:00.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "UNREAD",
+                        "CATEGORY_UPDATES"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "19a1f00bb0c0d002",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a1f00bb0c0d002",
+                  "messages": [
+                    {
+                      "id": "19a1f00bb0c0d002",
+                      "snippet": "Thanks Max, the scope looks right to us.",
+                      "subject": "Re: pilot scope",
+                      "sender": "priya@acme-logistics.example",
+                      "toRecipients": [
+                        "owner@trigify.example"
+                      ],
+                      "date": "2026-11-03T14:20:00.000Z",
+                      "labelIds": [
+                        "INBOX"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Check Sent",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages",
+            "query": {
+              "q": "to:info@coresignal.example",
+              "labelIds": "SENT"
+            },
+            "status": 200,
+            "body": {
+              "resultSizeEstimate": 0
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages",
+            "query": {
+              "q": "to:priya@acme-logistics.example",
+              "labelIds": "SENT"
+            },
+            "status": 200,
+            "body": {
+              "messages": [
+                {
+                  "id": "19a2210aa0b0c001",
+                  "threadId": "19a8a0e2c1f3d410"
+                }
+              ],
+              "resultSizeEstimate": 1
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a2210aa0b0c001",
+            "query": {
+              "format": "metadata"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a2210aa0b0c001",
+              "threadId": "19a8a0e2c1f3d410",
+              "labelIds": [
+                "SENT"
+              ],
+              "snippet": "Hi Priya, sending the invite for our weekly sync.",
+              "sizeEstimate": 352,
+              "historyId": "5524600",
+              "internalDate": "1794304800000",
+              "payload": {
+                "mimeType": "text/plain",
+                "headers": [
+                  {
+                    "name": "From",
+                    "value": "\"Max\" <owner@trigify.example>"
+                  },
+                  {
+                    "name": "To",
+                    "value": "\"Priya Raman\" <priya@acme-logistics.example>"
+                  },
+                  {
+                    "name": "Subject",
+                    "value": "Trigify x Acme weekly sync"
+                  },
+                  {
+                    "name": "Date",
+                    "value": "Tue, 10 Nov 2026 10:00:00 +0000"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "id": "19a2210aa0b0c001",
+              "threadId": "19a8a0e2c1f3d410",
+              "snippet": "Hi Priya, sending the invite for our weekly sync.",
+              "payload": {
+                "mimeType": "text/plain"
+              },
+              "sizeEstimate": 352,
+              "historyId": "5524600",
+              "internalDate": "1794304800000",
+              "labels": [
+                {
+                  "id": "SENT",
+                  "name": "SENT"
+                }
+              ],
+              "From": "\"Max\" <owner@trigify.example>",
+              "To": "\"Priya Raman\" <priya@acme-logistics.example>",
+              "Subject": "Trigify x Acme weekly sync"
+            }
+          }
+        ],
+        "why": "agent tool: n8n cannot pin a tool sub-node per call; prefer http"
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_threads",
+            "args": {
+              "query": "to:info@coresignal.example in:sent"
+            },
+            "result": {
+              "threads": []
+            }
+          },
+          {
+            "tool": "search_threads",
+            "args": {
+              "query": "to:priya@acme-logistics.example in:sent"
+            },
+            "result": {
+              "threads": [
+                {
+                  "id": "19a8a0e2c1f3d410",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8a0e2c1f3d410",
+                  "messages": [
+                    {
+                      "id": "19a2210aa0b0c001",
+                      "snippet": "Hi Priya, sending the invite for our weekly sync.",
+                      "subject": "Trigify x Acme weekly sync",
+                      "sender": "owner@trigify.example",
+                      "toRecipients": [
+                        "priya@acme-logistics.example"
+                      ],
+                      "date": "2026-11-10T10:00:00.000Z",
+                      "labelIds": [
+                        "SENT"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "Anthropic Chat Model"
+  ],
+  "writes": [
+    "Gmail1"
+  ],
+  "pinData": {
+    "Gmail Trigger": [
+      {
+        "json": {
+          "To": "[REDACTED_EMAIL]",
+          "id": "[REDACTED_MESSAGE_ID]",
+          "From": "Coresignal <info@coresignal.com>",
+          "labels": [
+            {
+              "id": "INBOX",
+              "name": "INBOX"
+            },
+            {
+              "id": "IMPORTANT",
+              "name": "IMPORTANT"
+            },
+            {
+              "id": "CATEGORY_PROMOTIONS",
+              "name": "CATEGORY_PROMOTIONS"
+            }
+          ],
+          "Subject": "New MCP server: Direct data access for smarter AI",
+          "payload": {
+            "mimeType": "multipart/alternative"
+          },
+          "snippet": "What&#39;s new Empower your AI agent with Coresignal&#39;s data We&#39;re excited to unveil our latest news, the Coresignal MCP server that connects your LLM tools directly to our company, employee,",
+          "threadId": "1971723eacc72f08",
+          "historyId": "5524551",
+          "internalDate": "1748439919000",
+          "sizeEstimate": 62610
+        }
+      },
+      {
+        "json": {
+          "Cc": "",
+          "To": "[REDACTED_EMAIL]",
+          "id": "[REDACTED_MESSAGE_ID]",
+          "From": "Plain <hello@plain.com>",
+          "labels": [
+            {
+              "id": "INBOX",
+              "name": "INBOX"
+            },
+            {
+              "id": "IMPORTANT",
+              "name": "IMPORTANT"
+            },
+            {
+              "id": "CATEGORY_UPDATES",
+              "name": "CATEGORY_UPDATES"
+            },
+            {
+              "id": "UNREAD",
+              "name": "UNREAD"
+            }
+          ],
+          "Subject": " Important update to Plain’s Data Processing Agreement (DPA)",
+          "payload": {
+            "mimeType": "multipart/alternative"
+          },
+          "snippet": "Hi Max, We&#39;re writing to let you know about an upcoming change to our Data Processing Agreement (DPA). What&#39;s changing? We are simplifying our notification process for subprocessor updates.",
+          "threadId": "1971723cfa14c3df",
+          "historyId": "5524408",
+          "internalDate": "1748439911000",
+          "sizeEstimate": 45077
+        }
+      }
+    ]
+  },
+  "expect": {
+    "branches": [
+      "no IF/Switch; two items exercise both history outcomes (none for the cold mail, both directions for the contact)"
+    ]
+  }
+}

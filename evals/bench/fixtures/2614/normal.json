@@ -1,0 +1,448 @@
+{
+  "schemaVersion": 1,
+  "template": 2614,
+  "sha256": "5f79f2f42600185959a078442c4882d97bcd650fe0bfd99e50892dc1bdf0fb4c",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "a bank statement PDF and a payment screenshot land in the watched folder; both Switch outputs run",
+  "trigger": {
+    "node": "Get PDF or Images",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {
+          "kind": "drive#file",
+          "id": "1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT1uV",
+          "name": "statement-2026-10.pdf",
+          "mimeType": "application/pdf",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "parents": [
+            "1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj"
+          ],
+          "spaces": [
+            "drive"
+          ],
+          "version": "3",
+          "webContentLink": "https://drive.google.com/uc?id=1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT1uV&export=download",
+          "webViewLink": "https://drive.google.com/file/d/1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT1uV/view?usp=drivesdk",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/application/pdf",
+          "hasThumbnail": true,
+          "viewedByMe": false,
+          "createdTime": "2026-11-16T08:58:12.000Z",
+          "modifiedTime": "2026-11-16T08:58:12.000Z",
+          "modifiedByMeTime": "2026-11-16T08:58:12.000Z",
+          "owners": [
+            {
+              "kind": "drive#user",
+              "displayName": "bench-sa",
+              "emailAddress": "bench-sa@bench-project.iam.gserviceaccount.com",
+              "me": true
+            }
+          ],
+          "shared": false,
+          "ownedByMe": true,
+          "originalFilename": "statement-2026-10.pdf",
+          "fullFileExtension": "pdf",
+          "fileExtension": "pdf",
+          "md5Checksum": "00000000000000000000000000000000",
+          "size": "1294",
+          "quotaBytesUsed": "1294"
+        }
+      },
+      {
+        "json": {
+          "kind": "drive#file",
+          "id": "1zY9xW8vU7tS6rQ5pO4nM3lK2jI1hG0fE",
+          "name": "Screenshot 2026-11-15 at 21.04.33.png",
+          "mimeType": "image/png",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "parents": [
+            "1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj"
+          ],
+          "spaces": [
+            "drive"
+          ],
+          "version": "3",
+          "webContentLink": "https://drive.google.com/uc?id=1zY9xW8vU7tS6rQ5pO4nM3lK2jI1hG0fE&export=download",
+          "webViewLink": "https://drive.google.com/file/d/1zY9xW8vU7tS6rQ5pO4nM3lK2jI1hG0fE/view?usp=drivesdk",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/image/png",
+          "hasThumbnail": true,
+          "viewedByMe": false,
+          "createdTime": "2026-11-16T08:58:40.000Z",
+          "modifiedTime": "2026-11-16T08:58:40.000Z",
+          "modifiedByMeTime": "2026-11-16T08:58:40.000Z",
+          "owners": [
+            {
+              "kind": "drive#user",
+              "displayName": "bench-sa",
+              "emailAddress": "bench-sa@bench-project.iam.gserviceaccount.com",
+              "me": true
+            }
+          ],
+          "shared": false,
+          "ownedByMe": true,
+          "originalFilename": "Screenshot 2026-11-15 at 21.04.33.png",
+          "fullFileExtension": "png",
+          "fileExtension": "png",
+          "md5Checksum": "00000000000000000000000000000000",
+          "size": "258",
+          "quotaBytesUsed": "258"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get PDF or Images",
+      "service": "google-drive",
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_files",
+            "args": {
+              "query": "'1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj' in parents and createdTime > '2026-11-16T08:58:00'"
+            },
+            "result": {
+              "files": [
+                {
+                  "id": "1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT1uV",
+                  "title": "statement-2026-10.pdf",
+                  "mimeType": "application/pdf",
+                  "createdTime": "2026-11-16T08:58:12.000Z",
+                  "modifiedTime": "2026-11-16T08:58:12.000Z",
+                  "parentId": "1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj",
+                  "viewUrl": "https://drive.google.com/file/d/1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT1uV/view"
+                },
+                {
+                  "id": "1zY9xW8vU7tS6rQ5pO4nM3lK2jI1hG0fE",
+                  "title": "Screenshot 2026-11-15 at 21.04.33.png",
+                  "mimeType": "image/png",
+                  "createdTime": "2026-11-16T08:58:40.000Z",
+                  "modifiedTime": "2026-11-16T08:58:40.000Z",
+                  "parentId": "1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj",
+                  "viewUrl": "https://drive.google.com/file/d/1zY9xW8vU7tS6rQ5pO4nM3lK2jI1hG0fE/view"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "note": "poll source for the Claude side; the n8n side pins trigger.items"
+    },
+    {
+      "node": "Download PDF",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT1uV",
+            "query": {
+              "alt": "media"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "application/pdf"
+            },
+            "bodyBase64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA1IDAgUiA+PiA+PiAvQ29udGVudHMgNCAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA3MjEgPj4Kc3RyZWFtCkJUIC9GMSAxMCBUZiA1MCA3ODAgVGQgMTQgVEwKKE5vcnRoYmFuayBMdGQgLSBDdXJyZW50IGFjY291bnQgc3RhdGVtZW50KSBUaiBUKgooQWNjb3VudCAxMi0zNC01NiA4NzY1NDMyMSAgICBQZXJpb2QgMDEgT2N0IDIwMjYgLSAzMSBPY3QgMjAyNikgVGogVCoKKERhdGUgICAgICAgIERlc2NyaXB0aW9uICAgICAgICAgICAgICAgICAgICAgICAgIEFtb3VudCBcKEdCUFwpICAgQmFsYW5jZSkgVGogVCoKKDAyLzEwLzIwMjYgIFRFU0NPIFNUT1JFUyAyMjMxIExPTkRPTiAgICAgICAgICAgIC00Mi4xNyAgICAgMiw5NTcuODMpIFRqIFQqCigwMy8xMC8yMDI2ICBURkwgVFJBVkVMIENIICAgICAgICAgICAgICAgICAgICAgICAtOC40MCAgICAgIDIsOTQ5LjQzKSBUaiBUKgooMDUvMTAvMjAyNiAgU0FMQVJZIEFDTUUgTE9HSVNUSUNTIExURCAgICAgICAgICAgKzIsODUwLjAwICA1LDc5OS40MykgVGogVCoKKDA3LzEwLzIwMjYgIE5FVEZMSVguQ09NICAgICAgICAgICAgICAgICAgICAgICAgIC0xMC45OSAgICAgNSw3ODguNDQpIFRqIFQqCigxMi8xMC8yMDI2ICBSRU5UIE9DVCAtIEogU01JVEggICAgICAgICAgICAgICAgICAtMSw0NTAuMDAgIDQsMzM4LjQ0KSBUaiBUKgooMTgvMTAvMjAyNiAgUFJFVCBBIE1BTkdFUiAwNDEyICAgICAgICAgICAgICAgICAgLTYuODUgICAgICA0LDMzMS41OSkgVGogVCoKKENsb3NpbmcgYmFsYW5jZSAxLDc0Mi4xOCkgVGogVCoKRVQKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBlMSAvQmFzZUZvbnQgL0hlbHZldGljYSAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyA+PgplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjQxIDAwMDAwIG4gCjAwMDAwMDEwMTMgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoxMTEwCiUlRU9GCg=="
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT1uV",
+            "status": 200,
+            "body": {
+              "id": "1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT1uV",
+              "name": "statement-2026-10.pdf",
+              "mimeType": "application/pdf",
+              "size": "1294"
+            }
+          }
+        ]
+      },
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "kind": "drive#file",
+              "id": "1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT1uV",
+              "name": "statement-2026-10.pdf",
+              "mimeType": "application/pdf",
+              "starred": false,
+              "trashed": false,
+              "explicitlyTrashed": false,
+              "parents": [
+                "1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj"
+              ],
+              "spaces": [
+                "drive"
+              ],
+              "version": "3",
+              "webContentLink": "https://drive.google.com/uc?id=1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT1uV&export=download",
+              "webViewLink": "https://drive.google.com/file/d/1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT1uV/view?usp=drivesdk",
+              "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/application/pdf",
+              "hasThumbnail": true,
+              "viewedByMe": false,
+              "createdTime": "2026-11-16T08:58:12.000Z",
+              "modifiedTime": "2026-11-16T08:58:12.000Z",
+              "modifiedByMeTime": "2026-11-16T08:58:12.000Z",
+              "owners": [
+                {
+                  "kind": "drive#user",
+                  "displayName": "bench-sa",
+                  "emailAddress": "bench-sa@bench-project.iam.gserviceaccount.com",
+                  "me": true
+                }
+              ],
+              "shared": false,
+              "ownedByMe": true,
+              "originalFilename": "statement-2026-10.pdf",
+              "fullFileExtension": "pdf",
+              "fileExtension": "pdf",
+              "md5Checksum": "00000000000000000000000000000000",
+              "size": "1294",
+              "quotaBytesUsed": "1294"
+            }
+          }
+        ],
+        "why": "a pin carries JSON only, not the binary `data`, so Extract from File / the vision chain get no file: use tls-intercept"
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT1uV"
+            },
+            "result": {
+              "fileId": "1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT1uV",
+              "title": "statement-2026-10.pdf",
+              "mimeType": "application/pdf",
+              "content": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA1IDAgUiA+PiA+PiAvQ29udGVudHMgNCAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA3MjEgPj4Kc3RyZWFtCkJUIC9GMSAxMCBUZiA1MCA3ODAgVGQgMTQgVEwKKE5vcnRoYmFuayBMdGQgLSBDdXJyZW50IGFjY291bnQgc3RhdGVtZW50KSBUaiBUKgooQWNjb3VudCAxMi0zNC01NiA4NzY1NDMyMSAgICBQZXJpb2QgMDEgT2N0IDIwMjYgLSAzMSBPY3QgMjAyNikgVGogVCoKKERhdGUgICAgICAgIERlc2NyaXB0aW9uICAgICAgICAgICAgICAgICAgICAgICAgIEFtb3VudCBcKEdCUFwpICAgQmFsYW5jZSkgVGogVCoKKDAyLzEwLzIwMjYgIFRFU0NPIFNUT1JFUyAyMjMxIExPTkRPTiAgICAgICAgICAgIC00Mi4xNyAgICAgMiw5NTcuODMpIFRqIFQqCigwMy8xMC8yMDI2ICBURkwgVFJBVkVMIENIICAgICAgICAgICAgICAgICAgICAgICAtOC40MCAgICAgIDIsOTQ5LjQzKSBUaiBUKgooMDUvMTAvMjAyNiAgU0FMQVJZIEFDTUUgTE9HSVNUSUNTIExURCAgICAgICAgICAgKzIsODUwLjAwICA1LDc5OS40MykgVGogVCoKKDA3LzEwLzIwMjYgIE5FVEZMSVguQ09NICAgICAgICAgICAgICAgICAgICAgICAgIC0xMC45OSAgICAgNSw3ODguNDQpIFRqIFQqCigxMi8xMC8yMDI2ICBSRU5UIE9DVCAtIEogU01JVEggICAgICAgICAgICAgICAgICAtMSw0NTAuMDAgIDQsMzM4LjQ0KSBUaiBUKgooMTgvMTAvMjAyNiAgUFJFVCBBIE1BTkdFUiAwNDEyICAgICAgICAgICAgICAgICAgLTYuODUgICAgICA0LDMzMS41OSkgVGogVCoKKENsb3NpbmcgYmFsYW5jZSAxLDc0Mi4xOCkgVGogVCoKRVQKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBlMSAvQmFzZUZvbnQgL0hlbHZldGljYSAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyA+PgplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjQxIDAwMDAwIG4gCjAwMDAwMDEwMTMgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoxMTEwCiUlRU9GCg=="
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Download Image",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1zY9xW8vU7tS6rQ5pO4nM3lK2jI1hG0fE",
+            "query": {
+              "alt": "media"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "image/png"
+            },
+            "bodyBase64": "iVBORw0KGgoAAAANSUhEUgAAAHgAAABQCAIAAABd+SbeAAAAyUlEQVR4nO3aMREAMAwDseAu7+5hoQ59IfD97Lkh5vWAXxQaKTRSaKTQSKGRQiOFRgqNFBopNFJopNBIoZFCI4VGCo0UGik0Umik0EihkUIjhUYKjRQamROi0EihkUIjhUYKjRQaKTRSaKTQSKGRQiOFRgqNFBopNFJopNBIoZFCI4VGCo0UGik0Umik0Eihkb53SKGRQiOFRgqNFBopNFJopNBIoZFCI4VGCo0UGik0Umik0EihkUIjhUYKjRQaKTRSaKTQSKGRBeZ4cZBC7m++AAAAAElFTkSuQmCC"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1zY9xW8vU7tS6rQ5pO4nM3lK2jI1hG0fE",
+            "status": 200,
+            "body": {
+              "id": "1zY9xW8vU7tS6rQ5pO4nM3lK2jI1hG0fE",
+              "name": "Screenshot 2026-11-15 at 21.04.33.png",
+              "mimeType": "image/png",
+              "size": "258"
+            }
+          }
+        ]
+      },
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "kind": "drive#file",
+              "id": "1zY9xW8vU7tS6rQ5pO4nM3lK2jI1hG0fE",
+              "name": "Screenshot 2026-11-15 at 21.04.33.png",
+              "mimeType": "image/png",
+              "starred": false,
+              "trashed": false,
+              "explicitlyTrashed": false,
+              "parents": [
+                "1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj"
+              ],
+              "spaces": [
+                "drive"
+              ],
+              "version": "3",
+              "webContentLink": "https://drive.google.com/uc?id=1zY9xW8vU7tS6rQ5pO4nM3lK2jI1hG0fE&export=download",
+              "webViewLink": "https://drive.google.com/file/d/1zY9xW8vU7tS6rQ5pO4nM3lK2jI1hG0fE/view?usp=drivesdk",
+              "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/image/png",
+              "hasThumbnail": true,
+              "viewedByMe": false,
+              "createdTime": "2026-11-16T08:58:40.000Z",
+              "modifiedTime": "2026-11-16T08:58:40.000Z",
+              "modifiedByMeTime": "2026-11-16T08:58:40.000Z",
+              "owners": [
+                {
+                  "kind": "drive#user",
+                  "displayName": "bench-sa",
+                  "emailAddress": "bench-sa@bench-project.iam.gserviceaccount.com",
+                  "me": true
+                }
+              ],
+              "shared": false,
+              "ownedByMe": true,
+              "originalFilename": "Screenshot 2026-11-15 at 21.04.33.png",
+              "fullFileExtension": "png",
+              "fileExtension": "png",
+              "md5Checksum": "00000000000000000000000000000000",
+              "size": "258",
+              "quotaBytesUsed": "258"
+            }
+          }
+        ],
+        "why": "a pin carries JSON only, not the binary `data`, so Extract from File / the vision chain get no file: use tls-intercept"
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1zY9xW8vU7tS6rQ5pO4nM3lK2jI1hG0fE"
+            },
+            "result": {
+              "fileId": "1zY9xW8vU7tS6rQ5pO4nM3lK2jI1hG0fE",
+              "title": "Screenshot 2026-11-15 at 21.04.33.png",
+              "mimeType": "image/png",
+              "content": "iVBORw0KGgoAAAANSUhEUgAAAHgAAABQCAIAAABd+SbeAAAAyUlEQVR4nO3aMREAMAwDseAu7+5hoQ59IfD97Lkh5vWAXxQaKTRSaKTQSKGRQiOFRgqNFBopNFJopNBIoZFCI4VGCo0UGik0Umik0EihkUIjhUYKjRQamROi0EihkUIjhUYKjRQaKTRSaKTQSKGRQiOFRgqNFBopNFJopNBIoZFCI4VGCo0UGik0Umik0Eihkb53SKGRQiOFRgqNFBopNFJopNBIoZFCI4VGCo0UGik0Umik0EihkUIjhUYKjRQaKTRSaKTQSKGRBeZ4cZBC7m++AAAAAElFTkSuQmCC"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "models": [
+    "Send data to A.I.",
+    "Vertex A.I. extract text",
+    "Google Gemini Chat Model"
+  ],
+  "writes": [
+    "Upload to Google Drive",
+    "Upload to Google Drive1"
+  ],
+  "writeReplies": [
+    {
+      "node": "Upload to Google Drive",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "uploadType": "resumable"
+            },
+            "status": 200,
+            "headers": {
+              "location": "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=bench-1"
+            },
+            "body": ""
+          },
+          {
+            "method": "PUT",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1CsvOut1",
+              "name": "2026-11-16",
+              "mimeType": "text/csv",
+              "parents": [
+                "1Zo4OFCv1qWRX1jo0VL_iqUBf4v0fZEXe"
+              ]
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1CsvOut1",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1CsvOut1",
+              "name": "2026-11-16",
+              "mimeType": "text/csv",
+              "parents": [
+                "1Zo4OFCv1qWRX1jo0VL_iqUBf4v0fZEXe"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Upload to Google Drive1",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "uploadType": "resumable"
+            },
+            "status": 200,
+            "headers": {
+              "location": "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=bench-2"
+            },
+            "body": ""
+          },
+          {
+            "method": "PUT",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1CsvOut2",
+              "name": "2026-11-16",
+              "mimeType": "text/csv",
+              "parents": [
+                "1Zo4OFCv1qWRX1jo0VL_iqUBf4v0fZEXe"
+              ]
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1CsvOut2",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1CsvOut2",
+              "name": "2026-11-16",
+              "mimeType": "text/csv",
+              "parents": [
+                "1Zo4OFCv1qWRX1jo0VL_iqUBf4v0fZEXe"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Route based on PDF or Image: output pdf for item 0 (application/pdf), output image for item 1 (image/png)"
+    ],
+    "offline": "the screenshot is a blank 120x80 PNG: no real transactions to read, so the image branch's CSV is not meaningful; Send data to A.I. is an LLM API call (OpenRouter) routed to the model proxy"
+  }
+}

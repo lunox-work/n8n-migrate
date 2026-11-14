@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "template": 2508,
+  "sha256": "88c5df7b28597775426f7723f6dc97f67651d46e73aad5bfd1425856e1e76e71",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "empty chat message, an empty schema file, and zero rows from every query",
+  "trigger": {
+    "node": "Chat Trigger",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "b7d1c2e4-5f60-4a1b-9c3d-2e7f8a9b0c11",
+          "action": "sendMessage",
+          "chatInput": ""
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Load the schema from the local file",
+      "service": "local-file",
+      "file": {
+        "path": "./chinook_mysql.json",
+        "text": "[]"
+      },
+      "note": "written by the manual branch's Save file locally in n8n's working directory; the bench writes it before the chat run"
+    },
+    {
+      "node": "Run SQL query",
+      "service": "mysql",
+      "n8n": {
+        "items": [],
+        "why": "MySQL wire protocol: no HTTP mock; the Claude side's db mock returns the same rows"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured MySQL connector; db through the bundled server or a vendor MCP"
+      },
+      "note": "the query text is written by the model; it is compared as an outgoing effect on the Claude side (the n8n pin does not record it)"
+    },
+    {
+      "node": "List all tables in a database",
+      "service": "mysql",
+      "n8n": {
+        "items": [],
+        "why": "manual branch; MySQL wire protocol"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured MySQL connector"
+      }
+    },
+    {
+      "node": "Extract database schema",
+      "service": "mysql",
+      "n8n": {
+        "items": [],
+        "why": "manual branch, one DESCRIBE per table; a pin returns all rows on every run, so the bench should run this branch with a db mock instead when it matters"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured MySQL connector"
+      }
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model"
+  ],
+  "writes": [
+    "Save file locally"
+  ],
+  "expect": {
+    "branches": [
+      "Check if query exists: false is likely (nothing to query); if a SELECT is written, Run SQL query emits no items and the Merge waits on one input"
+    ]
+  }
+}

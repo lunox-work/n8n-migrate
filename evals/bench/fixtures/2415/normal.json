@@ -1,0 +1,319 @@
+{
+  "schemaVersion": 1,
+  "template": 2415,
+  "sha256": "54dbefd4cde46138d45575b7983823ce104ad3ede07ac5a131e2abc3067553a7",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "a valid database URL; Notion returns a six-property schema with select and multi-select options",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "4e5f6a7b-0c1d-4e2f-8a9b-0c1d2e3f4a5b",
+          "action": "sendMessage",
+          "chatInput": "Here is my database: https://www.notion.so/acme/3f2c9a7b8e1d4c6fa0b5d2e9c8f7a6b1?v=9a8b7c6d5e4f40312a1b2c3d4e5f6a7b"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Notion",
+      "service": "notion",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.notion.com/v1/databases/3f2c9a7b-8e1d-4c6f-a0b5-d2e9c8f7a6b1",
+            "status": 200,
+            "body": {
+              "object": "database",
+              "id": "3f2c9a7b-8e1d-4c6f-a0b5-d2e9c8f7a6b1",
+              "cover": null,
+              "icon": {
+                "type": "emoji",
+                "emoji": "📚"
+              },
+              "created_time": "2026-03-02T10:15:00.000Z",
+              "last_edited_time": "2026-11-12T16:40:00.000Z",
+              "created_by": {
+                "object": "user",
+                "id": "a1b2c3d4-0000-4000-8000-000000000001"
+              },
+              "last_edited_by": {
+                "object": "user",
+                "id": "a1b2c3d4-0000-4000-8000-000000000001"
+              },
+              "title": [
+                {
+                  "type": "text",
+                  "text": {
+                    "content": "Support knowledge base",
+                    "link": null
+                  },
+                  "annotations": {
+                    "bold": false,
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                    "code": false,
+                    "color": "default"
+                  },
+                  "plain_text": "Support knowledge base",
+                  "href": null
+                }
+              ],
+              "description": [],
+              "is_inline": false,
+              "properties": {
+                "Name": {
+                  "id": "title",
+                  "name": "Name",
+                  "type": "title",
+                  "title": {}
+                },
+                "Status": {
+                  "id": "%3AbQr",
+                  "name": "Status",
+                  "type": "select",
+                  "select": {
+                    "options": [
+                      {
+                        "id": "4261636b",
+                        "name": "Backlog",
+                        "color": "gray"
+                      },
+                      {
+                        "id": "496e2070",
+                        "name": "In progress",
+                        "color": "blue"
+                      },
+                      {
+                        "id": "446f6e65",
+                        "name": "Done",
+                        "color": "green"
+                      }
+                    ]
+                  }
+                },
+                "Tags": {
+                  "id": "Zx%7Bp",
+                  "name": "Tags",
+                  "type": "multi_select",
+                  "multi_select": {
+                    "options": [
+                      {
+                        "id": "4f6e626f",
+                        "name": "Onboarding",
+                        "color": "purple"
+                      },
+                      {
+                        "id": "42696c6c",
+                        "name": "Billing",
+                        "color": "yellow"
+                      },
+                      {
+                        "id": "415049",
+                        "name": "API",
+                        "color": "red"
+                      }
+                    ]
+                  }
+                },
+                "Owner": {
+                  "id": "k%5DlL",
+                  "name": "Owner",
+                  "type": "people",
+                  "people": {}
+                },
+                "Due date": {
+                  "id": "Wg%3Fh",
+                  "name": "Due date",
+                  "type": "date",
+                  "date": {}
+                },
+                "Link": {
+                  "id": "qR%3D1",
+                  "name": "Link",
+                  "type": "url",
+                  "url": {}
+                }
+              },
+              "parent": {
+                "type": "workspace",
+                "workspace": true
+              },
+              "url": "https://www.notion.so/3f2c9a7b8e1d4c6fa0b5d2e9c8f7a6b1",
+              "public_url": null,
+              "archived": false,
+              "in_trash": false,
+              "request_id": "8f0e7d6c-5b4a-4392-8170-6f5e4d3c2b1a"
+            }
+          }
+        ]
+      },
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "object": "database",
+              "id": "3f2c9a7b-8e1d-4c6f-a0b5-d2e9c8f7a6b1",
+              "cover": null,
+              "icon": {
+                "type": "emoji",
+                "emoji": "📚"
+              },
+              "created_time": "2026-03-02T10:15:00.000Z",
+              "last_edited_time": "2026-11-12T16:40:00.000Z",
+              "created_by": {
+                "object": "user",
+                "id": "a1b2c3d4-0000-4000-8000-000000000001"
+              },
+              "last_edited_by": {
+                "object": "user",
+                "id": "a1b2c3d4-0000-4000-8000-000000000001"
+              },
+              "title": [
+                {
+                  "type": "text",
+                  "text": {
+                    "content": "Support knowledge base",
+                    "link": null
+                  },
+                  "annotations": {
+                    "bold": false,
+                    "italic": false,
+                    "strikethrough": false,
+                    "underline": false,
+                    "code": false,
+                    "color": "default"
+                  },
+                  "plain_text": "Support knowledge base",
+                  "href": null
+                }
+              ],
+              "description": [],
+              "is_inline": false,
+              "properties": {
+                "Name": {
+                  "id": "title",
+                  "name": "Name",
+                  "type": "title",
+                  "title": {}
+                },
+                "Status": {
+                  "id": "%3AbQr",
+                  "name": "Status",
+                  "type": "select",
+                  "select": {
+                    "options": [
+                      {
+                        "id": "4261636b",
+                        "name": "Backlog",
+                        "color": "gray"
+                      },
+                      {
+                        "id": "496e2070",
+                        "name": "In progress",
+                        "color": "blue"
+                      },
+                      {
+                        "id": "446f6e65",
+                        "name": "Done",
+                        "color": "green"
+                      }
+                    ]
+                  }
+                },
+                "Tags": {
+                  "id": "Zx%7Bp",
+                  "name": "Tags",
+                  "type": "multi_select",
+                  "multi_select": {
+                    "options": [
+                      {
+                        "id": "4f6e626f",
+                        "name": "Onboarding",
+                        "color": "purple"
+                      },
+                      {
+                        "id": "42696c6c",
+                        "name": "Billing",
+                        "color": "yellow"
+                      },
+                      {
+                        "id": "415049",
+                        "name": "API",
+                        "color": "red"
+                      }
+                    ]
+                  }
+                },
+                "Owner": {
+                  "id": "k%5DlL",
+                  "name": "Owner",
+                  "type": "people",
+                  "people": {}
+                },
+                "Due date": {
+                  "id": "Wg%3Fh",
+                  "name": "Due date",
+                  "type": "date",
+                  "date": {}
+                },
+                "Link": {
+                  "id": "qR%3D1",
+                  "name": "Link",
+                  "type": "url",
+                  "url": {}
+                }
+              },
+              "parent": {
+                "type": "workspace",
+                "workspace": true
+              },
+              "url": "https://www.notion.so/3f2c9a7b8e1d4c6fa0b5d2e9c8f7a6b1",
+              "public_url": null,
+              "archived": false,
+              "in_trash": false,
+              "request_id": "8f0e7d6c-5b4a-4392-8170-6f5e4d3c2b1a"
+            }
+          }
+        ],
+        "why": "fallback when api.notion.com cannot be intercepted; the error output cannot be pinned"
+      },
+      "connector": {
+        "connector": "notion",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "notion-fetch",
+            "args": {
+              "id": "https://www.notion.so/acme/3f2c9a7b8e1d4c6fa0b5d2e9c8f7a6b1?v=9a8b7c6d5e4f40312a1b2c3d4e5f6a7b"
+            },
+            "text": "<database url=\"https://www.notion.so/acme/3f2c9a7b8e1d4c6fa0b5d2e9c8f7a6b1?v=9a8b7c6d5e4f40312a1b2c3d4e5f6a7b\" title=\"Support knowledge base\">\n<data-source url=\"collection://3f2c9a7b-8e1d-4c6f-a0b5-d2e9c8f7a6b1\">\n<data-source-state>{\"name\":\"Support knowledge base\",\"schema\":{\"Name\":{\"type\":\"title\"},\"Status\":{\"type\":\"select\",\"options\":[\"Backlog\",\"In progress\",\"Done\"]},\"Tags\":{\"type\":\"multi_select\",\"options\":[\"Onboarding\",\"Billing\",\"API\"]},\"Owner\":{\"type\":\"people\"},\"Due date\":{\"type\":\"date\"},\"Link\":{\"type\":\"url\"}}}</data-source-state>\n</data-source>\n</database>"
+          }
+        ]
+      }
+    }
+  ],
+  "models": [
+    "Generate Workflow Agent",
+    "Anthropic Chat Model",
+    "Auto-fixing Output Parser",
+    "Anthropic Chat Model1",
+    "Valid n8n workflow JSON?",
+    "Anthropic Chat Model2"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "Notion: success output → generation loop. Check for WF JSON errors and Valid n8n workflow JSON? are model-driven (a retry loop runs while the generated JSON is judged invalid)",
+      "the error output is exercised by the empty and malformed variants"
+    ],
+    "offline": "the only effect is the chat reply (the generated workflow JSON), which is model-written"
+  }
+}

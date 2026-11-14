@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "template": 2098,
+  "sha256": "e0a5c9e23664e7c2e7ce21ec6316006316d0371bf646abe605113826f39b9dc8",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "an empty chat message: OpenAI rejects the empty content",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "c0ffee00-1111-4222-8333-444455556666",
+          "action": "sendMessage",
+          "chatInput": ""
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "OpenAI",
+      "service": "openai-assistants",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/threads",
+            "status": 200,
+            "body": {
+              "id": "thread_bench2098a1",
+              "object": "thread",
+              "created_at": 1763283600,
+              "metadata": {},
+              "tool_resources": {}
+            }
+          },
+          {
+            "method": "*",
+            "url": "https://api.openai.com/v1/threads/runs",
+            "status": 400,
+            "body": {
+              "error": {
+                "message": "Invalid 'thread.messages[0].content': empty string. Expected a string with minimum length 1, but got an empty string instead.",
+                "type": "invalid_request_error",
+                "param": "thread.messages[0].content",
+                "code": "empty_string"
+              }
+            }
+          },
+          {
+            "method": "*",
+            "url": "https://api.openai.com/v1/threads/thread_bench2098a1/messages",
+            "status": 400,
+            "body": {
+              "error": {
+                "message": "Invalid 'content': empty string. Expected a string with minimum length 1, but got an empty string instead.",
+                "type": "invalid_request_error",
+                "param": "content",
+                "code": "empty_string"
+              }
+            }
+          }
+        ]
+      },
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "output": ""
+            }
+          }
+        ],
+        "why": "fallback pin of the whole assistant call"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "an OpenAI Assistant keeps its instructions at OpenAI; there is no Claude connector, so the Claude side calls the same API over http"
+      },
+      "note": "the assistant's reply is fixed here because it comes from a remote assistant, not from a model the bench can swap. Calls follow the Assistants v2 API (thread, message, run, poll, tool outputs, list messages); a side that uses createAndRun gets the same run"
+    }
+  ],
+  "models": [],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch; the OpenAI node is expected to fail on the 400"
+    ]
+  }
+}

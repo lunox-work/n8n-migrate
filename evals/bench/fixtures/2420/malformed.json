@@ -1,0 +1,411 @@
+{
+  "schemaVersion": 1,
+  "template": 2420,
+  "sha256": "db5648d4b891d7cde5d53589682293bcc308e473a68e271c7778f9f3a6abce4d",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "a 404 for one id, an HTML page for another, a truncated PNG, a GIF named .png, and one valid image",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Download Photos",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1zs963iFkO-3g2rKak8Hcy555h55D8gjF",
+            "query": {
+              "alt": "media"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "image/png"
+            },
+            "bodyBase64": "iVBORw0KGgoAAAANSUhEUgAAAlgAAALuCAIAAAD9l//jAAALF0lEQVR4nO3VMQEAMAyAsBqf8V6T0YNEAR+zABA21wEAcMkIAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUibBwBhRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpswAQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApH3PxvNij5imwQAAAABJRU5ErkJggg=="
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1zs963iFkO-3g2rKak8Hcy555h55D8gjF",
+            "status": 200,
+            "body": {
+              "id": "1zs963iFkO-3g2rKak8Hcy555h55D8gjF",
+              "name": "portrait_1.png",
+              "mimeType": "image/png",
+              "size": "2896"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/19FyDcs68dZauQSEf6SEulJMag51SPsFy",
+            "status": 404,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "error": {
+                "code": 404,
+                "message": "File not found: 19FyDcs68dZauQSEf6SEulJMag51SPsFy.",
+                "errors": [
+                  {
+                    "message": "File not found: 19FyDcs68dZauQSEf6SEulJMag51SPsFy.",
+                    "domain": "global",
+                    "reason": "notFound",
+                    "location": "fileId",
+                    "locationType": "parameter"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1gbXjfNYE7Tvuw_riFmHMKoqPPu696VfW",
+            "query": {
+              "alt": "media"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "image/png"
+            },
+            "bodyBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1gbXjfNYE7Tvuw_riFmHMKoqPPu696VfW",
+            "status": 200,
+            "body": {
+              "id": "1gbXjfNYE7Tvuw_riFmHMKoqPPu696VfW",
+              "name": "portrait_3.png",
+              "mimeType": "image/png",
+              "size": "24"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1s19hYdxgfMkrnU25l6YIDq-myQr1tQMa",
+            "query": {
+              "alt": "media"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "image/png"
+            },
+            "bodyBase64": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1s19hYdxgfMkrnU25l6YIDq-myQr1tQMa",
+            "status": 200,
+            "body": {
+              "id": "1s19hYdxgfMkrnU25l6YIDq-myQr1tQMa",
+              "name": "portrait_4.png",
+              "mimeType": "image/png",
+              "size": "42"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/193FqIXJWAKj6O2SmOj3cLBfypHBkgdI5",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html"
+            },
+            "body": "<!DOCTYPE html><html><head><title>Google Drive - Virus scan warning</title></head><body>Google Drive can't scan this file for viruses.</body></html>"
+          }
+        ]
+      },
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "kind": "drive#file",
+              "id": "1zs963iFkO-3g2rKak8Hcy555h55D8gjF",
+              "name": "portrait_1.png",
+              "mimeType": "image/png",
+              "starred": false,
+              "trashed": false,
+              "explicitlyTrashed": false,
+              "parents": [
+                "1PassportPhotosFolder000000000000"
+              ],
+              "spaces": [
+                "drive"
+              ],
+              "version": "3",
+              "webContentLink": "https://drive.google.com/uc?id=1zs963iFkO-3g2rKak8Hcy555h55D8gjF&export=download",
+              "webViewLink": "https://drive.google.com/file/d/1zs963iFkO-3g2rKak8Hcy555h55D8gjF/view?usp=drivesdk",
+              "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/image/png",
+              "hasThumbnail": true,
+              "viewedByMe": false,
+              "createdTime": "2026-10-01T10:00:00.000Z",
+              "modifiedTime": "2026-10-01T10:00:00.000Z",
+              "modifiedByMeTime": "2026-10-01T10:00:00.000Z",
+              "owners": [
+                {
+                  "kind": "drive#user",
+                  "displayName": "bench-sa",
+                  "emailAddress": "bench-sa@bench-project.iam.gserviceaccount.com",
+                  "me": true
+                }
+              ],
+              "shared": false,
+              "ownedByMe": true,
+              "originalFilename": "portrait_1.png",
+              "fullFileExtension": "png",
+              "fileExtension": "png",
+              "md5Checksum": "00000000000000000000000000000000",
+              "size": "2896",
+              "quotaBytesUsed": "2896"
+            }
+          },
+          {
+            "json": {
+              "kind": "drive#file",
+              "id": "19FyDcs68dZauQSEf6SEulJMag51SPsFy",
+              "name": "portrait_2.png",
+              "mimeType": "image/png",
+              "starred": false,
+              "trashed": false,
+              "explicitlyTrashed": false,
+              "parents": [
+                "1PassportPhotosFolder000000000000"
+              ],
+              "spaces": [
+                "drive"
+              ],
+              "version": "3",
+              "webContentLink": "https://drive.google.com/uc?id=19FyDcs68dZauQSEf6SEulJMag51SPsFy&export=download",
+              "webViewLink": "https://drive.google.com/file/d/19FyDcs68dZauQSEf6SEulJMag51SPsFy/view?usp=drivesdk",
+              "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/image/png",
+              "hasThumbnail": true,
+              "viewedByMe": false,
+              "createdTime": "2026-10-01T10:00:00.000Z",
+              "modifiedTime": "2026-10-01T10:00:00.000Z",
+              "modifiedByMeTime": "2026-10-01T10:00:00.000Z",
+              "owners": [
+                {
+                  "kind": "drive#user",
+                  "displayName": "bench-sa",
+                  "emailAddress": "bench-sa@bench-project.iam.gserviceaccount.com",
+                  "me": true
+                }
+              ],
+              "shared": false,
+              "ownedByMe": true,
+              "originalFilename": "portrait_2.png",
+              "fullFileExtension": "png",
+              "fileExtension": "png",
+              "md5Checksum": "00000000000000000000000000000000",
+              "size": "0",
+              "quotaBytesUsed": "0"
+            }
+          },
+          {
+            "json": {
+              "kind": "drive#file",
+              "id": "1gbXjfNYE7Tvuw_riFmHMKoqPPu696VfW",
+              "name": "portrait_3.png",
+              "mimeType": "image/png",
+              "starred": false,
+              "trashed": false,
+              "explicitlyTrashed": false,
+              "parents": [
+                "1PassportPhotosFolder000000000000"
+              ],
+              "spaces": [
+                "drive"
+              ],
+              "version": "3",
+              "webContentLink": "https://drive.google.com/uc?id=1gbXjfNYE7Tvuw_riFmHMKoqPPu696VfW&export=download",
+              "webViewLink": "https://drive.google.com/file/d/1gbXjfNYE7Tvuw_riFmHMKoqPPu696VfW/view?usp=drivesdk",
+              "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/image/png",
+              "hasThumbnail": true,
+              "viewedByMe": false,
+              "createdTime": "2026-10-01T10:00:00.000Z",
+              "modifiedTime": "2026-10-01T10:00:00.000Z",
+              "modifiedByMeTime": "2026-10-01T10:00:00.000Z",
+              "owners": [
+                {
+                  "kind": "drive#user",
+                  "displayName": "bench-sa",
+                  "emailAddress": "bench-sa@bench-project.iam.gserviceaccount.com",
+                  "me": true
+                }
+              ],
+              "shared": false,
+              "ownedByMe": true,
+              "originalFilename": "portrait_3.png",
+              "fullFileExtension": "png",
+              "fileExtension": "png",
+              "md5Checksum": "00000000000000000000000000000000",
+              "size": "24",
+              "quotaBytesUsed": "24"
+            }
+          },
+          {
+            "json": {
+              "kind": "drive#file",
+              "id": "1s19hYdxgfMkrnU25l6YIDq-myQr1tQMa",
+              "name": "portrait_4.png",
+              "mimeType": "image/png",
+              "starred": false,
+              "trashed": false,
+              "explicitlyTrashed": false,
+              "parents": [
+                "1PassportPhotosFolder000000000000"
+              ],
+              "spaces": [
+                "drive"
+              ],
+              "version": "3",
+              "webContentLink": "https://drive.google.com/uc?id=1s19hYdxgfMkrnU25l6YIDq-myQr1tQMa&export=download",
+              "webViewLink": "https://drive.google.com/file/d/1s19hYdxgfMkrnU25l6YIDq-myQr1tQMa/view?usp=drivesdk",
+              "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/image/png",
+              "hasThumbnail": true,
+              "viewedByMe": false,
+              "createdTime": "2026-10-01T10:00:00.000Z",
+              "modifiedTime": "2026-10-01T10:00:00.000Z",
+              "modifiedByMeTime": "2026-10-01T10:00:00.000Z",
+              "owners": [
+                {
+                  "kind": "drive#user",
+                  "displayName": "bench-sa",
+                  "emailAddress": "bench-sa@bench-project.iam.gserviceaccount.com",
+                  "me": true
+                }
+              ],
+              "shared": false,
+              "ownedByMe": true,
+              "originalFilename": "portrait_4.png",
+              "fullFileExtension": "png",
+              "fileExtension": "png",
+              "md5Checksum": "00000000000000000000000000000000",
+              "size": "42",
+              "quotaBytesUsed": "42"
+            }
+          },
+          {
+            "json": {
+              "kind": "drive#file",
+              "id": "193FqIXJWAKj6O2SmOj3cLBfypHBkgdI5",
+              "name": "portrait_5.png",
+              "mimeType": "image/png",
+              "starred": false,
+              "trashed": false,
+              "explicitlyTrashed": false,
+              "parents": [
+                "1PassportPhotosFolder000000000000"
+              ],
+              "spaces": [
+                "drive"
+              ],
+              "version": "3",
+              "webContentLink": "https://drive.google.com/uc?id=193FqIXJWAKj6O2SmOj3cLBfypHBkgdI5&export=download",
+              "webViewLink": "https://drive.google.com/file/d/193FqIXJWAKj6O2SmOj3cLBfypHBkgdI5/view?usp=drivesdk",
+              "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/image/png",
+              "hasThumbnail": true,
+              "viewedByMe": false,
+              "createdTime": "2026-10-01T10:00:00.000Z",
+              "modifiedTime": "2026-10-01T10:00:00.000Z",
+              "modifiedByMeTime": "2026-10-01T10:00:00.000Z",
+              "owners": [
+                {
+                  "kind": "drive#user",
+                  "displayName": "bench-sa",
+                  "emailAddress": "bench-sa@bench-project.iam.gserviceaccount.com",
+                  "me": true
+                }
+              ],
+              "shared": false,
+              "ownedByMe": true,
+              "originalFilename": "portrait_5.png",
+              "fullFileExtension": "png",
+              "fileExtension": "png",
+              "md5Checksum": "00000000000000000000000000000000",
+              "size": "0",
+              "quotaBytesUsed": "0"
+            }
+          }
+        ],
+        "why": "a pin carries no binary, so Resize For AI and the vision chain get no image: use tls-intercept"
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1zs963iFkO-3g2rKak8Hcy555h55D8gjF"
+            },
+            "result": {
+              "fileId": "1zs963iFkO-3g2rKak8Hcy555h55D8gjF",
+              "title": "portrait_1.png",
+              "mimeType": "image/png",
+              "content": "iVBORw0KGgoAAAANSUhEUgAAAlgAAALuCAIAAAD9l//jAAALF0lEQVR4nO3VMQEAMAyAsBqf8V6T0YNEAR+zABA21wEAcMkIAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUgzQgDSjBCANCMEIM0IAUibBwBhRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpRghAmhECkGaEAKQZIQBpswAQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApH3PxvNij5imwQAAAABJRU5ErkJggg=="
+            }
+          },
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "19FyDcs68dZauQSEf6SEulJMag51SPsFy"
+            },
+            "error": "Drive API error 404"
+          },
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1gbXjfNYE7Tvuw_riFmHMKoqPPu696VfW"
+            },
+            "result": {
+              "fileId": "1gbXjfNYE7Tvuw_riFmHMKoqPPu696VfW",
+              "title": "portrait_3.png",
+              "mimeType": "image/png",
+              "content": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB"
+            }
+          },
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1s19hYdxgfMkrnU25l6YIDq-myQr1tQMa"
+            },
+            "result": {
+              "fileId": "1s19hYdxgfMkrnU25l6YIDq-myQr1tQMa",
+              "title": "portrait_4.png",
+              "mimeType": "image/png",
+              "content": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+            }
+          },
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "193FqIXJWAKj6O2SmOj3cLBfypHBkgdI5"
+            },
+            "error": "Drive API error 200"
+          }
+        ]
+      },
+      "note": "the five file ids are hard-coded in Photo URLs (Drive share links); the node downloads each in turn"
+    }
+  ],
+  "models": [
+    "Passport Photo Validator",
+    "Google Gemini Chat Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch; the node is expected to stop at the 404 (no continue-on-fail set)"
+    ]
+  }
+}

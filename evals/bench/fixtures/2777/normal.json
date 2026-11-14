@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "template": 2777,
+  "sha256": "2e159512e4814640ecdb415e590d6ef24099cb50842658379e43b70d22581d57",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "a plain chat question answered by the local model chain",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "68cb82d504c14f5eb80bdf2478bd39bb",
+          "action": "sendMessage",
+          "chatInput": "Explain in three sentences why the sky looks blue."
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [
+    "Basic LLM Chain2",
+    "Ollama DeepSeek"
+  ],
+  "writes": [],
+  "pinData": {
+    "When chat message received": [
+      {
+        "json": {
+          "action": "sendMessage",
+          "chatInput": "provide 10 sentences that end in the word apple.",
+          "sessionId": "68cb82d504c14f5eb80bdf2478bd39bb"
+        }
+      }
+    ]
+  },
+  "expect": {
+    "branches": [
+      "no IF/Switch; the chat trigger feeds only Basic LLM Chain2 (Ollama). AI Agent, DeepSeek, DeepSeek JSON Body and DeepSeek Raw Body are not connected and must never run"
+    ]
+  }
+}

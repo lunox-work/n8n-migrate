@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 1,
+  "template": 3016,
+  "sha256": "0c05bce469f6d9f7de49332c0ee7e1b323537d62777a49ffd9a1c034e43ad850",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "one unread email with no subject, no body and no attachment",
+  "trigger": {
+    "node": "Gmail Trigger1",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {
+          "id": "19a8d2000000e003",
+          "threadId": "19a8d2000000e003",
+          "labelIds": [
+            "INBOX",
+            "UNREAD"
+          ],
+          "sizeEstimate": 275,
+          "headers": {
+            "from": "noreply@facturas.example",
+            "to": "\"Lucía Fernández\" <facturas@estudio-lf.example>",
+            "subject": "",
+            "date": "Mon, 16 Nov 2026 08:30:00 +0000",
+            "message-id": "<19a8d2000000e003@mail.example>",
+            "content-type": "text/plain; charset=UTF-8"
+          },
+          "html": false,
+          "text": "",
+          "textAsHtml": "<p></p>",
+          "subject": "",
+          "date": "2026-11-16T08:30:00.000Z",
+          "to": {
+            "value": [
+              {
+                "address": "facturas@estudio-lf.example",
+                "name": "Lucía Fernández"
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">Lucía Fernández</span> &lt;<a href=\"mailto:facturas@estudio-lf.example\" class=\"mp_address_email\">facturas@estudio-lf.example</a>&gt;</span>",
+            "text": "\"Lucía Fernández\" <facturas@estudio-lf.example>"
+          },
+          "from": {
+            "value": [
+              {
+                "address": "noreply@facturas.example",
+                "name": ""
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\"></span> &lt;<a href=\"mailto:noreply@facturas.example\" class=\"mp_address_email\">noreply@facturas.example</a>&gt;</span>",
+            "text": "noreply@facturas.example"
+          },
+          "messageId": "<19a8d2000000e003@mail.example>"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Gmail Trigger1",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages",
+            "query": {
+              "q": "is:unread"
+            },
+            "status": 200,
+            "body": {
+              "messages": [
+                {
+                  "id": "19a8d2000000e003",
+                  "threadId": "19a8d2000000e003"
+                }
+              ],
+              "resultSizeEstimate": 1
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8d2000000e003",
+            "query": {
+              "format": "raw"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a8d2000000e003",
+              "threadId": "19a8d2000000e003",
+              "labelIds": [
+                "INBOX",
+                "UNREAD"
+              ],
+              "snippet": "",
+              "sizeEstimate": 275,
+              "historyId": "5524600",
+              "internalDate": "1794817800000",
+              "raw": "RnJvbTogbm9yZXBseUBmYWN0dXJhcy5leGFtcGxlDQpUbzogIkx1Y8OtYSBGZXJuw6FuZGV6IiA8ZmFjdHVyYXNAZXN0dWRpby1sZi5leGFtcGxlPg0KU3ViamVjdDogDQpEYXRlOiBNb24sIDE2IE5vdiAyMDI2IDA4OjMwOjAwICswMDAwDQpNZXNzYWdlLUlEOiA8MTlhOGQyMDAwMDAwZTAwM0BtYWlsLmV4YW1wbGU-DQpNSU1FLVZlcnNpb246IDEuMA0KQ29udGVudC1UeXBlOiB0ZXh0L3BsYWluOyBjaGFyc2V0PVVURi04DQpDb250ZW50LVRyYW5zZmVyLUVuY29kaW5nOiA4Yml0DQoNCg"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_threads",
+            "args": {
+              "query": "is:unread has:attachment"
+            },
+            "result": {
+              "threads": [
+                {
+                  "id": "19a8d2000000e003",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8d2000000e003",
+                  "messages": [
+                    {
+                      "id": "19a8d2000000e003",
+                      "snippet": "",
+                      "subject": "",
+                      "sender": "noreply@facturas.example",
+                      "toRecipients": [
+                        "facturas@estudio-lf.example"
+                      ],
+                      "date": "2026-11-16T08:30:00.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "UNREAD"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "tool": "get_message",
+            "args": {
+              "messageId": "19a8d2000000e003"
+            },
+            "result": {
+              "id": "19a8d2000000e003",
+              "threadId": "19a8d2000000e003",
+              "snippet": "",
+              "subject": "",
+              "sender": "noreply@facturas.example",
+              "toRecipients": [
+                "facturas@estudio-lf.example"
+              ],
+              "ccRecipients": [],
+              "bccRecipients": [],
+              "addressDisplayNames": {
+                "facturas@estudio-lf.example": "Lucía Fernández"
+              },
+              "date": "2026-11-16T08:30:00.000Z",
+              "labelIds": [
+                "INBOX",
+                "UNREAD"
+              ],
+              "plaintextBody": "",
+              "attachmentIds": [],
+              "attachments": [],
+              "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8d2000000e003"
+            }
+          }
+        ]
+      },
+      "note": "binary attachments cannot be pinned, so trigger.items lacks attachment_0. For the PDF path the n8n side should let the trigger poll once through tls-intercept (manual mode polls), answered by these http responses"
+    },
+    {
+      "node": "Google Drive",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "n8n": {
+        "items": [],
+        "why": "a pin carries no binary; Extract from File needs tls-intercept"
+      },
+      "note": "downloads the file the workflow just uploaded"
+    }
+  ],
+  "models": [
+    "Apply Data Extraction Rules",
+    "OpenAI Model"
+  ],
+  "writes": [
+    "Upload PDF to Drive1",
+    "Rename file1",
+    "Move to the correct folder1",
+    "Gmail",
+    "Append to Reconciliation Sheet"
+  ],
+  "writeReplies": [
+    {
+      "node": "Gmail",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8d2000000e003/modify",
+            "status": 200,
+            "body": {
+              "id": "19a8d2000000e003",
+              "threadId": "19a8d2000000e003",
+              "labelIds": [
+                "INBOX"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Only invoice mails with attachments: false → Gmail mark as read only"
+    ],
+    "offline": "a poll with no unread mail does not start a run on either side"
+  }
+}

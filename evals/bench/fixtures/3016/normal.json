@@ -1,0 +1,628 @@
+{
+  "schemaVersion": 1,
+  "template": 3016,
+  "sha256": "0c05bce469f6d9f7de49332c0ee7e1b323537d62777a49ffd9a1c034e43ad850",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "an unread invoice email with a PDF and an unread plain email; both IF outputs run",
+  "trigger": {
+    "node": "Gmail Trigger1",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {
+          "id": "19a8d1000000e001",
+          "threadId": "19a8d1000000e001",
+          "labelIds": [
+            "INBOX",
+            "UNREAD",
+            "CATEGORY_UPDATES"
+          ],
+          "sizeEstimate": 2209,
+          "headers": {
+            "from": "\"Hostinger\" <billing@hostinger.example>",
+            "to": "\"Lucía Fernández\" <facturas@estudio-lf.example>",
+            "cc": "contabilidad@estudio-lf.example",
+            "subject": "Factura H-2026-118734",
+            "date": "Mon, 16 Nov 2026 07:12:00 +0000",
+            "message-id": "<19a8d1000000e001@mail.example>",
+            "content-type": "multipart/mixed; boundary=\"=_bench_boundary_19a8d1000000e001\""
+          },
+          "html": false,
+          "text": "Hola Lucía,\nAdjuntamos la factura de tu pedido.\nGracias por confiar en Hostinger.",
+          "textAsHtml": "<p>Hola Lucía,<br/>Adjuntamos la factura de tu pedido.<br/>Gracias por confiar en Hostinger.</p>",
+          "subject": "Factura H-2026-118734",
+          "date": "2026-11-16T07:12:00.000Z",
+          "to": {
+            "value": [
+              {
+                "address": "facturas@estudio-lf.example",
+                "name": "Lucía Fernández"
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">Lucía Fernández</span> &lt;<a href=\"mailto:facturas@estudio-lf.example\" class=\"mp_address_email\">facturas@estudio-lf.example</a>&gt;</span>",
+            "text": "\"Lucía Fernández\" <facturas@estudio-lf.example>"
+          },
+          "from": {
+            "value": [
+              {
+                "address": "billing@hostinger.example",
+                "name": "Hostinger"
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">Hostinger</span> &lt;<a href=\"mailto:billing@hostinger.example\" class=\"mp_address_email\">billing@hostinger.example</a>&gt;</span>",
+            "text": "\"Hostinger\" <billing@hostinger.example>"
+          },
+          "cc": {
+            "value": [
+              {
+                "address": "contabilidad@estudio-lf.example",
+                "name": ""
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\"></span> &lt;<a href=\"mailto:contabilidad@estudio-lf.example\" class=\"mp_address_email\">contabilidad@estudio-lf.example</a>&gt;</span>",
+            "text": "contabilidad@estudio-lf.example"
+          },
+          "messageId": "<19a8d1000000e001@mail.example>"
+        }
+      },
+      {
+        "json": {
+          "id": "19a8d1000000e002",
+          "threadId": "19a8d1000000e002",
+          "labelIds": [
+            "INBOX",
+            "UNREAD"
+          ],
+          "sizeEstimate": 366,
+          "headers": {
+            "from": "\"Marta Ruiz\" <marta@cliente-norte.example>",
+            "to": "\"Lucía Fernández\" <facturas@estudio-lf.example>",
+            "subject": "¿Podemos mover la reunión al jueves?",
+            "date": "Mon, 16 Nov 2026 08:03:00 +0000",
+            "message-id": "<19a8d1000000e002@mail.example>",
+            "content-type": "text/plain; charset=UTF-8"
+          },
+          "html": false,
+          "text": "Hola, ¿te va bien el jueves a las 10?",
+          "textAsHtml": "<p>Hola, ¿te va bien el jueves a las 10?</p>",
+          "subject": "¿Podemos mover la reunión al jueves?",
+          "date": "2026-11-16T08:03:00.000Z",
+          "to": {
+            "value": [
+              {
+                "address": "facturas@estudio-lf.example",
+                "name": "Lucía Fernández"
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">Lucía Fernández</span> &lt;<a href=\"mailto:facturas@estudio-lf.example\" class=\"mp_address_email\">facturas@estudio-lf.example</a>&gt;</span>",
+            "text": "\"Lucía Fernández\" <facturas@estudio-lf.example>"
+          },
+          "from": {
+            "value": [
+              {
+                "address": "marta@cliente-norte.example",
+                "name": "Marta Ruiz"
+              }
+            ],
+            "html": "<span class=\"mp_address_group\"><span class=\"mp_address_name\">Marta Ruiz</span> &lt;<a href=\"mailto:marta@cliente-norte.example\" class=\"mp_address_email\">marta@cliente-norte.example</a>&gt;</span>",
+            "text": "\"Marta Ruiz\" <marta@cliente-norte.example>"
+          },
+          "messageId": "<19a8d1000000e002@mail.example>"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Gmail Trigger1",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages",
+            "query": {
+              "q": "is:unread"
+            },
+            "status": 200,
+            "body": {
+              "messages": [
+                {
+                  "id": "19a8d1000000e001",
+                  "threadId": "19a8d1000000e001"
+                },
+                {
+                  "id": "19a8d1000000e002",
+                  "threadId": "19a8d1000000e002"
+                }
+              ],
+              "resultSizeEstimate": 2
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8d1000000e001",
+            "query": {
+              "format": "raw"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a8d1000000e001",
+              "threadId": "19a8d1000000e001",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_UPDATES"
+              ],
+              "snippet": "Hola Lucía, Adjuntamos la factura de tu pedido. Gracias por confiar en Hostinger.",
+              "sizeEstimate": 2209,
+              "historyId": "5524600",
+              "internalDate": "1794813120000",
+              "raw": "RnJvbTogIkhvc3RpbmdlciIgPGJpbGxpbmdAaG9zdGluZ2VyLmV4YW1wbGU-DQpUbzogIkx1Y8OtYSBGZXJuw6FuZGV6IiA8ZmFjdHVyYXNAZXN0dWRpby1sZi5leGFtcGxlPg0KQ2M6IGNvbnRhYmlsaWRhZEBlc3R1ZGlvLWxmLmV4YW1wbGUNClN1YmplY3Q6IEZhY3R1cmEgSC0yMDI2LTExODczNA0KRGF0ZTogTW9uLCAxNiBOb3YgMjAyNiAwNzoxMjowMCArMDAwMA0KTWVzc2FnZS1JRDogPDE5YThkMTAwMDAwMGUwMDFAbWFpbC5leGFtcGxlPg0KTUlNRS1WZXJzaW9uOiAxLjANCkNvbnRlbnQtVHlwZTogbXVsdGlwYXJ0L21peGVkOyBib3VuZGFyeT0iPV9iZW5jaF9ib3VuZGFyeV8xOWE4ZDEwMDAwMDBlMDAxIg0KDQotLT1fYmVuY2hfYm91bmRhcnlfMTlhOGQxMDAwMDAwZTAwMQ0KQ29udGVudC1UeXBlOiB0ZXh0L3BsYWluOyBjaGFyc2V0PVVURi04DQoNCkhvbGEgTHVjw61hLApBZGp1bnRhbW9zIGxhIGZhY3R1cmEgZGUgdHUgcGVkaWRvLgpHcmFjaWFzIHBvciBjb25maWFyIGVuIEhvc3Rpbmdlci4NCi0tPV9iZW5jaF9ib3VuZGFyeV8xOWE4ZDEwMDAwMDBlMDAxDQpDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL3BkZjsgbmFtZT0iSW52b2ljZV9ILTIwMjYtMTE4NzM0LnBkZiINCkNvbnRlbnQtRGlzcG9zaXRpb246IGF0dGFjaG1lbnQ7IGZpbGVuYW1lPSJJbnZvaWNlX0gtMjAyNi0xMTg3MzQucGRmIg0KQ29udGVudC1UcmFuc2Zlci1FbmNvZGluZzogYmFzZTY0DQoNCkpWQkVSaTB4TGpRS01TQXdJRzlpYWdvOFBDQXZWSGx3WlNBdlEyRjBZV3h2WnlBdlVHRm5aWE1nTWlBd0lGSWdQajRLWlc1a2IySnENCkNqSWdNQ0J2WW1vS1BEd2dMMVI1Y0dVZ0wxQmhaMlZ6SUM5TGFXUnpJRnN6SURBZ1VsMGdMME52ZFc1MElERWdQajRLWlc1a2IySnENCkNqTWdNQ0J2WW1vS1BEd2dMMVI1Y0dVZ0wxQmhaMlVnTDFCaGNtVnVkQ0F5SURBZ1VpQXZUV1ZrYVdGQ2IzZ2dXekFnTUNBMU9UVWcNCk9EUXlYU0F2VW1WemIzVnlZMlZ6SUR3OElDOUdiMjUwSUR3OElDOUdNU0ExSURBZ1VpQStQaUErUGlBdlEyOXVkR1Z1ZEhNZ05DQXcNCklGSWdQajRLWlc1a2IySnFDalFnTUNCdlltb0tQRHdnTDB4bGJtZDBhQ0EwT0RJZ1BqNEtjM1J5WldGdENrSlVJQzlHTVNBeE1DQlUNClppQTFNQ0EzT0RBZ1ZHUWdNVFFnVkV3S0tFaHZjM1JwYm1kbGNpQkpiblJsY201aGRHbHZibUZzSUV4MFpDNHBJRlJxSUZRcUNpZzINCk1TQk1iM0prYjNVZ1ZtbHliMjV2Y3lCVGRISmxaWFFzSURZd01qTWdUR0Z5Ym1GallTd2dRM2x3Y25WektTQlVhaUJVS2dvb1NVNVcNClQwbERSU0FnU0MweU1ESTJMVEV4T0Rjek5Da2dWR29nVkNvS0tFbHVkbTlwWTJVZ1pHRjBaVG9nTVRRZ1RtOTJaVzFpWlhJZ01qQXkNCk5pa2dWR29nVkNvS0tFSnBiR3hsWkNCMGJ6b2dSWE4wZFdScGJ5Qk1SaXdnUTJGc2JHVWdUV0Y1YjNJZ01USXNJREk0TURFeklFMWgNClpISnBaQ2tnVkdvZ1ZDb0tLRUoxYzJsdVpYTnpJRmRsWWlCSWIzTjBhVzVuSUMwZ01USWdiVzl1ZEdoeklDQWdJQ0FnT1RVdU9EZ2cNClJWVlNLU0JVYWlCVUtnb29SRzl0WVdsdUlHVnpkSFZrYVc4dGJHWXVaWGhoYlhCc1pTQXRJREVnZVdWaGNpQWdJQ0FnTVRFdU9Ua2cNClJWVlNLU0JVYWlCVUtnb29Wa0ZVSURJeEpTQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSURJeUxqWTENCklFVlZVaWtnVkdvZ1ZDb0tLRlJQVkVGTUlDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSURFek1DNDENCk1pQkZWVklwSUZScUlGUXFDa1ZVQ21WdVpITjBjbVZoYlFwbGJtUnZZbW9LTlNBd0lHOWlhZ284UENBdlZIbHdaU0F2Um05dWRDQXYNClUzVmlkSGx3WlNBdlZIbHdaVEVnTDBKaGMyVkdiMjUwSUM5SVpXeDJaWFJwWTJFZ0wwVnVZMjlrYVc1bklDOVhhVzVCYm5OcFJXNWoNCmIyUnBibWNnUGo0S1pXNWtiMkpxQ25oeVpXWUtNQ0EyQ2pBd01EQXdNREF3TURBZ05qVTFNelVnWmlBS01EQXdNREF3TURBd09TQXcNCk1EQXdNQ0J1SUFvd01EQXdNREF3TURVNElEQXdNREF3SUc0Z0NqQXdNREF3TURBeE1UVWdNREF3TURBZ2JpQUtNREF3TURBd01ESTANCk1TQXdNREF3TUNCdUlBb3dNREF3TURBd056YzBJREF3TURBd0lHNGdDblJ5WVdsc1pYSUtQRHdnTDFOcGVtVWdOaUF2VW05dmRDQXgNCklEQWdVaUErUGdwemRHRnlkSGh5WldZS09EY3hDaVVsUlU5R0NnPT0NCi0tPV9iZW5jaF9ib3VuZGFyeV8xOWE4ZDEwMDAwMDBlMDAxLS0NCg"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8d1000000e002",
+            "query": {
+              "format": "raw"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a8d1000000e002",
+              "threadId": "19a8d1000000e002",
+              "labelIds": [
+                "INBOX",
+                "UNREAD"
+              ],
+              "snippet": "Hola, ¿te va bien el jueves a las 10?",
+              "sizeEstimate": 366,
+              "historyId": "5524600",
+              "internalDate": "1794816180000",
+              "raw": "RnJvbTogIk1hcnRhIFJ1aXoiIDxtYXJ0YUBjbGllbnRlLW5vcnRlLmV4YW1wbGU-DQpUbzogIkx1Y8OtYSBGZXJuw6FuZGV6IiA8ZmFjdHVyYXNAZXN0dWRpby1sZi5leGFtcGxlPg0KU3ViamVjdDogwr9Qb2RlbW9zIG1vdmVyIGxhIHJldW5pw7NuIGFsIGp1ZXZlcz8NCkRhdGU6IE1vbiwgMTYgTm92IDIwMjYgMDg6MDM6MDAgKzAwMDANCk1lc3NhZ2UtSUQ6IDwxOWE4ZDEwMDAwMDBlMDAyQG1haWwuZXhhbXBsZT4NCk1JTUUtVmVyc2lvbjogMS4wDQpDb250ZW50LVR5cGU6IHRleHQvcGxhaW47IGNoYXJzZXQ9VVRGLTgNCkNvbnRlbnQtVHJhbnNmZXItRW5jb2Rpbmc6IDhiaXQNCg0KSG9sYSwgwr90ZSB2YSBiaWVuIGVsIGp1ZXZlcyBhIGxhcyAxMD8"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_threads",
+            "args": {
+              "query": "is:unread has:attachment"
+            },
+            "result": {
+              "threads": [
+                {
+                  "id": "19a8d1000000e001",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8d1000000e001",
+                  "messages": [
+                    {
+                      "id": "19a8d1000000e001",
+                      "snippet": "Hola Lucía, Adjuntamos la factura de tu pedido. Gracias por confiar en Hostinger.",
+                      "subject": "Factura H-2026-118734",
+                      "sender": "billing@hostinger.example",
+                      "toRecipients": [
+                        "facturas@estudio-lf.example"
+                      ],
+                      "date": "2026-11-16T07:12:00.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "UNREAD",
+                        "CATEGORY_UPDATES"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "19a8d1000000e002",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8d1000000e002",
+                  "messages": [
+                    {
+                      "id": "19a8d1000000e002",
+                      "snippet": "Hola, ¿te va bien el jueves a las 10?",
+                      "subject": "¿Podemos mover la reunión al jueves?",
+                      "sender": "marta@cliente-norte.example",
+                      "toRecipients": [
+                        "facturas@estudio-lf.example"
+                      ],
+                      "date": "2026-11-16T08:03:00.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "UNREAD"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "tool": "get_message",
+            "args": {
+              "messageId": "19a8d1000000e001"
+            },
+            "result": {
+              "id": "19a8d1000000e001",
+              "threadId": "19a8d1000000e001",
+              "snippet": "Hola Lucía, Adjuntamos la factura de tu pedido. Gracias por confiar en Hostinger.",
+              "subject": "Factura H-2026-118734",
+              "sender": "billing@hostinger.example",
+              "toRecipients": [
+                "facturas@estudio-lf.example"
+              ],
+              "ccRecipients": [
+                "contabilidad@estudio-lf.example"
+              ],
+              "bccRecipients": [],
+              "addressDisplayNames": {
+                "billing@hostinger.example": "Hostinger",
+                "facturas@estudio-lf.example": "Lucía Fernández"
+              },
+              "date": "2026-11-16T07:12:00.000Z",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_UPDATES"
+              ],
+              "plaintextBody": "Hola Lucía,\nAdjuntamos la factura de tu pedido.\nGracias por confiar en Hostinger.",
+              "attachmentIds": [
+                "ANGjdJ496e766f6963655f482d3230"
+              ],
+              "attachments": [
+                {
+                  "attachmentId": "ANGjdJ496e766f6963655f482d3230",
+                  "filename": "Invoice_H-2026-118734.pdf",
+                  "mimeType": "application/pdf",
+                  "size": 1054
+                }
+              ],
+              "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8d1000000e001"
+            }
+          },
+          {
+            "tool": "get_message",
+            "args": {
+              "messageId": "19a8d1000000e002"
+            },
+            "result": {
+              "id": "19a8d1000000e002",
+              "threadId": "19a8d1000000e002",
+              "snippet": "Hola, ¿te va bien el jueves a las 10?",
+              "subject": "¿Podemos mover la reunión al jueves?",
+              "sender": "marta@cliente-norte.example",
+              "toRecipients": [
+                "facturas@estudio-lf.example"
+              ],
+              "ccRecipients": [],
+              "bccRecipients": [],
+              "addressDisplayNames": {
+                "marta@cliente-norte.example": "Marta Ruiz",
+                "facturas@estudio-lf.example": "Lucía Fernández"
+              },
+              "date": "2026-11-16T08:03:00.000Z",
+              "labelIds": [
+                "INBOX",
+                "UNREAD"
+              ],
+              "plaintextBody": "Hola, ¿te va bien el jueves a las 10?",
+              "attachmentIds": [],
+              "attachments": [],
+              "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8d1000000e002"
+            }
+          },
+          {
+            "tool": "download_gmail_attachment",
+            "args": {
+              "messageId": "19a8d1000000e001",
+              "attachmentId": "ANGjdJ496e766f6963655f482d3230",
+              "filename": "Invoice_H-2026-118734.pdf"
+            },
+            "result": {
+              "filename": "Invoice_H-2026-118734.pdf",
+              "mimeType": "application/pdf",
+              "base64Content": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA1IDAgUiA+PiA+PiAvQ29udGVudHMgNCAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA0ODIgPj4Kc3RyZWFtCkJUIC9GMSAxMCBUZiA1MCA3ODAgVGQgMTQgVEwKKEhvc3RpbmdlciBJbnRlcm5hdGlvbmFsIEx0ZC4pIFRqIFQqCig2MSBMb3Jkb3UgVmlyb25vcyBTdHJlZXQsIDYwMjMgTGFybmFjYSwgQ3lwcnVzKSBUaiBUKgooSU5WT0lDRSAgSC0yMDI2LTExODczNCkgVGogVCoKKEludm9pY2UgZGF0ZTogMTQgTm92ZW1iZXIgMjAyNikgVGogVCoKKEJpbGxlZCB0bzogRXN0dWRpbyBMRiwgQ2FsbGUgTWF5b3IgMTIsIDI4MDEzIE1hZHJpZCkgVGogVCoKKEJ1c2luZXNzIFdlYiBIb3N0aW5nIC0gMTIgbW9udGhzICAgICAgOTUuODggRVVSKSBUaiBUKgooRG9tYWluIGVzdHVkaW8tbGYuZXhhbXBsZSAtIDEgeWVhciAgICAgMTEuOTkgRVVSKSBUaiBUKgooVkFUIDIxJSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDIyLjY1IEVVUikgVGogVCoKKFRPVEFMICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDEzMC41MiBFVVIpIFRqIFQqCkVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgPj4KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI0MSAwMDAwMCBuIAowMDAwMDAwNzc0IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKODcxCiUlRU9GCg=="
+            }
+          }
+        ]
+      },
+      "note": "binary attachments cannot be pinned, so trigger.items lacks attachment_0. For the PDF path the n8n side should let the trigger poll once through tls-intercept (manual mode polls), answered by these http responses"
+    },
+    {
+      "node": "Google Drive",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1UpL0ad1",
+            "query": {
+              "alt": "media"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "application/pdf"
+            },
+            "bodyBase64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA1IDAgUiA+PiA+PiAvQ29udGVudHMgNCAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA0ODIgPj4Kc3RyZWFtCkJUIC9GMSAxMCBUZiA1MCA3ODAgVGQgMTQgVEwKKEhvc3RpbmdlciBJbnRlcm5hdGlvbmFsIEx0ZC4pIFRqIFQqCig2MSBMb3Jkb3UgVmlyb25vcyBTdHJlZXQsIDYwMjMgTGFybmFjYSwgQ3lwcnVzKSBUaiBUKgooSU5WT0lDRSAgSC0yMDI2LTExODczNCkgVGogVCoKKEludm9pY2UgZGF0ZTogMTQgTm92ZW1iZXIgMjAyNikgVGogVCoKKEJpbGxlZCB0bzogRXN0dWRpbyBMRiwgQ2FsbGUgTWF5b3IgMTIsIDI4MDEzIE1hZHJpZCkgVGogVCoKKEJ1c2luZXNzIFdlYiBIb3N0aW5nIC0gMTIgbW9udGhzICAgICAgOTUuODggRVVSKSBUaiBUKgooRG9tYWluIGVzdHVkaW8tbGYuZXhhbXBsZSAtIDEgeWVhciAgICAgMTEuOTkgRVVSKSBUaiBUKgooVkFUIDIxJSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDIyLjY1IEVVUikgVGogVCoKKFRPVEFMICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDEzMC41MiBFVVIpIFRqIFQqCkVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgPj4KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI0MSAwMDAwMCBuIAowMDAwMDAwNzc0IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKODcxCiUlRU9GCg=="
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1UpL0ad1",
+            "status": 200,
+            "body": {
+              "id": "1UpL0ad1",
+              "name": "Factura H-2026-118734_invoice_2026-11-16.pdf",
+              "mimeType": "application/pdf",
+              "size": "1054"
+            }
+          }
+        ]
+      },
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "kind": "drive#file",
+              "id": "1UpL0ad1",
+              "name": "Factura H-2026-118734_invoice_2026-11-16.pdf",
+              "mimeType": "application/pdf",
+              "starred": false,
+              "trashed": false,
+              "explicitlyTrashed": false,
+              "parents": [
+                "1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj"
+              ],
+              "spaces": [
+                "drive"
+              ],
+              "version": "3",
+              "webContentLink": "https://drive.google.com/uc?id=1UpL0ad1&export=download",
+              "webViewLink": "https://drive.google.com/file/d/1UpL0ad1/view?usp=drivesdk",
+              "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/application/pdf",
+              "hasThumbnail": true,
+              "viewedByMe": false,
+              "createdTime": "2026-11-16T09:00:00.000Z",
+              "modifiedTime": "2026-11-16T09:00:00.000Z",
+              "modifiedByMeTime": "2026-11-16T09:00:00.000Z",
+              "owners": [
+                {
+                  "kind": "drive#user",
+                  "displayName": "bench-sa",
+                  "emailAddress": "bench-sa@bench-project.iam.gserviceaccount.com",
+                  "me": true
+                }
+              ],
+              "shared": false,
+              "ownedByMe": true,
+              "originalFilename": "Factura H-2026-118734_invoice_2026-11-16.pdf",
+              "fullFileExtension": "pdf",
+              "fileExtension": "pdf",
+              "md5Checksum": "00000000000000000000000000000000",
+              "size": "1054",
+              "quotaBytesUsed": "1054"
+            }
+          }
+        ],
+        "why": "a pin carries no binary; Extract from File needs tls-intercept"
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1UpL0ad1"
+            },
+            "result": {
+              "fileId": "1UpL0ad1",
+              "title": "Factura H-2026-118734_invoice_2026-11-16.pdf",
+              "mimeType": "application/pdf",
+              "content": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA1IDAgUiA+PiA+PiAvQ29udGVudHMgNCAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA0ODIgPj4Kc3RyZWFtCkJUIC9GMSAxMCBUZiA1MCA3ODAgVGQgMTQgVEwKKEhvc3RpbmdlciBJbnRlcm5hdGlvbmFsIEx0ZC4pIFRqIFQqCig2MSBMb3Jkb3UgVmlyb25vcyBTdHJlZXQsIDYwMjMgTGFybmFjYSwgQ3lwcnVzKSBUaiBUKgooSU5WT0lDRSAgSC0yMDI2LTExODczNCkgVGogVCoKKEludm9pY2UgZGF0ZTogMTQgTm92ZW1iZXIgMjAyNikgVGogVCoKKEJpbGxlZCB0bzogRXN0dWRpbyBMRiwgQ2FsbGUgTWF5b3IgMTIsIDI4MDEzIE1hZHJpZCkgVGogVCoKKEJ1c2luZXNzIFdlYiBIb3N0aW5nIC0gMTIgbW9udGhzICAgICAgOTUuODggRVVSKSBUaiBUKgooRG9tYWluIGVzdHVkaW8tbGYuZXhhbXBsZSAtIDEgeWVhciAgICAgMTEuOTkgRVVSKSBUaiBUKgooVkFUIDIxJSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDIyLjY1IEVVUikgVGogVCoKKFRPVEFMICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDEzMC41MiBFVVIpIFRqIFQqCkVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgPj4KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI0MSAwMDAwMCBuIAowMDAwMDAwNzc0IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKODcxCiUlRU9GCg=="
+            }
+          }
+        ]
+      },
+      "note": "downloads the file the workflow just uploaded"
+    }
+  ],
+  "models": [
+    "Apply Data Extraction Rules",
+    "OpenAI Model"
+  ],
+  "writes": [
+    "Upload PDF to Drive1",
+    "Rename file1",
+    "Move to the correct folder1",
+    "Gmail",
+    "Append to Reconciliation Sheet"
+  ],
+  "writeReplies": [
+    {
+      "node": "Upload PDF to Drive1",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "uploadType": "media"
+            },
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1UpL0ad1",
+              "name": "Untitled",
+              "mimeType": "application/pdf"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Rename file1",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1UpL0ad1",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1UpL0ad1",
+              "name": "Factura H-2026-118734_invoice_2026-11-16.pdf",
+              "mimeType": "application/pdf"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Move to the correct folder1",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1UpL0ad1",
+            "query": {
+              "addParents": "1fCWCdqrFP3WrjjLc-gJtxMaiaF5lh8Ko"
+            },
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1UpL0ad1",
+              "name": "Factura H-2026-118734_invoice_2026-11-16.pdf",
+              "mimeType": "application/pdf",
+              "parents": [
+                "1fCWCdqrFP3WrjjLc-gJtxMaiaF5lh8Ko"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Gmail",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8d1000000e001/modify",
+            "status": 200,
+            "body": {
+              "id": "19a8d1000000e001",
+              "threadId": "19a8d1000000e001",
+              "labelIds": [
+                "INBOX",
+                "CATEGORY_UPDATES"
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8d1000000e002/modify",
+            "status": 200,
+            "body": {
+              "id": "19a8d1000000e002",
+              "threadId": "19a8d1000000e002",
+              "labelIds": [
+                "INBOX"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Append to Reconciliation Sheet",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1gIUnjSWUhsoTOVVd4ZoVjARCGQfGE8s7FWcju3lNajM",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1gIUnjSWUhsoTOVVd4ZoVjARCGQfGE8s7FWcju3lNajM",
+              "properties": {
+                "title": "facturas"
+              },
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Hoja 1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1gIUnjSWUhsoTOVVd4ZoVjARCGQfGE8s7FWcju3lNajM/values/Hoja%201!1:1",
+            "status": 200,
+            "body": {
+              "range": "'Hoja 1'!A1:Z1",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Invoice date",
+                  "Invoice Description",
+                  "Total price",
+                  "Fichero"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1gIUnjSWUhsoTOVVd4ZoVjARCGQfGE8s7FWcju3lNajM/values/Hoja%201:append",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1gIUnjSWUhsoTOVVd4ZoVjARCGQfGE8s7FWcju3lNajM",
+              "tableRange": "'Hoja 1'!A1:D15",
+              "updates": {
+                "spreadsheetId": "1gIUnjSWUhsoTOVVd4ZoVjARCGQfGE8s7FWcju3lNajM",
+                "updatedRange": "'Hoja 1'!A16:D16",
+                "updatedRows": 1,
+                "updatedColumns": 4,
+                "updatedCells": 4
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Sheets connector"
+      }
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Only invoice mails with attachments: true for item 0 (multipart/mixed with a PDF), false for item 1 (text/plain) → only marked as read"
+    ]
+  }
+}

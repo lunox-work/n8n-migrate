@@ -1,0 +1,312 @@
+{
+  "schemaVersion": 1,
+  "template": 2614,
+  "sha256": "5f79f2f42600185959a078442c4882d97bcd650fe0bfd99e50892dc1bdf0fb4c",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "a zero-byte PDF: the download returns an empty body",
+  "trigger": {
+    "node": "Get PDF or Images",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {
+          "kind": "drive#file",
+          "id": "1eMpTy000000000000000000000000000",
+          "name": "empty.pdf",
+          "mimeType": "application/pdf",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "parents": [
+            "1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj"
+          ],
+          "spaces": [
+            "drive"
+          ],
+          "version": "3",
+          "webContentLink": "https://drive.google.com/uc?id=1eMpTy000000000000000000000000000&export=download",
+          "webViewLink": "https://drive.google.com/file/d/1eMpTy000000000000000000000000000/view?usp=drivesdk",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/application/pdf",
+          "hasThumbnail": true,
+          "viewedByMe": false,
+          "createdTime": "2026-11-16T08:58:12.000Z",
+          "modifiedTime": "2026-11-16T08:58:12.000Z",
+          "modifiedByMeTime": "2026-11-16T08:58:12.000Z",
+          "owners": [
+            {
+              "kind": "drive#user",
+              "displayName": "bench-sa",
+              "emailAddress": "bench-sa@bench-project.iam.gserviceaccount.com",
+              "me": true
+            }
+          ],
+          "shared": false,
+          "ownedByMe": true,
+          "originalFilename": "empty.pdf",
+          "fullFileExtension": "pdf",
+          "fileExtension": "pdf",
+          "md5Checksum": "00000000000000000000000000000000",
+          "size": "0",
+          "quotaBytesUsed": "0"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get PDF or Images",
+      "service": "google-drive",
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_files",
+            "args": {
+              "query": "'1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj' in parents and createdTime > '2026-11-16T08:58:00'"
+            },
+            "result": {
+              "files": [
+                {
+                  "id": "1eMpTy000000000000000000000000000",
+                  "title": "empty.pdf",
+                  "mimeType": "application/pdf",
+                  "createdTime": "2026-11-16T08:58:12.000Z",
+                  "modifiedTime": "2026-11-16T08:58:12.000Z",
+                  "parentId": "1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj",
+                  "viewUrl": "https://drive.google.com/file/d/1eMpTy000000000000000000000000000/view"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "note": "poll source for the Claude side; the n8n side pins trigger.items"
+    },
+    {
+      "node": "Download PDF",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1eMpTy000000000000000000000000000",
+            "query": {
+              "alt": "media"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "application/pdf"
+            },
+            "bodyBase64": ""
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1eMpTy000000000000000000000000000",
+            "status": 200,
+            "body": {
+              "id": "1eMpTy000000000000000000000000000",
+              "name": "empty.pdf",
+              "mimeType": "application/pdf",
+              "size": "0"
+            }
+          }
+        ]
+      },
+      "n8n": {
+        "items": [
+          {
+            "json": {
+              "kind": "drive#file",
+              "id": "1eMpTy000000000000000000000000000",
+              "name": "empty.pdf",
+              "mimeType": "application/pdf",
+              "starred": false,
+              "trashed": false,
+              "explicitlyTrashed": false,
+              "parents": [
+                "1HOeRP5iwccg93UPUYmWYD7DyDmRREkhj"
+              ],
+              "spaces": [
+                "drive"
+              ],
+              "version": "3",
+              "webContentLink": "https://drive.google.com/uc?id=1eMpTy000000000000000000000000000&export=download",
+              "webViewLink": "https://drive.google.com/file/d/1eMpTy000000000000000000000000000/view?usp=drivesdk",
+              "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/application/pdf",
+              "hasThumbnail": true,
+              "viewedByMe": false,
+              "createdTime": "2026-11-16T08:58:12.000Z",
+              "modifiedTime": "2026-11-16T08:58:12.000Z",
+              "modifiedByMeTime": "2026-11-16T08:58:12.000Z",
+              "owners": [
+                {
+                  "kind": "drive#user",
+                  "displayName": "bench-sa",
+                  "emailAddress": "bench-sa@bench-project.iam.gserviceaccount.com",
+                  "me": true
+                }
+              ],
+              "shared": false,
+              "ownedByMe": true,
+              "originalFilename": "empty.pdf",
+              "fullFileExtension": "pdf",
+              "fileExtension": "pdf",
+              "md5Checksum": "00000000000000000000000000000000",
+              "size": "0",
+              "quotaBytesUsed": "0"
+            }
+          }
+        ],
+        "why": "a pin carries JSON only, not the binary `data`, so Extract from File / the vision chain get no file: use tls-intercept"
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1eMpTy000000000000000000000000000"
+            },
+            "result": {
+              "fileId": "1eMpTy000000000000000000000000000",
+              "title": "empty.pdf",
+              "mimeType": "application/pdf",
+              "content": ""
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Download Image",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "n8n": {
+        "items": [],
+        "why": "not reached in this variant"
+      },
+      "note": "no item takes this Switch output in this variant"
+    }
+  ],
+  "models": [
+    "Send data to A.I.",
+    "Vertex A.I. extract text",
+    "Google Gemini Chat Model"
+  ],
+  "writes": [
+    "Upload to Google Drive",
+    "Upload to Google Drive1"
+  ],
+  "writeReplies": [
+    {
+      "node": "Upload to Google Drive",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "uploadType": "resumable"
+            },
+            "status": 200,
+            "headers": {
+              "location": "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=bench-1"
+            },
+            "body": ""
+          },
+          {
+            "method": "PUT",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1CsvOut1",
+              "name": "2026-11-16",
+              "mimeType": "text/csv",
+              "parents": [
+                "1Zo4OFCv1qWRX1jo0VL_iqUBf4v0fZEXe"
+              ]
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1CsvOut1",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1CsvOut1",
+              "name": "2026-11-16",
+              "mimeType": "text/csv",
+              "parents": [
+                "1Zo4OFCv1qWRX1jo0VL_iqUBf4v0fZEXe"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Upload to Google Drive1",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "uploadType": "resumable"
+            },
+            "status": 200,
+            "headers": {
+              "location": "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=bench-2"
+            },
+            "body": ""
+          },
+          {
+            "method": "PUT",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1CsvOut2",
+              "name": "2026-11-16",
+              "mimeType": "text/csv",
+              "parents": [
+                "1Zo4OFCv1qWRX1jo0VL_iqUBf4v0fZEXe"
+              ]
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1CsvOut2",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1CsvOut2",
+              "name": "2026-11-16",
+              "mimeType": "text/csv",
+              "parents": [
+                "1Zo4OFCv1qWRX1jo0VL_iqUBf4v0fZEXe"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Route based on PDF or Image: pdf; Extract data from PDF is expected to fail on an empty file"
+    ]
+  }
+}
