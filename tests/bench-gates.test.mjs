@@ -143,3 +143,16 @@ test("P12: a recording interrupted on the model side is told apart from a real b
   const httpNode = { status: "error", error: { node: "Fetch", message: "ECONNRESET" }, nodes: {} };
   assert.equal(recordingInterrupted({ result: httpNode, modelCalls: [], models, consumers }), null, "a non-model node's failure is the template's");
 });
+
+test("P14: a bench claude -p carries no prompt in argv, and the prompt reaches stdin byte for byte, NUL included", async () => {
+  const { claudeArgv, spawnWithPrompt } = await import("../evals/bench/claude.mjs");
+  const argv = claudeArgv({ model: "haiku", budgetUsd: 0.5, args: ["--tools", ""] });
+  assert.equal(argv[0], "-p");
+  assert.equal(argv[1], "--model", "nothing positional follows -p");
+  const prompt = "chat text with a NUL \u0000 byte and ünïcode";
+  const child = spawnWithPrompt(process.execPath, ["-e", "let b=[];process.stdin.on('data',c=>b.push(c));process.stdin.on('end',()=>process.stdout.write(Buffer.concat(b).toString('hex')))"], prompt);
+  let out = "";
+  child.stdout.on("data", (c) => (out += c));
+  await new Promise((ok) => child.on("exit", ok));
+  assert.equal(Buffer.from(out, "hex").toString("utf8"), prompt);
+});

@@ -12,6 +12,10 @@
 // container and a claude -p never share a tight machine. Exception (PROPOSALS P12): the model
 // calls of a live n8n recording skip the per-call gate (`memoryChecked`), because the
 // recording checked memory once before it started and n8n aborts a model request that waits.
+//
+// Prompts go on stdin, never in argv (PROPOSALS P14): an argument cannot carry a NUL byte, and
+// fixture text (a malformed chat message) can hold one. `claude -p` reads its prompt from stdin
+// when none is given as an argument.
 
 import { spawn, spawnSync, execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, mkdtempSync, rmSync } from "node:fs";
@@ -70,9 +74,21 @@ export async function memoryGate({ log = console.error, waitMs = 180_000, maxWai
   }
 }
 
+// Starts `bin args...` with `prompt` written to its stdin (P14). Returns the child; stdout and
+// stderr are pipes. A child that exits before reading its stdin must not crash the bench (EPIPE).
+export function spawnWithPrompt(bin, args, prompt, opts = {}) {
+  const child = spawn(bin, args, { ...opts, stdio: ["pipe", "pipe", "pipe"] });
+  child.stdin.on("error", () => {});
+  child.stdin.end(Buffer.from(String(prompt ?? ""), "utf8"));
+  return child;
+}
+
 const USAGE_RE = /usage limit|rate limit|limit reached|out of extra usage|5-hour limit|weekly limit/i;
 
-// Runs `claude -p <prompt> ...args` and returns {json, text, costUsd, ms}. `args` are extra
+// The argv of a bench `claude -p`: no prompt in it (P14, the prompt goes on stdin).
+export const claudeArgv = ({ model = "haiku", budgetUsd = 1, args = [] } = {}) => ["-p", "--model", model, "--output-format", "json", "--no-session-persistence", "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}', "--max-budget-usd", String(budgetUsd), ...args];
+
+// Runs `claude -p ...args` with the prompt on stdin and returns {json, text, costUsd, ms}. `args` are extra
 // CLI flags. The session is isolated: an empty working directory, project settings only (none
 // there), no MCP servers, no session file. `purpose` names the run in the ledger.
 // `memoryChecked`: the caller checked memory for the job this run belongs to (P12); no gate.
@@ -84,10 +100,10 @@ export async function claudeP({ prompt, model = "haiku", args = [], purpose, cwd
   const dir = cwd ?? mkdtempSync(join(tmpdir(), "n2c-bench-claude-"));
   const env = { ...process.env, ENABLE_CLAUDEAI_MCP_SERVERS: "false", CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1", DISABLE_AUTOUPDATER: "1", NODE_OPTIONS: "--max-old-space-size=512", ...extraEnv };
   for (const k of Object.keys(env)) if (k === "ANTHROPIC_API_KEY" || k.startsWith("N2C_SECRET_") || k === "CLAUDECODE" || k.startsWith("CLAUDE_CODE_MESSAGING") || k === "CLAUDE_CODE_SESSION_ID" || k === "CLAUDE_CODE_CHILD_SESSION") delete env[k];
-  const full = ["-p", prompt, "--model", model, "--output-format", "json", "--no-session-persistence", "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}', "--max-budget-usd", String(budgetUsd), ...args];
+  const full = claudeArgv({ model, budgetUsd, args });
   const t0 = Date.now();
   const out = await new Promise((resolveP) => {
-    const child = spawn(claudeBin(), full, { cwd: dir, env, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawnWithPrompt(claudeBin(), full, prompt, { cwd: dir, env });
     let stdout = "";
     let stderr = "";
     const timer = setTimeout(() => child.kill("SIGTERM"), timeoutMs);

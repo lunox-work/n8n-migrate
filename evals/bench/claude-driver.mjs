@@ -24,7 +24,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { claudeBin, LEDGER, ledger, MAX_RUNS, memoryGate, BudgetExceeded, UsageLimit } from "./claude.mjs";
+import { claudeBin, LEDGER, ledger, MAX_RUNS, memoryGate, spawnWithPrompt, BudgetExceeded, UsageLimit } from "./claude.mjs";
 import { connectorFixtures, httpRoutes } from "./claude-side.mjs";
 import { fromTool } from "./compare.mjs";
 import { startMock } from "../n8n/mock-server.mjs";
@@ -103,7 +103,8 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   }
 
   const prompt = readFileSync(join(work, "task-prompt.md"), "utf8");
-  const args = ["-p", prompt, "--model", model, "--output-format", "stream-json", "--verbose", "--strict-mcp-config", "--mcp-config", mcpConfig, "--setting-sources", "project", "--settings", flagSettings, "--no-session-persistence", "--max-budget-usd", "1.5"];
+  // The task prompt goes on stdin (PROPOSALS P14), as every bench `claude -p` does.
+  const args = ["-p", "--model", model, "--output-format", "stream-json", "--verbose", "--strict-mcp-config", "--mcp-config", mcpConfig, "--setting-sources", "project", "--settings", flagSettings, "--no-session-persistence", "--max-budget-usd", "1.5"];
   const env = { ...process.env, ENABLE_CLAUDEAI_MCP_SERVERS: "false", CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1", DISABLE_AUTOUPDATER: "1", NODE_OPTIONS: "--max-old-space-size=512" };
   for (const k of Object.keys(env)) if (k === "ANTHROPIC_API_KEY" || k.startsWith("N2C_SECRET_") || k === "CLAUDECODE" || k.startsWith("CLAUDE_CODE_MESSAGING") || k === "CLAUDE_CODE_SESSION_ID" || k === "CLAUDE_CODE_CHILD_SESSION") delete env[k];
   if (httpMock) {
@@ -119,7 +120,7 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   const t0 = Date.now();
   const summary = { init: null, result: null, isolation: "unchecked", killedFor: null, toolUses: {} };
   await new Promise((done) => {
-    const child = spawn(claudeBin(), args, { cwd: repo, env, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawnWithPrompt(claudeBin(), args, prompt, { cwd: repo, env });
     const timer = setTimeout(() => ((summary.killedFor = "timeout"), child.kill("SIGTERM")), timeoutS * 1000);
     let buf = "";
     child.stdout.on("data", (chunk) => {
