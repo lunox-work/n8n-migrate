@@ -85,6 +85,9 @@ export const ENV = {
   HTTP_PROXY: `${MOCK_URL}`,
   HTTPS_PROXY: `${MOCK_URL}`,
   NO_PROXY: "localhost,127.0.0.1,::1,mock",
+  // Node's own fetch (undici) ignores the proxy variables unless told; SDK clients built on it
+  // (Pinecone's data plane, Qdrant, supabase-js, Google GenAI) then never reached the mock.
+  NODE_USE_ENV_PROXY: "1",
   // Read once at process start by Node (main process and task runners): every TLS client in
   // n8n then accepts the mock's per-host leaves. Mounted from TLS_DIR/ca.pem.
   NODE_EXTRA_CA_CERTS: "/bench-ca/ca.pem",
