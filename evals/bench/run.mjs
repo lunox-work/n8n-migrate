@@ -32,12 +32,12 @@ import { spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync, cpSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, overlayEnv } from "./n8n-side.mjs";
+import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, overlayEnv, recordingInterrupted, modelConsumers } from "./n8n-side.mjs";
 import { convertPlain, convertSkill, runInProcess, folderIn } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
-import { fromHttp, fromTool, reply, replyText, compare, modelTextsOf, baitHits } from "./compare.mjs";
+import { fromHttp, fromTool, reply, replyText, compare, modelTextsOf, baitHits, refsOf } from "./compare.mjs";
 import { gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited } from "./gates.mjs";
-import { BudgetExceeded, UsageLimit, ledger as claudeLedger } from "./claude.mjs";
+import { BudgetExceeded, UsageLimit, ledger as claudeLedger, memoryGate } from "./claude.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
@@ -98,12 +98,20 @@ async function n8n() {
 // One n8n run of a template variant. Model replies: replay the committed recording when there
 // is one (and --record is off), else live (claude -p, cached by request) and saved.
 // mode "canned": no model at all (baseline check for templates whose Claude side stops early).
+// PROPOSALS P12: a run that may call the model live checks memory once before it starts
+// (CLAUDE.md's floor, 25% free: the recording is one sequential job) and its model calls skip
+// the per-call gate; a run interrupted on the model side is never saved (recordingInterrupted)
+// and the template's row reads `bench defect: recording interrupted`.
 async function n8nRun(id, variant, { record = false, canned = false } = {}) {
   const recFile = join(RECORDINGS, String(id), `${variant}.json`);
   const existing = readJson(recFile);
   const env = await n8n();
   let prep = prepare(id, variant);
   const session = canned ? { mode: "canned" } : existing && !record ? { mode: "replay", recorded: byTag(existing.modelCalls), fallback: "live" } : { mode: "live" };
+  if (!canned && prep.models.length) {
+    await memoryGate({ log, need: 25 });
+    session.memoryChecked = true;
+  }
   let r = await runN8n(prep, { shim: env.shim, modelSession: session, runWorkflow: env.runWorkflow, copyIn: env.container.copyIn, timeoutS: 900 });
   let httpAttempt = null;
   if (r.fallbackable) {
@@ -114,6 +122,10 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
   }
   if (env.shim.lastError && /budget|usage limit/i.test(env.shim.lastError.message)) throw env.shim.lastError;
   const res = r.result;
+  if (!canned) {
+    const why = recordingInterrupted({ result: res, modelCalls: r.modelCalls, models: prep.models, consumers: modelConsumers(prep.wf) });
+    if (why) throw new Error(`recording interrupted (${id}/${variant}, not saved): ${why}`);
+  }
   const out = {
     template: id,
     variant,
@@ -157,8 +169,12 @@ function n8nEffects(rec, fx) {
   return list;
 }
 
+// A Claude-side call as an effect; a connector call may name a message the fixture serves
+// (PROPOSALS P10: a reply tool call resolves its thread, recipients and subject from it).
+const claudeEffect = (e, fx) => (e.connector ? fromTool(e, "claude", refsOf(fx)) : fromHttp(e, "claude"));
+
 function claudeEffects(run, fx) {
-  const list = [...run.seen.tools.filter((t) => !t.invalid).map((t) => fromTool(t, "claude")), ...run.seen.http.map((h) => fromHttp(h, "claude")).filter(Boolean)];
+  const list = [...run.seen.tools.filter((t) => !t.invalid).map((t) => fromTool(t, "claude", refsOf(fx))), ...run.seen.http.map((h) => fromHttp(h, "claude")).filter(Boolean)];
   if (["chat", "form"].includes(fx.trigger.kind) && run.res.status === "done") list.push(reply(replyText(run.res.output), "claude"));
   return list;
 }
@@ -355,7 +371,7 @@ async function benchTemplate(id, args, L) {
           const fx = loadFixture(id, v);
           const r = await runClaudeDriver(folder, fx, { wf, recordings: rec?.modelCalls ?? [], startedAt: rec?.startedAt, label: `${args.tag}-${id}-${v}`, log });
           if (r.run || r.summary?.notRun) {
-            const ce = r.effects.map((e) => (e.connector ? fromTool(e, "claude") : fromHttp(e, "claude"))).filter(Boolean);
+            const ce = r.effects.map((e) => claudeEffect(e, fx)).filter(Boolean);
             r.gate6 = gate6({ claudeCalls: { tools: r.effects.filter((e) => e.connector), http: r.effects.filter((e) => e.url) }, allow: r.allow ?? {}, claudeEffects: ce, n8nBaitHits: baitHits(n8nEffects(rec, fx), fx.expect.bait ?? []), bait: v === "hostile" ? fx.expect.bait ?? [] : [], baitHits });
             if (v === "normal" && rec) r.cmp = compare(n8nEffects(rec, fx), ce.concat(["chat", "form"].includes(fx.trigger.kind) && r.run?.status === "done" ? [reply(replyText(r.run.output), "claude")] : []), { modelTexts: modelTextsOf(rec.modelCalls, answerOf), mode: args.modelMode, runTime: runTime(rec) });
           }
@@ -386,14 +402,14 @@ async function benchTemplate(id, args, L) {
     drivers.claude = { normal: cn.summary, hostile: ch.summary };
     metrics.claudeDriver = cn.metrics;
     if (!cn.summary?.notRun) {
-    const cNormal = cn.run && compare(n8nEffects(recs.normal, fxN), cn.effects.map((e) => (e.connector ? fromTool(e, "claude") : fromHttp(e, "claude"))).filter(Boolean).concat(["chat", "form"].includes(fxN.trigger.kind) && cn.run.status === "done" ? [reply(replyText(cn.run.output), "claude")] : []), { modelTexts: modelTextsOf(recs.normal?.modelCalls, answerOf), mode: args.modelMode, runTime: runTime(recs.normal) });
+    const cNormal = cn.run && compare(n8nEffects(recs.normal, fxN), cn.effects.map((e) => claudeEffect(e, fxN)).filter(Boolean).concat(["chat", "form"].includes(fxN.trigger.kind) && cn.run.status === "done" ? [reply(replyText(cn.run.output), "claude")] : []), { modelTexts: modelTextsOf(recs.normal?.modelCalls, answerOf), mode: args.modelMode, runTime: runTime(recs.normal) });
     const g3c = cn.run?.status === "done" ? { pass: true } : { ...runFailureCause({ error: cn.run?.error ?? { message: cn.summary?.problem ?? "no run" } }) };
     if (!g3c.pass) gates[3] = { ...g3c, driver: "claude", inprocess: gates[3] };
     else {
       const g4c = gate4({ cmp: cNormal, modelInputs: [], n8nStatus: recs.normal?.status });
       if (!g4c.pass) gates[4] = { ...g4c, driver: "claude", inprocess: gates[4] };
       const fxH = loadFixture(id, "hostile");
-      const g6c = gate6({ claudeCalls: { tools: ch.effects.filter((e) => e.connector), http: ch.effects.filter((e) => e.url) }, allow: ch.allow ?? {}, claudeEffects: ch.effects.map((e) => (e.connector ? fromTool(e, "claude") : fromHttp(e, "claude"))).filter(Boolean), n8nBaitHits: baitHits(n8nEffects(recs.hostile, fxH), fxH.expect.bait ?? []), bait: fxH.expect.bait ?? [], baitHits });
+      const g6c = gate6({ claudeCalls: { tools: ch.effects.filter((e) => e.connector), http: ch.effects.filter((e) => e.url) }, allow: ch.allow ?? {}, claudeEffects: ch.effects.map((e) => claudeEffect(e, fxH)).filter(Boolean), n8nBaitHits: baitHits(n8nEffects(recs.hostile, fxH), fxH.expect.bait ?? []), bait: fxH.expect.bait ?? [], baitHits });
       if (!g6c.pass) gates[6] = { ...g6c, driver: "claude", inprocess: gates[6] };
     }
     for (const g of [3, 4, 6]) if (gates[g].pass) gates[g].driver = "inprocess+claude";

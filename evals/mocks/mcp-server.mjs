@@ -11,8 +11,11 @@
 // e.g. mcp__claude_ai_Gmail__ -> server "claude_ai_Gmail"), so the model sees the same tool
 // names as with the real connector. `serverName` prints that name.
 //
-// Fixtures (JSON): {"<connector>": {"<tool>": {"responses": [r, ...], "default": r}}}.
-// The n-th call of a tool gets responses[n], then default; with neither, {"ok": true}.
+// Fixtures (JSON): {"<connector>": {"<tool>": {"responses": [r, ...], "default": r, "reuse"?: true}}}.
+// The n-th call of a tool gets responses[n], then default; with neither, {"ok": true}. A
+// response with `args` is matched to calls first: the first unused one whose args are a
+// subset of the call's; with `reuse` (a read: the same arguments answer the same) a used one
+// whose args fit comes next; otherwise the first unused response, in order.
 // r is {"result": <JSON>} (sent as one text block holding the JSON), {"text": "..."},
 // {"error": "message"} (a tool error, isError), or a bare JSON value (same as result).
 // Strings of the form "{{args.<name>}}" in a result are replaced by that argument.
@@ -75,6 +78,12 @@ export function checkSchema(v, s, path = "$", out = []) {
   return out;
 }
 
+const isObj = (x) => x && typeof x === "object" && !Array.isArray(x);
+function subset(want, got) {
+  if (!isObj(want)) return JSON.stringify(want) === JSON.stringify(got);
+  return isObj(got) && Object.entries(want).every(([k, v]) => subset(v, got[k]));
+}
+
 function fill(v, args) {
   if (typeof v === "string") {
     const m = /^\{\{args\.([\w.-]+)\}\}$/.exec(v);
@@ -95,9 +104,19 @@ export function createServer({ connector, doc, fixtures = {}, log }) {
   };
   const respond = (tool, args) => {
     const f = mine[tool] ?? {};
-    const n = counts.get(tool) ?? 0;
-    counts.set(tool, n + 1);
-    let r = Array.isArray(f.responses) && n < f.responses.length ? f.responses[n] : f.default;
+    const list = Array.isArray(f.responses) ? f.responses : [];
+    if (!counts.has(tool)) counts.set(tool, new Set());
+    const used = counts.get(tool);
+    const fits = (x) => x && typeof x === "object" && x.args && subset(x.args, args);
+    let i = list.findIndex((x, j) => !used.has(j) && fits(x));
+    if (i < 0 && f.reuse) i = list.findIndex(fits);
+    if (i < 0) i = list.findIndex((x, j) => !used.has(j));
+    if (i >= 0) used.add(i);
+    let r = i >= 0 ? list[i] : f.default;
+    if (r && typeof r === "object" && !Array.isArray(r) && "args" in r && ("result" in r || "text" in r || "error" in r)) {
+      const { args: _a, ...rest } = r;
+      r = rest;
+    }
     if (r === undefined) r = { result: { ok: true } };
     if (r === null || typeof r !== "object" || Array.isArray(r) || !("result" in r || "text" in r || "error" in r)) r = { result: r };
     if ("error" in r) return { content: [{ type: "text", text: String(r.error) }], isError: true };

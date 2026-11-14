@@ -22,7 +22,7 @@ import { limitErrors, pageResult } from "../mocks/limits.mjs";
 import { answerOf, liveAnswer, normalize, normalizeRunnerRequest, runnerValue } from "./model-shim.mjs";
 import { claudeP } from "./claude.mjs";
 import { modelConsumers } from "./n8n-side.mjs";
-import { maskRunTime } from "./compare.mjs";
+import { maskRunTime, fromTool } from "./compare.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
@@ -108,11 +108,15 @@ const toolSchema = (connector, tool) => {
 };
 
 // Picks the fixture answer for a call: the first unused one whose informative args fit the
-// call, else the first unused one fixtured for the same node, else the first unused, else the
-// last one again.
-export function pickConnector(list, args, used, node) {
+// call, else (a read, PROPOSALS P11) a used one whose args fit, because a read with the same
+// arguments answers the same, else the first unused one fixtured for the same node, else the
+// first unused, else the last one again. `used` is the caller's: one set per connector tool
+// for writes (single-use, in order) and one per tool and calling step for reads (connectorUse),
+// so a poll read and a later get read never consume each other's rows.
+export function pickConnector(list, args, used, node, { read = false } = {}) {
   if (!list?.length) return null;
   let i = list.findIndex((c, j) => !used.has(j) && c.args && subset(c.args, args));
+  if (i < 0 && read) i = list.findIndex((c) => c.args && subset(c.args, args));
   if (i < 0 && node) i = list.findIndex((c, j) => !used.has(j) && c.node === node);
   if (i < 0) i = list.findIndex((c, j) => !used.has(j));
   if (i < 0) i = list.length - 1;
@@ -203,8 +207,11 @@ export async function runInProcess(folder, fx, { wf, recordings = [], mode = "re
         entry.invalid = errs.join("; ");
         throw Object.assign(new Error(`Invalid arguments for ${p.tool}: ${entry.invalid}`), { name: "ToolError" });
       }
-      if (!usedConn.has(key)) usedConn.set(key, new Set());
-      const f = pickConnector(conn[key], p.args ?? {}, usedConn.get(key), p.step);
+      // Read or write by the comparer's own table (effects.json), not the runner's claim.
+      const read = fromTool({ connector: p.connector, tool: p.tool, args: p.args ?? {}, effect: p.effect }).effect === "read";
+      const useKey = read ? `${key}\u0000${p.step ?? ""}` : key;
+      if (!usedConn.has(useKey)) usedConn.set(useKey, new Set());
+      const f = pickConnector(conn[key], p.args ?? {}, usedConn.get(useKey), p.step, { read });
       entry.fixture = f ? `${f.node}#${f.index}` : "default";
       if (f?.error) throw Object.assign(new Error(String(f.error)), { name: "ToolError" });
       if (f && "text" in f) return f.text;

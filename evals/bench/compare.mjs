@@ -31,22 +31,47 @@ function b64(s) {
   return Buffer.from(String(s).replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
 }
 
-// A Gmail raw message (RFC 2822, base64url): headers and the first text/plain part.
-export function parseMime(raw) {
-  const text = b64(raw);
-  const [head, ...rest] = text.split(/\r?\n\r?\n/);
+// A Gmail raw message (RFC 2822, base64url): headers and the first text/plain part. The body
+// is decoded by its Content-Transfer-Encoding (the part's own, else the message's): base64, or
+// quoted-printable (RFC 2045 6.7: `=\r\n` soft line breaks removed, `=XX` octets as UTF-8),
+// which is what n8n's Gmail send and reply write (PROPOSALS P10).
+const headerMap = (head) => {
   const headers = {};
   for (const line of head.replace(/\r?\n[ \t]+/g, " ").split(/\r?\n/)) {
     const m = /^([\w-]+):\s*(.*)$/.exec(line);
     if (m) headers[m[1].toLowerCase()] = m[2];
   }
+  return headers;
+};
+
+export function decodeQuotedPrintable(s) {
+  const flat = String(s).replace(/=\r?\n/g, "");
+  const bytes = [];
+  for (let i = 0; i < flat.length; i++) {
+    const hex = flat[i] === "=" ? /^[0-9A-Fa-f]{2}/.exec(flat.slice(i + 1, i + 3)) : null;
+    if (hex) {
+      bytes.push(parseInt(hex[0], 16));
+      i += 2;
+    } else bytes.push(...Buffer.from(flat[i], "utf8"));
+  }
+  return Buffer.from(bytes).toString("utf8");
+}
+
+export function parseMime(raw) {
+  const text = b64(raw);
+  const [head, ...rest] = text.split(/\r?\n\r?\n/);
+  const headers = headerMap(head);
   let body = rest.join("\n\n");
+  let cte = headers["content-transfer-encoding"] ?? "";
   const boundary = /boundary="?([^";]+)"?/i.exec(headers["content-type"] ?? "")?.[1];
   if (boundary) {
     const part = body.split(`--${boundary}`).find((p) => /content-type:\s*text\/plain/i.test(p)) ?? body.split(`--${boundary}`)[1] ?? "";
-    body = part.split(/\r?\n\r?\n/).slice(1).join("\n\n");
+    const [partHead, ...partBody] = part.replace(/^\r?\n/, "").split(/\r?\n\r?\n/);
+    cte = headerMap(partHead)["content-transfer-encoding"] ?? cte;
+    body = partBody.join("\n\n");
   }
-  if (/base64/i.test(headers["content-transfer-encoding"] ?? "")) body = b64(body.replace(/\s+/g, ""));
+  if (/base64/i.test(cte)) body = b64(body.replace(/\s+/g, ""));
+  else if (/quoted-printable/i.test(cte)) body = decodeQuotedPrintable(body);
   return { headers, text: body.trim() };
 }
 
@@ -88,7 +113,8 @@ function extractor(ctx) {
       } else if (root === "multipart") {
         ctx.multipart ??= multipartJson(ctx.body, ctx.bodyEncoding);
         v = get(ctx.multipart, tail);
-      } else if (root === "body") v = tail ? get(ctx.body, tail) : ctx.body;
+      } else if (root === "reply") v = ctx.reply?.[tail];
+      else if (root === "body") v = tail ? get(ctx.body, tail) : ctx.body;
       else if (root === "args") v = tail ? get(ctx.args, tail) : ctx.args;
       if (v !== undefined && v !== null && v !== "") return v;
     }
@@ -164,10 +190,89 @@ export function formStrings(body) {
   return Object.fromEntries(Object.keys(body).sort().map((k) => [k, Array.isArray(body[k]) ? body[k].map(one) : one(body[k])]));
 }
 
-export function fromTool(call, side = "claude") {
+// refs: what the fixture says about things a call names only by id (refsOf). A rule with
+// `replyTo` (a reply tool) resolves `reply.*` from the message it answers (replyFields).
+export function fromTool(call, side = "claude", refs = null) {
   const rule = table().tools.find((t) => t.connector === call.connector && t.tool === call.tool);
   if (!rule) return { side, service: call.connector, action: call.tool, effect: call.effect === "read" ? "read" : "write", target: "", fields: { args: call.args }, cmp: { args: "exact" }, raw: call, unmapped: true };
-  return build(side, rule, { args: call.args ?? {} }, call);
+  const ctx = { args: call.args ?? {} };
+  if (rule.replyTo) ctx.reply = replyFields(refs?.[rule.service], extractor({ args: ctx.args })(rule.replyTo), ctx.args);
+  return build(side, rule, ctx, call);
+}
+
+// ---------- the message a reply answers (PROPOSALS P10) ----------
+//
+// A Gmail reply tool call names only the message it answers (`messageId`); n8n's Gmail reply
+// sends the whole message over REST. Gmail's API docs (guides/threads, "Adding drafts and
+// messages to threads"; users.messages.send) put a reply in the message's thread (`threadId`)
+// with a matching Subject, and RFC 5322 3.6.3 sends it to the message's Reply-To, else its
+// From; reply-all adds the message's To (and keeps its Cc), without the account's own address.
+// So a reply's thread, recipients and subject are read from the replied-to message as the
+// fixture serves it: REST message resources (payload.headers, threadId), connector message
+// rows (sender, toRecipients, ccRecipients, subject), thread lists (a message inherits its
+// thread's id), n8n items; the account's address from a profile response.
+
+const addrOf = (v) => {
+  if (v == null) return [];
+  if (Array.isArray(v)) return v.flatMap(addrOf);
+  if (typeof v === "object") return v.value ? addrOf(v.value) : v.address ? [String(v.address)] : v.text ? addrOf(v.text) : [];
+  return String(v).split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map((x) => x.trim()).filter(Boolean);
+};
+
+export function refsOf(fx) {
+  const messages = new Map();
+  let self = null;
+  const add = (id, info) => {
+    const m = messages.get(id) ?? {};
+    for (const [k, v] of Object.entries(info)) if (m[k] === undefined && v !== undefined && !(Array.isArray(v) && !v.length)) m[k] = v;
+    messages.set(id, m);
+  };
+  const walk = (v, threadId) => {
+    if (Array.isArray(v)) return v.forEach((x) => walk(x, threadId));
+    if (!v || typeof v !== "object") {
+      if (typeof v === "string" && /^\s*[{[]/.test(v)) {
+        try {
+          walk(JSON.parse(v), threadId);
+        } catch {}
+      }
+      return;
+    }
+    if (typeof v.emailAddress === "string" && ("messagesTotal" in v || "historyId" in v)) self ??= v.emailAddress;
+    if (typeof v.id === "string") {
+      const h = Array.isArray(v.payload?.headers) ? Object.fromEntries(v.payload.headers.map((x) => [String(x.name).toLowerCase(), x.value])) : null;
+      const hdr = (k) => h?.[k] ?? v.headers?.[k] ?? v[k[0].toUpperCase() + k.slice(1)] ?? v[k];
+      const isMessage = h || "sender" in v || "toRecipients" in v || (("threadId" in v || threadId) && (hdr("from") !== undefined || hdr("subject") !== undefined));
+      if (isMessage)
+        add(v.id, {
+          thread: v.threadId ?? threadId,
+          from: addrOf(h?.from ?? v.sender ?? hdr("from")),
+          replyTo: addrOf(h?.["reply-to"] ?? v.replyTo ?? hdr("reply-to")),
+          to: addrOf(h?.to ?? v.toRecipients ?? hdr("to")),
+          cc: addrOf(h?.cc ?? v.ccRecipients ?? hdr("cc")),
+          subject: h?.subject ?? v.subject ?? hdr("subject"),
+        });
+      if (Array.isArray(v.messages)) return walk(v.messages, v.threadId ?? v.id);
+    }
+    for (const x of Object.values(v)) walk(x, undefined);
+  };
+  const sources = [...(fx?.reads ?? []), ...(fx?.writeReplies ?? [])];
+  for (const r of sources) walk((r.http?.responses ?? []).map((x) => x.body), undefined);
+  for (const r of sources) walk((r.connector?.calls ?? []).map((c) => c.result ?? c.text), undefined);
+  for (const r of sources) walk(r.n8n?.items ?? [], undefined);
+  walk(fx?.trigger?.items ?? [], undefined);
+  return { gmail: { messages, self } };
+}
+
+const bare = (a) => (/<([^>]+)>/.exec(a)?.[1] ?? a).trim().toLowerCase();
+
+export function replyFields(ref, messageId, args = {}) {
+  const m = messageId != null ? ref?.messages?.get(String(messageId)) : null;
+  if (!m) return {};
+  const notSelf = (list) => list.filter((a) => !ref.self || bare(a) !== bare(ref.self));
+  const primary = m.replyTo?.length ? m.replyTo : m.from ?? [];
+  const all = args.replyAll === true;
+  const recipient = all ? notSelf([...primary, ...(m.to ?? [])]) : primary;
+  return { thread: m.thread, recipient: recipient.length ? recipient : undefined, cc: all && m.cc?.length ? notSelf(m.cc) : undefined, subject: m.subject };
 }
 
 export function reply(text, side) {
@@ -206,8 +311,17 @@ function isModelWritten(v, modelTexts) {
   return modelWritten(typeof v === "string" ? v : v === undefined ? "" : JSON.stringify(v), modelTexts);
 }
 
+// A reply's subject: the same once leading Re:/Fw:/Fwd: prefixes are dropped (Gmail threads
+// by matching Subject; whether a client adds "Re: " is not an effect).
+const subjectNorm = (v) => String(v ?? "").trim().replace(/^(?:(?:re|fwd?|aw)\s*:\s*)+/i, "").trim();
+
+// The comparison for a field: a `subject` rule on either side wins (a reply row against a REST
+// send); otherwise the n8n side's rule, then the Claude side's.
+const cmpFor = (a, b, f) => (a.cmp[f] === "subject" || b.cmp[f] === "subject" ? "subject" : a.cmp[f] ?? b.cmp[f] ?? "exact");
+
 export function sameField(cmp, a, b) {
   if (a === undefined && b === undefined) return true;
+  if (cmp === "subject") return subjectNorm(a) === subjectNorm(b);
   if (cmp === "set") return JSON.stringify(setNorm(a)) === JSON.stringify(setNorm(b));
   if (cmp === "id") return normTarget(a, "id") === normTarget(b, "id");
   if (cmp === "text") return String(a ?? "").trim() === String(b ?? "").trim();
@@ -279,7 +393,7 @@ export function maskRunTime(text, runTime) {
 // Are a and b the same once run-time timestamps are masked on both sides? (exact and text
 // fields only; ids and sets never carry them.)
 export function sameUpToRunTime(cmp, a, b, runTime) {
-  if (!runTime || cmp === "set" || cmp === "id") return false;
+  if (!runTime || cmp === "set" || cmp === "id" || cmp === "subject") return false;
   const str = (v) => (typeof v === "string" ? v : JSON.stringify(v ?? null));
   const ma = maskRunTime(str(a), runTime);
   const mb = maskRunTime(str(b), runTime);
@@ -307,7 +421,7 @@ const plainObject = (v) => v !== null && typeof v === "object" && !Array.isArray
 function fieldScore(a, b, runTime) {
   let n = 0;
   for (const f of new Set([...Object.keys(a.fields), ...Object.keys(b.fields)])) {
-    const cmp = a.cmp[f] ?? b.cmp[f] ?? "exact";
+    const cmp = cmpFor(a, b, f);
     const x = a.fields[f];
     const y = b.fields[f];
     if (sameField(cmp, x, y) || sameUpToRunTime(cmp, x, y, runTime)) n += 1000;
@@ -428,7 +542,7 @@ export function compare(n8n, claude, { modelTexts = [], mode = "replay", runTime
     const b = cW[i];
     const diffs = [];
     for (const f of new Set([...Object.keys(a.fields), ...Object.keys(b.fields)])) {
-      const cmp = a.cmp[f] ?? b.cmp[f] ?? "exact";
+      const cmp = cmpFor(a, b, f);
       if (sameField(cmp, a.fields[f], b.fields[f])) continue;
       if (sameUpToRunTime(cmp, a.fields[f], b.fields[f], runTime)) {
         runTimeMasked.push({ effect: keyOf(a), field: f });

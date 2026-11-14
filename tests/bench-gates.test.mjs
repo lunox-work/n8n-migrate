@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, BUCKETS, gapsOf, gapPatterns, connectorLimited, failedStep } from "../evals/bench/gates.mjs";
-import { credentialTypeFor, credentialData, modelNodes } from "../evals/bench/n8n-side.mjs";
+import { credentialTypeFor, credentialData, modelNodes, recordingInterrupted } from "../evals/bench/n8n-side.mjs";
 import { compare, fromTool, baitHits } from "../evals/bench/compare.mjs";
 
 test("gate 1: unmapped nodes and crashes fail, a clean report passes", () => {
@@ -125,4 +125,18 @@ test("model nodes: OpenRouter chat models and the legacy OpenAI node's chat reso
   const m = modelNodes(wf, { models: ["Chat", "Image"] });
   assert.deepEqual(m.map((x) => [x.node, x.credType]), [["OR", "openRouterApi"], ["Chat", "openAiApi"]]);
   assert.equal(m[0].spec.data("http://mock:8080/model/m0").url, "http://mock:8080/model/m0/v1");
+});
+
+test("P12: a recording interrupted on the model side is told apart from a real baseline failure", () => {
+  const models = [{ tag: "m0", node: "Chat Model" }];
+  const consumers = { "Chat Model": ["Agent"] };
+  const ok = { status: "success", nodes: {} };
+  assert.equal(recordingInterrupted({ result: ok, modelCalls: [{ mode: "live" }], models, consumers }), null);
+  assert.match(recordingInterrupted({ result: ok, modelCalls: [{ tag: "m0", node: "Chat Model", index: 1, mode: "error", error: "memory stayed under 40%" }], models, consumers }), /model shim error on Chat Model#1/);
+  const aborted = { status: "error", error: { node: "Agent", message: "The connection was aborted, perhaps the server is offline" }, nodes: {} };
+  assert.match(recordingInterrupted({ result: aborted, modelCalls: [], models, consumers }), /^Agent: The connection was aborted/);
+  const parser = { status: "error", error: { node: "Agent", message: "Failed to parse the model output" }, nodes: {} };
+  assert.equal(recordingInterrupted({ result: parser, modelCalls: [], models, consumers }), null, "a model node failing on what the model said is a baseline");
+  const httpNode = { status: "error", error: { node: "Fetch", message: "ECONNRESET" }, nodes: {} };
+  assert.equal(recordingInterrupted({ result: httpNode, modelCalls: [], models, consumers }), null, "a non-model node's failure is the template's");
 });

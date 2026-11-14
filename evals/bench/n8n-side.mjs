@@ -306,6 +306,24 @@ export function logVsFixture(prep, effects) {
   return { unanswered, unused, writeDefaults };
 }
 
+// PROPOSALS P12: did a run with live model calls fail because the shim did not answer? A shim
+// error, or n8n's run failing on a model node (or the root node it serves) with a transport
+// error (n8n aborts a model request that waits too long). Such a run is about the machine,
+// not the template, and is never saved as a recording. A model node that fails on what the
+// model answered (a parser error) is a real baseline and is kept. Returns a reason or null.
+const TRANSPORT_RE = /abort|offline|ECONNRESET|ECONNREFUSED|socket hang up|ETIMEDOUT|timed? ?out|overloaded|bench shim/i;
+export function recordingInterrupted({ result, modelCalls = [], models = [], consumers = {} }) {
+  const shimError = modelCalls.find((c) => c.mode === "error");
+  if (shimError) return `model shim error on ${shimError.node ?? shimError.tag}#${shimError.index}: ${String(shimError.error ?? "").slice(0, 200)}`;
+  if (!result || result.status === "success") return null;
+  const modelSide = new Set(models.flatMap((m) => [m.node, ...(consumers[m.node] ?? [])]));
+  const errs = [];
+  if (result.error?.node || result.error?.message) errs.push({ node: result.error.node, message: result.error.message ?? "" });
+  for (const [node, runs] of Object.entries(result.nodes ?? {})) for (const x of runs ?? []) if (x.error) errs.push({ node, message: typeof x.error === "string" ? x.error : x.error?.message ?? JSON.stringify(x.error) });
+  const hit = errs.find((e) => modelSide.has(e.node) && TRANSPORT_RE.test(String(e.message)));
+  return hit ? `${hit.node}: ${String(hit.message).slice(0, 200)}` : null;
+}
+
 // Runs one prepared template in n8n. `shim` is the started model shim; `modelSession` its
 // session for this run. Retries once with pins for nodes that failed on their http source.
 export async function runN8n(prep, { shim, modelSession, runWorkflow, copyIn, timeoutS = 240, allowFallback = true }) {

@@ -26,6 +26,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { claudeBin, LEDGER, ledger, MAX_RUNS, memoryGate, BudgetExceeded, UsageLimit } from "./claude.mjs";
 import { connectorFixtures, httpRoutes } from "./claude-side.mjs";
+import { fromTool } from "./compare.mjs";
 import { startMock } from "../n8n/mock-server.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -47,12 +48,14 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   const { writeRootSettings } = await import(pathToFileURL(join(ROOT, "skills", "n8n-to-claude", "scripts", "convert.mjs")).href);
   writeRootSettings(repo);
 
-  // Mock connectors, fixtures in the mock server's format (replies in fixture order per tool).
+  // Mock connectors, fixtures in the mock server's format (replies in fixture order per tool;
+  // PROPOSALS P11: a row's args are matched first, and a read reuses a row whose args fit).
   const conn = connectorFixtures(fx);
   const mcpFixtures = {};
   for (const [key, list] of Object.entries(conn)) {
     const [c, tool] = [key.slice(0, key.indexOf(".")), key.slice(key.indexOf(".") + 1)];
-    ((mcpFixtures[c] ??= {})[tool] = { responses: list.map((x) => ("error" in x ? { error: x.error } : "text" in x ? { text: x.text } : { result: x.result ?? { ok: true } })) });
+    const reuse = fromTool({ connector: c, tool, args: {} }).effect === "read";
+    ((mcpFixtures[c] ??= {})[tool] = { ...(reuse ? { reuse: true } : {}), responses: list.map((x) => ({ ...("error" in x ? { error: x.error } : "text" in x ? { text: x.text } : { result: x.result ?? { ok: true } }), ...(x.args ? { args: x.args } : {}) })) });
   }
   const fixturesPath = join(runDir, "connector-fixtures.json");
   writeFileSync(fixturesPath, JSON.stringify(mcpFixtures));

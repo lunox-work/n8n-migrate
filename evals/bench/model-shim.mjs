@@ -140,14 +140,16 @@ function writeCache(c) {
 }
 
 // Returns {answer: {text} | {calls: [{name, input}]}, mode: live|cached, costUsd, ms}.
-export async function liveAnswer(norm, { noCache = false, purpose = "model-shim", model = "haiku" } = {}) {
+// memoryChecked: a live n8n recording checked memory once before it started (PROPOSALS P12),
+// so its model calls do not wait on the per-call gate (n8n would abort the request).
+export async function liveAnswer(norm, { noCache = false, purpose = "model-shim", model = "haiku", memoryChecked = false } = {}) {
   const prompt = promptFor(norm);
   const key = sha(`${model}\n${prompt}`);
   if (!noCache) {
     const hit = readCache()[key];
     if (hit) return { answer: hit.answer, mode: "cached", costUsd: 0, ms: 0, key };
   }
-  const r = await claudeP({ prompt, model, purpose, args: ["--system-prompt", SYSTEM, "--tools", "", "--json-schema", JSON.stringify(ANSWER_SCHEMA), "--disable-slash-commands", "--setting-sources", "project"], budgetUsd: 0.5, timeoutMs: 300_000 });
+  const r = await claudeP({ prompt, model, purpose, args: ["--system-prompt", SYSTEM, "--tools", "", "--json-schema", JSON.stringify(ANSWER_SCHEMA), "--disable-slash-commands", "--setting-sources", "project"], budgetUsd: 0.5, timeoutMs: 300_000, memoryChecked });
   let a = r.json?.structured_output ?? safeParse(r.text);
   if (!a || typeof a !== "object" || !a.type) a = { type: "text", text: r.text };
   const answer = a.type === "tool_use" && a.calls?.length ? { calls: a.calls.map((c) => ({ name: c.name, input: c.input ?? {} })) } : { text: String(a.text ?? "") };
@@ -273,7 +275,7 @@ export function startShim({ port = 5691, host = "127.0.0.1", log = console.error
         if (s.mode === "replay" && recorded) (answer = answerOf(recorded.format, recorded.response)), (rec.mode = "replay");
         else if (s.mode === "canned" || (s.mode === "replay" && s.fallback === "canned")) (answer = CANNED), (rec.mode = "canned");
         else {
-          const r = await liveAnswer(normalize(format, body), { noCache: s.noCache, purpose: `n8n-model ${s.label ?? ""} ${tag}#${index}`.trim() });
+          const r = await liveAnswer(normalize(format, body), { noCache: s.noCache, memoryChecked: !!s.memoryChecked, purpose: `n8n-model ${s.label ?? ""} ${tag}#${index}`.trim() });
           answer = r.answer;
           rec.mode = r.mode;
           rec.costUsd = r.costUsd;

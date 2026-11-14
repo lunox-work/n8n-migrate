@@ -114,6 +114,33 @@ test("mock MCP server: handshake, captured tools, fixtures in order, schema chec
   }
 });
 
+test("mock MCP server (P11): rows with args are matched by args; a read reuses them, a write does not", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "n2c-mcp-"));
+  try {
+    const fixtures = join(dir, "fixtures.json");
+    writeFileSync(
+      fixtures,
+      JSON.stringify({
+        gmail: {
+          get_message: { reuse: true, responses: [{ args: { messageId: "m1" }, result: { id: "m1" } }, { args: { messageId: "m2" }, result: { id: "m2" } }] },
+          label_message: { responses: [{ args: { messageId: "m1" }, result: { n: 1 } }, { args: { messageId: "m1" }, result: { n: 2 } }] },
+        },
+      }),
+    );
+    const c = client(["--connector", "gmail", "--fixtures", fixtures]);
+    await c.request("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "0" } });
+    const call = async (name, args) => JSON.parse((await c.request("tools/call", { name, arguments: args })).result.content[0].text);
+    assert.deepEqual(await call("get_message", { messageId: "m2" }), { id: "m2" });
+    assert.deepEqual(await call("get_message", { messageId: "m1" }), { id: "m1" });
+    assert.deepEqual(await call("get_message", { messageId: "m2" }), { id: "m2" }, "a read with the same args answers again");
+    assert.deepEqual(await call("label_message", { messageId: "m1", labelIds: ["X"] }), { n: 1 });
+    assert.deepEqual(await call("label_message", { messageId: "m1", labelIds: ["X"] }), { n: 2 });
+    await c.close();
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("mock MCP server names itself like the real connector", async () => {
   const { serverName, schemaFile } = await import(SERVER);
   const name = (c) => serverName(JSON.parse(readFileSync(schemaFile(c), "utf8")));

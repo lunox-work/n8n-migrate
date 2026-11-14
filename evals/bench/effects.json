@@ -1,8 +1,9 @@
 {
   "version": 1,
-  "about": "The comparer's own idea of 'the same effect' (PLAN Phase 6: it must not reuse the converter's field map). Hand-written from n8n's public node docs, the services' REST API docs and the captured connector schemas in evals/mocks/connectors. Each rule maps one side's raw call to a canonical effect {service, action, target, fields}. http rules apply to n8n's outgoing requests (the mock log) and to the runner's http requests alike; tool rules apply to connector calls on the Claude side. Field paths: body.x, query.x, path.<group>, args.x, mime.<Header>|mime.text (a Gmail raw message), multipart.<field> (the JSON part of a multipart upload); a list of paths takes the first that is present. Comparison per field: exact (JSON equal), set (lists, order ignored; a single value counts as a one-item list), id (strings, dashes and case ignored), text (model-written when a model reply is in it; else exact after trimming).",
+  "about": "The comparer's own idea of 'the same effect' (PLAN Phase 6: it must not reuse the converter's field map). Hand-written from n8n's public node docs, the services' REST API docs and the captured connector schemas in evals/mocks/connectors. Each rule maps one side's raw call to a canonical effect {service, action, target, fields}. http rules apply to n8n's outgoing requests (the mock log) and to the runner's http requests alike; tool rules apply to connector calls on the Claude side. Field paths: body.x, query.x, path.<group>, args.x, mime.<Header>|mime.text (a Gmail raw message), multipart.<field> (the JSON part of a multipart upload), reply.thread|recipient|cc|subject (the message a reply tool call answers, by the rule's replyTo id, as the fixture serves it: compare.mjs refsOf/replyFields); a list of paths takes the first that is present. Comparison per field: exact (JSON equal), set (lists, order ignored; a single value counts as a one-item list), id (strings, dashes and case ignored), text (model-written when a model reply is in it; else exact after trimming), subject (leading Re:/Fw:/Fwd: dropped; wins over the other side's rule). A Gmail raw body is decoded by its Content-Transfer-Encoding (base64 or quoted-printable).",
   "sources": [
     "https://developers.google.com/gmail/api/reference/rest/v1/users.messages (list, get, modify, send, trash) and users.drafts.create, users.threads.modify",
+    "https://developers.google.com/gmail/api/guides/threads (a reply joins the thread by threadId, References/In-Reply-To and a matching Subject) and RFC 5322 3.6.3 (a reply goes to Reply-To, else From; reply-all adds To and Cc)",
     "https://developers.google.com/drive/api/reference/rest/v3/files (get with alt=media, list, create via /upload with uploadType multipart|resumable, update with addParents/removeParents, copy, delete)",
     "https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/append and spreadsheets.get",
     "https://developers.notion.com/reference (retrieve a database GET /v1/databases/{id}, query POST /v1/databases/{id}/query, create a page POST /v1/pages, update PATCH /v1/pages/{id}, append children PATCH /v1/blocks/{id}/children)",
@@ -858,11 +859,29 @@
       "service": "gmail",
       "action": "send",
       "effect": "write",
-      "target": "args.to",
+      "replyTo": "args.messageId",
+      "target": [
+        "args.to",
+        "reply.recipient"
+      ],
       "fields": {
         "to": {
-          "from": "args.to",
+          "from": [
+            "args.to",
+            "reply.recipient"
+          ],
           "cmp": "set"
+        },
+        "cc": {
+          "from": [
+            "args.cc",
+            "reply.cc"
+          ],
+          "cmp": "set"
+        },
+        "subject": {
+          "from": "reply.subject",
+          "cmp": "subject"
         },
         "body": {
           "from": [
@@ -870,6 +889,10 @@
             "args.htmlBody"
           ],
           "cmp": "text"
+        },
+        "thread": {
+          "from": "reply.thread",
+          "cmp": "exact"
         }
       },
       "targetCmp": "set"

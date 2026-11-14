@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fromHttp, fromTool, reply, compare, modelWritten, parseMime, multipartJson, baitHits, replyText, normTarget, modelTextsOf, maskRunTime, formStrings, pairWrites, maxAssignment } from "../evals/bench/compare.mjs";
+import { fromHttp, fromTool, reply, compare, modelWritten, parseMime, multipartJson, baitHits, replyText, normTarget, modelTextsOf, maskRunTime, formStrings, pairWrites, maxAssignment, refsOf, replyFields, decodeQuotedPrintable } from "../evals/bench/compare.mjs";
 import { pickRoute, routeKey, parseMultipart } from "../evals/n8n/mock-server.mjs";
 import { answerOf, runnerValue, jsonFromText, normalize, providerResponse } from "../evals/bench/model-shim.mjs";
 import { pickConnector, sameModelInput, modelKeyFor, decodeFileParts } from "../evals/bench/claude-side.mjs";
@@ -273,4 +273,59 @@ test("P6: writes to one target pair by content, deterministically, not by list o
   assert.deepEqual(maxAssignment([[5, 4], [4, 0]]), [1, 0]);
   assert.deepEqual(maxAssignment([[1], [3], [2]]), [-1, 0, -1]);
   assert.deepEqual(maxAssignment([[2, 2, 2]]), [0]);
+});
+
+test("P10: a Gmail reply tool call pairs with n8n's REST send of the reply (thread, recipients, subject, quoted-printable body)", () => {
+  const fx = {
+    trigger: { items: [] },
+    reads: [{ node: "Trigger", connector: { calls: [{ tool: "search_threads", result: { threads: [{ id: "T1", messages: [{ id: "M1", sender: "ann@x.test", toRecipients: ["me@x.test"], subject: "Lunch?" }] }] } }] } }],
+    writeReplies: [
+      {
+        node: "Reply",
+        http: {
+          responses: [
+            { method: "GET", url: "https://www.googleapis.com/gmail/v1/users/me/messages/M1", body: { id: "M1", threadId: "T1", payload: { headers: [{ name: "From", value: '"Ann" <ann@x.test>' }, { name: "To", value: "me@x.test" }, { name: "Cc", value: "bo@x.test" }, { name: "Subject", value: "Lunch?" }] } } },
+            { method: "GET", url: "https://www.googleapis.com/gmail/v1/users/me/profile", body: { emailAddress: "me@x.test", messagesTotal: 3 } },
+          ],
+        },
+      },
+    ],
+  };
+  const refs = refsOf(fx);
+  assert.deepEqual(replyFields(refs.gmail, "M1", {}), { thread: "T1", recipient: ['"Ann" <ann@x.test>'], cc: undefined, subject: "Lunch?" });
+  assert.deepEqual(replyFields(refs.gmail, "M1", { replyAll: true }).recipient, ['"Ann" <ann@x.test>'], "reply-all drops the account's own address");
+  assert.deepEqual(replyFields(refs.gmail, "M1", { replyAll: true }).cc, ["bo@x.test"]);
+  assert.deepEqual(replyFields(refs.gmail, "NOPE", {}), {});
+  assert.equal(decodeQuotedPrintable("a long =\r\nline caf=C3=A9 =3D x"), "a long line café = x");
+  const mime = ["To: Ann <ann@x.test>", "Subject: Lunch?", "Content-Transfer-Encoding: quoted-printable", "Content-Type: text/html; charset=utf-8", "", "Hi Ann,\n\nYes, noon works for =\r\nme.\n\nBest"].join("\r\n");
+  const raw = Buffer.from(mime).toString("base64url");
+  const n = fromHttp({ method: "POST", url: "https://www.googleapis.com/gmail/v1/users/me/messages/send", query: {}, body: { raw, threadId: "T1" } }, "n8n");
+  assert.equal(n.fields.body, "Hi Ann,\n\nYes, noon works for me.\n\nBest");
+  const c = fromTool({ connector: "gmail", tool: "reply", args: { messageId: "M1", htmlBody: "Hi Ann,\n\nYes, noon works for me.\n\nBest" } }, "claude", refs);
+  assert.equal(c.target, "ann@x.test");
+  const r = compare([n], [c]);
+  assert.equal(r.ok, true, JSON.stringify(r.writes));
+  // "Re: " is not an effect; the thread and the body are.
+  const re = fromTool({ connector: "gmail", tool: "reply", args: { messageId: "M1", body: "Hi Ann,\n\nYes, noon works for me.\n\nBest" } }, "claude", { gmail: { ...refs.gmail, messages: new Map([["M1", { ...refs.gmail.messages.get("M1"), subject: "Re: Lunch?" }]]) } });
+  assert.equal(compare([n], [re]).ok, true);
+  const otherThread = fromTool({ connector: "gmail", tool: "reply", args: { messageId: "M1", body: "Hi Ann,\n\nYes, noon works for me.\n\nBest" } }, "claude", { gmail: { ...refs.gmail, messages: new Map([["M1", { ...refs.gmail.messages.get("M1"), thread: "T9" }]]) } });
+  assert.equal(compare([n], [otherThread]).ok, false);
+  assert.equal(compare([n], [fromTool({ connector: "gmail", tool: "reply", args: { messageId: "M1", body: "Different" } }, "claude", refs)]).ok, false);
+  // Without the fixture's message the reply has no target and cannot pair.
+  assert.equal(compare([n], [fromTool({ connector: "gmail", tool: "reply", args: { messageId: "M1", body: "x" } }, "claude")]).writes.extra[0].key, "gmail.send:");
+});
+
+test("P11: a read's rows are served again by args and per calling step; writes stay single-use", () => {
+  const list = [{ node: "Get", args: { messageId: "m1" }, result: "one" }, { node: "Get", args: { messageId: "m2" }, result: "two" }];
+  const trig = new Set();
+  const get = new Set();
+  assert.equal(pickConnector(list, { messageId: "m1", messageFormat: "FULL_CONTENT" }, trig, "Trigger", { read: true }).result, "one");
+  assert.equal(pickConnector(list, { messageId: "m2" }, trig, "Trigger", { read: true }).result, "two");
+  assert.equal(pickConnector(list, { messageId: "m1" }, get, "Get", { read: true }).result, "one", "the get read has its own rows");
+  assert.equal(pickConnector(list, { messageId: "m1" }, trig, "Trigger", { read: true }).result, "one", "a used row with the same args answers again");
+  const w = new Set();
+  assert.equal(pickConnector(list, { messageId: "m1" }, w, "Get").result, "one");
+  assert.equal(pickConnector(list, { messageId: "m1" }, w, "Get").result, "two", "a write does not reuse");
+  const plain = [{ node: "Poll", result: "a" }, { node: "Poll", result: "b" }];
+  assert.equal(pickConnector(plain, {}, new Set(), "Later", { read: true }).result, "a", "another step reuses the read's rows from the start");
 });

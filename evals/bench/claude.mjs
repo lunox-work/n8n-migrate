@@ -9,7 +9,9 @@
 //
 // Memory (CLAUDE.md of the workspace): before each run, under 25% free we wait (poll every
 // 3 minutes, up to 30 minutes); with the n8n container up we also wait under 40% free, so the
-// container and a claude -p never share a tight machine.
+// container and a claude -p never share a tight machine. Exception (PROPOSALS P12): the model
+// calls of a live n8n recording skip the per-call gate (`memoryChecked`), because the
+// recording checked memory once before it started and n8n aborts a model request that waits.
 
 import { spawn, spawnSync, execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, mkdtempSync, rmSync } from "node:fs";
@@ -57,13 +59,13 @@ export function containerUp() {
   return r.stdout?.trim() === "true";
 }
 
-export async function memoryGate({ log = console.error, waitMs = 180_000, maxWaits = 10 } = {}) {
+export async function memoryGate({ log = console.error, waitMs = 180_000, maxWaits = 10, need: fixedNeed = null } = {}) {
   for (let i = 0; ; i++) {
     const free = memoryFree();
-    const need = containerUp() ? 40 : 25;
+    const need = fixedNeed ?? (containerUp() ? 40 : 25);
     if (free === null || free >= need) return free;
     if (i >= maxWaits) throw new Error(`memory stayed under ${need}% free (now ${free}%) for ${Math.round((maxWaits * waitMs) / 60000)} minutes; stopping`);
-    log(`memory ${free}% free < ${need}%: waiting ${waitMs / 60000} min before claude -p (${i + 1}/${maxWaits})`);
+    log(`memory ${free}% free < ${need}%: waiting ${waitMs / 60000} min${fixedNeed === null ? " before claude -p" : ""} (${i + 1}/${maxWaits})`);
     await new Promise((r) => setTimeout(r, waitMs));
   }
 }
@@ -73,11 +75,12 @@ const USAGE_RE = /usage limit|rate limit|limit reached|out of extra usage|5-hour
 // Runs `claude -p <prompt> ...args` and returns {json, text, costUsd, ms}. `args` are extra
 // CLI flags. The session is isolated: an empty working directory, project settings only (none
 // there), no MCP servers, no session file. `purpose` names the run in the ledger.
-export async function claudeP({ prompt, model = "haiku", args = [], purpose, cwd, timeoutMs = 600_000, budgetUsd = 1, env: extraEnv = {}, log = console.error }) {
+// `memoryChecked`: the caller checked memory for the job this run belongs to (P12); no gate.
+export async function claudeP({ prompt, model = "haiku", args = [], purpose, cwd, timeoutMs = 600_000, budgetUsd = 1, env: extraEnv = {}, log = console.error, memoryChecked = false }) {
   mkdirSync(WORK, { recursive: true });
   const used = ledger().length;
   if (used >= MAX_RUNS) throw new BudgetExceeded(`claude -p budget of ${MAX_RUNS} runs used (${used}); see ${LEDGER}`);
-  await memoryGate({ log });
+  if (!memoryChecked) await memoryGate({ log });
   const dir = cwd ?? mkdtempSync(join(tmpdir(), "n2c-bench-claude-"));
   const env = { ...process.env, ENABLE_CLAUDEAI_MCP_SERVERS: "false", CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1", DISABLE_AUTOUPDATER: "1", NODE_OPTIONS: "--max-old-space-size=512", ...extraEnv };
   for (const k of Object.keys(env)) if (k === "ANTHROPIC_API_KEY" || k.startsWith("N2C_SECRET_") || k === "CLAUDECODE" || k.startsWith("CLAUDE_CODE_MESSAGING") || k === "CLAUDE_CODE_SESSION_ID" || k === "CLAUDE_CODE_CHILD_SESSION") delete env[k];

@@ -34,7 +34,7 @@ A fixture says what the outside world returns to one template in one variant. It
 ## Loading (P5b)
 
 - n8n side: `trigger.items` → `--trigger`; every `http.responses[]` → one mock map key `"<method> http://<host><path>"` (proxied origin; a list when repeated); a read without a usable `http` → `pinData[node] = n8n.items`; `file` → copied into the container's working directory; `pinData` → kept.
-- Claude side: `trigger.items` → the runner's trigger items; `connector.calls` → the mock MCP server's fixtures; reads without a connector → the same `http` responses through the runtime's HTTP mock, or `n8n` items as rows for db reads.
+- Claude side: `trigger.items` → the runner's trigger items; `connector.calls` → the mock MCP server's fixtures (a row with `args` answers the calls it fits, and a read's row may answer again: README "Connector rows"); reads without a connector → the same `http` responses through the runtime's HTTP mock, or `n8n` items as rows for db reads.
 - A pinned node returns the same items on every run of that node, so a node that runs once per item gets the same rows each time. Use `http` lists where per-call answers matter.
 - A read whose `node` is the trigger is the poll source for the Claude side (connector calls only); the n8n side pins `trigger.items`.
 - Binary data cannot be pinned: file downloads, Gmail attachments and image inputs need `tls-intercept` (or the trigger polling once through it) on the n8n side.
