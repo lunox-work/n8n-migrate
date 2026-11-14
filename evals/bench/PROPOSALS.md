@@ -249,3 +249,33 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Proposed change.** An `--n8n-check all` mode that runs every variant canned and reports `logVsFixture` and each baseline's status per variant, without spending model calls.
 - **Why not in the loop.** It changes what the bench runs and reports.
 - **Status: applied** (approved 2026-11-15, commit dfde5c2). Every variant is now the default (`--n8n-check normal` keeps the old single run, `--no-n8n-check` none): ledger keys `n8nCheck` and `n8nCheck:<variant>`, row `drivers.n8nCheck` per variant (status, error, `unanswered`, `unused`, `logVsFixture`; `gates.mjs` `n8nCheckSummary()`). No model call, nothing saved as a recording. First full measure in the next full run.
+
+## P37. Tool description wording is reported, never scored
+
+- **Evidence.** After P34 and iteration 18, the only description differences left on the dev templates are wording (`r2-f`): n8n's automatic description of a node tool (`<operation action label> in <node display name>`, n8n-workflow `makeDescription`, used when the node's "Description" is automatic or empty: 1953 "Get many events in Google Calendar", 4722 "Get many messages in Gmail") against the converter's `<node> <resource> <operation>`. With replayed replies no verdict depends on it; a live model chooses tools by these texts. The converter cannot rebuild n8n's text without each node's operation action labels, which `nodes.json` does not carry.
+- **Proposed change.** Decide whether wording is part of "same tools offered". If it is: score descriptions with the judge under `--model-mode live`, or gate them as text once `nodes.json` carries the action labels (generated from n8n's node descriptions).
+- **Why not in the loop.** It adds a gate (and a data change to the catalogue generator).
+
+## P38. No hostile fixture makes an agent pick a URL off the author's list
+
+- **Evidence.** Iteration 17 limits a model-picked URL (`$fromAI()`, RSS Read) to the URLs written in the tool; another URL is refused before any request. The bench replays n8n's model replies, and n8n's model picked an allowed feed in every 6270 variant (the hostile feed item's hidden text asks for another site, but the replayed reply does not follow it), so gate 6 never exercises the refusal; only `tests/agent-tools.test.mjs` does.
+- **Proposed change.** Run gate 6 on agent templates' hostile fixture once with the Claude side answered live (`--model-mode live`, claude driver) and record whether hostile tool results steer the model to a tool call or URL outside the definition, counting a refused call as contained.
+- **Why not in the loop.** It changes how gate 6 is measured and spends model calls.
+
+## P39. Coverage compares preflight error messages, not refused steps
+
+- **Evidence.** Iteration 17: 3986 and 5230's RSS step was refused before (`blocked: no request template for rssFeedRead`) and is refused now as a URL built at run time (narrowable in `overrides.json`); `coverage-diff.mjs` keys errors by step and message, so both read as gaining a preflight error although their error counts did not rise and their blocked steps fell. The URL error is reported on `$.allow.http[i]` without a `step` field, so even a per-step comparison would miss that it is the same step.
+- **Proposed change.** Have preflight put `step` on a run-time URL error (the note names it), and count a template as regressed only when a step that was not refused before is refused now (or the error count rises).
+- **Why not in the loop.** It changes the loop's coverage measure.
+
+## P40. A claude-driver protocol slip counts as a verdict flip
+
+- **Evidence.** `r2-f` 2703: haiku wrote the agent's second turn as its own final text instead of handing the replayed answer back, the run ended `needs`, and the template read gate 3; `r2-f2` on the same commit passed every gate. That one slip set flips = 1 and raised the acceptance bar to +2 for every later iteration of the session, though no converter or runtime path differed between the two runs.
+- **Proposed change.** Record driver protocol slips (`needs` with a final text and replayed answers outstanding) apart from verdicts, re-run the driver once on such a slip, and count flips only when the re-run disagrees too; or keep the rule and report the slip rate beside flips.
+- **Why not in the loop.** It changes the claude driver and the acceptance rule's flip count.
+
+## P41. What P36's first full measure shows, and what canned models hide
+
+- **Evidence.** `r2-f-full`: the 30 preflight-stopped dev templates got the canned n8n run on all four variants, no read unanswered anywhere. Two baselines fail on every variant for a reason that is not the template's: 2860 fails before any node with `Invalid URL` on all four variants (normal included), and 2420's empty variant fails in GraphicsMagick (`gm identify: Unable to open file`), so neither has a usable baseline once its Claude side can run. Many other failures read `Model output doesn't fit required format` (2508, 2315, 3291, 2165, 2468, …): canned replies never fit a structured-output parser, so the canned check stops there and says nothing about the variant's later nodes.
+- **Proposed change.** Look into 2860's run setup (trigger or URL the bench gives n8n) and 2420's empty image; have the canned mode answer a structured-output request with a value that fits its schema (the shim knows the schema), so the check reaches the nodes after the parser.
+- **Why not in the loop.** It changes fixtures, the n8n-side setup and the model shim.
