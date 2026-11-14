@@ -13761,7 +13761,21 @@ function fillPlaceholders(v, args) {
   return v;
 }
 
-const hostToolSpec = (t) => ({ name: t.name, description: t.description ?? "", ...(t.inputSchema ? { inputSchema: t.inputSchema } : {}) });
+// What the model is offered for one tool on item i. A description that is an n8n expression
+// (a tool description or a placeholder's, copied from the node's parameters with its "="
+// marker) is evaluated on the agent's item, as n8n's getNodeParameter does for the tool node.
+function hostToolSpec(t, exec, i) {
+  const ev = (d) => (typeof d === "string" && d.startsWith("=") ? String(exec.evaluate(d, i) ?? "") : d);
+  const schema = (s) => {
+    if (!isObject(s)) return s;
+    const out = { ...s };
+    if (typeof out.description === "string") out.description = ev(out.description);
+    if (isObject(s.properties)) out.properties = Object.fromEntries(Object.entries(s.properties).map(([k, v]) => [k, schema(v)]));
+    if (isObject(s.items)) out.items = schema(s.items);
+    return out;
+  };
+  return { name: t.name, description: ev(t.description ?? ""), ...(t.inputSchema ? { inputSchema: schema(t.inputSchema) } : {}) };
+}
 
 // Agent step: step.agent = {prompt, system?, tools: [...], memory?, maxIterations?, outputSchema?}.
 const agentStep = {
@@ -13778,7 +13792,7 @@ const agentStep = {
     const tools = a.tools ?? [];
     const out = [];
     for (let i = 0; i < items.length; i++) {
-      const base = { kind: "agent", itemIndex: i, tools: tools.map(hostToolSpec) };
+      const base = { kind: "agent", itemIndex: i, tools: tools.map((t) => hostToolSpec(t, exec, i)) };
       if (derived) {
         base.prompt = promptOf(exec, i, "text");
         base.system = exec.param("options.systemMessage", i, "You are a helpful assistant");

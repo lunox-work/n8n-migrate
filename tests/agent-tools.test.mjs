@@ -190,3 +190,22 @@ test("an agent tool the converter cannot carry (a database tool) is refused by p
   assert.match(e.message, /^blocked: agent tool "Postgres" cannot be carried \(a database step needs .*\); without it the agent would answer without a tool n8n gives it$/);
   assert.equal(preflight(convertJson(agentWf([pg("Postgres", { disabled: true })])), {}).ok, true, "n8n skips a disabled tool too");
 });
+
+test("tool and placeholder descriptions written as expressions are evaluated on the agent's item, as n8n does", async () => {
+  const tool = {
+    parameters: { url: "https://api.example/search", method: "GET", sendQuery: true, parametersQuery: { values: [{ name: "q", valueProvider: "modelRequired" }] }, toolDescription: "=Search the \"{{ $json.db }}\" database.", placeholderDefinitions: { values: [{ name: "tag", description: "=Options: {{ $json.tags }}" }] } },
+    name: "Search",
+    type: LC + "toolHttpRequest",
+    typeVersion: 1.1,
+    position: [0, 200],
+  };
+  const def = convertJson(agentWf([tool]));
+  assert.equal(def.steps.Agent.agent.tools[0].description, '=Search the "{{ $json.db }}" database.', "kept as n8n wrote it");
+  let offered;
+  const host = { agent: async (p) => ((offered = p.tools[0]), "ok") };
+  const r = await run(def, { clock: CLOCK, virtualTime: true, trigger: { node: "Start", items: [{ json: { q: "x", db: "", tags: "HR,IT" } }] }, host });
+  assert.equal(r.status, "done");
+  assert.equal(offered.description, 'Search the "" database.');
+  assert.equal(offered.inputSchema.properties.tag.description, "Options: HR,IT");
+  assert.equal(def.steps.Agent.agent.tools[0].inputSchema.properties.tag.description, "=Options: {{ $json.tags }}", "the definition is not changed by a run");
+});

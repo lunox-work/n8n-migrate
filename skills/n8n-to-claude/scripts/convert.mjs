@@ -1245,7 +1245,10 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
     }
     step.agent = agent;
     for (const r of reasons) review(step, r);
-    for (const i of expressionIssues({ text: agent.prompt, system: agent.system })) translate(step, i.kind, i.original, i.reason);
+    // Tool and placeholder descriptions written as expressions are evaluated by the runner on
+    // the agent's item, as n8n does; one the runtime cannot evaluate is flagged here.
+    const toolDescriptions = agent.tools.flatMap((t) => [t.description, ...Object.values(t.inputSchema?.properties ?? {}).map((p) => p?.description)]).filter(isExpr);
+    for (const i of expressionIssues({ text: agent.prompt, system: agent.system, toolDescriptions })) translate(step, i.kind, i.original, i.reason);
   }
 
   // ---------- expressions on every step ----------
