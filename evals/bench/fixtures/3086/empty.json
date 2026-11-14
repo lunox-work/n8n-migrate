@@ -44,7 +44,7 @@
           },
           {
             "method": "GET",
-            "url": "https://sheets.googleapis.com/v4/spreadsheets/1suPQNdgoAzrklleN4ok2mZnsq0GK1dt59oIHv8JWX5U/values/Foglio1",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1suPQNdgoAzrklleN4ok2mZnsq0GK1dt59oIHv8JWX5U/values/'Foglio1'",
             "status": 200,
             "body": {
               "range": "Foglio1!A1:F1000",
@@ -392,7 +392,7 @@
           },
           {
             "method": "GET",
-            "url": "https://sheets.googleapis.com/v4/spreadsheets/1suPQNdgoAzrklleN4ok2mZnsq0GK1dt59oIHv8JWX5U/values/Foglio1",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1suPQNdgoAzrklleN4ok2mZnsq0GK1dt59oIHv8JWX5U/values/'Foglio1'",
             "status": 200,
             "body": {
               "range": "Foglio1!A1:F1000",
@@ -502,7 +502,7 @@
           },
           {
             "method": "GET",
-            "url": "https://sheets.googleapis.com/v4/spreadsheets/1suPQNdgoAzrklleN4ok2mZnsq0GK1dt59oIHv8JWX5U/values/Foglio1",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1suPQNdgoAzrklleN4ok2mZnsq0GK1dt59oIHv8JWX5U/values/'Foglio1'",
             "status": 200,
             "body": {
               "range": "Foglio1!A1:F1000",
@@ -612,7 +612,7 @@
           },
           {
             "method": "GET",
-            "url": "https://sheets.googleapis.com/v4/spreadsheets/1suPQNdgoAzrklleN4ok2mZnsq0GK1dt59oIHv8JWX5U/values/Foglio1",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1suPQNdgoAzrklleN4ok2mZnsq0GK1dt59oIHv8JWX5U/values/'Foglio1'",
             "status": 200,
             "body": {
               "range": "Foglio1!A1:F1000",
@@ -722,7 +722,7 @@
           },
           {
             "method": "GET",
-            "url": "https://sheets.googleapis.com/v4/spreadsheets/1suPQNdgoAzrklleN4ok2mZnsq0GK1dt59oIHv8JWX5U/values/Foglio1",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1suPQNdgoAzrklleN4ok2mZnsq0GK1dt59oIHv8JWX5U/values/'Foglio1'",
             "status": 200,
             "body": {
               "range": "Foglio1!A1:F1000",

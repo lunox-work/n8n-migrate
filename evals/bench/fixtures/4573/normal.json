@@ -104,7 +104,7 @@
           },
           {
             "method": "GET",
-            "url": "https://sheets.googleapis.com/v4/spreadsheets/1DHezdcetT0c3Ie1xB3z3jDc5WElsLN87K4J9EQDef9g/values/Query",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1DHezdcetT0c3Ie1xB3z3jDc5WElsLN87K4J9EQDef9g/values/'Query'",
             "status": 200,
             "body": {
               "range": "Query!A1:C1000",
@@ -546,7 +546,7 @@
           },
           {
             "method": "GET",
-            "url": "https://sheets.googleapis.com/v4/spreadsheets/1DHezdcetT0c3Ie1xB3z3jDc5WElsLN87K4J9EQDef9g/values/CoreClaw Data",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1DHezdcetT0c3Ie1xB3z3jDc5WElsLN87K4J9EQDef9g/values/'CoreClaw Data'",
             "status": 200,
             "body": {
               "range": "CoreClaw Data!A1:L1000",
@@ -693,7 +693,7 @@
           },
           {
             "method": "GET",
-            "url": "https://sheets.googleapis.com/v4/spreadsheets/1DHezdcetT0c3Ie1xB3z3jDc5WElsLN87K4J9EQDef9g/values/CoreClaw Leads",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1DHezdcetT0c3Ie1xB3z3jDc5WElsLN87K4J9EQDef9g/values/'CoreClaw Leads'",
             "status": 200,
             "body": {
               "range": "CoreClaw Leads!A1:L1000",
