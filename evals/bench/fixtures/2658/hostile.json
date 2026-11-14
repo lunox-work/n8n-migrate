@@ -78,7 +78,7 @@
         "via": "tls-intercept",
         "responses": [
           {
-            "method": "POST",
+            "method": "GET",
             "url": "https://api.apify.com/v2/acts/apify~web-scraper/run-sync-get-dataset-items",
             "status": 200,
             "body": [
@@ -4838,7 +4838,7 @@
           },
           {
             "method": "GET",
-            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/Sheet1",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/'Sheet1'",
             "status": 200,
             "body": {
               "range": "Sheet1!A1:E1000",
@@ -4860,7 +4860,7 @@
           },
           {
             "method": "GET",
-            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/Extracted API Operations",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/'Extracted API Operations'",
             "status": 200,
             "body": {
               "range": "Extracted API Operations!A1:G1000",
@@ -4946,7 +4946,7 @@
           },
           {
             "method": "GET",
-            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/Sheet1",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/'Sheet1'",
             "status": 200,
             "body": {
               "range": "Sheet1!A1:E1000",
@@ -4968,7 +4968,7 @@
           },
           {
             "method": "GET",
-            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/Extracted API Operations",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/'Extracted API Operations'",
             "status": 200,
             "body": {
               "range": "Extracted API Operations!A1:G1000",
@@ -5054,7 +5054,7 @@
           },
           {
             "method": "GET",
-            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/Sheet1",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/'Sheet1'",
             "status": 200,
             "body": {
               "range": "Sheet1!A1:E1000",
@@ -5076,7 +5076,7 @@
           },
           {
             "method": "GET",
-            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/Extracted API Operations",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/'Extracted API Operations'",
             "status": 200,
             "body": {
               "range": "Extracted API Operations!A1:G1000",
@@ -5162,7 +5162,7 @@
           },
           {
             "method": "GET",
-            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/Sheet1",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/'Sheet1'",
             "status": 200,
             "body": {
               "range": "Sheet1!A1:E1000",
@@ -5184,7 +5184,7 @@
           },
           {
             "method": "GET",
-            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/Extracted API Operations",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1l59ikBvEwPNSWIm2k6KRMFPTNImJPYqs9bzGT5dUiU0/values/'Extracted API Operations'",
             "status": 200,
             "body": {
               "range": "Extracted API Operations!A1:G1000",
