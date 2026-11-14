@@ -1208,12 +1208,20 @@ function promptOf(exec, i, inputKey) {
   }
   return prompt;
 }
-const toolName = (name) => name.replace(/[^a-zA-Z0-9_-]/g, "_");
+// n8n-workflow nodeNameToToolName: runs of other characters become one `_`, at most 64.
+const toolName = (name) => {
+  let t = String(name).replace(/[^a-zA-Z0-9_-]+/g, "_");
+  if (t.length > 64) t = t.slice(0, 64).replace(/[_-]+$/, "");
+  return t;
+};
+const THINK_DESCRIPTION = "Use the tool to think about something. It will not obtain new information or change the database, but just append the thought to the log. Use it when complex reasoning or some cache memory is needed.";
 function agentTools(exec) {
   return subnodesOf(exec, "ai_tool").map(({ name, step }) => {
     const p = step.params ?? {};
-    const tool = { name: toolName(name), node: name, n8nType: step.n8n.type, description: p.toolDescription ?? p.description ?? "" };
-    if (step.tool?.connector) Object.assign(tool, { kind: "connector", connector: step.tool.connector, tool: step.tool.name, effect: step.tool.effect ?? "write" });
+    const think = step.n8n.type === LC + "toolThink";
+    const tool = { name: think && (step.n8n.typeVersion ?? 1) === 1 ? "thinking_tool" : toolName(name), node: name, n8nType: step.n8n.type, description: p.toolDescription ?? p.description ?? (think ? THINK_DESCRIPTION : "") };
+    if (think) Object.assign(tool, { kind: "think", effect: "none", inputSchema: { type: "object", properties: { input: { type: "string" } } } });
+    else if (step.tool?.connector) Object.assign(tool, { kind: "connector", connector: step.tool.connector, tool: step.tool.name, effect: step.tool.effect ?? "write" });
     else if (step.n8n.type === LC + "toolCode") Object.assign(tool, { kind: "code", effect: "none" });
     else if (step.kind === "http" && isObject(step.rest)) Object.assign(tool, { kind: "rest", effect: step.rest.effect ?? "write" });
     else if (step.n8n.type === LC + "toolHttpRequest" || step.n8n.type === BASE + "httpRequestTool") Object.assign(tool, { kind: "http", method: p.method ?? "GET", url: typeof p.url === "string" && !p.url.startsWith("=") ? p.url : undefined, effect: (p.method ?? "GET") === "GET" ? "read" : "write" });
@@ -1428,6 +1436,10 @@ export async function executeAgentTool(exec, tools, call, itemIndex) {
       const [outItems] = await prog.execute(subExec);
       const values = (outItems ?? []).map((it) => it.json);
       return { ok: true, value: values.length === 1 ? values[0] : values };
+    }
+    if (kind === "think") {
+      // n8n's Think tool returns the model's input unchanged (a no-op that logs a thought).
+      return { ok: true, value: typeof args.input === "string" ? args.input : args.input === undefined ? "" : JSON.stringify(args.input) };
     }
     if (kind === "code") {
       const p = sub?.params ?? {};

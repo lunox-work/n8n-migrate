@@ -334,6 +334,12 @@ previews; this list is dated 2026-11-14 and re-runnable
   would use (its `From`, or its `Reply-To` from Gmail node 2.2), so the
   connector never chooses. Check reply and forward steps before you enable a
   workflow that reads mail from strangers.
+- **A URL the model picks stays on the author's list.** An agent tool whose
+  URL is a `$fromAI()` value (an RSS Read tool, say) may reach only the URLs
+  written in that parameter, which is where n8n templates list the feeds
+  for the model to choose from; any other URL is refused before a request.
+  A model-picked URL with no list is refused until you narrow it in
+  `overrides.json`.
 - **Secrets stay with you.** The skill reads credential names only, redacts
   inline keys before writing anything, and never asks for a value. Cloud
   tasks get secrets as network secrets for listed hosts; local tasks read

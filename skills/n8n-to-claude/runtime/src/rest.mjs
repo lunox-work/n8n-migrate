@@ -8,6 +8,7 @@
 
 import { NodeError, isObject } from "./util.mjs";
 import { DateTime } from "../vendor/luxon.mjs";
+import { parseFeed } from "./feed.mjs";
 
 // ---------- Google Sheets v4 (n8n Google Sheets node v4.x, sheet: append | update | appendOrUpdate) ----------
 
@@ -597,4 +598,64 @@ const googleCalendar = {
   },
 };
 
-export const restPrograms = { googleSheets, googleCalendar };
+// ---------- RSS Read (n8n RSS Read node v1–1.2, also as an agent tool) ----------
+//
+// n8n-nodes-base 2.47 RssFeedRead.node.ts + GenericFunctions.ts parseFeedUrl: per item (v1:
+// the first only) a GET of the URL with rss-parser's User-Agent and an Accept header (v1.2:
+// the relaxed list), the text parsed by rss-parser (feed.mjs), one item per feed entry. No
+// credential. The URL's host must be in allow.http like any request (convert.mjs applyRss).
+
+const RSS_HEADERS = { "User-Agent": "rss-parser", Accept: "application/rss+xml" };
+const RSS_RELAXED_ACCEPT = "application/rss+xml, application/rdf+xml;q=0.8, application/atom+xml;q=0.6, application/xml;q=0.4, text/xml;q=0.4";
+const validUrl = (u) => {
+  try {
+    new URL(u);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const rssFeedRead = {
+  versions: (v) => v >= 1 && v <= 1.2,
+  async execute(exec) {
+    const items = exec.getInputData();
+    const v = exec.typeVersion;
+    const count = v >= 1.1 ? items.length : items.length ? 1 : 0;
+    const out = [];
+    for (let i = 0; i < count; i++) {
+      const paired = v >= 1.1 ? [{ item: i }] : items.map((_, k) => ({ item: k }));
+      try {
+        const url = exec.param("url", i, "");
+        const options = exec.param("options", i, {}) ?? {};
+        if (!url) throw new NodeError('The parameter "URL" has to be set!', { node: exec.name, itemIndex: i });
+        if (!validUrl(url)) throw new NodeError('The provided "URL" is not valid!', { node: exec.name, itemIndex: i });
+        const headers = { ...RSS_HEADERS, ...(v >= 1.2 ? { Accept: RSS_RELAXED_ACCEPT } : {}) };
+        const [r] = await exec.request([{ kind: "http", itemIndex: i, method: "GET", url: String(url), query: {}, headers }]);
+        if (!r.ok) throw new NodeError(r.error?.message ?? "request failed", { node: exec.name, itemIndex: i });
+        const status = Number(r.value?.status ?? 200);
+        if (status >= 400) throw new NodeError(`Request failed with status code ${status}`, { node: exec.name, itemIndex: i, httpCode: String(status) });
+        const body = r.value?.body;
+        const text = typeof body === "string" ? body : body === undefined || body === null ? "" : typeof body === "object" ? JSON.stringify(body) : String(body);
+        const custom = typeof options.customFields === "string" && options.customFields ? options.customFields.split(",").map((f) => f.trim()) : [];
+        let feed;
+        try {
+          feed = parseFeed(text, { customItemFields: custom });
+        } catch (e) {
+          throw new NodeError(e?.message ?? String(e), { node: exec.name, itemIndex: i });
+        }
+        if (feed.items) for (const it of feed.items) out.push({ json: it, pairedItem: paired.length === 1 ? paired[0] : paired });
+      } catch (e) {
+        if (e?.name === "Suspend" || e?.name === "ContainmentViolation") throw e;
+        if (exec.continueOnFail()) {
+          out.push({ json: { error: e.message }, pairedItem: paired.length === 1 ? paired[0] : paired });
+          continue;
+        }
+        throw e;
+      }
+    }
+    return [out];
+  },
+};
+
+export const restPrograms = { googleSheets, googleCalendar, rssFeedRead };

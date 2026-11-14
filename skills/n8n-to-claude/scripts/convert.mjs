@@ -70,6 +70,15 @@ const SKILL = join(HERE, "..");
 const REFS = join(SKILL, "references");
 const LC = "@n8n/n8n-nodes-langchain.";
 const BASE = "n8n-nodes-base.";
+// n8n-workflow nodeNameToToolName: runs of other characters become one `_`, at most 64
+// characters, no trailing `_`/`-` left by the cut.
+export function nodeNameToToolName(name) {
+  let t = String(name).replace(/[^a-zA-Z0-9_-]+/g, "_");
+  if (t.length > 64) t = t.slice(0, 64).replace(/[_-]+$/, "");
+  return t;
+}
+// The Think tool's default description (@n8n/n8n-nodes-langchain 2.47 ToolThink).
+const THINK_DESCRIPTION = "Use the tool to think about something. It will not obtain new information or change the database, but just append the thought to the log. Use it when complex reasoning or some cache memory is needed.";
 
 const isObj = (x) => x !== null && typeof x === "object" && !Array.isArray(x);
 const isExpr = (v) => typeof v === "string" && v.startsWith("=");
@@ -436,7 +445,9 @@ function resultFor(entry, params) {
 
 // ---------- $fromAI ----------
 
-const FROM_AI = /\$fromA[Ii]\s*\(\s*(['"`])((?:(?!\1).)+)\1\s*(?:,\s*(['"`])((?:(?!\3).)*)\3\s*)?(?:,\s*(['"`])(\w*)\5\s*)?(?:,\s*([^)]*?)\s*)?\)/g;
+// A description may span lines (a template literal written over several lines in n8n's
+// editor), so it matches any character; the key does not.
+const FROM_AI = /\$fromA[Ii]\s*\(\s*(['"`])((?:(?!\1).)+)\1\s*(?:,\s*(['"`])((?:(?!\3)[\s\S])*)\3\s*)?(?:,\s*(['"`])(\w*)\5\s*)?(?:,\s*([^)]*?)\s*)?\)/g;
 
 function allStrings(v, out = []) {
   if (typeof v === "string") out.push(v);
@@ -712,6 +723,33 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
     delete s.review;
     delete s.reviewReasons;
   }
+
+  // RSS Read (step or agent tool): a GET of the feed URL with no credential, parsed as n8n
+  // parses it (runtime rest.mjs rssFeedRead). The host comes from the URL parameter: a literal
+  // URL (or an expression after a literal host) allows that host and path. A URL the model
+  // picks ($fromAI) is allowed only to the URLs the author wrote into that parameter (n8n
+  // lists them in the $fromAI description for the model to choose from); the model cannot
+  // reach any other host, and a $fromAI URL that names none is refused like any URL built at
+  // run time, until the person narrows it in overrides.json.
+  const applyRss = (name, step, params) => {
+    step.kind = "http";
+    delete step.auth;
+    step.rest = { program: "rssFeedRead", effect: "read", fidelity: "exact", map: BASE + "rssFeedRead" };
+    if (params.options?.ignoreSSL) review(step, "Ignore SSL Issues (Insecure) is on in n8n; the runtime always checks the feed's certificate");
+    const url = typeof params.url === "string" ? params.url : "";
+    const target = urlTarget(url);
+    const who = step.subnode ? `agent tool "${name}"` : `step "${name}"`;
+    if (target) return void addHttp("GET", target.host, target.pathPrefix);
+    const named = /\$fromA[Ii]\s*\(/.test(url) ? uniq([...url.matchAll(/https?:\/\/[^\s'"`<>()]+/g)].map((m) => m[0].replace(/[.,;:]+$/, ""))) : [];
+    const targets = named.map((u) => urlTarget(u)).filter(Boolean);
+    if (targets.length) {
+      for (const t of targets) addHttp("GET", t.host, t.pathPrefix, `${who}: a feed URL the model picks, limited to the URLs written in the tool`);
+      review(step, `the model picks the feed URL; it can reach only the ${targets.length} URL(s) written in the tool's URL parameter`);
+      return;
+    }
+    addHttp("GET", "*", undefined, `${who}: URL built at run time`);
+    review(step, "the feed URL is built at run time; narrow allow.http to its host in overrides.json");
+  };
 
   // Applies a tool map entry (connector tool or REST template) to a step.
   const applyMap = (name, step, found, params) => {
@@ -994,7 +1032,8 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         // handled below with the HTTP Request node
       } else {
         const found = info.operation != null ? findMap(refs.toolMaps, baseType, v, info.resource ?? "_", info.operation) : null;
-        if (found) applyMap(name, step, found, params);
+        if (baseType === BASE + "rssFeedRead") applyRss(name, step, params);
+        else if (found) applyMap(name, step, found, params);
         else if (type === LC + "toolHttpRequest" || type === BASE + "httpRequestTool") {
           // agent http tools are built in the agent pass
         } else block(step, "no-tool", `no request template for ${shortType(baseType)}${opKey ? ` ${opKey}` : ""} yet (it needs the app's REST API with a stored secret)`);
@@ -1141,10 +1180,15 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       const ts = steps[tn];
       if (ts.settings?.disabled) continue;
       const tp = ts.params ?? {};
-      const toolName = tn.replace(/[^a-zA-Z0-9_-]/g, "_");
-      const description = String(tp.toolDescription ?? tp.description ?? `${shortType(ts.n8n.type).replace(/Tool$/, "")} ${[tp.resource, tp.operation].filter(Boolean).join(" ")}`.trim());
+      // n8n's Think tool v1 is named "thinking_tool" whatever the node is called.
+      const isThink = ts.n8n.type === LC + "toolThink";
+      const toolName = isThink && (ts.n8n.typeVersion ?? 1) === 1 ? "thinking_tool" : nodeNameToToolName(tn);
+      const description = String(tp.toolDescription ?? tp.description ?? (isThink ? THINK_DESCRIPTION : `${shortType(ts.n8n.type).replace(/Tool$/, "")} ${[tp.resource, tp.operation].filter(Boolean).join(" ")}`.trim()));
       const t = { name: toolName, description, node: tn, n8nType: ts.n8n.type };
-      if (ts.kind === "tool" && ts.tool) {
+      if (isThink) {
+        // n8n's Think tool (a LangChain DynamicTool) hands the model's input back unchanged.
+        Object.assign(t, { kind: "think", effect: "none", inputSchema: { type: "object", properties: { input: { type: "string" } } } });
+      } else if (ts.kind === "tool" && ts.tool) {
         Object.assign(t, { kind: "connector", effect: ts.tool.effect === "read" ? "read" : "write" });
         const schema = fromAiSchema(tp);
         if (schema) t.inputSchema = schema;
