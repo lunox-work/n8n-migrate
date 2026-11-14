@@ -1,0 +1,97 @@
+{
+ "about": "judge false-fail rate: n8n judged against n8n (two live recordings of the same template and fixture, no cache). Every 'worse' is a false fail.",
+ "templates": {
+  "2415": {
+   "variant": "normal",
+   "statuses": [
+    "success",
+    "success"
+   ],
+   "draws": [
+    "recordings/2415/normal.json (2026-11-14T02:41:49Z)",
+    "fresh live run, no cache"
+   ],
+   "modelCalls": [
+    2,
+    3
+   ],
+   "pairs": 1,
+   "worse": 1,
+   "verdicts": [
+    {
+     "effect": "chat.reply:",
+     "field": "text",
+     "verdict": "worse",
+     "reason": "The reference creates a full workflow with about nine connected nodes (chat trigger, Notion database lookup, set/assignment nodes, agent prompt, memory, and two Notion tools). The candidate keeps only the OpenAI Chat Model node, so the workflow is incomplete and would not perform the same job.",
+     "n8nA": "Created workflow:\n```\n{\"nodes\":[\n{\"parameters\":{\"model\":\"gpt-4o\",\"options\":{\"temperature\":0.7,\"timeout\":25000}},\"id\":\"f262c0b4-d627-4fd4-ad78-0aa2f57d963f\",\"name\":\"OpenAI Chat Model\",\"type\":\"@n8n/n8n-nodes-langchain.lmChatOpenAi\",\"typeVersion\":1,\"position\":[1320,640],\"credentials\":{\"openAiApi\":{\"id\":\"AzPPV759YPBxJj3o\",\"name\":\"Max's DevRel OpenAI account\"}}},\n{\"parameters\":{\"assignments\":{\"assignme",
+     "n8nB": "Created workflow:\n```\n{\"nodes\":[{\"parameters\":{\"model\":\"gpt-4o\",\"options\":{\"temperature\":0.7,\"timeout\":25000}},\"id\":\"f262c0b4-d627-4fd4-ad78-0aa2f57d963f\",\"name\":\"OpenAI Chat Model\",\"type\":\"@n8n/n8n-nodes-langchain.lmChatOpenAi\",\"typeVersion\":1,\"position\":[1320,640],\"credentials\":{\"openAiApi\":{\"id\":\"AzPPV759YPBxJj3o\",\"name\":\"Max's DevRel OpenAI account\"}}}]}\n```\n\n☝️ Copy and paste JSON above into "
+    }
+   ],
+   "deterministicDiffs": {
+    "missing": [],
+    "extra": [],
+    "fields": []
+   }
+  },
+  "2777": {
+   "variant": "normal",
+   "statuses": [
+    "success",
+    "success"
+   ],
+   "draws": [
+    "fresh live run, no cache",
+    "fresh live run, no cache"
+   ],
+   "modelCalls": [
+    1,
+    1
+   ],
+   "pairs": 1,
+   "worse": 0,
+   "verdicts": [
+    {
+     "effect": "chat.reply:",
+     "field": "text",
+     "verdict": "equal",
+     "reason": "Both explain that shorter wavelengths scatter more via Rayleigh scattering and that the scattered blue light from all directions makes the sky look blue. The candidate adds an accurate note on violet, but the same conclusion and facts are conveyed. The reference's inverse-fourth-power detail is omitted, which does not change the answer.",
+     "n8nA": "Sunlight contains all the visible colors, and as it passes through the atmosphere it collides with gas molecules that are much smaller than its wavelengths. This scattering, known as Rayleigh scattering, affects shorter wavelengths like blue far more strongly than longer wavelengths like red, since the scattering intensity is inversely proportional to the fourth power of the wavelength. Because th",
+     "n8nB": "Sunlight contains all colors of visible light, but as it passes through the atmosphere, air molecules scatter shorter wavelengths (blue and violet) much more strongly than longer ones (red and orange), a process called Rayleigh scattering. Because this scattered blue light reaches our eyes from all directions across the sky, the sky appears blue. Violet light is scattered even more than blue, but "
+    }
+   ],
+   "deterministicDiffs": {
+    "missing": [],
+    "extra": [],
+    "fields": []
+   }
+  },
+  "4722": {
+   "variant": "normal",
+   "statuses": [
+    "success",
+    "success"
+   ],
+   "draws": [
+    "recordings/4722/normal.json (2026-11-14T02:41:29Z)",
+    "fresh live run, no cache"
+   ],
+   "modelCalls": [
+    5,
+    4
+   ],
+   "pairs": 0,
+   "worse": 0,
+   "verdicts": [],
+   "deterministicDiffs": {
+    "missing": [],
+    "extra": [],
+    "fields": []
+   }
+  }
+ },
+ "total": {
+  "pairs": 2,
+  "worse": 1,
+  "falseFailRate": 0.5
+ }
+}
