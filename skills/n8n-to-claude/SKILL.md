@@ -28,6 +28,7 @@ Scripts (run from this skill's folder, called SKILL below; Node 20+, no install)
 - `node SKILL/scripts/analyze.mjs <input> [--json] [--answers a.json]`: the fit report. No model, no network.
 - `node SKILL/scripts/convert.mjs <input> --out <repo> [--answers a.json] [--approve id,...]`: one folder per workflow under `<repo>`, plus the repo-root settings. `--regenerate <repo>/<folder>` rebuilds a folder from its stored export and `overrides.json`.
 - `node SKILL/scripts/try-step.mjs <folder> <step> [--items i.json | --pin]`: dry run of one step on sample items.
+- `node SKILL/scripts/cutover.mjs <folder> <step>`: cutover and rollback (step 8).
 
 First run `node --version`. No Node, or below 20: stop and tell the person the skill needs Node 20 (Claude Code, or Desktop/Cowork with Node installed); in a chat sandbox with Python only, it cannot run.
 
@@ -104,7 +105,7 @@ Alerts: ask once where a failed or missed run should be reported (a Slack DM to 
 
 ## 8. Cutover
 
-`references/cutover.md` (placeholder; the cutover unit fills it). Until then: dry run clean in the artifact, seed the cursor, enable the schedule, then deactivate the n8n workflow; the artifact's Cutover panel tracks it.
+Follow `references/cutover.md`; `cutover.mjs <folder> status` says the next step. Order: `dry-run` (a session runs `runner.mjs start --dry-run`: writes held), `parity` where the export has `pinData`, `deactivate-n8n`, `seed` (from n8n's cursor), `enable`, then the target's setup from step 6. n8n goes off before the task goes on; the task's runs print `HELD` until `enable`. Rollback: `cutover.mjs <folder> rollback`, then the person disables the task. n8n's API is used only when the person has set `N8N_BASE_URL` and `N8N_API_KEY` in the environment; never ask for the key in the chat. Without them, give the printed steps. A refused step says why; do not use `--force` to get past a refusal about shared state or double sending (it is refused anyway). Each of these steps needs the person's go-ahead: they switch n8n off or on and write the task's state.
 
 ## Reference files (load when needed)
 
@@ -114,4 +115,4 @@ Alerts: ask once where a failed or missed run should be reported (a Slack DM to 
 - `references/task-prompt.md`: the task prompt template.
 - `references/artifact-runtime.md`: the artifact runtime contract and record shapes.
 - `references/report.schema.json`, `references/definition.schema.json`: the two contracts.
-- `references/cutover.md`: cutover (placeholder).
+- `references/cutover.md`: cutover and rollback: steps, records, gate, cursor mapping, n8n's API.
