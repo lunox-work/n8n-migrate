@@ -12882,6 +12882,8 @@ const agentStep = {
         if (a.model) base.model = a.model;
       } else {
         base.prompt = exec.evaluate(a.prompt, i);
+        // Text n8n adds after the evaluated prompt (an output parser's format instructions).
+        if (a.promptAppend) base.prompt = `${base.prompt ?? ""}${a.promptAppend}`;
         if (a.system !== undefined) base.system = exec.evaluate(a.system, i);
         if (a.memory) base.memory = { key: exec.evaluate(a.memory.key ?? "={{ $json.sessionId }}", i), window: a.memory.window ?? 5 };
         else if (a.memoryKey !== undefined) base.memory = { key: exec.evaluate(a.memoryKey, i), window: 5 };
@@ -12913,6 +12915,7 @@ const agentStep = {
         out.push(failedItem(exec, failure, i, "agent"));
         continue;
       }
+      if (a.wrapOutput && isObject(final)) final = { output: final };
       out.push({ json: { [a.outputKey ?? "output"]: final }, pairedItem: { item: i } });
     }
     return [out];

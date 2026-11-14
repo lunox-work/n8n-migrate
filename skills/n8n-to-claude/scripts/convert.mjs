@@ -358,6 +358,38 @@ function mapReviews(params, entry) {
   return out;
 }
 
+// n8n's ReAct agent (agent: reActAgent, agent node v1.x) on a chat model is LangChain's
+// ChatAgent (@langchain/classic agents/chat): the system message is prefix, the tool lines,
+// the format instructions and the suffix joined by blank lines, rendered as an f-string
+// (doubled braces become single); the human message is the input, with an output parser's
+// format instructions after a newline ("{input}\n{formatInstructions}"), then the scratchpad.
+const REACT_PREFIX = "Answer the following questions as best you can. You have access to the following tools:";
+const REACT_FORMAT = `The way you use the tools is by specifying a json blob, denoted below by $JSON_BLOB
+Specifically, this $JSON_BLOB should have a "action" key (with the name of the tool to use) and a "action_input" key (with the input to the tool going here).
+The $JSON_BLOB should only contain a SINGLE action, do NOT return a list of multiple actions. Here is an example of a valid $JSON_BLOB:
+
+\`\`\`
+{
+  "action": "calculator",
+  "action_input": "1 + 2"
+}
+\`\`\`
+
+ALWAYS use the following format:
+
+Question: the input question you must answer
+Thought: you should always think about what to do
+Action:
+\`\`\`
+$JSON_BLOB
+\`\`\`
+Observation: the result of the action
+... (this Thought/Action/Observation can repeat N times)
+Thought: I now know the final answer
+Final Answer: the final answer to the original input question`;
+const REACT_SUFFIX = "Begin! Reminder to always use the exact characters `Final Answer` when responding.";
+const fString = (t) => String(t).replace(/\{\{/g, "{").replace(/\}\}/g, "}");
+
 // LangChain's StructuredOutputParser.getFormatInstructions() as n8n 2.x sends it (from
 // @langchain/classic, braces of the example doubled as there), around the JSON Schema that
 // zod-to-json-schema writes for the node's schema.
@@ -1100,6 +1132,19 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         continue;
       }
       agent.tools.push(t);
+    }
+    if (p.agent === "reActAgent" && v < 2) {
+      const o = p.options ?? {};
+      if (agent.tools.length) reasons.push("n8n's ReAct agent writes tool calls as text; here the tools are called natively, so the prompt differs from n8n's");
+      else if ([o.prefix, o.suffixChat, o.humanMessageTemplate].some((x) => isExpr(x)) || o.humanMessageTemplate !== undefined) reasons.push("the ReAct prompt options are expressions or a custom human message template; the prompt differs from n8n's");
+      else {
+        agent.system = [fString(o.prefix ?? REACT_PREFIX), "", REACT_FORMAT, fString(o.suffixChat ?? REACT_SUFFIX)].join("\n\n");
+        if (agent.outputSchema) {
+          agent.promptAppend = "\n" + structuredFormatInstructions({ type: "object", properties: { output: { ...agent.outputSchema, additionalProperties: false } } });
+          // 1.6 and older keep the parser's {output: ...} wrapper in the agent's output.
+          if (v <= 1.6) agent.wrapOutput = true;
+        }
+      }
     }
     if (p.options?.returnIntermediateSteps) reasons.push("intermediate steps are not returned");
     if (p.promptType === "auto" || p.promptType === undefined) {

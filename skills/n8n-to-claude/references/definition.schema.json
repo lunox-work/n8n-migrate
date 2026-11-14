@@ -157,6 +157,8 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
+              "promptAppend": { "type": "string", "description": "Literal text n8n adds after the evaluated prompt (a ReAct agent's output-parser format instructions)." },
+              "wrapOutput": { "type": "boolean", "description": "Agent node 1.6 and older keep the output parser's {output: ...} wrapper: the final value is wrapped once more." },
               "prompt": { "type": "string" },
               "system": { "type": "string" },
               "tools": {
