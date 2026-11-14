@@ -150,6 +150,7 @@
               "model": { "type": "string" },
               "outputTemplate": { "description": "n8n's output item, with the string \"$output\" where the model's result goes." },
               "trim": { "type": "boolean" },
+              "parseJson": { "type": "boolean", "description": "The reply is read as JSON when it is valid JSON and kept as text otherwise (n8n's OpenAI node with JSON output: JSON.parse inside a try)." },
               "passInput": { "type": "boolean", "description": "Merge the shaped result into the input item (Sentiment Analysis)." },
               "route": {
                 "type": "object",

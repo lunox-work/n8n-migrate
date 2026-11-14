@@ -13148,7 +13148,18 @@ const modelStep = {
       if (derived && m.model) r.model = m.model;
       return r;
     });
-    const results = await exec.request(reqs);
+    let results = await exec.request(reqs);
+    // parseJson: n8n JSON.parses the reply inside a try and keeps the text when it fails.
+    if (!derived && m.parseJson) {
+      results = results.map((r) => {
+        if (!r.ok || typeof r.value !== "string") return r;
+        try {
+          return { ...r, value: JSON.parse(r.value) };
+        } catch {
+          return r;
+        }
+      });
+    }
     if (!derived) {
       if (!m.route) {
         if (m.outputTemplate === undefined && !m.passInput && !m.trim) return [toItems(exec, results, items, "model", m.outputKey ?? (m.outputSchema ? "output" : "text"))];

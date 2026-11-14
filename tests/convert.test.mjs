@@ -309,3 +309,32 @@ test("agent tools from a sub-workflow (self), a Code tool and an HTTP Request to
   assert.deepEqual(r.output, [{ output: '"42" | {"sku":"SKU-1","units":12} | {"temp":12}' }]);
   assert.deepEqual(http, ["https://api.weather.example.com/v1/Paris"]);
 });
+
+test("several system messages are separate values: each expression is evaluated on its own, then joined", async () => {
+  const node = {
+    parameters: { modelId: { __rl: true, mode: "list", value: "gpt-4o" }, options: {}, messages: { values: [{ role: "system", content: "=You write for {{ $json.who }}." }, { role: "system", content: "=Keep it short." }, { role: "system", content: "Plain {not an expression}" }, { content: "={{ $json.q }}" }] } },
+    name: "Write",
+    type: "@n8n/n8n-nodes-langchain.openAi",
+    typeVersion: 1.8,
+    position: [200, 0],
+  };
+  const def = convertJson(tiny([manual, node], link("Start", "Write"))).definition;
+  assert.equal(def.steps.Write.model.system, "=You write for {{ $json.who }}.\nKeep it short.\nPlain {not an expression}");
+  let seen;
+  const r = await run(def, { clock: CLOCK, virtualTime: true, trigger: [{ who: "Ann", q: "hi" }], host: { model: async (p) => ((seen = p), "ok") } });
+  assert.equal(r.status, "done", JSON.stringify(r.error));
+  assert.equal(seen.system, "You write for Ann.\nKeep it short.\nPlain {not an expression}");
+});
+
+test("OpenAI JSON output: n8n's JSON system message first; a JSON reply becomes an object, any other reply stays text (no schema refusal)", async () => {
+  const node = { parameters: { modelId: { __rl: true, mode: "list", value: "gpt-4o" }, jsonOutput: true, options: {}, messages: { values: [{ role: "system", content: "Score it." }, { content: "={{ $json.q }}" }] } }, name: "Score", type: "@n8n/n8n-nodes-langchain.openAi", typeVersion: 1.8, position: [200, 0] };
+  const def = convertJson(tiny([manual, node], link("Start", "Score"))).definition;
+  assert.equal(def.steps.Score.model.system, "You are a helpful assistant designed to output JSON.\nScore it.");
+  assert.equal(def.steps.Score.model.parseJson, true);
+  assert.equal(def.steps.Score.model.outputSchema, undefined);
+  for (const [reply, content] of [['{"score": 8}', { score: 8 }], ["I lost my keys", "I lost my keys"]]) {
+    const r = await run(def, { clock: CLOCK, virtualTime: true, trigger: [{ q: "x" }], host: { model: async (p) => (assert.equal(p.outputSchema, undefined), reply) } });
+    assert.equal(r.status, "done", JSON.stringify(r.error));
+    assert.deepEqual(r.runData.Score[0].data.main[0][0].json.message.content, content);
+  }
+});

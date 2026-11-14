@@ -73,6 +73,16 @@ const BASE = "n8n-nodes-base.";
 
 const isObj = (x) => x !== null && typeof x === "object" && !Array.isArray(x);
 const isExpr = (v) => typeof v === "string" && v.startsWith("=");
+// Several message texts joined into one: each n8n parameter is its own value (an expression
+// "=…" evaluates on its own, a literal stays as written), so when any part is an expression
+// the parts become one expression of their bodies. A literal part holding "{{" would turn
+// into an expression there: null, and the caller keeps the plain join with a review line.
+function joinTexts(parts, sep = "\n") {
+  const list = parts.map((x) => (x === undefined || x === null ? "" : x));
+  if (!list.some(isExpr)) return list.join(sep);
+  if (list.some((x) => !isExpr(x) && String(x).includes("{{"))) return null;
+  return "=" + list.map((x) => (isExpr(x) ? x.slice(1) : String(x))).join(sep);
+}
 const clone = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const sha256 = (s) => createHash("sha256").update(s).digest("hex");
 const uniq = (xs) => [...new Set(xs)];
@@ -1291,7 +1301,8 @@ function convertModel(name, step, { params, type, v, review, translate, subnodes
     const system = msgs.filter((m) => m.role === "system").map((m) => m.content);
     const rest = msgs.filter((m) => m.role !== "system").map(({ role, content }) => ({ role, content }));
     const schema = p.hasOutputParser || v < 1.4 ? parserOf() : undefined;
-    model = { prompt: promptFor(step), ...(system.length ? { system: system.join("\n") } : {}), ...(rest.length ? { messages: rest } : {}) };
+    const sysText = joinTexts(system) ?? (reasons.push("a literal system message holds {{ }} next to expressions; the joined system text may differ from n8n's"), system.join("\n"));
+    model = { prompt: promptFor(step), ...(system.length ? { system: sysText } : {}), ...(rest.length ? { messages: rest } : {}) };
     if (schema) Object.assign(model, { outputSchema: schema, outputKey: "output" });
     else Object.assign(model, { outputKey: "text", trim: true });
   } else if (type === LC + "openAi") {
@@ -1301,8 +1312,12 @@ function convertModel(name, step, { params, type, v, review, translate, subnodes
       const system = list.filter((m) => m.role === "system").map((m) => m.content);
       const rest = list.filter((m) => m.role !== "system").map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content ?? "" }));
       if (p.options?.instructions) system.unshift(p.options.instructions);
-      model = { ...(system.length ? { system: system.join("\n") } : {}), messages: rest };
-      if (p.jsonOutput) model.outputSchema = { type: "object" };
+      // JSON output: n8n puts this system message first and asks for a JSON object, then
+      // JSON.parses the reply inside a try, keeping the text when it is not JSON.
+      if (p.jsonOutput) system.unshift("You are a helpful assistant designed to output JSON.");
+      const sysText = joinTexts(system) ?? (reasons.push("a literal system message holds {{ }} next to expressions; the joined system text may differ from n8n's"), system.join("\n"));
+      model = { ...(system.length ? { system: sysText } : {}), messages: rest };
+      if (p.jsonOutput) model.parseJson = true;
       if (p.simplify === false) reasons.push("the raw OpenAI response (choices, usage) is not rebuilt; only the simplified message is");
       model.outputTemplate = op === "text:message" ? { index: 0, message: { role: "assistant", content: "$output", refusal: null, annotations: [] }, logprobs: null, finish_reason: "stop" } : { output: [{ type: "message", role: "assistant", content: [{ type: "output_text", text: "$output" }] }] };
       if (subnodesTo(name, "ai_tool").length) reasons.push("tools attached to the OpenAI node are not mapped");
@@ -1320,7 +1335,7 @@ function convertModel(name, step, { params, type, v, review, translate, subnodes
     if (op === "chat:complete") model = { messages: (p.prompt?.messages ?? []).map((m) => ({ role: m.role === "assistant" ? "assistant" : m.role === "system" ? "system" : "user", content: m.content ?? "" })) };
     else model = { prompt: p.prompt ?? "" };
     const sys = (model.messages ?? []).filter((m) => m.role === "system").map((m) => m.content);
-    if (sys.length) (model.system = sys.join("\n")), (model.messages = model.messages.filter((m) => m.role !== "system"));
+    if (sys.length) (model.system = joinTexts(sys) ?? (reasons.push("a literal system message holds {{ }} next to expressions; the joined system text may differ from n8n's"), sys.join("\n"))), (model.messages = model.messages.filter((m) => m.role !== "system"));
     model.outputTemplate = op === "chat:complete" ? { index: 0, message: { role: "assistant", content: "$output" }, finish_reason: "stop" } : { index: 0, text: "$output", finish_reason: "stop" };
     model.hint = { provider: "openAi (legacy node)", ...(p.model ? { model: String(isObj(p.model) ? p.model.value : p.model) } : {}) };
     reasons.push("the legacy OpenAI node's output (choices) is rebuilt from n8n's simplified shape; check the fields the next steps read");
