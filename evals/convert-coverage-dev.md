@@ -6,8 +6,8 @@ Classes: **full** (no review flag, no blocked step), **review** (some step is fl
 
 | Mode | full | review | blocked | refused | crash | schema-invalid | preflight clean |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| default | 4 | 9 | 47 | 0 | 0 | 0 | 15 |
-| forced | 4 | 9 | 47 | 0 | 0 | 0 | 15 |
+| default | 4 | 9 | 47 | 0 | 0 | 0 | 17 |
+| forced | 4 | 9 | 47 | 0 | 0 | 0 | 17 |
 
 ## Default (refusals honoured)
 
@@ -59,12 +59,12 @@ Top preflight errors (what stops a run before any effect):
 | blocked: file steps need the files lever (not built yet) | 10 | 19 |
 | a request with a URL built at run time is allowed to any host (GET *); narrow it to a host in overrides.json | 10 | 10 |
 | blocked: a database step needs the bundled server or a database connector (open decision N) | 8 | 24 |
-| blocked: a vector store needs an MCP server (lever not built yet) | 6 | 13 |
+| blocked: a vector store needs an MCP server (lever not built yet) | 6 | 9 |
 | blocked: no Sheets tool: rows cannot be appended through the Drive connector | 6 | 9 |
-| blocked: media steps (transcription, image generation) go through the original provider (lever not built yet) | 6 | 7 |
-| blocked: a request to an LLM API with an API key | 5 | 7 |
+| blocked: media steps (transcription, image generation) go through the original provider (lever not built yet) | 5 | 6 |
 | blocked: no request template for facebookGraphApi yet (it needs the app's REST API with a stored secret) | 4 | 8 |
 | blocked: no Sheets tool: rows cannot be written through the Drive connector | 4 | 4 |
+| blocked: a request to an LLM API with an API key | 3 | 3 |
 
 ## Forced (every template converted)
 
@@ -116,12 +116,12 @@ Top preflight errors (what stops a run before any effect):
 | blocked: file steps need the files lever (not built yet) | 10 | 19 |
 | a request with a URL built at run time is allowed to any host (GET *); narrow it to a host in overrides.json | 10 | 10 |
 | blocked: a database step needs the bundled server or a database connector (open decision N) | 8 | 24 |
-| blocked: a vector store needs an MCP server (lever not built yet) | 6 | 13 |
+| blocked: a vector store needs an MCP server (lever not built yet) | 6 | 9 |
 | blocked: no Sheets tool: rows cannot be appended through the Drive connector | 6 | 9 |
-| blocked: media steps (transcription, image generation) go through the original provider (lever not built yet) | 6 | 7 |
-| blocked: a request to an LLM API with an API key | 5 | 7 |
+| blocked: media steps (transcription, image generation) go through the original provider (lever not built yet) | 5 | 6 |
 | blocked: no request template for facebookGraphApi yet (it needs the app's REST API with a stored secret) | 4 | 8 |
 | blocked: no Sheets tool: rows cannot be written through the Drive connector | 4 | 4 |
+| blocked: a request to an LLM API with an API key | 3 | 3 |
 
 ## Tool maps
 

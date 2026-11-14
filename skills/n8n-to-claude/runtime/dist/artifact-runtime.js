@@ -14721,6 +14721,24 @@ function validateDefinition(def) {
 
 const toolKey = (t) => (typeof t === "string" ? t : `${t.connector}.${t.tool ?? t.name}`);
 
+// Steps no run can reach: not downstream of any enabled trigger (or, in a definition without
+// triggers, of any step without inputs, since a run may start at any of them). The engine
+// starts at one trigger and follows edges, so these never execute, as in n8n.
+function unreachableSteps(definition) {
+  const steps = definition.steps ?? {};
+  const edges = definition.edges ?? [];
+  const enabled = (n) => steps[n]?.settings?.disabled !== true;
+  let starts = Object.keys(steps).filter((n) => isTriggerStep(steps[n]) && enabled(n));
+  if (!starts.length) starts = Object.keys(steps).filter((n) => !steps[n].subnode && !edges.some((e) => e.to === n));
+  const seen = new Set(starts);
+  const queue = [...starts];
+  while (queue.length) {
+    const n = queue.shift();
+    for (const e of edges) if (e.from === n && !seen.has(e.to)) seen.add(e.to), queue.push(e.to);
+  }
+  return new Set(Object.keys(steps).filter((n) => !steps[n].subnode && !seen.has(n)));
+}
+
 // pinned: names of steps that emit pinned items (run's pinData) and so need no implementation.
 function preflight(definition, { availableTools, sourceText, pinned } = {}) {
   const issues = validateDefinition(definition);
@@ -14732,8 +14750,16 @@ function preflight(definition, { availableTools, sourceText, pinned } = {}) {
     warn("$.settings.executionOrder", `execution order "${definition.settings.executionOrder}" runs with v1 semantics; it differs from n8n's legacy order when branches interleave or a Merge waits`);
   }
   const pinnedSet = new Set(pinned ?? []);
+  const unreached = unreachableSteps(definition);
   for (const [name, s] of Object.entries(steps)) {
     if (s.settings?.disabled === true || s.subnode || pinnedSet.has(name)) continue;
+    if (unreached.has(name)) {
+      // Never executes, so it cannot stop a run; a blocked or unimplemented step there is
+      // reported, not refused.
+      const why = s.kind === "blocked" ? `blocked: ${s.blocked?.reason ?? "no reason given"}` : !nodeImplFor(s) ? `not implemented: ${s.n8n.type} v${s.n8n.typeVersion ?? 1}` : null;
+      warn(`$.steps.${name}`, `never runs (no trigger reaches it)${why ? `; ${why}` : ""}`, { step: name });
+      continue;
+    }
     if (s.n8n.type === "n8n-nodes-base.executeWorkflow" && !s.subflow) err(`$.steps.${name}`, "the sub-workflow is not in the definition (only inline and self-referencing sub-workflows run)", { step: name });
     if (s.kind === "blocked") err(`$.steps.${name}`, `blocked: ${s.blocked?.reason ?? "no reason given"}`, { step: name });
     else if (!nodeImplFor(s)) err(`$.steps.${name}`, `not implemented: ${s.n8n.type} v${s.n8n.typeVersion ?? 1} (kind ${s.kind})`, { step: name });
@@ -14999,7 +15025,7 @@ function expressionSupport() {
 }
 
 
-return { RUNTIME_VERSION, DEFINITION_SCHEMA_VERSION, definitionHash, validateDefinition, preflight, resolveTrigger, run, start, resume, expressionSupport, SUPPORTED_TYPES, nodeImplFor, isTriggerStep };
+return { RUNTIME_VERSION, DEFINITION_SCHEMA_VERSION, definitionHash, validateDefinition, unreachableSteps, preflight, resolveTrigger, run, start, resume, expressionSupport, SUPPORTED_TYPES, nodeImplFor, isTriggerStep };
 })();
 
 // ---- src/convert.mjs ----

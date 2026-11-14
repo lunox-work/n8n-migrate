@@ -19,3 +19,12 @@ Baseline (`p6-i0`, plain `convert.mjs`, commit before iteration 1): see iteratio
 - Bench `p6-i1`: 0 of 10 pass (was 0), gate sum 32 (was 31). 2415 3 → 4 (now: the ReAct agent's prefix and the text classifier's format instructions differ from n8n's prompts); 4722 4 → 4 with a later blocker (sender now matches; the assumed `get_message` shape carries no `List-Unsubscribe`/`Precedence` headers, which n8n's raw message has). Others unchanged.
 - `convert-coverage --split dev`: unchanged (full 4, review 9, blocked 47, preflight clean 15); no per-template change.
 - Verdict: accepted (rules a–e).
+
+## Iteration 2: steps no trigger reaches (accepted)
+
+- Bucket: runner bug (preflight). 2777's only blockers were two LLM-API HTTP nodes and an agent that no trigger reaches; n8n never runs them, but preflight refused any blocked step anywhere in the graph.
+- Hypothesis: preflight should judge only steps a run can reach; unreachable blocked or unimplemented steps become warnings ("never runs (no trigger reaches it)"). The engine starts at one trigger and follows edges, so this cannot let a blocked step execute.
+- Change: `unreachableSteps()` in `runtime/src/api.mjs` (start set: every enabled trigger; without triggers, every step without inputs); preflight warns instead of refusing for those steps.
+- Bench `p6-i2` (in process): 0 of 10 pass, gate sum 37 (was 32). 2777 3 → 8 (gates 3–7 pass; gate 8 needs a claude-driver measurement). `p6-i2c` (2777, `--driver claude`, 2 `claude -p` runs): 2777 passes every gate (9), the loop's first pass, on the plain converter's folder. Others unchanged.
+- `convert-coverage --split dev`: preflight clean 15 → 17 (2777, 3102); 6 more templates lose one preflight error each (2315, 2621, 2753, 5148, 5230, 5993); no template gains an error or a blocked step.
+- Verdict: accepted (rules a–e).

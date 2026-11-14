@@ -249,6 +249,22 @@ test("preflight fails closed: unsupported and blocked steps, missing tools, sour
   assert.equal(preflight({ schemaVersion: 2, name: "x", steps: {} }).ok, false);
 });
 
+test("preflight: a blocked or unimplemented step no trigger reaches is a warning, not a refusal", async () => {
+  const orphan = node("X", "n8n-nodes-base.n8n", {}, { kind: "blocked", blocked: { reason: "manages n8n itself" } });
+  const def = wf([start(), node("Set", "set", { mode: "manual", assignments: { assignments: [{ name: "a", value: "1", type: "string" }] } }, { v: 3.4 }), orphan, node("MD", "markdown", {}), node("After X", "set", {}, { v: 3.4 })], [["Start", "Set"], ["X", "After X"]]);
+  const pf = preflight(def);
+  assert.equal(pf.ok, true, JSON.stringify(pf.issues));
+  assert.deepEqual(pf.issues.filter((i) => /never runs/.test(i.message)).map((i) => i.step).sort(), ["After X", "MD", "X"]);
+  assert.match(pf.issues.find((i) => i.step === "X").message, /never runs \(no trigger reaches it\); blocked: manages n8n itself/);
+  const r = await run(def);
+  assert.equal(r.status, "done");
+  assert.equal(r.runData.X, undefined);
+  // Reached from the trigger, the same step still refuses the run.
+  assert.equal(preflight(wf([start(), orphan], [["Start", "X"]])).ok, false);
+  // Without a trigger every step without inputs may start a run, so none of them is skipped.
+  assert.equal(preflight(wf([orphan, node("Set", "set", {}, { v: 3.4 })], [])).ok, false);
+});
+
 test("run() refuses to start when preflight fails, with every issue listed", async () => {
   const r = await run(wf([start(), node("MD", "markdown", {})], [["Start", "MD"]]));
   assert.equal(r.status, "failed");
