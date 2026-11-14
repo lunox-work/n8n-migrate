@@ -1,5 +1,6 @@
-// Tolerant connector-shape readers (runtime/src/shapes.mjs) and the result adapters that use
-// them: each reader accepts every plausible shape, and fails loudly on anything else.
+// Tolerant connector-shape readers (runtime/src/shapes.mjs), the result adapters that use
+// them (each reader accepts every plausible shape and fails loudly on anything else), and
+// the n8n-shaped prompts of classifier steps.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { adaptResult } from "../skills/n8n-to-claude/runtime/src/adapt.mjs";
@@ -103,4 +104,44 @@ test("resultWhen: the converter picks the adapter for the option the export sets
   assert.deepEqual(resultOf(undefined), gmailGet.result);
   assert.deepEqual(resultOf(true), gmailGet.result);
   assert.deepEqual(resultOf(false), parsedSpec);
+});
+
+test("classifier and sentiment steps send n8n's system message: template, LangChain format instructions, rules", () => {
+  const def = (node) =>
+    convertItems(
+      [
+        {
+          id: "c",
+          file: "c.json",
+          wf: {
+            name: "c",
+            nodes: [
+              { parameters: {}, name: "Start", type: "n8n-nodes-base.manualTrigger", typeVersion: 1, position: [0, 0] },
+              node,
+              { parameters: { options: {} }, name: "Model", type: "@n8n/n8n-nodes-langchain.lmChatAnthropic", typeVersion: 1.3, position: [200, 200], credentials: { anthropicApi: { id: "1", name: "A" } } },
+            ],
+            connections: { Start: { main: [[{ node: node.name, type: "main", index: 0 }]] }, Model: { ai_languageModel: [[{ node: node.name, type: "ai_languageModel", index: 0 }]] } },
+          },
+        },
+      ],
+      { refs, now: Date.parse("2026-11-14T00:00:00Z"), forceConvert: true },
+    )[0].definition.steps[node.name].model;
+  const tc = def({ parameters: { inputText: "={{ $json.text }}", categories: { categories: [{ category: "spam", description: "junk" }, { category: "ham" }] }, options: {} }, name: "Classify", type: "@n8n/n8n-nodes-langchain.textClassifier", typeVersion: 1, position: [200, 0] });
+  const parts = tc.system.split("\n\t");
+  assert.equal(parts[0], "Please classify the text provided by the user into one of the following categories: spam, ham, and use the provided formatting instructions below. Don't explain, and only output the json.");
+  assert.match(parts[1], /^You must format your output as a JSON value that adheres to a given "JSON Schema" instance\./);
+  assert.match(parts[1], /"required": \["foo"\]\}\}\}\}\n/, "LangChain classic's example, braces as n8n sends them");
+  const schemaText = /```json\n(.*)\n```\n$/.exec(parts[1])[1];
+  assert.deepEqual(JSON.parse(schemaText), {
+    type: "object",
+    properties: { spam: { type: "boolean", description: 'Should be true if the input has category "spam" (description: junk)' }, ham: { type: "boolean", description: 'Should be true if the input has category "ham" (description: undefined)' } },
+    required: ["spam", "ham"],
+    additionalProperties: false,
+    $schema: "http://json-schema.org/draft-07/schema#",
+  });
+  assert.deepEqual(parts.slice(2), ["Categories are mutually exclusive, and only one can be true", "If there is not a very fitting category, select none of the categories."]);
+  const sa = def({ parameters: { inputText: "={{ $json.text }}", options: { categories: "Good,Bad" } }, name: "Sentiment", type: "@n8n/n8n-nodes-langchain.sentimentAnalysis", typeVersion: 1.1, position: [200, 0] });
+  assert.match(sa.system, /Categorize it into one of the following: Good,Bad\. Use the provided formatting instructions\. Only output the JSON\.\n\t\t\t\tYou must format/);
+  assert.deepEqual(sa.outputSchema.required, ["sentiment", "strength", "confidence"], "n8n asks for all three fields even without detailed results");
+  assert.deepEqual(sa.outputTemplate, { sentimentAnalysis: { category: "$output.sentiment" } });
 });

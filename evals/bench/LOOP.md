@@ -28,3 +28,12 @@ Baseline (`p6-i0`, plain `convert.mjs`, commit before iteration 1): see iteratio
 - Bench `p6-i2` (in process): 0 of 10 pass, gate sum 37 (was 32). 2777 3 → 8 (gates 3–7 pass; gate 8 needs a claude-driver measurement). `p6-i2c` (2777, `--driver claude`, 2 `claude -p` runs): 2777 passes every gate (9), the loop's first pass, on the plain converter's folder. Others unchanged.
 - `convert-coverage --split dev`: preflight clean 15 → 17 (2777, 3102); 6 more templates lose one preflight error each (2315, 2621, 2753, 5148, 5230, 5993); no template gains an error or a blocked step.
 - Verdict: accepted (rules a–e).
+
+## Iteration 3: classifier prompts as n8n sends them (accepted)
+
+- Bucket: field map (model step requests). After iteration 1, 2415's text classifier asked a different question: n8n puts LangChain's StructuredOutputParser format instructions (with the category JSON Schema) between the template and the two rules, tab-indented; the converter dropped them. The sentiment step had the same gap and also asked for `sentiment` only, where n8n always asks for `sentiment`, `strength` and `confidence`.
+- Hypothesis: building the system message exactly as n8n 2.x does (instruction text from `@langchain/classic`, read from the n8n 2.47.7 image) removes the classifier's own mismatch, leaving the ReAct agent upstream as 2415's only blocker.
+- Change: `structuredFormatInstructions()` in `scripts/convert.mjs`; textClassifier system = template, format instructions, multi-class rule, fallback rule joined by `\n\t`; sentimentAnalysis system = template (raw categories string), tab indent by version and batching, format instructions; sentiment schema with all three fields.
+- Bench `p6-i3` (in process): 0 of 10, gate sum 37 (unchanged). 2415 stays at 4 with a later blocker: the classifier's system message now matches n8n's; its input text is `null` because the ReAct agent upstream (prompt built from `options.prefix`, not modelled) yields no `output.workflowJson`. Others unchanged; 2777 still 8 in process.
+- `convert-coverage --split dev`: unchanged (preflight clean 17).
+- Verdict: accepted under rule (c), later blocking cause, no gate falling.

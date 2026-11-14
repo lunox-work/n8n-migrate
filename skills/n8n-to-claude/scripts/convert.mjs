@@ -358,6 +358,28 @@ function mapReviews(params, entry) {
   return out;
 }
 
+// LangChain's StructuredOutputParser.getFormatInstructions() as n8n 2.x sends it (from
+// @langchain/classic, braces of the example doubled as there), around the JSON Schema that
+// zod-to-json-schema writes for the node's schema.
+function structuredFormatInstructions(schema) {
+  const json = JSON.stringify({ ...schema, additionalProperties: false, $schema: "http://json-schema.org/draft-07/schema#" });
+  return `You must format your output as a JSON value that adheres to a given "JSON Schema" instance.
+
+"JSON Schema" is a declarative language that allows you to annotate and validate JSON documents.
+
+For example, the example "JSON Schema" instance {{"properties": {{"foo": {{"description": "a list of test words", "type": "array", "items": {{"type": "string"}}}}}}, "required": ["foo"]}}}}
+would match an object with one required property, "foo". The "type" property specifies "foo" must be an "array", and the "description" property semantically describes it as "a list of test words". The items within "foo" must be strings.
+Thus, the object {{"foo": ["bar", "baz"]}} is a well-formatted instance of this example "JSON Schema". The object {{"properties": {{"foo": ["bar", "baz"]}}}} is not well-formatted.
+
+Your output will be parsed and type-checked according to the provided schema instance, so make sure all fields in your output match the schema exactly and there are no trailing commas!
+
+Here is the JSON Schema instance your output must adhere to. Include the enclosing markdown codeblock:
+\`\`\`json
+${json}
+\`\`\`
+`;
+}
+
 // The result adapter for a map entry: the first `resultWhen` case whose parameter matches
 // (n8n's default when the export leaves it out), else `result`. Lets one operation keep n8n's
 // output shape per option, e.g. Gmail get's simplified versus parsed message.
@@ -1208,25 +1230,32 @@ function convertModel(name, step, { params, type, v, review, translate, subnodes
     const cats = p.categories?.categories ?? [];
     const multi = p.options?.multiClass ?? false;
     const fallback = p.options?.fallback ?? "discard";
-    const props = Object.fromEntries(cats.map((c) => [c.category, { type: "boolean", description: `Should be true if the input has category "${c.category}" (description: ${c.description ?? ""})` }]));
+    const props = Object.fromEntries(cats.map((c) => [c.category, { type: "boolean", description: `Should be true if the input has category "${c.category}" (description: ${c.description})` }]));
     if (fallback === "other") props.fallback = { type: "boolean", description: "Should be true if none of the other categories apply" };
-    const tmpl = String(p.options?.systemPromptTemplate ?? "Please classify the text provided by the user into one of the following categories: {categories}, and use the provided formatting instructions below. Don't explain, and only output the json.").replace("{categories}", cats.map((c) => c.category).join(", "));
+    const schema = { type: "object", properties: props, required: Object.keys(props) };
+    const tmpl = String(p.options?.systemPromptTemplate ?? "Please classify the text provided by the user into one of the following categories: {categories}, and use the provided formatting instructions below. Don't explain, and only output the json.").replaceAll("{categories}", cats.map((c) => c.category).join(", "));
+    // n8n's system message: template, LangChain's format instructions, then the two rules,
+    // each on a tab-indented line.
     model = {
       prompt: p.inputText ?? "",
-      system: [tmpl, multi ? "Categories are not mutually exclusive, and multiple can be true" : "Categories are mutually exclusive, and only one can be true", fallback === "other" ? 'If no categories apply, select the "fallback" option.' : "If there is not a very fitting category, select none of the categories."].join("\n"),
-      outputSchema: { type: "object", properties: props, required: Object.keys(props) },
+      system: [tmpl, structuredFormatInstructions(schema), multi ? "Categories are not mutually exclusive, and multiple can be true" : "Categories are mutually exclusive, and only one can be true", fallback === "other" ? 'If no categories apply, select the "fallback" option.' : "If there is not a very fitting category, select none of the categories."].join("\n\t"),
+      outputSchema: schema,
       route: { mode: "flags", outputs: [...cats.map((c) => c.category), ...(fallback === "other" ? ["fallback"] : [])] },
     };
     if (p.options?.includeConfidenceScores) reasons.push("confidence scores are not added to the routed items");
   } else if (type === LC + "sentimentAnalysis") {
-    const cats = String(p.options?.categories ?? "Positive, Neutral, Negative").split(",").map((c) => c.trim()).filter(Boolean);
+    const raw = String(p.options?.categories ?? "Positive, Neutral, Negative");
+    const cats = raw.split(",").map((c) => c.trim()).filter(Boolean);
     const detailed = !!p.options?.includeDetailedResults;
-    const props = { sentiment: { type: "string", enum: cats } };
-    if (detailed) Object.assign(props, { strength: { type: "number", description: "Strength score for sentiment in relation to the category" }, confidence: { type: "number", description: "Confidence score for the analysis" } });
+    // n8n always asks for all three fields; only the output keeps strength and confidence
+    // when detailed results are on.
+    const props = { sentiment: { type: "string", enum: cats }, strength: { type: "number", minimum: 0, maximum: 1, description: "Strength score for sentiment in relation to the category" }, confidence: { type: "number", minimum: 0, maximum: 1 } };
+    const schema = { type: "object", properties: props, required: Object.keys(props) };
+    const tabs = v >= 1.1 && (p.options?.batching?.batchSize ?? 5) > 1 ? "\t\t\t\t" : "\t\t\t";
     model = {
       prompt: p.inputText ?? "",
-      system: String(p.options?.systemPromptTemplate ?? "You are highly intelligent and accurate sentiment analyzer. Analyze the sentiment of the provided text. Categorize it into one of the following: {categories}. Use the provided formatting instructions. Only output the JSON.").replace("{categories}", cats.join(", ")),
-      outputSchema: { type: "object", properties: props, required: ["sentiment"] },
+      system: String(p.options?.systemPromptTemplate ?? "You are highly intelligent and accurate sentiment analyzer. Analyze the sentiment of the provided text. Categorize it into one of the following: {categories}. Use the provided formatting instructions. Only output the JSON.").replaceAll("{categories}", raw) + "\n" + tabs + structuredFormatInstructions(schema),
+      outputSchema: schema,
       outputTemplate: { sentimentAnalysis: { category: "$output.sentiment", ...(detailed ? { strength: "$output.strength", confidence: "$output.confidence" } : {}) } },
       passInput: true,
       route: { mode: "value", field: "sentiment", outputs: cats },
