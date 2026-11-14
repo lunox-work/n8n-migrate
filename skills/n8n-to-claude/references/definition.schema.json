@@ -171,7 +171,7 @@
                     "description": { "type": "string" },
                     "connector": { "type": "string" },
                     "tool": { "type": "string" },
-                    "kind": { "enum": ["connector", "http", "code", "subflow", "n8n"] },
+                    "kind": { "enum": ["connector", "http", "rest", "code", "subflow", "n8n"] },
                     "url": { "type": "string" },
                     "effect": { "enum": ["read", "write", "none"] },
                     "inputSchema": { "type": "object" },
@@ -253,6 +253,7 @@
             "additionalProperties": false,
             "properties": {
               "program": { "type": "string" },
+              "effect": { "enum": ["read", "write"], "description": "What the operation does to the app; an agent tool built from this step takes it." },
               "fidelity": { "enum": ["exact", "adapted", "partial", "none", "unverified"] },
               "map": { "type": "string" },
               "caveats": { "type": "array", "items": { "type": "string" } }

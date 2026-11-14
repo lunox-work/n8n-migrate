@@ -825,6 +825,49 @@
         }
       }
     },
+    "n8n-nodes-base.googleCalendar": {
+      "1-1.4": {
+        "event": {
+          "getAll": {
+            "rest": "googleCalendar",
+            "credentialType": "googleCalendarOAuth2Api",
+            "hosts": [{ "method": "GET", "host": "www.googleapis.com", "pathPrefix": "/calendar/v3/calendars/" }],
+            "effect": "read",
+            "fidelity": "exact",
+            "caveats": ["Google OAuth access tokens expire after an hour and a service-account sign-in is not built yet: the stored secret must be a current access token, so an unattended run needs it refreshed.", "The claude.ai Google Calendar connector's tool schemas are not captured yet, so the step calls the Calendar REST API with the person's own credential, as n8n does.", "Node version 1.2 and older add the next occurrence of a recurring event (an RRULE engine): such an event fails the step here."],
+            "understood": ["operation", "resource", "calendar", "returnAll", "limit", "timeMin", "timeMax", "options.iCalUID", "options.maxAttendees", "options.orderBy", "options.query", "options.showDeleted", "options.showHiddenInvitations", "options.singleEvents", "options.timeMax", "options.timeMin", "options.timeZone", "options.updatedMin", "options.fields", "options.recurringEventHandling"],
+            "review": [{ "param": "options.recurringEventHandling", "equals": "next", "reason": "Recurring Event Handling \"next\" asks the API once more per recurring event; that has no REST program yet, so a recurring event fails the step" }]
+          },
+          "get": {
+            "rest": "googleCalendar",
+            "credentialType": "googleCalendarOAuth2Api",
+            "hosts": [{ "method": "GET", "host": "www.googleapis.com", "pathPrefix": "/calendar/v3/calendars/" }],
+            "effect": "read",
+            "fidelity": "exact",
+            "caveats": ["Google OAuth access tokens expire after an hour and a service-account sign-in is not built yet: the stored secret must be a current access token, so an unattended run needs it refreshed.", "The claude.ai Google Calendar connector's tool schemas are not captured yet, so the step calls the Calendar REST API with the person's own credential, as n8n does.", "n8n adds the next occurrence of a recurring event (an RRULE engine): such an event fails the step here."],
+            "understood": ["operation", "resource", "calendar", "eventId", "options.maxAttendees", "options.timeZone", "options.returnNextInstance"]
+          },
+          "create": {
+            "rest": "googleCalendar",
+            "credentialType": "googleCalendarOAuth2Api",
+            "hosts": [{ "method": "POST", "host": "www.googleapis.com", "pathPrefix": "/calendar/v3/calendars/" }],
+            "effect": "write",
+            "fidelity": "exact",
+            "caveats": ["Google OAuth access tokens expire after an hour and a service-account sign-in is not built yet: the stored secret must be a current access token, so an unattended run needs it refreshed.", "The claude.ai Google Calendar connector's tool schemas are not captured yet, so the step calls the Calendar REST API with the person's own credential, as n8n does."],
+            "understood": ["operation", "resource", "calendar", "start", "end", "useDefaultReminders", "remindersUi", "additionalFields"]
+          },
+          "delete": {
+            "rest": "googleCalendar",
+            "credentialType": "googleCalendarOAuth2Api",
+            "hosts": [{ "method": "DELETE", "host": "www.googleapis.com", "pathPrefix": "/calendar/v3/calendars/" }],
+            "effect": "write",
+            "fidelity": "exact",
+            "caveats": ["Google OAuth access tokens expire after an hour and a service-account sign-in is not built yet: the stored secret must be a current access token, so an unattended run needs it refreshed.", "The claude.ai Google Calendar connector's tool schemas are not captured yet, so the step calls the Calendar REST API with the person's own credential, as n8n does."],
+            "understood": ["operation", "resource", "calendar", "eventId", "options.sendUpdates"]
+          }
+        }
+      }
+    },
     "n8n-nodes-base.notion": {
       ">=2": {
         "database": {
@@ -1061,6 +1104,7 @@
     "anthropicApi": ["api.anthropic.com"],
     "googlePalmApi": ["generativelanguage.googleapis.com"],
     "googleSheetsOAuth2Api": ["sheets.googleapis.com"],
+    "googleCalendarOAuth2Api": ["www.googleapis.com"],
     "googleApi": ["sheets.googleapis.com"],
     "googleDocsOAuth2Api": ["docs.googleapis.com"],
     "googleDriveOAuth2Api": ["www.googleapis.com"],

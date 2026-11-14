@@ -74,7 +74,7 @@ Ask the report's `questions` (each has `id`, `text`, `options`, `assumed`), grou
 `convert.mjs <input> --out <repo> --answers answers.json [--approve <id>[,<id>]]`.
 
 - `<repo>` is the folder that becomes the private git repository (or the local task's folder): one subfolder per workflow, `.claude/settings.json` and `n2c-hook.mjs` at its root.
-- A substitution (SMTP to Gmail, an LLM API call to a Claude model step, a shell command to a local task's shell) is applied only with `--approve <id>`, and only when the person said yes to that one. Keeping the same service over its REST API with the person's key (an LLM API call, Google Sheets writes) is not a substitution: it needs only the secret, stored at setup. Show what it changes first (`requires` entries of kind `substitution`). Headless: never approve.
+- A substitution (SMTP to Gmail, an LLM API call to a Claude model step, a shell command to a local task's shell) is applied only with `--approve <id>`, and only when the person said yes to that one. Keeping the same service over its REST API with the person's key (an LLM API call, Google Sheets writes, Google Calendar while its connector's tool schemas are not captured) is not a substitution: it needs only the secret, stored at setup. Show what it changes first (`requires` entries of kind `substitution`). Headless: never approve.
 - Workflows that do not run on the subscription are refused (folder with `report.json` and `MIGRATION.md` only). `--force-convert` only when the person asks to see the greyed graph anyway.
 - Read the printed summary: `converted`, `review` (steps flagged), `blocked-steps`, `refused`. Each folder's `MIGRATION.md` says what moved, what is flagged and what it needs.
 

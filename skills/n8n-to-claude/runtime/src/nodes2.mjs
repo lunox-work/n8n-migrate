@@ -1038,6 +1038,7 @@ function agentTools(exec) {
     const tool = { name: toolName(name), node: name, n8nType: step.n8n.type, description: p.toolDescription ?? p.description ?? "" };
     if (step.tool?.connector) Object.assign(tool, { kind: "connector", connector: step.tool.connector, tool: step.tool.name, effect: step.tool.effect ?? "write" });
     else if (step.n8n.type === LC + "toolCode") Object.assign(tool, { kind: "code", effect: "none" });
+    else if (step.kind === "http" && isObject(step.rest)) Object.assign(tool, { kind: "rest", effect: step.rest.effect ?? "write" });
     else if (step.n8n.type === LC + "toolHttpRequest" || step.n8n.type === BASE + "httpRequestTool") Object.assign(tool, { kind: "http", method: p.method ?? "GET", url: typeof p.url === "string" && !p.url.startsWith("=") ? p.url : undefined, effect: (p.method ?? "GET") === "GET" ? "read" : "write" });
     else Object.assign(tool, { kind: "n8n", effect: "write" });
     return tool;
@@ -1221,6 +1222,24 @@ export async function executeAgentTool(exec, tools, call, itemIndex) {
       const { status, body } = templateValue(r);
       if (status >= 400) return { ok: false, error: { message: `${status} - ${typeof body === "string" ? body : JSON.stringify(body)}` } };
       return { ok: true, value: h.result ? toolValue(h.result, body) : body };
+    }
+    if (kind === "rest") {
+      // A node tool whose operation is a REST program (rest.mjs): the program runs as the tool
+      // node on the agent's current item, its $fromAI() values from the model's arguments,
+      // and hands back the items' JSON as n8n's node tools do.
+      const prog = sub?.rest ? restPrograms[sub.rest.program] : undefined;
+      if (!prog || !prog.versions(sub.n8n?.typeVersion ?? 1)) return { ok: false, error: { message: `tool "${spec.name}" has no REST program` } };
+      const item = exec.getInputData()[itemIndex] ?? { json: {} };
+      const subExec = Object.assign(Object.create(exec), {
+        step: sub,
+        params: { ...(sub.params ?? {}) },
+        getInputData: () => [item],
+        scope: (_i, extras) => exec.scope(itemIndex, { ...(extras ?? {}), locals: { ...(extras?.locals ?? {}), ...locals } }),
+        request: (reqs) => exec.request(reqs.map((r) => ({ ...r, itemIndex }))),
+      });
+      const [outItems] = await prog.execute(subExec);
+      const values = (outItems ?? []).map((it) => it.json);
+      return { ok: true, value: values.length === 1 ? values[0] : values };
     }
     if (kind === "code") {
       const p = sub?.params ?? {};

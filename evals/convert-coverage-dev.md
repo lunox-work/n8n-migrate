@@ -6,8 +6,8 @@ Classes: **full** (no review flag, no blocked step), **review** (some step is fl
 
 | Mode | full | review | blocked | refused | crash | schema-invalid | preflight clean |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| default | 9 | 18 | 53 | 0 | 0 | 0 | 29 |
-| forced | 9 | 18 | 53 | 0 | 0 | 0 | 29 |
+| default | 11 | 18 | 51 | 0 | 0 | 0 | 29 |
+| forced | 11 | 18 | 51 | 0 | 0 | 0 | 29 |
 
 ## Default (refusals honoured)
 
@@ -24,12 +24,12 @@ Top reasons for blocked steps:
 | unsupported: toolThink cannot run in the runtime | 3 | 5 |
 | no-tool: no request template for rssFeedRead yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | no-tool: no request template for twitter tweet:create yet (it needs the app's REST API with a stored secret) | 3 | 3 |
-| not-captured: connector needs sign-in on this account; schemas not captured; map event:getAll once they are | 3 | 3 |
 | unsupported: form waits for a person (out of scope v1) | 2 | 6 |
 | dropped: a database step needs the bundled server or a database connector (open decision N) | 2 | 2 |
 | no-tool: no request template for discord channel:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
 | no-tool: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
-| not-captured: connector needs sign-in on this account; schemas not captured; map event:create once they are | 2 | 2 |
+| no-tool: no request template for blotato yet (it needs the app's REST API with a stored secret) | 1 | 10 |
+| no-tool: no tool map for microsoftOutlook message:update yet | 1 | 7 |
 
 Top reasons for review flags:
 
@@ -81,12 +81,12 @@ Top reasons for blocked steps:
 | unsupported: toolThink cannot run in the runtime | 3 | 5 |
 | no-tool: no request template for rssFeedRead yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | no-tool: no request template for twitter tweet:create yet (it needs the app's REST API with a stored secret) | 3 | 3 |
-| not-captured: connector needs sign-in on this account; schemas not captured; map event:getAll once they are | 3 | 3 |
 | unsupported: form waits for a person (out of scope v1) | 2 | 6 |
 | dropped: a database step needs the bundled server or a database connector (open decision N) | 2 | 2 |
 | no-tool: no request template for discord channel:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
 | no-tool: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
-| not-captured: connector needs sign-in on this account; schemas not captured; map event:create once they are | 2 | 2 |
+| no-tool: no request template for blotato yet (it needs the app's REST API with a stored secret) | 1 | 10 |
+| no-tool: no tool map for microsoftOutlook message:update yet | 1 | 7 |
 
 Top reasons for review flags:
 
@@ -125,7 +125,7 @@ Top preflight errors (what stops a run before any effect):
 
 ## Tool maps
 
-65 operation entries in `references/tool-maps.json`: 53 connector tools, 4 REST request templates, 8 explained no-tool blocks; 2 substitutions (smtp-to-gmail, imap-to-gmail-poll). Fidelity of the mapped ones: unverified 50, exact 7. 4 connector entries need their arguments translated by the skill (Notion property formats).
+69 operation entries in `references/tool-maps.json`: 57 connector tools, 4 REST request templates, 8 explained no-tool blocks; 2 substitutions (smtp-to-gmail, imap-to-gmail-poll). Fidelity of the mapped ones: unverified 50, exact 11. 4 connector entries need their arguments translated by the skill (Notion property formats).
 
 Steps in the forced run by fidelity: tools unverified 71; REST templates exact 8.
 

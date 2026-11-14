@@ -186,3 +186,9 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Evidence.** P20 submits Form pages and collects child executions for n8n; the runtime blocks forms that wait (out of scope v1), so a template with form pages stops at preflight on the Claude side, and a child-execution template's comparison relies on the runtime running the sub-workflow in the same run. P16's model-input and tool-turn checks run on the claude driver's normal run, not the hostile one (gate 6 there checks containment only). P22's warning was kept for 3016 normal (both sides fed the same two messages; the mock still ignores `maxResults`).
 - **Proposed change.** When the runtime supports form pages, feed `formPages` to the Claude side the same way; decide whether the hostile run's replayed inputs should be checked too.
 - **Why not in the loop.** It changes the bench's drivers and a gate.
+
+## P28. Tool definitions offered to the model are not compared
+
+- **Evidence.** `sameModelInput()` compares system and user text; P15–P17 compare the tool calls and fed-back values. The tool list itself (names, descriptions, input schemas) is not compared. Iteration 11: 1953's calendar tool reaches the model as "googleCalendar getAll" with no properties on the Claude side, where n8n 2.47.7 sends "Get many events in Google Calendar" (the node's action label plus its display name). With n8n's replies replayed, the turn passes either way; a live model on the Claude side picks tools from descriptions that differ from n8n's.
+- **Proposed change.** Compare each replayed agent request's tool names and input schemas with n8n's (names exact after the runner's name mapping, schemas as JSON), and report description differences (not gated) until the converter rebuilds n8n's descriptions.
+- **Why not in the loop.** It adds a check to gate 4.

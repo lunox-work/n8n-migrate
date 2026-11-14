@@ -739,7 +739,7 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       // A REST program: the runtime reads the n8n parameters itself and makes n8n's requests.
       step.kind = "http";
       const cav = caveatsFor(params, entry.caveats);
-      step.rest = { program: entry.rest, fidelity: entry.fidelity ?? "exact", ...(cav.length ? { caveats: cav } : {}), map: key };
+      step.rest = { program: entry.rest, effect: entry.effect === "read" ? "read" : "write", fidelity: entry.fidelity ?? "exact", ...(cav.length ? { caveats: cav } : {}), map: key };
       const cred = Object.entries(step.credentials ?? {}).find(([t]) => t === entry.credentialType) ?? Object.entries(step.credentials ?? {})[0];
       const credType = cred?.[0] ?? entry.credentialType;
       const secretName = cred?.[1] ?? `${entry.credentialType} (no credential named in the export)`;
@@ -1147,6 +1147,13 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       } else if (ts.n8n.type === LC + "toolHttpRequest" || ts.n8n.type === BASE + "httpRequestTool") {
         const built = buildHttpTool(tn, ts, review, addHttp, addSecret, refs);
         Object.assign(t, { kind: "http", effect: built.effect, inputSchema: built.inputSchema });
+      } else if (ts.kind === "http" && (ts.rest || ts.http)) {
+        // A node tool the first pass mapped to the app's REST API (a request template or a
+        // REST program): the runner makes the requests with the model's $fromAI() values.
+        const effect = ts.rest ? ts.rest.effect : String(ts.http.method ?? "GET").toUpperCase() === "GET" ? "read" : "write";
+        Object.assign(t, { kind: ts.rest ? "rest" : "http", effect });
+        const schema = fromAiSchema(tp);
+        if (schema) t.inputSchema = schema;
       } else {
         const why = ts.kind === "blocked" ? ts.blocked.reason : `${shortType(ts.n8n.type)} cannot run in the runtime`;
         if (ts.kind !== "blocked") block(ts, "unsupported", why);

@@ -10680,10 +10680,12 @@ function sheetRefOf(rl) {
 }
 const sheetIdOf = (v) => (v === "gid=0" ? 0 : parseInt(v, 10));
 
-function sheetsClient(exec) {
+// One JSON request to a Google API with the step's stored credential; throws n8n's
+// "<status> - <body>" NodeError on an HTTP error.
+function googleClient(exec, base) {
   const auth = exec.step.auth?.secret ? { credentialType: exec.step.auth.credentialType, secret: exec.step.auth.secret } : undefined;
   return async (method, path, { query, body } = {}) => {
-    const req = { kind: "http", itemIndex: 0, method, url: SHEETS + path, query: query ?? {}, headers: {} };
+    const req = { kind: "http", itemIndex: 0, method, url: base + path, query: query ?? {}, headers: {} };
     if (body !== undefined) {
       req.body = body;
       req.contentType = "json";
@@ -10707,7 +10709,7 @@ function sheetsClient(exec) {
 }
 
 function sheetHelper(exec, id) {
-  const api = sheetsClient(exec);
+  const api = googleClient(exec, SHEETS);
   const h = {
     hint: undefined,
     async getData(range, valueRenderOption) {
@@ -10979,7 +10981,234 @@ const googleSheets = {
   },
 };
 
-const restPrograms = { googleSheets };
+// ---------- Google Calendar v3 (n8n Google Calendar node v1–1.4, event: getAll | get | create | delete) ----------
+
+const GOOGLE_API = "https://www.googleapis.com";
+// n8n-workflow requestPath: toPathSegment refuses an empty value and "." / ".." segments.
+function pathSeg(exec, v, itemIndex) {
+  if (v === null || v === undefined) throw new NodeError("Invalid identifier: a value is required", { node: exec.name, itemIndex });
+  const value = String(v);
+  if (value === "" || /(^|[/\\])\.{1,2}([/\\]|$)/.test(value)) throw new NodeError(`Invalid identifier: "${value}" is not allowed`, { node: exec.name, itemIndex });
+  return seg(value);
+}
+// decodePathValue: each run of %XX escapes is decoded once (calendar ids were stored encoded
+// before node version 1.4).
+const decodePathValue = (v) =>
+  typeof v === "string"
+    ? v.replace(/(?:%[0-9A-Fa-f]{2})+/g, (run) => {
+        try {
+          return decodeURIComponent(run);
+        } catch {
+          return run;
+        }
+      })
+    : v;
+const rlValue = (v) => (isObject(v) && "__rl" in v ? v.value : v);
+const dateObjectToISO = (v) => (DateTime.isDateTime(v) ? v.toISO() : v instanceof Date ? v.toISOString() : v);
+
+// moment.tz(input, zone): an ISO 8601 string without an offset is wall time in `zone`, one with
+// an offset (or Z) is that instant; anything else falls back to `new Date(input + " UTC")`, so
+// it is read as UTC (moment's createFromInputFallback). Returns a luxon DateTime, or null for
+// moment's invalid date.
+const MOMENT_ISO = /^\s*(\d{4})-(\d\d)(?:-(\d\d))?(?:(?:T| )(\d\d)(?::(\d\d)(?::(\d\d)(?:[.,](\d+))?)?)?(\s*Z|[+-]\d\d(?::?\d\d)?)?)?$/;
+function momentTz(input, zone) {
+  if (DateTime.isDateTime(input)) return input.isValid ? input : null;
+  if (input instanceof Date) return Number.isNaN(input.getTime()) ? null : DateTime.fromJSDate(input);
+  if (typeof input === "number") return DateTime.fromMillis(input);
+  const text = String(input ?? "");
+  const m = MOMENT_ISO.exec(text);
+  if (m && !(m[3] === undefined && m[4] !== undefined)) {
+    const [, y, mo, d = "01", h = "00", mi = "00", sec = "00", frac = "", off] = m;
+    const ms = Number((frac + "000").slice(0, 3));
+    const parts = { year: Number(y), month: Number(mo), day: Number(d), hour: Number(h), minute: Number(mi), second: Number(sec), millisecond: ms };
+    let dt;
+    if (off === undefined) dt = DateTime.fromObject(parts, { zone });
+    else {
+      const o = off.trim();
+      const offset = o === "Z" ? "UTC" : `UTC${o.slice(0, 3)}:${o.length > 3 ? o.slice(-2) : "00"}`;
+      dt = DateTime.fromObject(parts, { zone: offset });
+    }
+    return dt.isValid ? dt : null;
+  }
+  const fallback = new Date(`${text} UTC`);
+  return Number.isNaN(fallback.getTime()) ? null : DateTime.fromJSDate(fallback);
+}
+// moment(...).utc().format() and .utc().format(fmt) with moment tokens YYYY MM DD HH mm ss.
+const utcFormat = (dt, fmt = "yyyy-MM-dd'T'HH:mm:ss'Z'") => (dt ? dt.toUTC().toFormat(fmt) : "Invalid date");
+// GenericFunctions addTimezoneToDate: a date that already ends in Z or +hh:mm is sent as is.
+function addTimezoneToDate(date, zone) {
+  const s = String(date);
+  if (s.endsWith("Z") || /\+\d{2}:\d{2}$/.test(s)) return s;
+  return utcFormat(momentTz(s, zone));
+}
+// GenericFunctions parseAttendees.
+function parseAttendees(exec, attendees, itemIndex) {
+  if (!Array.isArray(attendees) || !attendees.every((a) => typeof a === "string" && a.split(",").every((e) => e.trim().length > 0))) {
+    throw new NodeError("Invalid attendee value", { node: exec.name, itemIndex, description: "Set each attendee to an email address string. To include multiple addresses in one entry, separate them with commas." });
+  }
+  return attendees.flatMap((a) => a.split(",").map((email) => ({ email: email.trim() })));
+}
+// utilities sortItemKeysByPriorityList (node version 1.3 and later).
+const CALENDAR_KEYS = ["id", "summary", "start", "end", "attendees", "creator", "organizer", "description", "location", "created", "updated"];
+function sortKeys(json) {
+  const keys = Object.keys(json).sort((a, b) => {
+    const ia = CALENDAR_KEYS.indexOf(a);
+    const ib = CALENDAR_KEYS.indexOf(b);
+    if (ia !== -1 && ib !== -1) return ia - ib;
+    if (ia !== -1) return -1;
+    if (ib !== -1) return 1;
+    return a.localeCompare(b);
+  });
+  return Object.fromEntries(keys.map((k) => [k, json[k]]));
+}
+// helpers.returnJsonArray: a list gives one item per entry, an object one item.
+const asItems = (data) => (Array.isArray(data) ? data : [data]).filter((json) => isObject(json));
+
+const googleCalendar = {
+  versions: (v) => v >= 1 && v <= 1.4,
+  operations: ["getAll", "get", "create", "delete"],
+  async execute(exec) {
+    const items = exec.getInputData();
+    const v = exec.typeVersion;
+    const resource = exec.param("resource", 0, "event", { rawExpressions: true });
+    const operation = exec.param("operation", 0, "create", { rawExpressions: true });
+    if (resource !== "event" || !googleCalendar.operations.includes(operation)) throw new NodeError(`Google Calendar ${resource} ${operation} has no REST program`, { node: exec.name });
+    const api = googleClient(exec, GOOGLE_API);
+    const timezone = exec.run.timezone;
+    // n8n keeps one query object for the whole run of the node, items included.
+    const qs = {};
+    const out = [];
+    for (let i = 0; i < items.length; i++) {
+      try {
+        const rawId = rlValue(exec.param("calendar", i, ""));
+        const calendarId = pathSeg(exec, v < 1.4 ? decodePathValue(rawId) : rawId, i);
+        let data;
+        if (operation === "getAll") {
+          const returnAll = exec.param("returnAll", i, false);
+          const options = exec.param("options", i, {});
+          const tz = rlValue(options.timeZone) || "";
+          if (v >= 1.3) {
+            const timeMin = dateObjectToISO(exec.param("timeMin", i, "={{ $now }}"));
+            const timeMax = dateObjectToISO(exec.param("timeMax", i, "={{ $now.plus({ week: 1 }) }}"));
+            if (timeMin) qs.timeMin = addTimezoneToDate(timeMin, tz || timezone);
+            if (timeMax) qs.timeMax = addTimezoneToDate(timeMax, tz || timezone);
+            if (!options.recurringEventHandling || options.recurringEventHandling === "expand") qs.singleEvents = true;
+          }
+          if (options.iCalUID) qs.iCalUID = options.iCalUID;
+          if (options.maxAttendees) qs.maxAttendees = options.maxAttendees;
+          if (options.orderBy) qs.orderBy = options.orderBy;
+          if (options.query) qs.q = options.query;
+          if (options.showDeleted) qs.showDeleted = options.showDeleted;
+          if (options.showHiddenInvitations) qs.showHiddenInvitations = options.showHiddenInvitations;
+          if (options.singleEvents) qs.singleEvents = options.singleEvents;
+          if (options.timeMax) qs.timeMax = addTimezoneToDate(dateObjectToISO(options.timeMax), tz || timezone);
+          if (options.timeMin) qs.timeMin = addTimezoneToDate(dateObjectToISO(options.timeMin), tz || timezone);
+          if (tz) qs.timeZone = tz;
+          if (options.updatedMin) qs.updatedMin = addTimezoneToDate(dateObjectToISO(options.updatedMin), tz || timezone);
+          if (options.fields) qs.fields = options.fields;
+          const path = `/calendar/v3/calendars/${calendarId}/events`;
+          if (returnAll) {
+            data = [];
+            qs.maxResults = 100;
+            let page;
+            do {
+              page = await api("GET", path, { query: { ...qs } });
+              qs.pageToken = page.nextPageToken;
+              if (qs.pageToken === undefined) delete qs.pageToken;
+              data.push(...(Array.isArray(page.items) ? page.items : []));
+            } while (page.nextPageToken !== undefined && page.nextPageToken !== "");
+          } else {
+            qs.maxResults = exec.param("limit", i, 50);
+            data = (await api("GET", path, { query: { ...qs } })).items;
+          }
+          if (data) {
+            if (v >= 1.3 && options.recurringEventHandling === "next" && data.some((e) => e?.recurrence)) throw new NodeError('Recurring Event Handling "next" (one more request per recurring event) has no REST program yet', { node: exec.name, itemIndex: i });
+            if (v >= 1.3 && options.recurringEventHandling === "first") {
+              data = data.filter((e) => !(qs.timeMin && e.recurrence && e.created && e.created < qs.timeMin) && !(qs.timeMax && e.recurrence && e.created && e.created > qs.timeMax));
+            } else if (v < 1.3 && data.some((e) => Array.isArray(e?.recurrence) && e.recurrence.some((r) => String(r).toUpperCase().startsWith("RRULE")))) {
+              // addNextOccurrence needs an RRULE engine (n8n uses the rrule package).
+              throw new NodeError("the next occurrence of a recurring event (node version 1.2 and older) is not computed by the runtime", { node: exec.name, itemIndex: i });
+            }
+          }
+        } else if (operation === "get") {
+          const eventId = pathSeg(exec, exec.param("eventId", i), i);
+          const options = exec.param("options", i, {});
+          const tz = rlValue(options.timeZone) || "";
+          if (options.maxAttendees) qs.maxAttendees = options.maxAttendees;
+          if (tz) qs.timeZone = tz;
+          data = await api("GET", `/calendar/v3/calendars/${calendarId}/events/${eventId}`, { query: { ...qs } });
+          if (data) {
+            if (v >= 1.3 && options.returnNextInstance && data.recurrence) throw new NodeError('"Return Next Instance of Recurring Event" (a second request for the instances) has no REST program yet', { node: exec.name, itemIndex: i });
+            // addNextOccurrence needs an RRULE engine (n8n uses the rrule package).
+            if (Array.isArray(data.recurrence) && data.recurrence.some((r) => String(r).toUpperCase().startsWith("RRULE"))) throw new NodeError("the next occurrence of a recurring event is not computed by the runtime", { node: exec.name, itemIndex: i });
+            data = [data];
+          }
+        } else if (operation === "delete") {
+          const eventId = pathSeg(exec, exec.param("eventId", i), i);
+          const options = exec.param("options", i, {});
+          if (options.sendUpdates) qs.sendUpdates = options.sendUpdates;
+          // n8n sets sendUpdates on its query object but sends the delete without it.
+          await api("DELETE", `/calendar/v3/calendars/${calendarId}/events/${eventId}`);
+          data = { success: true };
+        } else {
+          const start = dateObjectToISO(exec.param("start", i, v >= 1.3 ? "={{ $now }}" : ""));
+          const end = dateObjectToISO(exec.param("end", i, v >= 1.3 ? "={{ $now.plus(1, 'hour') }}" : ""));
+          const useDefaultReminders = exec.param("useDefaultReminders", i, true);
+          const f = exec.param("additionalFields", i, {});
+          if (f.maxAttendees) qs.maxAttendees = f.maxAttendees;
+          if (f.sendNotifications) qs.sendNotifications = f.sendNotifications;
+          if (f.sendUpdates) qs.sendUpdates = f.sendUpdates;
+          const body = {
+            start: { dateTime: utcFormat(momentTz(start, timezone)), timeZone: timezone },
+            end: { dateTime: utcFormat(momentTz(end, timezone)), timeZone: timezone },
+          };
+          if (f.attendees) body.attendees = parseAttendees(exec, f.attendees, i);
+          if (f.color) body.colorId = f.color;
+          if (f.description) body.description = f.description;
+          if (f.guestsCanInviteOthers) body.guestsCanInviteOthers = f.guestsCanInviteOthers;
+          if (f.guestsCanModify) body.guestsCanModify = f.guestsCanModify;
+          if (f.guestsCanSeeOtherGuests) body.guestsCanSeeOtherGuests = f.guestsCanSeeOtherGuests;
+          if (f.id) body.id = f.id;
+          if (f.location) body.location = f.location;
+          if (f.summary) body.summary = f.summary;
+          if (f.showMeAs) body.transparency = f.showMeAs;
+          if (f.visibility) body.visibility = f.visibility;
+          if (!useDefaultReminders) {
+            const reminders = exec.param("remindersUi", i, {}).remindersValues;
+            body.reminders = { useDefault: false };
+            if (reminders) body.reminders.overrides = reminders;
+          }
+          if (f.allday === "yes") {
+            body.start = { date: momentTz(start, timezone)?.setZone(timezone).toFormat("yyyy-MM-dd") ?? "Invalid date" };
+            body.end = { date: momentTz(end, timezone)?.setZone(timezone).toFormat("yyyy-MM-dd") ?? "Invalid date" };
+          }
+          body.recurrence = [];
+          if (f.rrule) body.recurrence = [`RRULE:${f.rrule}`];
+          else {
+            if (f.repeatHowManyTimes && f.repeatUntil) throw new NodeError("You can set either 'Repeat How Many Times' or 'Repeat Until' but not both", { node: exec.name, itemIndex: i });
+            if (f.repeatFrecuency) body.recurrence.push(`FREQ=${String(f.repeatFrecuency).toUpperCase()};`);
+            if (f.repeatHowManyTimes) body.recurrence.push(`COUNT=${f.repeatHowManyTimes};`);
+            if (f.repeatUntil) body.recurrence.push(`UNTIL=${utcFormat(momentTz(dateObjectToISO(f.repeatUntil), "UTC"), "yyyyMMdd'T'HHmmss")}Z`);
+            if (body.recurrence.length) body.recurrence = [`RRULE:${body.recurrence.join("")}`];
+          }
+          if (f.conferenceDataUi?.conferenceDataValues) {
+            qs.conferenceDataVersion = 1;
+            body.conferenceData = { createRequest: { requestId: globalThis.crypto.randomUUID(), conferenceSolution: { type: f.conferenceDataUi.conferenceDataValues.conferenceSolution } } };
+          }
+          data = await api("POST", `/calendar/v3/calendars/${calendarId}/events`, { body, query: { ...qs } });
+        }
+        for (const json of asItems(data ?? [])) out.push({ json, pairedItem: { item: i } });
+      } catch (e) {
+        if (e?.name === "Suspend" || e?.name === "ContainmentViolation") throw e;
+        if (!exec.continueOnFail()) throw e;
+        out.push({ json: { error: e.message }, pairedItem: { item: i } });
+      }
+    }
+    return [v >= 1.3 ? out.map((it) => ({ ...it, json: sortKeys(it.json) })) : out];
+  },
+};
+
+const restPrograms = { googleSheets, googleCalendar };
 
 return { restPrograms };
 })();
@@ -12674,6 +12903,7 @@ function agentTools(exec) {
     const tool = { name: toolName(name), node: name, n8nType: step.n8n.type, description: p.toolDescription ?? p.description ?? "" };
     if (step.tool?.connector) Object.assign(tool, { kind: "connector", connector: step.tool.connector, tool: step.tool.name, effect: step.tool.effect ?? "write" });
     else if (step.n8n.type === LC + "toolCode") Object.assign(tool, { kind: "code", effect: "none" });
+    else if (step.kind === "http" && isObject(step.rest)) Object.assign(tool, { kind: "rest", effect: step.rest.effect ?? "write" });
     else if (step.n8n.type === LC + "toolHttpRequest" || step.n8n.type === BASE + "httpRequestTool") Object.assign(tool, { kind: "http", method: p.method ?? "GET", url: typeof p.url === "string" && !p.url.startsWith("=") ? p.url : undefined, effect: (p.method ?? "GET") === "GET" ? "read" : "write" });
     else Object.assign(tool, { kind: "n8n", effect: "write" });
     return tool;
@@ -12857,6 +13087,24 @@ async function executeAgentTool(exec, tools, call, itemIndex) {
       const { status, body } = templateValue(r);
       if (status >= 400) return { ok: false, error: { message: `${status} - ${typeof body === "string" ? body : JSON.stringify(body)}` } };
       return { ok: true, value: h.result ? toolValue(h.result, body) : body };
+    }
+    if (kind === "rest") {
+      // A node tool whose operation is a REST program (rest.mjs): the program runs as the tool
+      // node on the agent's current item, its $fromAI() values from the model's arguments,
+      // and hands back the items' JSON as n8n's node tools do.
+      const prog = sub?.rest ? restPrograms[sub.rest.program] : undefined;
+      if (!prog || !prog.versions(sub.n8n?.typeVersion ?? 1)) return { ok: false, error: { message: `tool "${spec.name}" has no REST program` } };
+      const item = exec.getInputData()[itemIndex] ?? { json: {} };
+      const subExec = Object.assign(Object.create(exec), {
+        step: sub,
+        params: { ...(sub.params ?? {}) },
+        getInputData: () => [item],
+        scope: (_i, extras) => exec.scope(itemIndex, { ...(extras ?? {}), locals: { ...(extras?.locals ?? {}), ...locals } }),
+        request: (reqs) => exec.request(reqs.map((r) => ({ ...r, itemIndex }))),
+      });
+      const [outItems] = await prog.execute(subExec);
+      const values = (outItems ?? []).map((it) => it.json);
+      return { ok: true, value: values.length === 1 ? values[0] : values };
     }
     if (kind === "code") {
       const p = sub?.params ?? {};

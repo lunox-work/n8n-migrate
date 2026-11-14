@@ -357,8 +357,8 @@ previews; this list is dated 2026-11-14 and re-runnable
   replaces them), pulling from a live n8n instance.
 - **Runs where Claude runs.** Cloud tasks run at most hourly; local tasks
   need the app open and the computer awake. Runs share your usage window.
-- **Google REST writes** (Sheets) need an access token that expires after an
-  hour; no refresh is built.
+- **Google REST steps** (Sheets writes, Calendar) need an access token that
+  expires after an hour; no refresh is built.
 - **The bench is not the app.** It runs the runner against mocks, not Claude
   Desktop. Weekly checks in the real app are planned, not yet run.
 
