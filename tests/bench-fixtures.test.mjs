@@ -81,13 +81,16 @@ test("round 3's fresh held-out of splits.json have fixtures pinned to their hash
 });
 
 // Round 4's fresh held-out (splits.json heldOutFresh4) feeds release point 4; its fixtures were
-// written blind (2026-11-16), and each pins the hash heldOutFresh4 recorded.
+// written blind (2026-11-16), and each pins the hash heldOutFresh4 recorded. A template redrawn
+// after that (heldOutFresh4.redraws, amendment 1) has none until the blind session writes them.
 test("round 4's fresh held-out of splits.json have fixtures pinned to their hash", () => {
   const splits = JSON.parse(readFileSync(join(BENCH, "splits.json"), "utf8"));
   const round4 = splits.rounds.find((r) => r.round === 4).heldOut;
   assert.deepEqual(round4, splits.heldOutFresh4.templates.map((r) => r.id));
   assert.equal(round4.length, 20);
+  const redrawn = new Set((splits.heldOutFresh4.redraws ?? []).flatMap((r) => r.in));
   for (const { id, sha256 } of splits.heldOutFresh4.templates) {
+    if (redrawn.has(id) && !existsSync(join(BENCH, "fixtures", String(id)))) continue;
     for (const v of VARIANTS) {
       const p = join(BENCH, "fixtures", String(id), `${v}.json`);
       assert.ok(existsSync(p), `${id}/${v}`);
@@ -119,7 +122,7 @@ test("rolling held-out: round 2 promotes held-out 1-20 and holds out 21-40, roun
   assert.deepEqual(ids(r3.dev), [...ids(splits.dev), ...ids(splits.heldOut)]);
   assert.deepEqual(ids(r3.heldOut), ids(splits.heldOutFresh.templates));
   assert.equal(r3.heldOut.length, 20);
-  assert.equal(devWithFixtures(splits).length, 100);
+  assert.equal(devWithFixtures(splits, undefined, 3).length, 100);
   assert.equal(devWithFixtures(splits, undefined, 2).length, 80);
   assert.equal(devWithFixtures(splits, undefined, 1).length, 60);
   // The lint forbids every corpus id in skill files, promoted ones included.
@@ -272,26 +275,38 @@ test("rounds: dropped ids leave dev; a later round's held-out is unreadable befo
   assert.deepEqual(withoutHeldOut(["6", 1, 5], s), { kept: [1], skipped: ["6", 5] });
 });
 
-// Round 4 (EXCLUSIONS.md, Round 4 eligibility and Round 4 held-out), written before release point
-// 3 is committed, so it is asked for by number while round 3 stays current: round 3's held-out
-// joins dev, the 20 of those 120 templates that fail round-4 eligibility leave, and 20 fresh
-// templates from a round-4 top-up are held out, drawn by seed 20261116 per stratum.
-test("round 4: dev is the 100 round-4-eligible templates (all with fixtures), held-out 20 fresh", async () => {
+// Round 4 (EXCLUSIONS.md, Round 4 eligibility, its amendment 1 and Round 4 held-out): round 3's
+// held-out joins dev, the 20 of those 120 templates that fail round-4 eligibility leave, and 20
+// fresh templates from a round-4 top-up are held out, drawn by seed 20261116 per stratum. After
+// amendment 1, the dev templates that fail it leave too and as many join (devAdded: the walk's
+// next candidates in the same shuffled order, else the views walk's next eligible entries), and a
+// held-out template that fails it is redrawn; the new ones have no fixtures yet.
+test("round 4: dev is 100 round-4-eligible templates, held-out 20 fresh, amendment 1 replaced like for like", async () => {
   const { readSplits, roundOf, devWithFixtures, unreadableIds } = await import("../evals/bench/rounds.mjs");
-  const { drawFresh, FRESH_SEEDS } = await import("../evals/bench/split.mjs");
-  const { FRESH_QUOTAS, freshPool, stratum } = await import("../evals/bench/fetch.mjs");
+  const { drawFresh, FRESH_SEEDS, mulberry32 } = await import("../evals/bench/split.mjs");
+  const { FRESH_QUOTAS, freshPool, stratum, isCandidate } = await import("../evals/bench/fetch.mjs");
   const splits = readSplits();
   const corpus = JSON.parse(readFileSync(join(BENCH, "corpus.json"), "utf8"));
   const ids = (rows) => rows.map((r) => r.id);
   const r3 = roundOf(splits, 3);
   const r4 = roundOf(splits, 4);
   const fresh = splits.heldOutFresh4;
+  const added = splits.devAdded4;
   assert.equal(r4.round, 4);
   assert.equal(r4.dev.length, 100);
-  assert.equal(r4.dropped.length, 20);
+  assert.equal(new Set(ids(r4.dev)).size, 100);
+  assert.equal(r4.dropped.length, 20 + added.amendments.reduce((n, a) => n + a.dropped.length, 0));
+  assert.deepEqual(ids(r4.devAdded), ids(added.templates));
+  assert.equal(r4.devAdded.length, r4.dropped.length - 20, "like for like: as many join as amendment 1 dropped");
   assert.deepEqual(ids(r4.promoted), ids(r3.heldOut));
-  assert.deepEqual(ids(r4.dev), [...ids(r3.dev), ...ids(r3.heldOut)].filter((id) => !ids(r4.dropped).includes(id)));
-  assert.equal(devWithFixtures(splits, undefined, 4).length, 100);
+  assert.deepEqual(ids(r4.dev), [...ids(r3.dev), ...ids(r3.heldOut), ...ids(r4.devAdded)].filter((id) => !ids(r4.dropped).includes(id)));
+  // Each replacement is in the stratum of a template it replaces.
+  const strataOf = (xs) => xs.map((x) => stratum(x.wakeup)).sort();
+  const droppedRows = [...r3.dev, ...r3.heldOut].filter((x) => added.amendments.flatMap((a) => a.dropped).includes(x.id));
+  assert.deepEqual(strataOf(added.templates), strataOf(droppedRows));
+  // Every dev template has fixtures except the new ones, which the blind session writes next.
+  const withFixtures = new Set(devWithFixtures(splits, undefined, 4));
+  for (const id of ids(r4.dev)) if (!ids(r4.devAdded).includes(id)) assert.ok(withFixtures.has(id), `${id} has no fixtures`);
   assert.deepEqual(ids(r4.heldOut), ids(fresh.templates));
   assert.equal(r4.heldOut.length, 20);
   // Disjoint from every template any earlier round used.
@@ -308,9 +323,33 @@ test("round 4: dev is the 100 round-4-eligible templates (all with fixtures), he
   const got = {};
   for (const t of fresh.templates) got[stratum(t.wakeup)] = (got[stratum(t.wakeup)] ?? 0) + 1;
   assert.deepEqual(got, FRESH_QUOTAS);
-  // Reproducible from corpus.json and the committed seed.
+  // Reproducible from corpus.json and the committed seed (a candidate a later amendment or hand
+  // call moved out keeps its place in the shuffle and is passed over).
   assert.equal(fresh.seed, FRESH_SEEDS[4]);
-  assert.deepEqual(drawFresh(freshPool(corpus.templates, 4), FRESH_QUOTAS, FRESH_SEEDS[4]).drawn.map((e) => e.id), ids(fresh.templates));
+  const devAddedIds = new Set(ids(added.templates));
+  assert.deepEqual(drawFresh(freshPool(corpus.templates, 4), FRESH_QUOTAS, FRESH_SEEDS[4], devAddedIds).drawn.map((e) => e.id), ids(fresh.templates));
+  for (const { out } of fresh.redraws ?? []) for (const id of out) assert.ok(!isCandidate(byId.get(id)), `${id} was redrawn but is still a candidate`);
+  // devAdded from the walk: the same shuffle continued past the held-out's draws, per stratum.
+  const rnd = mulberry32(FRESH_SEEDS[4]);
+  const order = [...freshPool(corpus.templates, 4)].sort((a, b) => a.id - b.id);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  const fromWalk = added.templates.filter((t) => t.source === "walk");
+  for (const st of new Set(fromWalk.map((t) => stratum(t.wakeup)))) {
+    const want = fromWalk.filter((t) => stratum(t.wakeup) === st).map((t) => t.id);
+    const next = order.filter((e) => stratum(e.wakeup) === st && isCandidate(e) && !ids(r4.heldOut).includes(e.id) && !ids(r3.dev).includes(e.id) && !ids(r3.heldOut).includes(e.id)).slice(0, want.length).map((e) => e.id);
+    assert.deepEqual(want, next, `stratum ${st}`);
+  }
+  // devAdded from the views walk: the first round-eligible entries of their stratum past the walk.
+  for (const t of added.templates.filter((x) => x.source !== "walk")) {
+    const e = byId.get(t.id);
+    assert.ok(e && e.devRefill === 4 && e.pool === "dev-refill" && e.r4 === "eligible" && e.sha256 === t.sha256, String(t.id));
+    const first = corpus.templates.filter((x) => x.devRefill === 4 && x.pool === "dev-refill" && stratum(x.wakeup) === stratum(t.wakeup)).sort((a, b) => a.rank - b.rank)[0];
+    assert.equal(first.id, t.id);
+  }
+  for (const t of fromWalk) assert.ok(byId.get(t.id)?.topUp === 4 && byId.get(t.id).r4 === "eligible", String(t.id));
   // While round 3 is current the P51 guards already skip round 4's held-out; once round 4 is
   // current (after release point 3), round 3's held-out is dev and only round 4's is skipped.
   assert.ok([3, 4].includes(roundOf(splits).round));

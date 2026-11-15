@@ -9,8 +9,9 @@
 //        types in the cached templates; the dirs are unpacked packages, read as JSON only)
 //   node evals/bench/eligible.mjs --reapply-walk 4
 //        (re-applies the rule to the round's walk candidates in corpus.json: `pool: fresh`
-//        entries keep their pool; one that an amendment makes ineligible gets `r4: ineligible`,
-//        `r4Reasons` and `r4Amended`, and the draw skips it like an exclusion after the draw)
+//        entries keep their pool; one that an amendment or a later hand call makes ineligible gets
+//        `r4: ineligible` and `r4Reasons` (`r4Amended` for an amendment), and the draw skips it
+//        like an exclusion after the draw)
 //
 // Without --ids: the current round's dev templates (the current held-out is never read without
 // explicit ids, as for every bench tool; PROPOSALS P51). Reads the git-ignored template cache
@@ -537,11 +538,16 @@ async function reapplyWalk(round) {
   for (const e of walk) {
     const r = rows.get(e.id);
     if (r.eligible) continue;
-    if (!r.baseEligible) throw new Error(`${e.id} fails a clause the walk applied: ${JSON.stringify(r.reasons.filter((x) => !x.amendment))}`);
-    if (e.r4 === "ineligible" && e.r4Amended) continue;
+    // A walk candidate passed every clause the walk applied; only an amendment or a hand call made
+    // after the draw (`r4Hand`, clause 6) can move it now.
+    const walkFails = r.reasons.filter((x) => !x.amendment && x.clause !== "hand");
+    if (walkFails.length) throw new Error(`${e.id} fails a clause the walk applied: ${JSON.stringify(walkFails)}`);
+    const reasons = [...new Set(r.reasons.map((x) => `${x.clause}${x.id ? `/${x.id}` : ""}: ${x.detail}`.slice(0, 160)))];
+    const amended = Math.max(0, ...r.reasons.map((x) => x.amendment ?? 0));
+    if (e.r4 === "ineligible" && JSON.stringify(e.r4Reasons) === JSON.stringify(reasons)) continue;
     e.r4 = "ineligible";
-    e.r4Reasons = [...new Set(r.reasons.map((x) => `${x.clause}${x.id ? `/${x.id}` : ""}: ${x.detail}`.slice(0, 160)))];
-    e.r4Amended = Math.max(...r.reasons.map((x) => x.amendment ?? 0));
+    e.r4Reasons = reasons;
+    if (amended) e.r4Amended = amended;
     changed.push(e.id);
   }
   const out = JSON.stringify(corpus, null, 2).replace(/\{\n\s+("rank": \d+,[^{}]*?)\n\s+\}/g, (_, body) => `{ ${body.replace(/\n\s+/g, " ")} }`) + "\n";

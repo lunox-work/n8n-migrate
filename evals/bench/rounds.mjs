@@ -4,9 +4,12 @@
 // point scores fresh held-out templates. Every bench tool reads the current round from here.
 //
 //   splits.rounds = [{round, promoted: [ids that join dev at this round], dropped?: [ids that
-//   leave dev at this round], heldOut: [ids]}], splits.currentRound = n. A round's dev =
-//   splits.dev + every id promoted up to that round, less every id dropped up to it (round 4:
-//   templates that fail round-4 eligibility, EXCLUSIONS.md), in that order.
+//   leave dev at this round], devAdded?: [ids that join dev at this round from outside the
+//   earlier rounds], heldOut: [ids]}], splits.currentRound = n. A round's dev = splits.dev + every
+//   id promoted up to that round + every id added up to it, less every id dropped up to it
+//   (round 4: templates that fail round-4 eligibility, and its amendment 1's replacements;
+//   EXCLUSIONS.md), in that order.
+//   splits.devAdded4, ... = {templates: [{id, sha256, wakeup, source}]}: the rows of `devAdded`.
 //   splits.heldOutFresh.templates, splits.heldOutFresh4.templates, ... = [{id, sha256, wakeup,
 //   source}]: held-out templates drawn from outside the seeded split (round 3 on, split.mjs
 //   drawFresh); a round's ids resolve from the seeded lists and from these alike.
@@ -26,7 +29,7 @@ export function readSplits(file = join(HERE, "splits.json")) {
 // {round, dev: [{id, sha256, wakeup}], heldOut: [...], promoted: [...]} for round `n`
 // (default: splits.currentRound; a splits file without rounds is round 1 = the seeded split).
 export function roundOf(splits, n = splits.currentRound) {
-  const fresh = Object.entries(splits).filter(([k]) => /^heldOutFresh\d*$/.test(k)).flatMap(([, v]) => v?.templates ?? []);
+  const fresh = Object.entries(splits).filter(([k]) => /^(heldOutFresh|devAdded)\d*$/.test(k)).flatMap(([, v]) => v?.templates ?? []);
   const rows = new Map([...splits.dev, ...splits.heldOut, ...fresh].map((r) => [r.id, r]));
   const rounds = splits.rounds ?? [{ round: 1, promoted: [], heldOut: splits.heldOut.map((r) => r.id) }];
   const k = n ?? rounds.at(-1).round;
@@ -34,10 +37,11 @@ export function roundOf(splits, n = splits.currentRound) {
   const cur = rounds.find((r) => r.round === k);
   if (!cur) throw new Error(`splits.json has no round ${k}`);
   const promoted = upTo.flatMap((r) => r.promoted ?? []);
+  const added = upTo.flatMap((r) => r.devAdded ?? []);
   const dropped = new Set(upTo.flatMap((r) => r.dropped ?? []));
-  const row = (id) => rows.get(id) ?? (() => { throw new Error(`round ${k}: id ${id} is in neither the seeded split nor heldOutFresh`); })();
-  const dev = [...splits.dev, ...promoted.map(row)].filter((r) => !dropped.has(r.id));
-  return { round: k, dev, heldOut: cur.heldOut.map(row), promoted: (cur.promoted ?? []).map(row), dropped: (cur.dropped ?? []).map(row) };
+  const row = (id) => rows.get(id) ?? (() => { throw new Error(`round ${k}: id ${id} is in neither the seeded split, heldOutFresh nor devAdded`); })();
+  const dev = [...splits.dev, ...promoted.map(row), ...added.map(row)].filter((r) => !dropped.has(r.id));
+  return { round: k, dev, heldOut: cur.heldOut.map(row), promoted: (cur.promoted ?? []).map(row), dropped: (cur.dropped ?? []).map(row), devAdded: (cur.devAdded ?? []).map(row) };
 }
 
 // Held-out ids of the current round (what a fixing session must never read; PROPOSALS P51).

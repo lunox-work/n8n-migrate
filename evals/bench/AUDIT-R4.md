@@ -193,3 +193,49 @@ Without these fixes the 12 stay eligible, but none of them has a baseline. Each 
 
 - `node --test`: 423 pass, 0 fail (8 new in `tests/bench-eligible.test.mjs`).
 - `node scripts/lint-no-template-rules.mjs`: ok.
+
+## Amendment 1 (2026-11-16)
+
+Rule: EXCLUSIONS.md "Round 4 eligibility, amendment 1", committed in **e1dbb4c** before it was applied. That commit also holds the lists (`eligibility.json` `n8nSelfFail.amendment1`), the extract of n8n's node descriptions (`eligibility-params.json`), the check and its tests. Bench work had found round-4 templates that fail in n8n 2.47.7 on their own configuration, which the first clauses missed. The new clauses are decided from the template alone.
+
+Applied with `eligible.mjs` to round 4's dev and held-out, and with `eligible.mjs --reapply-walk 4` to the walk's candidates. The held-out was then redrawn with `split.mjs --fresh --round 4 --redraw`, and dev was refilled with `split.mjs --amend 1 --round 4`. It used the checkout's analyzer with default answers and the cached template JSON. It read no fixtures, labels or results.
+
+|                                    | Checked | Now ineligible |
+| ---------------------------------- | ------- | -------------- |
+| Round-4 dev                        | 100     | 4              |
+| Round-4 held-out                   | 20      | 1              |
+| Walk candidates not drawn          | 16      | 1              |
+
+**Dev leaving** (round 4 `dropped`):
+
+| Template | Stratum  | Clause                                                                                                  |
+| -------- | -------- | ------------------------------------------------------------------------------------------------------- |
+| 1073     | manual   | (a) uProc's required Language left empty                                                                |
+| 1992     | schedule | (b) Pyodide-era Python: `micropip`, top-level `await`, `_input`, a third-party import                   |
+| 4968     | schedule | (a) LinkedIn post with no text (the list rule for the node's own refusal)                               |
+| 2374     | other    | (b) Pyodide-era Python: `_input`, `.to_py()`, numpy and scikit-learn                                    |
+
+**Held-out:** 1 template leaves. The mechanical clauses do not catch it. Its assistant prompt is an expression over a field that its input never has: the upstream Gmail node is left at its default simplified output. That is a wiring failure, so it is a hand call under clause 6 (`corpus.json` `r4Hand`), decided from the template and n8n's node code. Disclosure: a bench check prompted the reading. Clause (c) fires only for a prompt taken from `chatInput`, and this prompt is defined in the template. The redraw took the next candidate of the same stratum in the seeded shuffle (`splits.json` `heldOutFresh4.redraws`). That candidate is not named in `levers.json` or `LEVERS.md`, and no candidate was passed over. Held-out strata are unchanged.
+
+**Walk candidate:** 2681 (schedule, not drawn) fails (b): `micropip`, plus `bs4` and `simplejson`, which the runners image lacks. It keeps its place in the shuffle as a non-candidate.
+
+**Dev joining** (round 4 `devAdded`, rows in `splits.json` `devAdded4`), like for like by stratum:
+
+| Template | Stratum           | From                                                                                                        |
+| -------- | ----------------- | ----------------------------------------------------------------------------------------------------------- |
+| 2421     | manual            | the walk, next candidate in the seeded shuffle after the held-out's draws                                   |
+| 3617     | schedule          | the walk, as above                                                                                          |
+| 4969     | schedule          | the walk, as above                                                                                          |
+| 2695     | other (sub-workflow) | the views walk, page 7: the walk's only `other` candidate is held out, so the walk continued past page 6 |
+
+The page-7 extension (`corpus.json` `devRefill4`, entries `devRefill: 4`) read the levers ranking's cached copy of the same listing (fetched 2026-11-15) and finished the page. It made 0 requests and added 50 new entries: 4 excluded `paid`, 19 round-4 eligible (pool `dev-refill`) and 27 not. Its entries carry no `topUp`, so the held-out pool and a rebuild of the round-4 walk are unchanged (`fetch.mjs --top-up --round 4 --offline` reproduces the walk's verdicts and pools).
+
+Dev strata are unchanged: chat 28, manual 28, schedule 23, form 9, poll 8, other 4. **Dev 100, held-out 20.** The 4 new dev templates and the 1 redrawn held-out template have no fixtures yet; the blind session writes them next. Until then `devWithFixtures` for round 4 is 96.
+
+Side effects:
+
+- **Freshness.** 8 of the 15 walk candidates still undrawn are named in `levers.json`, so they are not fresh. A later held-out redraw must pass over them, and `split.mjs` stops on one.
+- **Lint.** Page 7 brought template id 1 into the corpus. The lint now checks ids of three or more digits, the bound the levers test uses. The template's name is still checked.
+- **Levers.** The levers ranking was rebuilt offline under the amended rule. In scope went from 499 to 475. Newly out of scope, counting each clause a template breaks: required-empty 26 (6 before), python-refused 11, chat-input-unfed 6. Round-4 dev: 47 supported today.
+
+Checks: `node --test` 462 pass, 0 fail; `node scripts/lint-no-template-rules.mjs` ok.

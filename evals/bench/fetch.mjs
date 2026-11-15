@@ -477,7 +477,11 @@ async function topUp() {
       if (elig) {
         if (handOf.has(w.id)) e.r4Hand = handOf.get(w.id);
         Object.assign(e, r4Verdict(wf, report, e, elig));
-        e.pool = e.r4 === "eligible" || e.r4Amended ? "fresh" : "fresh-other";
+        // Pool `fresh`: eligible by the rule the walk applied. A later hand call (`r4Hand`) or
+        // amendment moves a template out of the candidates, not out of the pool, so it keeps its
+        // place in the seeded shuffle.
+        const walked = e.r4Hand ? r4Verdict(wf, report, { ...e, r4Hand: undefined }, elig) : e;
+        e.pool = walked.r4 === "eligible" || walked.r4Amended ? "fresh" : "fresh-other";
       } else e.pool = e.outcome === "subscription" ? "fresh" : "fresh-other";
       if (process.stderr.isTTY) process.stderr.write(`\r${entries.length} new entries, shortfall ${JSON.stringify(shortfall())}   `);
     }
@@ -531,6 +535,89 @@ async function topUp() {
     `top-up round ${round}: ${entries.length} new entries (${stats.listingRequests} listing + ${stats.templateRequests} template requests); fresh ${section.counts.fresh}, other ${section.counts.freshOther}, excluded ${JSON.stringify(excluded)}` +
       `${cfg.eligibility ? `, ineligible by clause ${JSON.stringify(ineligible)}` : ""}; skipped ${JSON.stringify(skipped)}; candidates by stratum ${JSON.stringify(section.counts.candidates)}; shortfall ${JSON.stringify(section.counts.shortfall)}; stop: ${stopReason}`,
   );
+}
+
+// ---------- dev refill past the round's walk (EXCLUSIONS.md "Round 4 eligibility, amendment 1") ----------
+//
+// When a dev template leaves after an amendment and the round's walk has no candidate left in its
+// stratum, the views walk continues after the round's last walked page with the same rules, skips
+// (ids in corpus.json, the survey folder), analyzer and round eligibility, and finishes each
+// listing page it opens; it stops once `need` ({stratum: n}) has eligible entries. Entries carry
+// `devRefill: <round>` (not `topUp`, so neither the round's held-out pool nor a rebuild of its walk
+// changes) and pool `dev-refill` when round-eligible, else `dev-refill-other`. A listing page is
+// read from the round's cache, else from the levers ranking's cache of the same listing
+// (levers.json listingPages), else fetched. Returns {entries, pages, requests}; the caller writes
+// corpus.json.
+export async function extendWalk(corpus, round, need, { offline = false } = {}) {
+  const refs = (f) => JSON.parse(readFileSync(join(REFS, f), "utf8"));
+  const opts = { nodes: refs("nodes.json"), capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), now: Date.parse(NOW) };
+  const elig = { lists: JSON.parse(readFileSync(join(HERE, "eligibility.json"), "utf8")), nodes: opts.nodes.nodes };
+  const walked = corpus.templates.filter((e) => e.topUp === round || e.devRefill === round).map((e) => e.rank ?? 0);
+  const known = new Set(corpus.templates.map((e) => e.id));
+  const seenHash = new Map(corpus.templates.filter((e) => e.sha256).map((e) => [e.sha256, e.id]));
+  const left = { ...need };
+  const entries = [];
+  const pages = [];
+  const before = { ...stats };
+  for (let page = Math.floor(Math.max(...walked) / ROWS) + 1; Object.values(left).some((n) => n > 0); page++) {
+    const own = join(DATA, `listing-r${round}-p${page}.json`);
+    const levers = join(DATA, `listing-levers-p${page}.json`);
+    let file = existsSync(own) ? own : existsSync(levers) ? levers : null;
+    if (!file) {
+      if (offline) throw new Error(`offline and listing page ${page} not cached`);
+      await writeFile(own, await politeGet(`${API}/search?rows=${ROWS}&page=${page}&sort=views:desc`));
+      stats.listingRequests++;
+      file = own;
+    }
+    const listing = JSON.parse(await readFile(file, "utf8"));
+    if (!listing.workflows?.length) throw new Error(`listing exhausted at page ${page}`);
+    pages.push({ page, file: file.replace(ROOT + "/", "") });
+    for (const [i, w] of listing.workflows.entries()) {
+      if (known.has(w.id) || entries.some((e) => e.id === w.id) || existsSync(join(SURVEY_CACHE, `${w.id}.json`))) continue;
+      const e = { rank: (page - 1) * ROWS + i + 1, id: w.id, devRefill: round };
+      entries.push(e);
+      let wf = null;
+      if (!((w.price ?? 0) > 0 || w.purchaseUrl)) {
+        try {
+          wf = JSON.parse(await template(w.id, offline))?.workflow?.workflow ?? null;
+        } catch (err) {
+          e.error = String(err.message).slice(0, 200);
+        }
+      }
+      if (wf) e.sha256 = createHash("sha256").update(canonical(wf)).digest("hex");
+      const structural = structuralExclusion(w, wf);
+      if (structural) {
+        e.excluded = structural;
+        continue;
+      }
+      if (seenHash.has(e.sha256)) {
+        e.excluded = "duplicate";
+        e.duplicateOf = seenHash.get(e.sha256);
+        continue;
+      }
+      seenHash.set(e.sha256, w.id);
+      const report = analyze(unwrap({ workflow: { id: String(w.id), name: w.name, workflow: wf } }, String(w.id)), opts).workflows[0];
+      e.outcome = report.outcome.kind;
+      e.target = report.outcome.target;
+      e.wakeup = report.wakeup.kind;
+      if (report.setupOnly) e.setupOnly = true;
+      if (tutorialExclusion(w.name, wf, report)) {
+        e.excluded = "tutorial";
+        continue;
+      }
+      if (HAND[w.id]) {
+        e.excluded = "hand";
+        e.reason = HAND[w.id];
+        continue;
+      }
+      if (DEMO_FLAG.test(w.name ?? "")) e.flag = "name-demo";
+      Object.assign(e, r4Verdict(wf, report, e, elig));
+      delete e.r4Amended;
+      e.pool = e.r4 === "eligible" ? "dev-refill" : "dev-refill-other";
+      if (e.r4 === "eligible" && left[stratum(e.wakeup)] > 0) left[stratum(e.wakeup)]--;
+    }
+  }
+  return { entries, pages, requests: { listingRequests: stats.listingRequests - before.listingRequests, templateRequests: stats.templateRequests - before.templateRequests } };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes("--top-up")) {

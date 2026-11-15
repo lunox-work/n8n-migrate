@@ -5,7 +5,9 @@
 //   node scripts/lint-no-template-rules.mjs [--verbose] [--dir <folder>]   (--dir: scan another folder, for tests)
 //
 // Checked in every file under skills/ (text files only):
-//   - template ids: every id in evals/bench/corpus.json, as a whole number not part of a longer
+//   - template ids: every id of three or more digits in evals/bench/corpus.json (a one- or
+//     two-digit id cannot be told from an ordinary number; tests/bench-levers.test.mjs uses the
+//     same bound, and such a template's name is still checked), as a whole number not part of a longer
 //     number, version or identifier (not in vendored or built code: runtime/vendor holds
 //     luxon, runtime/dist is built from runtime/src and vendor, and src is checked); an id that
 //     is an HTTP status code is not a hit on a line that also carries that code's reason phrase
@@ -95,7 +97,8 @@ if (existsSync(FIXTURES)) for (const f of walk(FIXTURES).filter((f) => f.endsWit
 
 const hits = [];
 const lineOf = (text, idx) => text.slice(0, idx).split("\n").length;
-const idRe = new RegExp(`(?<![\\w.\\-])(${ids.join("|")})(?![\\w.\\-])`, "g");
+const numberIds = ids.filter((id) => id.length >= 3);
+const idRe = new RegExp(`(?<![\\w.\\-])(${numberIds.join("|")})(?![\\w.\\-])`, "g");
 for (const [file, text] of content) {
   const rel = relative(ROOT, file);
   const vendor = VENDOR.includes(file) || THIRD_PARTY.has(file);

@@ -5,6 +5,7 @@
 //
 //   node evals/bench/split.mjs [--corpus evals/bench/corpus.json] [--out evals/bench/splits.json]
 //   node evals/bench/split.mjs --fresh [--round 3|4] [--redraw "<why>"]   (a fresh held-out: drawFresh() below)
+//   node evals/bench/split.mjs --amend 1 --round 4 [--offline]   (dev refill after an eligibility amendment: amendDev() below)
 //
 // Method: one Fisher-Yates shuffle of the eligible ids (sorted ascending first) with
 // mulberry32(SEED). Each stratum gets round(60% of its size) dev slots, largest remainder
@@ -77,7 +78,9 @@ export function formatSplits(doc) {
 export const FRESH_SEED = 20261115;
 export const FRESH_SEEDS = { 3: FRESH_SEED, 4: 20261116 };
 export const freshKey = (round) => (round === FRESH_ROUND ? "heldOutFresh" : `heldOutFresh${round}`);
-export function drawFresh(candidates, quotas = FRESH_QUOTAS, seed = FRESH_SEED) {
+// `skip`: ids already dev (a later round's dev refill took them from the same pool); passed over
+// without leaving the shuffle.
+export function drawFresh(candidates, quotas = FRESH_QUOTAS, seed = FRESH_SEED, skip = new Set()) {
   const rnd = mulberry32(seed);
   const order = [...candidates].sort((a, b) => a.id - b.id);
   for (let i = order.length - 1; i > 0; i--) {
@@ -87,7 +90,7 @@ export function drawFresh(candidates, quotas = FRESH_QUOTAS, seed = FRESH_SEED) 
   const used = {};
   const drawn = [];
   for (const e of order) {
-    if (!isCandidate(e)) continue;
+    if (!isCandidate(e) || skip.has(e.id)) continue;
     const s = stratum(e.wakeup);
     if ((used[s] ?? 0) >= (quotas[s] ?? 0)) continue;
     used[s] = (used[s] ?? 0) + 1;
@@ -134,8 +137,9 @@ async function writeFresh(corpusPath, out, redraw = null, round = FRESH_ROUND) {
   const key = freshKey(round);
   const taken = new Set([...splits.dev, ...splits.heldOut, ...Object.entries(splits).filter(([k]) => /^heldOutFresh\d*$/.test(k) && k !== key).flatMap(([, v]) => v.templates ?? [])].map((r) => r.id));
   const pool = freshPool(corpus.templates, round).filter((e) => !taken.has(e.id));
-  const candidates = pool.filter(isCandidate);
-  const { drawn, strata, short } = drawFresh(pool, FRESH_QUOTAS, seed);
+  const devAdded = new Set(Object.entries(splits).filter(([k]) => /^devAdded\d*$/.test(k)).flatMap(([, v]) => v.templates ?? []).map((t) => t.id));
+  const candidates = pool.filter((e) => isCandidate(e) && !devAdded.has(e.id));
+  const { drawn, strata, short } = drawFresh(pool, FRESH_QUOTAS, seed, devAdded);
   if (Object.keys(short).length) throw new Error(`fresh draw short of ${JSON.stringify(short)}: top up with fetch.mjs --top-up --round ${round} first`);
   let r = splits.rounds.find((x) => x.round === round);
   if (!r && round > FRESH_ROUND) {
@@ -146,6 +150,11 @@ async function writeFresh(corpusPath, out, redraw = null, round = FRESH_ROUND) {
   const changed = r.heldOut.length && JSON.stringify(r.heldOut) !== JSON.stringify(drawn.map((e) => e.id));
   if (changed && !redraw) throw new Error(`round ${round} already has a different held-out list (pass --redraw "<why>" when a candidate was excluded after the draw)`);
   const redraws = [...(splits[key]?.redraws ?? []), ...(changed ? [{ why: redraw, out: r.heldOut.filter((id) => !drawn.some((e) => e.id === id)), in: drawn.map((e) => e.id).filter((id) => !r.heldOut.includes(id)) }] : [])];
+  // A redrawn template must still be fresh: none named in a file fixing sessions read (EXCLUSIONS.md
+  // "Later rounds' held-out"). The draw has no way to pass one over yet, so it stops here.
+  const stale = namedInLevers();
+  const staleIn = (changed ? redraws.at(-1).in : []).filter((id) => stale.has(id));
+  if (staleIn.length) throw new Error(`redraw would hold out ${staleIn.join(", ")}, named in levers.json or LEVERS.md (not fresh)`);
   const T = FRESH_TEXT[round];
   splits[key] = {
     round,
@@ -164,7 +173,100 @@ async function writeFresh(corpusPath, out, redraw = null, round = FRESH_ROUND) {
   console.log(`fresh held-out (round ${round}): ${drawn.length} of ${candidates.length} candidates, strata ${JSON.stringify(strata)}`);
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes("--fresh")) {
+// Ids named in the levers ranking's files (fixing sessions read them).
+function namedInLevers() {
+  const ids = new Set();
+  for (const f of ["levers.json", "LEVERS.md"]) {
+    const p = join(HERE, f);
+    if (existsSync(p)) for (const m of readFileSync(p, "utf8").matchAll(/(?<![\w.\-])\d{3,6}(?![\w.\-])/g)) ids.add(Number(m[0]));
+  }
+  return ids;
+}
+
+// Dev refill after an amendment of round n's eligibility rule (EXCLUSIONS.md "Round 4 eligibility,
+// amendment 1"): run after the held-out redraw. Every round-n dev template that fails the amended
+// rule leaves (`dropped`); each stratum's places go to the round's walk candidates in the fresh
+// draw's shuffled order (same seed), past the held-out's draws and skipping dev templates; a
+// stratum with none left continues the views walk (fetch.mjs extendWalk) and takes its first
+// eligible entries in listing order. Writes `devAdded` in the round, `devAdded<n>` rows in
+// splits.json and the walk's entries in corpus.json.
+async function amendDev(corpusPath, out, amendment, round, offline) {
+  const { roundOf } = await import("./rounds.mjs");
+  const { eligibilityOf } = await import("./eligible.mjs");
+  const { extendWalk } = await import("./fetch.mjs");
+  const corpus = JSON.parse(readFileSync(corpusPath, "utf8"));
+  const splits = JSON.parse(readFileSync(out, "utf8"));
+  const r = splits.rounds.find((x) => x.round === round);
+  if (!r) throw new Error(`splits.json has no round ${round}`);
+  const cur = roundOf(splits, round);
+  const heldFails = eligibilityOf(cur.heldOut.map((x) => x.id)).filter((x) => !x.eligible);
+  if (heldFails.length) throw new Error(`${heldFails.length} held-out template(s) fail the rule: redraw first (--fresh --round ${round} --redraw "<why>")`);
+  const fails = eligibilityOf(cur.dev.map((x) => x.id)).filter((x) => !x.eligible);
+  if (!fails.length) return console.log(`round ${round}: every dev template passes; nothing to refill`);
+  const need = {};
+  for (const f of fails) need[f.stratum] = (need[f.stratum] ?? 0) + 1;
+  const rnd = mulberry32(FRESH_SEEDS[round]);
+  const order = [...freshPool(corpus.templates, round)].sort((a, b) => a.id - b.id);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  const taken = new Set([...cur.dev, ...cur.heldOut].map((x) => x.id));
+  const picks = [];
+  const left = { ...need };
+  for (const e of order) {
+    const st = stratum(e.wakeup);
+    if (!(left[st] > 0) || !isCandidate(e) || taken.has(e.id)) continue;
+    left[st]--;
+    picks.push({ e, source: "walk" });
+  }
+  let extension = null;
+  if (Object.values(left).some((n) => n > 0)) {
+    extension = await extendWalk(corpus, round, left, { offline });
+    corpus.templates.push(...extension.entries);
+    for (const e of extension.entries) {
+      const st = stratum(e.wakeup);
+      if (e.pool !== "dev-refill" || !(left[st] > 0)) continue;
+      left[st]--;
+      picks.push({ e, source: `views walk page ${Math.floor((e.rank - 1) / 50) + 1}` });
+    }
+    if (Object.values(left).some((n) => n > 0)) throw new Error(`dev refill short of ${JSON.stringify(left)}`);
+    const counts = (pred) => extension.entries.filter(pred).length;
+    corpus[`devRefill${round}`] = {
+      round,
+      why: `dev refill after round ${round} eligibility amendment ${amendment} (EXCLUSIONS.md): strata with no walk candidate left continue the views walk after the round's walk`,
+      need: Object.fromEntries(Object.entries(need).filter(([k]) => picks.some((p) => p.source !== "walk" && stratum(p.e.wakeup) === k))),
+      pages: extension.pages,
+      rules: "evals/bench/EXCLUSIONS.md (same rules, skips and analyzer as the round's walk) and round eligibility as amended; each listing page opened is finished",
+      counts: { newEntries: extension.entries.length, requests: extension.requests, excluded: counts((e) => e.excluded), eligible: counts((e) => e.pool === "dev-refill"), ineligible: counts((e) => e.pool === "dev-refill-other") },
+    };
+    const { templates, ...rest } = corpus;
+    const text = JSON.stringify({ ...rest, templates }, null, 2).replace(/\{\n\s+("rank": \d+,[^{}]*?)\n\s+\}/g, (_, body) => `{ ${body.replace(/\n\s+/g, " ")} }`);
+    writeFileSync(corpusPath, text + "\n");
+  }
+  r.dropped = [...(r.dropped ?? []), ...fails.map((f) => f.id)];
+  r.devAdded = [...(r.devAdded ?? []), ...picks.map((p) => p.e.id)];
+  const key = `devAdded${round}`;
+  splits[key] = {
+    round,
+    seed: FRESH_SEEDS[round],
+    method: `evals/bench/split.mjs amendDev(): after round ${round}'s eligibility amendment, each dev template that fails it leaves (round \`dropped\`) and its stratum takes the next candidate of the round's walk in the fresh draw's shuffled order (mulberry32(seed) Fisher-Yates over the pool sorted by id), past the held-out's draws; a stratum with none left takes the first eligible entries of the views walk after the round's walk (fetch.mjs extendWalk), in listing order`,
+    amendments: [...(splits[key]?.amendments ?? []), { amendment, dropped: fails.map((f) => f.id), added: picks.map((p) => p.e.id) }],
+    note: "new dev templates have no fixtures until the blind session writes them",
+    templates: [...(splits[key]?.templates ?? []), ...picks.map(({ e, source }) => ({ id: e.id, sha256: e.sha256, wakeup: e.wakeup, source }))],
+  };
+  writeFileSync(out, formatSplits(splits));
+  console.log(`round ${round} amendment ${amendment}: ${fails.length} dev template(s) leave, ${picks.length} join (${picks.filter((p) => p.source === "walk").length} from the walk, ${picks.length - picks.filter((p) => p.source === "walk").length} from the views walk)`);
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes("--amend")) {
+  const a = process.argv.slice(2);
+  const opt = (k, d) => (a.includes(k) ? a[a.indexOf(k) + 1] : d);
+  amendDev(opt("--corpus", join(HERE, "corpus.json")), opt("--out", join(HERE, "splits.json")), Number(opt("--amend")), Number(opt("--round", "4")), a.includes("--offline")).catch((e) => {
+    console.error(e.message);
+    process.exit(1);
+  });
+} else if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes("--fresh")) {
   const a = process.argv.slice(2);
   const opt = (k, d) => (a.includes(k) ? a[a.indexOf(k) + 1] : d);
   writeFresh(opt("--corpus", join(HERE, "corpus.json")), opt("--out", join(HERE, "splits.json")), opt("--redraw", null), Number(opt("--round", String(FRESH_ROUND)))).catch((e) => {
