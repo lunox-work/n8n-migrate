@@ -84,7 +84,7 @@ test("a step without a bench counterpart today is pending a bounded fix", () => 
   assert.deepEqual(mail.pending, ["P53"]);
   assert.equal(mail.eligible, true, JSON.stringify(mail.reasons));
   const py = check(chain(node("Start", `${B}manualTrigger`), node("Py", `${B}code`, { language: "python", pythonCode: "return []" }, { typeVersion: 2 }), sheetsAppend()));
-  assert.deepEqual(py.pending, ["R4-python"]);
+  assert.deepEqual(py.pending, ["P92"]);
   const self = check(chain(node("Start", `${B}manualTrigger`), node("Get", `${B}httpRequest`, { url: "http://localhost:5678/rest/workflows" }, { typeVersion: 4.2 }), sheetsAppend()));
   assert.ok(self.pending.includes("P52"));
 });

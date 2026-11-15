@@ -61,11 +61,11 @@
       "n8n-nodes-base.supabase": "mock",
       "n8n-nodes-base.removeDuplicates": "local",
       "n8n-nodes-base.emailSend": "pending:P53",
-      "n8n-nodes-base.executeCommand": "pending:R4-nodes-exclude",
-      "@blotato/n8n-nodes-blotato.blotato": "pending:R4-community-package",
+      "n8n-nodes-base.executeCommand": "pending:P93",
+      "@blotato/n8n-nodes-blotato.blotato": "pending:P94",
       "@n8n/n8n-nodes-langchain.openAi": { "minVersionNone": 2, "default": "mock" }
     },
-    "codePython": "pending:R4-python",
+    "codePython": "pending:P92",
     "pendingTypes": ["@blotato/n8n-nodes-blotato.blotato"],
     "loopbackHosts": ["localhost", "127.0.0.1", "[::1]", "::1", "0.0.0.0"],
     "shimModels": [
@@ -119,9 +119,9 @@
       "P53": { "bounded": true, "what": "SMTP capture sidecar, an smtp credential dummy, an smtp effect paired with a mail connector send, and the bench's headless answers approving the analyzer's offered substitution" },
       "P61": { "bounded": true, "what": "a dummy credential for every node type that ships none (its first credential type in references/nodes.json), not a fixed list" },
       "P66": { "bounded": true, "what": "Postgres (and MySQL, MongoDB) sidecars on the bench network, seeded from typed fixture rows, writes captured as effects" },
-      "R4-python": { "bounded": true, "what": "the n8n image runs Python Code nodes (external task runner with Python)" },
-      "R4-nodes-exclude": { "bounded": true, "what": "the bench's n8n sets NODES_EXCLUDE=[] so Execute Command runs, plus the substitution approval of P53" },
-      "R4-community-package": { "bounded": true, "what": "the bench image installs community packages that have a one-off mapping (@blotato/n8n-nodes-blotato)" }
+      "P92": { "bounded": true, "what": "the n8n image runs Python Code nodes (external task runner with Python)" },
+      "P93": { "bounded": true, "what": "the bench's n8n sets NODES_EXCLUDE=[] so Execute Command runs, plus the substitution approval of P53" },
+      "P94": { "bounded": true, "what": "the bench image installs community packages that have a one-off mapping (@blotato/n8n-nodes-blotato)" }
     }
   },
   "comparable": {

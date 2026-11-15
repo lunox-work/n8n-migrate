@@ -99,7 +99,7 @@ Strata come from the current analyzer's wake-up, which agrees with corpus.json o
 | R4-community-package | 5338                                    |
 | R4-nodes-exclude     | 1073                                    |
 
-Without these fixes the 12 stay eligible, but none of them has a baseline. Each fix's ids are listed in `eligibility.json` `bench.fixes`. New fixes have provisional names (R4-…) until the orchestrator gives them P numbers.
+Without these fixes the 12 stay eligible, but none of them has a baseline. Each fix's ids are listed in `eligibility.json` `bench.fixes`. New fixes have provisional names (R4-…) until the orchestrator gives them P numbers; numbered in R4e (2026-11-16): R4-python is P92, R4-nodes-exclude P93, R4-community-package P94 (PROPOSALS.md, `eligibility.json`).
 
 ## Draft bench proposals (PROPOSALS style; not in PROPOSALS.md)
 

@@ -627,3 +627,27 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Evidence.** Round 4 held-out fixtures: in several templates, a field that names the person's own resource is empty: a mail recipient, a mail label list, a spreadsheet id. n8n 2.47.7 refuses or fails on these. The canned run of one was refused before it started (`… has issues: Parameter "Label Names or IDs" is required`). The fixtures fill them by overlay as placeholders, as earlier rounds did for spreadsheet ids, so the templates have a baseline. `eligibility.json` `n8nSelfFail` lists some empty required parameters as self-failing configuration (a post's text, matching columns), so the same kind of empty field can make one template ineligible and leave another eligible, depending on who wrote the list.
 - **Proposed change.** Write the line in EXCLUSIONS.md (Round 4 eligibility, clause 3a): an empty field that names the person's own account resource (recipient, label, document, chat id) is a placeholder the overlay fills; an empty content field (the text to post, the columns to match on) is self-failing. Check `n8nSelfFail` against that line.
 - **Why not in the loop.** It changes the eligibility rule.
+
+## P92. Python Code nodes cannot run in the bench's n8n (AUDIT-R4 "R4-python")
+
+- **Evidence.** 1992 (dev, `n8nCannotRun`) and 2374 (round-3 held-out, dev from round 4) have Python Code nodes on the main path. n8n 2.x runs Python only through an external task runner (`n8nio/runners` with `N8N_RUNNERS_MODE=external`), and the bench image has none (`container.mjs`).
+- **Proposed change.** Start the runners sidecar beside the n8n container with a shared auth token (`N8N_RUNNERS_MODE=external`, `N8N_RUNNERS_AUTH_TOKEN`, broker on the bench network). Pin the runners image to the n8n version. Keep the runner's network on the proxy, as n8n is, so Python code that reaches out still hits the mock.
+- **Keeps.** 1992, 2374. **Effort.** About half a day plus one canned check each.
+- **Risk.** An extra container (about 100–200 MB). The runner's Python stdlib allowlist (`N8N_RUNNERS_STDLIB_ALLOW`) must cover what the templates import. Read the imports from the template, never widen to `*`.
+- **Why not in the loop.** It adds a container and changes the n8n side's runner mode.
+
+## P93. Execute Command is excluded by n8n 2.x by default (AUDIT-R4 "R4-nodes-exclude")
+
+- **Evidence.** 1073's first node is Execute Command. n8n 2.47.7's default `NODES_EXCLUDE` holds `executeCommand` and `localFileTrigger`, so the run stops there (its `n8nCannotRun` text).
+- **Proposed change.** Set `NODES_EXCLUDE=[]` on the bench container only for fixtures whose template has an Execute Command node. Run the command inside the container, where its writes stay. Record a disk effect if the command writes a path a fixture lists.
+- **Keeps.** 1073 (with P66 MongoDB and P53's substitution approval). **Effort.** About 2 hours.
+- **Risk.** It runs template shell code in the n8n container. The container is already the sandbox for Code nodes, but cap its memory (it already has the 1 GiB cap) and never mount the host.
+- **Why not in the loop.** It changes the n8n container's environment.
+
+## P94. Blotato's community package is not in the image (AUDIT-R4 "R4-community-package")
+
+- **Evidence.** 5338's ten Blotato nodes (`@blotato/n8n-nodes-blotato`) have a one-off mapping (the analyzer maps them to `http`), but n8n refuses their credential type because the package is not installed (`n8nCannotRun`).
+- **Proposed change.** Build the bench image with the community packages that have a one-off mapping in `references/mappings.json` installed at pinned versions. List them in `eligibility.json` `bench.pendingTypes` until installed. Their HTTP goes through the proxy like every node.
+- **Keeps.** 5338. **Effort.** About half a day (image build, version pin, canned check).
+- **Risk.** Third-party code in the baseline image. Pin by integrity hash, install from the npm tarball only, and add no package without a mapping.
+- **Why not in the loop.** It changes the bench image.
