@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "template": 585,
+  "sha256": "257aa0c5c64f2ddfddf711eb16cb7d5128248d8ff3fb574af49536558949513e",
+  "variant": "normal",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "a two-page invoice PDF with line items, a total and payment details",
+  "trigger": {
+    "node": "On clicking 'execute'",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Read Binary File",
+      "service": "local-file",
+      "file": {
+        "path": "/data/pdf.pdf",
+        "base64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFs2IDAgUiA4IDAgUl0gL0NvdW50IDIgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago0IDAgb2JqCjw8IC9UaXRsZSAoaW52b2ljZSkgL1Byb2R1Y2VyIChiZW5jaCkgPj4KZW5kb2JqCjUgMCBvYmoKPDwgL0xlbmd0aCAzNTEgPj4Kc3RyZWFtCkJUIC9GMSAxMSBUZiAxNCBUTCA1MCA3OTAgVGQgKEludm9pY2UgSU5WLTIwMjYtMDExNykgVGogVCogKE5vcnRod2luZCBUcmFkZXJzIEx0ZCwgMTQgSGFyYm91ciBSb2FkLCBMZWl0aCkgVGogVCogKEJpbGwgdG86IENvbnRvc28gR2FyZGVucywgVW5pdCAzLCBSaXZlcnNpZGUgUGFyaykgVGogVCogKCkgVGogVCogKDIgeCBIZWRnZSB0cmltbWVyLCA0OCBjbSAgICBHQlAgMTc4LjAwKSBUaiBUKiAoMSB4IERlbGl2ZXJ5ICAgICAgICAgICAgICAgIEdCUCAxMi41MCkgVGogVCogKFRvdGFsICAgICAgICAgICAgICAgICAgICAgICBHQlAgMTkwLjUwKSBUaiBUKiAoRHVlOiAzMCBOb3ZlbWJlciAyMDI2KSBUaiBUKiBFVAplbmRzdHJlYW0KZW5kb2JqCjYgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSAzIDAgUiA+PiA+PiAvQ29udGVudHMgNSAwIFIgPj4KZW5kb2JqCjcgMCBvYmoKPDwgL0xlbmd0aCAxMzAgPj4Kc3RyZWFtCkJUIC9GMSAxMSBUZiAxNCBUTCA1MCA3OTAgVGQgKFBheW1lbnQ6IGJhbmsgdHJhbnNmZXIgdG8gR0IyOSBOV0JLIDYwMTYgMTMzMSA5MjY4IDE5KSBUaiBUKiAoVGhhbmsgeW91IGZvciB5b3VyIGJ1c2luZXNzLikgVGogVCogRVQKZW5kc3RyZWFtCmVuZG9iago4IDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgNTk1IDg0Ml0gL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgMyAwIFIgPj4gPj4gL0NvbnRlbnRzIDcgMCBSID4+CmVuZG9iagp4cmVmCjAgOQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTIxIDAwMDAwIG4gCjAwMDAwMDAxOTEgMDAwMDAgbiAKMDAwMDAwMDI0NyAwMDAwMCBuIAowMDAwMDAwNjQ5IDAwMDAwIG4gCjAwMDAwMDA3NzUgMDAwMDAgbiAKMDAwMDAwMDk1NiAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDkgL1Jvb3QgMSAwIFIgL0luZm8gNCAwIFIgPj4Kc3RhcnR4cmVmCjEwODIKJSVFT0YK"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "local disk: no connector"
+      },
+      "note": "Read Binary File v1 reads /data/pdf.pdf into binary data; Read PDF v1 extracts its text (pdf.js)"
+    }
+  ],
+  "models": [],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch"
+    ],
+    "offline": "The file is read from the absolute path the template names (/data/pdf.pdf, placed by the fixture; the bench allows its directory). The workflow writes nothing and calls no model, so its only result is Read PDF's text in the last node (README P50: gate 4 reports `nothing compared` for such a run)"
+  }
+}

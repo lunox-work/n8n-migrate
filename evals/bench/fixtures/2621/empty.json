@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "template": 2621,
+  "sha256": "516a3453daf3f729804072dbb394a38d4d639291e81e33ebb2b5431d7b38c6ce",
+  "variant": "empty",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "a question the stored file does not cover: match_documents returns no rows",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "kb-chat-2621b",
+          "action": "sendMessage",
+          "chatInput": "What is the company's policy on sabbaticals?"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Embeddings OpenAI2",
+      "service": "openai-embeddings",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/embeddings",
+            "status": 200,
+            "body": {
+              "object": "list",
+              "data": [
+                {
+                  "object": "embedding",
+                  "index": 0,
+                  "embedding": "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"
+                }
+              ],
+              "model": "text-embedding-3-small",
+              "usage": {
+                "prompt_tokens": 12,
+                "total_tokens": 12
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured embeddings connector"
+      },
+      "note": "OpenAI embeddings v1 (text-embedding-3-small) for the question: POST /v1/embeddings; the openai SDK asks encoding_format=base64, so the vector is base64 of 1536 little-endian float32 (synthetic)"
+    },
+    {
+      "node": "Supabase Vector Store",
+      "service": "supabase-vector",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://bench-project.supabase.co/rest/v1/rpc/match_documents",
+            "status": 200,
+            "body": []
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Supabase connector"
+      },
+      "note": "Supabase vector store (table documents, metadata filter file_id = 300b0128-…) behind Vector Store Tool1 (knowledge_base, topK 8): LangChain calls POST /rest/v1/rpc/match_documents {query_embedding, match_count: 8, filter: {file_id}}; rows {id, content, metadata, similarity}. The credential host is the bench's (supabaseApi points at the mock, matched by path)"
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model1",
+    "Vector Store Tool1",
+    "OpenAI Chat Model2"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch on the chat path; the agent decides whether to call knowledge_base (expected: once)"
+    ],
+    "offline": "Only the chat path runs; the manual ingestion path (Supabase storage listing, download, PDF extraction, file records and vector inserts) has its own trigger. Vectors and similarities are synthetic; the metadata filter pins one file id, as the template does"
+  }
+}

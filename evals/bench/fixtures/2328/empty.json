@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 1,
+  "template": 2328,
+  "sha256": "030e797c4c6bcb8f5b6cbb828a8bf143a66f664987303912808c9f1db15020bd",
+  "variant": "empty",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "the meeting has no conference record (Meet answers {}), so there is no transcript to find",
+  "trigger": {
+    "node": "When clicking \"Test workflow\"",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get Calendar Event",
+      "service": "google-calendar",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/calendar/v3/calendars/user@example.com/events/abc123",
+            "status": 200,
+            "body": {
+              "kind": "calendar#event",
+              "id": "abc123",
+              "status": "confirmed",
+              "htmlLink": "https://www.google.com/calendar/event?eid=YWJjMTIz",
+              "summary": "Q4 launch planning",
+              "creator": {
+                "email": "maya.lin@orbitlabs.example",
+                "displayName": "Maya Lin"
+              },
+              "organizer": {
+                "email": "user@example.com",
+                "self": true
+              },
+              "start": {
+                "dateTime": "2026-11-13T10:00:00-05:00",
+                "timeZone": "America/New_York"
+              },
+              "end": {
+                "dateTime": "2026-11-13T11:00:00-05:00",
+                "timeZone": "America/New_York"
+              },
+              "attendees": [
+                {
+                  "email": "maya.lin@orbitlabs.example",
+                  "displayName": "Maya Lin",
+                  "responseStatus": "accepted"
+                },
+                {
+                  "email": "dev.patel@orbitlabs.example",
+                  "displayName": "Dev Patel",
+                  "responseStatus": "accepted"
+                },
+                {
+                  "email": "sara.kim@orbitlabs.example",
+                  "displayName": "Sara Kim",
+                  "responseStatus": "tentative"
+                }
+              ],
+              "conferenceData": {
+                "conferenceId": "kfx-wmbn-pqt",
+                "conferenceSolution": {
+                  "name": "Google Meet",
+                  "key": {
+                    "type": "hangoutsMeet"
+                  }
+                },
+                "entryPoints": [
+                  {
+                    "entryPointType": "video",
+                    "uri": "https://meet.google.com/kfx-wmbn-pqt"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Calendar connector"
+      },
+      "note": "Google Calendar v1.1 event get: GET /calendar/v3/calendars/user@example.com/events/abc123 (the template's calendar and event id, kept as they are)"
+    },
+    {
+      "node": "Get Meeting ConferenceRecords",
+      "service": "google-meet",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://meet.googleapis.com/v2/conferenceRecords",
+            "status": 200,
+            "body": {}
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Meet connector"
+      },
+      "note": "HTTP Request v4.2 GET https://meet.googleapis.com/v2/conferenceRecords?filter=space.meeting_code=<conferenceId> (googleOAuth2Api); Meet answers {} when no record matches"
+    },
+    {
+      "node": "Get Meeting Transcript Location",
+      "service": "google-meet",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://meet.googleapis.com/v2/conferenceRecords/bench-rec-7f3a/transcripts",
+            "status": 200,
+            "body": {}
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Meet connector"
+      },
+      "note": "GET https://meet.googleapis.com/v2/<conference record>/transcripts: Meet answers {transcripts: [...]} (an object), so the next node's $json.docsDestination is not set"
+    },
+    {
+      "node": "Get Transcript File",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1TrAnScRiPtBenchDoc0aBcDeFgHiJkLmNoPqRsTuV",
+            "status": 200,
+            "body": {
+              "id": "1TrAnScRiPtBenchDoc0aBcDeFgHiJkLmNoPqRsTuV",
+              "name": "Q4 launch planning - Transcript",
+              "mimeType": "application/vnd.google-apps.document"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1TrAnScRiPtBenchDoc0aBcDeFgHiJkLmNoPqRsTuV/export",
+            "status": 200,
+            "query": {
+              "mimeType": "application/pdf"
+            },
+            "headers": {
+              "content-type": "application/pdf"
+            },
+            "bodyBase64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFs2IDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago0IDAgb2JqCjw8IC9UaXRsZSAoUTQgbGF1bmNoIHBsYW5uaW5nIC0gVHJhbnNjcmlwdCkgL1Byb2R1Y2VyIChiZW5jaCkgPj4KZW5kb2JqCjUgMCBvYmoKPDwgL0xlbmd0aCA1NTQgPj4Kc3RyZWFtCkJUIC9GMSAxMSBUZiAxNCBUTCA1MCA3OTAgVGQgKFE0IGxhdW5jaCBwbGFubmluZyAtIFRyYW5zY3JpcHQpIFRqIFQqIChNYXlhIExpbjogVGhhbmtzIGFsbC4gR29hbCB0b2RheTogbG9jayB0aGUgbGF1bmNoIGRhdGUgYW5kIHRoZSBiZXRhIGxpc3QuKSBUaiBUKiAoRGV2IFBhdGVsOiBUaGUgQVBJIGZyZWV6ZSBpcyBvbiB0cmFjayBmb3IgMSBEZWNlbWJlci4gSSBuZWVkIHR3byBtb3JlIGRheXMgZm9yIGxvYWQgdGVzdHMuKSBUaiBUKiAoU2FyYSBLaW06IE1hcmtldGluZyBjYW4gc2hpcCB0aGUgbGFuZGluZyBwYWdlIGJ5IDMgRGVjZW1iZXIgaWYgY29weSBpcyBmaW5hbCBieSBGcmlkYXkuKSBUaiBUKiAoTWF5YSBMaW46IFRoZW4gbGF1bmNoIGlzIDggRGVjZW1iZXIuIERldiBhbmQgU2FyYSwgY2FuIHdlIG1lZXQgb24gMjAgTm92ZW1iZXIgYXQgMnBtIGZvciAzMCBtaW51dGVzIHRvIHJldmlldyB0aGUgYmV0YSBsaXN0PykgVGogVCogKERldiBQYXRlbDogV29ya3MgZm9yIG1lLikgVGogVCogKFNhcmEgS2ltOiBZZXMsIHNlbmQgdGhlIGludml0ZS4pIFRqIFQqIEVUCmVuZHN0cmVhbQplbmRvYmoKNiAwIG9iago8PCAvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDU5NSA4NDJdIC9SZXNvdXJjZXMgPDwgL0ZvbnQgPDwgL0YxIDMgMCBSID4+ID4+IC9Db250ZW50cyA1IDAgUiA+PgplbmRvYmoKeHJlZgowIDcKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMTg1IDAwMDAwIG4gCjAwMDAwMDAyNjUgMDAwMDAgbiAKMDAwMDAwMDg3MCAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDcgL1Jvb3QgMSAwIFIgL0luZm8gNCAwIFIgPj4Kc3RhcnR4cmVmCjk5NgolJUVPRgo="
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1TrAnScRiPtBenchDoc0aBcDeFgHiJkLmNoPqRsTuV",
+              "exportMimeType": "application/pdf"
+            },
+            "result": {
+              "fileId": "1TrAnScRiPtBenchDoc0aBcDeFgHiJkLmNoPqRsTuV",
+              "title": "Q4 launch planning - Transcript",
+              "mimeType": "application/pdf",
+              "content": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFs2IDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago0IDAgb2JqCjw8IC9UaXRsZSAoUTQgbGF1bmNoIHBsYW5uaW5nIC0gVHJhbnNjcmlwdCkgL1Byb2R1Y2VyIChiZW5jaCkgPj4KZW5kb2JqCjUgMCBvYmoKPDwgL0xlbmd0aCA1NTQgPj4Kc3RyZWFtCkJUIC9GMSAxMSBUZiAxNCBUTCA1MCA3OTAgVGQgKFE0IGxhdW5jaCBwbGFubmluZyAtIFRyYW5zY3JpcHQpIFRqIFQqIChNYXlhIExpbjogVGhhbmtzIGFsbC4gR29hbCB0b2RheTogbG9jayB0aGUgbGF1bmNoIGRhdGUgYW5kIHRoZSBiZXRhIGxpc3QuKSBUaiBUKiAoRGV2IFBhdGVsOiBUaGUgQVBJIGZyZWV6ZSBpcyBvbiB0cmFjayBmb3IgMSBEZWNlbWJlci4gSSBuZWVkIHR3byBtb3JlIGRheXMgZm9yIGxvYWQgdGVzdHMuKSBUaiBUKiAoU2FyYSBLaW06IE1hcmtldGluZyBjYW4gc2hpcCB0aGUgbGFuZGluZyBwYWdlIGJ5IDMgRGVjZW1iZXIgaWYgY29weSBpcyBmaW5hbCBieSBGcmlkYXkuKSBUaiBUKiAoTWF5YSBMaW46IFRoZW4gbGF1bmNoIGlzIDggRGVjZW1iZXIuIERldiBhbmQgU2FyYSwgY2FuIHdlIG1lZXQgb24gMjAgTm92ZW1iZXIgYXQgMnBtIGZvciAzMCBtaW51dGVzIHRvIHJldmlldyB0aGUgYmV0YSBsaXN0PykgVGogVCogKERldiBQYXRlbDogV29ya3MgZm9yIG1lLikgVGogVCogKFNhcmEgS2ltOiBZZXMsIHNlbmQgdGhlIGludml0ZS4pIFRqIFQqIEVUCmVuZHN0cmVhbQplbmRvYmoKNiAwIG9iago8PCAvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDU5NSA4NDJdIC9SZXNvdXJjZXMgPDwgL0ZvbnQgPDwgL0YxIDMgMCBSID4+ID4+IC9Db250ZW50cyA1IDAgUiA+PgplbmRvYmoKeHJlZgowIDcKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMTg1IDAwMDAwIG4gCjAwMDAwMDAyNjUgMDAwMDAgbiAKMDAwMDAwMDg3MCAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDcgL1Jvb3QgMSAwIFIgL0luZm8gNCAwIFIgPj4Kc3RhcnR4cmVmCjk5NgolJUVPRgo="
+            }
+          }
+        ]
+      },
+      "note": "Google Drive v3 download of the transcript Doc converted to PDF: metadata GET (fields=mimeType,name), then GET /files/<id>/export?mimeType=application/pdf"
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model1"
+  ],
+  "writes": [
+    "Create Calendar Event1",
+    "Add Attendee to Invite"
+  ],
+  "writeReplies": [
+    {
+      "node": "Create Calendar Event1",
+      "service": "google-calendar",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/calendar/v3/calendars/user@example.com/events",
+            "status": 200,
+            "body": {
+              "kind": "calendar#event",
+              "id": "benchfollowup01",
+              "status": "confirmed",
+              "htmlLink": "https://www.google.com/calendar/event?eid=YmVuY2hmb2xsb3d1cDAx",
+              "summary": "Beta list review",
+              "start": {
+                "dateTime": "2026-11-20T14:00:00-05:00"
+              },
+              "end": {
+                "dateTime": "2026-11-20T14:30:00-05:00"
+              }
+            }
+          }
+        ]
+      },
+      "note": "child execution of the same workflow through the Schedule Meeting tool (route meetings.create): Calendar v1.1 create, POST /calendar/v3/calendars/user@example.com/events"
+    },
+    {
+      "node": "Add Attendee to Invite",
+      "service": "google-calendar",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/calendar/v3/calendars/user@example.com/events/benchfollowup01",
+            "status": 200,
+            "body": {
+              "kind": "calendar#event",
+              "id": "benchfollowup01",
+              "status": "confirmed",
+              "attendees": [
+                {
+                  "email": "dev.patel@orbitlabs.example"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Calendar v1.1 update per attendee: PATCH /calendar/v3/calendars/user@example.com/events/<id> with attendees"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Actions Router (child): meetings.create → Create Calendar Event1 → Add Attendee per attendee; anything else → Fallback Response"
+    ],
+    "offline": "Get Transcript File reads $json.docsDestination.document, but Get Meeting Transcript Location's item is Meet's whole reply ({transcripts: [...]}), so the file id is empty and n8n stops there whatever the data (canned run 2026-11-15: \"This parameter's value is invalid. Please enter a valid mode.\"; the template's own wiring; P54). The transcript is a generated PDF; the agent's calendar events run in a child execution of the same workflow (the bench activates it)"
+  }
+}
