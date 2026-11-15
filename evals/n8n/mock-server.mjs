@@ -77,7 +77,7 @@ import { createHash } from "node:crypto";
 import { mintLeaf } from "./mint-leaf.mjs";
 
 export function parseArgs(argv) {
-  const a = { port: 8080, log: null, fixtures: null, relays: [], tlsDir: null, modelShim: null };
+  const a = { port: 8080, log: null, fixtures: null, relays: [], tlsDir: null, modelShim: null, smtpPort: null };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     const v = () => {
@@ -89,6 +89,7 @@ export function parseArgs(argv) {
     else if (k === "--fixtures") a.fixtures = v();
     else if (k === "--tls-dir") a.tlsDir = v();
     else if (k === "--model-shim") a.modelShim = v();
+    else if (k === "--smtp-port") a.smtpPort = Number(v());
     else if (k === "--relay") {
       const m = /^(\d+)=([^:]+):(\d+)$/.exec(v());
       if (!m) throw new Error("--relay wants <listenPort>=<host>:<port>");
@@ -435,6 +436,155 @@ export function startMock({ port = 8080, log = null, fixtures = null, host = "0.
     if (log) appendFileSync(log, JSON.stringify(entry) + "\n");
     socket.end("HTTP/1.1 502 Bad Gateway\r\n\r\n");
   });
+  // PROPOSALS P53: a message the SMTP sink accepted, logged like a request (see startSmtp).
+  server.logSmtp = ({ raw, envelope }) => {
+    const entry = { seq: ++seq, t: new Date().toISOString(), method: "SMTP", proxied: "smtp://mock", path: "/send", query: {}, headers: {}, body: smtpMessage(raw, envelope), bodyEncoding: "json", fixture: "smtp-sink" };
+    if (log) appendFileSync(log, JSON.stringify(entry) + "\n");
+  };
+  return new Promise((ok) => server.listen(port, host, () => ok(server)));
+}
+
+// ---------- SMTP sink (PROPOSALS P53) ----------
+//
+// `--smtp-port <n>`: a minimal SMTP server (RFC 5321: EHLO/HELO, AUTH PLAIN and LOGIN accepted
+// whatever the login, MAIL, RCPT, DATA, RSET, NOOP, QUIT; no STARTTLS offered) that accepts every
+// message and logs it like an HTTP request, one line per message: method "SMTP", proxied
+// "smtp://<host the client named in EHLO's peer: mock>", path "/send", body the parsed message
+// (smtpMessage) and fixture "smtp-sink". Nothing is relayed anywhere.
+
+// RFC 2047 encoded words (=?charset?B|Q?...?=) in a header, decoded as UTF-8.
+export function decodeWords(v) {
+  return String(v ?? "")
+    .replace(/\?=\s+=\?/g, "?==?")
+    .replace(/=\?([^?]+)\?([bqBQ])\?([^?]*)\?=/g, (_, cs, enc, txt) => {
+      const buf = /b/i.test(enc) ? Buffer.from(txt, "base64") : Buffer.from(txt.replace(/_/g, " ").replace(/=([0-9A-Fa-f]{2})/g, (m, h) => String.fromCharCode(parseInt(h, 16))), "latin1");
+      return buf.toString(/^utf-?8$/i.test(cs) ? "utf8" : "latin1");
+    });
+}
+const qpDecode = (s) => {
+  const flat = String(s).replace(/=\r?\n/g, "");
+  return Buffer.from(flat.replace(/=([0-9A-Fa-f]{2})/g, (m, h) => String.fromCharCode(parseInt(h, 16))), "latin1").toString("utf8");
+};
+function splitHead(raw) {
+  const cut = raw.search(/\r?\n\r?\n/);
+  const head = cut < 0 ? raw : raw.slice(0, cut);
+  const body = cut < 0 ? "" : raw.slice(cut).replace(/^\r?\n\r?\n/, "");
+  const headers = {};
+  for (const line of head.replace(/\r?\n[ \t]+/g, " ").split(/\r?\n/)) {
+    const m = /^([\w-]+):\s*(.*)$/.exec(line);
+    if (m) headers[m[1].toLowerCase()] = m[2];
+  }
+  return { headers, body };
+}
+// Addresses in a header ("A <a@x>, b@y"): the list of entries, display names kept.
+export function addressList(v) {
+  const out = [];
+  let cur = "";
+  let q = false;
+  for (const ch of decodeWords(v)) {
+    if (ch === '"') q = !q;
+    if (ch === "," && !q) out.push(cur), (cur = "");
+    else cur += ch;
+  }
+  out.push(cur);
+  return out.map((x) => x.trim()).filter(Boolean);
+}
+const bare = (a) => (/<([^>]+)>/.exec(a)?.[1] ?? a).trim().toLowerCase();
+// A MIME message (as received in DATA) -> {from, to, cc, bcc, replyTo, subject, text, html,
+// attachments: [{filename, contentType, size, sha256}]}; bcc are the envelope recipients the
+// headers do not name.
+export function smtpMessage(raw, envelope = { from: null, to: [] }) {
+  const out = { text: undefined, html: undefined, attachments: [] };
+  const walk = (part) => {
+    const { headers, body } = splitHead(part);
+    const ct = headers["content-type"] ?? "text/plain";
+    const boundary = /boundary="?([^";]+)"?/i.exec(ct)?.[1];
+    if (/^multipart\//i.test(ct) && boundary) {
+      for (const p of body.split(`--${boundary}`).slice(1)) {
+        if (p.startsWith("--")) break;
+        walk(p.replace(/^\r?\n/, ""));
+      }
+      return;
+    }
+    const cte = headers["content-transfer-encoding"] ?? "";
+    const bytes = /base64/i.test(cte) ? Buffer.from(body.replace(/\s+/g, ""), "base64") : /quoted-printable/i.test(cte) ? Buffer.from(qpDecode(body), "utf8") : Buffer.from(body, "utf8");
+    const disp = headers["content-disposition"] ?? "";
+    const filename = decodeWords(/filename="?([^";]+)"?/i.exec(disp)?.[1] ?? /name="?([^";]+)"?/i.exec(ct)?.[1] ?? "");
+    if (/attachment/i.test(disp) || (filename && !/^text\/(plain|html)/i.test(ct))) {
+      out.attachments.push({ filename: filename || null, contentType: ct.split(";")[0].trim(), size: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") });
+    } else if (/^text\/html/i.test(ct) && out.html === undefined) out.html = bytes.toString("utf8").replace(/\r\n/g, "\n").trim();
+    else if (/^text\//i.test(ct) && out.text === undefined) out.text = bytes.toString("utf8").replace(/\r\n/g, "\n").trim();
+  };
+  walk(raw);
+  const { headers } = splitHead(raw);
+  const to = addressList(headers.to ?? "");
+  const cc = addressList(headers.cc ?? "");
+  const named = new Set([...to, ...cc].map(bare));
+  return {
+    from: decodeWords(headers.from ?? "") || null,
+    to,
+    cc,
+    bcc: (envelope.to ?? []).filter((a) => !named.has(bare(a))),
+    ...(headers["reply-to"] ? { replyTo: addressList(headers["reply-to"]) } : {}),
+    subject: decodeWords(headers.subject ?? ""),
+    ...(out.text !== undefined ? { text: out.text } : {}),
+    ...(out.html !== undefined ? { html: out.html } : {}),
+    attachments: out.attachments,
+    envelope: { from: envelope.from, to: envelope.to ?? [] },
+  };
+}
+
+export function startSmtp({ port, host = "0.0.0.0", name = "mock", onMessage }) {
+  const server = createTcpServer((sock) => {
+    let buf = "";
+    let data = null;
+    let env = { from: null, to: [] };
+    let auth = null;
+    const say = (l) => sock.write(`${l}\r\n`);
+    say(`220 ${name} ESMTP n8n2claude bench sink`);
+    sock.setEncoding("latin1");
+    sock.on("data", (chunk) => {
+      buf += chunk;
+      let i;
+      while (true) {
+        if (data !== null) {
+          data += buf;
+          buf = "";
+          const probe = `\r\n${data}`;
+          const end = probe.indexOf("\r\n.\r\n");
+          if (end < 0) return;
+          const raw = Buffer.from(probe.slice(2, Math.max(2, end)).replace(/^\.\./gm, "."), "latin1").toString("utf8");
+          buf = probe.slice(end + 5);
+          try {
+            onMessage?.({ raw, envelope: env });
+          } catch {}
+          data = null;
+          env = { from: null, to: [] };
+          say("250 2.0.0 queued by the bench sink");
+          continue;
+        }
+        if ((i = buf.indexOf("\r\n")) < 0) return;
+        const line = buf.slice(0, i);
+        buf = buf.slice(i + 2);
+        if (auth === "login-user") (auth = "login-pass"), say("334 UGFzc3dvcmQ6");
+        else if (auth === "login-pass") (auth = null), say("235 2.7.0 accepted");
+        else if (/^(EHLO|HELO)\b/i.test(line)) /^EHLO/i.test(line) ? sock.write(`250-${name}\r\n250-AUTH PLAIN LOGIN\r\n250-8BITMIME\r\n250 SMTPUTF8\r\n`) : say(`250 ${name}`);
+        else if (/^AUTH PLAIN\s+\S/i.test(line)) say("235 2.7.0 accepted");
+        else if (/^AUTH PLAIN$/i.test(line)) (auth = "login-pass"), say("334 ");
+        else if (/^AUTH LOGIN\s+\S/i.test(line)) (auth = "login-pass"), say("334 UGFzc3dvcmQ6");
+        else if (/^AUTH LOGIN$/i.test(line)) (auth = "login-user"), say("334 VXNlcm5hbWU6");
+        else if (/^MAIL FROM:/i.test(line)) (env.from = /<([^>]*)>/.exec(line)?.[1] ?? null), say("250 2.1.0 ok");
+        else if (/^RCPT TO:/i.test(line)) env.to.push(/<([^>]*)>/.exec(line)?.[1] ?? line.slice(8).trim()), say("250 2.1.5 ok");
+        else if (/^DATA$/i.test(line)) (data = ""), say("354 end with <CRLF>.<CRLF>");
+        else if (/^RSET$/i.test(line)) (env = { from: null, to: [] }), say("250 2.0.0 ok");
+        else if (/^NOOP/i.test(line)) say("250 2.0.0 ok");
+        else if (/^QUIT$/i.test(line)) say("221 2.0.0 bye"), sock.end();
+        else if (/^STARTTLS$/i.test(line)) say("454 4.7.0 TLS not available");
+        else say("502 5.5.2 not implemented");
+      }
+    });
+    sock.on("error", () => sock.destroy());
+  });
   return new Promise((ok) => server.listen(port, host, () => ok(server)));
 }
 
@@ -460,9 +610,10 @@ async function main() {
     console.error(e.message);
     process.exit(2);
   }
-  await startMock({ port: a.port, log: a.log, fixtures: a.fixtures, tlsDir: a.tlsDir, modelShim: a.modelShim });
+  const mock = await startMock({ port: a.port, log: a.log, fixtures: a.fixtures, tlsDir: a.tlsDir, modelShim: a.modelShim });
+  if (a.smtpPort) await startSmtp({ port: a.smtpPort, onMessage: (m) => mock.logSmtp(m) });
   for (const r of a.relays) await startRelay(r);
-  console.error(`mock on :${a.port}${a.relays.map((r) => `, relay :${r.listen} -> ${r.host}:${r.port}`).join("")}`);
+  console.error(`mock on :${a.port}${a.smtpPort ? `, smtp sink :${a.smtpPort}` : ""}${a.relays.map((r) => `, relay :${r.listen} -> ${r.host}:${r.port}`).join("")}`);
   const stop = () => process.exit(0);
   process.on("SIGTERM", stop);
   process.on("SIGINT", stop);

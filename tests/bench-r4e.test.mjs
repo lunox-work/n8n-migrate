@@ -104,3 +104,25 @@ test("P94: the bench image carries the pinned community packages; the image name
   assert.equal(benchImage([]), IMAGE, "no package: n8n's own image");
   assert.notEqual(benchImage([{ ...pkgs[0], version: "9.9.9" }]), benchImage(), "another pin, another image");
 });
+
+test("P53: an SMTP message from the sink is a mail.send effect that pairs with a Gmail send the bench approved as a substitution", async () => {
+  const { smtpMessage } = await import("../evals/n8n/mock-server.mjs");
+  const { fromHttp, fromTool, compare } = await import("../evals/bench/compare.mjs");
+  const raw = 'From: shop@example.com\r\nTo: Ana <ana@example.com>\r\nSubject: =?UTF-8?Q?Your_coupon?=\r\nContent-Type: text/html; charset=utf-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n<p>10% off</p>=\r\n<p>bye</p>';
+  const body = smtpMessage(raw, { from: "shop@example.com", to: ["ana@example.com", "boss@example.com"] });
+  assert.deepEqual([body.to, body.bcc, body.subject, body.html], [["Ana <ana@example.com>"], ["boss@example.com"], "Your coupon", "<p>10% off</p><p>bye</p>"]);
+  const n = fromHttp({ method: "SMTP", proxied: "smtp://mock", path: "/send", body, bodyEncoding: "json" }, "n8n");
+  assert.deepEqual([n.service, n.action, n.target], ["mail", "send", "ana@example.com"]);
+  const c = fromTool({ connector: "gmail", tool: "send_message", args: { to: ["ana@example.com"], bcc: ["boss@example.com"], subject: "Your coupon", htmlBody: "<p>10% off</p><p>bye</p>" } }, "claude");
+  const r = compare([n], [c]);
+  assert.equal(r.ok, true, JSON.stringify(r.writes));
+  assert.deepEqual(r.substituted, [{ effect: "mail.send:ana@example.com", id: "smtp-to-mail-connector", from: "gmail.send" }]);
+  const wrong = fromTool({ connector: "gmail", tool: "send_message", args: { to: ["ana@example.com"], subject: "Other", htmlBody: "<p>10% off</p><p>bye</p>" } }, "claude");
+  assert.equal(compare([n], [wrong]).ok, false, "a different subject or a missing Bcc still fails");
+  // n8n's own Gmail REST send keeps pairing with the Gmail tool call; only the extra one substitutes.
+  const own = { ...c, side: "n8n" };
+  const r2 = compare([own, n], [c, { ...c }]);
+  assert.equal(r2.ok, true, JSON.stringify(r2.writes));
+  assert.equal(r2.substituted.length, 1);
+  assert.equal(compare([own], [c]).substituted, undefined, "no SMTP send on n8n's side: nothing substitutes");
+});

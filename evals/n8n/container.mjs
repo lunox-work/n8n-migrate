@@ -12,7 +12,7 @@
 // Layout (see HEADLESS.md):
 //   n8n2claude-bench  n8nio/n8n:2.47.7, 1 GB RAM and swap, network n8n2claude-net
 //                     (--internal: no route out), volume n8n2claude-bench-data.
-//   n8n2claude-mock   node:22-alpine running mock-server.mjs. On n8n2claude-net as
+//   n8n2claude-mock   node:22-alpine running mock-server.mjs (HTTP on 8080, an SMTP sink on 2525). On n8n2claude-net as
 //                     host `mock` (port 8080) and on n8n2claude-edge, which publishes
 //                     127.0.0.1:5690 and relays it to n8n:5678. n8n can reach the mock
 //                     and nothing else. The mock reads <work>/fixtures.json and appends
@@ -87,6 +87,7 @@ export const VOLUME = "n8n2claude-bench-data";
 export const HOST_PORT = 5690;
 export const BASE = `http://127.0.0.1:${HOST_PORT}`;
 export const MOCK_URL = "http://mock:8080"; // as n8n sees it
+export const SMTP_PORT = 2525; // the mock's SMTP sink (PROPOSALS P53), on the internal network only
 export const WORK = resolve(process.env.N8N_BENCH_WORK || join(HERE, ".work"));
 export const OWNER_EMAIL = "bench@example.com";
 export const OWNER_PASSWORD = "Bench-only-pass-1";
@@ -240,6 +241,8 @@ export async function up({ fresh = false, extraEnv = {}, runners = false, image 
       SIDECAR_IMAGE,
       "node", "/bench/mock-server.mjs", "--port", "8080", "--log", "/work/effects.jsonl", "--fixtures", "/work/fixtures.json",
       "--relay", `${HOST_PORT}=${NAME}:5678`, "--tls-dir", "/tls", "--model-shim", `http://host.docker.internal:${MODEL_SHIM_PORT}`,
+      // PROPOSALS P53: the SMTP sink, reached by n8n as mock:2525 (the bench's smtp credential).
+      "--smtp-port", String(SMTP_PORT),
     ]);
     docker(["network", "connect", "--alias", "mock", NET, MOCK_NAME]);
   }

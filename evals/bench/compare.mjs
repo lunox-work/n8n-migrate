@@ -611,7 +611,31 @@ export function maxAssignment(w) {
 // mode: "replay" (model-written text must be byte-identical) or "live" (it goes to the judge).
 // runTime ({startMs, zone}): timestamps of the run itself are masked in fields that differ
 // only by them (maskRunTime); such fields are listed in `runTimeMasked`.
+// PROPOSALS P53: approved substitutions (effects.json `substitutions`). A Claude-side write of a
+// substitute kind (Gmail's send) that n8n has no write of its own kind and target left for is
+// compared as n8n's kind (an SMTP send), and marked `substituted`. Writes n8n also made of the
+// Claude kind keep pairing as themselves first.
+export function applySubstitutions(n8n, claude) {
+  const subs = table().substitutions?.list ?? [];
+  let out = claude;
+  for (const s of subs) {
+    let left = n8n.filter((e) => isWrite(e) && e.service === s.n8n.service && e.action === s.n8n.action).length;
+    if (!left) continue;
+    const seen = new Map();
+    out = out.map((e) => {
+      if (!left || !isWrite(e) || !s.claude.some((c) => c.service === e.service && c.action === e.action)) return e;
+      const own = keyOf(e);
+      seen.set(own, (seen.get(own) ?? 0) + 1);
+      if (seen.get(own) <= n8n.filter((x) => isWrite(x) && keyOf(x) === own).length) return e;
+      left--;
+      return { ...e, service: s.n8n.service, action: s.n8n.action, substituted: { id: s.id, from: `${e.service}.${e.action}` } };
+    });
+  }
+  return out;
+}
+
 export function compare(n8n, claude, { modelTexts = [], mode = "replay", runTime = null } = {}) {
+  claude = applySubstitutions(n8n, claude);
   const nW = n8n.filter(isWrite);
   const cW = claude.filter(isWrite);
   const used = new Set();
@@ -654,7 +678,8 @@ export function compare(n8n, claude, { modelTexts = [], mode = "replay", runTime
   const reads = { onlyN8n: [...nR].filter((k) => !cR.has(k)), onlyClaude: [...cR].filter((k) => !nR.has(k)) };
   const order = nW.map(keyOf).join("|") === cW.map(keyOf).join("|");
   const ok = !writes.missing.length && !writes.extra.length && !writes.fieldDiffs.length;
-  return { ok, writes, reads, sameOrder: order, judge, runTimeMasked, unmapped: [...n8n, ...claude].filter((e) => e.unmapped).map(summary) };
+  const substituted = claude.filter((e) => e.substituted).map((e) => ({ effect: keyOf(e), ...e.substituted }));
+  return { ok, writes, reads, sameOrder: order, judge, runTimeMasked, unmapped: [...n8n, ...claude].filter((e) => e.unmapped).map(summary), ...(substituted.length ? { substituted } : {}) };
 }
 
 function summary(e) {

@@ -129,7 +129,6 @@
     "branches": [
       "Instagram prepare media fails on the 400; nothing after it runs"
     ],
-    "n8nCannotRun": "Every branch ends in a Send Email node (SMTP), and the bench has no SMTP server (the mock speaks HTTP only); the three Send Email nodes are also left without sender or recipient. n8n's run therefore fails at the email step in every variant, after the Graph calls",
     "offline": "No model: the hostile status text is aimed at the migrated workflow's own handling. The Graph calls are answered as the API documents them (container status FINISHED, then PUBLISHED); the e-mails cannot be observed"
   }
 }

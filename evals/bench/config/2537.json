@@ -1,9 +1,21 @@
 {
-  "why": "Instagram params holds the template's placeholders 'Your image url' and 'Your instagram business id' (the caption 'Here your Text of instagram post' is a value and stays). Filled with a dummy image URL and business account id on both sides. Placeholder fills only: no logic changes.",
+  "why": "Instagram params holds the template's placeholders 'Your image url' and 'Your instagram business id' (the caption 'Here your Text of instagram post' is a value and stays). Filled with a dummy image URL and business account id on both sides. Placeholder fills only: no logic changes. The three Send Email nodes leave the sender and the recipient empty (n8n 2.47.7 refuses the run: \"From Email\" and \"To Email\" are required); both name the person's own addresses, so they are filled with placeholder addresses on both sides (PROPOSALS P91: an empty field naming the person's own resource is a placeholder). Subject and body stay empty, as the template leaves them.",
   "n8n": {
     "Instagram params": {
       "parameters.assignments.assignments.0.value": "https://cdn.northwind-outfitters.example/instagram/spring-drop-2026.jpg",
       "parameters.assignments.assignments.1.value": "17841400000002537"
+    },
+    "Send Email": {
+      "parameters.fromEmail": "alerts@northwind-outfitters.example",
+      "parameters.toEmail": "team@northwind-outfitters.example"
+    },
+    "Send Email1": {
+      "parameters.fromEmail": "alerts@northwind-outfitters.example",
+      "parameters.toEmail": "team@northwind-outfitters.example"
+    },
+    "Send Email2": {
+      "parameters.fromEmail": "alerts@northwind-outfitters.example",
+      "parameters.toEmail": "team@northwind-outfitters.example"
     }
   },
   "claude": {
@@ -34,6 +46,30 @@
                   }
                 ]
               }
+            }
+          }
+        },
+        "Send Email": {
+          "patch": {
+            "params": {
+              "fromEmail": "alerts@northwind-outfitters.example",
+              "toEmail": "team@northwind-outfitters.example"
+            }
+          }
+        },
+        "Send Email1": {
+          "patch": {
+            "params": {
+              "fromEmail": "alerts@northwind-outfitters.example",
+              "toEmail": "team@northwind-outfitters.example"
+            }
+          }
+        },
+        "Send Email2": {
+          "patch": {
+            "params": {
+              "fromEmail": "alerts@northwind-outfitters.example",
+              "toEmail": "team@northwind-outfitters.example"
             }
           }
         }

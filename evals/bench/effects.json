@@ -18,7 +18,8 @@
     "https://replicate.com/docs/reference/http#models.predictions.create",
     "https://www.mediawiki.org/wiki/API:Main_page (GET /w/api.php)",
     "https://docs.n8n.io/integrations/builtin/app-nodes/ (Gmail, Google Drive, Google Sheets, Notion, Slack, Telegram, WordPress, Facebook Graph API node operations, 2026-11-14)",
-    "evals/mocks/connectors/*.json (captured tool names and input schemas)"
+    "evals/mocks/connectors/*.json (captured tool names and input schemas)",
+    "RFC 5321 (SMTP: the envelope's RCPT TO names every recipient, Bcc included) and RFC 5322 3.6.3 (To, Cc, Bcc; a Bcc address is not in the headers delivered); n8n-nodes-base 2.47.7 Send Email (nodemailer) and its smtp credential (host, port, secure, disableStartTls)"
   ],
   "ignore": [
     {
@@ -773,6 +774,41 @@
         "query.titles",
         "query.page"
       ]
+    },
+    {
+      "service": "mail",
+      "action": "send",
+      "effect": "write",
+      "method": "SMTP",
+      "host": "*",
+      "path": "^/send$",
+      "target": "body.to",
+      "fields": {
+        "to": {
+          "from": "body.to",
+          "cmp": "set"
+        },
+        "cc": {
+          "from": "body.cc",
+          "cmp": "set"
+        },
+        "bcc": {
+          "from": "body.bcc",
+          "cmp": "set"
+        },
+        "subject": {
+          "from": "body.subject",
+          "cmp": "text"
+        },
+        "body": {
+          "from": [
+            "body.text",
+            "body.html"
+          ],
+          "cmp": "text"
+        }
+      },
+      "targetCmp": "set"
     }
   ],
   "tools": [
@@ -910,6 +946,10 @@
         "thread": {
           "from": "args.replyThreadId",
           "cmp": "exact"
+        },
+        "bcc": {
+          "from": "args.bcc",
+          "cmp": "set"
         }
       },
       "targetCmp": "set"
@@ -1239,5 +1279,23 @@
         "cmp": "exact"
       }
     }
+  },
+  "substitutions": {
+    "about": "PROPOSALS P53: approved substitutions (the analyzer offers them; the bench approves them as the person would, README 'Substitutions'). A Claude-side write of a `claude` kind pairs with an n8n write of the `n8n` kind when n8n has no write of the Claude effect's own kind and target left to pair it with; it is then compared as the n8n kind, field by field, and reported as substituted. An SMTP message (the mock's SMTP sink logs it, method SMTP, path /send: recipients from the To and Cc headers, Bcc from the envelope, the subject, and the text part, else the HTML part) is the same effect as a mail connector's send to the same recipients with the same subject and body (RFC 5321/5322; Gmail API users.messages.send).",
+    "list": [
+      {
+        "id": "smtp-to-mail-connector",
+        "n8n": {
+          "service": "mail",
+          "action": "send"
+        },
+        "claude": [
+          {
+            "service": "gmail",
+            "action": "send"
+          }
+        ]
+      }
+    ]
   }
 }

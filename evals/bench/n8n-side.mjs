@@ -431,6 +431,19 @@ export function hostsAnswers(report) {
   return out;
 }
 
+// PROPOSALS P53: the substitutions the converter offers and blocks on (a tool-map substitution:
+// SMTP to the Gmail connector) are approved, as the person approves them in setup
+// (`overrides.json` `approve`, then a regenerate). Only the converter's offered ids, never one the
+// bench invents; each approval is recorded in the row (`substitutionsApproved`), apart from
+// placeholder fills, and the comparer pairs the substituted effect by its own table
+// (effects.json `substitutions`). -> [id]
+export function substitutionApprovals(definition, toolMaps) {
+  const offered = new Set(Object.keys(toolMaps?.substitutions ?? {}));
+  const out = new Set();
+  for (const st of Object.values(definition?.steps ?? {})) if (st?.substitution && !st.substitution.approved && offered.has(st.substitution.id)) out.add(st.substitution.id);
+  return [...out].sort();
+}
+
 export function credentialData(type, { wordpressUrl, s3Endpoint } = {}) {
   const t = {
     openAiApi: { apiKey: "bench-dummy", url: "https://api.openai.com/v1" },
@@ -453,6 +466,8 @@ export function credentialData(type, { wordpressUrl, s3Endpoint } = {}) {
     wordpressApi: { username: "bench", password: "bench-dummy", url: wordpressUrl ?? "https://wordpress.example", allowUnauthorizedCerts: false },
     mySql: { host: "mysql.invalid", database: "bench", user: "bench", password: "bench", port: 3306 },
     postgres: { host: "postgres.invalid", database: "bench", user: "bench", password: "bench", port: 5432 },
+    // PROPOSALS P53: the mock's SMTP sink (no TLS offered, any login accepted).
+    smtp: { host: "mock", port: 2525, secure: false, disableStartTls: true, user: "bench", password: "bench-dummy", hostName: "" },
     gmailOAuth2: oauth(),
     googleDriveOAuth2Api: oauth(),
     googleSheetsOAuth2Api: oauth(),

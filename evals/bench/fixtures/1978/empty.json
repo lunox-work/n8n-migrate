@@ -51,7 +51,6 @@
     "branches": [
       "no rows: nothing after Extract from File runs"
     ],
-    "offline": "The workbook is a generated stand-in for the template's sample file. Fake coupon's terms read $today. The sender is the template's user@example.com",
-    "n8nCannotRun": "Send Email sends over SMTP, and the bench has no SMTP server (PROPOSALS P53), so n8n's main path fails at its only write"
+    "offline": "The workbook is a generated stand-in for the template's sample file. Fake coupon's terms read $today. The sender is the template's user@example.com"
   }
 }

@@ -37,7 +37,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync, cpS
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState, siteAnswers, hostsAnswers, loadCredentialSpecs, ensureN8n } from "./n8n-side.mjs";
+import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState, siteAnswers, hostsAnswers, substitutionApprovals, loadCredentialSpecs, ensureN8n } from "./n8n-side.mjs";
 import { convertPlain, convertSkill, filledSource, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, withSynthetic, syntheticOutcome, nondeterministicTools } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
 import { fromHttp, fromTool, fromFile, replyOf, resultOf, isResult, lastOutputs, terminalNodes, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads } from "./compare.mjs";
@@ -345,6 +345,9 @@ async function benchTemplate(id, args, L) {
     // PROPOSALS P80: a step whose host comes from data is answered "public", as n8n runs it.
     const hosts = hostsAnswers(readJson(join(folder, "report.json")));
     if (Object.keys(hosts).length) claudeOv.push({ answers: hosts });
+    // PROPOSALS P53: the substitutions the converter offers are approved, as the person would.
+    const approve = substitutionApprovals(readJson(join(folder, "definition.json")), readJson(join(SKILL, "references", "tool-maps.json")));
+    if (approve.length) claudeOv.push({ approve });
   }
   if (folder && claudeOv.length && !S.overlayApplied) {
     const of = join(folder, "overrides.json");
@@ -352,10 +355,11 @@ async function benchTemplate(id, args, L) {
     for (const ov of claudeOv) {
       o.steps = { ...(o.steps ?? {}), ...(ov.steps ?? {}) };
       o.answers = { ...(o.answers ?? {}), ...(ov.answers ?? {}) };
+      if (ov.approve) o.approve = [...new Set([...(o.approve ?? []), ...ov.approve])];
     }
     writeFileSync(of, JSON.stringify(o, null, 2) + "\n");
     const r = spawnSync(process.execPath, [join(SKILL, "scripts", "convert.mjs"), "--regenerate", folder], { encoding: "utf8" });
-    S.overlayApplied = { status: r.status, steps: claudeOv.flatMap((ov) => Object.keys(ov.steps ?? {})), ...(claudeOv.some((ov) => ov.answers) ? { answers: Object.assign({}, ...claudeOv.map((ov) => ov.answers ?? {})) } : {}), ...(overlay?.timeCompression?.claude ? { timeCompression: Object.keys(overlay.timeCompression.claude.overrides?.steps ?? {}) } : {}) };
+    S.overlayApplied = { status: r.status, steps: claudeOv.flatMap((ov) => Object.keys(ov.steps ?? {})), ...(claudeOv.some((ov) => ov.answers) ? { answers: Object.assign({}, ...claudeOv.map((ov) => ov.answers ?? {})) } : {}), ...(claudeOv.some((ov) => ov.approve) ? { approved: claudeOv.flatMap((ov) => ov.approve ?? []) } : {}), ...(overlay?.timeCompression?.claude ? { timeCompression: Object.keys(overlay.timeCompression.claude.overrides?.steps ?? {}) } : {}) };
     save();
   }
   const g2 = async (f, skillError) => {
@@ -691,6 +695,8 @@ async function main() {
         credentialsAttached: t.steps["n8n:normal"]?.credentialsAttached ?? t.steps.n8nCheck?.credentialsAttached ?? [],
         // The n8n container's template-specific configuration (n8n-side.mjs templateEnv).
         n8nContainer: t.steps["n8n:normal"]?.container ?? t.steps.n8nCheck?.container ?? null,
+        // PROPOSALS P53: substitutions the bench approved as the person would (not placeholder fills).
+        substitutionsApproved: t.steps.overlayApplied?.approved ?? null,
         stubs: t.steps["n8n:normal"]?.sources ?? t.steps.n8nCheck?.sources ?? null,
         n8nModelModes: t.steps["n8n:normal"]?.modelModes ?? t.steps.n8nCheck?.modelModes ?? null,
         logVsFixture: t.steps["n8n:normal"]?.logVsFixture ?? t.steps.n8nCheck?.logVsFixture ?? null,
