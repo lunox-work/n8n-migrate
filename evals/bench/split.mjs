@@ -15,7 +15,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { stratum, FRESH_QUOTAS, FRESH_ROUND, freshPool } from "./fetch.mjs";
+import { stratum, FRESH_QUOTAS, FRESH_ROUND, freshPool, isCandidate } from "./fetch.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const SEED = 20261114;
@@ -71,7 +71,8 @@ export function formatSplits(doc) {
 // round-3 top-up's `fresh`; round 4 = the round-4 top-up's `fresh`, round-4 eligible). Same method
 // as split(): one Fisher-Yates shuffle with mulberry32(seed) over the pool sorted by id ascending;
 // each stratum's first quota[stratum] templates in shuffled order are drawn, skipping one excluded
-// after the draw (`excluded` or `r4Hand`), and the list keeps the shuffled order.
+// after the draw (`excluded`, `r4Hand`, or `r4: ineligible` from a later amendment of the round's
+// rule; fetch.mjs isCandidate), and the list keeps the shuffled order.
 // Each seed was fixed (EXCLUSIONS.md) before its draw and before any candidate was opened.
 export const FRESH_SEED = 20261115;
 export const FRESH_SEEDS = { 3: FRESH_SEED, 4: 20261116 };
@@ -86,7 +87,7 @@ export function drawFresh(candidates, quotas = FRESH_QUOTAS, seed = FRESH_SEED) 
   const used = {};
   const drawn = [];
   for (const e of order) {
-    if (e.excluded || e.r4Hand) continue;
+    if (!isCandidate(e)) continue;
     const s = stratum(e.wakeup);
     if ((used[s] ?? 0) >= (quotas[s] ?? 0)) continue;
     used[s] = (used[s] ?? 0) + 1;
@@ -133,7 +134,7 @@ async function writeFresh(corpusPath, out, redraw = null, round = FRESH_ROUND) {
   const key = freshKey(round);
   const taken = new Set([...splits.dev, ...splits.heldOut, ...Object.entries(splits).filter(([k]) => /^heldOutFresh\d*$/.test(k) && k !== key).flatMap(([, v]) => v.templates ?? [])].map((r) => r.id));
   const pool = freshPool(corpus.templates, round).filter((e) => !taken.has(e.id));
-  const candidates = pool.filter((e) => !e.excluded && !e.r4Hand);
+  const candidates = pool.filter(isCandidate);
   const { drawn, strata, short } = drawFresh(pool, FRESH_QUOTAS, seed);
   if (Object.keys(short).length) throw new Error(`fresh draw short of ${JSON.stringify(short)}: top up with fetch.mjs --top-up --round ${round} first`);
   let r = splits.rounds.find((x) => x.round === round);

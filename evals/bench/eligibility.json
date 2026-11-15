@@ -45,8 +45,48 @@
       { "id": "required-empty", "type": "n8n-nodes-base.facebookGraphApi", "param": "node", "when": "empty", "evidence": "n8n 2.47.7: Parameter \"Node\" is required (PROPOSALS P65)" },
       { "id": "required-empty", "type": "n8n-nodes-base.twitter", "operation": "tweet:create", "param": "text", "when": "empty", "evidence": "n8n 2.47.7: Parameter \"Text\" is required (PROPOSALS P65)" },
       { "id": "required-empty", "type": "n8n-nodes-base.googleSheets", "operations": ["sheet:update", "sheet:appendOrUpdate"], "minVersion": 4, "param": "columns.matchingColumns", "when": "empty", "evidence": "n8n 2.47.7: columns.matchingColumns is required (PROPOSALS P65)" },
-      { "id": "chat-model-in-completion-class", "type": "@n8n/n8n-nodes-langchain.lmOpenAi", "param": "model", "when": "matches", "pattern": "^(gpt-3\\.5-turbo|gpt-4|chatgpt|o[1-9])(?!.*-instruct)", "evidence": "n8n 2.47.7's LangChain OpenAI completion class: \"is a chat model and not a text-in/text-out LLM\" (PROPOSALS P49)" }
-    ]
+      { "id": "chat-model-in-completion-class", "type": "@n8n/n8n-nodes-langchain.lmOpenAi", "param": "model", "when": "matches", "pattern": "^(gpt-3\\.5-turbo|gpt-4|chatgpt|o[1-9])(?!.*-instruct)", "evidence": "n8n 2.47.7's LangChain OpenAI completion class: \"is a chat model and not a text-in/text-out LLM\" (PROPOSALS P49)" },
+      { "id": "required-empty", "amendment": 1, "type": "n8n-nodes-base.linkedIn", "operation": "post:create", "param": "text", "when": "empty", "evidence": "n8n 2.47.7 LinkedIn node: The Text field is empty. Enter text to publish the post. (its code refuses an empty post text)" }
+    ],
+    "amendment1": {
+      "$doc": "Round 4 eligibility, amendment 1 (EXCLUSIONS.md, 2026-11-16): three self-fail clauses the first lists missed, each decided from the template file and n8n's own node descriptions, never from a bench result. A reason they give carries `amendment: 1`; a list rule above with `amendment: 1` is part of the same amendment. A node with pinned data is not checked (n8n checks no pinned node).",
+      "params": "evals/bench/eligibility-params.json",
+      "requiredEmpty": {
+        "$doc": "(a) A main-branch node's parameter that n8n's node description (`params`, the version group of the node's typeVersion) marks required, that n8n shows for the node's parameters (displayOptions, defaults filled in), and whose value is empty the way n8n-workflow's addToIssuesIfMissing counts it (string, options or dateTime '' or unset; multiOptions []; resource locator without a value) makes n8n refuse the run (\"Parameter ... is required\"). Not counted, as P91 placeholders the overlay fills: a resource locator or workflow selector, a value n8n loads from the person's account (`account` in `params`), and the fields named in `placeholders` (a string naming the person's own account resource: a sender or recipient, a chat, a spreadsheet, document or list id, a webhook of their own). A collection's or fixed collection's inner required fields are not checked.",
+        "placeholders": {
+          "n8n-nodes-base.emailSend": ["fromEmail", "toEmail"],
+          "n8n-nodes-base.gmail": ["sendTo"],
+          "n8n-nodes-base.microsoftOutlook": ["toRecipients"],
+          "n8n-nodes-base.telegram": ["chatId"],
+          "n8n-nodes-base.twilio": ["from", "to"],
+          "n8n-nodes-base.whatsApp": ["phoneNumberId", "recipientPhoneNumber"],
+          "n8n-nodes-base.googleSheets": ["sheetId"],
+          "n8n-nodes-base.googleDocs": ["documentURL"],
+          "n8n-nodes-base.trello": ["listId"],
+          "n8n-nodes-base.discord": ["webhookUri"],
+          "n8n-nodes-base.facebookGraphApi": ["node"],
+          "n8n-nodes-base.facebookTrigger": ["appId"]
+        }
+      },
+      "python": {
+        "$doc": "(b) A main-branch Code node (or Code tool) in Python runs on n8n 2.x's native Python runner (the runners image n8nio/runners:2.47.7, standard library only); n8n 2.0 removed the Pyodide runtime. Code that needs Pyodide or a third-party package fails there whatever the data: a construct in `constructs` (matched on the code without comments and string literals), `await` outside an `async def`, or an import of a module outside `stdlib` (Python 3.14's sys.stdlib_module_names without private `_` names, which count as standard) that is not inside a `try:` block.",
+        "constructs": [
+          { "what": "uses micropip, Pyodide's package installer", "pattern": "\\bmicropip\\b", "evidence": "n8n 2.x has no Pyodide runtime (PROPOSALS P95)" },
+          { "what": "uses the pyodide module", "pattern": "\\bpyodide\\b", "evidence": "n8n 2.x has no Pyodide runtime (PROPOSALS P95)" },
+          { "what": "imports Pyodide's js bridge", "pattern": "^\\s*(from\\s+js\\s+import\\b|import\\s+js\\b)", "evidence": "n8n 2.x has no Pyodide runtime (PROPOSALS P95)" },
+          { "what": "converts a Pyodide JsProxy (.to_py())", "pattern": "\\.to_py\\s*\\(", "evidence": "n8n 2.x has no Pyodide runtime (PROPOSALS P95)" },
+          { "what": "reads _input", "pattern": "(^|[^\\w.])_input\\b", "evidence": "n8n 2.47.7's native runner: name '_input' is not defined (PROPOSALS P92, P95)" }
+        ],
+        "awaitEvidence": "n8n 2.47.7's native runner: 'await' outside async function (PROPOSALS P92, P95)",
+        "importEvidence": "the runners image has the standard library only: No module named ... (PROPOSALS P92, P95)",
+        "stdlib": ["abc", "annotationlib", "antigravity", "argparse", "array", "ast", "asyncio", "atexit", "base64", "bdb", "binascii", "bisect", "builtins", "bz2", "cProfile", "calendar", "cmath", "cmd", "code", "codecs", "codeop", "collections", "colorsys", "compileall", "compression", "concurrent", "configparser", "contextlib", "contextvars", "copy", "copyreg", "csv", "ctypes", "curses", "dataclasses", "datetime", "dbm", "decimal", "difflib", "dis", "doctest", "email", "encodings", "ensurepip", "enum", "errno", "faulthandler", "fcntl", "filecmp", "fileinput", "fnmatch", "fractions", "ftplib", "functools", "gc", "genericpath", "getopt", "getpass", "gettext", "glob", "graphlib", "grp", "gzip", "hashlib", "heapq", "hmac", "html", "http", "idlelib", "imaplib", "importlib", "inspect", "io", "ipaddress", "itertools", "json", "keyword", "linecache", "locale", "logging", "lzma", "mailbox", "marshal", "math", "mimetypes", "mmap", "modulefinder", "msvcrt", "multiprocessing", "netrc", "nt", "ntpath", "nturl2path", "numbers", "opcode", "operator", "optparse", "os", "pathlib", "pdb", "pickle", "pickletools", "pkgutil", "platform", "plistlib", "poplib", "posix", "posixpath", "pprint", "profile", "pstats", "pty", "pwd", "py_compile", "pyclbr", "pydoc", "pydoc_data", "pyexpat", "queue", "quopri", "random", "re", "readline", "reprlib", "resource", "rlcompleter", "runpy", "sched", "secrets", "select", "selectors", "shelve", "shlex", "shutil", "signal", "site", "smtplib", "socket", "socketserver", "sqlite3", "sre_compile", "sre_constants", "sre_parse", "ssl", "stat", "statistics", "string", "stringprep", "struct", "subprocess", "symtable", "sys", "sysconfig", "syslog", "tabnanny", "tarfile", "tempfile", "termios", "textwrap", "this", "threading", "time", "timeit", "tkinter", "token", "tokenize", "tomllib", "trace", "traceback", "tracemalloc", "tty", "turtle", "turtledemo", "types", "typing", "unicodedata", "unittest", "urllib", "uuid", "venv", "warnings", "wave", "weakref", "webbrowser", "winreg", "winsound", "wsgiref", "xml", "xmlrpc", "zipapp", "zipfile", "zipimport", "zlib", "zoneinfo"]
+      },
+      "chatInput": {
+        "$doc": "(c) A main-branch model, chain, assistant or agent node whose prompt is its input's `chatInput` field: a prompt-type option (`promptType` in `params`) that is `auto`, a prompt left at its `={{ $json.chatInput }}` default (`chatInputDefault`), or a prompt expression naming `$json.chatInput`. When no main-path ancestor can supply the field (a node in `suppliers`, or an ancestor whose parameters or pinned data name `chatInput`), n8n refuses the item: \"No prompt specified\".",
+        "suppliers": ["@n8n/n8n-nodes-langchain.chatTrigger", "@n8n/n8n-nodes-langchain.manualChatTrigger", "n8n-nodes-base.executeWorkflowTrigger"],
+        "evidence": "n8n 2.47.7 getPromptInputByType: No prompt specified, expected in an input field called 'chatInput'"
+      }
+    }
   },
   "bench": {
     "$doc": "What the bench can stand in for, per main-branch step: by type (and operation) first, else by the analyzer's kind. local = runs inside n8n with no outside service; mock = HTTP through the bench mock; shim = a model node the model shim answers (shimModels); pin = a node-level stub (README Closed environment: the fallback); pending:<fix> = covered by a bounded bench fix in `fixes` (reported `pending` until the fix has `built`, then `built`); none = no bench counterpart, so the template has no baseline. A step whose HTTP address names a loopback host (`loopbackHosts`) is pending:P52. A step that needs a credential (references/nodes.json mapping.secrets, kinds connector, http, db, vector, media or blocked), ships none and whose type is not in `credentialAttached` is pending:P61.",

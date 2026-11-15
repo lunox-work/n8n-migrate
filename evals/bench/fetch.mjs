@@ -329,8 +329,12 @@ export function freshPool(templates, round = FRESH_ROUND) {
   if (!cfg) throw new Error(`no top-up for round ${round}`);
   return templates.filter((e) => (cfg.overflow && e.pool === "overflow") || (e.pool === "fresh" && (e.topUp ?? FRESH_ROUND) === round));
 }
+// A candidate: not excluded after the draw, no hand call, and not made ineligible by a later
+// amendment of the round's rule (`r4: ineligible` with `r4Amended`; it keeps its pool and its place
+// in the shuffle, eligible.mjs --reapply-walk).
+export const isCandidate = (e) => !e.excluded && !e.r4Hand && e.r4 !== "ineligible";
 export function freshCandidates(templates, round = FRESH_ROUND) {
-  return freshPool(templates, round).filter((e) => !e.excluded && !e.r4Hand);
+  return freshPool(templates, round).filter(isCandidate);
 }
 
 export function freshShortfall(templates, quotas = FRESH_QUOTAS, round = FRESH_ROUND) {
@@ -348,11 +352,14 @@ export function startPageOf(corpus, round) {
 
 // Round-4 eligibility of a new entry: {r4, r4Reasons?}, from the template file and the analyzer
 // report already made (EXCLUSIONS.md "Round 4 eligibility").
-export function r4Verdict(wf, report, entry, { lists, nodes }) {
-  const v = checkEligibility({ wf, report, lists, nodes, corpusEntry: entry });
+// `r4Amended`: ineligible only through an amendment made after the walk (EXCLUSIONS.md "Round 4
+// eligibility, amendment 1"); such an entry stays in pool `fresh`, so the draw's shuffle is the
+// walk's, and the draw skips it.
+export function r4Verdict(wf, report, entry, { lists, nodes, params }) {
+  const v = checkEligibility({ wf, report, lists, nodes, corpusEntry: entry, params });
   if (v.eligible) return { r4: "eligible" };
   const reasons = [...new Set(v.reasons.map((x) => `${x.clause}${x.id ? `/${x.id}` : ""}: ${x.detail}`.slice(0, 160)))];
-  return { r4: "ineligible", r4Reasons: reasons };
+  return { r4: "ineligible", r4Reasons: reasons, ...(v.baseEligible ? { r4Amended: Math.max(...v.reasons.map((x) => x.amendment ?? 0)) } : {}) };
 }
 
 async function topUp() {
@@ -470,7 +477,7 @@ async function topUp() {
       if (elig) {
         if (handOf.has(w.id)) e.r4Hand = handOf.get(w.id);
         Object.assign(e, r4Verdict(wf, report, e, elig));
-        e.pool = e.r4 === "eligible" ? "fresh" : "fresh-other";
+        e.pool = e.r4 === "eligible" || e.r4Amended ? "fresh" : "fresh-other";
       } else e.pool = e.outcome === "subscription" ? "fresh" : "fresh-other";
       if (process.stderr.isTTY) process.stderr.write(`\r${entries.length} new entries, shortfall ${JSON.stringify(shortfall())}   `);
     }
