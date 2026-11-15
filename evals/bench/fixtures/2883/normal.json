@@ -79,7 +79,7 @@
         "shape": "assumed",
         "none": "no captured search connector; the Claude side serves the same responses through its HTTP mock"
       },
-      "note": "HTTP Request v4.2 GET https://serpapi.com/search?q=<chunk>&api_key=<…>&engine=google, once per chunk through Split Data for SerpAPI Batching. The api_key value is the expression $credentials.SerpAPI.key; n8n 2.47.7's expression data has no $credentials, so (derived from the source, unverified by a run) the parameter fails to resolve and n8n's run stops at the first request in every variant. The query is model-written, so one result list answers every chunk"
+      "note": "HTTP Request v4.2 GET https://serpapi.com/search?q=<chunk>&api_key=<…>&engine=google, once per chunk through Split Data for SerpAPI Batching. The api_key value is the expression $credentials.SerpAPI.key; n8n 2.47.7 resolves it without an error and sends the request (canned check, R4e 2026-11-16), so the run goes on to Format SerpAPI Organic Results. The query is model-written, so one result list answers every chunk"
     },
     {
       "node": "Perform Jina AI Analysis Request",
@@ -180,6 +180,6 @@
     "branches": [
       "SerpAPI loop over the query chunks → Format SerpAPI Organic Results → Jina loop → per page: context agent → report agent → reply"
     ],
-    "offline": "Search queries, extracted contexts and the report are model-driven (n8n's replies are recorded); the only effect is the chat reply. n8n's own run is expected to stop at Perform SerpAPI Search Request on the template's $credentials expression (see that read's note), so n8n's baseline fails there; the later reads are answered for a side that gets past it. Both memory buffers share the custom session key my_test_session"
+    "offline": "Search queries, extracted contexts and the report are model-driven (n8n's replies are recorded); the only effect is the chat reply. n8n 2.47.7 resolves the template's $credentials expression in the api_key parameter without an error and sends Perform SerpAPI Search Request, so its baseline runs past it: normal and hostile succeed, empty stops at Format SerpAPI Organic Results and malformed at the Jina requests, as their branches say (canned check, R4e 2026-11-16). Both memory buffers share the custom session key my_test_session"
   }
 }
