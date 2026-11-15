@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "template": 2201,
+  "sha256": "34684551130cab5fc727aff5ac8444958cc55046d13a69447ed97762579ab731",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "models": [],
+  "writes": [],
+  "about": "the run ends failed (rate limit) instead of completed",
+  "trigger": {
+    "node": "Chat Trigger",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "2b4d6f8a0c1e3a5c7e9b1d3f5a7c9e0d",
+          "action": "sendMessage",
+          "chatInput": "Can I bring a camping chair?"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "OpenAI Assistant",
+      "service": "openai-assistants",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/threads/runs",
+            "status": 200,
+            "body": {
+              "id": "run_bench2201a1",
+              "object": "thread.run",
+              "created_at": 1794819600,
+              "assistant_id": "asst_Mb6Frb3v7R91kNuEEMXzBETs",
+              "thread_id": "thread_bench2201a1",
+              "status": "queued",
+              "started_at": null,
+              "expires_at": 1794820200,
+              "completed_at": null,
+              "failed_at": null,
+              "required_action": null,
+              "last_error": null,
+              "model": "gpt-4-turbo-preview",
+              "instructions": "You are an assistant created to help visitors of the Summer Eclectic Marathon Music Festival.",
+              "tools": [
+                {
+                  "type": "file_search"
+                }
+              ],
+              "metadata": {}
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.openai.com/v1/threads/thread_bench2201a1/runs/run_bench2201a1",
+            "status": 200,
+            "body": {
+              "id": "run_bench2201a1",
+              "object": "thread.run",
+              "created_at": 1794819600,
+              "assistant_id": "asst_Mb6Frb3v7R91kNuEEMXzBETs",
+              "thread_id": "thread_bench2201a1",
+              "status": "failed",
+              "started_at": 1794819601,
+              "expires_at": null,
+              "completed_at": null,
+              "failed_at": 1794819605,
+              "required_action": null,
+              "last_error": {
+                "code": "rate_limit_exceeded",
+                "message": "You exceeded your current quota, please check your plan and billing details."
+              },
+              "model": "gpt-4-turbo-preview",
+              "instructions": "You are an assistant created to help visitors of the Summer Eclectic Marathon Music Festival.",
+              "tools": [
+                {
+                  "type": "file_search"
+                }
+              ],
+              "metadata": {}
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.openai.com/v1/threads/thread_bench2201a1/messages",
+            "status": 200,
+            "body": {
+              "object": "list",
+              "data": [],
+              "first_id": null,
+              "last_id": null,
+              "has_more": false
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector for OpenAI Assistants; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "OpenAI node v1 (LangChain vendor node), resource assistant, message, prompt from the chat trigger's chatInput: no tools and no memory are connected, so there is no assistant retrieve or update; LangChain's OpenAIAssistantRunnable calls createAndRun (POST /v1/threads/runs {assistant_id, thread: {messages: [{role: user, content}]}}), polls the run (one GET, answered with its final status) and lists the thread's messages (order desc), keeping the run's assistant text as output. The assistant (with its festival file) is remote, so its reply is fixed here; Assistants v2 shapes"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "the runnable throws 'Unexpected run status failed'; the node fails"
+    ],
+    "offline": "No model the bench swaps: the reply is the remote assistant's fixed answer, and it is the chat reply, the only effect. The setup path (Get File → Upload File to OpenAI → Create new Assistant) hangs off a disabled manual trigger and is not run"
+  }
+}

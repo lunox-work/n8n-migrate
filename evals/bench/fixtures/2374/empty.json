@@ -1,0 +1,287 @@
+{
+  "schemaVersion": 1,
+  "template": 2374,
+  "sha256": "0e3ae55db5c6cdca557d8af4f341159706c351daf25e1188a15469d9da1b93b3",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "models": [
+    "Information Extractor",
+    "OpenAI Chat Model"
+  ],
+  "writes": [
+    "Clear Existing Comments",
+    "Qdrant Vector Store",
+    "Export To Sheets"
+  ],
+  "about": "the story has no comments",
+  "reads": [
+    {
+      "node": "Hacker News",
+      "service": "hackernews",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "http://hn.algolia.com/api/v1/items/41123155",
+            "status": 200,
+            "body": {
+              "id": 41123155,
+              "created_at": "2024-07-31T13:00:00.000Z",
+              "created_at_i": 1722430800,
+              "type": "story",
+              "author": "launchhn",
+              "title": "Show HN: We rebuilt our automation platform from scratch",
+              "url": "https://example.com/launch",
+              "text": null,
+              "points": 412,
+              "parent_id": null,
+              "story_id": 41123155,
+              "children": [],
+              "options": []
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Hacker News connector; the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "Hacker News v1 article get with comments: GET http://hn.algolia.com/api/v1/items/41123155 (Algolia's item tree, every comment with a children array, which Get Comments flattens four levels deep)"
+    },
+    {
+      "node": "Embeddings OpenAI",
+      "service": "openai-embeddings",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/embeddings",
+            "status": 200,
+            "body": {
+              "object": "list",
+              "data": [],
+              "model": "text-embedding-3-small",
+              "usage": {
+                "prompt_tokens": 0,
+                "total_tokens": 0
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector for OpenAI embeddings"
+      },
+      "note": "Embeddings OpenAI v1 (text-embedding-3-small) for the Qdrant insert: one batched POST /v1/embeddings for the 0 comment documents (each under the 4000-character chunk size); base64 float32 vectors as the openai SDK asks"
+    },
+    {
+      "node": "Find Comments",
+      "service": "qdrant",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "http://qdrant:6333/collections/hn_comments/points/scroll",
+            "status": 200,
+            "body": {
+              "result": {
+                "points": [],
+                "next_page_offset": null
+              },
+              "status": "ok",
+              "time": 0.0021
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Qdrant connector"
+      },
+      "note": "child execution (Trigger Insights runs this workflow again through Execute Workflow Trigger): HTTP Request with the qdrantApi credential, POST http://qdrant:6333/collections/hn_comments/points/scroll {limit 500, filter story_id, with_vector}. The vectors are 8-dimensional stand-ins (the clustering step that would read them cannot run on the bench's n8n)"
+    },
+    {
+      "node": "Get Payload of Points",
+      "service": "qdrant",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "http://qdrant:6333/collections/hn_comments/points",
+            "status": 200,
+            "body": {
+              "result": [],
+              "status": "ok",
+              "time": 0.0012
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Qdrant connector"
+      },
+      "note": "child execution, after the Python clustering: POST /collections/hn_comments/points {ids, with_payload: true} per cluster with 3+ points; answered with the first four points (a side that clusters differently gets the same payloads)"
+    }
+  ],
+  "writeReplies": [
+    {
+      "node": "Clear Existing Comments",
+      "service": "qdrant",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "http://qdrant:6333/collections/hn_comments/points/delete",
+            "status": 200,
+            "body": {
+              "result": {
+                "operation_id": 2374,
+                "status": "acknowledged"
+              },
+              "status": "ok",
+              "time": 0.0009
+            }
+          }
+        ]
+      },
+      "note": "HTTP Request with the qdrantApi credential: POST http://qdrant:6333/collections/hn_comments/points/delete {filter: metadata.story_id = 41123155}; the template's literal host qdrant:6333 goes through the proxy to the mock"
+    },
+    {
+      "node": "Qdrant Vector Store",
+      "service": "qdrant",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "http://qdrant:6333/",
+            "status": 200,
+            "body": {
+              "title": "qdrant - vector search engine",
+              "version": "1.12.4",
+              "commit": "bench"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "http://qdrant:6333/collections",
+            "status": 200,
+            "body": {
+              "result": {
+                "collections": [
+                  {
+                    "name": "hn_comments"
+                  }
+                ]
+              },
+              "status": "ok",
+              "time": 0.0001
+            }
+          },
+          {
+            "method": "PUT",
+            "url": "http://qdrant:6333/collections/hn_comments/points",
+            "status": 200,
+            "body": {
+              "result": {
+                "operation_id": 2375,
+                "status": "completed"
+              },
+              "status": "ok",
+              "time": 0.004
+            }
+          }
+        ]
+      },
+      "note": "Qdrant Vector Store v1 insert through the qdrantApi credential (the bench points its URL at the mock, matched by path): the JS client checks the server version (GET /), LangChain's ensureCollection lists collections (GET /collections; hn_comments exists, so no create), then upserts PUT /collections/hn_comments/points?wait=true with one point per comment (content + metadata item_id, item_author, story_id, story_title)"
+    },
+    {
+      "node": "Export To Sheets",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1CPA_SNpWr2OjZ2KMi49fZ6MA9yC9uik8PMOILan7qYE",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1CPA_SNpWr2OjZ2KMi49fZ6MA9yC9uik8PMOILan7qYE/values/'Sheet1'",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:E1",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Story ID",
+                  "Insight",
+                  "Sentiment",
+                  "Number of Responses",
+                  "Raw Responses"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1CPA_SNpWr2OjZ2KMi49fZ6MA9yC9uik8PMOILan7qYE/values/Sheet1!2:2:append",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1CPA_SNpWr2OjZ2KMi49fZ6MA9yC9uik8PMOILan7qYE",
+              "tableRange": "Sheet1!A1:E1",
+              "updates": {
+                "spreadsheetId": "1CPA_SNpWr2OjZ2KMi49fZ6MA9yC9uik8PMOILan7qYE",
+                "updatedRange": "Sheet1!A2:F2",
+                "updatedRows": 1,
+                "updatedColumns": 6,
+                "updatedCells": 6
+              }
+            }
+          }
+        ]
+      },
+      "note": "child execution: Sheets v4.4 append with useAppend, autoMapInputData, sheet by name Sheet1: sheet properties, GET values/'Sheet1' (header only), the extractor's 'Suggested Improvements' and Prep Output's 'Story Title' keys are not columns, so n8n writes the widened header (PUT values/Sheet1!1:1, write default), then POST values/Sheet1!2:2:append (valueInputOption USER_ENTERED assumed)"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Get Comments yields an empty list; Split Out emits nothing; no insert, no child execution"
+    ],
+    "n8nCannotRun": "Apply K-means Clustering Algorithm is a Code node in Python (numpy, scikit-learn), and the bench image has no Python runner, so the child execution that Trigger Insights waits for fails there in every variant, before Information Extractor and Export To Sheets",
+    "offline": "The parent run (clear, Hacker News, insert) runs in n8n; the insights part runs in a child execution of the same workflow (Execute Workflow with $workflow.id), awaited by the bench. Insight and sentiment are model-driven; the clustering is numeric and cannot be reproduced without the Python runner. Trigger Insights is left unlisted (validate warns): it only starts the child execution, whose reads and write are listed"
+  }
+}

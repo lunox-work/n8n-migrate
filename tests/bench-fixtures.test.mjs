@@ -61,6 +61,21 @@ test("held-out 21-40 of splits.json (round 2) have fixtures pinned to their hash
   }
 });
 
+// Round 3's fresh held-out (splits.json heldOutFresh) feeds release point 3; its fixtures were
+// written blind, and each pins the hash heldOutFresh recorded.
+test("round 3's fresh held-out of splits.json have fixtures pinned to their hash", () => {
+  const splits = JSON.parse(readFileSync(join(BENCH, "splits.json"), "utf8"));
+  const round3 = splits.rounds.find((r) => r.round === 3).heldOut;
+  assert.deepEqual(round3, splits.heldOutFresh.templates.map((r) => r.id));
+  for (const { id, sha256 } of splits.heldOutFresh.templates) {
+    for (const v of VARIANTS) {
+      const p = join(BENCH, "fixtures", String(id), `${v}.json`);
+      assert.ok(existsSync(p), `${id}/${v}`);
+      assert.equal(JSON.parse(readFileSync(p, "utf8")).sha256, sha256, `${id}/${v}`);
+    }
+  }
+});
+
 // Rolling held-out (PLAN Phase 6, evals/bench/rounds.mjs): the seeded split stays; held-out
 // 1-20, scored at release point 1, join dev in round 2, held-out 21-40 score release point 2 and
 // join dev in round 3.

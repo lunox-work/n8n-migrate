@@ -1,0 +1,401 @@
+{
+  "schemaVersion": 1,
+  "template": 3169,
+  "sha256": "3a00f3538dca4cd5b026d7ae582d2afd7691a3493db3296a55317fe11fffee1e",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "reads": [],
+  "models": [
+    "Email Summarization Chain",
+    "DeepSeek R1",
+    "PDF Analyzer",
+    "Gemini 2.0 Flash",
+    "Analyze image",
+    "Create final summary",
+    "OpenRouter Chat Model1"
+  ],
+  "writes": [
+    "Save summary text",
+    "Save summary PDF",
+    "Save summary image",
+    "Upload attachments",
+    "Send final summary"
+  ],
+  "writeReplies": [
+    {
+      "node": "Save summary text",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1rBa0RI6XFfMerylVCV0dlKhJT_f4UAd8S6jyYX4aRRo",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Foglio1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1rBa0RI6XFfMerylVCV0dlKhJT_f4UAd8S6jyYX4aRRo/values/'Foglio1'",
+            "status": 200,
+            "body": {
+              "range": "Foglio1!A1:F1",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "DATE",
+                  "EMAIL",
+                  "ID",
+                  "SUBJECT",
+                  "TYPE",
+                  "SUMMARY"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1rBa0RI6XFfMerylVCV0dlKhJT_f4UAd8S6jyYX4aRRo:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1rBa0RI6XFfMerylVCV0dlKhJT_f4UAd8S6jyYX4aRRo",
+              "replies": [
+                {}
+              ]
+            }
+          },
+          {
+            "method": "PUT",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1rBa0RI6XFfMerylVCV0dlKhJT_f4UAd8S6jyYX4aRRo/values/Foglio1!2:2",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1rBa0RI6XFfMerylVCV0dlKhJT_f4UAd8S6jyYX4aRRo",
+              "updatedRange": "Foglio1!A2:F2",
+              "updatedRows": 1,
+              "updatedColumns": 6,
+              "updatedCells": 6
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.5 append, columns defined below (TYPE email), gid 0 = Foglio1, Google Sheets OAuth2: sheet properties, GET values/'Foglio1' (header row, checked against the column schema), POST :batchUpdate (append one row), PUT values/Foglio1!2:2. The three save nodes write to the same unchanged mock sheet, so each writes row 2"
+    },
+    {
+      "node": "Save summary PDF",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1rBa0RI6XFfMerylVCV0dlKhJT_f4UAd8S6jyYX4aRRo",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Foglio1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1rBa0RI6XFfMerylVCV0dlKhJT_f4UAd8S6jyYX4aRRo/values/'Foglio1'",
+            "status": 200,
+            "body": {
+              "range": "Foglio1!A1:F1",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "DATE",
+                  "EMAIL",
+                  "ID",
+                  "SUBJECT",
+                  "TYPE",
+                  "SUMMARY"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1rBa0RI6XFfMerylVCV0dlKhJT_f4UAd8S6jyYX4aRRo:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1rBa0RI6XFfMerylVCV0dlKhJT_f4UAd8S6jyYX4aRRo",
+              "replies": [
+                {}
+              ]
+            }
+          },
+          {
+            "method": "PUT",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1rBa0RI6XFfMerylVCV0dlKhJT_f4UAd8S6jyYX4aRRo/values/Foglio1!2:2",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1rBa0RI6XFfMerylVCV0dlKhJT_f4UAd8S6jyYX4aRRo",
+              "updatedRange": "Foglio1!A2:F2",
+              "updatedRows": 1,
+              "updatedColumns": 6,
+              "updatedCells": 6
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.5 append, columns defined below (TYPE pdf), gid 0 = Foglio1, Google Sheets OAuth2: sheet properties, GET values/'Foglio1' (header row, checked against the column schema), POST :batchUpdate (append one row), PUT values/Foglio1!2:2. The three save nodes write to the same unchanged mock sheet, so each writes row 2"
+    },
+    {
+      "node": "Save summary image",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1rBa0RI6XFfMerylVCV0dlKhJT_f4UAd8S6jyYX4aRRo",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Foglio1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1rBa0RI6XFfMerylVCV0dlKhJT_f4UAd8S6jyYX4aRRo/values/'Foglio1'",
+            "status": 200,
+            "body": {
+              "range": "Foglio1!A1:F1",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "DATE",
+                  "EMAIL",
+                  "ID",
+                  "SUBJECT",
+                  "TYPE",
+                  "SUMMARY"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1rBa0RI6XFfMerylVCV0dlKhJT_f4UAd8S6jyYX4aRRo:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1rBa0RI6XFfMerylVCV0dlKhJT_f4UAd8S6jyYX4aRRo",
+              "replies": [
+                {}
+              ]
+            }
+          },
+          {
+            "method": "PUT",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1rBa0RI6XFfMerylVCV0dlKhJT_f4UAd8S6jyYX4aRRo/values/Foglio1!2:2",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1rBa0RI6XFfMerylVCV0dlKhJT_f4UAd8S6jyYX4aRRo",
+              "updatedRange": "Foglio1!A2:F2",
+              "updatedRows": 1,
+              "updatedColumns": 6,
+              "updatedCells": 6
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.5 append, columns defined below (TYPE image), gid 0 = Foglio1, Google Sheets OAuth2: sheet properties, GET values/'Foglio1' (header row, checked against the column schema), POST :batchUpdate (append one row), PUT values/Foglio1!2:2. The three save nodes write to the same unchanged mock sheet, so each writes row 2"
+    },
+    {
+      "node": "Upload attachments",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "uploadType": "multipart"
+            },
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1Att3169m",
+              "name": "Untitled",
+              "mimeType": "application/octet-stream"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "uploadType": "resumable"
+            },
+            "status": 200,
+            "headers": {
+              "location": "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=bench-3169"
+            },
+            "body": ""
+          },
+          {
+            "method": "PUT",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "upload_id": "bench-3169"
+            },
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1Att3169r",
+              "name": "Untitled"
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1Att3169m",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1Att3169m",
+              "name": "attachment",
+              "parents": [
+                "1CV5PgqBQIVFEacmbApdCApjNEtoNPzXQ"
+              ]
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1Att3169r",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1Att3169r",
+              "name": "attachment",
+              "parents": [
+                "1CV5PgqBQIVFEacmbApdCApjNEtoNPzXQ"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Google Drive v3 file upload into folder 1CV5PgqBQIVFEacmbApdCApjNEtoNPzXQ (driveId My Drive), once per PDF and per image: a binary that is held in memory goes up as one multipart POST (uploadType=multipart), one stored on n8n's filesystem (an id) as the resumable POST + PUT; which one depends on how the trigger's items carry their binaries on the bench (unverified), so both are answered. Then PATCH /drive/v3/files/<id>?addParents=…&supportsAllDrives=true&fields=* with name (yyyyLLddhhiiss-<file name>) and mimeType"
+    },
+    {
+      "node": "Send final summary",
+      "service": "telegram",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.telegram.org/bot{token}/sendMessage",
+            "status": 200,
+            "body": {
+              "ok": true,
+              "result": {
+                "message_id": 3169,
+                "from": {
+                  "id": 123456,
+                  "is_bot": true,
+                  "first_name": "Bench",
+                  "username": "bench_bot"
+                },
+                "chat": {
+                  "id": -1001234563169,
+                  "title": "Inbox summaries",
+                  "type": "supergroup"
+                },
+                "date": 1794819960,
+                "text": "summary"
+              }
+            }
+          }
+        ]
+      },
+      "note": "Telegram v1.2 send message: POST https://api.telegram.org/bot<token>/sendMessage {chat_id, text}; chat_id is the overlay's fill (-1001234563169) for the template's CHAT_ID placeholder"
+    }
+  ],
+  "about": "a truncated PDF and a .jpeg photo (the Switch matches only jpg or png), with an HTML body that is only a broken tag",
+  "trigger": {
+    "node": "Email Trigger (IMAP)",
+    "kind": "app",
+    "items": [
+      {
+        "json": {
+          "textHtml": "<div><p>Scanned document attached",
+          "textPlain": null,
+          "metadata": {
+            "message-id": "<scan42.3169@office.example>",
+            "mime-version": "1.0",
+            "content-type": "multipart/mixed; boundary=\"bench\""
+          },
+          "attributes": {
+            "uid": 3171
+          },
+          "date": "Mon, 16 Nov 2026 08:51:00 +0000",
+          "from": "scanner@office.example",
+          "subject": "Scan 0042",
+          "to": "events@northwind-traders.example"
+        },
+        "binary": {
+          "attachment_0": {
+            "data": "JVBERi0xLjcKMSAwIG9iaiA8PCAvVHlwZSAvQ2F0YWxvZw==",
+            "mimeType": "application/pdf",
+            "fileName": "scan-0042.pdf",
+            "fileExtension": "pdf",
+            "fileSize": "1 kB"
+          },
+          "attachment_1": {
+            "data": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAGCAIAAABrW6giAAAADklEQVR4nGPgQgIMlHIAbf4C0au/bK4AAAAASUVORK5CYII=",
+            "mimeType": "image/jpeg",
+            "fileName": "photo.jpeg",
+            "fileExtension": "jpeg",
+            "fileSize": "1 kB"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "branches": [
+      "Switch: the PDF goes to upload and Extract from PDF (which fails on the truncated file); photo.jpeg matches no rule and is dropped"
+    ],
+    "offline": "IMAP is not HTTP: the trigger's items (with attachment binaries) are the fixture's, run through the Code-node swap (--via cli). Every summary is model-driven (n8n's replies are recorded). Email Summarization Chain runs in nodeInputBinary mode with binaryDataKey set to the markdown text, but Convert text's items carry no binary, so its loader finds no document; what the chain then does (an empty summary or an error) is unverified"
+  }
+}

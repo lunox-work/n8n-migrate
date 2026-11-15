@@ -1,0 +1,21 @@
+{
+  "why": "Send final summary's chatId is the template's placeholder text CHAT_ID. Filled with a dummy chat id on both sides. Placeholder fill only: no logic changes.",
+  "n8n": {
+    "Send final summary": {
+      "parameters.chatId": "-1001234563169"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Send final summary": {
+          "patch": {
+            "params": {
+              "chatId": "-1001234563169"
+            }
+          }
+        }
+      }
+    }
+  }
+}

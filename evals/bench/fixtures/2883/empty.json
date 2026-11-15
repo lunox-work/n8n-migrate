@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "template": 2883,
+  "sha256": "ef1b85589a7c2dd250d131bbc2c2bba9ea5c5876bdf21c1b94d12c111d7ae4d5",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "models": [
+    "Generate Search Queries using LLM",
+    "Extract Relevant Context via LLM",
+    "Generate Comprehensive Research Report",
+    "LLM Response Provider (OpenRouter)"
+  ],
+  "writes": [],
+  "about": "SerpAPI finds nothing: the response has no organic_results field",
+  "trigger": {
+    "node": "Chat Message Trigger",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "3e5a7c9e1b2d4f6a8c0e2b4d6f8a1c3e",
+          "action": "sendMessage",
+          "chatInput": "qzv heat pump xkcd lorem"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Perform SerpAPI Search Request",
+      "service": "serpapi",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://serpapi.com/search",
+            "query": {
+              "engine": "google"
+            },
+            "status": 200,
+            "body": {
+              "search_metadata": {
+                "id": "bench2883",
+                "status": "Success",
+                "total_time_taken": 0.91
+              },
+              "search_parameters": {
+                "engine": "google",
+                "google_domain": "google.com",
+                "device": "desktop"
+              },
+              "search_information": {
+                "organic_results_state": "Fully empty"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured search connector; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2 GET https://serpapi.com/search?q=<chunk>&api_key=<…>&engine=google, once per chunk through Split Data for SerpAPI Batching. The api_key value is the expression $credentials.SerpAPI.key; n8n 2.47.7's expression data has no $credentials, so (derived from the source, unverified by a run) the parameter fails to resolve and n8n's run stops at the first request in every variant. The query is model-written, so one result list answers every chunk"
+    },
+    {
+      "node": "Perform Jina AI Analysis Request",
+      "service": "jina-reader",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://r.jina.ai/https://www.energy-research.example/heat-pumps-cold-climate",
+            "status": 200,
+            "headers": {
+              "content-type": "text/plain; charset=utf-8"
+            },
+            "body": ""
+          },
+          {
+            "method": "GET",
+            "url": "https://r.jina.ai/https://www.home-energy.example/blog/heat-pumps-freezing",
+            "status": 200,
+            "headers": {
+              "content-type": "text/plain; charset=utf-8"
+            },
+            "body": ""
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Jina connector; the Claude side serves the same pages through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2 with Header Auth: GET https://r.jina.ai/<result url>, once per result through Split Data for Jina AI Batching; Jina Reader answers text/plain markdown into data"
+    },
+    {
+      "node": "Fetch Wikipedia Information",
+      "service": "wikipedia",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://en.wikipedia.org/w/api.php",
+            "query": {
+              "list": "search"
+            },
+            "status": 200,
+            "body": {
+              "batchcomplete": "",
+              "query": {
+                "searchinfo": {
+                  "totalhits": 1200
+                },
+                "search": [
+                  {
+                    "ns": 0,
+                    "title": "Air source heat pump",
+                    "pageid": 3150122,
+                    "size": 51000,
+                    "wordcount": 6900,
+                    "snippet": "An air source heat pump",
+                    "timestamp": "2026-10-30T12:00:00Z"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://en.wikipedia.org/w/api.php",
+            "query": {
+              "prop": "extracts"
+            },
+            "status": 200,
+            "body": {
+              "batchcomplete": "",
+              "query": {
+                "pages": {
+                  "3150122": {
+                    "pageid": 3150122,
+                    "ns": 0,
+                    "title": "Air source heat pump",
+                    "extract": ""
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Wikipedia connector; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "agent tool (Wikipedia v1, LangChain WikipediaQueryRun): GET /w/api.php?action=query&list=search&srsearch=<model-written>&format=json, then prop=extracts&explaintext&titles=<title> for the top results; the search answers by shape, the extract by prop"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Format SerpAPI Organic Results reads organic_results.length on a missing field and fails (or returns its 'No search results found.' item)"
+    ],
+    "offline": "Search queries, extracted contexts and the report are model-driven (n8n's replies are recorded); the only effect is the chat reply. n8n's own run is expected to stop at Perform SerpAPI Search Request on the template's $credentials expression (see that read's note), so n8n's baseline fails there; the later reads are answered for a side that gets past it. Both memory buffers share the custom session key my_test_session"
+  }
+}
