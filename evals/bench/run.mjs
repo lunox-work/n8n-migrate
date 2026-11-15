@@ -104,7 +104,7 @@ async function n8n() {
   const removed = await cleanupBenchWorkflows();
   if (removed) log(`removed ${removed} leftover bench workflow(s) from n8n (P69)`);
   const shim = await startShim({ port: container.MODEL_SHIM_PORT, log });
-  n8nEnv = { container, runWorkflow, shim };
+  n8nEnv = { container, runWorkflow, shim, cleanupBenchWorkflows };
   return n8nEnv;
 }
 
@@ -128,6 +128,15 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
     await memoryGate({ log, need: 25 });
     session.memoryChecked = true;
   }
+  // PROPOSALS P83: a container the last run's OOM kill (or anything else) stopped is started
+  // again first, so one template's kill never becomes the next template's bench error.
+  if (!env.container.state().running) {
+    log(`n8n container is not running (P83): starting it again before ${id}/${variant}`);
+    await env.container.up({ extraEnv: benchEnv(), log });
+    const removed = await env.cleanupBenchWorkflows();
+    if (removed) log(`removed ${removed} bench workflow(s) the stopped run left (P69)`);
+    env.dirty = false;
+  }
   // PROPOSALS P55, P63: the last run left state in n8n's process (a chat buffer, an in-memory
   // store, a client cache): restart n8n so this run sees only its own fixture.
   if (env.dirty) {
@@ -135,13 +144,13 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
     env.dirty = false;
   }
   env.dirty = keepsProcessState(prep.wf);
-  let r = await runN8n(prep, { shim: env.shim, modelSession: session, runWorkflow: env.runWorkflow, copyIn: env.container.copyIn, timeoutS: 900 });
+  let r = await runN8n(prep, { shim: env.shim, modelSession: session, runWorkflow: env.runWorkflow, copyIn: env.container.copyIn, containerState: env.container.state, timeoutS: 900 });
   let httpAttempt = null;
   if (r.fallbackable) {
     log(`${id}/${variant}: ${r.failedNode} failed on its http source, retrying with its n8n pin`);
     httpAttempt = { failedNode: r.failedNode, error: r.result.error ?? null, logVsFixture: logVsFixture(prep, r.result.effects) };
     prep = prepare(id, variant, { pinFallback: [r.failedNode] });
-    r = await runN8n(prep, { shim: env.shim, modelSession: session, runWorkflow: env.runWorkflow, copyIn: env.container.copyIn, timeoutS: 900 });
+    r = await runN8n(prep, { shim: env.shim, modelSession: session, runWorkflow: env.runWorkflow, copyIn: env.container.copyIn, containerState: env.container.state, timeoutS: 900 });
   }
   if (env.shim.lastError && /budget|usage limit/i.test(env.shim.lastError.message)) throw env.shim.lastError;
   const res = r.result;

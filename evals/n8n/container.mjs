@@ -223,6 +223,15 @@ export async function restart({ log = console.error } = {}) {
   return ms;
 }
 
+// PROPOSALS P83: the n8n container's state after a run. A container the kernel killed at its
+// memory cap is stopped with State.OOMKilled true (exit 137) until it is started again.
+export function state(name = NAME) {
+  const r = docker(["inspect", "-f", "{{.State.Running}}|{{.State.OOMKilled}}|{{.State.ExitCode}}", name], { allowFail: true });
+  if (r.status !== 0) return { exists: false, running: false, oomKilled: false, exitCode: null };
+  const [run, oom, code] = r.stdout.trim().split("|");
+  return { exists: true, running: run === "true", oomKilled: oom === "true", exitCode: Number(code) };
+}
+
 export function down({ purge = false } = {}) {
   docker(["rm", "-f", NAME, MOCK_NAME], { allowFail: true });
   for (const n of [NET, EDGE]) docker(["network", "rm", n], { allowFail: true });

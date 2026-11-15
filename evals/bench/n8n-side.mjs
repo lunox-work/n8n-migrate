@@ -650,6 +650,14 @@ export function formResult(e) {
   return { status: "form", error: { node, message: msg.slice(0, 300) }, nodes: {}, effects: [] };
 }
 
+// PROPOSALS P83: the kernel killed the n8n container at its memory cap during the run (the
+// REST call fails with "fetch failed" and docker reports State.OOMKilled). That is what the
+// template does in 1 GiB, reported as a failed baseline with status `oom` (like `timeout`),
+// never a bench error; the bench starts the container again before the next run.
+export function oomResult(e, st = {}) {
+  return { status: "oom", error: { node: null, message: `the n8n container was killed at its memory cap (1 GiB${st.exitCode != null ? `, exit ${st.exitCode}` : ""}) during the run (${String(e?.message ?? e).slice(0, 160)})` }, nodes: {}, effects: [], oomKilled: true };
+}
+
 // Splits the mock log into service calls and model calls.
 export function splitLog(effects) {
   const service = [];
@@ -706,7 +714,8 @@ export function recordingInterrupted({ result, modelCalls = [], models = [], con
 
 // Runs one prepared template in n8n. `shim` is the started model shim; `modelSession` its
 // session for this run. Retries once with pins for nodes that failed on their http source.
-export async function runN8n(prep, { shim, modelSession, runWorkflow, copyIn, timeoutS = 240, allowFallback = true }) {
+// `containerState` (container.mjs state): read when the run throws, so an OOM kill is named (P83).
+export async function runN8n(prep, { shim, modelSession, runWorkflow, copyIn, containerState = null, timeoutS = 240, allowFallback = true }) {
   // A host tag shared by two model nodes maps to the first (validate.mjs errors on such a fixture).
   const tagToNode = {};
   for (const m of prep.models) tagToNode[m.tag] ??= m.node;
@@ -725,10 +734,14 @@ export async function runN8n(prep, { shim, modelSession, runWorkflow, copyIn, ti
     else if (REFUSED_RE.test(String(e.message))) r = refusedResult(e);
     else if (UNKNOWN_CREDENTIAL_RE.test(String(e.message))) r = unsupportedResult(e);
     else if (FORM_RE.test(String(e.message))) r = formResult(e);
-    else throw e;
+    else {
+      const st = containerState?.();
+      if (st?.oomKilled && !st.running) r = oomResult(e, st);
+      else throw e;
+    }
   }
   const calls = shim.session.calls.map((c) => ({ ...c, node: tagToNode[c.tag] ?? c.tag }));
   const failedNode = r.error?.node ?? Object.entries(r.nodes ?? {}).find(([, runs]) => runs.some((x) => x.error))?.[0];
-  const fallbackable = allowFallback && failedNode && prep.fixture.reads.some((x) => x.node === failedNode && x.n8n && x.http?.responses?.length) && prep.sources[failedNode]?.startsWith("http");
+  const fallbackable = allowFallback && !r.oomKilled && failedNode && prep.fixture.reads.some((x) => x.node === failedNode && x.n8n && x.http?.responses?.length) && prep.sources[failedNode]?.startsWith("http");
   return { result: r, modelCalls: calls, failedNode, fallbackable };
 }
