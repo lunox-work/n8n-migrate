@@ -1,0 +1,264 @@
+{
+  "schemaVersion": 1,
+  "template": 4635,
+  "sha256": "5e50f53eb8667d6709178337a173230a862c122420ca72a4149c7dff45d81703",
+  "variant": "malformed",
+  "now": "2026-11-16T10:40:00.000Z",
+  "about": "post ids with stray line breaks and an empty entry, the limit field left empty; comments without an author, without a profile URL and with null text; the enrichment returns a profile with null sections",
+  "trigger": {
+    "node": "On form submission",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "Post IDs/URLs": "\n7334385757769416704,,\r\n https://www.linkedin.com/feed/update/urn:li:activity:7318557377971023872/ ,",
+          "How many comments you want to scrape?": null,
+          "submittedAt": "2026-11-16T05:39:41.512-05:00",
+          "formMode": "production"
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [],
+  "writes": [
+    "Run Apify Comments Scraper",
+    "Run Apify Comments Scraper Loop",
+    "Run Apify Profile Enrichment",
+    "Create Google Sheet",
+    "Add Leads"
+  ],
+  "writeReplies": [
+    {
+      "node": "Run Apify Comments Scraper",
+      "service": "apify",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.apify.com/v2/acts/apimaestro~linkedin-post-comments-replies-engagements-scraper-no-cookies/run-sync-get-dataset-items",
+            "status": 201,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": [
+              {
+                "comment_id": "7401200001",
+                "text": "anonymous comment",
+                "posted_at": {
+                  "timestamp": 1794815060000,
+                  "date": "2026-11-16 08:21:00",
+                  "relative": "2h"
+                },
+                "is_edited": false,
+                "is_pinned": false,
+                "comment_url": "https://www.linkedin.com/feed/update/urn:li:activity:7334385757769416704?commentUrn=bench1",
+                "author": null,
+                "stats": {
+                  "total_reactions": 3,
+                  "reactions": {
+                    "like": 3
+                  },
+                  "comments": 0
+                },
+                "replies": [],
+                "post_input": "7334385757769416704"
+              },
+              {
+                "comment_id": "7401200002",
+                "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                "posted_at": {
+                  "timestamp": 1794815120000,
+                  "date": "2026-11-16 08:22:00",
+                  "relative": "3h"
+                },
+                "is_edited": false,
+                "is_pinned": false,
+                "comment_url": "https://www.linkedin.com/feed/update/urn:li:activity:7334385757769416704?commentUrn=bench2",
+                "author": {
+                  "name": "No URL Person",
+                  "headline": null
+                },
+                "stats": {
+                  "total_reactions": 6,
+                  "reactions": {
+                    "like": 6
+                  },
+                  "comments": 0
+                },
+                "replies": [],
+                "post_input": "7334385757769416704"
+              },
+              {
+                "comment_id": "7401200003",
+                "text": null,
+                "posted_at": {
+                  "timestamp": 1794815180000,
+                  "date": "2026-11-16 08:23:00",
+                  "relative": "4h"
+                },
+                "is_edited": false,
+                "is_pinned": false,
+                "comment_url": "https://www.linkedin.com/feed/update/urn:li:activity:7334385757769416704?commentUrn=bench3",
+                "author": {
+                  "name": "Dev Patel",
+                  "headline": "Growth Lead at Lumenly",
+                  "profile_url": "https://www.linkedin.com/in/dev-patel-growth",
+                  "profile_picture": "https://media.licdn.com/dms/image/bench/dev-patel-growth.jpg"
+                },
+                "stats": {
+                  "total_reactions": 9,
+                  "reactions": {
+                    "like": 9
+                  },
+                  "comments": 0
+                },
+                "replies": [],
+                "post_input": "7334385757769416704"
+              }
+            ]
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Apify connector"
+      },
+      "note": "Apify run-sync-get-dataset-items for apimaestro's LinkedIn post comments actor (JSON body postIds, page_number 1, sortOrder, limit; token from the overlay): one dataset item per comment, the commenter under author (item fields assumed from the actor's public listing)"
+    },
+    {
+      "node": "Run Apify Profile Enrichment",
+      "service": "apify",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.apify.com/v2/acts/apimaestro~linkedin-profile-batch-scraper-no-cookies-required/run-sync-get-dataset-items",
+            "status": 201,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": [
+              {
+                "profileUrl": "https://www.linkedin.com/in/dev-patel-growth",
+                "basic_info": null,
+                "experience": null,
+                "education": null,
+                "certifications": null
+              }
+            ]
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Apify connector"
+      },
+      "note": "Apify run-sync-get-dataset-items for apimaestro's LinkedIn profile batch actor (usernames: one batch of profile URLs): one item per profile, profileUrl plus basic_info, experience, education, certifications (the shape the template's sheet columns flatten)"
+    },
+    {
+      "node": "Create Google Sheet",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1LeadsBench4635NewSheet0aB1cD2eF3gH4iJ5kL6m",
+              "properties": {
+                "title": "LinkedIn-Posts-Comments-Leads-(run date)",
+                "locale": "en_US",
+                "timeZone": "America/New_York"
+              },
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 1532071949,
+                    "title": "Leads",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ],
+              "spreadsheetUrl": "https://docs.google.com/spreadsheets/d/1LeadsBench4635NewSheet0aB1cD2eF3gH4iJ5kL6m/edit"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Sheets connector that creates spreadsheets"
+      },
+      "note": "Sheets v4.5 spreadsheet create: POST /v4/spreadsheets {properties: {title}, sheets: [{properties: {title: Leads}}]}; the title carries the run date"
+    },
+    {
+      "node": "Add Leads",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1LeadsBench4635NewSheet0aB1cD2eF3gH4iJ5kL6m",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 1532071949,
+                    "title": "Leads",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1LeadsBench4635NewSheet0aB1cD2eF3gH4iJ5kL6m/values/'Leads'",
+            "status": 200,
+            "body": {
+              "range": "Leads!A1:Z1000",
+              "majorDimension": "ROWS"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1LeadsBench4635NewSheet0aB1cD2eF3gH4iJ5kL6m/values/Leads!1:1",
+            "status": 200,
+            "body": {
+              "range": "Leads!A1:Z1",
+              "majorDimension": "ROWS"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Sheets connector that writes cells"
+      },
+      "note": "Sheets v4.5 append (autoMap, useAppend, USER_ENTERED) to the new spreadsheet's Leads tab by sheet id: sheet properties, the (empty) tab and its header row Leads!1:1, then the header and rows (POST values append / PUT, write-default)"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "More runs needed?: false (no summary on the aggregated item): one page of comments",
+      "Loop Over Profiles: one batch of profile URLs"
+    ],
+    "offline": "The Apify token is empty in the template (Set APIFY Token), filled by the overlay. More runs needed? reads summary.totalComments on Aggregate's output, which holds only items, so the pagination branch is off the path for every dataset. The form trigger answers when the run ends (responseMode lastNode) with a redirect to Google Sheets; Convert to File is disabled, and n8n passes its items through (no file is written)"
+  }
+}

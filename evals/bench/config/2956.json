@@ -1,0 +1,36 @@
+{
+  "why": "Workflow Variables sets GOOGLE_API_KEY to the template's placeholder '[Your-Google-API-Key]'. Filled with a placeholder key on both sides. Placeholder fill only: no logic changes.",
+  "n8n": {
+    "Workflow Variables": {
+      "parameters.assignments.assignments.0.value": "bench-google-api-key"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Workflow Variables": {
+          "patch": {
+            "params": {
+              "assignments": {
+                "assignments": [
+                  {
+                    "id": "e656b8ef-4266-4f50-bd41-703b4bdb04df",
+                    "name": "GOOGLE_API_KEY",
+                    "type": "string",
+                    "value": "bench-google-api-key"
+                  },
+                  {
+                    "id": "32db428d-a2e2-48a0-92c6-3880e744d140",
+                    "name": "VIDEO_ID",
+                    "type": "string",
+                    "value": "={{ $json.query.videoId }}"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

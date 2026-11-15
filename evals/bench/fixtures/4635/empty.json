@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "template": 4635,
+  "sha256": "5e50f53eb8667d6709178337a173230a862c122420ca72a4149c7dff45d81703",
+  "variant": "empty",
+  "now": "2026-11-16T10:40:00.000Z",
+  "about": "a post with no comments: the comments actor returns an empty dataset",
+  "trigger": {
+    "node": "On form submission",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "Post IDs/URLs": "7318557377971023872",
+          "How many comments you want to scrape?": null,
+          "submittedAt": "2026-11-16T05:39:41.512-05:00",
+          "formMode": "production"
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [],
+  "writes": [
+    "Run Apify Comments Scraper",
+    "Run Apify Comments Scraper Loop",
+    "Run Apify Profile Enrichment",
+    "Create Google Sheet",
+    "Add Leads"
+  ],
+  "writeReplies": [
+    {
+      "node": "Run Apify Comments Scraper",
+      "service": "apify",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.apify.com/v2/acts/apimaestro~linkedin-post-comments-replies-engagements-scraper-no-cookies/run-sync-get-dataset-items",
+            "status": 201,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": []
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Apify connector"
+      },
+      "note": "Apify run-sync-get-dataset-items for apimaestro's LinkedIn post comments actor (JSON body postIds, page_number 1, sortOrder, limit; token from the overlay): one dataset item per comment, the commenter under author (item fields assumed from the actor's public listing)"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no comment item: Aggregate gets nothing and the run ends after the scraper"
+    ],
+    "offline": "The Apify token is empty in the template (Set APIFY Token), filled by the overlay. More runs needed? reads summary.totalComments on Aggregate's output, which holds only items, so the pagination branch is off the path for every dataset. The form trigger answers when the run ends (responseMode lastNode) with a redirect to Google Sheets; Convert to File is disabled, and n8n passes its items through (no file is written)"
+  }
+}

@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 1,
+  "template": 3131,
+  "sha256": "645dd921048965111188c4535919df9600b2604ddfa118c70503d4d423c6a71e",
+  "variant": "empty",
+  "now": "2026-11-16T09:30:00.000Z",
+  "about": "an empty chat message; the calendar is free",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "3131-empty-a1f1",
+          "action": "sendMessage",
+          "chatInput": ""
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Check Availability",
+      "service": "google-calendar",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/calendar/v3/freeBusy",
+            "status": 200,
+            "body": {
+              "kind": "calendar#freeBusy",
+              "timeMin": "2026-11-18T08:00:00.000Z",
+              "timeMax": "2026-11-18T19:00:00.000Z",
+              "calendars": {
+                "user@example.com": {
+                  "busy": []
+                }
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Calendar connector; the Claude side serves the same Calendar API responses through its HTTP mock"
+      },
+      "note": "agent tool: Google Calendar v1.3 calendar availability: POST /calendar/v3/freeBusy {timeMin, timeMax (model-written), items: [{id: user@example.com}], timeZone}; the node answers {available: no busy slot} by default. The busy list is the calendar's whatever window the model asks for; the calendar id is the template's as exported"
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model"
+  ],
+  "writes": [
+    "Creat event",
+    "Add data"
+  ],
+  "writeReplies": [
+    {
+      "node": "Creat event",
+      "service": "google-calendar",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/calendar/v3/calendars/user%40example.com/events",
+            "status": 200,
+            "body": {
+              "kind": "calendar#event",
+              "etag": "\"3326190000000000\"",
+              "id": "b3nch3131evt0a1b2c3d4e5f6g",
+              "status": "confirmed",
+              "htmlLink": "https://www.google.com/calendar/event?eid=YjNuY2gzMTMxZXZ0",
+              "created": "2026-11-16T09:31:00.000Z",
+              "updated": "2026-11-16T09:31:00.000Z",
+              "summary": "(as created)",
+              "creator": {
+                "email": "user@example.com",
+                "self": true
+              },
+              "organizer": {
+                "email": "user@example.com",
+                "self": true
+              },
+              "start": {
+                "dateTime": "2026-11-18T10:00:00+01:00",
+                "timeZone": "Africa/Casablanca"
+              },
+              "end": {
+                "dateTime": "2026-11-18T11:00:00+01:00",
+                "timeZone": "Africa/Casablanca"
+              },
+              "iCalUID": "b3nch3131evt0a1b2c3d4e5f6g@google.com",
+              "sequence": 0,
+              "reminders": {
+                "useDefault": true
+              },
+              "eventType": "default"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Calendar connector"
+      },
+      "note": "agent tool: event create, POST /calendar/v3/calendars/user%40example.com/events {start, end} (model-written); the reply's times are fixed"
+    },
+    {
+      "node": "Add data",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1JAbg-TJZr7fqiRMAjQY6baDAkQoigzUd4YqbTPoQqWE",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Feuille 1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1JAbg-TJZr7fqiRMAjQY6baDAkQoigzUd4YqbTPoQqWE/values/'Feuille 1'",
+            "status": 200,
+            "body": {
+              "range": "'Feuille 1'!A1:D3",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Nom complet",
+                  "Numéro de telephone",
+                  "Date / heure ",
+                  "Confirmé"
+                ],
+                [
+                  "Samir Alaoui",
+                  "+212 612 345 678",
+                  "2026-11-17 15:00",
+                  "oui"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1JAbg-TJZr7fqiRMAjQY6baDAkQoigzUd4YqbTPoQqWE:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1JAbg-TJZr7fqiRMAjQY6baDAkQoigzUd4YqbTPoQqWE",
+              "replies": [
+                {}
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Sheets connector that writes cells"
+      },
+      "note": "agent tool: Sheets v4.5 append (defineBelow: Nom complet, Date / heure, Numéro de telephone from $fromAI) to RDV Medcin, tab Feuille 1: sheet properties, the tab, POST :batchUpdate, then PUT the row (write-default)"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "the agent answers the empty message, then Window Buffer Memory fails to save the turn (canned n8n run: 'input values have 3 keys, you must specify an input key or pass only 1 key as input'), so the run is expected to fail in n8n"
+    ],
+    "offline": "Which tools the agent calls, and with what times, is model-driven; the free/busy reply is fixed. Window Buffer Memory keys on the chat session and holds one turn per run, so a booking that needs the patient's confirmation does not complete in one message. The calendar id user@example.com is the template's own"
+  }
+}

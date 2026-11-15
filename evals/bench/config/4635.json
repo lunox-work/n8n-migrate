@@ -1,0 +1,42 @@
+{
+  "why": "Set APIFY Token sets APIFY_TOKEN to an empty string (the person's Apify token, left blank), which the three Apify calls put in their URL. Filled with a placeholder token on both sides. Placeholder fill only: no logic changes.",
+  "n8n": {
+    "Set APIFY Token": {
+      "parameters.assignments.assignments.0.value": "bench-apify-token"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Set APIFY Token": {
+          "patch": {
+            "params": {
+              "assignments": {
+                "assignments": [
+                  {
+                    "id": "20febbcc-0a59-4a89-8932-9bbb34b0e9f9",
+                    "name": "APIFY_TOKEN",
+                    "type": "string",
+                    "value": "bench-apify-token"
+                  },
+                  {
+                    "id": "291758a3-c73f-4db5-a2b3-5f88664a8b53",
+                    "name": "limit",
+                    "type": "number",
+                    "value": "={{ $json.limit }}"
+                  },
+                  {
+                    "id": "921b72d5-3688-4324-9d36-50668548344e",
+                    "name": "postIds",
+                    "type": "array",
+                    "value": "={{ $json.postIds }}"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
