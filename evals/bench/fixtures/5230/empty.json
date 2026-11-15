@@ -114,11 +114,17 @@
   "writes": [
     "MongoDB"
   ],
+  "db": {
+    "mongodb": {
+      "collections": {
+        "blog": []
+      }
+    }
+  },
   "expect": {
     "branches": [
       "no items: the run stops at Read RSS News Feeds / Filter"
     ],
-    "offline": "Only the Get Articles Daily branch runs from this trigger (the template has three more schedule triggers for later steps, each starting from a MongoDB query). The articles' dates are relative to the run's $now (Filter compares with $now minus one day), so the fixture's `now` must be the run clock for the window to hold. MongoDB inserts cannot be answered offline",
-    "n8nCannotRun": "MongoDB, the main path's last step, has no bench sidecar (only postgres and mysql are seeded), so n8n's MongoDB node cannot connect"
+    "offline": "Only the Get Articles Daily branch runs from this trigger (the template has three more schedule triggers for later steps, each starting from a MongoDB query). The articles' dates are relative to the run's $now (Filter compares with $now minus one day), so the fixture's `now` must be the run clock for the window to hold. MongoDB is the run's own database in the bench's MongoDB sidecar (PROPOSALS P66), with an empty blog collection"
   }
 }

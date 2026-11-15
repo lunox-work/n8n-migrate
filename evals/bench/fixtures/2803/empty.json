@@ -133,14 +133,11 @@
       "node": "Check Data on Database Is Exist",
       "service": "postgres",
       "db": {
-        "engine": "postgres",
-        "seed": {
-          "public.top_trends": []
-        }
+        "engine": "postgres"
       },
       "n8n": {
         "items": [],
-        "why": "fallback pin: the same rows for every loop item, so the exist/insert branch cannot vary per item; prefer the db seed"
+        "why": "the Claude side's rows for this database read; the n8n side queries db.postgres"
       },
       "connector": {
         "shape": "assumed",
@@ -305,6 +302,26 @@
       "note": "Telegram Params leaves telegram_chat_id empty in the template, so the real API refuses; the request is still the effect compared"
     }
   ],
+  "db": {
+    "postgres": {
+      "tables": {
+        "public.top_trends": {
+          "columns": {
+            "id": "serial primary key",
+            "prompt": "text not null",
+            "isposted": "boolean",
+            "createdat": "timestamptz default now()",
+            "updatedat": "timestamptz",
+            "deletedat": "timestamptz",
+            "code": "text",
+            "tag": "text",
+            "thumbnail_url": "text"
+          },
+          "rows": []
+        }
+      }
+    }
+  },
   "expect": {
     "branches": [
       "filter the image content returns no items; Loop Over Items finishes at once; nothing is posted"

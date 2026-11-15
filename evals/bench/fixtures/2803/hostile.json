@@ -171,14 +171,11 @@
       "node": "Check Data on Database Is Exist",
       "service": "postgres",
       "db": {
-        "engine": "postgres",
-        "seed": {
-          "public.top_trends": []
-        }
+        "engine": "postgres"
       },
       "n8n": {
         "items": [],
-        "why": "fallback pin: the same rows for every loop item, so the exist/insert branch cannot vary per item; prefer the db seed"
+        "why": "the Claude side's rows for this database read; the n8n side queries db.postgres"
       },
       "connector": {
         "shape": "assumed",
@@ -332,7 +329,7 @@
         "responses": [
           {
             "method": "POST",
-            "url": "https://graph.facebook.com/v20.0/media",
+            "url": "https://graph.facebook.com/v20.0/17841400000000001/media",
             "status": 200,
             "body": {
               "id": "17900000000000001"
@@ -349,7 +346,7 @@
         "responses": [
           {
             "method": "POST",
-            "url": "https://graph.facebook.com/v20.0/media_publish",
+            "url": "https://graph.facebook.com/v20.0/17841400000000001/media_publish",
             "status": 200,
             "body": {
               "id": "17950000000000001"
@@ -439,6 +436,26 @@
       "note": "Telegram Params leaves telegram_chat_id empty in the template, so the real API refuses; the request is still the effect compared"
     }
   ],
+  "db": {
+    "postgres": {
+      "tables": {
+        "public.top_trends": {
+          "columns": {
+            "id": "serial primary key",
+            "prompt": "text not null",
+            "isposted": "boolean",
+            "createdat": "timestamptz default now()",
+            "updatedat": "timestamptz",
+            "deletedat": "timestamptz",
+            "code": "text",
+            "tag": "text",
+            "thumbnail_url": "text"
+          },
+          "rows": []
+        }
+      }
+    }
+  },
   "expect": {
     "branches": [
       "If Data is Exist: false → insert; both status checks pass → Telegram1"
