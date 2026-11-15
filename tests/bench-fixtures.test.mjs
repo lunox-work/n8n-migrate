@@ -253,3 +253,50 @@ test("rounds: dropped ids leave dev; a later round's held-out is unreadable befo
   assert.deepEqual(unreadableIds(s, 3), [6]);
   assert.deepEqual(withoutHeldOut(["6", 1, 5], s), { kept: [1], skipped: ["6", 5] });
 });
+
+// Round 4 (EXCLUSIONS.md, Round 4 eligibility and Round 4 held-out), written before release point
+// 3 is committed, so it is asked for by number while round 3 stays current: round 3's held-out
+// joins dev, the 20 of those 120 templates that fail round-4 eligibility leave, and 20 fresh
+// templates from a round-4 top-up are held out, drawn by seed 20261116 per stratum.
+test("round 4: dev is the 100 round-4-eligible templates (all with fixtures), held-out 20 fresh", async () => {
+  const { readSplits, roundOf, devWithFixtures, unreadableIds } = await import("../evals/bench/rounds.mjs");
+  const { drawFresh, FRESH_SEEDS } = await import("../evals/bench/split.mjs");
+  const { FRESH_QUOTAS, freshPool, stratum } = await import("../evals/bench/fetch.mjs");
+  const splits = readSplits();
+  const corpus = JSON.parse(readFileSync(join(BENCH, "corpus.json"), "utf8"));
+  const ids = (rows) => rows.map((r) => r.id);
+  const r3 = roundOf(splits, 3);
+  const r4 = roundOf(splits, 4);
+  const fresh = splits.heldOutFresh4;
+  assert.equal(r4.round, 4);
+  assert.equal(r4.dev.length, 100);
+  assert.equal(r4.dropped.length, 20);
+  assert.deepEqual(ids(r4.promoted), ids(r3.heldOut));
+  assert.deepEqual(ids(r4.dev), [...ids(r3.dev), ...ids(r3.heldOut)].filter((id) => !ids(r4.dropped).includes(id)));
+  assert.equal(devWithFixtures(splits, undefined, 4).length, 100);
+  assert.deepEqual(ids(r4.heldOut), ids(fresh.templates));
+  assert.equal(r4.heldOut.length, 20);
+  // Disjoint from every template any earlier round used.
+  const used = new Set([...ids(r3.dev), ...ids(r3.heldOut)]);
+  for (const id of ids(r4.heldOut)) assert.ok(!used.has(id), String(id));
+  // Each held-out template is a round-4 top-up entry, round-4 eligible, with the recorded hash.
+  const byId = new Map(corpus.templates.map((e) => [e.id, e]));
+  for (const t of fresh.templates) {
+    const e = byId.get(t.id);
+    assert.ok(e && e.topUp === 4 && e.pool === "fresh" && e.r4 === "eligible" && !e.excluded, String(t.id));
+    assert.equal(e.sha256, t.sha256, String(t.id));
+    assert.equal(e.wakeup, t.wakeup, String(t.id));
+  }
+  const got = {};
+  for (const t of fresh.templates) got[stratum(t.wakeup)] = (got[stratum(t.wakeup)] ?? 0) + 1;
+  assert.deepEqual(got, FRESH_QUOTAS);
+  // Reproducible from corpus.json and the committed seed.
+  assert.equal(fresh.seed, FRESH_SEEDS[4]);
+  assert.deepEqual(drawFresh(freshPool(corpus.templates, 4), FRESH_QUOTAS, FRESH_SEEDS[4]).drawn.map((e) => e.id), ids(fresh.templates));
+  // Round 3 is still current; its resolution is unchanged, and the P51 guards already skip round 4's held-out.
+  assert.equal(roundOf(splits).round, 3);
+  assert.deepEqual(new Set(unreadableIds(splits)), new Set([...ids(r3.heldOut), ...ids(r4.heldOut)]));
+  // PROPOSALS P51: never in the survey folder.
+  const survey = join(BENCH, "..", "survey", "data", "wf");
+  for (const t of fresh.templates) assert.ok(!existsSync(join(survey, `${t.id}.json`)), `${t.id} is in evals/survey/data/wf`);
+});
