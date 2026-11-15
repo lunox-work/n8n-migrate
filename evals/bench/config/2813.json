@@ -1,0 +1,51 @@
+{
+  "why": "Get Ideas names its spreadsheet as YOURDOCUMENT and its tab as 'Sheet1' in id mode (both template placeholders; the tab id cannot match any sheet), and Upload image posts to https://YOURSITE.com. Filled with the spreadsheet and tab Update Sheet already names (gid 0) and with the WordPress host Set Image already names (wp.test.7hype.com), keeping the path. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "Get Ideas": {
+      "parameters.documentId": {
+        "__rl": true,
+        "mode": "id",
+        "value": "16VFeCrE5BkMBoA_S5HD-9v7C0sxcXAUiDbq5JvkDqnI"
+      },
+      "parameters.sheetName": {
+        "__rl": true,
+        "mode": "list",
+        "value": "gid=0",
+        "cachedResultName": "Foglio1"
+      }
+    },
+    "Upload image": {
+      "parameters.url": "https://wp.test.7hype.com/wp-json/wp/v2/media"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Get Ideas": {
+          "patch": {
+            "params": {
+              "documentId": {
+                "__rl": true,
+                "mode": "id",
+                "value": "16VFeCrE5BkMBoA_S5HD-9v7C0sxcXAUiDbq5JvkDqnI"
+              },
+              "sheetName": {
+                "__rl": true,
+                "mode": "list",
+                "value": "gid=0",
+                "cachedResultName": "Foglio1"
+              }
+            }
+          }
+        },
+        "Upload image": {
+          "patch": {
+            "params": {
+              "url": "https://wp.test.7hype.com/wp-json/wp/v2/media"
+            }
+          }
+        }
+      }
+    }
+  }
+}

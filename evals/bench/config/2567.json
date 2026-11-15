@@ -1,0 +1,41 @@
+{
+  "why": "Save emails to Google Sheet names no spreadsheet and no tab (the template leaves both for the user to pick), so n8n stops before any write. Filled with a placeholder spreadsheet id and its first tab (gid=0) on both sides; the fixture's routes answer that spreadsheet. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "Save emails to Google Sheet": {
+      "parameters.documentId": {
+        "__rl": true,
+        "mode": "id",
+        "value": "1DentLeadsBench0SheetQ7xY2wV5uT3sR1qPzN8kL"
+      },
+      "parameters.sheetName": {
+        "__rl": true,
+        "mode": "list",
+        "value": "gid=0",
+        "cachedResultName": "Sheet1"
+      }
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Save emails to Google Sheet": {
+          "patch": {
+            "params": {
+              "documentId": {
+                "__rl": true,
+                "mode": "id",
+                "value": "1DentLeadsBench0SheetQ7xY2wV5uT3sR1qPzN8kL"
+              },
+              "sheetName": {
+                "__rl": true,
+                "mode": "list",
+                "value": "gid=0",
+                "cachedResultName": "Sheet1"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

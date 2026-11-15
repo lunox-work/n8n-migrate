@@ -1,0 +1,1803 @@
+{
+  "schemaVersion": 1,
+  "template": 3442,
+  "sha256": "fd49e6cdca027fcc638eae5cbc2355861621140c74f80f73ca4ba8eca0bb4a3b",
+  "variant": "empty",
+  "now": "2026-11-16T15:00:00.000Z",
+  "about": "no row is 'for production'; alwaysOutputData hands one empty item on, the pipeline runs on an empty idea and the transcription is empty",
+  "trigger": {
+    "node": "Once Per Day",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T07:00:00.000-08:00",
+          "Readable date": "November 16th 2026, 7:00:00 am",
+          "Readable time": "7:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "07",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/Los_Angeles (UTC-08:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Load Google Sheet",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1cjd8p_yx-M-3gWLEd5TargtoB35cW-3y66AOTNMQrrM",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1cjd8p_yx-M-3gWLEd5TargtoB35cW-3y66AOTNMQrrM/values/'Sheet1'",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:Z2",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "id",
+                  "idea",
+                  "caption",
+                  "production",
+                  "environment_prompt",
+                  "publishing",
+                  "final_output",
+                  "width",
+                  "height",
+                  "duration",
+                  "frameRate",
+                  "model1",
+                  "prompt1 input tokens",
+                  "prompt1 output tokens",
+                  "model1 cost",
+                  "model2",
+                  "prompt2 input tokens",
+                  "prompt2 output tokens",
+                  "model2 cost",
+                  "model3",
+                  "prompt3 input tokens",
+                  "prompt3 output tokens",
+                  "model3 cost",
+                  "cmCost",
+                  "upgradeCmCost",
+                  "fluxCost",
+                  "klingCost",
+                  "totalCost",
+                  "datePosted"
+                ],
+                [
+                  "6",
+                  "Getting ghosted after a final round",
+                  "",
+                  "done",
+                  "a cramped studio apartment desk at 2am lit only by a laptop screen",
+                  "for publishing",
+                  "https://drive.google.com/uc?id=1oldvideo&export=download",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Sheets connector (the Drive export loses row_number)"
+      },
+      "note": "Sheets v4.5 read gid=0, filter production = 'for production', returnFirstMatch, alwaysOutputData (no match still hands one empty item on): sheets.properties, then values/'Sheet1'"
+    },
+    {
+      "node": "Generate Image",
+      "service": "piapi",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.piapi.ai/api/v1/task",
+            "status": 200,
+            "bodyMatch": "txt2img",
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "img-0000-4000-8000-000000000001",
+                "model": "Qubico/flux1-dev",
+                "task_type": "txt2img",
+                "status": "pending",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "width": 540,
+                  "height": 960
+                },
+                "output": {
+                  "image_url": "",
+                  "image_urls": null
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "0001-01-01T00:00:00Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://api.piapi.ai/api/v1/task",
+            "status": 200,
+            "bodyMatch": "txt2img",
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "img-0000-4000-8000-000000000002",
+                "model": "Qubico/flux1-dev",
+                "task_type": "txt2img",
+                "status": "pending",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "width": 540,
+                  "height": 960
+                },
+                "output": {
+                  "image_url": "",
+                  "image_urls": null
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "0001-01-01T00:00:00Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://api.piapi.ai/api/v1/task",
+            "status": 200,
+            "bodyMatch": "txt2img",
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "img-0000-4000-8000-000000000003",
+                "model": "Qubico/flux1-dev",
+                "task_type": "txt2img",
+                "status": "pending",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "width": 540,
+                  "height": 960
+                },
+                "output": {
+                  "image_url": "",
+                  "image_urls": null
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "0001-01-01T00:00:00Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://api.piapi.ai/api/v1/task",
+            "status": 200,
+            "bodyMatch": "txt2img",
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "img-0000-4000-8000-000000000004",
+                "model": "Qubico/flux1-dev",
+                "task_type": "txt2img",
+                "status": "pending",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "width": 540,
+                  "height": 960
+                },
+                "output": {
+                  "image_url": "",
+                  "image_urls": null
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "0001-01-01T00:00:00Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://api.piapi.ai/api/v1/task",
+            "status": 200,
+            "bodyMatch": "txt2img",
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "img-0000-4000-8000-000000000005",
+                "model": "Qubico/flux1-dev",
+                "task_type": "txt2img",
+                "status": "pending",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "width": 540,
+                  "height": 960
+                },
+                "output": {
+                  "image_url": "",
+                  "image_urls": null
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "0001-01-01T00:00:00Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured PiAPI connector"
+      },
+      "note": "HTTP Request v4.2 with the PiAPI key from Set API Keys in X-API-Key (config overlay fills the template's empty keys). POST /api/v1/task, raw JSON body (task_type txt2img); Generate Image and Image-to-Video post the same URL, told apart by the body's task type (string bodyMatch: the raw body may not parse when the model's prompt carries quotes). input.prompt in the replies is a fixed stand-in, not the prompt the model wrote. "
+    },
+    {
+      "node": "Get image",
+      "service": "piapi",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.piapi.ai/api/v1/task/img-0000-4000-8000-000000000001",
+            "status": 200,
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "img-0000-4000-8000-000000000001",
+                "model": "Qubico/flux1-dev",
+                "task_type": "txt2img",
+                "status": "completed",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "width": 540,
+                  "height": 960
+                },
+                "output": {
+                  "image_url": "https://img.theapi.app/temp/img-0000-4000-8000-000000000001.png",
+                  "image_urls": null
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "2026-11-16T15:01:10Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.piapi.ai/api/v1/task/img-0000-4000-8000-000000000002",
+            "status": 200,
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "img-0000-4000-8000-000000000002",
+                "model": "Qubico/flux1-dev",
+                "task_type": "txt2img",
+                "status": "completed",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "width": 540,
+                  "height": 960
+                },
+                "output": {
+                  "image_url": "https://img.theapi.app/temp/img-0000-4000-8000-000000000002.png",
+                  "image_urls": null
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "2026-11-16T15:01:10Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.piapi.ai/api/v1/task/img-0000-4000-8000-000000000003",
+            "status": 200,
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "img-0000-4000-8000-000000000003",
+                "model": "Qubico/flux1-dev",
+                "task_type": "txt2img",
+                "status": "completed",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "width": 540,
+                  "height": 960
+                },
+                "output": {
+                  "image_url": "https://img.theapi.app/temp/img-0000-4000-8000-000000000003.png",
+                  "image_urls": null
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "2026-11-16T15:01:10Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.piapi.ai/api/v1/task/img-0000-4000-8000-000000000004",
+            "status": 200,
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "img-0000-4000-8000-000000000004",
+                "model": "Qubico/flux1-dev",
+                "task_type": "txt2img",
+                "status": "completed",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "width": 540,
+                  "height": 960
+                },
+                "output": {
+                  "image_url": "https://img.theapi.app/temp/img-0000-4000-8000-000000000004.png",
+                  "image_urls": null
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "2026-11-16T15:01:10Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.piapi.ai/api/v1/task/img-0000-4000-8000-000000000005",
+            "status": 200,
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "img-0000-4000-8000-000000000005",
+                "model": "Qubico/flux1-dev",
+                "task_type": "txt2img",
+                "status": "completed",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "width": 540,
+                  "height": 960
+                },
+                "output": {
+                  "image_url": "https://img.theapi.app/temp/img-0000-4000-8000-000000000005.png",
+                  "image_urls": null
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "2026-11-16T15:01:10Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured PiAPI connector"
+      },
+      "note": "HTTP Request v4.2 with the PiAPI key from Set API Keys in X-API-Key (config overlay fills the template's empty keys). GET /api/v1/task/<task_id> after the wait"
+    },
+    {
+      "node": "Image-to-Video",
+      "service": "piapi",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.piapi.ai/api/v1/task",
+            "status": 200,
+            "bodyMatch": "video_generation",
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "vid-0000-4000-8000-000000000001",
+                "model": "kling",
+                "task_type": "video_generation",
+                "status": "pending",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "image_url": "https://img.theapi.app/temp/x.png",
+                  "duration": 5,
+                  "mode": "pro",
+                  "version": "1.6"
+                },
+                "output": {
+                  "video_url": ""
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "0001-01-01T00:00:00Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://api.piapi.ai/api/v1/task",
+            "status": 200,
+            "bodyMatch": "video_generation",
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "vid-0000-4000-8000-000000000002",
+                "model": "kling",
+                "task_type": "video_generation",
+                "status": "pending",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "image_url": "https://img.theapi.app/temp/x.png",
+                  "duration": 5,
+                  "mode": "pro",
+                  "version": "1.6"
+                },
+                "output": {
+                  "video_url": ""
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "0001-01-01T00:00:00Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://api.piapi.ai/api/v1/task",
+            "status": 200,
+            "bodyMatch": "video_generation",
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "vid-0000-4000-8000-000000000003",
+                "model": "kling",
+                "task_type": "video_generation",
+                "status": "pending",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "image_url": "https://img.theapi.app/temp/x.png",
+                  "duration": 5,
+                  "mode": "pro",
+                  "version": "1.6"
+                },
+                "output": {
+                  "video_url": ""
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "0001-01-01T00:00:00Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://api.piapi.ai/api/v1/task",
+            "status": 200,
+            "bodyMatch": "video_generation",
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "vid-0000-4000-8000-000000000004",
+                "model": "kling",
+                "task_type": "video_generation",
+                "status": "pending",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "image_url": "https://img.theapi.app/temp/x.png",
+                  "duration": 5,
+                  "mode": "pro",
+                  "version": "1.6"
+                },
+                "output": {
+                  "video_url": ""
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "0001-01-01T00:00:00Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://api.piapi.ai/api/v1/task",
+            "status": 200,
+            "bodyMatch": "video_generation",
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "vid-0000-4000-8000-000000000005",
+                "model": "kling",
+                "task_type": "video_generation",
+                "status": "pending",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "image_url": "https://img.theapi.app/temp/x.png",
+                  "duration": 5,
+                  "mode": "pro",
+                  "version": "1.6"
+                },
+                "output": {
+                  "video_url": ""
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "0001-01-01T00:00:00Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured PiAPI connector"
+      },
+      "note": "HTTP Request v4.2 with the PiAPI key from Set API Keys in X-API-Key (config overlay fills the template's empty keys). POST /api/v1/task (task_type video_generation, Kling 1.6 pro)"
+    },
+    {
+      "node": "Get Video",
+      "service": "piapi",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.piapi.ai/api/v1/task/vid-0000-4000-8000-000000000001",
+            "status": 200,
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "vid-0000-4000-8000-000000000001",
+                "model": "kling",
+                "task_type": "video_generation",
+                "status": "completed",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "duration": 5,
+                  "mode": "pro",
+                  "version": "1.6"
+                },
+                "output": {
+                  "video_url": "https://storage.theapi.app/videos/vid-0000-4000-8000-000000000001.mp4",
+                  "works": []
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "2026-11-16T15:01:10Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.piapi.ai/api/v1/task/vid-0000-4000-8000-000000000002",
+            "status": 200,
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "vid-0000-4000-8000-000000000002",
+                "model": "kling",
+                "task_type": "video_generation",
+                "status": "completed",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "duration": 5,
+                  "mode": "pro",
+                  "version": "1.6"
+                },
+                "output": {
+                  "video_url": "https://storage.theapi.app/videos/vid-0000-4000-8000-000000000002.mp4",
+                  "works": []
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "2026-11-16T15:01:10Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.piapi.ai/api/v1/task/vid-0000-4000-8000-000000000003",
+            "status": 200,
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "vid-0000-4000-8000-000000000003",
+                "model": "kling",
+                "task_type": "video_generation",
+                "status": "completed",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "duration": 5,
+                  "mode": "pro",
+                  "version": "1.6"
+                },
+                "output": {
+                  "video_url": "https://storage.theapi.app/videos/vid-0000-4000-8000-000000000003.mp4",
+                  "works": []
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "2026-11-16T15:01:10Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.piapi.ai/api/v1/task/vid-0000-4000-8000-000000000004",
+            "status": 200,
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "vid-0000-4000-8000-000000000004",
+                "model": "kling",
+                "task_type": "video_generation",
+                "status": "completed",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "duration": 5,
+                  "mode": "pro",
+                  "version": "1.6"
+                },
+                "output": {
+                  "video_url": "https://storage.theapi.app/videos/vid-0000-4000-8000-000000000004.mp4",
+                  "works": []
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "2026-11-16T15:01:10Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.piapi.ai/api/v1/task/vid-0000-4000-8000-000000000005",
+            "status": 200,
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "vid-0000-4000-8000-000000000005",
+                "model": "kling",
+                "task_type": "video_generation",
+                "status": "completed",
+                "config": {
+                  "service_mode": "",
+                  "webhook_config": {
+                    "endpoint": "",
+                    "secret": ""
+                  }
+                },
+                "input": {
+                  "prompt": "First-person view of my own hands on a laptop keyboard at 2am, a half-finished resume on screen, cold coffee and sticky notes everywhere",
+                  "duration": 5,
+                  "mode": "pro",
+                  "version": "1.6"
+                },
+                "output": {
+                  "video_url": "https://storage.theapi.app/videos/vid-0000-4000-8000-000000000005.mp4",
+                  "works": []
+                },
+                "meta": {
+                  "created_at": "2026-11-16T15:00:05Z",
+                  "started_at": "2026-11-16T15:00:06Z",
+                  "ended_at": "2026-11-16T15:01:10Z",
+                  "usage": {
+                    "type": "point",
+                    "frozen": 0,
+                    "consume": 300000
+                  }
+                },
+                "logs": [],
+                "error": {
+                  "code": 0,
+                  "raw_message": "",
+                  "message": "",
+                  "detail": null
+                }
+              },
+              "message": "success"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured PiAPI connector"
+      },
+      "note": "HTTP Request v4.2 with the PiAPI key from Set API Keys in X-API-Key (config overlay fills the template's empty keys). GET /api/v1/task/<task_id>"
+    },
+    {
+      "node": "Generate voice",
+      "service": "elevenlabs",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.elevenlabs.io/v1/text-to-speech/onwK4e9ZLuTAKqWW03F9",
+            "status": 200,
+            "headers": {
+              "content-type": "audio/mpeg"
+            },
+            "bodyBase64": "SUQzBAAAAAAAAP/7kGRVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured ElevenLabs connector"
+      },
+      "note": "HTTP Request v4.2 POST /v1/text-to-speech/<voice> with a JSON body {text}; ElevenLabs answers audio/mpeg bytes (a short stand-in, not playable)"
+    },
+    {
+      "node": "Get Final Video",
+      "service": "creatomate",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.creatomate.com/v1/renders/a3c5e7f9-1b2d-4f6a-8c0e-2d4f6a8c0e1b",
+            "status": 200,
+            "body": {
+              "id": "a3c5e7f9-1b2d-4f6a-8c0e-2d4f6a8c0e1b",
+              "status": "succeeded",
+              "url": "https://f002.backblazeb2.com/file/creatomate-c8xg3hsxdu/a3c5e7f9-1b2d-4f6a-8c0e-2d4f6a8c0e1b.mp4",
+              "snapshot_url": "https://f002.backblazeb2.com/file/creatomate-c8xg3hsxdu/a3c5e7f9-1b2d-4f6a-8c0e-2d4f6a8c0e1b.jpg",
+              "template_id": "bench-creatomate-template",
+              "template_name": "POV 5 clips",
+              "template_tags": [],
+              "output_format": "mp4",
+              "render_scale": 1,
+              "width": 1080,
+              "height": 1920,
+              "frame_rate": 30,
+              "duration": 25.04,
+              "file_size": 9483211,
+              "modifications": {}
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Creatomate connector"
+      },
+      "note": "GET /v1/renders/<id> after Wait1; the render has succeeded"
+    },
+    {
+      "node": "Get Raw File",
+      "service": "creatomate-cdn",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://f002.backblazeb2.com/file/creatomate-c8xg3hsxdu/a3c5e7f9-1b2d-4f6a-8c0e-2d4f6a8c0e1b.mp4",
+            "status": 200,
+            "headers": {
+              "content-type": "video/mp4"
+            },
+            "bodyBase64": "AAAAGGZ0eXBtcDQyAAAAAG1wNDJpc29tAAAACGZyZWURERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERE="
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no connector downloads files by URL"
+      },
+      "note": "HTTP Request v4.2 GET of the render URL, response format file (a stand-in MP4 header)"
+    },
+    {
+      "node": "Get Audio from Video",
+      "service": "openai-audio",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/audio/transcriptions",
+            "status": 200,
+            "body": {
+              "text": ""
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured OpenAI audio connector"
+      },
+      "note": "OpenAI node v1 audio transcribe: POST /v1/audio/transcriptions (multipart, model whisper-1) on the credential's base URL; not a text model call, so the shim does not answer it"
+    },
+    {
+      "node": "Read Video from Google Drive",
+      "service": "local-file",
+      "file": {
+        "path": "POV-a3c5e7f9-1b2d-4f6a-8c0e-2d4f6a8c0e1b.mp4",
+        "base64": "AAAAGGZ0eXBtcDQy"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "local disk: no connector"
+      },
+      "note": "reads back the file Write video wrote (a relative path under /home/node); placed only so the read has a source if Write video names the render's file name"
+    }
+  ],
+  "models": [
+    "Generate Video Captions",
+    "Generate Image Prompts",
+    "Generate Script",
+    "Generate Description for Videos  in Tiktok and Instagram"
+  ],
+  "writes": [
+    "Render Final Video",
+    "Upload Voice Audio",
+    "Set Access Permissions",
+    "Upload Final Video",
+    "Set Permissions",
+    "Update Google Sheet",
+    "Notify me on Discord",
+    "Write video",
+    "Upload Video and Description to Tiktok",
+    "Upload Video and Description to Instagram",
+    "Upload Video and Description to Youtube",
+    "Upload Video and Description to Facebook",
+    "Upload Video and Description to Linkedin"
+  ],
+  "writeReplies": [
+    {
+      "node": "Render Final Video",
+      "service": "creatomate",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.creatomate.com/v1/renders",
+            "status": 200,
+            "body": [
+              {
+                "id": "a3c5e7f9-1b2d-4f6a-8c0e-2d4f6a8c0e1b",
+                "status": "planned",
+                "url": "https://f002.backblazeb2.com/file/creatomate-c8xg3hsxdu/a3c5e7f9-1b2d-4f6a-8c0e-2d4f6a8c0e1b.mp4",
+                "snapshot_url": "https://f002.backblazeb2.com/file/creatomate-c8xg3hsxdu/a3c5e7f9-1b2d-4f6a-8c0e-2d4f6a8c0e1b.jpg",
+                "template_id": "bench-creatomate-template",
+                "template_name": "POV 5 clips",
+                "template_tags": [],
+                "output_format": "mp4",
+                "modifications": {}
+              }
+            ]
+          }
+        ]
+      },
+      "note": "Creatomate POST /v1/renders answers a list of renders (status planned); the template reads id from the first item"
+    },
+    {
+      "node": "Upload Voice Audio",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "status": 200,
+            "query": {
+              "uploadType": "multipart"
+            },
+            "bodyMatch": "-voiceover.mp3",
+            "body": {
+              "kind": "drive#file",
+              "id": "1VoiceBenchMp3aaaaaaaaaaaaaaaaaa",
+              "name": "Untitled",
+              "mimeType": "audio/mpeg"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "status": 200,
+            "query": {
+              "uploadType": "resumable"
+            },
+            "bodyMatch": "-voiceover.mp3",
+            "headers": {
+              "location": "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=bench-voice-upload",
+              "x-guploader-uploadid": "bench-voice-upload"
+            },
+            "body": ""
+          },
+          {
+            "method": "PUT",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "status": 200,
+            "query": {
+              "upload_id": "bench-voice-upload"
+            },
+            "body": {
+              "kind": "drive#file",
+              "id": "1VoiceBenchMp3aaaaaaaaaaaaaaaaaa",
+              "name": "Untitled",
+              "mimeType": "audio/mpeg"
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1VoiceBenchMp3aaaaaaaaaaaaaaaaaa",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1VoiceBenchMp3aaaaaaaaaaaaaaaaaa",
+              "name": "6-voiceover.mp3",
+              "mimeType": "audio/mpeg",
+              "parents": [
+                "1w1EQ8xyth6w7AbX2wpDI3vInfYeRy8vH"
+              ],
+              "webViewLink": "https://drive.google.com/file/d/1VoiceBenchMp3aaaaaaaaaaaaaaaaaa/view?usp=drivesdk",
+              "webContentLink": "https://drive.google.com/uc?id=1VoiceBenchMp3aaaaaaaaaaaaaaaaaa&export=download",
+              "size": "414",
+              "createdTime": "2026-11-16T12:10:00.000Z",
+              "modifiedTime": "2026-11-16T12:10:00.000Z",
+              "owners": [
+                {
+                  "displayName": "Bench Owner",
+                  "emailAddress": "owner@bench.example",
+                  "me": true
+                }
+              ],
+              "shared": false
+            }
+          }
+        ]
+      },
+      "note": "Drive v3 upload into folder Resume Studio: multipart for an in-memory binary, resumable (POST, Location, PUT) for a stored one (P56; both answered), then PATCH /drive/v3/files/<id>?addParents&fields=*, whose reply (webContentLink) List Elements1 reads"
+    },
+    {
+      "node": "Set Access Permissions",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/drive/v3/files/1VoiceBenchMp3aaaaaaaaaaaaaaaaaa/permissions",
+            "status": 200,
+            "body": {
+              "kind": "drive#permission",
+              "id": "anyoneWithLink",
+              "type": "anyone",
+              "role": "writer",
+              "allowFileDiscovery": true
+            }
+          }
+        ]
+      },
+      "note": "Drive share: POST /drive/v3/files/<id>/permissions {role: writer, type: anyone, allowFileDiscovery: true}"
+    },
+    {
+      "node": "Upload Final Video",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "status": 200,
+            "query": {
+              "uploadType": "multipart"
+            },
+            "bodyMatch": "POV-",
+            "body": {
+              "kind": "drive#file",
+              "id": "1FinalBenchMp4bbbbbbbbbbbbbbbbbb",
+              "name": "Untitled",
+              "mimeType": "video/mp4"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "status": 200,
+            "query": {
+              "uploadType": "resumable"
+            },
+            "bodyMatch": "POV-",
+            "headers": {
+              "location": "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=bench-final-upload",
+              "x-guploader-uploadid": "bench-final-upload"
+            },
+            "body": ""
+          },
+          {
+            "method": "PUT",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "status": 200,
+            "query": {
+              "upload_id": "bench-final-upload"
+            },
+            "body": {
+              "kind": "drive#file",
+              "id": "1FinalBenchMp4bbbbbbbbbbbbbbbbbb",
+              "name": "Untitled",
+              "mimeType": "video/mp4"
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1FinalBenchMp4bbbbbbbbbbbbbbbbbb",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1FinalBenchMp4bbbbbbbbbbbbbbbbbb",
+              "name": "POV-a3c5e7f9-1b2d-4f6a-8c0e-2d4f6a8c0e1b.mp4",
+              "mimeType": "video/mp4",
+              "parents": [
+                "1w1EQ8xyth6w7AbX2wpDI3vInfYeRy8vH"
+              ],
+              "webViewLink": "https://drive.google.com/file/d/1FinalBenchMp4bbbbbbbbbbbbbbbbbb/view?usp=drivesdk",
+              "webContentLink": "https://drive.google.com/uc?id=1FinalBenchMp4bbbbbbbbbbbbbbbbbb&export=download",
+              "size": "9483211",
+              "createdTime": "2026-11-16T12:10:00.000Z",
+              "modifiedTime": "2026-11-16T12:10:00.000Z",
+              "owners": [
+                {
+                  "displayName": "Bench Owner",
+                  "emailAddress": "owner@bench.example",
+                  "me": true
+                }
+              ],
+              "shared": false
+            }
+          }
+        ]
+      },
+      "note": "Drive v3 upload of the rendered MP4 (as Upload Voice Audio)"
+    },
+    {
+      "node": "Set Permissions",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/drive/v3/files/1FinalBenchMp4bbbbbbbbbbbbbbbbbb/permissions",
+            "status": 200,
+            "body": {
+              "kind": "drive#permission",
+              "id": "anyoneWithLink",
+              "type": "anyone",
+              "role": "writer",
+              "allowFileDiscovery": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "Update Google Sheet",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1cjd8p_yx-M-3gWLEd5TargtoB35cW-3y66AOTNMQrrM",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1cjd8p_yx-M-3gWLEd5TargtoB35cW-3y66AOTNMQrrM/values/'Sheet1'",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:Z2",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "id",
+                  "idea",
+                  "caption",
+                  "production",
+                  "environment_prompt",
+                  "publishing",
+                  "final_output",
+                  "width",
+                  "height",
+                  "duration",
+                  "frameRate",
+                  "model1",
+                  "prompt1 input tokens",
+                  "prompt1 output tokens",
+                  "model1 cost",
+                  "model2",
+                  "prompt2 input tokens",
+                  "prompt2 output tokens",
+                  "model2 cost",
+                  "model3",
+                  "prompt3 input tokens",
+                  "prompt3 output tokens",
+                  "model3 cost",
+                  "cmCost",
+                  "upgradeCmCost",
+                  "fluxCost",
+                  "klingCost",
+                  "totalCost",
+                  "datePosted"
+                ],
+                [
+                  "6",
+                  "Getting ghosted after a final round",
+                  "",
+                  "done",
+                  "a cramped studio apartment desk at 2am lit only by a laptop screen",
+                  "for publishing",
+                  "https://drive.google.com/uc?id=1oldvideo&export=download",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1cjd8p_yx-M-3gWLEd5TargtoB35cW-3y66AOTNMQrrM/values:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1cjd8p_yx-M-3gWLEd5TargtoB35cW-3y66AOTNMQrrM",
+              "totalUpdatedRows": 1,
+              "totalUpdatedCells": 1,
+              "totalUpdatedSheets": 1
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.5 update matching id: sheets.properties, the whole tab, then POST values:batchUpdate"
+    },
+    {
+      "node": "Upload Video and Description to Tiktok",
+      "service": "upload-post",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.upload-post.com/api/upload",
+            "status": 200,
+            "bodyMatch": {
+              "platform[]": "tiktok"
+            },
+            "body": {
+              "success": true,
+              "results": {
+                "tiktok": {
+                  "success": true,
+                  "url": "https://www.tiktok.com/bench/tiktok-post-1"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "note": "HTTP Request v4.2 POST https://api.upload-post.com/api/upload, multipart (title, platform[], video from binary data, user: the template's placeholder text); response shape from upload-post's public docs, unverified"
+    },
+    {
+      "node": "Upload Video and Description to Instagram",
+      "service": "upload-post",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.upload-post.com/api/upload",
+            "status": 200,
+            "bodyMatch": {
+              "platform[]": "instagram"
+            },
+            "body": {
+              "success": true,
+              "results": {
+                "instagram": {
+                  "success": true,
+                  "url": "https://www.instagram.com/bench/instagram-post-1"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "note": "HTTP Request v4.2 POST https://api.upload-post.com/api/upload, multipart (title, platform[], video from binary data, user: the template's placeholder text); response shape from upload-post's public docs, unverified"
+    },
+    {
+      "node": "Upload Video and Description to Youtube",
+      "service": "upload-post",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.upload-post.com/api/upload",
+            "status": 200,
+            "bodyMatch": {
+              "platform[]": "youtube"
+            },
+            "body": {
+              "success": true,
+              "results": {
+                "youtube": {
+                  "success": true,
+                  "url": "https://www.youtube.com/bench/youtube-post-1"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "note": "HTTP Request v4.2 POST https://api.upload-post.com/api/upload, multipart (title, platform[], video from binary data, user: the template's placeholder text); response shape from upload-post's public docs, unverified"
+    },
+    {
+      "node": "Upload Video and Description to Facebook",
+      "service": "upload-post",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.upload-post.com/api/upload",
+            "status": 200,
+            "bodyMatch": {
+              "platform[]": "facebook"
+            },
+            "body": {
+              "success": true,
+              "results": {
+                "facebook": {
+                  "success": true,
+                  "url": "https://www.facebook.com/bench/facebook-post-1"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "note": "HTTP Request v4.2 POST https://api.upload-post.com/api/upload, multipart (title, platform[], video from binary data, user: the template's placeholder text); response shape from upload-post's public docs, unverified"
+    },
+    {
+      "node": "Upload Video and Description to Linkedin",
+      "service": "upload-post",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.upload-post.com/api/upload",
+            "status": 200,
+            "bodyMatch": {
+              "platform[]": "linkedin"
+            },
+            "body": {
+              "success": true,
+              "results": {
+                "linkedin": {
+                  "success": true,
+                  "url": "https://www.linkedin.com/bench/linkedin-post-1"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "note": "HTTP Request v4.2 POST https://api.upload-post.com/api/upload, multipart (title, platform[], video from binary data, user: the template's placeholder text); response shape from upload-post's public docs, unverified"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Load Google Sheet: no match, one empty item (alwaysOutputData)",
+      "Check for failures and Fail check false"
+    ],
+    "offline": "Create List splits the caption model's text on a literal backslash-n (the code's '\\\\n'), not on line breaks; a reply without that sequence is one item, Validate list formatting sends it back to Generate Video Captions, and the loop repeats until a reply carries it (with recorded replies, as often as the recording did). PiAPI, ElevenLabs, Creatomate and the files are stand-ins: images, audio and video are a few bytes; the waits are shortened by config time compression; Set API Keys' empty keys and the Discord webhook are filled by the overlay. The second branch after Get Raw File is the template's own: Write video names its file from $json.originalFilename, which Get Raw File's item (a file response: binary only, json empty) does not carry (from n8n-nodes-base 2.47.7's HTTP Request file handling, not yet seen in a run), so n8n is expected to stop there after the Drive, sheet and Discord branch; Read Video from Google Drive stores the file in `datavideo` while the uploads send `data`. Routes for the transcription and upload-post are given in case the branch runs. Notify me on Discord ships without a credential (the export stripped it) and the bench attaches none for the Discord node type, so n8n is expected to stop there first, before Write video; the overlay's Discord webhook applies only to a referenced credential"
+  }
+}

@@ -1,0 +1,308 @@
+{
+  "schemaVersion": 1,
+  "template": 3840,
+  "sha256": "538a3bd52a749dc0242345e34e5b635d1e0bda06a5da69fe11679baeb8231848",
+  "variant": "empty",
+  "now": "2026-11-16T05:00:00.000Z",
+  "about": "every row is already posted (Status 1), so the lookup returns nothing and the run stops after the sheet",
+  "trigger": {
+    "node": "Scheduled Start: Check for New Posts",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T00:00:00.000-05:00",
+          "Readable date": "November 16th 2026, 12:00:00 am",
+          "Readable time": "12:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "00",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "1. Get Next Post Idea from Sheet",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1hG2NMi-4fMa7D5qGonCN8bsYVya4L2TOB_8mI4XK-9k",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1510137257,
+                    "title": "Postİ",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1hG2NMi-4fMa7D5qGonCN8bsYVya4L2TOB_8mI4XK-9k/values/'Postİ'",
+            "status": 200,
+            "body": {
+              "range": "Postİ!A1:Z2",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Topic",
+                  "Audience",
+                  "Voice",
+                  "Platform",
+                  "Status"
+                ],
+                [
+                  "Remote onboarding checklists",
+                  "HR managers",
+                  "Friendly",
+                  "LinkedIn",
+                  "1"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Sheets connector (Drive export reads the first tab only; this tab is gid 1510137257)"
+      },
+      "note": "Sheets v4.5 read, tab by gid 1510137257, filter Status = '0', returnFirstMatch: GET the spreadsheet's sheets.properties (gid → title), then GET values/'Postİ' and filter in the node (n8n-nodes-base 2.47.7 GoogleSheet.js)"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "4. Generate Image using Prompt 1 (Replicate Flux)",
+    "6a. Create Instagram Media Container",
+    "6c. Publish Post to Instagram",
+    "7. Update Post Status in Sheet"
+  ],
+  "writeReplies": [
+    {
+      "node": "6a. Create Instagram Media Container",
+      "service": "instagram-graph",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://graph.facebook.com/v22.0/17841473009917118/media",
+            "status": 200,
+            "body": {
+              "id": "17901234567890123"
+            }
+          }
+        ]
+      },
+      "note": "Facebook Graph API v1 node, POST /v22.0/<ig user>/media?caption&image_url (query parameters); answers the container id"
+    },
+    {
+      "node": "6c. Publish Post to Instagram",
+      "service": "instagram-graph",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://graph.facebook.com/v22.0/17841473009917118/media_publish",
+            "status": 200,
+            "body": {
+              "id": "17987654321098765"
+            }
+          }
+        ]
+      },
+      "note": "POST /v22.0/<ig user>/media_publish?creation_id=<container id>; answers the media id"
+    },
+    {
+      "node": "7. Update Post Status in Sheet",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1hG2NMi-4fMa7D5qGonCN8bsYVya4L2TOB_8mI4XK-9k",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1510137257,
+                    "title": "Postİ",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1hG2NMi-4fMa7D5qGonCN8bsYVya4L2TOB_8mI4XK-9k/values/'Postİ'",
+            "status": 200,
+            "body": {
+              "range": "Postİ!A1:Z2",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Topic",
+                  "Audience",
+                  "Voice",
+                  "Platform",
+                  "Status"
+                ],
+                [
+                  "Remote onboarding checklists",
+                  "HR managers",
+                  "Friendly",
+                  "LinkedIn",
+                  "1"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1hG2NMi-4fMa7D5qGonCN8bsYVya4L2TOB_8mI4XK-9k/values:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1hG2NMi-4fMa7D5qGonCN8bsYVya4L2TOB_8mI4XK-9k",
+              "totalUpdatedRows": 1,
+              "totalUpdatedCells": 1,
+              "totalUpdatedSheets": 1
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.5 update matching Topic: sheets.properties, the whole tab (header row and the key column), then POST values:batchUpdate"
+    }
+  ],
+  "pinData": {
+    "3c. Generate Post Caption (Gemini)": [
+      {
+        "output": {
+          "Caption": "The future of call centers is here, and it's all about human + AI collaboration ✨. We believe AI should enhance, not replace, the human touch, leading to better customer experiences and happier agents. Ready to see how AI can transform your customer interactions? 🤔 \n\n#AIinCX #CallCenterAI #CustomerExperience #ArtificialIntelligence #TechInnovation #FutureofWork #HumanAI"
+        }
+      }
+    ],
+    "3a. Generate Content Concept (Gemini)": [
+      {
+        "output": {
+          "ideas": [
+            {
+              "concept": "Visually striking image of a human hand interacting with a glowing AI interface. Caption highlights how AI enhances, not replaces, human connection in call centers, leading to better customer experiences. Focus on the seamless collaboration between humans and AI.",
+              "suggested_format": "Single Image"
+            }
+          ]
+        }
+      }
+    ],
+    "3b. Generate Image Prompt Options (Gemini)": [
+      {
+        "output": {
+          "prompt_options": [
+            {
+              "prompts": [
+                "Close-up shot of a diverse human hand gently touching a shimmering, holographic AI interface that displays abstract data visualizations. The background is blurred, showing a modern, bright call center environment. Soft, diffused lighting with hints of neon blue and teal. Ethereal, optimistic mood. Style: Digital art, futuristic, ethereal. Color palette: Pastel blues, teals, and whites with subtle glowing accents. Composition: Focus on the hand and interface, using shallow depth of field."
+              ],
+              "option_description": "Option 1: Ethereal and futuristic. Focus on soft, diffused lighting and glowing elements to create a dreamlike, optimistic atmosphere."
+            },
+            {
+              "prompts": [
+                "A slightly wider shot showcasing a human hand confidently interacting with a vibrant, glowing AI interface displaying customer profiles and real-time data. The background shows a bustling call center with diverse agents working collaboratively. Dramatic, focused lighting with strong shadows and vibrant color accents. Energetic, innovative mood. Style: High-resolution photograph, modern, bold. Color palette: Deep blues, purples, and oranges with bright yellow accents on the interface. Composition: Dynamic angle, leading lines towards the interface and agents in the background, creating depth."
+              ],
+              "option_description": "Option 2: Bold and dynamic. Focus on contrast and vibrant colors to create a visually striking and energetic image."
+            }
+          ],
+          "expanded_post_concept": "Single Image post for Instagram showcasing a human hand interacting with a glowing AI interface. The image should convey a sense of collaboration and enhancement, not replacement, emphasizing the positive impact of AI on human connection in call centers. Given Instagram's visual nature, the image should be aesthetically pleasing, modern, and slightly stylized to attract attention and reflect an innovative brand voice."
+        }
+      }
+    ],
+    "4. Generate Image using Prompt 1 (Replicate Flux)": [
+      {
+        "id": "be6ctjws49rma0cpjcy8ej169r",
+        "logs": "",
+        "urls": {
+          "get": "https://api.replicate.com/v1/predictions/be6ctjws49rma0cpjcy8ej169r",
+          "cancel": "https://api.replicate.com/v1/predictions/be6ctjws49rma0cpjcy8ej169r/cancel",
+          "stream": "https://stream.replicate.com/v1/files/bcwr-kvewu3jt6ec4id3svfazffgcxpyifayvqjhxloix3oncveoazwya"
+        },
+        "error": null,
+        "input": {
+          "raw": false,
+          "prompt": "Close-up shot of a diverse human hand gently touching a shimmering, holographic AI interface that displays abstract data visualizations. The background is blurred, showing a modern, bright call center environment. Soft, diffused lighting with hints of neon blue and teal. Ethereal, optimistic mood. Style: Digital art, futuristic, ethereal. Color palette: Pastel blues, teals, and whites with subtle glowing accents. Composition: Focus on the hand and interface, using shallow depth of field.",
+          "aspect_ratio": "1:1",
+          "output_format": "jpg",
+          "safety_tolerance": 6
+        },
+        "model": "black-forest-labs/flux-1.1-pro-ultra",
+        "output": "https://replicate.delivery/xezq/LJHVcPdaiexmPyfQnkDBi6o2HpkFWKzeoktHmS5uEvgSIgRpA/tmptt54uqf7.jpg",
+        "status": "processing",
+        "version": "hidden",
+        "created_at": "2025-05-02T23:02:24.29Z",
+        "data_removed": false
+      }
+    ],
+    "2. Prepare Input Variables (Topic, Audience, etc.)": [
+      {
+        "Topic": "Call Center Transformation with Artificial Intelligence",
+        "Platform": "Instagram",
+        "BrandVoice": "Informative, reassuring, innovative",
+        "TargetAudience": "Enterprise customers, tech enthusiasts, customer experience professionals"
+      }
+    ]
+  },
+  "expect": {
+    "branches": [
+      "no row with Status 0: nothing after the sheet read runs"
+    ],
+    "offline": "The template's own pinData pins step 2 and all three Gemini chains and the Replicate call (its prediction, status processing, output URL on replicate.delivery), so on both sides no model is asked and Replicate is not called; the pinned topic ('Call Center Transformation with Artificial Intelligence') is what the chains would have produced, whatever the sheet says. The sheet row still decides whether the run continues and which Topic the status update matches. 6b is a parameterless Wait v1.1 (5 seconds). A canned n8n run (2026-11-15) stops at node 4 with `Cannot read properties of null (reading 'message')` (n8n-core normalizeNodeErrors): the bench hands the template's pinData to n8n as stored, without the {json} wrapper, so the pinned Replicate prediction's top-level `error: null` reads as an item error (PROPOSALS P60)"
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "why": "Set API Keys leaves the PiAPI, ElevenLabs and Creatomate keys and the Creatomate template id empty for the user to fill in; every PiAPI, ElevenLabs and Creatomate request reads them. Filled with placeholder values on both sides. Notify me on Discord uses a Discord webhook credential, which the bench's generic dummy has no webhookUri for: `credentials` gives it a placeholder webhook. Placeholder fills only: no logic changes. See timeCompression.",
+  "credentials": {
+    "discordWebhookApi": {
+      "webhookUri": "https://discord.com/api/webhooks/1300000000000000777/bench-resume-studio"
+    }
+  },
+  "n8n": {
+    "Set API Keys": {
+      "parameters.assignments.assignments.0.value": "bench-piapi-key",
+      "parameters.assignments.assignments.1.value": "bench-elevenlabs-key",
+      "parameters.assignments.assignments.2.value": "bench-creatomate-key",
+      "parameters.assignments.assignments.3.value": "bench-creatomate-template"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Set API Keys": {
+          "patch": {
+            "params": {
+              "assignments": {
+                "assignments": [
+                  {
+                    "id": "35659353-d8e2-4677-876b-401b549605a0",
+                    "name": "PiAPI Key",
+                    "type": "string",
+                    "value": "bench-piapi-key"
+                  },
+                  {
+                    "id": "c4927dd6-c597-48fe-b7c1-bbffcf5ff02f",
+                    "name": "ElevenLabs API Key",
+                    "type": "string",
+                    "value": "bench-elevenlabs-key"
+                  },
+                  {
+                    "id": "f5e90c05-dd24-4918-9005-4c87a4fb344d",
+                    "name": "Creatomate API Key",
+                    "type": "string",
+                    "value": "bench-creatomate-key"
+                  },
+                  {
+                    "id": "d0ebba50-5a99-4090-adcb-d18aa0b21be2",
+                    "name": "Creatomate Template ID",
+                    "type": "string",
+                    "value": "bench-creatomate-template"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "timeCompression": {
+    "why": "Wait 3min, Wait 10min and Wait1 wait 3 to 10 minutes, and Wait 5min and Wait to retry set only the unit (minutes), so Wait v1.1 waits its default amount of 5 (n8n-nodes-base 2.47.7 Wait.node: amount 5 for versions after 1). Waits over 65 seconds park n8n's execution as waiting, past the bench's timeout. Shortened to 1 second on both sides. This changes when the run resumes, not what it does: the PiAPI and Creatomate replies do not depend on elapsed time. Not a placeholder fill, so results flag it as time compression (config.nonPlaceholder).",
+    "n8n": {
+      "Wait 3min": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      },
+      "Wait 5min": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      },
+      "Wait 10min": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      },
+      "Wait to retry": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      },
+      "Wait1": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      }
+    },
+    "claude": {
+      "overrides": {
+        "steps": {
+          "Wait 3min": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          },
+          "Wait 5min": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          },
+          "Wait 10min": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          },
+          "Wait to retry": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          },
+          "Wait1": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

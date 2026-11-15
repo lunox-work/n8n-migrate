@@ -1,0 +1,418 @@
+{
+  "schemaVersion": 1,
+  "template": 2813,
+  "sha256": "a0aeddb31eb3daec9782f6961d1c1eb2073a12d393d63be4abe3751c6fd71b9f",
+  "variant": "normal",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "two ideas in the plan sheet: two articles, titles, draft posts, cover images and sheet updates",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get Ideas",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/16VFeCrE5BkMBoA_S5HD-9v7C0sxcXAUiDbq5JvkDqnI",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Foglio1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/16VFeCrE5BkMBoA_S5HD-9v7C0sxcXAUiDbq5JvkDqnI/values/'Foglio1'",
+            "status": 200,
+            "body": {
+              "range": "Foglio1!A1:Z3",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "DATA",
+                  "PROMPT",
+                  "TITOLO",
+                  "ID POST"
+                ],
+                [
+                  "",
+                  "Come scegliere un gestionale per lo studio dentistico",
+                  "",
+                  ""
+                ],
+                [
+                  "",
+                  "I vantaggi del cloud per le piccole imprese italiane",
+                  "",
+                  ""
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Sheets connector"
+      },
+      "note": "Sheets v4.5 read of every row (no filter): sheets.properties, then values/'Foglio1'. The template's document (YOURDOCUMENT) and tab ('Sheet1' as an id) are placeholders; config/2813.json fills them with the spreadsheet and tab Update Sheet names"
+    },
+    {
+      "node": "Generate Image with DALL-E",
+      "service": "openai-images",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/images/generations",
+            "status": 200,
+            "body": {
+              "created": 1794837600,
+              "data": [
+                {
+                  "revised_prompt": "A realistic cover photograph for a blog post, shot on a sigma 85mm f/1.4",
+                  "b64_json": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+                }
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/images/generations",
+            "status": 200,
+            "body": {
+              "created": 1794837601,
+              "data": [
+                {
+                  "revised_prompt": "A realistic cover photograph for a blog post, shot on a sigma 85mm f/1.4",
+                  "b64_json": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured image-generation connector"
+      },
+      "note": "OpenAI node v1.8 image generate (dall-e-3 default, 1792x1024, natural, hd): POST /v1/images/generations with response_format b64_json; the image (a 1x1 PNG stand-in) becomes binary data. Not a text model call, so the shim does not answer it"
+    }
+  ],
+  "models": [
+    "Generate article with DeepSeek",
+    "Generate title with DeepSeek"
+  ],
+  "writes": [
+    "Create post on Wordpress",
+    "Upload image",
+    "Set Image",
+    "Update Sheet"
+  ],
+  "writeReplies": [
+    {
+      "node": "Create post on Wordpress",
+      "service": "wordpress",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://wp.test.7hype.com/wp-json/wp/v2/posts",
+            "status": 200,
+            "body": {
+              "id": 1401,
+              "date": "2026-11-16T15:00:00",
+              "date_gmt": "2026-11-16T14:00:00",
+              "guid": {
+                "rendered": "https://wp.test.7hype.com/?p=1401",
+                "raw": "https://wp.test.7hype.com/?p=1401"
+              },
+              "modified": "2026-11-16T15:00:00",
+              "slug": "",
+              "status": "draft",
+              "type": "post",
+              "link": "https://wp.test.7hype.com/?p=1401",
+              "title": {
+                "raw": "",
+                "rendered": ""
+              },
+              "content": {
+                "raw": "",
+                "rendered": "",
+                "protected": false
+              },
+              "author": 1,
+              "featured_media": 0,
+              "categories": [
+                1
+              ],
+              "tags": []
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://wp.test.7hype.com/wp-json/wp/v2/posts",
+            "status": 200,
+            "body": {
+              "id": 1402,
+              "date": "2026-11-16T15:00:00",
+              "date_gmt": "2026-11-16T14:00:00",
+              "guid": {
+                "rendered": "https://wp.test.7hype.com/?p=1402",
+                "raw": "https://wp.test.7hype.com/?p=1402"
+              },
+              "modified": "2026-11-16T15:00:00",
+              "slug": "",
+              "status": "draft",
+              "type": "post",
+              "link": "https://wp.test.7hype.com/?p=1402",
+              "title": {
+                "raw": "",
+                "rendered": ""
+              },
+              "content": {
+                "raw": "",
+                "rendered": "",
+                "protected": false
+              },
+              "author": 1,
+              "featured_media": 0,
+              "categories": [
+                1
+              ],
+              "tags": []
+            }
+          }
+        ]
+      },
+      "note": "WordPress v1 post create (status draft, title and content from the models): POST /wp-json/wp/v2/posts on the credential URL, which the bench sets to the host these routes name"
+    },
+    {
+      "node": "Upload image",
+      "service": "wordpress",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://wp.test.7hype.com/wp-json/wp/v2/media",
+            "status": 201,
+            "body": {
+              "id": 1501,
+              "date": "2026-11-16T15:00:05",
+              "slug": "copertina-1501",
+              "status": "inherit",
+              "type": "attachment",
+              "link": "https://wp.test.7hype.com/copertina-1501/",
+              "title": {
+                "rendered": "copertina-1501"
+              },
+              "media_type": "image",
+              "mime_type": "image/png",
+              "source_url": "https://wp.test.7hype.com/wp-content/uploads/2026/11/copertina-1501.png"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://wp.test.7hype.com/wp-json/wp/v2/media",
+            "status": 201,
+            "body": {
+              "id": 1502,
+              "date": "2026-11-16T15:00:05",
+              "slug": "copertina-1502",
+              "status": "inherit",
+              "type": "attachment",
+              "link": "https://wp.test.7hype.com/copertina-1502/",
+              "title": {
+                "rendered": "copertina-1502"
+              },
+              "media_type": "image",
+              "mime_type": "image/png",
+              "source_url": "https://wp.test.7hype.com/wp-content/uploads/2026/11/copertina-1502.png"
+            }
+          }
+        ]
+      },
+      "note": "HTTP Request v4.2 POST /wp-json/wp/v2/media with the image as the raw body and a Content-Disposition header (URL placeholder https://YOURSITE.com filled by the overlay)"
+    },
+    {
+      "node": "Set Image",
+      "service": "wordpress",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://wp.test.7hype.com/wp-json/wp/v2/posts/1401",
+            "status": 200,
+            "body": {
+              "id": 1401,
+              "date": "2026-11-16T15:00:00",
+              "date_gmt": "2026-11-16T14:00:00",
+              "guid": {
+                "rendered": "https://wp.test.7hype.com/?p=1401",
+                "raw": "https://wp.test.7hype.com/?p=1401"
+              },
+              "modified": "2026-11-16T15:00:00",
+              "slug": "",
+              "status": "draft",
+              "type": "post",
+              "link": "https://wp.test.7hype.com/?p=1401",
+              "title": {
+                "raw": "",
+                "rendered": ""
+              },
+              "content": {
+                "raw": "",
+                "rendered": "",
+                "protected": false
+              },
+              "author": 1,
+              "featured_media": 1501,
+              "categories": [
+                1
+              ],
+              "tags": []
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://wp.test.7hype.com/wp-json/wp/v2/posts/1402",
+            "status": 200,
+            "body": {
+              "id": 1402,
+              "date": "2026-11-16T15:00:00",
+              "date_gmt": "2026-11-16T14:00:00",
+              "guid": {
+                "rendered": "https://wp.test.7hype.com/?p=1402",
+                "raw": "https://wp.test.7hype.com/?p=1402"
+              },
+              "modified": "2026-11-16T15:00:00",
+              "slug": "",
+              "status": "draft",
+              "type": "post",
+              "link": "https://wp.test.7hype.com/?p=1402",
+              "title": {
+                "raw": "",
+                "rendered": ""
+              },
+              "content": {
+                "raw": "",
+                "rendered": "",
+                "protected": false
+              },
+              "author": 1,
+              "featured_media": 1502,
+              "categories": [
+                1
+              ],
+              "tags": []
+            }
+          }
+        ]
+      },
+      "note": "POST /wp-json/wp/v2/posts/<id>?featured_media=<media id>"
+    },
+    {
+      "node": "Update Sheet",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/16VFeCrE5BkMBoA_S5HD-9v7C0sxcXAUiDbq5JvkDqnI",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Foglio1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/16VFeCrE5BkMBoA_S5HD-9v7C0sxcXAUiDbq5JvkDqnI/values/'Foglio1'",
+            "status": 200,
+            "body": {
+              "range": "Foglio1!A1:Z3",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "DATA",
+                  "PROMPT",
+                  "TITOLO",
+                  "ID POST"
+                ],
+                [
+                  "",
+                  "Come scegliere un gestionale per lo studio dentistico",
+                  "",
+                  ""
+                ],
+                [
+                  "",
+                  "I vantaggi del cloud per le piccole imprese italiane",
+                  "",
+                  ""
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/16VFeCrE5BkMBoA_S5HD-9v7C0sxcXAUiDbq5JvkDqnI/values:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "16VFeCrE5BkMBoA_S5HD-9v7C0sxcXAUiDbq5JvkDqnI",
+              "totalUpdatedRows": 1,
+              "totalUpdatedCells": 1,
+              "totalUpdatedSheets": 1
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.5 update matching row_number: sheets.properties, the whole tab, then POST values:batchUpdate"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch; every sheet row is written up and posted"
+    ],
+    "offline": "The articles and titles come from the stand-in model (the template names deepseek-reasoner through the OpenAI credential); the cover image is a 1x1 PNG. DATA is $now formatted dd/LL/yyyy"
+  }
+}
