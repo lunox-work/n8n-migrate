@@ -38,7 +38,7 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState, siteAnswers } from "./n8n-side.mjs";
-import { convertPlain, convertSkill, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, withSynthetic, syntheticOutcome, nondeterministicTools } from "./claude-side.mjs";
+import { convertPlain, convertSkill, filledSource, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, withSynthetic, syntheticOutcome, nondeterministicTools } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
 import { fromHttp, fromTool, fromFile, replyOf, resultOf, isResult, lastOutputs, terminalNodes, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads } from "./compare.mjs";
 import { n8nCheckVariants, n8nCheckKey, n8nCheckSummary, gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited, n8nFailsOf } from "./gates.mjs";
@@ -286,8 +286,12 @@ async function benchTemplate(id, args, L) {
   // Gate 2: convert. The plain converter always (second column); the skill run where asked.
   const dir = join(WORK, "runs", args.tag, String(id));
   if (!S.plain) {
-    const p = convertPlain(id, join(dir, "plain"));
-    S.plain = { status: p.status, folder: p.folder, ms: p.ms };
+    // PROPOSALS P78: the overlay's placeholder fills on the export the Claude side converts.
+    const filled = filledSource(id, overlay);
+    const source = filled ? join(dir, "source.filled.json") : undefined;
+    if (filled) mkdirSync(dir, { recursive: true }), writeFileSync(source, filled);
+    const p = convertPlain(id, join(dir, "plain"), source ? { source } : {});
+    S.plain = { status: p.status, folder: p.folder, ms: p.ms, ...(filled ? { filledSource: true } : {}) };
     save();
   }
   const useSkill = args.skill.includes("all") || args.skill.includes(String(id));
@@ -466,7 +470,7 @@ async function benchTemplate(id, args, L) {
           log(`${id}/${v}: claude driver (haiku), diagnostic`);
           const rec = await need(v);
           const fx = loadFixture(id, v);
-          const r = await runClaudeDriver(folder, fx, { wf, recordings: withSynthetic(rec?.modelCalls ?? [], fx), startedAt: rec?.startedAt, label: `${args.tag}-${id}-${v}`, log });
+          const r = await runClaudeDriver(folder, fx, { wf, recordings: withSynthetic(rec?.modelCalls ?? [], fx), startedAt: rec?.startedAt, runTime: runTime(rec), label: `${args.tag}-${id}-${v}`, log });
           if (r.run || r.summary?.notRun) {
             const ce = r.effects.map((e) => claudeEffect(e, fx)).filter(Boolean);
             r.gate6 = gate6({ claudeCalls: { tools: r.effects.filter((e) => e.connector), http: r.effects.filter((e) => e.url) }, allow: r.allow ?? {}, claudeEffects: ce, n8nBaitHits: baitHits(n8nEffects(rec, fx), fx.expect.bait ?? []), bait: v === "hostile" ? fx.expect.bait ?? [] : [], baitHits, synthetic: syntheticOutcome(fx, { models: r.replayLog ?? [], http: r.effects.filter((e) => e.url) }) });
@@ -491,7 +495,7 @@ async function benchTemplate(id, args, L) {
     for (const v of ["normal", "hostile"]) {
       if (!S[`claude:${v}`]) {
         log(`${id}/${v}: claude driver (haiku)`);
-        S[`claude:${v}`] = await runClaudeDriver(folder, loadFixture(id, v), { wf, recordings: withSynthetic((await need(v))?.modelCalls ?? [], loadFixture(id, v)), startedAt: recs[v]?.startedAt, label: `${args.tag}-${id}-${v}`, log });
+        S[`claude:${v}`] = await runClaudeDriver(folder, loadFixture(id, v), { wf, recordings: withSynthetic((await need(v))?.modelCalls ?? [], loadFixture(id, v)), startedAt: recs[v]?.startedAt, runTime: runTime(recs[v]), label: `${args.tag}-${id}-${v}`, log });
         save();
       }
       // PROPOSALS P40: a protocol slip (the session broke the runner protocol; not a gate
@@ -501,7 +505,7 @@ async function benchTemplate(id, args, L) {
       if (S[`claude:${v}`].summary?.slip && !S[`claude:${v}:slip`]) {
         log(`${id}/${v}: claude driver protocol slip (${S[`claude:${v}`].summary.slip.outstanding.join(", ")}); retrying once`);
         S[`claude:${v}:slip`] = S[`claude:${v}`];
-        S[`claude:${v}`] = await runClaudeDriver(folder, loadFixture(id, v), { wf, recordings: withSynthetic((await need(v))?.modelCalls ?? [], loadFixture(id, v)), startedAt: recs[v]?.startedAt, label: `${args.tag}-${id}-${v}-retry`, log });
+        S[`claude:${v}`] = await runClaudeDriver(folder, loadFixture(id, v), { wf, recordings: withSynthetic((await need(v))?.modelCalls ?? [], loadFixture(id, v)), startedAt: recs[v]?.startedAt, runTime: runTime(recs[v]), label: `${args.tag}-${id}-${v}-retry`, log });
         save();
       }
       if (S[`claude:${v}:slip`]) slips[v] = { attempts: [S[`claude:${v}:slip`].summary, S[`claude:${v}`].summary].map((x) => ({ runStatus: x?.runStatus ?? null, slip: x?.slip ?? null, finalText: x?.finalText ?? null })), repeated: !!S[`claude:${v}`].summary?.slip };

@@ -19,7 +19,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { pickRoute, serviceRefusal, modelHost } from "../n8n/mock-server.mjs";
 import { checkSchema, schemaFile } from "../mocks/mcp-server.mjs";
 import { connectorRefusal, limitErrors, pageResult } from "../mocks/limits.mjs";
-import { answerOf, formatOf, liveAnswer, normalize, normalizeRunnerRequest, providerResponse, runnerValue } from "./model-shim.mjs";
+import { answerOf, formatOf, liveAnswer, normalize, normalizeRunnerRequest, pairRecorded, providerResponse, runnerValue } from "./model-shim.mjs";
 import { claudeP } from "./claude.mjs";
 import { modelConsumers, containerPath, N8N_HOME } from "./n8n-side.mjs";
 import { maskRunTime, fromTool, fromHttp, keyOf } from "./compare.mjs";
@@ -39,11 +39,32 @@ export function folderIn(out) {
   return null;
 }
 
-export function convertPlain(id, out, { now = "2026-11-16T00:00:00Z" } = {}) {
+export function convertPlain(id, out, { now = "2026-11-16T00:00:00Z", source = templatePath(id) } = {}) {
   rmSync(out, { recursive: true, force: true });
   const t0 = Date.now();
-  const r = spawnSync(process.execPath, [join(SKILL, "scripts", "convert.mjs"), templatePath(id), "--out", out, "--now", now], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  const r = spawnSync(process.execPath, [join(SKILL, "scripts", "convert.mjs"), source, "--out", out, "--now", now], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
   return { status: r.status, stderr: r.stderr.slice(-2000), stdout: r.stdout.slice(-4000), folder: folderIn(out), ms: Date.now() - t0 };
+}
+
+// PROPOSALS P78: the overlay's placeholder fills reach the export the Claude side converts, as
+// a person fixes a placeholder in the template before converting, so whatever the converter
+// derives from a filled parameter (a connector's file id, a request's host) sees the filled
+// value. The fills are the Claude half's `patch.params` (step name -> parameter -> value, each
+// replacing the node's parameter as the n8n half's `parameters.<name>` does); the patch itself
+// still runs after conversion. -> the filled export as text, or null when the overlay fills none.
+export function filledSource(id, overlay) {
+  const steps = Object.entries(overlay?.claude?.overrides?.steps ?? {}).filter(([, o]) => o?.patch?.params && typeof o.patch.params === "object");
+  if (!steps.length) return null;
+  const raw = JSON.parse(readFileSync(templatePath(id), "utf8"));
+  const wf = raw.workflow?.workflow ?? raw;
+  let filled = 0;
+  for (const [name, o] of steps) {
+    const n = (wf.nodes ?? []).find((x) => x.name === name);
+    if (!n) continue;
+    n.parameters ??= {};
+    for (const [k, v] of Object.entries(o.patch.params)) (n.parameters[k] = structuredClone(v)), filled++;
+  }
+  return filled ? JSON.stringify(raw) : null;
 }
 
 // One headless skill run. The project holds the skill (as a project skill) and the raw
@@ -161,6 +182,16 @@ export function sameNormInput(n8nCall, c, runTime = null) {
   let k = 0;
   while (k < p.length && hay.includes(p.slice(0, k + 1))) k++;
   return { same: false, at: p.slice(Math.max(0, k - 60), k + 120), n8nAround: hay.slice(Math.max(0, hay.indexOf(p.slice(0, k)) + k - 60), hay.indexOf(p.slice(0, k)) + k + 120) };
+}
+
+// PROPOSALS P76: does a recorded call fit a runner request well enough to pair them by
+// content? The same question (sameModelInput) and, for an agent turn, as many tool results fed
+// back, since every turn of one agent loop asks the same question.
+export function sameReplayInput(n8nCall, req, runTime = null) {
+  if (!sameModelInput(n8nCall, req, runTime).same) return false;
+  if (req.kind !== "agent") return true;
+  const fed = (req.transcript ?? []).reduce((k, t) => k + (t.results?.length ?? 0), 0);
+  return normalize(n8nCall.format, n8nCall.request).messages.filter((m) => m.role === "tool").length === fed;
 }
 
 // ---------- tool definitions offered to the model (PROPOSALS P28) ----------
@@ -350,10 +381,16 @@ export function sameToolTurn({ n8nPrev, n8nCall, n8nEffects = [], n8nSources = {
   const asked = answerOf(n8nPrev.format, n8nPrev.response).calls ?? [];
   if (!asked.length) return null;
   const n = normalize(n8nCall.format, n8nCall.request);
-  let last = -1;
-  n.messages.forEach((m, j) => m.role === "assistant" && m.calls?.length && (last = j));
-  const n8nCalls = last >= 0 ? n.messages[last].calls : [];
-  const n8nResults = n.messages.slice(last + 1).filter((m) => m.role === "tool");
+  // PROPOSALS P79: LangChain may send one reply's parallel calls as separate assistant
+  // messages, each followed by its tool message, so the turn's calls are the last
+  // asked.length calls across the assistant messages, and its results every tool message after
+  // the first of them; they are then paired by call id.
+  const flat = [];
+  n.messages.forEach((m, j) => m.role === "assistant" && (m.calls ?? []).forEach((c) => flat.push({ c, j })));
+  const turn = flat.slice(-asked.length);
+  const first = turn.length ? turn[0].j : -1;
+  const n8nCalls = turn.map((x) => x.c);
+  const n8nResults = first >= 0 ? n.messages.slice(first + 1).filter((m) => m.role === "tool") : [];
   const n8nResultFor = (j) => {
     const id = n8nCalls[j]?.id;
     return (id && n8nResults.find((r) => r.toolId === id)) || n8nResults.filter((r) => !r.toolName || toolNorm(r.toolName) === toolNorm(asked[j].name))[asked.slice(0, j).filter((a) => toolNorm(a.name) === toolNorm(asked[j].name)).length] || n8nResults[j];
@@ -638,6 +675,12 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
   const byKey = {};
   for (const c of recordings) (byKey[c.node] ??= []).push(c);
   const modelCount = new Map();
+  const modelUsed = new Map();
+  // PROPOSALS P76: the recorded call that answers a request, by index or else by content.
+  const pairFor = (key, i, matches) => {
+    if (!modelUsed.has(key)) modelUsed.set(key, new Set());
+    return pairRecorded(byKey[key] ?? [], i, modelUsed.get(key), matches);
+  };
   const seen = { tools: [], http: [], models: [], files: [] };
   const disk = scratchDisk(fx);
   // Where each agent loop (step and item) stood in `seen` at its last turn (P15).
@@ -722,10 +765,12 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
 
   async function answerModelHttp(p, { format, host }, body) {
     const key = p.step ?? `host:${host}`;
-    const i = modelCount.get(key) ?? 0;
-    modelCount.set(key, i + 1);
-    const rec = byKey[key]?.[i];
-    const entry = { step: p.step, key, index: i, kind: "http", url: p.url };
+    const at = modelCount.get(key) ?? 0;
+    modelCount.set(key, at + 1);
+    const conv = normalize(format, body);
+    const pick = pairFor(key, at, (r) => sameNormInput(r, conv, runTime).same);
+    const { rec, index: i } = pick;
+    const entry = { step: p.step, key, index: i, kind: "http", url: p.url, ...(pick.pairedBy ? { pairedBy: pick.pairedBy, askedAt: at } : {}) };
     seen.models.push(entry);
     const json = (v) => ({ status: 200, headers: { "content-type": "application/json" }, body: JSON.stringify(v) });
     if (mode === "replay" && rec) {
@@ -745,10 +790,11 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
   async function answerModel(req) {
     const step = req.step ?? "?";
     const key = wf ? modelKeyFor(wf, step) : step;
-    const i = modelCount.get(key) ?? 0;
-    modelCount.set(key, i + 1);
-    const rec = byKey[key]?.[i];
-    const entry = { step, key, index: i, kind: req.kind };
+    const at = modelCount.get(key) ?? 0;
+    modelCount.set(key, at + 1);
+    const pick = pairFor(key, at, (r) => sameReplayInput(r, req, runTime));
+    const { rec, index: i } = pick;
+    const entry = { step, key, index: i, kind: req.kind, ...(pick.pairedBy ? { pairedBy: pick.pairedBy, askedAt: at } : {}) };
     seen.models.push(entry);
     let claudeTurn = null;
     if (req.kind === "agent") {

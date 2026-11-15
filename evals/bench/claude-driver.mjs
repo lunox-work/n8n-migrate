@@ -36,7 +36,7 @@ const ROOT = resolve(HERE, "..", "..");
 const SERVER = join(ROOT, "evals", "mocks", "mcp-server.mjs");
 const readJson = (p, d = null) => (existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : d);
 
-export async function runClaudeDriver(folder, fx, { wf, recordings = [], startedAt, label, model = "haiku", timeoutS = 900, log = console.error }) {
+export async function runClaudeDriver(folder, fx, { wf, recordings = [], startedAt, runTime = null, label, model = "haiku", timeoutS = 900, log = console.error }) {
   const def = readJson(join(folder, "definition.json"));
   // PROPOSALS P74: a folder the claude driver cannot stand in for is not run (no claude -p),
   // with the reason named, so the in-process gates stand and gate 8 reads the measurement as
@@ -77,7 +77,7 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
 
   // Replay hook beside the folder's own hooks.
   const recFile = join(runDir, "recordings.json");
-  writeFileSync(recFile, JSON.stringify({ recordings, workflow: wf, folder: work }));
+  writeFileSync(recFile, JSON.stringify({ recordings, workflow: wf, folder: work, runTime }));
   const settingsPath = join(repo, ".claude", "settings.json");
   const settings = readJson(settingsPath, {});
   settings.hooks ??= {};
@@ -290,13 +290,22 @@ export function sessionEnv({ base = process.env, httpMockUrl = null, secrets = [
 export function protocolSlip({ state, killedFor = null, resultOk = false, hookDenies = 0, permissionDenials = 0, replayState = {}, recordings = [], workflow = null }) {
   if (state?.status !== "needs" || killedFor || !resultOk || hookDenies || permissionDenials) return null;
   const counts = { ...(replayState.counts ?? {}) };
+  const used = Object.fromEntries(Object.entries(replayState.used ?? {}).map(([k, v]) => [k, new Set(v)]));
   const outstanding = [];
   for (const q of state.requests ?? []) {
     if (!["model", "agent"].includes(q.kind)) continue;
     const step = String(q.id).split("#")[0];
     const key = workflow ? modelKeyFor(workflow, step) : step;
-    const index = replayState.ids?.[q.id] ?? counts[key] ?? 0;
-    if (replayState.ids?.[q.id] === undefined) counts[key] = index + 1;
+    let index = replayState.ids?.[q.id];
+    if (index === undefined) {
+      // PROPOSALS P76: a request not yet answered takes the next index, or else any recorded
+      // call of its node the replay has not handed out.
+      index = counts[key] ?? 0;
+      counts[key] = index + 1;
+      const u = (used[key] ??= new Set());
+      if (u.has(index)) index = recordings.filter((x) => x.node === key).map((x) => x.index).find((j) => !u.has(j)) ?? index;
+      u.add(index);
+    }
     if (recordings.some((x) => x.node === key && x.index === index)) outstanding.push(`${q.id} (${key}#${index})`);
   }
   return outstanding.length ? { why: "the session ended while the run waited on a model answer n8n's recorded reply could give", outstanding } : null;

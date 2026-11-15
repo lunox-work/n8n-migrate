@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // PreToolUse hook (matcher ^Write$) the claude driver adds beside the folder's own hooks:
 // when the session writes the answer to a model or agent request (.n2c/inbox/<q>.txt), the
-// content is replaced with n8n's recorded reply for the same model node and call index, so
+// content is replaced with n8n's recorded reply for the same model node and call index (or the
+// node's unused call asked the same thing, PROPOSALS P76), so
 // branches driven by model output run as they did in n8n. Anything else passes untouched.
 //
 //   node replay-hook.mjs <recordings.json>   (stdin: the hook input; stdout: the hook output)
@@ -11,8 +12,8 @@
 
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join, basename } from "node:path";
-import { answerOf, runnerValue } from "./model-shim.mjs";
-import { modelKeyFor } from "./claude-side.mjs";
+import { answerOf, pairRecorded, runnerValue } from "./model-shim.mjs";
+import { modelKeyFor, sameReplayInput } from "./claude-side.mjs";
 
 const recFile = process.argv[2];
 let input = "";
@@ -31,7 +32,7 @@ function handle(h) {
   const fp = h.tool_input?.file_path ?? "";
   const m = /\.n2c\/inbox\/(q\d+)\.txt$/.exec(fp);
   if (!m) return null;
-  const { recordings, workflow, folder } = JSON.parse(readFileSync(recFile, "utf8"));
+  const { recordings, workflow, folder, runTime = null } = JSON.parse(readFileSync(recFile, "utf8"));
   const driver = JSON.parse(readFileSync(join(folder, ".n2c", "driver.json"), "utf8"));
   const run = JSON.parse(readFileSync(join(folder, ".n2c", "run.json"), "utf8"));
   const reqId = driver.handles?.[m[1]];
@@ -39,19 +40,28 @@ function handle(h) {
   if (!req || !["model", "agent"].includes(req.kind)) return null;
   const stateFile = join(dirname(recFile), "replay-state.json");
   const st = existsSync(stateFile) ? JSON.parse(readFileSync(stateFile, "utf8")) : { ids: {}, counts: {}, log: [] };
+  st.used ??= {};
   const step = String(reqId).split("#")[0];
   const key = modelKeyFor(workflow, step);
+  const list = recordings.filter((r) => r.node === key);
+  let pairedBy = null;
   if (st.ids[reqId] === undefined) {
-    st.ids[reqId] = st.counts[key] ?? 0;
-    st.counts[key] = st.ids[reqId] + 1;
+    // PROPOSALS P76: by index, or else by content (n8n's concurrent calls are indexed by arrival).
+    const at = st.counts[key] ?? 0;
+    st.counts[key] = at + 1;
+    const used = new Set(st.used[key] ?? []);
+    const pick = pairRecorded(list, at, used, (r) => sameReplayInput(r, req, runTime));
+    st.used[key] = [...used];
+    st.ids[reqId] = pick.index;
+    pairedBy = pick.pairedBy ?? null;
   }
   const index = st.ids[reqId];
-  const rec = recordings.filter((r) => r.node === key)[index];
+  const rec = list[index];
   // PROPOSALS P16: the request this reply answers and when, so the bench can check the
   // question (sameModelInput) and an agent turn's tools (sameToolTurn) as it does in process.
   // A second write of the same answer is marked, and only the first counts.
   const repeat = st.log.some((e) => e.id === reqId);
-  st.log.push({ id: reqId, key, index, mode: rec ? "replay" : "live", t: new Date().toISOString(), ...(repeat ? { repeat: true } : { req }) });
+  st.log.push({ id: reqId, key, index, mode: rec ? "replay" : "live", t: new Date().toISOString(), ...(pairedBy ? { pairedBy } : {}), ...(repeat ? { repeat: true } : { req }) });
   writeFileSync(stateFile, JSON.stringify(st));
   if (!rec) return null;
   const v = runnerValue(req, answerOf(rec.format, rec.response));

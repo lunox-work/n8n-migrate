@@ -14,7 +14,8 @@
 //   live    claude -p --model haiku with the conversation as a prompt and a JSON schema for
 //           the answer (text, or tool calls). Cached by request hash in .work/model-cache.json
 //           unless noCache (the judge's n8n-vs-n8n recordings need two real draws).
-//   replay  recorded replies by tag and call index; a miss falls back to live (marked `live`)
+//   replay  recorded replies by tag and call index, or by request content when the index's
+//           request differs (P76); a miss falls back to live (marked `live`)
 //           or, with fallback "canned", to the canned reply.
 //   canned  a fixed reply, no model: used for n8n runs whose only purpose is the HTTP request
 //           log (the Claude side failed before gate 4). Marked `canned` in results.
@@ -402,12 +403,46 @@ export function formatOf(path) {
 export const MODEL_CALL_CAP = Number(process.env.N2C_BENCH_MODEL_CALL_CAP || 30);
 export const capMessage = (tag, cap) => `model call cap reached: ${cap} calls to model node ${tag} in one run (the workflow keeps asking the model, e.g. a loop until the reply has some form; PROPOSALS P65)`;
 
+// PROPOSALS P76: which recorded call answers a request. n8n sends a node's per-item requests
+// concurrently, so its recording lists them by arrival, not by item, and the arrival order can
+// change from run to run. The call at the request's own index answers when its input matches;
+// else the first unused call of the node whose input matches (pairedBy: "input"); else the call
+// at the index when unused, else the first unused one, else the one at the index again. `list`
+// is the node's calls by index, `used` the caller's set of indexes already handed out.
+// -> {rec|null, index, pairedBy?}
+export function pairRecorded(list = [], index, used, matches) {
+  const free = (j) => !!list[j] && !used.has(j);
+  const take = (j, pairedBy) => (used.add(j), { rec: list[j], index: j, ...(pairedBy ? { pairedBy } : {}) });
+  const fits = (j) => {
+    try {
+      return !!matches(list[j]);
+    } catch {
+      return false;
+    }
+  };
+  if (free(index) && fits(index)) return take(index);
+  for (let j = 0; j < list.length; j++) if (j !== index && free(j) && fits(j)) return take(j, "input");
+  if (free(index)) return take(index);
+  for (let j = 0; j < list.length; j++) if (free(j)) return take(j, "unused");
+  return { rec: list[index] ?? null, index };
+}
+
+// The n8n side's replay (P76): the same conversation (system, message texts and tool calls) as a
+// recorded request, so a replayed n8n run answers each concurrent request with its own reply.
+const convKey = (format, body) => {
+  const n = normalize(format, body);
+  return JSON.stringify([n.system, n.messages.map((m) => [m.role, m.text, (m.calls ?? []).map((c) => [c.name, c.input])])]);
+};
+export const sameRequest = (recorded, format, body) => !!recorded?.request && convKey(recorded.format ?? format, recorded.request) === convKey(format, body);
+
 // session: {mode, recorded: {tag: [record]}, fallback: "live"|"canned", noCache, calls: [], cap}
 export function startShim({ port = 5691, host = "127.0.0.1", log = console.error } = {}) {
   const shim = { session: { mode: "canned", recorded: {}, calls: [], fallback: "canned" }, server: null };
   const counters = new Map();
+  const replayed = new Map();
   shim.setSession = (s) => {
     counters.clear();
+    replayed.clear();
     shim.session = { mode: "canned", recorded: {}, fallback: "canned", noCache: false, ...s, calls: [] };
   };
   shim.server = createServer((req, res) => {
@@ -440,7 +475,10 @@ export function startShim({ port = 5691, host = "127.0.0.1", log = console.error
       const t0 = Date.now();
       try {
         let answer;
-        const recorded = s.recorded?.[tag]?.[index];
+        if (!replayed.has(tag)) replayed.set(tag, new Set());
+        const pick = s.mode === "replay" ? pairRecorded(s.recorded?.[tag] ?? [], index, replayed.get(tag), (r) => sameRequest(r, format, body)) : { rec: null };
+        const recorded = pick.rec;
+        if (pick.pairedBy) rec.pairedBy = { [pick.pairedBy]: pick.index };
         if (s.mode === "replay" && recorded) (answer = answerOf(recorded.format, recorded.response)), (rec.mode = "replay");
         else if (s.mode === "canned" || (s.mode === "replay" && s.fallback === "canned")) (answer = cannedAnswer(format, body)), (rec.mode = "canned");
         else {

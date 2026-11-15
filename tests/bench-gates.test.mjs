@@ -1321,3 +1321,57 @@ test("P77: a credential's site question is answered with the site the bench's n8
   assert.deepEqual(siteAnswers(report, wf, {}), { "w1/site/Blog": "https://wordpress.example" });
   assert.deepEqual(siteAnswers(report, wf, fx, { credentials: { wordpressApi: { url: "https://other.example" } } }), { "w1/site/Blog": "https://other.example" });
 });
+
+test("P76: a replayed request takes its own index's reply when it matches, else the unused reply asked the same thing", async () => {
+  const { pairRecorded, sameRequest } = await import("../evals/bench/model-shim.mjs");
+  const { sameReplayInput } = await import("../evals/bench/claude-side.mjs");
+  // n8n sent two per-item requests concurrently; the recording lists Jamie's first.
+  const rec = (index, who) => ({ node: "OpenAI", index, format: "openai", request: { messages: [{ role: "system", content: "Write a welcome." }, { role: "user", content: `Lead: ${who}` }] }, response: { choices: [{ message: { role: "assistant", content: `Hi ${who}` } }] } });
+  const list = [rec(0, "Jamie"), rec(1, "David")];
+  const ask = (who) => ({ kind: "model", system: "Write a welcome.", messages: [{ role: "user", content: `Lead: ${who}` }] });
+  const used = new Set();
+  const a = pairRecorded(list, 0, used, (r) => sameReplayInput(r, ask("David")));
+  const b = pairRecorded(list, 1, used, (r) => sameReplayInput(r, ask("Jamie")));
+  assert.deepEqual([a.index, a.pairedBy, b.index, b.pairedBy], [1, "input", 0, "input"]);
+  // In order: the index answers, nothing is marked.
+  const u2 = new Set();
+  assert.deepEqual(pairRecorded(list, 0, u2, (r) => sameReplayInput(r, ask("Jamie"))), { rec: list[0], index: 0 });
+  // No match anywhere: the index's reply as before, then the first unused one.
+  const u3 = new Set([0]);
+  assert.equal(pairRecorded(list, 0, u3, () => false).index, 1);
+  assert.equal(pairRecorded([], 0, new Set(), () => true).rec, null);
+  // An agent turn also needs as many tool results fed back (every turn asks the same question).
+  const turn1 = { format: "openai", request: { messages: [{ role: "user", content: "q" }] } };
+  const turn2 = { format: "openai", request: { messages: [{ role: "user", content: "q" }, { role: "assistant", content: null, tool_calls: [{ id: "c", type: "function", function: { name: "t", arguments: "{}" } }] }, { role: "tool", tool_call_id: "c", content: "1" }] } };
+  const second = { kind: "agent", prompt: "q", transcript: [{ calls: [{ name: "t", args: {} }], results: [{ name: "t", ok: true, value: 1 }] }] };
+  assert.deepEqual([sameReplayInput(turn1, second), sameReplayInput(turn2, second)], [false, true]);
+  // The n8n side's replay pairs on the whole conversation.
+  assert.equal(sameRequest(list[1], "openai", list[1].request), true);
+  assert.equal(sameRequest(list[0], "openai", list[1].request), false);
+});
+
+test("P79: parallel calls LangChain splits into separate assistant messages are all the turn's calls", async () => {
+  const { sameToolTurn } = await import("../evals/bench/claude-side.mjs");
+  const c = (id, file) => ({ id, type: "function", function: { name: "Get_a_File", arguments: JSON.stringify({ path: file }) } });
+  const n8nPrev = { format: "openai", seq: null, response: { choices: [{ message: { role: "assistant", content: null, tool_calls: [c("k0", "SKILL.md"), c("k1", "reference.md")] } }] } };
+  const n8nCall = {
+    format: "openai",
+    request: { messages: [{ role: "user", content: "q" }, { role: "assistant", content: null, tool_calls: [c("k0", "SKILL.md")] }, { role: "tool", tool_call_id: "k0", content: '{"data":"skill"}' }, { role: "assistant", content: null, tool_calls: [c("k1", "reference.md")] }, { role: "tool", tool_call_id: "k1", content: '{"data":"ref"}' }] },
+  };
+  const turn = (values) => sameToolTurn({ n8nPrev, n8nCall, claudeTurn: { calls: [{ name: "Get_a_File" }, { name: "Get_a_File" }], results: values.map((v) => ({ ok: true, value: v })), reads: [] } });
+  assert.equal(turn([{ data: "skill" }, { data: "ref" }]).same, true);
+  assert.equal(turn([{ data: "ref" }, { data: "skill" }]).cause, "different tool result");
+  // An earlier turn's calls are not this turn's.
+  const later = { ...n8nPrev, response: { choices: [{ message: { role: "assistant", content: null, tool_calls: [c("k1", "reference.md")] } }] } };
+  assert.equal(sameToolTurn({ n8nPrev: later, n8nCall, claudeTurn: { calls: [{ name: "Get_a_File" }], results: [{ ok: true, value: { data: "ref" } }], reads: [] } }).same, true);
+});
+
+test("P78: the overlay's placeholder fills reach the export the Claude side converts", async () => {
+  const { filledSource } = await import("../evals/bench/claude-side.mjs");
+  assert.equal(filledSource(2813, null), null);
+  assert.equal(filledSource(2813, { claude: { overrides: { steps: { "No such step": { patch: { params: { x: 1 } } } } } } }), null);
+  const overlay = { claude: { overrides: { steps: { "Get Ideas": { patch: { params: { documentId: { __rl: true, mode: "id", value: "sheet-1" } } } } } } } };
+  const raw = JSON.parse(filledSource(2813, overlay));
+  const wf = raw.workflow?.workflow ?? raw;
+  assert.equal(wf.nodes.find((n) => n.name === "Get Ideas").parameters.documentId.value, "sheet-1");
+});
