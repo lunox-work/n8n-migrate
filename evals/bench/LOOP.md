@@ -727,3 +727,11 @@ Next levers by the round-4 rule (alone, then total, a dev unlock preferred; `lev
 - Round-4 numbers: **one-shot 30 of 100, gate sum 507** (was 28, 488); **converter coverage 47** (unchanged; preflight clean 39). No pass lost, no gate fell, no template gains a blocked step or a preflight error.
 - Verdict: accepted (+2 passes, gate sum +19). `levers.mjs --offline`: top rows `markdown v1` 7/18 (dev unlock 2006, 2648, 3224), `httpRequest v1` 6/24, `toolWikipedia` 4/10, `xml v1` 4/7, `rssFeedRead (URL built at run time)` 4/6 (dev unlock 2799).
 
+## Iteration 36: the Markdown node with n8n's own libraries (accepted)
+
+- Lever: LEVERS #1 after iteration 35, `markdown v1` (runtime, core; gallery alone 7, total 18; dev unlock 2006, 2648, 3224; in 3986, 2454).
+- Change: `runtime/src/htmlmarkdown.mjs` (node-html-markdown 1.2.0 on node-html-parser 5.4.2, their compiled CommonJS kept as distributed in a module table; `he` replaced by `htmldom.mjs` `decodeEntities`, `css-select` by a refusing stub node-html-markdown never reaches), `runtime/src/showdown.mjs` (showdown 2.1.0's script in a function scope), `nodes2.mjs` Markdown v1 (both modes, options as the node builds them, result at `destinationKey`). Checked against the libraries in the n8n 2.47.7 image: 306 of 306 conversions equal (every HTML page in the dev fixtures to Markdown, every recorded model reply to HTML with default and table options). Test in `tests/runtime-html.test.mjs`.
+- Bench `r4j-i36` (2006, 2648, 3224, 3986, 2454; 24 `claude -p`, ledger 1120 → 1144): **2006 3 → 9, 2648 3 → 9**; 3224 3 → 4 (the Gmail node's attribution footer, P107, and the send reply's shape `{}` against the connector's `{"ok": true}` in the chat reply); 3986, 2454 unchanged (vector store, Outlook operations).
+- Round-4 numbers: **one-shot 32 of 100, gate sum 520** (was 30, 507); **converter coverage 47** (unchanged; preflight clean 39: 2006 and 3224 still need their hosts answers under default answers). No pass lost, no gate fell.
+- Verdict: accepted (+2 passes, gate sum +13). `levers.mjs --offline`: top rows `httpRequest v1` 6/24 (no dev unlock), `toolWikipedia` 4/10 (dev unlock 2883), `xml v1` 4/7, `rssFeedRead (URL built at run time)` 4/6 (dev unlock 2799), `linkedIn post:create` 3/8 (dev unlock 3086).
+

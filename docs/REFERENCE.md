@@ -116,8 +116,10 @@ the person's key is not a substitution. Flagged steps:
   runtime with no library: `SKILL/runtime/src/htmldom.mjs` builds the trees
   cheerio 1.1 (parse5) and htmlparser2 8 build and matches css-select's
   selectors; `htmltext.mjs` is html-to-text 9.0.5's conversion (MIT, ported),
-  which Html 1.2 uses for text. A selector or construct they do not carry
-  refuses the step.
+  which Html 1.2 uses for text. The Markdown node runs node-html-markdown
+  1.2.0 on node-html-parser 5.4.2 (`htmlmarkdown.mjs`) and showdown 2.1.0
+  (`showdown.mjs`), the MIT libraries n8n ships, kept as distributed. A
+  selector or construct they do not carry refuses the step.
 - **Files over HTTP.** An HTTP Request step's file response (or an
   autodetected binary type, n8n's list) becomes binary data as n8n builds it
   (name from `content-disposition` or the URL path, type from the response);

@@ -147,18 +147,18 @@
    "out-of-scope/under-a-minute": 2
   },
   "inScope": 475,
-  "supportedToday": 155,
+  "supportedToday": 157,
   "fullClass": 88,
-  "answersOnly": 31,
-  "blocked": 289,
+  "answersOnly": 36,
+  "blocked": 282,
   "crashes": 0
  },
  "dev": {
   "templates": 100,
   "unnamed": 0,
   "supportedToday": 39,
-  "answersOnly": 10,
-  "blocked": 51,
+  "answersOnly": 13,
+  "blocked": 48,
   "missing": 0
  },
  "byPlanned": [
@@ -173,7 +173,7 @@
   {
    "group": "unplanned",
    "keys": 92,
-   "galleryUnlock": 37,
+   "galleryUnlock": 38,
    "galleryTotal": 73,
    "devUnlock": 0,
    "devTotal": 0
@@ -181,26 +181,18 @@
   {
    "group": "connector",
    "keys": 56,
-   "galleryUnlock": 35,
+   "galleryUnlock": 37,
    "galleryTotal": 74,
-   "devUnlock": 8,
+   "devUnlock": 9,
    "devTotal": 14
   },
   {
    "group": "http",
    "keys": 6,
-   "galleryUnlock": 20,
+   "galleryUnlock": 21,
    "galleryTotal": 54,
    "devUnlock": 5,
    "devTotal": 9
-  },
-  {
-   "group": "core",
-   "keys": 7,
-   "galleryUnlock": 14,
-   "galleryTotal": 43,
-   "devUnlock": 3,
-   "devTotal": 6
   },
   {
    "group": "db",
@@ -227,9 +219,17 @@
    "devTotal": 9
   },
   {
+   "group": "core",
+   "keys": 6,
+   "galleryUnlock": 7,
+   "galleryTotal": 27,
+   "devUnlock": 0,
+   "devTotal": 1
+  },
+  {
    "group": "form-ending",
    "keys": 1,
-   "galleryUnlock": 2,
+   "galleryUnlock": 3,
    "galleryTotal": 6,
    "devUnlock": 1,
    "devTotal": 3
@@ -279,7 +279,7 @@
   {
    "group": "n8n-nodes-base.httpRequest",
    "keys": 3,
-   "galleryUnlock": 9,
+   "galleryUnlock": 10,
    "galleryTotal": 35,
    "devUnlock": 0,
    "devTotal": 1,
@@ -311,15 +311,6 @@
    "devUnlock": 1,
    "devTotal": 1,
    "planned": "connector"
-  },
-  {
-   "group": "n8n-nodes-base.markdown",
-   "keys": 1,
-   "galleryUnlock": 7,
-   "galleryTotal": 18,
-   "devUnlock": 3,
-   "devTotal": 5,
-   "planned": "core"
   },
   {
    "group": "n8n-nodes-base.youTube",
@@ -403,6 +394,15 @@
    "planned": "rest-template"
   },
   {
+   "group": "n8n-nodes-base.form",
+   "keys": 1,
+   "galleryUnlock": 3,
+   "galleryTotal": 6,
+   "devUnlock": 1,
+   "devTotal": 3,
+   "planned": "form-ending (some operations)"
+  },
+  {
    "group": "n8n-nodes-base.googleDocs",
    "keys": 2,
    "galleryUnlock": 3,
@@ -448,6 +448,15 @@
    "planned": "files"
   },
   {
+   "group": "n8n-nodes-base.microsoftOutlook",
+   "keys": 12,
+   "galleryUnlock": 2,
+   "galleryTotal": 9,
+   "devUnlock": 2,
+   "devTotal": 3,
+   "planned": "connector"
+  },
+  {
    "group": "n8n-nodes-base.notion",
    "keys": 4,
    "galleryUnlock": 2,
@@ -464,15 +473,6 @@
    "devUnlock": 0,
    "devTotal": 1,
    "planned": "files"
-  },
-  {
-   "group": "n8n-nodes-base.form",
-   "keys": 1,
-   "galleryUnlock": 2,
-   "galleryTotal": 6,
-   "devUnlock": 1,
-   "devTotal": 3,
-   "planned": "form-ending (some operations)"
   },
   {
    "group": "n8n-nodes-base.twitter",
@@ -610,6 +610,15 @@
    "planned": "unplanned"
   },
   {
+   "group": "n8n-nodes-base.microsoftTeams",
+   "keys": 4,
+   "galleryUnlock": 2,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
    "group": "n8n-nodes-base.mistralAi",
    "keys": 1,
    "galleryUnlock": 2,
@@ -643,15 +652,6 @@
    "galleryTotal": 10,
    "devUnlock": 0,
    "devTotal": 1,
-   "planned": "connector"
-  },
-  {
-   "group": "n8n-nodes-base.microsoftOutlook",
-   "keys": 12,
-   "galleryUnlock": 1,
-   "galleryTotal": 9,
-   "devUnlock": 1,
-   "devTotal": 3,
    "planned": "connector"
   },
   {
@@ -770,15 +770,6 @@
    "devUnlock": 0,
    "devTotal": 1,
    "planned": "connector"
-  },
-  {
-   "group": "n8n-nodes-base.microsoftTeams",
-   "keys": 4,
-   "galleryUnlock": 1,
-   "galleryTotal": 2,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "unplanned"
   },
   {
    "group": "n8n-nodes-base.salesforce",
@@ -1287,26 +1278,6 @@
  ],
  "features": [
   {
-   "key": "n8n-nodes-base.markdown v1",
-   "type": "n8n-nodes-base.markdown",
-   "op": "",
-   "planned": "core",
-   "kinds": [
-    "runtime"
-   ],
-   "reason": "runtime: not implemented in the runtime: n8n-nodes-base.markdown vN",
-   "galleryAlone": 7,
-   "galleryTotal": 18,
-   "devUnlock": 3,
-   "devTotal": 5,
-   "ids": {
-    "galleryAlone": [2006, 2164, 2648, 2942, 2965, 3012, 3224],
-    "galleryTotal": [1690, 2006, 2164, 2281, 2454, 2648, 2809, 2942, 2965, 2981, 3012, 3224, 3289, 3396, 3796, 3971, 3986, 5817],
-    "devUnlock": [2006, 2648, 3224],
-    "devTotal": [2006, 2454, 2648, 3224, 3986]
-   }
-  },
-  {
    "key": "n8n-nodes-base.httpRequest v1",
    "type": "n8n-nodes-base.httpRequest",
    "op": "",
@@ -1427,6 +1398,26 @@
    }
   },
   {
+   "key": "n8n-nodes-base.form completion",
+   "type": "n8n-nodes-base.form",
+   "op": "completion",
+   "planned": "form-ending",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: form waits for a person (out of scope v1)",
+   "galleryAlone": 3,
+   "galleryTotal": 6,
+   "devUnlock": 1,
+   "devTotal": 3,
+   "ids": {
+    "galleryAlone": [3289, 3669, 4767],
+    "galleryTotal": [2187, 2976, 3082, 3289, 3669, 4767],
+    "devUnlock": [3669],
+    "devTotal": [2187, 3082, 3669]
+   }
+  },
+  {
    "key": "n8n-nodes-base.spreadsheetFile fromFile",
    "type": "n8n-nodes-base.spreadsheetFile",
    "op": "fromFile",
@@ -1487,26 +1478,6 @@
    }
   },
   {
-   "key": "n8n-nodes-base.form completion",
-   "type": "n8n-nodes-base.form",
-   "op": "completion",
-   "planned": "form-ending",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: form waits for a person (out of scope v1)",
-   "galleryAlone": 2,
-   "galleryTotal": 6,
-   "devUnlock": 1,
-   "devTotal": 3,
-   "ids": {
-    "galleryAlone": [3669, 4767],
-    "galleryTotal": [2187, 2976, 3082, 3289, 3669, 4767],
-    "devUnlock": [3669],
-    "devTotal": [2187, 3082, 3669]
-   }
-  },
-  {
    "key": "n8n-nodes-base.mySql executeQuery",
    "type": "n8n-nodes-base.mySql",
    "op": "executeQuery",
@@ -1524,6 +1495,26 @@
     "galleryTotal": [598, 1753, 1822, 1872, 2508, 3617],
     "devUnlock": [2508],
     "devTotal": [2508, 3617]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.httpRequest (URL built at run time)",
+   "type": "n8n-nodes-base.httpRequest",
+   "op": "",
+   "planned": "http",
+   "kinds": [
+    "runtime"
+   ],
+   "reason": "runtime: a URL built at run time in a step the analyzer asks no hosts question about",
+   "galleryAlone": 2,
+   "galleryTotal": 6,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2981, 3791],
+    "galleryTotal": [2784, 2981, 3435, 3791, 4709, 5743],
+    "devUnlock": [],
+    "devTotal": []
    }
   },
   {
@@ -1966,26 +1957,6 @@
     "galleryTotal": [6, 694, 1754, 1810, 1862, 4403],
     "devUnlock": [1862],
     "devTotal": [1862]
-   }
-  },
-  {
-   "key": "n8n-nodes-base.httpRequest (URL built at run time)",
-   "type": "n8n-nodes-base.httpRequest",
-   "op": "",
-   "planned": "http",
-   "kinds": [
-    "runtime"
-   ],
-   "reason": "runtime: a URL built at run time in a step the analyzer asks no hosts question about",
-   "galleryAlone": 1,
-   "galleryTotal": 6,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [3791],
-    "galleryTotal": [2784, 2981, 3435, 3791, 4709, 5743],
-    "devUnlock": [],
-    "devTotal": []
    }
   },
   {

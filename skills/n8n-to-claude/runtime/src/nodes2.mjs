@@ -18,6 +18,8 @@ import { createLookup } from "./proxy.mjs";
 import { binaryFromTool, binaryOf, prepareBinary } from "./files.mjs";
 import { parseHtml, selectAll, innerHtml, textContent, isTag, UnsupportedHtml } from "./htmldom.mjs";
 import { htmlToText } from "./htmltext.mjs";
+import { htmlToMarkdown } from "./htmlmarkdown.mjs";
+import { markdownToHtml } from "./showdown.mjs";
 import { summarizeItem } from "./summarize.mjs";
 
 const BASE = "n8n-nodes-base.";
@@ -655,6 +657,58 @@ function extractHtml(exec, version, { v1Key = false, textMode = null } = {}) {
   return out;
 }
 
+// ---------- Markdown (v1) ----------
+
+// n8n's Markdown node: HTML to Markdown with node-html-markdown (htmlmarkdown.mjs), Markdown to
+// HTML with showdown (showdown.mjs). The mode is read from item 0; each item's json is copied
+// and the result set at destinationKey (a path); binary data is not passed on (the node returns
+// json only). Options as the node builds them: the text-replace, line-start and global escape
+// pairs, comma lists for ignore and blockElements, then only the truthy ones.
+const lodashIsEmpty = (v) => v == null || (typeof v === "object" && Object.keys(v).length === 0) || (typeof v === "string" && v === "");
+const markdown = {
+  versions: (v) => v === 1,
+  defaults: () => ({ mode: "htmlToMarkdown", html: "", markdown: "", destinationKey: "data", options: {} }),
+  execute(exec) {
+    const items = exec.getInputData();
+    const mode = exec.param("mode", 0);
+    const out = [];
+    for (let i = 0; i < items.length; i++) {
+      try {
+        if (mode === "htmlToMarkdown") {
+          const options = { ...(exec.param("options", i, {}) ?? {}) };
+          const destinationKey = exec.param("destinationKey", i);
+          const tr = exec.param("options.textReplace.values", i, []);
+          options.textReplace = !lodashIsEmpty(tr) ? tr.map((e) => [e.pattern, e.replacement]) : undefined;
+          const ls = exec.param("options.lineStartEscape.value", i, {});
+          options.lineStartEscape = !lodashIsEmpty(ls) ? [ls.pattern, ls.replacement] : undefined;
+          const ge = exec.param("options.globalEscape.value", i, {});
+          options.globalEscape = !lodashIsEmpty(ge) ? [ge.pattern, ge.replacement] : undefined;
+          options.ignore = options.ignore ? options.ignore.split(",").map((x) => x.trim()) : undefined;
+          options.blockElements = options.blockElements ? options.blockElements.split(",").map((x) => x.trim()) : undefined;
+          const mdOptions = {};
+          for (const k of Object.keys(options)) if (options[k]) mdOptions[k] = options[k];
+          const json = deepCopy(items[i].json);
+          setPath(json, destinationKey, htmlToMarkdown(exec.param("html", i), mdOptions));
+          out.push({ json, pairedItem: { item: i } });
+        } else if (mode === "markdownToHtml") {
+          const json = deepCopy(items[i].json);
+          setPath(json, exec.param("destinationKey", i), markdownToHtml(exec.param("markdown", i), exec.param("options", i, {}) ?? {}));
+          out.push({ json, pairedItem: { item: i } });
+        }
+      } catch (e) {
+        if (e instanceof UnsupportedHtml) throw unsupported(exec, `Markdown: ${e.message}`);
+        if (e instanceof UnsupportedNode) throw e;
+        if (exec.continueOnFail()) {
+          out.push({ json: { error: e.message }, pairedItem: { item: i } });
+          continue;
+        }
+        throw e instanceof NodeError ? e : err(exec, e.message, { itemIndex: i });
+      }
+    }
+    return [out];
+  },
+};
+
 const htmlExtract = {
   versions: (v) => v === 1,
   defaults: () => ({ sourceData: "json", dataPropertyName: "data", extractionValues: {}, options: {} }),
@@ -685,6 +739,7 @@ export const GROUP2 = {
   [BASE + "itemLists"]: itemLists,
   [BASE + "html"]: html,
   [BASE + "htmlExtract"]: htmlExtract,
+  [BASE + "markdown"]: markdown,
   [BASE + "executionData"]: executionData,
 };
 

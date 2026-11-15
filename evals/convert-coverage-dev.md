@@ -38,7 +38,6 @@ Top reasons for review flags:
 | the sheet "…" may not be the first tab; the export reads the first tab only | 7 | 9 |
 | tool "…" is left out: a vector store needs an MCP server (lever not built yet) | 7 | 7 |
 | an LLM API called with your own API key, as n8n does; approve --approve llm-api-to-claude to run it as a model step on Claude instead | 6 | 8 |
-| markdown v1 is not implemented by the runtime | 6 | 6 |
 | the legacy OpenAI node's output (choices) is rebuilt from n8n's simplified shape; check the fields the next steps read | 5 | 13 |
 | the file comes from n8n binary data; check that the step before it puts the file into the item | 5 | 8 |
 | the body is binary data, which the runtime does not send | 5 | 5 |
@@ -50,6 +49,7 @@ Top reasons for review flags:
 | the raw OpenAI response (choices, usage) is not rebuilt; only the simplified message is | 2 | 6 |
 | parameter "…" has no counterpart in share_file | 2 | 4 |
 | tool "…" is left out: a database step needs the bundled server or a database connector (open decision N) | 2 | 4 |
+| $env is blocked in n8n and in the runtime | 2 | 3 |
 
 Top preflight errors (what stops a run before any effect):
 
@@ -60,11 +60,11 @@ Top preflight errors (what stops a run before any effect):
 | blocked: the site the credential "…" points to is not known yet: answer question N/site/wordpressApi Credential (its address, as in the n8n credential), then regenerate | 8 | 9 |
 | blocked: agent tool "…" cannot be carried (a vector store needs an MCP server (lever not built yet)); without it the agent would answer without a tool n8n gives it | 7 | 7 |
 | blocked: a database step needs the bundled server or a database connector (open decision N) | 6 | 25 |
-| not implemented: n8n-nodes-base.markdown v1 (kind logic) | 5 | 5 |
 | blocked: form waits for a person (out of scope v1) | 3 | 7 |
 | blocked: agent tool "…" cannot be carried (no request template for toolSerpApi yet (it needs the app's REST API with a stored secret)); without it the agent would answer without a tool n8n gives it | 3 | 3 |
 | blocked: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | blocked: agent tool "…" cannot be carried (a database step needs the bundled server or a database connector (open decision N)); without it the agent would answer without a tool n8n gives it | 2 | 4 |
+| blocked: emailSend cannot run on Claude as it is: send through the Gmail connector (send_message) instead of SMTP | 2 | 4 |
 
 Schema-invalid definitions:
 
@@ -99,7 +99,6 @@ Top reasons for review flags:
 | the sheet "…" may not be the first tab; the export reads the first tab only | 7 | 9 |
 | tool "…" is left out: a vector store needs an MCP server (lever not built yet) | 7 | 7 |
 | an LLM API called with your own API key, as n8n does; approve --approve llm-api-to-claude to run it as a model step on Claude instead | 6 | 8 |
-| markdown v1 is not implemented by the runtime | 6 | 6 |
 | the legacy OpenAI node's output (choices) is rebuilt from n8n's simplified shape; check the fields the next steps read | 5 | 13 |
 | the file comes from n8n binary data; check that the step before it puts the file into the item | 5 | 8 |
 | the body is binary data, which the runtime does not send | 5 | 5 |
@@ -111,6 +110,7 @@ Top reasons for review flags:
 | the raw OpenAI response (choices, usage) is not rebuilt; only the simplified message is | 2 | 6 |
 | parameter "…" has no counterpart in share_file | 2 | 4 |
 | tool "…" is left out: a database step needs the bundled server or a database connector (open decision N) | 2 | 4 |
+| $env is blocked in n8n and in the runtime | 2 | 3 |
 
 Top preflight errors (what stops a run before any effect):
 
@@ -121,11 +121,11 @@ Top preflight errors (what stops a run before any effect):
 | blocked: the site the credential "…" points to is not known yet: answer question N/site/wordpressApi Credential (its address, as in the n8n credential), then regenerate | 8 | 9 |
 | blocked: agent tool "…" cannot be carried (a vector store needs an MCP server (lever not built yet)); without it the agent would answer without a tool n8n gives it | 7 | 7 |
 | blocked: a database step needs the bundled server or a database connector (open decision N) | 6 | 25 |
-| not implemented: n8n-nodes-base.markdown v1 (kind logic) | 5 | 5 |
 | blocked: form waits for a person (out of scope v1) | 3 | 7 |
 | blocked: agent tool "…" cannot be carried (no request template for toolSerpApi yet (it needs the app's REST API with a stored secret)); without it the agent would answer without a tool n8n gives it | 3 | 3 |
 | blocked: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | blocked: agent tool "…" cannot be carried (a database step needs the bundled server or a database connector (open decision N)); without it the agent would answer without a tool n8n gives it | 2 | 4 |
+| blocked: emailSend cannot run on Claude as it is: send through the Gmail connector (send_message) instead of SMTP | 2 | 4 |
 
 Schema-invalid definitions:
 

@@ -71,3 +71,18 @@ test("htmldom: trees as parse5 (cheerio) and htmlparser2 (html-to-text) build th
   assert.throws(() => parseSelector("a::before"), /pseudo-elements/);
   assert.equal(htmlToText("<h2>Sub</h2><ol><li>a</li><li>b</li></ol><img src=i.png alt=pic>"), "SUB\n\n 1. a\n 2. b\n\npic [i.png]");
 });
+
+test("Markdown v1: HTML to Markdown (node-html-markdown) and Markdown to HTML (showdown) as n8n converts them", async () => {
+  const def = wf(
+    [
+      start(),
+      node("ToMd", "markdown", { html: "={{ $json.page }}", destinationKey: "md", options: {} }),
+      node("ToHtml", "markdown", { mode: "markdownToHtml", markdown: "={{ $json.md }}", destinationKey: "out.html", options: { tables: true } }),
+    ],
+    chain("Start", "ToMd", "ToHtml"),
+  );
+  const r = await run(def, { trigger: [{ page: '<h1>Hi &amp; bye</h1><p>Some <b>bold</b> and <a href="/x">link</a></p><ul><li>a</li><li>b</li></ul><table><tr><th>h</th></tr><tr><td>c</td></tr></table>' }] });
+  const md = "# Hi & bye\n\nSome **bold** and [link](/x)\n\n* a\n* b\n\n| h |\n| - |\n| c |";
+  assert.equal(out(r, "ToMd")[0].md, md);
+  assert.equal(out(r, "ToHtml")[0].out.html, '<h1 id="hibye">Hi &amp; bye</h1>\n<p>Some <strong>bold</strong> and <a href="/x">link</a></p>\n<ul>\n<li>a</li>\n<li>b</li>\n</ul>\n<p>| h |\n| - |\n| c |</p>', "showdown wants three dashes under a table header");
+});
