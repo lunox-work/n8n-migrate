@@ -196,10 +196,22 @@ const parsesAsJson = (s) => {
     return false;
   }
 };
+// A second form of the same artefact (2860's HR Expert draw): only the fence's own line breaks
+// are spelled out ("```json\n{"a": 1}\n```" with a literal backslash-n after the opening and
+// before the closing fence, the JSON itself plain); the body parses as JSON, so the two
+// escapes become real line breaks.
+const HALF_ESCAPED_FENCE = /^```(json)?\\n([\s\S]*?)\\n```$/i;
 export function escapedTextOf(text) {
   if (typeof text !== "string") return null;
   const t = text.trim();
   if (/[\r\n]/.test(t) || !/\\[n"]/.test(t)) return null;
+  const half = HALF_ESCAPED_FENCE.exec(t);
+  if (half) {
+    try {
+      JSON.parse(half[2]);
+      return "```" + (half[1] ?? "") + "\n" + half[2] + "\n```";
+    } catch {}
+  }
   let s;
   try {
     s = JSON.parse(t.length > 1 && t.startsWith('"') && t.endsWith('"') ? t : `"${t}"`);

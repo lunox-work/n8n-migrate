@@ -752,6 +752,7 @@ test("P42: a stand-in reply written as escaped JSON text is decoded; real JSON, 
   assert.deepEqual(modelAnswer({ type: "text", text: '{\\"a\\": 1}' }), { text: '{"a": 1}' }, "a bare escaped object");
   assert.deepEqual(modelAnswer({ type: "text", text: '"{\\"a\\": [1, 2]}"' }), { text: '{"a": [1, 2]}' }, "with its own quotes");
   assert.deepEqual(modelAnswer({ type: "text", text: JSON.stringify({ type: "text", text: '{\\"a\\": 1}' }) }), { text: '{"a": 1}' }, "inside P13's envelope");
+  assert.deepEqual(modelAnswer({ type: "text", text: '```json\\n{"output":{"vote":"9","note":"a \\"b\\""}}\\n```' }), { text: '```json\n{"output":{"vote":"9","note":"a \\"b\\""}}\n```' }, "only the fence's line breaks spelled out");
   for (const t of ['{"a": "say \\"hi\\""}', "Line one\\nline two", '{"a":1}', "```json\n{\"a\": 1}\n```", 'He said \\"no\\".', '```json\\n{\\"a\\": 1\\n```', '"hello\\nworld"'])
     assert.deepEqual(modelAnswer({ type: "text", text: t }), { text: t }, t);
 });
