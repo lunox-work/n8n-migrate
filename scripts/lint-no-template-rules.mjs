@@ -7,7 +7,9 @@
 // Checked in every file under skills/ (text files only):
 //   - template ids: every id in evals/bench/corpus.json, as a whole number not part of a longer
 //     number, version or identifier (not in vendored or built code: runtime/vendor holds
-//     luxon, runtime/dist is built from runtime/src and vendor, and src is checked);
+//     luxon, runtime/dist is built from runtime/src and vendor, and src is checked); an id that
+//     is an HTTP status code is not a hit on a line that also carries that code's reason phrase
+//     (node:http STATUS_CODES, case-insensitive: a status table, not a template rule);
 //   - third-party libraries vendored unmodified under runtime/vendor/<lib>/ (their SHA-256 as
 //     the folder's SOURCE.txt records it) are skipped for ids and fixture strings;
 //   - template names: the `name` of each corpus template in evals/bench/data/wf (git-ignored;
@@ -19,6 +21,7 @@
 // Exit 1 with file:line and the match on any hit.
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { STATUS_CODES } from "node:http";
 import { join, relative, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -98,7 +101,12 @@ for (const [file, text] of content) {
   const vendor = VENDOR.includes(file) || THIRD_PARTY.has(file);
   // Ids: vendor files are generated from n8n or captured from connectors, never by the loop,
   // and carry many unrelated numbers; skip them for ids only.
-  if (!vendor && !NO_ID_CHECK.some((d) => file.startsWith(d + "/"))) for (const m of text.matchAll(idRe)) hits.push(`${rel}:${lineOf(text, m.index)}: template id ${m[1]}`);
+  if (!vendor && !NO_ID_CHECK.some((d) => file.startsWith(d + "/")))
+    for (const m of text.matchAll(idRe)) {
+      const line = text.split("\n")[lineOf(text, m.index) - 1].toLowerCase();
+      if (STATUS_CODES[m[1]] && line.includes(STATUS_CODES[m[1]].toLowerCase())) continue;
+      hits.push(`${rel}:${lineOf(text, m.index)}: template id ${m[1]}`);
+    }
   const lower = text.toLowerCase();
   for (const { id, name } of names) {
     const i = lower.indexOf(name.toLowerCase());

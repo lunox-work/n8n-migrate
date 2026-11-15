@@ -31,3 +31,22 @@ test("the lint catches a planted id and a planted fixture string", () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// A template id that is also an HTTP status code is not a hit next to its own reason phrase (a
+// status table), and still is anywhere else.
+test("an HTTP status code beside its reason phrase is not a template id", async () => {
+  const { STATUS_CODES } = await import("node:http");
+  const ids = JSON.parse(readFileSync(join(ROOT, "evals/bench/corpus.json"), "utf8")).templates.map((t) => t.id);
+  const code = ids.find((id) => STATUS_CODES[id]);
+  if (!code) return; // no corpus id is a status code
+  const dir = mkdtempSync(join(tmpdir(), "n2c-lint-"));
+  try {
+    writeFileSync(join(dir, "a.mjs"), `const REASONS = { ${code}: "${STATUS_CODES[code].toUpperCase()}" };\nif (template === ${code}) fix();\n`);
+    const r = run("--dir", dir);
+    assert.equal(r.status, 1);
+    assert.doesNotMatch(r.stderr, /a\.mjs:1/);
+    assert.match(r.stderr, new RegExp(`a\\.mjs:2: template id ${code}`));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
