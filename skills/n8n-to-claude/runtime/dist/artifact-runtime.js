@@ -16729,7 +16729,7 @@ const { decodeEntities, UnsupportedHtml } = __m_htmldom_mjs;
 // module table, so the Markdown is byte for byte theirs. Their two dependencies are replaced: he's
 // decode by htmldom.mjs decodeEntities (the same WHATWG references and legacy rules), css-select
 // by a stub that refuses (node-html-markdown never selects). No browser parser is used
-// (preferNativeParser stays off), and process.env is an empty object.
+// (preferNativeParser stays off), and its LOG_PERF environment switch reads an empty object.
 //
 // node-html-markdown: MIT License, Copyright (c) 2021 Ron S. node-html-parser: MIT License,
 // Copyright (c) 2019 Tao Qiufeng. Permission is hereby granted, free of charge, to any person
@@ -16747,7 +16747,7 @@ const { decodeEntities, UnsupportedHtml } = __m_htmldom_mjs;
 
 
 const NHM_MODULES = {
-  "nhm/main": function (module, exports, require, process, window, document) {
+  "nhm/main": function (module, exports, require, window, document) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NodeHtmlMarkdown = void 0;
@@ -16823,7 +16823,7 @@ class NodeHtmlMarkdown {
 exports.NodeHtmlMarkdown = NodeHtmlMarkdown;
 // endregion
   },
-  "nhm/config": function (module, exports, require, process, window, document) {
+  "nhm/config": function (module, exports, require, window, document) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.nodeHtmlParserConfig = exports.aTagTranslatorConfig = exports.defaultCodeBlockTranslators = exports.tableCellTranslatorConfig = exports.tableRowTranslatorConfig = exports.tableTranslatorConfig = exports.defaultTranslators = exports.defaultOptions = exports.contentlessElements = exports.defaultIgnoreElements = exports.defaultBlockElements = void 0;
@@ -17158,7 +17158,7 @@ exports.nodeHtmlParserConfig = {
 };
 // endregion
   },
-  "nhm/utilities": function (module, exports, require, process, window, document) {
+  "nhm/utilities": function (module, exports, require, window, document) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.perfStop = exports.perfStart = exports.getChildNodes = exports.parseHTML = exports.truthyStr = exports.getTrailingWhitespaceInfo = exports.tagSurround = exports.splitSpecial = exports.isWhiteSpaceOnly = exports.surround = exports.trimNewLines = void 0;
@@ -17347,18 +17347,18 @@ function getChildNodes(node) {
 }
 exports.getChildNodes = getChildNodes;
 function perfStart(label) {
-    if (process.env.LOG_PERF)
+    if (NHM_ENV.LOG_PERF)
         console.time(label);
 }
 exports.perfStart = perfStart;
 function perfStop(label) {
-    if (process.env.LOG_PERF)
+    if (NHM_ENV.LOG_PERF)
         console.timeEnd(label);
 }
 exports.perfStop = perfStop;
 // endregion
   },
-  "nhm/visitor": function (module, exports, require, process, window, document) {
+  "nhm/visitor": function (module, exports, require, window, document) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getMarkdownForHtmlNodes = exports.Visitor = void 0;
@@ -17590,7 +17590,7 @@ function getMarkdownForHtmlNodes(instance, rootNode, fileName) {
 exports.getMarkdownForHtmlNodes = getMarkdownForHtmlNodes;
 // endregion
   },
-  "nhm/translator": function (module, exports, require, process, window, document) {
+  "nhm/translator": function (module, exports, require, window, document) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTranslatorContext = exports.isTranslatorConfig = exports.TranslatorCollection = exports.PostProcessResult = void 0;
@@ -17660,7 +17660,7 @@ function createTranslatorContext(visitor, node, metadata, base) {
 exports.createTranslatorContext = createTranslatorContext;
 // endregion
   },
-  "nhm/nodes": function (module, exports, require, process, window, document) {
+  "nhm/nodes": function (module, exports, require, window, document) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.isElementNode = exports.isCommentNode = exports.isTextNode = exports.CommentNode = exports.NodeType = void 0;
@@ -17679,7 +17679,7 @@ const isElementNode = (node) => node.nodeType === node_html_parser_1.NodeType.EL
 exports.isElementNode = isElementNode;
 // endregion
   },
-  "nhm/options": function (module, exports, require, process, window, document) {
+  "nhm/options": function (module, exports, require, window, document) {
 "use strict";
 /* ****************************************************************************************************************** */
 // region: Types
@@ -17687,7 +17687,7 @@ exports.isElementNode = isElementNode;
 Object.defineProperty(exports, "__esModule", { value: true });
 // endregion
   },
-  "nhm/index": function (module, exports, require, process, window, document) {
+  "nhm/index": function (module, exports, require, window, document) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PostProcessResult = exports.TranslatorCollection = exports.NodeHtmlMarkdown = void 0;
@@ -17697,7 +17697,7 @@ var translator_1 = require("./translator");
 Object.defineProperty(exports, "TranslatorCollection", { enumerable: true, get: function () { return translator_1.TranslatorCollection; } });
 Object.defineProperty(exports, "PostProcessResult", { enumerable: true, get: function () { return translator_1.PostProcessResult; } });
   },
-  "nhp/index": function (module, exports, require, process, window, document) {
+  "nhp/index": function (module, exports, require, window, document) {
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -17734,14 +17734,14 @@ parse.Node = node_1.default;
 parse.TextNode = text_1.default;
 parse.NodeType = type_1.default;
   },
-  "nhp/parse": function (module, exports, require, process, window, document) {
+  "nhp/parse": function (module, exports, require, window, document) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = void 0;
 var html_1 = require("./nodes/html");
 Object.defineProperty(exports, "default", { enumerable: true, get: function () { return html_1.parse; } });
   },
-  "nhp/valid": function (module, exports, require, process, window, document) {
+  "nhp/valid": function (module, exports, require, window, document) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var html_1 = require("./nodes/html");
@@ -17756,7 +17756,7 @@ function valid(data, options) {
 }
 exports.default = valid;
   },
-  "nhp/matcher": function (module, exports, require, process, window, document) {
+  "nhp/matcher": function (module, exports, require, window, document) {
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -17864,7 +17864,7 @@ exports.default = {
     findAll: findAll
 };
   },
-  "nhp/back": function (module, exports, require, process, window, document) {
+  "nhp/back": function (module, exports, require, window, document) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 function arr_back(arr) {
@@ -17872,7 +17872,7 @@ function arr_back(arr) {
 }
 exports.default = arr_back;
   },
-  "nhp/void-tag": function (module, exports, require, process, window, document) {
+  "nhp/void-tag": function (module, exports, require, window, document) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var VoidTag = /** @class */ (function () {
@@ -17903,7 +17903,7 @@ var VoidTag = /** @class */ (function () {
 }());
 exports.default = VoidTag;
   },
-  "nhp/nodes/html": function (module, exports, require, process, window, document) {
+  "nhp/nodes/html": function (module, exports, require, window, document) {
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -19143,7 +19143,7 @@ function resetParent(nodes, parent) {
     });
 }
   },
-  "nhp/nodes/text": function (module, exports, require, process, window, document) {
+  "nhp/nodes/text": function (module, exports, require, window, document) {
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -19287,7 +19287,7 @@ function trimText(text) {
     return (hasLeadingSpace ? ' ' : '') + text.slice(startPos, endPos + 1) + (hasTrailingSpace ? ' ' : '');
 }
   },
-  "nhp/nodes/comment": function (module, exports, require, process, window, document) {
+  "nhp/nodes/comment": function (module, exports, require, window, document) {
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -19343,7 +19343,7 @@ var CommentNode = /** @class */ (function (_super) {
 }(node_1.default));
 exports.default = CommentNode;
   },
-  "nhp/nodes/node": function (module, exports, require, process, window, document) {
+  "nhp/nodes/node": function (module, exports, require, window, document) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var he_1 = require("he");
@@ -19397,7 +19397,7 @@ var Node = /** @class */ (function () {
 }());
 exports.default = Node;
   },
-  "nhp/nodes/type": function (module, exports, require, process, window, document) {
+  "nhp/nodes/type": function (module, exports, require, window, document) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var NodeType;
@@ -19414,7 +19414,7 @@ const NHM_SHIMS = {
   he: { decode: (s) => decodeEntities(String(s)), encode: (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;") },
   "css-select": new Proxy({}, { get: () => () => { throw new UnsupportedHtml("CSS selection inside node-html-parser is not carried"); } }),
 };
-const NHM_PROCESS = { env: {} };
+const NHM_ENV = {};
 const nhmCache = {};
 function nhmRequire(name, from) {
   if (name in NHM_SHIMS) return NHM_SHIMS[name];
@@ -19434,7 +19434,7 @@ function nhmRequire(name, from) {
   if (nhmCache[key]) return nhmCache[key].exports;
   const module = { exports: {} };
   nhmCache[key] = module;
-  NHM_MODULES[key](module, module.exports, (n) => nhmRequire(n, key), NHM_PROCESS, undefined, undefined);
+  NHM_MODULES[key](module, module.exports, (n) => nhmRequire(n, key), undefined, undefined);
   return module.exports;
 }
 

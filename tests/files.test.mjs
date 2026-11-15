@@ -267,12 +267,15 @@ test("file steps the runtime does not carry stay blocked with their reason; libr
   }
 });
 
-test("an HTTP download of a spreadsheet or document is refused, never read as text (n8n's binary content types)", async () => {
+test("an HTTP download of a spreadsheet or document becomes binary data, never text (n8n's binary content types)", async () => {
   const def = convertJson(chain([{ parameters: { url: "https://files.example/report.xlsx", options: {} }, name: "Download", type: B + "httpRequest", typeVersion: 4.2 }])).definition;
   for (const ct of ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/msword", "application/pdf"]) {
     const r = await run(def, { clock: CLOCK, host: { http: async () => ({ status: 200, headers: { "content-type": ct }, body: "PK\u0003\u0004" }) }, trigger: { node: "Start", items: [{ json: {} }] } });
-    assert.equal(r.status, "failed", ct);
-    assert.match(r.error.message, /HTTP Request binary responses is not supported/);
+    assert.equal(r.status, "done", ct);
+    const bin = r.runData.Download[0].data.main[0][0].binary.data;
+    assert.equal(bin.mimeType, ct);
+    assert.equal(bin.fileName, "report.xlsx");
+    assert.equal(bin.data, Buffer.from([0x50, 0x4b, 3, 4]).toString("base64"));
   }
   const t = await run(def, { clock: CLOCK, host: { http: async () => ({ status: 200, headers: { "content-type": "text/csv" }, body: "a,b\n1,2" }) }, trigger: { node: "Start", items: [{ json: {} }] } });
   assert.deepEqual(out(t, "Download")[0].json, { data: "a,b\n1,2" });
