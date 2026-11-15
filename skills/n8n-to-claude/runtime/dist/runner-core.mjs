@@ -6351,10 +6351,12 @@ const modelStep = {
         r.prompt = promptOf(exec, i, "text");
         const messages = exec.param("messages.messageValues", i, []).map((x) => ({ role: { AIMessagePromptTemplate: "assistant", HumanMessagePromptTemplate: "user" }[x.type] ?? "system", type: x.messageType ?? "text", content: x.message ?? x.imageUrl }));
         if (messages.some((x) => x.type !== "text")) throw unsupported(exec, "Image messages in the Basic LLM Chain");
+        // A text-completion model (lm*, not lmChat*) gets only the prompt, as n8n's chain sends it.
+        const completion = /^lm(?!Chat)[A-Za-z]/.test(m.provider ?? "");
         const system = messages.filter((x) => x.role === "system").map((x) => x.content);
-        if (system.length) r.system = system.join("\n");
+        if (system.length && !completion) r.system = system.join("\n");
         const rest = messages.filter((x) => x.role !== "system").map(({ role, content }) => ({ role, content }));
-        if (rest.length) r.messages = rest;
+        if (rest.length && !completion) r.messages = rest;
       } else {
         if (m.prompt !== undefined) r.prompt = exec.evaluate(m.prompt, i);
         if (m.system !== undefined) r.system = exec.evaluate(m.system, i);

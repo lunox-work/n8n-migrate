@@ -366,3 +366,21 @@ test("OpenAI JSON output: n8n's JSON system message first; a JSON reply becomes 
     assert.deepEqual(r.runData.Score[0].data.main[0][0].json.message.content, content);
   }
 });
+
+test("Basic LLM Chain on a text-completion model sends only the prompt, as n8n's chain does", async () => {
+  const chain = (lmType) => ({
+    id: "lm01",
+    name: "Completion chain",
+    nodes: [
+      manual,
+      { parameters: { promptType: "define", text: "={{ $json.q }}", messages: { messageValues: [{ message: "=You are a helpful assistant." }] } }, name: "Chain", type: "@n8n/n8n-nodes-langchain.chainLlm", typeVersion: 1.5, position: [200, 0] },
+      { parameters: { model: "mistralai/Mistral-7B-Instruct-v0.1", options: {} }, name: "LM", type: lmType, typeVersion: 1, position: [200, 200] },
+    ],
+    connections: { ...link("Start", "Chain"), LM: { ai_languageModel: [[{ node: "Chain", type: "ai_languageModel", index: 0 }]] } },
+    settings: { executionOrder: "v1" },
+  });
+  const completion = convertJson(chain("@n8n/n8n-nodes-langchain.lmOpenHuggingFaceInference")).definition.steps.Chain.model;
+  assert.deepEqual([completion.prompt, completion.system, completion.messages], ["={{ $json.q }}", undefined, undefined]);
+  const chat = convertJson(chain("@n8n/n8n-nodes-langchain.lmChatOpenAi")).definition.steps.Chain.model;
+  assert.equal(chat.system, "=You are a helpful assistant.");
+});

@@ -1450,6 +1450,10 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
   return def;
 }
 
+// n8n's text-completion model nodes (@n8n/n8n-nodes-langchain lmOpenAi, lmOllama, lmCohere,
+// lmOpenHuggingFaceInference, lmLemonade): LangChain LLMs, not chat models.
+export const isCompletionModel = (type) => /^@n8n\/n8n-nodes-langchain\.lm(?!Chat)[A-Za-z]/.test(String(type));
+
 function hintOf(name, step) {
   const m = step.params?.model ?? step.params?.modelName ?? step.params?.modelId;
   const model = isObj(m) ? m.value : m;
@@ -1472,8 +1476,12 @@ function convertModel(name, step, { params, type, v, review, translate, subnodes
     const system = msgs.filter((m) => m.role === "system").map((m) => m.content);
     const rest = msgs.filter((m) => m.role !== "system").map(({ role, content }) => ({ role, content }));
     const schema = p.hasOutputParser || v < 1.4 ? parserOf() : undefined;
-    const sysText = joinTexts(system) ?? (reasons.push("a literal system message holds {{ }} next to expressions; the joined system text may differ from n8n's"), system.join("\n"));
-    model = { prompt: promptFor(step), ...(system.length ? { system: sysText } : {}), ...(rest.length ? { messages: rest } : {}) };
+    // A text-completion model (an lm* node that is not lmChat*): n8n's chain sends only the
+    // prompt (LangChain's PromptTemplate `{query}`); the chain's messages are never sent.
+    const completion = !!lm && isCompletionModel(steps[lm].n8n.type);
+    const sysText = completion || !system.length ? undefined : joinTexts(system) ?? (reasons.push("a literal system message holds {{ }} next to expressions; the joined system text may differ from n8n's"), system.join("\n"));
+    model = { prompt: promptFor(step), ...(sysText !== undefined ? { system: sysText } : {}), ...(rest.length && !completion ? { messages: rest } : {}) };
+    if (completion && schema) reasons.push("n8n appends the output parser's format instructions to a completion model's prompt and parses its text; here the schema is asked for directly");
     if (schema) Object.assign(model, { outputSchema: schema, outputKey: "output" });
     else Object.assign(model, { outputKey: "text", trim: true });
   } else if (type === LC + "openAi") {
