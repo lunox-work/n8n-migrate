@@ -1205,3 +1205,13 @@ test("P54: a run n8n refuses to start (nodes with issues) is a failed baseline n
   assert.match(r.error.message, /^n8n refused to start the run: 2 nodes have issues/);
   assert.equal(REFUSED_RE.test("GET /rest/executions/1: HTTP 404 x"), false);
 });
+
+test("P54: an unknown credential type is an unsupported baseline; node issues named in the message confirm n8nFails", async () => {
+  const { UNKNOWN_CREDENTIAL_RE, unsupportedResult } = await import("../evals/bench/n8n-side.mjs");
+  const { n8nFailsOf } = await import("../evals/bench/gates.mjs");
+  const e = new Error('POST /rest/credentials: HTTP 400 {"code":0,"message":"Unrecognized credential type: blotatoApi"}');
+  assert.equal(UNKNOWN_CREDENTIAL_RE.test(e.message), true);
+  assert.deepEqual([unsupportedResult(e).status, /blotatoApi/.test(unsupportedResult(e).error.message)], ["unsupported", true]);
+  const fx = { expect: { n8nFails: { node: "Facebook Graph API1", why: "x" } } };
+  assert.equal(n8nFailsOf(fx, { n8nCheck: { status: "error", error: { node: null, message: "2 nodes have issues:\n- 'Facebook Graph API1': Parameter \"Node\" is required." } } }).confirmed, true);
+});

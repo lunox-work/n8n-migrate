@@ -597,6 +597,15 @@ export function refusedResult(e) {
   return { status: "refused", error: { node, message: `n8n refused to start the run: ${String(text).slice(0, 300)}` }, nodes: {}, effects: [] };
 }
 
+// A credential type the image does not know (a community node's): n8n's credential API refuses
+// it before any run. The image cannot run the template (expect.n8nCannotRun), so the baseline is
+// a failed one with status `unsupported`, never a bench error that hides the template's verdict.
+export const UNKNOWN_CREDENTIAL_RE = /POST \/rest\/credentials: HTTP 400 .*Unrecognized credential type: ([\w.-]+)/;
+export function unsupportedResult(e) {
+  const type = UNKNOWN_CREDENTIAL_RE.exec(String(e.message))?.[1] ?? "?";
+  return { status: "unsupported", error: { node: null, message: `the n8n image does not know credential type ${type} (a node it lacks, e.g. a community node), so the run cannot start` }, nodes: {}, effects: [] };
+}
+
 // Splits the mock log into service calls and model calls.
 export function splitLog(effects) {
   const service = [];
@@ -670,6 +679,7 @@ export async function runN8n(prep, { shim, modelSession, runWorkflow, copyIn, ti
   } catch (e) {
     if (TIMEOUT_RE.test(String(e.message))) r = timeoutResult(e, timeoutS);
     else if (REFUSED_RE.test(String(e.message))) r = refusedResult(e);
+    else if (UNKNOWN_CREDENTIAL_RE.test(String(e.message))) r = unsupportedResult(e);
     else throw e;
   }
   const calls = shim.session.calls.map((c) => ({ ...c, node: tagToNode[c.tag] ?? c.tag }));

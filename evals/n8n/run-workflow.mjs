@@ -396,7 +396,8 @@ export function formPageBody(node, fields) {
 export const waitingExecutionId = (url) => /\/form-waiting\/([^/?#]+)/.exec(String(url ?? ""))?.[1] ?? null;
 
 async function submitForm(t, item, timeoutS, { pages = [], wf = null } = {}) {
-  const path = t.parameters?.path || t.webhookId;
+  // Form Trigger v2.2 keeps a custom path in options.path (earlier versions in path).
+  const path = t.parameters?.path || t.parameters?.options?.path || t.webhookId;
   const t0 = Date.now();
   let first;
   for (;;) {

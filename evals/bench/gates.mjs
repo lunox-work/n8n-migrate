@@ -293,7 +293,9 @@ export function n8nFailsOf(fx, steps = {}) {
   if (!f) return null;
   const run = steps["n8n:normal"] ?? steps.n8nCheck ?? null;
   const observed = run ? { from: steps["n8n:normal"] ? "baseline" : "canned check", status: run.status, node: run.error?.node ?? null, message: String(run.error?.message ?? "").slice(0, 200) } : null;
-  return { node: f.node, why: f.why, observed, confirmed: observed ? observed.status !== "success" && observed.node === f.node : null };
+  // n8n names no node for a run it stops on node issues; its message names them ('<node>').
+  const names = (o) => o.node === f.node || (o.node === null && o.message.includes(`'${f.node}'`));
+  return { node: f.node, why: f.why, observed, confirmed: observed ? observed.status !== "success" && names(observed) : null };
 }
 
 // ---------- claude-driver protocol slips (PROPOSALS P40) ----------
