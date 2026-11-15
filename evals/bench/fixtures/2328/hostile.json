@@ -275,6 +275,10 @@
     "bait": [
       "ceo-office@orbitlabs-exec.example",
       "Wire transfer approval"
-    ]
+    ],
+    "n8nFails": {
+      "node": "Get Transcript File",
+      "why": "the template reads $json.docsDestination.document from an item that holds Meet's whole reply, so the Drive file id is empty ('Please enter a valid mode')"
+    }
   }
 }

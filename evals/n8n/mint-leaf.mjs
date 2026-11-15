@@ -8,7 +8,7 @@
 // the certificate is written in DER by hand (X.509 v3, RFC 5280) and signed with node:crypto.
 //
 //   mintLeaf(host, {caKeyPem, caCertPem}) -> {key, cert} (PEM), an EC P-256 key and a
-//   certificate for DNS:<host> (serverAuth), valid from a day ago for 30 days, issued by the
+//   certificate for DNS:<host>, or IP:<host> for an IPv4 host (P62) (serverAuth), valid from a day ago for 30 days, issued by the
 //   CA's own subject so a client that trusts the CA (NODE_EXTRA_CA_CERTS) accepts it.
 
 import { createPrivateKey, generateKeyPairSync, randomBytes, sign } from "node:crypto";
@@ -75,7 +75,9 @@ export function subjectOf(caCertPem) {
 
 export function mintLeaf(host, { caKeyPem, caCertPem, now = new Date() }) {
   const h = String(host).toLowerCase();
-  if (!/^[a-z0-9-]+(\.[a-z0-9-]+)*$/.test(h) || /^\d+(\.\d+){3}$/.test(h)) throw new Error(`not a DNS host name: ${host}`);
+  // PROPOSALS P62: an IPv4 host gets an iPAddress subjectAltName (4 octets), a DNS host a dNSName.
+  const ip = /^\d{1,3}(\.\d{1,3}){3}$/.test(h) && h.split(".").every((x) => Number(x) <= 255) ? Buffer.from(h.split(".").map(Number)) : null;
+  if (!ip && (!/^[a-z0-9-]+(\.[a-z0-9-]+)*$/.test(h) || /^\d+(\.\d+){3}$/.test(h))) throw new Error(`not a host name: ${host}`);
   const caKey = createPrivateKey(caKeyPem);
   const rsa = caKey.asymmetricKeyType === "rsa";
   const sigAlg = rsa ? seq(oid("1.2.840.113549.1.1.11"), NULL) : seq(oid("1.2.840.10045.4.3.2"));
@@ -87,7 +89,7 @@ export function mintLeaf(host, { caKeyPem, caCertPem, now = new Date() }) {
   const cn = seq(set(seq(oid("2.5.4.3"), tlv(0x0c, Buffer.from(h)))));
   const ext = (id, value, critical = false) => seq(oid(id), ...(critical ? [Buffer.from([0x01, 0x01, 0xff])] : []), octets(value));
   const extensions = explicit(3, seq(
-    ext("2.5.29.17", seq(tlv(0x82, Buffer.from(h)))), // subjectAltName dNSName
+    ext("2.5.29.17", seq(ip ? tlv(0x87, ip) : tlv(0x82, Buffer.from(h)))), // subjectAltName iPAddress or dNSName
     ext("2.5.29.19", seq(), true), // basicConstraints CA:FALSE
     ext("2.5.29.15", tlv(0x03, Buffer.from([0x07, 0x80])), true), // keyUsage digitalSignature
     ext("2.5.29.37", seq(oid("1.3.6.1.5.5.7.3.1"))), // extKeyUsage serverAuth

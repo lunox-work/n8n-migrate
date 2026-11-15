@@ -283,6 +283,18 @@ export function n8nCheckSummary(steps, variants) {
   return Object.keys(out).length ? out : null;
 }
 
+// PROPOSALS P54: the fixture says n8n's baseline fails on the template's own configuration
+// (expect.n8nFails {node, why}). The row carries it with what this run saw: the failing node of
+// the normal baseline, or of the canned check for a template stopped at preflight, and whether
+// it is the node the fixture names (`confirmed`).
+export function n8nFailsOf(fx, steps = {}) {
+  const f = fx?.expect?.n8nFails;
+  if (!f) return null;
+  const run = steps["n8n:normal"] ?? steps.n8nCheck ?? null;
+  const observed = run ? { from: steps["n8n:normal"] ? "baseline" : "canned check", status: run.status, node: run.error?.node ?? null, message: String(run.error?.message ?? "").slice(0, 200) } : null;
+  return { node: f.node, why: f.why, observed, confirmed: observed ? observed.status !== "success" && observed.node === f.node : null };
+}
+
 // ---------- claude-driver protocol slips (PROPOSALS P40) ----------
 //
 // A slip (claude-driver.mjs protocolSlip) is retried once by run.mjs; rows keep both attempts

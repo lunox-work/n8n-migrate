@@ -630,6 +630,10 @@
     "branches": [
       "no IF/Switch"
     ],
-    "offline": "The idea and scenes come from the models; Wavespeed, fal and the video are stand-ins. The template's Sheets nodes name YOUR_GOOGLE_SHEET_ID / YOUR_SHEET_NAME and Telegram YOUR_CHAT_ID: filled by config/5110.json; the waits (120 s and two of 60 s) are shortened by time compression. Update Final Video to Sheet has no column to match on, so n8n's baseline stops there whatever the data (canned run 2026-11-15: every request before it matched the fixture; PROPOSALS P54); Gmail goes to the template's user@example.com"
+    "offline": "The idea and scenes come from the models; Wavespeed, fal and the video are stand-ins. The template's Sheets nodes name YOUR_GOOGLE_SHEET_ID / YOUR_SHEET_NAME and Telegram YOUR_CHAT_ID: filled by config/5110.json; the waits (120 s and two of 60 s) are shortened by time compression. Update Final Video to Sheet has no column to match on, so n8n's baseline stops there whatever the data (canned run 2026-11-15: every request before it matched the fixture; PROPOSALS P54); Gmail goes to the template's user@example.com",
+    "n8nFails": {
+      "node": "Update Final Video to Sheet",
+      "why": "the Sheets update has no column to match on (columns.matchingColumns is required)"
+    }
   }
 }

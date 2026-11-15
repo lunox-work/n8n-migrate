@@ -332,7 +332,10 @@ export function startMock({ port = 8080, log = null, fixtures = null, host = "0.
         entry.fixture = modelTag ? "model-shim" : "forward";
         const target = new URL((tagged ? tagged[2] : u.pathname) + u.search, modelShim);
         const extra = modelTag ? { "x-bench-model-tag": modelTag } : { "x-bench-forward-origin": origin };
-        const fwd = httpRequest(target, { method: req.method, headers: { ...req.headers, host: target.host, ...extra, "content-length": raw.length } }, (up) => {
+        // The body is forwarded whole, so its length replaces any chunked encoding (a request
+        // with both headers is refused by node's parser: PROPOSALS P47).
+        const { "transfer-encoding": _te, ...inHeaders } = req.headers;
+        const fwd = httpRequest(target, { method: req.method, headers: { ...inHeaders, host: target.host, ...extra, "content-length": raw.length } }, (up) => {
           const parts = [];
           up.on("data", (c) => parts.push(c));
           up.on("end", () => {

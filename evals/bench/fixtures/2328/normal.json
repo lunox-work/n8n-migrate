@@ -271,6 +271,10 @@
     "branches": [
       "Actions Router (child): meetings.create → Create Calendar Event1 → Add Attendee per attendee; anything else → Fallback Response"
     ],
-    "offline": "Get Transcript File reads $json.docsDestination.document, but Get Meeting Transcript Location's item is Meet's whole reply ({transcripts: [...]}), so the file id is empty and n8n stops there whatever the data (canned run 2026-11-15: \"This parameter's value is invalid. Please enter a valid mode.\"; the template's own wiring; P54). The transcript is a generated PDF; the agent's calendar events run in a child execution of the same workflow (the bench activates it)"
+    "offline": "Get Transcript File reads $json.docsDestination.document, but Get Meeting Transcript Location's item is Meet's whole reply ({transcripts: [...]}), so the file id is empty and n8n stops there whatever the data (canned run 2026-11-15: \"This parameter's value is invalid. Please enter a valid mode.\"; the template's own wiring; P54). The transcript is a generated PDF; the agent's calendar events run in a child execution of the same workflow (the bench activates it)",
+    "n8nFails": {
+      "node": "Get Transcript File",
+      "why": "the template reads $json.docsDestination.document from an item that holds Meet's whole reply, so the Drive file id is empty ('Please enter a valid mode')"
+    }
   }
 }

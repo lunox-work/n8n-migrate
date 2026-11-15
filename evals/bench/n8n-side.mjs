@@ -338,6 +338,8 @@ export function credentialData(type, { wordpressUrl, s3Endpoint } = {}) {
     notionApi: { apiKey: "bench-dummy" },
     telegramApi: { accessToken: "123456:bench-dummy", baseUrl: "https://api.telegram.org" },
     facebookGraphApi: { accessToken: "bench-dummy" },
+    discordWebhookApi: { webhookUri: "https://discord.com/api/webhooks/100000000000000000/bench-dummy" },
+    discordBotApi: { botToken: "bench-dummy" },
     httpHeaderAuth: { name: "Authorization", value: "Bearer bench-dummy" },
     wordpressApi: { username: "bench", password: "bench-dummy", url: wordpressUrl ?? "https://wordpress.example", allowUnauthorizedCerts: false },
     mySql: { host: "mysql.invalid", database: "bench", user: "bench", password: "bench", port: 3306 },
@@ -374,6 +376,12 @@ const NODE_CREDENTIAL = {
   vectorStorePinecone: () => "pineconeApi",
   telegram: () => "telegramApi",
   notion: () => "notionApi",
+  // PROPOSALS P61: node types met with stripped credentials in the seeded dev templates (n8n
+  // 2.47.7 node descriptions: Outlook v2 takes microsoftOutlookOAuth2Api; Discord v2 by its
+  // `authentication` (botToken by default); Facebook Graph API takes facebookGraphApi).
+  microsoftOutlook: () => "microsoftOutlookOAuth2Api",
+  discord: (n) => ({ webhook: "discordWebhookApi", oAuth2: "discordOAuth2Api" })[n.parameters?.authentication] ?? "discordBotApi",
+  facebookGraphApi: () => "facebookGraphApi",
   httpRequest: (n) => (n.parameters?.authentication === "genericCredentialType" ? n.parameters.genericAuthType : n.parameters?.authentication === "predefinedCredentialType" ? n.parameters.nodeCredentialType : null) ?? null,
 };
 export function credentialTypeFor(node) {
@@ -512,7 +520,9 @@ export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = 
   routes.push({ node: "(bench)", method: "POST", url: "https://www.googleapis.com/oauth2/v4/token", status: 200, body: { access_token: "bench-access-token", token_type: "Bearer", expires_in: 3599 } });
 
   // Pins: template pinData, then n8n-only reads, then fallbacks. The trigger is pinned by runWorkflow.
-  const pinData = { ...(wf.pinData ?? {}) };
+  // PROPOSALS P60: the template's pinData as n8n items (evals/bench/data/wf stores some as bare
+  // objects; the n8n editor wraps them as {json} on import, so the run sees the same items).
+  const pinData = pinItemsOf(wf.pinData);
   const sources = {};
   for (const r of fx.reads) {
     if (r.node === fx.trigger.node) continue;
@@ -543,6 +553,48 @@ export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = 
   // A workflow that calls itself must be active for its sub-workflow calls to run (n8n 2.x).
   const selfCall = wf.nodes.some((n) => !n.disabled && /\.(executeWorkflow|toolWorkflow)$/.test(n.type) && /\$workflow\.id/.test(JSON.stringify(n.parameters?.workflowId ?? "")));
   return { pinTrigger, via, formPages, activate: selfCall || formPages.length > 0, id, variant, name, wf: { ...wf, name: `${id} ${name}` }, fixture: fx, credentials, credentialsAttached, routes, badRoutes, models, overlayApplied: applied, sources, files };
+}
+
+// PROPOSALS P60: pinData entries as n8n execution items. An entry that is already an item
+// ({json} with only item keys: json, binary, pairedItem, error) is kept; any other value is
+// wrapped as {json: value}, as the n8n editor does when it imports pinned data.
+const ITEM_KEYS = new Set(["json", "binary", "pairedItem", "error", "index"]);
+export const isItem = (x) => !!x && typeof x === "object" && !Array.isArray(x) && x.json !== null && typeof x.json === "object" && Object.keys(x).every((k) => ITEM_KEYS.has(k));
+export function pinItemsOf(pinData) {
+  const out = {};
+  for (const [node, list] of Object.entries(pinData ?? {})) out[node] = [].concat(list ?? []).map((x) => (isItem(x) ? x : { json: x }));
+  return out;
+}
+
+// PROPOSALS P55, P63: node types that keep state in n8n's process between runs (Simple Memory's
+// chat buffer per session key, the in-memory vector store per memory key, the Pinecone client's
+// index description cache). After a run that had one of them the bench restarts its n8n
+// container, so the next run (the next variant or template) starts with empty process memory.
+export const PROCESS_STATE_TYPES = new Set([`${LC}memoryBufferWindow`, `${LC}vectorStoreInMemory`, `${LC}vectorStoreInMemoryInsert`, `${LC}vectorStoreInMemoryLoad`, `${LC}vectorStorePinecone`, `${LC}vectorStorePineconeInsert`, `${LC}vectorStorePineconeLoad`]);
+export const keepsProcessState = (wf) => (wf?.nodes ?? []).some((n) => !n.disabled && PROCESS_STATE_TYPES.has(n.type));
+
+// A run n8n did not finish within the bench's timeout (run-workflow.mjs stops it and throws):
+// the template's own behaviour (a loop that never ends), reported as a failed baseline with
+// status `timeout`, never a pass and never a bench error.
+export const TIMEOUT_RE = /^execution \S+ still \w+ after [\d.]+s \(stopped\)|^no execution of \S+ after [\d.]+s/;
+export function timeoutResult(e, timeoutS) {
+  return { status: "timeout", error: { node: null, message: `n8n's run did not finish in ${timeoutS} s and was stopped (${String(e.message).slice(0, 160)}); the workflow keeps running, e.g. a loop that never ends` }, nodes: {}, effects: [], timedOut: true };
+}
+
+// PROPOSALS P54: n8n refuses to start a run whose nodes have issues (a required parameter left
+// empty: `POST /rest/workflows/<id>/run: HTTP 400 ... 2 nodes have issues: <node>: ...`). That is
+// the template's configuration, reported as a failed baseline (status `refused`, the first node
+// named), never a bench error that hides the template's verdict.
+export const REFUSED_RE = /\/rest\/workflows\/[^/\s]+\/run: HTTP 4\d\d/;
+export function refusedResult(e) {
+  const msg = String(e.message);
+  const body = msg.replace(/^.*?HTTP 4\d\d\s*/, "");
+  let text = body;
+  try {
+    text = JSON.parse(body).message ?? body;
+  } catch {}
+  const node = /issues?:\s*([^:]+?):/.exec(text)?.[1]?.trim() ?? null;
+  return { status: "refused", error: { node, message: `n8n refused to start the run: ${String(text).slice(0, 300)}` }, nodes: {}, effects: [] };
 }
 
 // Splits the mock log into service calls and model calls.
@@ -612,7 +664,14 @@ export async function runN8n(prep, { shim, modelSession, runWorkflow, copyIn, ti
     copyIn(local, containerPath(f.path));
   }
   shim.setSession({ ...modelSession, label: `${prep.id}/${prep.variant}` });
-  const r = await runWorkflow(prep.wf, { trigger: prep.fixture.trigger.items, mock: { __routes: prep.routes, __writeDefault: { status: 200, body: {} } }, credentials: prep.credentials, via: prep.via ?? "pin", formPages: prep.formPages ?? [], triggerNode: prep.fixture.trigger.node, activate: !!prep.activate, keepPin: true, timeoutS, now: prep.fixture.now, pinTrigger: prep.pinTrigger });
+  let r;
+  try {
+    r = await runWorkflow(prep.wf, { trigger: prep.fixture.trigger.items, mock: { __routes: prep.routes, __writeDefault: { status: 200, body: {} } }, credentials: prep.credentials, via: prep.via ?? "pin", formPages: prep.formPages ?? [], triggerNode: prep.fixture.trigger.node, activate: !!prep.activate, keepPin: true, timeoutS, now: prep.fixture.now, pinTrigger: prep.pinTrigger });
+  } catch (e) {
+    if (TIMEOUT_RE.test(String(e.message))) r = timeoutResult(e, timeoutS);
+    else if (REFUSED_RE.test(String(e.message))) r = refusedResult(e);
+    else throw e;
+  }
   const calls = shim.session.calls.map((c) => ({ ...c, node: tagToNode[c.tag] ?? c.tag }));
   const failedNode = r.error?.node ?? Object.entries(r.nodes ?? {}).find(([, runs]) => runs.some((x) => x.error))?.[0];
   const fallbackable = allowFallback && failedNode && prep.fixture.reads.some((x) => x.node === failedNode && x.n8n && x.http?.responses?.length) && prep.sources[failedNode]?.startsWith("http");

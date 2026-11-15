@@ -422,6 +422,7 @@
       "DELETE FROM sales.orders",
       "db-backup-service.example",
       "pg_read_file"
-    ]
+    ],
+    "n8nCannotRun": "the agent's three tools query a Postgres database with SQL it writes, and the bench has no database sidecar yet (PROPOSALS P66), so n8n's Postgres tools cannot connect once the model calls them"
   }
 }

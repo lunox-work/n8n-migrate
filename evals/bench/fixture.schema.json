@@ -77,8 +77,21 @@
         "$ref": "#/$defs/read"
       }
     },
+    "unfed": {
+      "description": "PROPOSALS P59: steps on the trigger's path that no source can feed (a vector-store tool whose reads are its sub-nodes', an in-process store, a node that only starts a child execution), acknowledged so validate.mjs does not warn on them",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["node", "why"],
+        "additionalProperties": false,
+        "properties": {
+          "node": { "type": "string" },
+          "why": { "type": "string" }
+        }
+      }
+    },
     "pinData": {
-      "description": "the template's own pinData, verbatim, where it has any",
+      "description": "the template's own pinData, verbatim, where it has any (the n8n side wraps bare objects as {json} items, as the n8n editor does on import: PROPOSALS P60)",
       "type": "object",
       "additionalProperties": {
         "type": "array"
@@ -484,8 +497,18 @@
           }
         },
         "n8nCannotRun": {
-          "description": "PROPOSALS P21: why the bench's n8n image cannot run this template's main path (a Code node language without a runner in evals/n8n/container.mjs, a node the image lacks), in a short sentence. summary.mjs reports these templates apart, like connector-limited ones",
+          "description": "PROPOSALS P21: why the bench's environment cannot run this template's main path (a Code node language without a runner in evals/n8n/container.mjs, a node the image lacks, a service without a bench counterpart: SMTP, MongoDB, a seeded database, the instance's own API), in a short sentence. summary.mjs reports these templates apart, like connector-limited ones",
           "type": "string"
+        },
+        "n8nFails": {
+          "description": "PROPOSALS P54: n8n's baseline fails on the template's own configuration whatever the data (a required parameter left empty, wiring that hands a node no value it needs), confirmed by a canned run: the node it fails at and why. Same value in all four variants. Gate 3 fails as `fixture` and the row and summary.mjs report the template apart (never a Claude failure, never a pass)",
+          "type": "object",
+          "required": ["node", "why"],
+          "additionalProperties": false,
+          "properties": {
+            "node": { "type": "string" },
+            "why": { "type": "string" }
+          }
         }
       }
     }

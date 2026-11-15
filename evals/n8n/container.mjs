@@ -211,6 +211,18 @@ export async function waitHealthy(timeoutMs = 180_000) {
   throw new Error(`n8n not healthy after ${timeoutMs / 1000}s (${last})`);
 }
 
+// Restarts the n8n container only (the mock keeps running), so its process memory starts empty
+// (PROPOSALS P55, P63); the volume, owner and session secret stay, and rest() signs in again if
+// the cookie is refused. Returns the milliseconds until n8n was healthy again.
+export async function restart({ log = console.error } = {}) {
+  const t0 = Date.now();
+  docker(["restart", NAME]);
+  await waitHealthy();
+  const ms = Date.now() - t0;
+  log(`n8n container restarted (${Math.round(ms / 1000)} s): empty process memory for the next run`);
+  return ms;
+}
+
 export function down({ purge = false } = {}) {
   docker(["rm", "-f", NAME, MOCK_NAME], { allowFail: true });
   for (const n of [NET, EDGE]) docker(["network", "rm", n], { allowFail: true });

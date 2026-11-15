@@ -290,6 +290,11 @@
             "body.mimeType"
           ],
           "cmp": "exact"
+        },
+        "content": {
+          "from": "body.contentSha256",
+          "cmp": "ifBoth",
+          "why": "PROPOSALS P46: the bytes of a resumable upload (foldResumableUploads), by SHA-256"
         }
       }
     },
@@ -999,6 +1004,15 @@
             "args.mimeType"
           ],
           "cmp": "exact"
+        },
+        "content": {
+          "from": [
+            "sha256_base64.args.base64Content",
+            "sha256_base64.args.content",
+            "sha256_utf8.args.textContent"
+          ],
+          "cmp": "ifBoth",
+          "why": "PROPOSALS P46: the uploaded bytes by SHA-256 (base64Content and the deprecated content are base64, textContent is text)"
         }
       }
     },

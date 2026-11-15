@@ -132,18 +132,7 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   const prompt = readFileSync(join(work, "task-prompt.md"), "utf8");
   // The task prompt goes on stdin (PROPOSALS P14), as every bench `claude -p` does.
   const args = ["-p", "--model", model, "--output-format", "stream-json", "--verbose", "--strict-mcp-config", "--mcp-config", mcpConfig, "--setting-sources", "project", "--settings", flagSettings, "--no-session-persistence", "--max-budget-usd", "1.5"];
-  const env = { ...process.env, ENABLE_CLAUDEAI_MCP_SERVERS: "false", CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1", DISABLE_AUTOUPDATER: "1", NODE_OPTIONS: "--max-old-space-size=512" };
-  for (const k of Object.keys(env)) if (k === "ANTHROPIC_API_KEY" || k.startsWith("N2C_SECRET_") || k === "CLAUDECODE" || k.startsWith("CLAUDE_CODE_MESSAGING") || k === "CLAUDE_CODE_SESSION_ID" || k === "CLAUDE_CODE_CHILD_SESSION") delete env[k];
-  if (httpMock) {
-    env.N2C_BENCH_HTTP_MOCK = `http://127.0.0.1:${httpMock.address().port}`;
-    env.NODE_OPTIONS = `${env.NODE_OPTIONS} --import=${pathToFileURL(join(HERE, "http-preload.mjs")).href}`;
-    for (const sec of def.secrets ?? []) env[`N2C_SECRET_${String(sec.name).toUpperCase().replace(/[^A-Z0-9]+/g, "_")}`] = `bench-secret-${String(sec.credentialType ?? sec.name).replace(/[^\w-]+/g, "-")}`;
-  }
-  if (absDirs.length) {
-    env.N2C_BENCH_DISK_ROOT = diskRoot;
-    env.N2C_BENCH_DISK_DIRS = JSON.stringify(absDirs);
-    env.NODE_OPTIONS = `${env.NODE_OPTIONS} --import=${pathToFileURL(join(HERE, "disk-preload.mjs")).href}`;
-  }
+  const env = sessionEnv({ httpMockUrl: httpMock ? `http://127.0.0.1:${httpMock.address().port}` : null, secrets: def.secrets ?? [], diskRoot, absDirs });
   // The bench's start runs in the session's environment (it may reach the first http step).
   const pre = await preStart(env);
   const preText = (pre.stdout || pre.stderr).slice(0, 600);
@@ -232,6 +221,26 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
       ...(slip ? { slip } : {}),
     },
   };
+}
+
+// The session's environment: no foreign keys or session ids, the runner processes' heap cap,
+// the http preload (P5) when the folder has http steps (with a dummy N2C_SECRET_<NAME> per
+// declared secret), and the disk preload (P44) when allow.files names absolute directories.
+// Exported for the self-test that runs a runner process with it (PROPOSALS P47).
+export function sessionEnv({ base = process.env, httpMockUrl = null, secrets = [], diskRoot = null, absDirs = [] } = {}) {
+  const env = { ...base, ENABLE_CLAUDEAI_MCP_SERVERS: "false", CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1", DISABLE_AUTOUPDATER: "1", NODE_OPTIONS: "--max-old-space-size=512" };
+  for (const k of Object.keys(env)) if (k === "ANTHROPIC_API_KEY" || k.startsWith("N2C_SECRET_") || k === "CLAUDECODE" || k.startsWith("CLAUDE_CODE_MESSAGING") || k === "CLAUDE_CODE_SESSION_ID" || k === "CLAUDE_CODE_CHILD_SESSION") delete env[k];
+  if (httpMockUrl) {
+    env.N2C_BENCH_HTTP_MOCK = httpMockUrl;
+    env.NODE_OPTIONS = `${env.NODE_OPTIONS} --import=${pathToFileURL(join(HERE, "http-preload.mjs")).href}`;
+    for (const sec of secrets) env[`N2C_SECRET_${String(sec.name).toUpperCase().replace(/[^A-Z0-9]+/g, "_")}`] = `bench-secret-${String(sec.credentialType ?? sec.name).replace(/[^\w-]+/g, "-")}`;
+  }
+  if (absDirs.length) {
+    env.N2C_BENCH_DISK_ROOT = diskRoot;
+    env.N2C_BENCH_DISK_DIRS = JSON.stringify(absDirs);
+    env.NODE_OPTIONS = `${env.NODE_OPTIONS} --import=${pathToFileURL(join(HERE, "disk-preload.mjs")).href}`;
+  }
+  return env;
 }
 
 // PROPOSALS P40: a claude-driver protocol slip. The run waits (`needs`) on a model or agent

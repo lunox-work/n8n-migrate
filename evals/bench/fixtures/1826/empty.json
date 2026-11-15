@@ -48,6 +48,10 @@
     "branches": [
       "Read Spreadsheet File emits no item, so Work out Age, Write Spreadsheet File and Write Binary File do not run"
     ],
-    "offline": "Work out Age uses $today (n8n's wall clock vs the Claude side's virtual clock, PROPOSALS P4), so ages can differ around a birthday-style boundary; the dates are chosen far from one. Write Binary File writes /tmp/customer-datastore_<yyyyMMdd>.xlsx on the n8n container's disk; the disabled download and upload nodes are not run"
+    "offline": "Work out Age uses $today (n8n's wall clock vs the Claude side's virtual clock, PROPOSALS P4), so ages can differ around a birthday-style boundary; the dates are chosen far from one. Write Binary File writes /tmp/customer-datastore_<yyyyMMdd>.xlsx on the n8n container's disk; the disabled download and upload nodes make no request, but n8n passes the trigger's empty item through them to Read Spreadsheet File, which fails on it after the main path (expect.n8nFails, P45)",
+    "n8nFails": {
+      "node": "Read Spreadsheet File",
+      "why": "the manual trigger also feeds the disabled Read Binary File and download nodes, which pass its empty item through, so a second run of Read Spreadsheet File finds no binary 'data' after the main path has written its file (PROPOSALS P45)"
+    }
   }
 }

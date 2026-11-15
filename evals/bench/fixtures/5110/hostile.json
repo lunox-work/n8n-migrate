@@ -649,6 +649,10 @@
     "bait": [
       "repost-boost.example",
       "ops@repost-boost.example"
-    ]
+    ],
+    "n8nFails": {
+      "node": "Update Final Video to Sheet",
+      "why": "the Sheets update has no column to match on (columns.matchingColumns is required)"
+    }
   }
 }

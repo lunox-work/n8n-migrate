@@ -416,6 +416,7 @@
     "branches": [
       "no IF/Switch; the agent picks the tools (expected: list tables, read definitions, one aggregate query)"
     ],
-    "offline": "The postgres credential points at the bench's database host; the seed (schemas inventory and sales, column types in the read's note, foreign keys so Get Table Definition reports them) must be loaded before the run. The SQL is model-written, so only a seeded database answers it. Chat History keeps the session in n8n's process memory only; one message per run"
+    "offline": "The postgres credential points at the bench's database host; the seed (schemas inventory and sales, column types in the read's note, foreign keys so Get Table Definition reports them) must be loaded before the run. The SQL is model-written, so only a seeded database answers it. Chat History keeps the session in n8n's process memory only; one message per run",
+    "n8nCannotRun": "the agent's three tools query a Postgres database with SQL it writes, and the bench has no database sidecar yet (PROPOSALS P66), so n8n's Postgres tools cannot connect once the model calls them"
   }
 }

@@ -37,11 +37,11 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync, cpS
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles } from "./n8n-side.mjs";
+import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState } from "./n8n-side.mjs";
 import { convertPlain, convertSkill, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, withSynthetic, syntheticOutcome } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
-import { fromHttp, fromTool, fromFile, replyOf, compare, modelTextsOf, baitHits, refsOf } from "./compare.mjs";
-import { n8nCheckVariants, n8nCheckKey, n8nCheckSummary, gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited } from "./gates.mjs";
+import { fromHttp, fromTool, fromFile, replyOf, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads } from "./compare.mjs";
+import { n8nCheckVariants, n8nCheckKey, n8nCheckSummary, gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited, n8nFailsOf } from "./gates.mjs";
 import { BudgetExceeded, UsageLimit, ledger as claudeLedger, memoryGate } from "./claude.mjs";
 import { readSplits, devWithFixtures } from "./rounds.mjs";
 
@@ -125,6 +125,13 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
     await memoryGate({ log, need: 25 });
     session.memoryChecked = true;
   }
+  // PROPOSALS P55, P63: the last run left state in n8n's process (a chat buffer, an in-memory
+  // store, a client cache): restart n8n so this run sees only its own fixture.
+  if (env.dirty) {
+    await env.container.restart({ log });
+    env.dirty = false;
+  }
+  env.dirty = keepsProcessState(prep.wf);
   let r = await runN8n(prep, { shim: env.shim, modelSession: session, runWorkflow: env.runWorkflow, copyIn: env.container.copyIn, timeoutS: 900 });
   let httpAttempt = null;
   if (r.fallbackable) {
@@ -176,7 +183,9 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
     ...(res.response?.pages ? { formPages: res.response.pages } : {}),
     ...(files.length ? { files } : {}),
     effects: splitLog(res.effects).service.map(({ seq, method, proxied, tls, mintedLeaf, path, query, rawQuery, body, bodyEncoding, fixture }) => ({ seq, method, proxied, tls, mintedLeaf, path, query, rawQuery, body, bodyEncoding, fixture })),
-    modelCalls: r.modelCalls.map(({ tag, node, index, format, request, response, mode, costUsd }) => ({ tag, node, index, format, request, response, mode, costUsd, seq: modelSeq[tag]?.[index] ?? null })),
+    // PROPOSALS P65: calls over the shim's per-node cap got no answer; kept apart, never replayed.
+    modelCalls: r.modelCalls.filter((c) => c.mode !== "capped").map(({ tag, node, index, format, request, response, mode, costUsd }) => ({ tag, node, index, format, request, response, mode, costUsd, seq: modelSeq[tag]?.[index] ?? null })),
+    ...(r.modelCalls.some((c) => c.mode === "capped") ? { modelCallCap: Object.values(Object.groupBy(r.modelCalls.filter((c) => c.mode === "capped"), (c) => c.tag)).map((xs) => ({ tag: xs[0].tag, node: xs[0].node, refused: xs.length, message: xs[0].error })) } : {}),
     modelModes: [...new Set(r.modelCalls.map((c) => c.mode))],
     sources: prep.sources,
     overlay: prep.overlayApplied,
@@ -211,7 +220,9 @@ const byTag = (calls) => {
 // ---------- effects of each side ----------
 
 function n8nEffects(rec, fx) {
-  const list = [...rec.effects.map((e) => fromHttp(e, "n8n")).filter(Boolean), ...(rec.files ?? []).filter((f) => !f.error).map((f) => fromFile(f, "n8n"))];
+  // PROPOSALS P46: n8n's resumable Drive upload (POST, PUT of the bytes, PATCH of the metadata)
+  // is one create_file, as the connector's is.
+  const list = [...foldResumableUploads(rec.effects).map((e) => fromHttp(e, "n8n")).filter(Boolean), ...(rec.files ?? []).filter((f) => !f.error).map((f) => fromFile(f, "n8n"))];
   if (["chat", "form"].includes(fx.trigger.kind)) list.push(replyOf(rec.lastItems?.map((j) => ({ json: j })), "n8n"));
   return list;
 }
@@ -360,7 +371,9 @@ async function benchTemplate(id, args, L) {
     g[3] = { ...gate3(N.res), driver: "inprocess" };
     // In replay mode the Claude side runs on n8n's recorded replies: a baseline that failed
     // gives it nothing trustworthy to replay, whatever the Claude side did.
-    if (recs.normal?.status !== "success") g[3] = { pass: false, bucket: "fixture", cause: `n8n baseline failed on the normal fixture: ${recs.normal?.error?.node ?? "?"}: ${recs.normal?.error?.message ?? recs.normal?.status}`, detail: { claudeSide: g[3] }, driver: "inprocess" };
+    // PROPOSALS P54: a fixture that says the baseline fails on the template's own configuration
+    // (expect.n8nFails) gets that named in the cause; the row reports it apart (n8nFails).
+    if (recs.normal?.status !== "success") g[3] = { pass: false, bucket: "fixture", cause: `${fxN.expect?.n8nFails ? "n8n baseline fails on the template itself (expect.n8nFails, P54)" : "n8n baseline failed on the normal fixture"}: ${recs.normal?.error?.node ?? "?"}: ${recs.normal?.error?.message ?? recs.normal?.status}`, detail: { claudeSide: g[3] }, driver: "inprocess" };
     if (!g[3].pass) return out;
     const modelTexts = modelTextsOf(recs.normal?.modelCalls, answerOf);
     const cmp = compare(n8nEffects(recs.normal, fxN), claudeEffects(N, fxN), { modelTexts, mode: args.modelMode, runTime: runTime(recs.normal) });
@@ -603,6 +616,13 @@ async function main() {
         connectorGapsHit: r.benchError ? null : connectorLimitedOf(id, g, failed),
         // PROPOSALS P21: the fixture says the bench's n8n image cannot run the main path.
         n8nCannotRun: n8nCannotRunOf(id),
+        n8nFails: (() => {
+          try {
+            return n8nFailsOf(loadFixture(id, "normal"), t.steps);
+          } catch {
+            return null;
+          }
+        })(),
         // PROPOSALS P50: what gate 4 compared (comparedOf); `noEffect` names a pass that
         // compared no effect ("reply" or "model inputs"), reported apart by summary.mjs.
         compared: r.gates?.[4]?.detail?.compared ?? (r.gates?.[4]?.bucket === "bench defect" && /^nothing compared/.test(r.gates[4].cause ?? "") ? r.gates[4].detail : null),

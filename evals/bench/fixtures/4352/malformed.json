@@ -256,6 +256,10 @@
     "branches": [
       "no IF/Switch; Split Out fans the Perplexity text out to X, Facebook and LinkedIn"
     ],
-    "offline": "n8n 2.47.7 refuses to start the run on the template's own configuration, whatever the data (canned run 2026-11-15: '2 nodes have issues: Facebook Graph API1: Parameter Graph API Version is required. Parameter Node is required. X1: Parameter Text is required'; PROPOSALS P54); Facebook Graph API1 also ships without a credential. Placeholders filled by config/4352.json: the SerpApi key, the LinkedIn person id and the spreadsheet id"
+    "offline": "n8n 2.47.7 refuses to start the run on the template's own configuration, whatever the data (canned run 2026-11-15: '2 nodes have issues: Facebook Graph API1: Parameter Graph API Version is required. Parameter Node is required. X1: Parameter Text is required'; PROPOSALS P54); Facebook Graph API1 also ships without a credential. Placeholders filled by config/4352.json: the SerpApi key, the LinkedIn person id and the spreadsheet id",
+    "n8nFails": {
+      "node": "Facebook Graph API1",
+      "why": "n8n 2.47.7 refuses to start the run: Facebook Graph API1 has no Graph API version and no node, and X1 no text (required parameters the template leaves empty)"
+    }
   }
 }

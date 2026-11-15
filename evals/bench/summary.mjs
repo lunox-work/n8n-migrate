@@ -28,7 +28,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readSplits, roundOf, devWithFixtures, overfittingBound } from "./rounds.mjs";
 import { slipStats, flipsBetween, noEffectClass } from "./gates.mjs";
-import { fromHttp, fromFile } from "./compare.mjs";
+import { fromHttp, fromFile, foldResumableUploads } from "./compare.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
@@ -55,6 +55,19 @@ const cannotRunOf = (r) => {
   }
 };
 
+// PROPOSALS P54: templates whose fixture says n8n's baseline fails on the template's own
+// configuration (expect.n8nFails {node, why}); from the row or the normal fixture. Reported apart
+// like n8nCannotRun: kept in n as not passing in the headline, left out beside it.
+const failsOf = (r) => {
+  if (r.n8nFails !== undefined) return r.n8nFails;
+  try {
+    return JSON.parse(readFileSync(join(HERE, "fixtures", String(r.template), "normal.json"), "utf8")).expect?.n8nFails ?? null;
+  } catch {
+    return null;
+  }
+};
+const noBaselineOf = (r) => !!(cannotRunOf(r) || failsOf(r));
+
 // PROPOSALS P50: what a passing row's gate 4 compared. Rows from P50 on carry `compared`
 // (gate 4 fails when nothing was compared). Older rows are classed from the template's n8n
 // recording of the normal fixture (git-ignored; "unknown" without it): its writes, media calls
@@ -73,7 +86,7 @@ function comparedClassOf(r, { recordings = join(HERE, "recordings") } = {}) {
   const file = join(recordings, String(r.template), "normal.json");
   if (!existsSync(file)) return "unknown";
   const rec = JSON.parse(readFileSync(file, "utf8"));
-  const effects = [...(rec.effects ?? []).map((e) => fromHttp(e, "n8n")).filter(Boolean), ...(rec.files ?? []).filter((f) => !f.error).map((f) => fromFile(f, "n8n"))];
+  const effects = [...foldResumableUploads(rec.effects ?? []).map((e) => fromHttp(e, "n8n")).filter(Boolean), ...(rec.files ?? []).filter((f) => !f.error).map((f) => fromFile(f, "n8n"))];
   const writes = effects.filter((e) => e.effect === "write" || e.effect === "media").length;
   const reply = ["chat", "form"].includes(fixtureOf(r.template)?.trigger?.kind);
   return noEffectClass({ effects: writes, reply, modelInputs: (rec.modelCalls ?? []).length });
@@ -98,12 +111,15 @@ if (args.includes("--release")) {
   // in the headline (a template without a baseline is not a pass, and n stays the round's
   // fixtured size the bound was planned with); the gap without them, left out of n and of the
   // pass counts on both sides, is reported beside it.
-  const nr = { dev: [...devIds].filter((id) => cannotRunOf(dev.find((r) => r.template === id) ?? { template: id })), heldOut: [...heldIds].filter((id) => cannotRunOf(held.find((r) => r.template === id) ?? { template: id })) };
+  // PROPOSALS P54: templates whose baseline fails on their own configuration (expect.n8nFails)
+  // are left out with them.
+  const nr = { dev: [...devIds].filter((id) => noBaselineOf(dev.find((r) => r.template === id) ?? { template: id })), heldOut: [...heldIds].filter((id) => noBaselineOf(held.find((r) => r.template === id) ?? { template: id })) };
+  const nf = { dev: nr.dev.filter((id) => failsOf(dev.find((r) => r.template === id) ?? { template: id })), heldOut: nr.heldOut.filter((id) => failsOf(held.find((r) => r.template === id) ?? { template: id })) };
   const runnable = (rows, ids) => rows.filter((r) => !ids.includes(r.template));
   const xDev = runnable(dev, nr.dev).filter(counts).length;
   const xHeld = runnable(held, nr.heldOut).filter(counts).length;
   const xb = nDev - nr.dev.length && nHeld - nr.heldOut.length ? overfittingBound({ passDev: xDev, nDev: nDev - nr.dev.length, passHeld: xHeld, nHeld: nHeld - nr.heldOut.length, flips }) : null;
-  const excludingN8nCannotRun = { n8nCannotRun: nr, dev: { passed: xDev, of: nDev - nr.dev.length }, heldOut: { passed: xHeld, of: nHeld - nr.heldOut.length }, ...(xb ?? {}) };
+  const excludingN8nCannotRun = { n8nCannotRun: { dev: nr.dev.filter((id) => !nf.dev.includes(id)), heldOut: nr.heldOut.filter((id) => !nf.heldOut.includes(id)) }, n8nFails: nf, dev: { passed: xDev, of: nDev - nr.dev.length }, heldOut: { passed: xHeld, of: nHeld - nr.heldOut.length }, ...(xb ?? {}) };
   const noEffect = { dev: noEffectOf(dev), heldOut: noEffectOf(held) };
   const nothingCompared = { dev: nothingOf(dev), heldOut: nothingOf(held) };
   const out = { round: round.round, devTag, heldTag, dev: { passed: passDev, of: nDev }, heldOut: { passed: passHeld, of: nHeld }, flips, ...b, missing, passNoEffectCompared: noEffect, passNothingCompared: nothingCompared, excludingN8nCannotRun };
@@ -115,7 +131,7 @@ if (args.includes("--release")) {
     console.log(`passes that compared no effect (counted, P50): dev ${fmt(noEffect.dev)}; held-out ${fmt(noEffect.heldOut)}`);
     if (nothingCompared.dev.length || nothingCompared.heldOut.length) console.log(`rows that passed with nothing compared (not counted; rows from before P50, classed from the recording): dev ${nothingCompared.dev.join(", ") || "none"}; held-out ${nothingCompared.heldOut.join(", ") || "none"}`);
     const x = excludingN8nCannotRun;
-    if (nr.dev.length || nr.heldOut.length) console.log(`without templates n8n cannot run on the bench image (left out of n and passes; dev ${nr.dev.join(", ") || "none"}, held-out ${nr.heldOut.join(", ") || "none"}): dev ${x.dev.passed}/${x.dev.of}, held-out ${x.heldOut.passed}/${x.heldOut.of}${xb ? `, gap ${xb.gap}, bound ${xb.bound}: ${xb.inside ? "inside" : "OVER"}` : ""}`);
+    if (nr.dev.length || nr.heldOut.length) console.log(`without templates that have no baseline (n8n cannot run them on the bench, or the template fails in n8n on its own configuration, P54; left out of n and passes; dev ${nr.dev.map((id) => `${id}${nf.dev.includes(id) ? " (fails)" : ""}`).join(", ") || "none"}, held-out ${nr.heldOut.map((id) => `${id}${nf.heldOut.includes(id) ? " (fails)" : ""}`).join(", ") || "none"}): dev ${x.dev.passed}/${x.dev.of}, held-out ${x.heldOut.passed}/${x.heldOut.of}${xb ? `, gap ${xb.gap}, bound ${xb.bound}: ${xb.inside ? "inside" : "OVER"}` : ""}`);
     if (missing.dev.length || missing.heldOut.length) console.log(`templates without a row in their tag (counted as not passing): dev ${missing.dev.join(", ") || "none"}; held-out ${missing.heldOut.join(", ") || "none"}`);
   }
   process.exit(0);
@@ -137,6 +153,8 @@ const limited = mine.filter((r) => !counts(r) && r.connectorLimited);
 const rest = mine.filter((r) => !r.connectorLimited || counts(r));
 const cannotRun = mine.filter((r) => !counts(r) && cannotRunOf(r));
 const runnable = mine.filter((r) => counts(r) || !cannotRunOf(r));
+const failing = mine.filter((r) => !counts(r) && failsOf(r));
+const withBaseline = mine.filter((r) => counts(r) || !noBaselineOf(r));
 const share = (a, b) => (b ? Math.round((a / b) * 1000) / 10 : null);
 const byGate = {};
 const byBucket = {};
@@ -157,6 +175,8 @@ const out = {
   passNothingCompared: { templates: nothingOf(mine), note: "not counted: passed every gate with no effect, reply or model input compared (rows from before P50, classed from the recording; from P50 on gate 4 fails them)" },
   oneShotExcludingConnectorLimited: { passed: passed.length, of: rest.length, share: share(passed.length, rest.length), connectorLimited: limited.map((r) => r.template), note: "connector-limited: the failure traces to a fixture connectorGaps field; the real connector shapes behind those gaps are unverified (shape: assumed)" },
   oneShotExcludingN8nCannotRun: { passed: passed.length, of: runnable.length, share: share(passed.length, runnable.length), n8nCannotRun: cannotRun.map((r) => ({ template: r.template, why: cannotRunOf(r) })), note: "the fixture's expect.n8nCannotRun: the bench's n8n image cannot run the template's main path, so its baseline stops early" },
+  // PROPOSALS P54: also without templates whose baseline fails on the template itself.
+  oneShotExcludingNoBaseline: { passed: passed.length, of: withBaseline.length, share: share(passed.length, withBaseline.length), n8nFails: failing.map((r) => ({ template: r.template, node: failsOf(r).node, why: failsOf(r).why, confirmed: failsOf(r).confirmed ?? null })), note: "also without the fixture's expect.n8nFails: n8n's baseline fails on the template's own configuration whatever the data, so nothing past it is measured (PROPOSALS P54)" },
   gateSum: mine.reduce((n, r) => n + (r.reached ?? 0), 0),
   nonPlaceholderOverlays: mine.filter((r) => r.config?.nonPlaceholder?.length).map((r) => ({ template: r.template, kinds: r.config.nonPlaceholder.map((x) => x.kind) })),
   claudeDriverSlips: slipStats(mine),
@@ -172,6 +192,7 @@ const out = {
     cause: r.cause,
     connectorLimited: !!r.connectorLimited,
     n8nCannotRun: !!cannotRunOf(r),
+    n8nFails: !!failsOf(r),
     nonPlaceholder: (r.config?.nonPlaceholder ?? []).map((x) => x.kind),
     convert: r.drivers?.convert?.startsWith("skill") ? "skill" : "plain",
     plainPreflight: r.plainColumn?.preflightOk,
@@ -199,12 +220,14 @@ else {
   console.log(`one-shot success excluding connector-limited: ${x.passed} of ${x.of} (${x.share ?? "-"}%); connector-limited: ${x.connectorLimited.length ? x.connectorLimited.join(", ") : "none"} (${x.note})`);
   const y = out.oneShotExcludingN8nCannotRun;
   console.log(`one-shot success excluding templates n8n cannot run on the bench image: ${y.passed} of ${y.of} (${y.share ?? "-"}%); n8n cannot run: ${y.n8nCannotRun.length ? y.n8nCannotRun.map((x) => `${x.template} (${x.why})`).join("; ") : "none"}`);
+  const z = out.oneShotExcludingNoBaseline;
+  console.log(`one-shot success also excluding templates that fail in n8n on their own configuration (P54): ${z.passed} of ${z.of} (${z.share ?? "-"}%); n8n fails on the template: ${z.n8nFails.length ? z.n8nFails.map((x) => `${x.template} (${x.node}${x.confirmed === false ? ", not confirmed by this run" : ""})`).join("; ") : "none"}`);
   if (out.nonPlaceholderOverlays.length) console.log(`non-placeholder overlays: ${out.nonPlaceholderOverlays.map((o) => `${o.template} (${o.kinds.join(", ")})`).join("; ")}`);
   console.log(`failures by gate: ${JSON.stringify(byGate)}; by bucket: ${JSON.stringify(byBucket)}`);
   const sl = out.claudeDriverSlips;
   console.log(`claude-driver protocol slips (P40, retried once, not a verdict): ${sl.slipped} of ${sl.runs} driver runs (${sl.rate ?? "-"}%), ${sl.retried} retried, ${sl.repeated} repeated${sl.templates.length ? ` (${sl.templates.join(", ")})` : ""}`);
   if (out.flipsAgainst) console.log(`verdict flips against ${out.flipsAgainst.tag}: ${out.flipsAgainst.flips.length}${out.flipsAgainst.flips.length ? " (" + out.flipsAgainst.flips.map((f) => `${f.template}: ${f.from} -> ${f.to}${f.slip ? " [slip]" : ""}`).join("; ") + ")" : ""}`);
   if (refusal) console.log(`refusal accuracy (labels.json vs analyzer): outcome+target ${refusal.outcomeAndTarget}/${refusal.templates}, blockers ${refusal.blockers}/${refusal.templates}, questions ${refusal.questions}/${refusal.templates}, everything ${refusal.all}/${refusal.templates}`);
-  console.log("\ntemplate  gate  convert  bucket: cause [CL = connector-limited, NR = n8n cannot run, TC = time compression, NE = pass, no effect compared, N0 = pass, nothing compared (not counted)]  | bench s, n8n ms, claude-driver s/$/turns, claude -p runs/$");
-  for (const p of out.perTemplate) console.log(`${String(p.template).padEnd(9)} ${String(p.reached === 9 ? "all" : p.reached).padEnd(5)} ${p.convert.padEnd(8)} ${p.connectorLimited ? "CL " : ""}${p.n8nCannotRun ? "NR " : ""}${p.nonPlaceholder.includes("time-compression") ? "TC " : ""}${["reply", "model inputs"].includes(p.compared) ? `NE (${p.compared}) ` : p.compared === "nothing" ? "N0 " : ""}${p.bucket ?? "-"}: ${(p.cause ?? "").slice(0, 90)} | ${p.benchWallS}, ${p.n8nExecMs ?? "-"}, ${p.claudeDriverS ?? "-"}/${p.claudeDriverUsd ?? "-"}/${p.claudeDriverTurns ?? "-"}, ${p.claudeRuns}/${p.claudeUsd}`);
+  console.log("\ntemplate  gate  convert  bucket: cause [CL = connector-limited, NR = n8n cannot run, NF = n8n fails on the template itself, TC = time compression, NE = pass, no effect compared, N0 = pass, nothing compared (not counted)]  | bench s, n8n ms, claude-driver s/$/turns, claude -p runs/$");
+  for (const p of out.perTemplate) console.log(`${String(p.template).padEnd(9)} ${String(p.reached === 9 ? "all" : p.reached).padEnd(5)} ${p.convert.padEnd(8)} ${p.connectorLimited ? "CL " : ""}${p.n8nCannotRun ? "NR " : ""}${p.n8nFails ? "NF " : ""}${p.nonPlaceholder.includes("time-compression") ? "TC " : ""}${["reply", "model inputs"].includes(p.compared) ? `NE (${p.compared}) ` : p.compared === "nothing" ? "N0 " : ""}${p.bucket ?? "-"}: ${(p.cause ?? "").slice(0, 90)} | ${p.benchWallS}, ${p.n8nExecMs ?? "-"}, ${p.claudeDriverS ?? "-"}/${p.claudeDriverUsd ?? "-"}/${p.claudeDriverTurns ?? "-"}, ${p.claudeRuns}/${p.claudeUsd}`);
 }

@@ -2,16 +2,21 @@
 // Validates bench fixtures: fixture.schema.json (with the repo's small validator) plus
 // cross-checks against the template and the captured connector tools.
 //
-//   node evals/bench/validate.mjs [evals/bench/fixtures] [--strict]
+//   node evals/bench/validate.mjs [evals/bench/fixtures] [--strict] [--ids a,b]
 //
 // Errors (exit 1): schema violations, a hash that differs from corpus.json, node names that
 // are not enabled nodes of the template, a `models` entry the model shim does not answer (P18), a read with no http/n8n/file source, a connector
 // tool that is not captured, a hostile fixture without bait, a template folder missing a
 // variant, a route URL that cannot be parsed (P48), expect.n8nCannotRun not the same in all
-// four variants (P49). Warnings (errors with --strict): steps the analyzer marks read/unknown on the
-// main branch that the fixture neither feeds nor lists; a poll trigger's http list longer than
-// n8n's manual mode asks for (P22). Cross-checks against the template
-// need evals/bench/data/ (git-ignored; `node evals/bench/fetch.mjs --offline` or a fetch).
+// four variants (P49), expect.n8nFails not the same in all four or naming no enabled node (P54).
+// Warnings (errors with --strict): steps the analyzer marks read/unknown on the main branch,
+// reachable from the fixture's trigger (P64), that the fixture neither feeds, lists nor names
+// in `unfed` (P59); a poll trigger's http list longer than n8n's manual mode asks for (P22); a
+// route on the n8n instance's own host (P52). Notes (never errors): one method + URL answered for
+// several nodes, whose responses form one list in fixture order (P57). Cross-checks against the
+// template need evals/bench/data/ (git-ignored; `node evals/bench/fetch.mjs --offline` or a
+// fetch). Without ids the current round's held-out templates are skipped (counted only, P51);
+// `--ids a,b` checks those templates only, held-out ones included (release points).
 
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -20,6 +25,7 @@ import { validate } from "../../tests/schema-check.mjs";
 import { canonical } from "../fetch-survey.mjs";
 import { createHash } from "node:crypto";
 import { modelRoute, modelNodes, modelConsumers } from "./n8n-side.mjs";
+import { readSplits, heldOutIds } from "./rounds.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
@@ -45,6 +51,7 @@ async function analyzerReport(raw, id) {
 export async function checkFixture(fx, raw) {
   const errors = validate(fx, schema, "$", schema);
   const warnings = [];
+  const notes = [];
   if (errors.length) return { errors, warnings };
   if (hashOf[fx.template] !== fx.sha256) errors.push(`sha256 differs from corpus.json for ${fx.template}`);
   if (fx.variant === "hostile" && !(fx.expect.bait ?? []).length) errors.push("hostile fixture without expect.bait");
@@ -69,7 +76,9 @@ export async function checkFixture(fx, raw) {
       if (!(c.calls ?? []).length) errors.push(`read ${r.node}: connector without calls (use none)`);
     }
   }
-  if (!raw) return { errors, warnings: [...warnings, "template not downloaded: cross-checks skipped"] };
+  for (const w of ownInstanceWarnings(fx)) warnings.push(w);
+  for (const n of sharedRouteNotes(fx)) notes.push(n);
+  if (!raw) return { errors, warnings: [...warnings, "template not downloaded: cross-checks skipped"], notes };
   const wf = raw.workflow.workflow;
   const actual = createHash("sha256").update(canonical(wf)).digest("hex");
   if (actual !== fx.sha256) errors.push("sha256 differs from the downloaded template");
@@ -93,19 +102,79 @@ export async function checkFixture(fx, raw) {
   fx.reads.forEach((r) => need(r.node, "reads"));
   fx.models.forEach((m) => need(m, "models"));
   fx.writes.forEach((w) => need(w, "writes"));
+  // PROPOSALS P54, P59: the node a baseline fails at, and steps acknowledged as unfed.
+  if (fx.expect?.n8nFails) need(fx.expect.n8nFails.node, "expect.n8nFails");
+  for (const u of fx.unfed ?? []) need(u.node, "unfed");
   for (const r of fx.writeReplies ?? []) if (!fx.writes.includes(r.node)) errors.push(`writeReplies: "${r.node}" is not in writes`);
   for (const k of Object.keys(fx.pinData ?? {})) if (!wf.pinData?.[k]) errors.push(`pinData.${k} is not in the template's pinData`);
   if (wf.pinData && Object.keys(wf.pinData).length && !fx.pinData) errors.push("the template has pinData; copy it into pinData");
   for (const e of modelErrors(fx, wf)) errors.push(e);
   for (const w of pollWarnings(fx, wf)) warnings.push(w);
   const report = await analyzerReport(raw, fx.template);
-  const listed = new Set([fx.trigger.node, ...fx.reads.map((r) => r.node), ...fx.models, ...fx.writes]);
+  const listed = new Set([fx.trigger.node, ...fx.reads.map((r) => r.node), ...fx.models, ...fx.writes, ...(fx.unfed ?? []).map((u) => u.node)]);
+  // PROPOSALS P64: only steps the fixture's trigger reaches (and their sub-nodes); another
+  // trigger's branch is not this fixture's to feed.
+  const reach = reachableFrom(wf, fx.trigger.node);
   for (const s of report.steps) {
-    if (s.branch !== "main" || s.role === "trigger" || listed.has(s.node)) continue;
+    if (s.branch !== "main" || s.role === "trigger" || listed.has(s.node) || !reach.has(s.node)) continue;
     if (s.effect === "read" || s.effect === "unknown") warnings.push(`step "${s.node}" (${s.type}, ${s.effect}) is neither fed nor listed`);
     if (s.effect === "write") warnings.push(`write step "${s.node}" is not in writes`);
   }
-  return { errors, warnings };
+  return { errors, warnings, notes };
+}
+
+// PROPOSALS P64: the nodes a trigger reaches over main connections, plus every sub-node that
+// feeds one of them over an ai_* connection (a model, a tool, its embeddings), transitively.
+export function reachableFrom(wf, trigger) {
+  const conn = wf?.connections ?? {};
+  const seen = new Set([trigger]);
+  const queue = [trigger];
+  while (queue.length) {
+    const n = queue.shift();
+    for (const list of conn[n]?.main ?? []) for (const e of list ?? []) if (e?.node && !seen.has(e.node)) seen.add(e.node), queue.push(e.node);
+  }
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const [from, outs] of Object.entries(conn)) {
+      if (seen.has(from)) continue;
+      const feeds = Object.entries(outs ?? {}).some(([type, lists]) => type.startsWith("ai_") && (lists ?? []).some((l) => (l ?? []).some((e) => seen.has(e?.node))));
+      if (feeds) seen.add(from), (grew = true);
+    }
+  }
+  return seen;
+}
+
+// PROPOSALS P52: the bench's n8n reaches its own host directly (NO_PROXY localhost, 127.0.0.1,
+// ::1, mock), so a route there feeds the Claude side only; such a template is n8nCannotRun.
+const OWN_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+export function ownInstanceWarnings(fx) {
+  const out = [];
+  for (const r of [...fx.reads, ...(fx.writeReplies ?? [])]) {
+    for (const x of r.http?.responses ?? []) {
+      let u;
+      try {
+        u = new URL(x.url);
+      } catch {
+        continue;
+      }
+      if (OWN_HOSTS.has(u.hostname) && !fx.expect?.n8nCannotRun) out.push(`${r.node}: route ${x.method} ${u.origin} is the n8n instance's own host, which never reaches the mock on the n8n side (PROPOSALS P52); mark expect.n8nCannotRun`);
+    }
+  }
+  return out;
+}
+
+// PROPOSALS P57: responses for one method + URL (+ query, bodyMatch) given under several nodes
+// form one list in fixture order across nodes, replied in turn, the last repeating.
+export function sharedRouteNotes(fx) {
+  const by = new Map();
+  for (const r of [...fx.reads, ...(fx.writeReplies ?? [])]) {
+    for (const x of r.http?.responses ?? []) {
+      const k = `${x.method} ${x.url}${x.query ? " " + JSON.stringify(x.query) : ""}${x.bodyMatch !== undefined ? " " + JSON.stringify(x.bodyMatch) : ""}`;
+      if (!by.has(k)) by.set(k, []);
+      if (!by.get(k).includes(r.node)) by.get(k).push(r.node);
+    }
+  }
+  return [...by].filter(([, nodes]) => nodes.length > 1).map(([k, nodes]) => `${k} is answered for ${nodes.map((n) => `"${n}"`).join(", ")}: one list in fixture order across these nodes, replied in turn (P57)`);
 }
 
 // PROPOSALS P49: what holds for a template, not a variant, must agree across its four fixtures:
@@ -115,6 +184,9 @@ export function crossVariantErrors(byVariant) {
   const errors = [];
   const why = Object.entries(byVariant).map(([v, fx]) => [v, fx?.expect?.n8nCannotRun ?? null]);
   if (new Set(why.map(([, w]) => w)).size > 1) errors.push(`expect.n8nCannotRun differs between variants (${why.map(([v, w]) => `${v}: ${w === null ? "none" : "set"}`).join(", ")}); it describes the image, not the data, so all four carry the same text`);
+  // PROPOSALS P54: expect.n8nFails describes the template's own configuration, not the data.
+  const fails = Object.entries(byVariant).map(([v, fx]) => [v, fx?.expect?.n8nFails ? JSON.stringify(fx.expect.n8nFails) : null]);
+  if (new Set(fails.map(([, w]) => w)).size > 1) errors.push(`expect.n8nFails differs between variants (${fails.map(([v, w]) => `${v}: ${w === null ? "none" : "set"}`).join(", ")}); it describes the template's own configuration, not the data, so all four carry the same value`);
   return errors;
 }
 
@@ -182,10 +254,21 @@ export function pollWarnings(fx, wf) {
 async function main() {
   const args = process.argv.slice(2);
   const strict = args.includes("--strict");
-  const dir = args.find((a) => !a.startsWith("--")) ?? join(HERE, "fixtures");
+  const idsArg = args.includes("--ids") ? args[args.indexOf("--ids") + 1].split(",").filter(Boolean) : null;
+  const dir = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--ids") ?? join(HERE, "fixtures");
   let bad = 0;
   let files = 0;
-  for (const id of readdirSync(dir).filter((d) => statSync(join(dir, d)).isDirectory()).sort()) {
+  // PROPOSALS P51: without ids, the current round's held-out templates are not checked here (a
+  // fixing session must not read their warnings); they are counted only.
+  let all = readdirSync(dir).filter((d) => statSync(join(dir, d)).isDirectory()).sort();
+  if (idsArg) all = all.filter((d) => idsArg.includes(d));
+  else {
+    const held = new Set(heldOutIds(readSplits()).map(String));
+    const skipped = all.filter((d) => held.has(d)).length;
+    all = all.filter((d) => !held.has(d));
+    if (skipped) console.log(`${skipped} current held-out templates skipped (pass --ids to check them at a release point)`);
+  }
+  for (const id of all) {
     const tplFile = join(HERE, "data", "wf", `${id}.json`);
     const raw = existsSync(tplFile) ? JSON.parse(readFileSync(tplFile, "utf8")) : null;
     const byVariant = {};
@@ -206,12 +289,13 @@ async function main() {
         continue;
       }
       byVariant[v] = fx;
-      const { errors, warnings } = await checkFixture(fx, raw);
+      const { errors, warnings, notes = [] } = await checkFixture(fx, raw);
       if (fx.template !== Number(id) || fx.variant !== v) errors.push("template or variant does not match the path");
       const fail = errors.length || (strict && warnings.length);
       if (fail) bad++;
       for (const e of errors) console.log(`${id}/${v}: ERROR ${e}`);
       for (const w of warnings) console.log(`${id}/${v}: ${strict ? "ERROR" : "warn"} ${w}`);
+      for (const n of notes) console.log(`${id}/${v}: note ${n}`);
     }
     for (const e of crossVariantErrors(byVariant)) {
       console.log(`${id}: ERROR ${e}`);

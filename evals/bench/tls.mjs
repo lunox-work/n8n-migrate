@@ -8,7 +8,7 @@
 //
 // Layout (TLS_DIR, default evals/bench/.tls):
 //   ca.key, ca.pem                 the CA; n8n trusts ca.pem through NODE_EXTRA_CA_CERTS
-//   hosts/<host>.key, <host>.pem   leaf for one host (subjectAltName DNS:<host>), signed by the CA
+//   hosts/<host>.key, <host>.pem   leaf for one host (subjectAltName DNS:<host>, IP:<host> for an IPv4 host), signed by the CA
 // The mock (evals/n8n/mock-server.mjs --tls-dir) terminates TLS on CONNECT for every host
 // that has a leaf here, and refuses CONNECT for any other host, as before.
 
@@ -41,13 +41,19 @@ export function ensureCa(dir = TLS_DIR) {
   return join(dir, "ca.pem");
 }
 
+// PROPOSALS P62: an IPv4 host gets an `IP:` subjectAltName (a TLS client checks an IP host
+// against the certificate's IP addresses, never its DNS names); a leaf made before for such a
+// host with a DNS name only is made again.
+export const isIPv4 = (h) => /^\d{1,3}(\.\d{1,3}){3}$/.test(String(h)) && String(h).split(".").every((x) => Number(x) <= 255);
+const hasIpSan = (pem) => /IP Address:/.test(spawnSync("openssl", ["x509", "-noout", "-ext", "subjectAltName", "-in", pem], { encoding: "utf8" }).stdout ?? "");
+
 export function ensureLeaf(host, dir = TLS_DIR) {
   const h = safeHost(host);
   ensureCa(dir);
   const hd = join(dir, "hosts");
-  if (existsSync(join(hd, `${h}.pem`)) && existsSync(join(hd, `${h}.key`))) return { key: join(hd, `${h}.key`), cert: join(hd, `${h}.pem`), made: false };
+  if (existsSync(join(hd, `${h}.pem`)) && existsSync(join(hd, `${h}.key`)) && (!isIPv4(h) || hasIpSan(join(hd, `${h}.pem`)))) return { key: join(hd, `${h}.key`), cert: join(hd, `${h}.pem`), made: false };
   const ext = join(hd, `${h}.ext`);
-  writeFileSync(ext, `subjectAltName=DNS:${h}\nbasicConstraints=CA:FALSE\nkeyUsage=digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\n`);
+  writeFileSync(ext, `subjectAltName=${isIPv4(h) ? "IP" : "DNS"}:${h}\nbasicConstraints=CA:FALSE\nkeyUsage=digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\n`);
   openssl(["req", "-newkey", "rsa:2048", "-nodes", "-keyout", `${h}.key`, "-out", `${h}.csr`, "-subj", `/CN=${h}`], hd);
   // A random serial per leaf: the same serial twice from one CA makes some clients refuse.
   openssl(["x509", "-req", "-in", `${h}.csr`, "-CA", "../ca.pem", "-CAkey", "../ca.key", "-set_serial", `0x${Date.now().toString(16)}${Math.floor(Math.random() * 1e6).toString(16)}`, "-days", "825", "-out", `${h}.pem`, "-extfile", `${h}.ext`], hd);

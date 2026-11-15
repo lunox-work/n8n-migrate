@@ -931,7 +931,7 @@ test("P26: a host without a leaf gets one made from the bench CA; its request is
     const leaf = new X509Certificate(mintLeaf("tiktoken.pages.dev", ca).cert);
     assert.equal(leaf.verify(new X509Certificate(ca.caCertPem).publicKey), true);
     assert.equal(leaf.checkHost("tiktoken.pages.dev"), "tiktoken.pages.dev");
-    assert.throws(() => mintLeaf("10.0.0.1", ca), /not a DNS host/);
+    assert.throws(() => mintLeaf("bad host!", ca), /not a host name/);
     const log = join(dir, "log.jsonl");
     const server = await startMock({ port: 0, host: "127.0.0.1", log, tlsDir: dir });
     const port = server.address().port;
@@ -1017,4 +1017,191 @@ test("P50: gate 4 says what it compared; a pass that compared nothing is not a p
   // A replayed request without an input check (a miss that went live) is not a compared input.
   assert.equal(comparedOf({ cmp: compare([], []), modelInputs: [{ step: "x", index: 0 }] }).class, "nothing");
   assert.deepEqual([noEffectClass({ effects: 2, reply: true, modelInputs: 1 }), noEffectClass({ effects: 0, reply: false, modelInputs: 0 })], [null, "nothing"]);
+});
+
+test("P54: expect.n8nFails is the same in all four variants, and the row says whether this run saw that node fail", async () => {
+  const { crossVariantErrors } = await import("../evals/bench/validate.mjs");
+  const { n8nFailsOf } = await import("../evals/bench/gates.mjs");
+  const f = { node: "Update Row", why: "no column to match on" };
+  const fx = (n8nFails) => ({ expect: { branches: [], ...(n8nFails ? { n8nFails } : {}) } });
+  assert.deepEqual(crossVariantErrors({ normal: fx(f), empty: fx(f), malformed: fx(f), hostile: fx(f) }), []);
+  assert.match(crossVariantErrors({ normal: fx(f), empty: fx(null), malformed: fx(f), hostile: fx(f) })[0], /expect\.n8nFails differs/);
+  assert.equal(n8nFailsOf(fx(null), {}), null);
+  const canned = n8nFailsOf(fx(f), { n8nCheck: { status: "error", error: { node: "Update Row", message: "columns.matchingColumns is required" } } });
+  assert.deepEqual([canned.observed.from, canned.confirmed], ["canned check", true]);
+  const other = n8nFailsOf(fx(f), { "n8n:normal": { status: "error", error: { node: "Earlier", message: "x" } } });
+  assert.deepEqual([other.observed.from, other.confirmed], ["baseline", false]);
+  assert.equal(n8nFailsOf(fx(f), {}).confirmed, null, "nothing run: not confirmed either way");
+});
+
+test("P60: template pinData reaches n8n as items; bare objects are wrapped as {json}", async () => {
+  const { pinItemsOf, isItem } = await import("../evals/bench/n8n-side.mjs");
+  const out = pinItemsOf({ A: [{ id: "p1", error: null, output: "u" }], B: [{ json: { x: 1 } }], C: [{ json: { x: 1 }, pairedItem: { item: 0 } }], D: [{ json: "not an object" }] });
+  assert.deepEqual(out.A, [{ json: { id: "p1", error: null, output: "u" } }]);
+  assert.deepEqual(out.B, [{ json: { x: 1 } }]);
+  assert.deepEqual(out.C, [{ json: { x: 1 }, pairedItem: { item: 0 } }]);
+  assert.deepEqual(out.D, [{ json: { json: "not an object" } }]);
+  assert.equal(isItem({ json: {}, extra: 1 }), false);
+});
+
+test("P61, P55/P63: credentials for Outlook, Discord and Facebook Graph nodes; node types that keep process state", async () => {
+  const { keepsProcessState } = await import("../evals/bench/n8n-side.mjs");
+  assert.equal(credentialTypeFor({ type: "n8n-nodes-base.microsoftOutlook", parameters: {} }), "microsoftOutlookOAuth2Api");
+  assert.equal(credentialTypeFor({ type: "n8n-nodes-base.discord", parameters: { authentication: "webhook" } }), "discordWebhookApi");
+  assert.equal(credentialTypeFor({ type: "n8n-nodes-base.discord", parameters: {} }), "discordBotApi");
+  assert.equal(credentialTypeFor({ type: "n8n-nodes-base.facebookGraphApi", parameters: {} }), "facebookGraphApi");
+  assert.match(credentialData("discordWebhookApi").webhookUri, /^https:\/\/discord\.com\/api\/webhooks\//);
+  assert.equal(keepsProcessState({ nodes: [{ type: "@n8n/n8n-nodes-langchain.memoryBufferWindow" }] }), true);
+  assert.equal(keepsProcessState({ nodes: [{ type: "@n8n/n8n-nodes-langchain.vectorStorePinecone", disabled: true }, { type: "n8n-nodes-base.set" }] }), false);
+});
+
+test("P65: the shim answers a model node at most `cap` times per run, then a named 400; a timeout is a failed baseline", async () => {
+  const { startShim, capMessage } = await import("../evals/bench/model-shim.mjs");
+  const { TIMEOUT_RE, timeoutResult, recordingInterrupted: interrupted } = await import("../evals/bench/n8n-side.mjs");
+  const shim = await startShim({ port: 0, log: () => {} });
+  try {
+    shim.setSession({ mode: "canned", cap: 2 });
+    const url = `http://127.0.0.1:${shim.server.address().port}/model/m0/v1/chat/completions`;
+    const call = () => fetch(url, { method: "POST", headers: { "content-type": "application/json", "x-bench-model-tag": "m0" }, body: JSON.stringify({ model: "x", messages: [{ role: "user", content: "caption" }] }) });
+    assert.equal((await call()).status, 200);
+    assert.equal((await call()).status, 200);
+    const third = await call();
+    assert.equal(third.status, 400);
+    assert.equal((await third.json()).error.message, capMessage("m0", 2));
+    assert.deepEqual(shim.session.calls.map((c) => c.mode), ["canned", "canned", "capped"]);
+    assert.equal(interrupted({ result: { status: "error", error: { node: "Caption", message: capMessage("m0", 2) } }, modelCalls: shim.session.calls, models: [{ node: "Caption" }] }), null, "a capped run is a real (failed) baseline, not an interrupted recording");
+  } finally {
+    shim.server.close();
+  }
+  const e = new Error("execution 42 still running after 900s (stopped)");
+  assert.equal(TIMEOUT_RE.test(e.message), true);
+  const r = timeoutResult(e, 900);
+  assert.deepEqual([r.status, r.error.node], ["timeout", null]);
+  assert.match(r.error.message, /did not finish in 900 s/);
+});
+
+test("P46: n8n's resumable Drive upload folds into one create_file that pairs with the connector's", async () => {
+  const { foldResumableUploads, fromHttp, compare: cmp } = await import("../evals/bench/compare.mjs");
+  const { createHash } = await import("node:crypto");
+  const csv = "﻿a,b\n1,2\n";
+  const g = "https://www.googleapis.com";
+  const log = [
+    { seq: 1, method: "POST", proxied: g, path: "/upload/drive/v3/files", query: { uploadType: "resumable", supportsAllDrives: "true" }, rawQuery: "uploadType=resumable&supportsAllDrives=true", body: { name: "report", parents: ["F1"] }, bodyEncoding: "json" },
+    { seq: 2, method: "PUT", proxied: g, path: "/upload/drive/v3/files", query: { uploadType: "resumable", upload_id: "u1" }, rawQuery: "uploadType=resumable&upload_id=u1", body: csv, bodyEncoding: "text" },
+    { seq: 3, method: "PATCH", proxied: g, path: "/drive/v3/files/1CsvOut1", query: { addParents: "F1" }, rawQuery: "addParents=F1", body: { mimeType: "text/csv", name: "report", originalFilename: "File.csv" }, bodyEncoding: "json" },
+  ];
+  const folded = foldResumableUploads(log);
+  assert.equal(folded.length, 2, "the PATCH is folded in; the PUT stays (ignored by the table)");
+  const n8n = folded.map((e) => fromHttp(e, "n8n")).filter(Boolean);
+  assert.deepEqual(n8n.map((e) => `${e.service}.${e.action}:${e.target}`), ["drive.create_file:report"]);
+  assert.equal(n8n[0].fields.content, createHash("sha256").update(Buffer.from(csv, "utf8")).digest("hex"));
+  const claude = (content, name = "report") => [fromTool({ connector: "google-drive", tool: "create_file", args: { title: name, parentId: "F1", contentMimeType: "text/csv", base64Content: Buffer.from(content, "utf8").toString("base64") } })];
+  assert.equal(cmp(n8n, claude(csv)).ok, true);
+  assert.deepEqual(cmp(n8n, claude("other")).writes.fieldDiffs[0].diffs.map((d) => d.field), ["content"]);
+  assert.equal(cmp(n8n, claude(csv, '"report"')).ok, false, "a different name still differs");
+  // Without the fold the two n8n effects could never pair with one connector call.
+  assert.equal(cmp(log.map((e) => fromHttp(e, "n8n")).filter(Boolean), claude(csv)).ok, false);
+  // A multipart upload (no hash on the n8n side) is not failed for the content field.
+  const multi = fromHttp({ seq: 9, method: "POST", proxied: g, path: "/upload/drive/v3/files", rawQuery: "uploadType=multipart", body: '{"name":"report","parents":["F1"],"mimeType":"text/csv"}', bodyEncoding: "text" }, "n8n");
+  assert.equal(cmp([multi], claude(csv)).ok, true);
+});
+
+test("P62: leaves for IPv4 hosts carry an IP subjectAltName (minted and made with openssl)", async () => {
+  const { mintLeaf } = await import("../evals/n8n/mint-leaf.mjs");
+  const { ensureCa, ensureLeaf } = await import("../evals/bench/tls.mjs");
+  const { X509Certificate } = await import("node:crypto");
+  const { mkdtempSync, readFileSync, rmSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const { tmpdir } = await import("node:os");
+  const dir = mkdtempSync(join(tmpdir(), "n2c-p62-"));
+  try {
+    ensureCa(dir);
+    const ca = { caKeyPem: readFileSync(join(dir, "ca.key")), caCertPem: readFileSync(join(dir, "ca.pem")) };
+    const ip = new X509Certificate(mintLeaf("10.11.12.101", ca).cert);
+    assert.match(ip.subjectAltName, /IP Address:10\.11\.12\.101/);
+    assert.equal(ip.checkIP("10.11.12.101"), "10.11.12.101");
+    assert.match(new X509Certificate(mintLeaf("api.example.com", ca).cert).subjectAltName, /DNS:api\.example\.com/);
+    const made = new X509Certificate(readFileSync(ensureLeaf("0.0.0.0", dir).cert));
+    assert.match(made.subjectAltName, /IP Address:0\.0\.0\.0/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("P64, P57, P52: validator warns only on the trigger's reach, notes shared routes, warns on the instance's own host", async () => {
+  const { reachableFrom, sharedRouteNotes, ownInstanceWarnings } = await import("../evals/bench/validate.mjs");
+  const wf = {
+    connections: {
+      Chat: { main: [[{ node: "Agent", type: "main", index: 0 }]] },
+      Model: { ai_languageModel: [[{ node: "Agent", type: "ai_languageModel", index: 0 }]] },
+      Store: { ai_tool: [[{ node: "Agent", type: "ai_tool", index: 0 }]] },
+      Embeddings: { ai_embedding: [[{ node: "Store", type: "ai_embedding", index: 0 }]] },
+      Drive: { main: [[{ node: "Insert", type: "main", index: 0 }]] },
+      Embeddings2: { ai_embedding: [[{ node: "Insert", type: "ai_embedding", index: 0 }]] },
+    },
+  };
+  assert.deepEqual([...reachableFrom(wf, "Chat")].sort(), ["Agent", "Chat", "Embeddings", "Model", "Store"]);
+  const fx = { expect: {}, reads: [{ node: "Before", http: { responses: [{ method: "GET", url: "https://api.example/status" }] } }, { node: "After", http: { responses: [{ method: "GET", url: "https://api.example/status" }, { method: "GET", url: "https://api.example/other" }] } }], writeReplies: [{ node: "Self", http: { responses: [{ method: "POST", url: "http://localhost:5678/rest/workflows" }] } }] };
+  assert.equal(sharedRouteNotes(fx).length, 1);
+  assert.match(sharedRouteNotes(fx)[0], /"Before", "After"/);
+  assert.match(ownInstanceWarnings(fx)[0], /P52/);
+  assert.deepEqual(ownInstanceWarnings({ ...fx, expect: { n8nCannotRun: "calls its own API" } }), []);
+});
+
+test("P47: a runner process in the claude driver's session environment sends an LLM call over HTTP to the replay shim and writes absolute paths under the scratch disk", async () => {
+  const { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const { tmpdir } = await import("node:os");
+  const { spawn } = await import("node:child_process");
+  const { sessionEnv } = await import("../evals/bench/claude-driver.mjs");
+  const { startShim, providerResponse } = await import("../evals/bench/model-shim.mjs");
+  const { startMock } = await import("../evals/n8n/mock-server.mjs");
+  const dir = mkdtempSync(join(tmpdir(), "n2c-p47-"));
+  const req = { model: "openai/gpt-4o-mini", messages: [{ role: "user", content: "Summarise the report" }] };
+  const shim = await startShim({ port: 0, log: () => {} });
+  shim.setSession({ mode: "replay", fallback: "canned", recorded: { "host:openrouter.ai": [{ tag: "host:openrouter.ai", index: 0, format: "openai", request: req, response: providerResponse("openai", { text: "Recorded summary." }, req) }] } });
+  writeFileSync(join(dir, "routes.json"), JSON.stringify({ __routes: [], __writeDefault: { status: 200, body: {} } }));
+  const mock = await startMock({ port: 0, host: "127.0.0.1", log: join(dir, "http.jsonl"), fixtures: join(dir, "routes.json"), modelShim: `http://127.0.0.1:${shim.server.address().port}` });
+  try {
+    // A stand-in for the folder's runtime/runner.mjs (the preloads act on that path only).
+    mkdirSync(join(dir, "work", "runtime"), { recursive: true });
+    const runner = join(dir, "work", "runtime", "runner.mjs");
+    writeFileSync(runner, `import { writeFileSync, mkdirSync } from "node:fs";
+const r = await fetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(${JSON.stringify(req)}) });
+const text = (await r.json()).choices[0].message.content;
+mkdirSync("/n2c-bench-p47/out", { recursive: true });
+writeFileSync("/n2c-bench-p47/out/summary.txt", text);
+process.stdout.write(text);
+`);
+    const diskRoot = join(dir, "disk");
+    const env = sessionEnv({ base: { PATH: process.env.PATH, HOME: process.env.HOME }, httpMockUrl: `http://127.0.0.1:${mock.address().port}`, secrets: [{ name: "openrouter" }], diskRoot, absDirs: ["/n2c-bench-p47"] });
+    assert.equal(env.N2C_SECRET_OPENROUTER, "bench-secret-openrouter");
+    const out = await new Promise((ok) => {
+      const c = spawn(process.execPath, [runner], { cwd: join(dir, "work"), env, stdio: ["ignore", "pipe", "pipe"] });
+      let stdout = "";
+      let stderr = "";
+      c.stdout.on("data", (x) => (stdout += x));
+      c.stderr.on("data", (x) => (stderr += x));
+      c.on("exit", (code) => ok({ code, stdout, stderr }));
+    });
+    assert.equal(out.code, 0, out.stderr);
+    assert.equal(out.stdout, "Recorded summary.", "the host mock forwarded the model path to the replay shim");
+    assert.deepEqual(shim.session.calls.map((c) => [c.tag, c.index, c.mode]), [["host:openrouter.ai", 0, "replay"]]);
+    assert.equal(readFileSync(join(diskRoot, "n2c-bench-p47/out/summary.txt"), "utf8"), "Recorded summary.");
+    assert.equal(existsSync("/n2c-bench-p47"), false, "the real disk was not touched");
+  } finally {
+    await new Promise((ok) => mock.close(ok));
+    shim.server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("P54: a run n8n refuses to start (nodes with issues) is a failed baseline naming the first node", async () => {
+  const { REFUSED_RE, refusedResult } = await import("../evals/bench/n8n-side.mjs");
+  const e = new Error('POST /rest/workflows/abc/run: HTTP 400 {"code":400,"message":"2 nodes have issues: Facebook Graph API1: Parameter \\"Graph API Version\\" is required. X1: Parameter \\"Text\\" is required."}');
+  assert.equal(REFUSED_RE.test(e.message), true);
+  const r = refusedResult(e);
+  assert.deepEqual([r.status, r.error.node], ["refused", "Facebook Graph API1"]);
+  assert.match(r.error.message, /^n8n refused to start the run: 2 nodes have issues/);
+  assert.equal(REFUSED_RE.test("GET /rest/executions/1: HTTP 404 x"), false);
 });

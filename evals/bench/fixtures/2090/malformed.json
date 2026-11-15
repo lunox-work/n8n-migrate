@@ -99,6 +99,7 @@
     "branches": [
       "no IF/Switch; the answer depends on how the model's SQL treats NULL, negative and orphan rows"
     ],
-    "offline": "The postgres credential points at the bench's sidecar host; the db seed must be loaded before the run (the tables and column types are in the read's note). Simple Memory keeps the session's history in n8n's process only; one message per run"
+    "offline": "The postgres credential points at the bench's sidecar host; the db seed must be loaded before the run (the tables and column types are in the read's note). Simple Memory keeps the session's history in n8n's process only; one message per run",
+    "n8nCannotRun": "the agent's only data is a Postgres database it queries with SQL it writes, and the bench has no database sidecar yet (PROPOSALS P66), so n8n's Postgres tool cannot connect once the model calls it"
   }
 }

@@ -27,6 +27,12 @@ if (mock && /[\\/]runtime[\\/]runner\.mjs$/.test(process.argv[1] ?? "")) {
       }
       if (body !== undefined && body !== null && typeof body !== "string" && !Buffer.isBuffer(body)) body = Buffer.from(body);
       delete headers.connection;
+      // PROPOSALS P47: a known length, as fetch sends a string or buffer body; without it the
+      // body goes chunked, and the mock's forward of a model call to the shim failed with 400.
+      if (body !== undefined && body !== null) {
+        delete headers["transfer-encoding"];
+        headers["content-length"] = String(Buffer.byteLength(body));
+      }
       const req = request({ host: m.hostname, port: m.port, method: init.method ?? "GET", path: u.href, agent: false, headers: { ...headers, host: u.host, connection: "close" } }, (res) => {
         const chunks = [];
         res.on("data", (c) => chunks.push(c));

@@ -391,7 +391,18 @@ export function formatOf(path) {
 
 // ---------- the server (n8n side) ----------
 
-// session: {mode, recorded: {tag: [record]}, fallback: "live"|"canned", noCache, calls: []}
+// PROPOSALS P65: a per-node call cap. A workflow that sends the model's reply back to the model
+// until the reply has some form (3121's and 3442's caption loops split on a literal backslash-n)
+// asks again and again; without a cap the canned check ran until the shim's connection failed
+// (`Bad gateway`) and a live recording would spend a `claude -p` run per call. Call `cap` of a
+// tag (0-based, so `cap` calls are answered) gets a 400 with a named reason instead, which no
+// provider client retries, so n8n's node fails with it and the baseline reads as the template's
+// loop. Mode `capped`: not a shim error, so the recording is kept (a failed baseline). The
+// largest count in the recordings so far is 10 calls of one node in one run.
+export const MODEL_CALL_CAP = Number(process.env.N2C_BENCH_MODEL_CALL_CAP || 30);
+export const capMessage = (tag, cap) => `model call cap reached: ${cap} calls to model node ${tag} in one run (the workflow keeps asking the model, e.g. a loop until the reply has some form; PROPOSALS P65)`;
+
+// session: {mode, recorded: {tag: [record]}, fallback: "live"|"canned", noCache, calls: [], cap}
 export function startShim({ port = 5691, host = "127.0.0.1", log = console.error } = {}) {
   const shim = { session: { mode: "canned", recorded: {}, calls: [], fallback: "canned" }, server: null };
   const counters = new Map();
@@ -418,6 +429,14 @@ export function startShim({ port = 5691, host = "127.0.0.1", log = console.error
       }
       const s = shim.session;
       const rec = { tag, index, format, path, request: body, mode: null, t: new Date().toISOString() };
+      const cap = s.cap ?? MODEL_CALL_CAP;
+      if (index >= cap) {
+        rec.mode = "capped";
+        rec.error = capMessage(tag, cap);
+        s.calls.push(rec);
+        res.writeHead(400, { "content-type": "application/json" });
+        return res.end(JSON.stringify({ type: "error", error: { type: "invalid_request_error", message: rec.error, code: 400, status: "INVALID_ARGUMENT" } }));
+      }
       const t0 = Date.now();
       try {
         let answer;

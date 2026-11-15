@@ -14,6 +14,7 @@
 // REST calls (a wrong read shows up in the writes it feeds). A text field that holds a model
 // reply is model-written: byte-identical in replay mode, handed to the judge in live mode.
 
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -114,6 +115,11 @@ function extractor(ctx) {
       } else if (root === "multipart") {
         ctx.multipart ??= multipartJson(ctx.body, ctx.bodyEncoding);
         v = get(ctx.multipart, tail);
+      } else if (root === "sha256_base64" || root === "sha256_utf8") {
+        // PROPOSALS P46: the SHA-256 of bytes a field carries (base64 or text), so an upload's
+        // content compares with the other side's by hash.
+        const raw = extractor(ctx)(tail);
+        v = typeof raw === "string" ? createHash("sha256").update(Buffer.from(raw, root === "sha256_base64" ? "base64" : "utf8")).digest("hex") : undefined;
       } else if (root === "reply") v = ctx.reply?.[tail];
       else if (root === "body") v = tail ? get(ctx.body, tail) : ctx.body;
       else if (root === "args") v = tail ? get(ctx.args, tail) : ctx.args;
@@ -182,6 +188,45 @@ export function fromHttp(entry, side = "n8n") {
   // can only match the same raw request on the other side.
   const generic = path.replace(/\/[0-9A-Za-z_-]{12,}(?=\/|$)/g, "/:id").replace(/\/\d+(?=\/|$)/g, "/:n");
   return { side, service: host, action: `${method} ${generic}`, effect: ["GET", "HEAD", "OPTIONS"].includes(method) ? "read" : "write", target: path, fields: { body: entry.body, query: queryObj }, cmp: { body: "exact", query: "exact" }, raw: { method, url: `${u.origin}${u.pathname}` }, unmapped: true };
+}
+
+// PROPOSALS P46: n8n 2.47.7's Google Drive upload of a stored binary is a resumable upload:
+// POST /upload/drive/v3/files?uploadType=resumable with the metadata ({name, parents}), PUT of
+// the bytes to the session URL the POST's Location names (?upload_id=...), then PATCH
+// /drive/v3/files/<id> with name, mimeType and addParents. Drive's docs (guides/manage-uploads,
+// "Perform a resumable upload") make it one file creation; the connector's create_file is one
+// call. So the three mock-log lines fold into one POST line whose body carries the metadata of
+// both requests and `contentSha256`, the bytes' hash (text bodies as UTF-8, base64 as decoded;
+// a JSON body was re-parsed by the mock, so its bytes are not known and no hash is given). The
+// PATCH is dropped; the PUT stays (effects.json ignores it). Lines are matched in log order: a
+// resumable POST, the next unused PUT on the upload path with an upload_id, then the next PATCH
+// of a file whose body names the same file (or names none). Anything else is left as it is.
+const DRIVE_HOSTS = /^https:\/\/(www|content)\.googleapis\.com$/;
+const queryOf = (e) => e.query ?? Object.fromEntries(new URLSearchParams(e.rawQuery ?? ""));
+export function foldResumableUploads(entries = []) {
+  const list = [...entries].map((e, i) => ({ e, i })).sort((a, b) => (a.e.seq ?? a.i) - (b.e.seq ?? b.i));
+  const drop = new Set();
+  const folded = new Map();
+  const used = new Set();
+  for (let k = 0; k < list.length; k++) {
+    const { e: post, i } = list[k];
+    if (post.method !== "POST" || !DRIVE_HOSTS.test(String(post.proxied ?? "")) || post.path !== "/upload/drive/v3/files" || queryOf(post).uploadType !== "resumable") continue;
+    const meta = post.body && typeof post.body === "object" && !Array.isArray(post.body) ? post.body : {};
+    const putAt = list.findIndex((x, j) => j > k && !used.has(x.i) && x.e.method === "PUT" && DRIVE_HOSTS.test(String(x.e.proxied ?? "")) && x.e.path === "/upload/drive/v3/files" && queryOf(x.e).upload_id);
+    if (putAt < 0) continue;
+    const put = list[putAt].e;
+    used.add(list[putAt].i);
+    const patchAt = list.findIndex((x, j) => j > putAt && !used.has(x.i) && x.e.method === "PATCH" && DRIVE_HOSTS.test(String(x.e.proxied ?? "")) && /^\/drive\/v3\/files\/[^/]+$/.test(x.e.path) && (!meta.name || !x.e.body?.name || x.e.body.name === meta.name));
+    const patch = patchAt >= 0 ? list[patchAt].e : null;
+    if (patch) used.add(list[patchAt].i), drop.add(list[patchAt].i);
+    const bytes = put.bodyEncoding === "base64" ? Buffer.from(String(put.body ?? ""), "base64") : typeof put.body === "string" ? Buffer.from(put.body, "utf8") : put.body == null ? Buffer.alloc(0) : null;
+    const addParents = patch ? queryOf(patch).addParents : undefined;
+    const body = { ...meta, ...(patch?.body && typeof patch.body === "object" ? patch.body : {}) };
+    if (!body.parents && addParents) body.parents = String(addParents).split(",").filter(Boolean);
+    if (bytes) body.contentSha256 = createHash("sha256").update(bytes).digest("hex");
+    folded.set(i, { ...post, body, bodyEncoding: "json", folded: { put: put.seq ?? null, patch: patch?.seq ?? null } });
+  }
+  return entries.flatMap((e, i) => (drop.has(i) ? [] : [folded.get(i) ?? e]));
 }
 
 const isFile = (v) => v && typeof v === "object" && !Array.isArray(v) && "filename" in v && "sha256" in v;
@@ -330,6 +375,9 @@ const cmpFor = (a, b, f) => (a.cmp[f] === "subject" || b.cmp[f] === "subject" ? 
 
 export function sameField(cmp, a, b) {
   if (a === undefined && b === undefined) return true;
+  // PROPOSALS P46: compared when both sides carry it (an upload's content hash, which only some
+  // upload paths expose), never failed for being absent on one side.
+  if (cmp === "ifBoth") return a === undefined || b === undefined || JSON.stringify(a) === JSON.stringify(b);
   if (cmp === "subject") return subjectNorm(a) === subjectNorm(b);
   if (cmp === "set") return JSON.stringify(setNorm(a)) === JSON.stringify(setNorm(b));
   if (cmp === "id") return normTarget(a, "id") === normTarget(b, "id");
