@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "template": 2648,
+  "sha256": "053fc768ffc58ab19d7d03d5f219462615f6d8db1eb5d9fd067c46a0d827320d",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "models": [
+    "Extract Voice Characteristics",
+    "OpenAI Chat Model",
+    "Capture Existing Article Structure",
+    "OpenAI Chat Model2",
+    "Content Generation Agent",
+    "OpenAI Chat Model1"
+  ],
+  "writes": [
+    "Save as Draft"
+  ],
+  "writeReplies": [
+    {
+      "node": "Save as Draft",
+      "service": "wordpress",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://wordpress.example/wp-json/wp/v2/posts",
+            "status": 201,
+            "body": {
+              "id": 2648,
+              "date": "2026-11-16T04:01:00",
+              "slug": "bench-draft",
+              "status": "draft",
+              "type": "post",
+              "link": "https://wordpress.example/?p=2648",
+              "title": {
+                "raw": "",
+                "rendered": ""
+              },
+              "content": {
+                "raw": "",
+                "rendered": "",
+                "protected": false
+              },
+              "format": "standard"
+            }
+          }
+        ]
+      },
+      "note": "WordPress v1 post create with the wordpressApi credential (the bench's https://wordpress.example): POST /wp-json/wp/v2/posts {title, slug (title in snake case), format standard, status draft, content}"
+    }
+  ],
+  "about": "every post page is a paywall stub without the .post-section element",
+  "reads": [
+    {
+      "node": "Get Blog",
+      "service": "n8n-blog",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://blog.n8n.io",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>n8n Blog</title></head>\n<body>\n<header class=\"site-header\"><a class=\"global-link\" href=\"/\">n8n Blog</a></header>\n<main class=\"post-feed\">\n  <article class=\"item post\">\n    <a class=\"global-link\" href=\"/ai-agents-for-support-teams/\" aria-label=\"AI agents for support teams: a practical guide\"></a>\n    <h2 class=\"item-title\">AI agents for support teams: a practical guide</h2>\n  </article>\n  <article class=\"item post\">\n    <a class=\"global-link\" href=\"/self-hosting-n8n-on-a-budget/\" aria-label=\"Self-hosting n8n on a $5 server\"></a>\n    <h2 class=\"item-title\">Self-hosting n8n on a $5 server</h2>\n  </article>\n  <article class=\"item post\">\n    <a class=\"global-link\" href=\"/workflow-of-the-month-invoice-matching/\" aria-label=\"Workflow of the month: matching invoices to payments\"></a>\n    <h2 class=\"item-title\">Workflow of the month: matching invoices to payments</h2>\n  </article>\n  <article class=\"item post\">\n    <a class=\"global-link\" href=\"/what-is-rag/\" aria-label=\"What is RAG, and when should you use it?\"></a>\n    <h2 class=\"item-title\">What is RAG, and when should you use it?</h2>\n  </article>\n  <article class=\"item post\">\n    <a class=\"global-link\" href=\"/release-notes-2-40/\" aria-label=\"n8n 2.40: faster editor, better errors\"></a>\n    <h2 class=\"item-title\">n8n 2.40: faster editor, better errors</h2>\n  </article>\n  <article class=\"item post\">\n    <a class=\"global-link\" href=\"/community-meetup-berlin/\" aria-label=\"Community meetup recap: Berlin\"></a>\n    <h2 class=\"item-title\">Community meetup recap: Berlin</h2>\n  </article>\n</main>\n</body></html>\n"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a plain page fetch; the Claude side serves the same page through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2 GET https://blog.n8n.io (HTML, autodetected as text into data); Extract Article URLs (HTML v1.2) takes the href of every '.item.post a.global-link' as an array, Split Out splits it, Latest Articles keeps the first 5. The blog markup is a stand-in written to the template's selectors"
+    },
+    {
+      "node": "Get Article",
+      "service": "n8n-blog",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://blog.n8n.io/ai-agents-for-support-teams/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html><html><head><title>AI agents for support teams: a practical guide</title></head><body><div class=\"paywall\">Subscribe to read this post.</div></body></html>"
+          },
+          {
+            "method": "GET",
+            "url": "https://blog.n8n.io/self-hosting-n8n-on-a-budget/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html><html><head><title>Self-hosting n8n on a $5 server</title></head><body><div class=\"paywall\">Subscribe to read this post.</div></body></html>"
+          },
+          {
+            "method": "GET",
+            "url": "https://blog.n8n.io/workflow-of-the-month-invoice-matching/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html><html><head><title>Workflow of the month: matching invoices to payments</title></head><body><div class=\"paywall\">Subscribe to read this post.</div></body></html>"
+          },
+          {
+            "method": "GET",
+            "url": "https://blog.n8n.io/what-is-rag/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html><html><head><title>What is RAG, and when should you use it?</title></head><body><div class=\"paywall\">Subscribe to read this post.</div></body></html>"
+          },
+          {
+            "method": "GET",
+            "url": "https://blog.n8n.io/release-notes-2-40/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html><html><head><title>n8n 2.40: faster editor, better errors</title></head><body><div class=\"paywall\">Subscribe to read this post.</div></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a plain page fetch; the Claude side serves the same pages through its HTTP mock"
+      },
+      "note": "GET https://blog.n8n.io<href> for each of the five; Extract Article Content takes the HTML of '.post-section', Markdown converts it, Combine Articles aggregates the five. Here every post page lacks the .post-section element (a paywall stub), so the extraction yields nothing"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Extract Article Content yields empty data for all five; the analyses run on empty text and a draft is still written"
+    ],
+    "offline": "The brand voice, the article structure and the new post are model-driven (n8n's replies are recorded); the blog pages are short stand-ins"
+  }
+}

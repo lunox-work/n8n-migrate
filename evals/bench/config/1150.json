@@ -1,0 +1,25 @@
+{
+  "why": "Google Drive's parents holds the template's placeholder text ('Delete this text and put id for folder you want to upload into in this field…'). Filled with a dummy folder id on both sides. Placeholder fill only: no logic changes.",
+  "n8n": {
+    "Google Drive": {
+      "parameters.parents": [
+        "1BenchBackupFolder1150aaaaaaaaaaa"
+      ]
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Google Drive": {
+          "patch": {
+            "params": {
+              "parents": [
+                "1BenchBackupFolder1150aaaaaaaaaaa"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

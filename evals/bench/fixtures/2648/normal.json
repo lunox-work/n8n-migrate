@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "template": 2648,
+  "sha256": "053fc768ffc58ab19d7d03d5f219462615f6d8db1eb5d9fd067c46a0d827320d",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "models": [
+    "Extract Voice Characteristics",
+    "OpenAI Chat Model",
+    "Capture Existing Article Structure",
+    "OpenAI Chat Model2",
+    "Content Generation Agent",
+    "OpenAI Chat Model1"
+  ],
+  "writes": [
+    "Save as Draft"
+  ],
+  "writeReplies": [
+    {
+      "node": "Save as Draft",
+      "service": "wordpress",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://wordpress.example/wp-json/wp/v2/posts",
+            "status": 201,
+            "body": {
+              "id": 2648,
+              "date": "2026-11-16T04:01:00",
+              "slug": "bench-draft",
+              "status": "draft",
+              "type": "post",
+              "link": "https://wordpress.example/?p=2648",
+              "title": {
+                "raw": "",
+                "rendered": ""
+              },
+              "content": {
+                "raw": "",
+                "rendered": "",
+                "protected": false
+              },
+              "format": "standard"
+            }
+          }
+        ]
+      },
+      "note": "WordPress v1 post create with the wordpressApi credential (the bench's https://wordpress.example): POST /wp-json/wp/v2/posts {title, slug (title in snake case), format standard, status draft, content}"
+    }
+  ],
+  "about": "the blog index lists six posts; the five latest are fetched, analysed for structure and voice, and a new post is saved as a WordPress draft",
+  "reads": [
+    {
+      "node": "Get Blog",
+      "service": "n8n-blog",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://blog.n8n.io",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>n8n Blog</title></head>\n<body>\n<header class=\"site-header\"><a class=\"global-link\" href=\"/\">n8n Blog</a></header>\n<main class=\"post-feed\">\n  <article class=\"item post\">\n    <a class=\"global-link\" href=\"/ai-agents-for-support-teams/\" aria-label=\"AI agents for support teams: a practical guide\"></a>\n    <h2 class=\"item-title\">AI agents for support teams: a practical guide</h2>\n  </article>\n  <article class=\"item post\">\n    <a class=\"global-link\" href=\"/self-hosting-n8n-on-a-budget/\" aria-label=\"Self-hosting n8n on a $5 server\"></a>\n    <h2 class=\"item-title\">Self-hosting n8n on a $5 server</h2>\n  </article>\n  <article class=\"item post\">\n    <a class=\"global-link\" href=\"/workflow-of-the-month-invoice-matching/\" aria-label=\"Workflow of the month: matching invoices to payments\"></a>\n    <h2 class=\"item-title\">Workflow of the month: matching invoices to payments</h2>\n  </article>\n  <article class=\"item post\">\n    <a class=\"global-link\" href=\"/what-is-rag/\" aria-label=\"What is RAG, and when should you use it?\"></a>\n    <h2 class=\"item-title\">What is RAG, and when should you use it?</h2>\n  </article>\n  <article class=\"item post\">\n    <a class=\"global-link\" href=\"/release-notes-2-40/\" aria-label=\"n8n 2.40: faster editor, better errors\"></a>\n    <h2 class=\"item-title\">n8n 2.40: faster editor, better errors</h2>\n  </article>\n  <article class=\"item post\">\n    <a class=\"global-link\" href=\"/community-meetup-berlin/\" aria-label=\"Community meetup recap: Berlin\"></a>\n    <h2 class=\"item-title\">Community meetup recap: Berlin</h2>\n  </article>\n</main>\n</body></html>\n"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a plain page fetch; the Claude side serves the same page through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2 GET https://blog.n8n.io (HTML, autodetected as text into data); Extract Article URLs (HTML v1.2) takes the href of every '.item.post a.global-link' as an array, Split Out splits it, Latest Articles keeps the first 5. The blog markup is a stand-in written to the template's selectors"
+    },
+    {
+      "node": "Get Article",
+      "service": "n8n-blog",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://blog.n8n.io/ai-agents-for-support-teams/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>AI agents for support teams: a practical guide</title></head>\n<body>\n<article class=\"single-post\">\n<h1 class=\"single-title\">AI agents for support teams: a practical guide</h1>\n<section class=\"post-section\">\n<p>Support teams answer the same twenty questions every day. An AI agent can draft those answers, but only if it can see your help center and your ticket history.</p>\n<p>In this guide we build a triage agent in n8n: it reads a new ticket, searches the knowledge base, and drafts a reply for a human to approve.</p>\n<p>Start small. Pick one queue, measure first-response time for two weeks, then expand.</p>\n</section>\n<aside class=\"related\">Related posts</aside>\n</article>\n</body></html>\n"
+          },
+          {
+            "method": "GET",
+            "url": "https://blog.n8n.io/self-hosting-n8n-on-a-budget/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>Self-hosting n8n on a $5 server</title></head>\n<body>\n<article class=\"single-post\">\n<h1 class=\"single-title\">Self-hosting n8n on a $5 server</h1>\n<section class=\"post-section\">\n<p>You do not need Kubernetes to run n8n. A small VPS, Docker Compose and a reverse proxy get you a production-ready instance in an afternoon.</p>\n<p>We walk through backups, updates and the three environment variables everyone forgets.</p>\n<p>If your workflows grow, queue mode is one flag away.</p>\n</section>\n<aside class=\"related\">Related posts</aside>\n</article>\n</body></html>\n"
+          },
+          {
+            "method": "GET",
+            "url": "https://blog.n8n.io/workflow-of-the-month-invoice-matching/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>Workflow of the month: matching invoices to payments</title></head>\n<body>\n<article class=\"single-post\">\n<h1 class=\"single-title\">Workflow of the month: matching invoices to payments</h1>\n<section class=\"post-section\">\n<p>Finance teams spend hours matching bank lines to invoices. This month's community workflow does it in minutes.</p>\n<p>It pulls transactions from the bank API, fuzzy-matches them against open invoices, and flags the leftovers in Slack.</p>\n<p>The best part: no code node needed.</p>\n</section>\n<aside class=\"related\">Related posts</aside>\n</article>\n</body></html>\n"
+          },
+          {
+            "method": "GET",
+            "url": "https://blog.n8n.io/what-is-rag/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>What is RAG, and when should you use it?</title></head>\n<body>\n<article class=\"single-post\">\n<h1 class=\"single-title\">What is RAG, and when should you use it?</h1>\n<section class=\"post-section\">\n<p>Retrieval-augmented generation lets a model answer from your documents instead of its memory.</p>\n<p>Use it when answers must be current or private; skip it when a good prompt is enough.</p>\n<p>Here is a five-node RAG starter you can copy.</p>\n</section>\n<aside class=\"related\">Related posts</aside>\n</article>\n</body></html>\n"
+          },
+          {
+            "method": "GET",
+            "url": "https://blog.n8n.io/release-notes-2-40/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>n8n 2.40: faster editor, better errors</title></head>\n<body>\n<article class=\"single-post\">\n<h1 class=\"single-title\">n8n 2.40: faster editor, better errors</h1>\n<section class=\"post-section\">\n<p>Version 2.40 makes the canvas twice as fast on large workflows and rewrites error messages in plain language.</p>\n<p>We also added a dry-run mode for webhooks.</p>\n<p>Upgrade notes are at the end of this post.</p>\n</section>\n<aside class=\"related\">Related posts</aside>\n</article>\n</body></html>\n"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a plain page fetch; the Claude side serves the same pages through its HTTP mock"
+      },
+      "note": "GET https://blog.n8n.io<href> for each of the five; Extract Article Content takes the HTML of '.post-section', Markdown converts it, Combine Articles aggregates the five"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: 5 articles → structure chain and voice extractor → merge → instruction → content extractor → one draft"
+    ],
+    "offline": "The brand voice, the article structure and the new post are model-driven (n8n's replies are recorded); the blog pages are short stand-ins"
+  }
+}

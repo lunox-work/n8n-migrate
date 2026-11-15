@@ -1,0 +1,43 @@
+{
+  "why": "Instagram params holds the template's placeholders 'Your image url' and 'Your instagram business id' (the caption 'Here your Text of instagram post' is a value and stays). Filled with a dummy image URL and business account id on both sides. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "Instagram params": {
+      "parameters.assignments.assignments.0.value": "https://cdn.northwind-outfitters.example/instagram/spring-drop-2026.jpg",
+      "parameters.assignments.assignments.1.value": "17841400000002537"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Instagram params": {
+          "patch": {
+            "params": {
+              "assignments": {
+                "assignments": [
+                  {
+                    "id": "225df266-bf29-4415-b04c-2750cef4506a",
+                    "name": "image_url",
+                    "type": "string",
+                    "value": "https://cdn.northwind-outfitters.example/instagram/spring-drop-2026.jpg"
+                  },
+                  {
+                    "id": "1e380c14-e908-4eeb-90e0-957a422829d0",
+                    "name": "instagram_business_account_id",
+                    "type": "string",
+                    "value": "17841400000002537"
+                  },
+                  {
+                    "id": "f35e3093-1bff-4cc6-a6c4-909dca314cc7",
+                    "name": "instagram_post_caption",
+                    "type": "string",
+                    "value": "Here your Text of instagram post"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

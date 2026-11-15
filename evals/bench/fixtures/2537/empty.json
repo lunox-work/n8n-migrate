@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "template": 2537,
+  "sha256": "c60dfe61481d2e4d0182ba810ee86013d03462a352d64954ca8c252990f9638a",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "models": [],
+  "writes": [
+    "Instagram prepare media",
+    "Instagram publish media",
+    "Send Email",
+    "Send Email1",
+    "Send Email2"
+  ],
+  "about": "the container is still IN_PROGRESS when it is checked, so nothing is published",
+  "reads": [
+    {
+      "node": "Instagram check status of media uploaded before",
+      "service": "instagram-graph",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://graph.facebook.com/v20.0/17990000000002537",
+            "query": {
+              "fields": "id,status,status_code"
+            },
+            "status": 200,
+            "body": {
+              "id": "17990000000002537",
+              "status": "IN_PROGRESS",
+              "status_code": "IN_PROGRESS"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Instagram or Facebook connector"
+      },
+      "note": "Facebook Graph API v1 node, GET (default) on the container id with fields id,status,status_code and access_token in the query. Both status nodes ask about the same container id (the second reads the first status node's id), so one route answers both in turn: first the upload check, then the publish check"
+    },
+    {
+      "node": "Instagram check status of media published before",
+      "service": "instagram-graph",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://graph.facebook.com/v20.0/17990000000002537",
+            "query": {
+              "fields": "id,status,status_code"
+            },
+            "status": 200,
+            "body": {
+              "id": "17990000000002537",
+              "status": "IN_PROGRESS",
+              "status_code": "IN_PROGRESS"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Instagram or Facebook connector"
+      },
+      "note": "Facebook Graph API v1 node, GET (default) on the container id with fields id,status,status_code and access_token in the query. Both status nodes ask about the same container id (the second reads the first status node's id), so one route answers both in turn: first the upload check, then the publish check"
+    }
+  ],
+  "writeReplies": [
+    {
+      "node": "Instagram prepare media",
+      "service": "instagram-graph",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://graph.facebook.com/v20.0/17841400000002537/media",
+            "status": 200,
+            "body": {
+              "id": "17990000000002537"
+            }
+          }
+        ]
+      },
+      "note": "Graph API node, POST https://graph.facebook.com/v20.0/<instagram_business_account_id>/media?image_url=…&caption=…&access_token=… (the query parameters the template lists, no body); answers the container id. The account id and image URL are the overlay's fills for the template's placeholders"
+    },
+    {
+      "node": "Instagram publish media",
+      "service": "instagram-graph",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://graph.facebook.com/v20.0/17841400000002537/media_publish",
+            "status": 200,
+            "body": {
+              "id": "17950000000002537"
+            }
+          }
+        ]
+      },
+      "note": "POST /<account>/media_publish?creation_id=<container id>; answers the media id"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "If media status is finished: false → Send Email (no publish)"
+    ],
+    "n8nCannotRun": "Every branch ends in a Send Email node (SMTP), and the bench has no SMTP server (the mock speaks HTTP only); the three Send Email nodes are also left without sender or recipient. n8n's run therefore fails at the email step in every variant, after the Graph calls",
+    "offline": "No model: the hostile status text is aimed at the migrated workflow's own handling. The Graph calls are answered as the API documents them (container status FINISHED, then PUBLISHED); the e-mails cannot be observed"
+  }
+}

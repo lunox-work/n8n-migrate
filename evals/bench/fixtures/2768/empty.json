@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "template": 2768,
+  "sha256": "5403567d4bb36a2e7b83bd31a1fcc7d4b8402230c98d9de687cd75b4b0a69d5f",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "models": [
+    "Summarize Web Page Content",
+    "OpenAI Chat Model"
+  ],
+  "writes": [],
+  "about": "Tavily finds nothing for the query",
+  "trigger": {
+    "node": "Provide search topic via Chat window",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "5c2a9d7e1f3b4a6c8e0d2f4a6b8c0e1d",
+          "action": "sendMessage",
+          "chatInput": "zxqv lorem kfjd"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Tavily Search Topic",
+      "service": "tavily",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.tavily.com/search",
+            "status": 200,
+            "body": {
+              "query": "zxqv lorem kfjd",
+              "follow_up_questions": null,
+              "answer": null,
+              "images": [
+                {
+                  "url": "https://images.example/rag-diagram.png",
+                  "description": "Diagram of a retriever feeding documents to a language model"
+                }
+              ],
+              "results": [],
+              "response_time": 1.21
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured search connector; the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2, raw body (application/json) built as a string: POST https://api.tavily.com/search {api_key: the Set node's 'tvly-YOUR_API_KEY' placeholder, query: the chat input, search_depth basic, include_images, include_image_descriptions, max_results 5}. The key is the template's placeholder and the mock does not check it (real Tavily would answer 401). Filter > 90% keeps results with score > 0.80 and Get Top Result takes the first. Response shape from Tavily's docs, assumed"
+    },
+    {
+      "node": "Tavily Extract Top Search",
+      "service": "tavily",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.tavily.com/extract",
+            "status": 200,
+            "body": {
+              "results": [],
+              "failed_results": [],
+              "response_time": 0.1
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured extraction connector; the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "POST https://api.tavily.com/extract {api_key, urls: [top result url]}; Summarize Web Page Content reads results[0].raw_content"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Filter leaves an empty list, Get Top Result sets results to undefined, and Tavily Extract Top Search fails resolving $json.results.url (an expression error) before any extract request"
+    ],
+    "offline": "The summary is model-driven (n8n's reply is recorded) and is the chat reply, the only effect. The unconnected Tavily Search and Tavily Extract nodes (static examples) are not on the chat path"
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "template": 1150,
+  "sha256": "f5de929c286ca783330f31c51c25077d52681ec03591c8cff4006ca04ccf74c5",
+  "variant": "malformed",
+  "now": "2026-11-16T07:30:00.000Z",
+  "trigger": {
+    "node": "Run Daily at 2:30am",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "models": [],
+  "writes": [
+    "Google Drive"
+  ],
+  "about": "the instance answers the list with its HTML sign-in page instead of JSON",
+  "reads": [
+    {
+      "node": "Get Workflow List",
+      "service": "n8n-api",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "http://localhost:5678/rest/workflows",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>n8n.io - Workflow Automation</title></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id=\"app\"></div></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector for an n8n instance's API"
+      },
+      "note": "HTTP Request v1 with basic auth: GET http://localhost:5678/rest/workflows, the n8n instance's own internal API as n8n 0.x answered it ({data: [...]}); Map splits data, Get Workflow GETs /rest/workflows/<id> per item ({data: {...}}), Merge (by index) and FunctionItem keep data, Move Binary Data turns it into a JSON file. Answered here for a side that can reach it (see expect.n8nCannotRun for the bench's n8n)"
+    },
+    {
+      "node": "Get Workflow",
+      "service": "n8n-api",
+      "http": {
+        "via": "direct",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector for an n8n instance's API"
+      },
+      "note": "one GET per workflow id from the list"
+    }
+  ],
+  "writeReplies": [
+    {
+      "node": "Google Drive",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "note": "Google Drive v1 upload with the service-account credential: binaries are stored on n8n's filesystem by default, so the node takes the resumable path (POST /upload/drive/v3/files?uploadType=resumable, PUT the bytes to the Location URL, PATCH /drive/v3/files/<id>?addParents=<folder>&supportsAllDrives=true), then resolveData GETs the file with fields=*. The folder is the overlay's fill (1BenchBackupFolder1150aaaaaaaaaaa) for the template's placeholder text"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "HTTP Request v1 cannot parse the HTML as JSON (or Map finds no data array); no upload"
+    ],
+    "n8nCannotRun": "Get Workflow List calls the n8n instance's own internal REST API at http://localhost:5678/rest/workflows; the bench's n8n container excludes localhost from its proxy (NO_PROXY), so the request reaches the bench n8n itself instead of the mock, and n8n 2.x's /rest API wants a browser session cookie, not basic auth, so it refuses the call (401) and the run stops there in every variant",
+    "offline": "Get Workflow addresses the id as $node[\"Map\"].data[\"id\"], legacy expression syntax whose support in n8n 2.47.7 is unverified. No model: the hostile data is aimed at the migrated workflow's own handling of names. The manual trigger (On clicking 'execute') starts the same path"
+  }
+}

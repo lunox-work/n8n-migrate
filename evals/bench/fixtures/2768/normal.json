@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "template": 2768,
+  "sha256": "5403567d4bb36a2e7b83bd31a1fcc7d4b8402230c98d9de687cd75b4b0a69d5f",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "models": [
+    "Summarize Web Page Content",
+    "OpenAI Chat Model"
+  ],
+  "writes": [],
+  "about": "the person asks what RAG is; Tavily returns four results (two above 0.80), the top one is extracted and summarised",
+  "trigger": {
+    "node": "Provide search topic via Chat window",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "5c2a9d7e1f3b4a6c8e0d2f4a6b8c0e1d",
+          "action": "sendMessage",
+          "chatInput": "What is retrieval-augmented generation?"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Tavily Search Topic",
+      "service": "tavily",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.tavily.com/search",
+            "status": 200,
+            "body": {
+              "query": "What is retrieval-augmented generation?",
+              "follow_up_questions": null,
+              "answer": null,
+              "images": [
+                {
+                  "url": "https://images.example/rag-diagram.png",
+                  "description": "Diagram of a retriever feeding documents to a language model"
+                }
+              ],
+              "results": [
+                {
+                  "title": "Retrieval-augmented generation - Wikipedia",
+                  "url": "https://en.wikipedia.org/wiki/Retrieval-augmented_generation",
+                  "content": "Retrieval-augmented generation (RAG) is a technique that enables large language models to retrieve and incorporate new information.",
+                  "score": 0.9312,
+                  "raw_content": null
+                },
+                {
+                  "title": "What is RAG? - AWS",
+                  "url": "https://aws.amazon.com/what-is/retrieval-augmented-generation/",
+                  "content": "RAG optimizes the output of a large language model by referencing an authoritative knowledge base.",
+                  "score": 0.8854,
+                  "raw_content": null
+                },
+                {
+                  "title": "RAG explained in 5 minutes",
+                  "url": "https://blog.example/rag-in-5-minutes",
+                  "content": "A short primer on retrieval, augmentation and generation.",
+                  "score": 0.7102,
+                  "raw_content": null
+                },
+                {
+                  "title": "Vector databases compared",
+                  "url": "https://db.example/vector-dbs",
+                  "content": "Pinecone, Qdrant, Weaviate and pgvector.",
+                  "score": 0.5311,
+                  "raw_content": null
+                }
+              ],
+              "response_time": 1.21
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured search connector; the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2, raw body (application/json) built as a string: POST https://api.tavily.com/search {api_key: the Set node's 'tvly-YOUR_API_KEY' placeholder, query: the chat input, search_depth basic, include_images, include_image_descriptions, max_results 5}. The key is the template's placeholder and the mock does not check it (real Tavily would answer 401). Filter > 90% keeps results with score > 0.80 and Get Top Result takes the first. Response shape from Tavily's docs, assumed"
+    },
+    {
+      "node": "Tavily Extract Top Search",
+      "service": "tavily",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.tavily.com/extract",
+            "status": 200,
+            "body": {
+              "results": [
+                {
+                  "url": "https://en.wikipedia.org/wiki/Retrieval-augmented_generation",
+                  "raw_content": "Retrieval-augmented generation (RAG) is a technique that lets large language models retrieve and incorporate new information. With RAG, a model consults a specified set of documents before responding to a query, supplementing the information in its training data.\n\nProcess\nRAG works in four stages: indexing (documents are split into chunks and embedded into a vector database), retrieval (the query is embedded and the most similar chunks are found), augmentation (the retrieved chunks are added to the prompt) and generation (the model answers from the augmented prompt).\n\nLimitations\nRAG reduces but does not remove hallucinations: the model can still misread retrieved text or answer from its training data when retrieval misses.",
+                  "images": []
+                }
+              ],
+              "failed_results": [],
+              "response_time": 0.82
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured extraction connector; the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "POST https://api.tavily.com/extract {api_key, urls: [top result url]}; Summarize Web Page Content reads results[0].raw_content"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: search → filter (2 kept) → top result → extract → summary reply"
+    ],
+    "offline": "The summary is model-driven (n8n's reply is recorded) and is the chat reply, the only effect. The unconnected Tavily Search and Tavily Extract nodes (static examples) are not on the chat path"
+  }
+}

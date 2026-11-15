@@ -1,0 +1,332 @@
+{
+  "schemaVersion": 1,
+  "template": 1150,
+  "sha256": "f5de929c286ca783330f31c51c25077d52681ec03591c8cff4006ca04ccf74c5",
+  "variant": "normal",
+  "now": "2026-11-16T07:30:00.000Z",
+  "trigger": {
+    "node": "Run Daily at 2:30am",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "models": [],
+  "writes": [
+    "Google Drive"
+  ],
+  "about": "the instance lists two workflows; each is fetched and uploaded to the backup folder as <name>.json",
+  "reads": [
+    {
+      "node": "Get Workflow List",
+      "service": "n8n-api",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "http://localhost:5678/rest/workflows",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "data": [
+                {
+                  "id": "1",
+                  "name": "Daily CRM sync",
+                  "active": false,
+                  "createdAt": "2026-09-01T10:00:00.000Z",
+                  "updatedAt": "2026-11-10T08:30:00.000Z",
+                  "tags": []
+                },
+                {
+                  "id": "7",
+                  "name": "Invoice reminders",
+                  "active": false,
+                  "createdAt": "2026-09-01T10:00:00.000Z",
+                  "updatedAt": "2026-11-10T08:30:00.000Z",
+                  "tags": []
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector for an n8n instance's API"
+      },
+      "note": "HTTP Request v1 with basic auth: GET http://localhost:5678/rest/workflows, the n8n instance's own internal API as n8n 0.x answered it ({data: [...]}); Map splits data, Get Workflow GETs /rest/workflows/<id> per item ({data: {...}}), Merge (by index) and FunctionItem keep data, Move Binary Data turns it into a JSON file. Answered here for a side that can reach it (see expect.n8nCannotRun for the bench's n8n)"
+    },
+    {
+      "node": "Get Workflow",
+      "service": "n8n-api",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "http://localhost:5678/rest/workflows/1",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "data": {
+                "id": "1",
+                "name": "Daily CRM sync",
+                "active": false,
+                "createdAt": "2026-09-01T10:00:00.000Z",
+                "updatedAt": "2026-11-10T08:30:00.000Z",
+                "nodes": [
+                  {
+                    "parameters": {},
+                    "name": "Start",
+                    "type": "n8n-nodes-base.start",
+                    "typeVersion": 1,
+                    "position": [
+                      250,
+                      300
+                    ]
+                  },
+                  {
+                    "parameters": {
+                      "url": "https://api.example.com/health",
+                      "options": {}
+                    },
+                    "name": "HTTP Request",
+                    "type": "n8n-nodes-base.httpRequest",
+                    "typeVersion": 1,
+                    "position": [
+                      450,
+                      300
+                    ]
+                  }
+                ],
+                "connections": {
+                  "Start": {
+                    "main": [
+                      [
+                        {
+                          "node": "HTTP Request",
+                          "type": "main",
+                          "index": 0
+                        }
+                      ]
+                    ]
+                  }
+                },
+                "settings": {},
+                "staticData": null,
+                "tags": []
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "url": "http://localhost:5678/rest/workflows/7",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "data": {
+                "id": "7",
+                "name": "Invoice reminders",
+                "active": false,
+                "createdAt": "2026-09-01T10:00:00.000Z",
+                "updatedAt": "2026-11-10T08:30:00.000Z",
+                "nodes": [
+                  {
+                    "parameters": {},
+                    "name": "Start",
+                    "type": "n8n-nodes-base.start",
+                    "typeVersion": 1,
+                    "position": [
+                      250,
+                      300
+                    ]
+                  },
+                  {
+                    "parameters": {
+                      "url": "https://api.example.com/health",
+                      "options": {}
+                    },
+                    "name": "HTTP Request",
+                    "type": "n8n-nodes-base.httpRequest",
+                    "typeVersion": 1,
+                    "position": [
+                      450,
+                      300
+                    ]
+                  }
+                ],
+                "connections": {
+                  "Start": {
+                    "main": [
+                      [
+                        {
+                          "node": "HTTP Request",
+                          "type": "main",
+                          "index": 0
+                        }
+                      ]
+                    ]
+                  }
+                },
+                "settings": {},
+                "staticData": null,
+                "tags": []
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector for an n8n instance's API"
+      },
+      "note": "one GET per workflow id from the list"
+    }
+  ],
+  "writeReplies": [
+    {
+      "node": "Google Drive",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "uploadType": "resumable"
+            },
+            "status": 200,
+            "headers": {
+              "location": "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=bench-1150-0"
+            },
+            "body": ""
+          },
+          {
+            "method": "PUT",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "upload_id": "bench-1150-0"
+            },
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1Backup1150n0",
+              "name": "Untitled",
+              "mimeType": "application/json"
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1Backup1150n0",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1Backup1150n0",
+              "name": "Daily CRM sync.json",
+              "mimeType": "application/json",
+              "parents": [
+                "1BenchBackupFolder1150aaaaaaaaaaa"
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1Backup1150n0",
+            "query": {
+              "fields": "*"
+            },
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1Backup1150n0",
+              "name": "Daily CRM sync.json",
+              "mimeType": "application/json",
+              "parents": [
+                "1BenchBackupFolder1150aaaaaaaaaaa"
+              ],
+              "size": "612",
+              "webViewLink": "https://drive.google.com/file/d/1Backup1150n0/view"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "uploadType": "resumable"
+            },
+            "status": 200,
+            "headers": {
+              "location": "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=bench-1150-1"
+            },
+            "body": ""
+          },
+          {
+            "method": "PUT",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "upload_id": "bench-1150-1"
+            },
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1Backup1150n1",
+              "name": "Untitled",
+              "mimeType": "application/json"
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1Backup1150n1",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1Backup1150n1",
+              "name": "Invoice reminders.json",
+              "mimeType": "application/json",
+              "parents": [
+                "1BenchBackupFolder1150aaaaaaaaaaa"
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1Backup1150n1",
+            "query": {
+              "fields": "*"
+            },
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1Backup1150n1",
+              "name": "Invoice reminders.json",
+              "mimeType": "application/json",
+              "parents": [
+                "1BenchBackupFolder1150aaaaaaaaaaa"
+              ],
+              "size": "612",
+              "webViewLink": "https://drive.google.com/file/d/1Backup1150n1/view"
+            }
+          }
+        ]
+      },
+      "note": "Google Drive v1 upload with the service-account credential: binaries are stored on n8n's filesystem by default, so the node takes the resumable path (POST /upload/drive/v3/files?uploadType=resumable, PUT the bytes to the Location URL, PATCH /drive/v3/files/<id>?addParents=<folder>&supportsAllDrives=true), then resolveData GETs the file with fields=*. The folder is the overlay's fill (1BenchBackupFolder1150aaaaaaaaaaa) for the template's placeholder text"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: two list items → two GETs → two JSON files uploaded"
+    ],
+    "n8nCannotRun": "Get Workflow List calls the n8n instance's own internal REST API at http://localhost:5678/rest/workflows; the bench's n8n container excludes localhost from its proxy (NO_PROXY), so the request reaches the bench n8n itself instead of the mock, and n8n 2.x's /rest API wants a browser session cookie, not basic auth, so it refuses the call (401) and the run stops there in every variant",
+    "offline": "Get Workflow addresses the id as $node[\"Map\"].data[\"id\"], legacy expression syntax whose support in n8n 2.47.7 is unverified. No model: the hostile data is aimed at the migrated workflow's own handling of names. The manual trigger (On clicking 'execute') starts the same path"
+  }
+}
