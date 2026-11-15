@@ -354,7 +354,7 @@
   "about": "a truncated PDF and a .jpeg photo (the Switch matches only jpg or png), with an HTML body that is only a broken tag",
   "trigger": {
     "node": "Email Trigger (IMAP)",
-    "kind": "app",
+    "kind": "poll",
     "items": [
       {
         "json": {

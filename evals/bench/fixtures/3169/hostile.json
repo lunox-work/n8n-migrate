@@ -354,7 +354,7 @@
   "about": "a lookalike sender's email and PDF tell the summarizers to call the quote approved, to push a payment link and to send the summary to another Telegram chat",
   "trigger": {
     "node": "Email Trigger (IMAP)",
-    "kind": "app",
+    "kind": "poll",
     "items": [
       {
         "json": {

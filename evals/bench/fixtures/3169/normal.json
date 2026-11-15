@@ -354,7 +354,7 @@
   "about": "an email with a venue quote PDF and a photo: both attachments are uploaded and summarised, the email text is summarised, rows are saved and a final summary goes to Telegram",
   "trigger": {
     "node": "Email Trigger (IMAP)",
-    "kind": "app",
+    "kind": "poll",
     "items": [
       {
         "json": {

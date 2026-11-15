@@ -354,7 +354,7 @@
   "about": "an email with no attachments, no subject and an empty body",
   "trigger": {
     "node": "Email Trigger (IMAP)",
-    "kind": "app",
+    "kind": "poll",
     "items": [
       {
         "json": {
