@@ -19,7 +19,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { pickRoute, serviceRefusal } from "../n8n/mock-server.mjs";
 import { checkSchema, schemaFile } from "../mocks/mcp-server.mjs";
 import { connectorRefusal, limitErrors, pageResult } from "../mocks/limits.mjs";
-import { answerOf, liveAnswer, normalize, normalizeRunnerRequest, runnerValue } from "./model-shim.mjs";
+import { answerOf, liveAnswer, normalize, normalizeRunnerRequest, providerResponse, runnerValue } from "./model-shim.mjs";
 import { claudeP } from "./claude.mjs";
 import { modelConsumers } from "./n8n-side.mjs";
 import { maskRunTime, fromTool, fromHttp, keyOf } from "./compare.mjs";
@@ -406,6 +406,55 @@ export function claudeDriverModelInputs({ replayLog = [], effects = [], recordin
   return out;
 }
 
+// ---------- bench-written replies on the hostile fixture (PROPOSALS P38) ----------
+//
+// n8n's replayed replies never pick a tool input off the author's list, so a refusal of the
+// runtime (a model-picked URL limited to the URLs written in the tool) is never exercised by a
+// replay. A hostile fixture may insert replies written by the bench (expect.syntheticReplies,
+// marked synthetic, never sent to n8n): each takes call index `before` of its model node, in
+// that call's provider format and with that call's request (so the tool-list check compares
+// the same offer), and n8n's replies from there on move one later. Only the Claude side's
+// replay uses them (in process and in the claude driver's replay hook).
+export function withSynthetic(modelCalls = [], fx) {
+  const syn = fx?.expect?.syntheticReplies ?? [];
+  if (!syn.length) return modelCalls;
+  const out = modelCalls.map((c) => ({ ...c }));
+  for (const s of syn) {
+    const own = out.filter((c) => c.node === s.model);
+    const at = own.find((c) => c.index === s.before) ?? own.at(-1);
+    if (!at) continue;
+    for (const c of own) if (c.index >= s.before) c.index++;
+    out.push({ tag: at.tag, node: s.model, index: s.before, format: at.format, request: at.request, response: providerResponse(at.format, s.answer, at.request ?? {}), mode: "synthetic", synthetic: true, seq: null });
+  }
+  return out.sort((a, b) => (a.node === b.node ? a.index - b.index : 0));
+}
+
+// Whether each inserted reply was reached by the Claude side (models: [{key, index}], the
+// in-process driver's seen.models or the claude driver's replayLog) and whether any request
+// went to a host its answer names (http: [{method, url}]): a reached reply that made such a
+// request was not refused.
+export function syntheticOutcome(fx, { models = [], http = [] } = {}) {
+  const syn = fx?.expect?.syntheticReplies ?? [];
+  if (!syn.length) return null;
+  return syn.map((s) => {
+    const hosts = (JSON.stringify(s.answer).match(/https?:\/\/[^"\s\\]+/g) ?? []).map((u) => {
+      try {
+        return new URL(u).hostname.toLowerCase();
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+    const offList = http.filter((h) => {
+      try {
+        return hosts.includes(new URL(h.url).hostname.toLowerCase());
+      } catch {
+        return false;
+      }
+    });
+    return { model: s.model, before: s.before, reached: models.some((m) => m.key === s.model && m.index === s.before), hosts, offListRequests: offList.map((h) => `${h.method} ${h.url}`) };
+  });
+}
+
 // Runs a definition with every request answered by the bench. Returns the run result and what
 // the bench saw: tool calls, http requests and model answers, each with where its answer came
 // from. recordings: n8n's model calls [{node, index, format, request, response}].
@@ -523,6 +572,7 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
     }
     if (mode === "replay" && rec) {
       entry.mode = "replay";
+      if (rec.synthetic) entry.synthetic = true;
       entry.input = sameModelInput(rec, req, runTime);
       const defs = sameToolDefs(rec, req);
       if (defs) entry.toolDefs = defs;

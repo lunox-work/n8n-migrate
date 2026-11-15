@@ -2,7 +2,7 @@
 // Prints the plan's numbers (PLAN Phase 5, "Numbers reported") from evals/results.jsonl,
 // corpus.json and the refusal labels.
 //
-//   node evals/bench/summary.mjs [--tag <bench run>] [--json]
+//   node evals/bench/summary.mjs [--tag <bench run>] [--against <tag>] [--json]
 //   node evals/bench/summary.mjs --release <dev tag> <held-out tag> [--flips n] [--round n] [--json]
 //
 // --release: a release point's gap and overfitting bound (PLAN Phase 6) for the current round
@@ -19,13 +19,15 @@
 // unverified), and excluding templates whose fixture says the bench's n8n image cannot run them
 // (expect.n8nCannotRun, PROPOSALS P21). Refusal accuracy: labels.json against the analyzer (compare-labels.mjs). Per
 // template: gate reached, cause, connector-limited, overlays that are not placeholder fills,
-// wall time, cost, n8n execution time.
+// wall time, cost, n8n execution time. Claude-driver protocol slips (PROPOSALS P40) as their
+// own rate; --against <tag>: verdict flips between this run and another (gate or cause).
 
 import { readFileSync, existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readSplits, roundOf, devWithFixtures, overfittingBound } from "./rounds.mjs";
+import { slipStats, flipsBetween } from "./gates.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
@@ -109,6 +111,8 @@ const out = {
   oneShotExcludingN8nCannotRun: { passed: passed.length, of: runnable.length, share: share(passed.length, runnable.length), n8nCannotRun: cannotRun.map((r) => ({ template: r.template, why: cannotRunOf(r) })), note: "the fixture's expect.n8nCannotRun: the bench's n8n image cannot run the template's main path, so its baseline stops early" },
   gateSum: mine.reduce((n, r) => n + (r.reached ?? 0), 0),
   nonPlaceholderOverlays: mine.filter((r) => r.config?.nonPlaceholder?.length).map((r) => ({ template: r.template, kinds: r.config.nonPlaceholder.map((x) => x.kind) })),
+  claudeDriverSlips: slipStats(mine),
+  ...(args.includes("--against") ? { flipsAgainst: { tag: args[args.indexOf("--against") + 1], flips: flipsBetween(mine, latest(args[args.indexOf("--against") + 1])) } } : {}),
   failuresByGate: byGate,
   failuresByBucket: byBucket,
   refusalAccuracy: refusal,
@@ -145,6 +149,9 @@ else {
   console.log(`one-shot success excluding templates n8n cannot run on the bench image: ${y.passed} of ${y.of} (${y.share ?? "-"}%); n8n cannot run: ${y.n8nCannotRun.length ? y.n8nCannotRun.map((x) => `${x.template} (${x.why})`).join("; ") : "none"}`);
   if (out.nonPlaceholderOverlays.length) console.log(`non-placeholder overlays: ${out.nonPlaceholderOverlays.map((o) => `${o.template} (${o.kinds.join(", ")})`).join("; ")}`);
   console.log(`failures by gate: ${JSON.stringify(byGate)}; by bucket: ${JSON.stringify(byBucket)}`);
+  const sl = out.claudeDriverSlips;
+  console.log(`claude-driver protocol slips (P40, retried once, not a verdict): ${sl.slipped} of ${sl.runs} driver runs (${sl.rate ?? "-"}%), ${sl.retried} retried, ${sl.repeated} repeated${sl.templates.length ? ` (${sl.templates.join(", ")})` : ""}`);
+  if (out.flipsAgainst) console.log(`verdict flips against ${out.flipsAgainst.tag}: ${out.flipsAgainst.flips.length}${out.flipsAgainst.flips.length ? " (" + out.flipsAgainst.flips.map((f) => `${f.template}: ${f.from} -> ${f.to}${f.slip ? " [slip]" : ""}`).join("; ") + ")" : ""}`);
   if (refusal) console.log(`refusal accuracy (labels.json vs analyzer): outcome+target ${refusal.outcomeAndTarget}/${refusal.templates}, blockers ${refusal.blockers}/${refusal.templates}, questions ${refusal.questions}/${refusal.templates}, everything ${refusal.all}/${refusal.templates}`);
   console.log("\ntemplate  gate  convert  bucket: cause [CL = connector-limited, NR = n8n cannot run, TC = time compression]  | bench s, n8n ms, claude-driver s/$/turns, claude -p runs/$");
   for (const p of out.perTemplate) console.log(`${String(p.template).padEnd(9)} ${String(p.reached === 9 ? "all" : p.reached).padEnd(5)} ${p.convert.padEnd(8)} ${p.connectorLimited ? "CL " : ""}${p.n8nCannotRun ? "NR " : ""}${p.nonPlaceholder.includes("time-compression") ? "TC " : ""}${p.bucket ?? "-"}: ${(p.cause ?? "").slice(0, 90)} | ${p.benchWallS}, ${p.n8nExecMs ?? "-"}, ${p.claudeDriverS ?? "-"}/${p.claudeDriverUsd ?? "-"}/${p.claudeDriverTurns ?? "-"}, ${p.claudeRuns}/${p.claudeUsd}`);

@@ -467,6 +467,22 @@
           "description": "what this fixture cannot make realistic offline",
           "type": "string"
         },
+        "syntheticReplies": {
+          "description": "PROPOSALS P38, hostile only: model replies written by the bench, not by n8n or a model, inserted into the Claude side's replayed replies (never sent to n8n) so gate 6 exercises a refusal that n8n's replayed replies never trigger, e.g. an agent asking a tool for a URL off the author's list. Each is marked synthetic and says why",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["synthetic", "why", "model", "before", "answer"],
+            "additionalProperties": false,
+            "properties": {
+              "synthetic": { "const": true },
+              "why": { "type": "string" },
+              "model": { "description": "the model node whose replies get the inserted one (a `models` entry)", "type": "string" },
+              "before": { "description": "the call index the inserted reply takes; n8n's replies from there on move one later", "type": "integer", "minimum": 0 },
+              "answer": { "description": "the neutral answer: {text} or {calls: [{name, input}]}", "type": "object" }
+            }
+          }
+        },
         "n8nCannotRun": {
           "description": "PROPOSALS P21: why the bench's n8n image cannot run this template's main path (a Code node language without a runner in evals/n8n/container.mjs, a node the image lacks), in a short sentence. summary.mjs reports these templates apart, like connector-limited ones",
           "type": "string"

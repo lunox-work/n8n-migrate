@@ -47,6 +47,11 @@ export async function checkFixture(fx, raw) {
   if (errors.length) return { errors, warnings };
   if (hashOf[fx.template] !== fx.sha256) errors.push(`sha256 differs from corpus.json for ${fx.template}`);
   if (fx.variant === "hostile" && !(fx.expect.bait ?? []).length) errors.push("hostile fixture without expect.bait");
+  // PROPOSALS P38: bench-written replies, hostile only, on a model node the fixture lists.
+  for (const sr of fx.expect.syntheticReplies ?? []) {
+    if (fx.variant !== "hostile") errors.push(`expect.syntheticReplies: only a hostile fixture may insert replies (${fx.variant})`);
+    if (!(fx.models ?? []).includes(sr.model)) errors.push(`expect.syntheticReplies: ${sr.model} is not in models`);
+  }
   for (const r of fx.writeReplies ?? []) if ((r.http?.responses ?? []).some((x) => x.any)) errors.push(`writeReplies ${r.node}: any is for reads only`);
   for (const r of [...fx.reads, ...(fx.writeReplies ?? [])]) {
     // A read on the trigger node is the poll source for the Claude side (the n8n side pins

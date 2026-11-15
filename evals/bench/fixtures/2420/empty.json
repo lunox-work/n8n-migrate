@@ -430,6 +430,7 @@
   "expect": {
     "branches": [
       "no IF/Switch; Resize For AI is expected to fail on an empty file"
-    ]
+    ],
+    "offline": "PROPOSALS P41: n8n 2.47.7's Edit Image runs GraphicsMagick (`gm identify`) on each zero-byte download and fails the run with `Unable to open file` and no node named (the error escapes the node). That is n8n's real behaviour on an empty file, so the empty baseline fails by design: a Claude side that fails too is equal, one that handles the empty file is better (gate 5)."
   }
 }

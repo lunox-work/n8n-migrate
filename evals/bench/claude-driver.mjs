@@ -26,7 +26,7 @@ import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, wr
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { claudeBin, LEDGER, ledger, MAX_RUNS, memoryGate, spawnWithPrompt, BudgetExceeded, UsageLimit } from "./claude.mjs";
-import { connectorFixtures, httpRoutes } from "./claude-side.mjs";
+import { connectorFixtures, httpRoutes, modelKeyFor } from "./claude-side.mjs";
 import { fromTool } from "./compare.mjs";
 import { startMock } from "../n8n/mock-server.mjs";
 
@@ -160,7 +160,11 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   if (state && state.status !== "needs") state = readJson(join(n2c, "runs", `${state.runId}.json`), state);
   const effects = existsSync(effectsLog) ? readFileSync(effectsLog, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
   const events = existsSync(join(n2c, "events.jsonl")) ? readFileSync(join(n2c, "events.jsonl"), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
-  const replays = readJson(join(runDir, "replay-state.json"), { log: [] }).log;
+  const replayState = readJson(join(runDir, "replay-state.json"), { ids: {}, counts: {}, log: [] });
+  const replays = replayState.log;
+  // PROPOSALS P40: a session that stopped while the run waited on a model answer it could have
+  // handed back (n8n's reply was there to replay) broke the runner protocol; not a verdict.
+  const slip = protocolSlip({ state, killedFor: summary.killedFor, resultOk: !!summary.result && !r.is_error, hookDenies: events.filter((e) => e.event === "hook-deny").length, permissionDenials: (r.permission_denials ?? []).length, replayState, recordings, workflow: wf });
   // PROPOSALS P16: what each replayed request asked, for the model-input and tool-turn checks.
   const replayLog = replays.filter((x) => !x.repeat).map(({ id, key, index, mode, t, req }) => ({ id, key, index, mode, t, req }));
   // The runner's http requests as the mock logged them, in the runner's request shape.
@@ -187,6 +191,27 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
       ...(httpMock ? { http: httpEffects.map((h) => `${h.method} ${h.url.replace(/\?.*$/, "")} <- ${h.fixture ?? "none"}`) } : {}),
       toolUses: summary.toolUses,
       problem: !state ? "no run state" : state.status !== "done" ? `run ${state.status}` : null,
+      ...(slip ? { slip } : {}),
     },
   };
+}
+
+// PROPOSALS P40: a claude-driver protocol slip. The run waits (`needs`) on a model or agent
+// request for which n8n's recorded reply was there to replay, and the session ended on its own
+// (a final result, not killed, not an error) with no hook or permission denial: the session
+// wrote its own final text instead of handing the answer back. Such a run says nothing about
+// the migrated folder; the bench retries it once (run.mjs). Returns {why, outstanding} or null.
+export function protocolSlip({ state, killedFor = null, resultOk = false, hookDenies = 0, permissionDenials = 0, replayState = {}, recordings = [], workflow = null }) {
+  if (state?.status !== "needs" || killedFor || !resultOk || hookDenies || permissionDenials) return null;
+  const counts = { ...(replayState.counts ?? {}) };
+  const outstanding = [];
+  for (const q of state.requests ?? []) {
+    if (!["model", "agent"].includes(q.kind)) continue;
+    const step = String(q.id).split("#")[0];
+    const key = workflow ? modelKeyFor(workflow, step) : step;
+    const index = replayState.ids?.[q.id] ?? counts[key] ?? 0;
+    if (replayState.ids?.[q.id] === undefined) counts[key] = index + 1;
+    if (recordings.some((x) => x.node === key && x.index === index)) outstanding.push(`${q.id} (${key}#${index})`);
+  }
+  return outstanding.length ? { why: "the session ended while the run waited on a model answer n8n's recorded reply could give", outstanding } : null;
 }

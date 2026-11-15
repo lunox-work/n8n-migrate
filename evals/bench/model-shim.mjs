@@ -213,6 +213,50 @@ export async function liveAnswer(norm, { noCache = false, purpose = "model-shim"
 
 export const CANNED = { text: "Bench canned reply (no model was called for this run)." };
 
+// PROPOSALS P41: a canned reply that fits the structure the request asks for, so a canned n8n
+// check (no model) gets past a structured-output parser and reaches the nodes after it. The
+// schema comes from n8n's request: the output-parser tool format_final_json_response (answered
+// as a call of it), a JSON response format with a schema, or LangChain's StructuredOutputParser
+// format instructions in the prompt (the last ```json block after "Here is the JSON Schema
+// instance your output must adhere to"; answered inside the same fence). Otherwise the plain
+// canned text. The values are minimal and marked as canned; never used for a recording.
+export const CANNED_VALUE = "Bench canned value";
+export function cannedValue(schema, depth = 0) {
+  if (!schema || typeof schema !== "object" || depth > 12) return CANNED_VALUE;
+  if ("const" in schema) return schema.const;
+  if (Array.isArray(schema.enum) && schema.enum.length) return schema.enum[0];
+  const alt = schema.anyOf ?? schema.oneOf;
+  if (Array.isArray(alt) && alt.length) return cannedValue(alt.find((x) => x?.type !== "null") ?? alt[0], depth + 1);
+  if (Array.isArray(schema.allOf) && schema.allOf.length) return cannedValue(Object.assign({}, ...schema.allOf), depth + 1);
+  let type = schema.type;
+  if (Array.isArray(type)) type = type.find((t) => t !== "null") ?? "null";
+  type ??= schema.properties ? "object" : schema.items ? "array" : "string";
+  if (type === "object") return Object.fromEntries(Object.entries(schema.properties ?? {}).map(([k, v]) => [k, cannedValue(v, depth + 1)]));
+  if (type === "array") return Array.from({ length: Math.max(0, Number(schema.minItems) || 0) }, () => cannedValue(schema.items, depth + 1));
+  if (type === "number" || type === "integer") return typeof schema.minimum === "number" ? schema.minimum : typeof schema.exclusiveMinimum === "number" ? schema.exclusiveMinimum + 1 : 0;
+  if (type === "boolean") return false;
+  if (type === "null") return null;
+  const byFormat = { "date-time": "2026-11-16T09:00:00Z", date: "2026-11-16", time: "09:00:00", email: "bench@example.com", uri: "https://example.com/", url: "https://example.com/", uuid: "00000000-0000-4000-8000-000000000000" };
+  const v = byFormat[schema.format] ?? CANNED_VALUE;
+  return v.length < (Number(schema.minLength) || 0) ? v.padEnd(schema.minLength, ".") : v;
+}
+const FORMAT_INSTRUCTIONS = /Here is the JSON Schema instance your output must adhere to[^`]*```(?:json)?\s*([\s\S]*?)```/g;
+export function cannedAnswer(format, body = {}) {
+  const norm = normalize(format, body);
+  const parser = norm.tools.find((t) => t.name === "format_final_json_response");
+  if (parser) return { calls: [{ name: parser.name, input: cannedValue(parser.schema) }] };
+  if (norm.wantJson && typeof norm.wantJson === "object") return { text: JSON.stringify(cannedValue(norm.wantJson)) };
+  const hay = [norm.system, ...norm.messages.map((m) => m.text)].join("\n");
+  const found = [...hay.matchAll(FORMAT_INSTRUCTIONS)].at(-1);
+  if (found) {
+    try {
+      return { text: "```json\n" + JSON.stringify(cannedValue(JSON.parse(found[1]))) + "\n```" };
+    } catch {}
+  }
+  if (norm.wantJson) return { text: JSON.stringify({ canned: CANNED_VALUE }) };
+  return CANNED;
+}
+
 // ---------- neutral answer -> provider response ----------
 
 let idSeq = 0;
@@ -332,7 +376,7 @@ export function startShim({ port = 5691, host = "127.0.0.1", log = console.error
         let answer;
         const recorded = s.recorded?.[tag]?.[index];
         if (s.mode === "replay" && recorded) (answer = answerOf(recorded.format, recorded.response)), (rec.mode = "replay");
-        else if (s.mode === "canned" || (s.mode === "replay" && s.fallback === "canned")) (answer = CANNED), (rec.mode = "canned");
+        else if (s.mode === "canned" || (s.mode === "replay" && s.fallback === "canned")) (answer = cannedAnswer(format, body)), (rec.mode = "canned");
         else {
           const r = await liveAnswer(normalize(format, body), { noCache: s.noCache, memoryChecked: !!s.memoryChecked, purpose: `n8n-model ${s.label ?? ""} ${tag}#${index}`.trim() });
           answer = r.answer;
