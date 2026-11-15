@@ -1805,6 +1805,17 @@ function buildHttpTool(tn, ts, review, addHttp, addSecret, refs) {
   if (tp.sendHeaders) http.headers = tp.specifyHeaders === "json" ? tp.jsonHeaders : kv(tp.parametersHeaders?.values ?? tp.headerParameters?.parameters);
   if (tp.sendBody) http.body = tp.specifyBody === "json" ? tp.jsonBody : kv(tp.parametersBody?.values ?? tp.bodyParameters?.parameters);
   http.result = {};
+  // What n8n hands the agent (HTTP Request tool v4 and toolHttpRequest share
+  // HttpRequest/shared/optimizeResponse.js): with optimizeResponse and the JSON type, the
+  // response (or its dataField) as a list, cut to the selected fields or without the excepted
+  // ones; a text response format puts the body under its output property ({data: text}).
+  if (tp.optimizeResponse === true) {
+    const type = tp.responseType ?? "json";
+    if (type === "json") http.optimize = { type, ...(tp.dataField ? { dataField: tp.dataField } : {}), fieldsToInclude: tp.fieldsToInclude ?? "all", ...(tp.fields ? { fields: tp.fields } : {}) };
+    else review(ts, `n8n trims the tool's ${type} response before the model reads it (optimizeResponse); the runtime hands the whole response`);
+  }
+  const respFormat = tp.options?.response?.response?.responseFormat;
+  if (respFormat === "text") http.textAs = tp.options?.response?.response?.outputPropertyName || "data";
   ts.http = http;
   ts.kind = "http";
   const props = {};

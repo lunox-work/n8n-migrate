@@ -240,3 +240,39 @@ test("a workflow tool without $fromAI() is n8n's DynamicTool: one optional `inpu
   const def2 = convertJson(wf2);
   assert.deepEqual([def2.steps.Agent.agent.tools[0].inputSchema, def2.steps["List columns tool"].subflow.inputs], [{ type: "object", properties: { input: { type: "string" } } }, { query: "none", operation: "column_names" }]);
 });
+
+test("an HTTP Request tool's response reaches the agent as n8n 2.47.7 hands it: JSON optimizer fields, text under its property", async () => {
+  const { convertItems, loadReferences } = await import("../skills/n8n-to-claude/scripts/convert.mjs");
+  const tool = (name, parameters) => ({ name, type: "n8n-nodes-base.httpRequestTool", typeVersion: 4.2, position: [0, 0], parameters: { method: "GET", toolDescription: name, ...parameters } });
+  const wf = {
+    id: "ht01",
+    name: "HTTP tool shapes",
+    nodes: [
+      { name: "Chat", type: "@n8n/n8n-nodes-langchain.chatTrigger", typeVersion: 1.1, position: [0, 0], parameters: {} },
+      { name: "Agent", type: "@n8n/n8n-nodes-langchain.agent", typeVersion: 1.7, position: [200, 0], parameters: {} },
+      { name: "Model", type: "@n8n/n8n-nodes-langchain.lmChatOpenAi", typeVersion: 1, position: [200, 200], parameters: {} },
+      tool("List", { url: "https://api.example.com/items", optimizeResponse: true, responseType: "json", fieldsToInclude: "selected", fields: "name,meta.size" }),
+      tool("Read", { url: "https://api.example.com/readme", options: { response: { response: { responseFormat: "text" } } } }),
+    ],
+    connections: { Chat: { main: [[{ node: "Agent", type: "main", index: 0 }]] }, Model: { ai_languageModel: [[{ node: "Agent", type: "ai_languageModel", index: 0 }]] }, List: { ai_tool: [[{ node: "Agent", type: "ai_tool", index: 0 }]] }, Read: { ai_tool: [[{ node: "Agent", type: "ai_tool", index: 0 }]] } },
+  };
+  const [res] = convertItems([{ id: "ht01", name: wf.name, wf, file: "x.json" }], { refs: loadReferences(), forceConvert: true });
+  const def = res.definition;
+  assert.deepEqual(def.steps.List.http.optimize, { type: "json", fieldsToInclude: "selected", fields: "name,meta.size" });
+  assert.equal(def.steps.Read.http.textAs, "data");
+  const { run } = await import("../skills/n8n-to-claude/runtime/src/api.mjs");
+  let turn = 0;
+  const fed = [];
+  const host = {
+    agent: async (p) => {
+      turn++;
+      if (turn === 1) return { intent: "tool-calls", calls: [{ name: "List", args: {} }, { name: "Read", args: {} }] };
+      fed.push(...p.transcript.at(-1).results);
+      return "done";
+    },
+    http: async (q) => (q.url.endsWith("/items") ? { status: 200, headers: { "content-type": "application/json" }, body: JSON.stringify([{ name: "a", meta: { size: 1, x: 2 }, url: "u" }]) } : { status: 200, headers: { "content-type": "text/plain" }, body: "# Readme" }),
+  };
+  const r = await run(def, { trigger: { node: "Chat", items: [{ chatInput: "go", sessionId: "s" }] }, host });
+  assert.equal(r.status, "done", JSON.stringify(r.error));
+  assert.deepEqual(fed.map((x) => x.value), [[{ name: "a", meta: { size: 1 } }], [{ data: "# Readme" }]]);
+});

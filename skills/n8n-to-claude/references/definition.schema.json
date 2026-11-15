@@ -286,6 +286,8 @@
               "contentType": { "type": "string" },
               "coerce": { "type": "object" },
               "result": { "$ref": "#/$defs/adapter" },
+              "optimize": { "type": "object", "description": "An agent HTTP tool's response trimmed as n8n's optimizeResponse does for JSON: {type: json, dataField?, fieldsToInclude: all|selected|except, fields?}." },
+              "textAs": { "type": "string", "description": "An agent HTTP tool with a text response format: the body goes to the model under this property ({data: text})." },
               "fidelity": {
                 "enum": ["exact", "adapted", "partial", "none", "unverified"],
                 "description": "exact: the tool returns what n8n returns; adapted: the adapter reshapes, and the fields it lists carry n8n's names; partial: some n8n fields have no source (missingFields); none: no adapter; unverified: the tool's real output shape is not known yet, so the adapter is a best reading of the tool description, to be checked by the bench's emulation run."

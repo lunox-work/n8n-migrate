@@ -14600,6 +14600,48 @@ function templateValue(res) {
   return { status, body };
 }
 
+// n8n-nodes-base 2.47.7 HttpRequest/shared/optimizeResponse.js jsonOptimizer: a JSON text is
+// parsed; a non-list is taken whole, or its dataField (a list as it is, anything else as a
+// list of one); a list's elements are replaced by their dataField; "selected" keeps only the
+// listed dot paths (lodash get/set), "except" removes them (lodash unset). -> {value}|{error}
+function optimizeJsonResponse(response, { dataField, fieldsToInclude = "all", fields } = {}) {
+  let data = response;
+  if (typeof data === "string") {
+    try {
+      data = JSON.parse(data);
+    } catch {
+      return { error: `Received invalid JSON from response '${response}'` };
+    }
+  }
+  if (typeof data !== "object" || !data) return { error: "The response type must be an object or an array of objects" };
+  if (!Array.isArray(data)) {
+    if (dataField) {
+      if (!Object.prototype.hasOwnProperty.call(data, dataField)) return { error: `Target field "${dataField}" not found in response.` };
+      data = Array.isArray(data[dataField]) ? data[dataField] : [data[dataField]];
+    } else data = [data];
+  } else if (dataField) data = data.map((d) => d?.[dataField]);
+  if (fieldsToInclude === "all") return { value: data };
+  const list = typeof fields === "string" ? fields.split(",").map((f) => f.trim()) : Array.isArray(fields) ? fields : [];
+  if (fieldsToInclude === "selected") {
+    return {
+      value: data.map((item) => {
+        const out = {};
+        for (const f of list) setPath(out, f, getPath(item, f));
+        return out;
+      }),
+    };
+  }
+  if (fieldsToInclude === "except") {
+    return {
+      value: data.map((item) => {
+        for (const f of list) unsetPath(item, f);
+        return item;
+      }),
+    };
+  }
+  return { value: [] };
+}
+
 const httpTemplateStep = {
   versions: () => true,
   async execute(exec) {
@@ -14954,6 +14996,16 @@ async function executeAgentTool(exec, tools, call, itemIndex) {
       if (!r.ok) return { ok: false, error: { message: r.error?.message ?? "request failed" } };
       const { status, body } = templateValue(r);
       if (status >= 400) return { ok: false, error: { message: `${status} - ${typeof body === "string" ? body : JSON.stringify(body)}` } };
+      if (h.optimize || h.textAs) {
+        let v = body;
+        if (h.optimize?.type === "json") {
+          const o = optimizeJsonResponse(v, h.optimize);
+          if (o.error) return { ok: false, error: { message: o.error } };
+          v = o.value;
+        }
+        if (h.textAs) v = [{ [h.textAs]: typeof v === "string" ? v : JSON.stringify(v) }];
+        return { ok: true, value: v };
+      }
       return { ok: true, value: h.result ? toolValue(h.result, body) : body };
     }
     if (kind === "rest") {
