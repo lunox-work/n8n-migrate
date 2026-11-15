@@ -278,7 +278,8 @@ export function n8nCheckSummary(steps, variants) {
     const c = steps[n8nCheckKey(v)];
     if (!c) continue;
     const e = c.error;
-    out[v] = { status: c.status, error: e ? { node: e.node ?? null, message: String(e.message ?? e).slice(0, 200) } : null, unanswered: c.logVsFixture?.unanswered?.length ?? 0, unused: c.logVsFixture?.unused?.length ?? 0, logVsFixture: c.logVsFixture ?? null };
+    // PROPOSALS P65: n8n reports the shim's cap refusal as its own generic error; the cap says why.
+    out[v] = { status: c.status, error: e ? { node: e.node ?? null, message: String(e.message ?? e).slice(0, 200) } : null, ...(c.modelCallCap ? { modelCallCap: c.modelCallCap[0].message } : {}), unanswered: c.logVsFixture?.unanswered?.length ?? 0, unused: c.logVsFixture?.unused?.length ?? 0, logVsFixture: c.logVsFixture ?? null };
   }
   return Object.keys(out).length ? out : null;
 }

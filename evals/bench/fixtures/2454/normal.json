@@ -208,6 +208,6 @@
       "Switch1 on the model's category (receipt expected for the normal mail: Microsoft Outlook13 then 15)",
       "If1 (action/business): isRead from the update's reply"
     ],
-    "offline": "The Outlook nodes ship without credentials (the export stripped them) and the bench attaches none for the Outlook node type, so n8n stops at Microsoft Outlook23 before any request (canned run 2026-11-15: Node does not have any credentials set; PROPOSALS P61). The model is the template's Ollama qwen2.5:14b, answered by the shim"
+    "offline": "The Outlook nodes ship without credentials (the export stripped them); the bench attaches its Outlook dummy (PROPOSALS P61: before it, n8n stopped at Microsoft Outlook23 with 'Node does not have any credentials set'; the canned run of 2026-11-15 after it succeeds on all four variants). The model is the template's Ollama qwen2.5:14b, answered by the shim"
   }
 }

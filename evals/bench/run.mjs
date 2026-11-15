@@ -353,7 +353,7 @@ async function benchTemplate(id, args, L) {
     if (!S[`n8n:${v}`]) {
       log(`${id}/${v}: n8n`);
       const r = await n8nRun(id, v, { record: args.record });
-      S[`n8n:${v}`] = { status: r.status, error: r.error, modelModes: r.modelModes, executionMs: r.executionMs, wallMs: r.wallMs, startedAt: r.startedAt, logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [] };
+      S[`n8n:${v}`] = { status: r.status, error: r.error, ...(r.modelCallCap ? { modelCallCap: r.modelCallCap } : {}), modelModes: r.modelModes, executionMs: r.executionMs, wallMs: r.wallMs, startedAt: r.startedAt, logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [] };
       save();
     }
     // PROPOSALS P48: a fixture error has no recording (and must not read an older one).
@@ -373,7 +373,7 @@ async function benchTemplate(id, args, L) {
     // gives it nothing trustworthy to replay, whatever the Claude side did.
     // PROPOSALS P54: a fixture that says the baseline fails on the template's own configuration
     // (expect.n8nFails) gets that named in the cause; the row reports it apart (n8nFails).
-    if (recs.normal?.status !== "success") g[3] = { pass: false, bucket: "fixture", cause: `${fxN.expect?.n8nFails ? "n8n baseline fails on the template itself (expect.n8nFails, P54)" : "n8n baseline failed on the normal fixture"}: ${recs.normal?.error?.node ?? "?"}: ${recs.normal?.error?.message ?? recs.normal?.status}`, detail: { claudeSide: g[3] }, driver: "inprocess" };
+    if (recs.normal?.status !== "success") g[3] = { pass: false, bucket: "fixture", cause: `${fxN.expect?.n8nFails ? "n8n baseline fails on the template itself (expect.n8nFails, P54)" : "n8n baseline failed on the normal fixture"}: ${recs.normal?.error?.node ?? "?"}: ${recs.normal?.error?.message ?? recs.normal?.status}${recs.normal?.modelCallCap ? ` (${recs.normal.modelCallCap[0].message})` : ""}`, detail: { claudeSide: g[3] }, driver: "inprocess" };
     if (!g[3].pass) return out;
     const modelTexts = modelTextsOf(recs.normal?.modelCalls, answerOf);
     const cmp = compare(n8nEffects(recs.normal, fxN), claudeEffects(N, fxN), { modelTexts, mode: args.modelMode, runTime: runTime(recs.normal) });
@@ -547,7 +547,7 @@ function toolDefsSummary(models) {
 }
 
 function summarizeCheck(r) {
-  return { status: r.status, error: r.error, modelModes: r.modelModes, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [], logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, executionMs: r.executionMs, credentialsMissing: r.credentialsMissing };
+  return { status: r.status, error: r.error, ...(r.modelCallCap ? { modelCallCap: r.modelCallCap } : {}), modelModes: r.modelModes, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [], logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, executionMs: r.executionMs, credentialsMissing: r.credentialsMissing };
 }
 
 // PROPOSALS P1: a failure that traces to a field the fixture marks as a connector gap.
