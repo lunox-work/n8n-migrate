@@ -643,3 +643,22 @@ Gate 3 (63; preflight unless marked): request URL built at run time with an open
 - Bench `r3g-i33` (2567, 2878; 0 `claude -p` runs): 2567 5 → 6, gate 6 `calls outside the definition's allow lists`: a P80 bench defect (in process, a sub-workflow request's step was read from its id, which starts with the calling step), fixed in its own commit; 2878 3 → 3 (forms that wait, Notion arguments). `r3g-i33b` after the fix (2567, and 3100 to re-check its gate 6; 2 `claude -p` runs, ledger 899 → 901): **2567 5 → 9** (all passed: under the claude driver the session visits the result sites through the public scope, and the hostile run stays inside it); 3100 8 → 8. **29 of 100, gate sum 494** (was 28, 490). The `r3g-i33` row of 2567 is superseded.
 - `convert-coverage --split dev`: unchanged (no definition changes), no regression. `node --test` 415 pass, lint ok.
 - Verdict: accepted (+1 pass with gate sum +4; the gate-sum rule holds, no gate fell, no pass lost).
+
+## R3g: full re-run `r3g-full` (100 dev templates)
+
+- `r3g-full` (commit a3043e1: part A (P76, P78, P79), P80, iterations 30–33 accepted; plain `convert.mjs`, replayed models, all 100 run, no row carried forward; 58 `claude -p` runs, ledger 901 → 959, all claude-driver gate-8 runs; the run was interrupted with 99 of 100 done and resumed from its ledger for 1959): **29 of 100 pass** (585, 1747, 1900, 1938, 1953, 1963, 1980, 2063, 2139, 2163, 2167, 2197, 2299, 2384, 2413, 2473, 2552, 2567, 2614, 2703, 2729, 2777, 3018, 3102, 3904, 4573, 5035, 6270, 13270), **gate sum 494**. Failures by gate: 3: 60, 4: 8, 5: 1, 8: 2. Passes that compared no effect: 12 (reply 9, result 3). Excluding `n8nCannotRun` and `n8nFails`: 29 of 88. Claude-driver slips: 0 of 62.
+- Against the last accepted row of each template (`r3f-full` with `r3g-a`, `r3g-a2`, `r3g-i30` … `r3g-i33b`: 29 of 100, gate sum 494): every template the same gate and cause. **0 flips** (2163 passes for the fourth run in a row; P76 removes the race). Against `r3f-full` (26, 472): 13270 (P79), 1938 (iteration 32) and 2567 (iterations 30, 33) now pass; 3100 3 → 8 (iteration 30), 3840 3 → 4 (iteration 31); 2813 4 → 3 with a later blocker (P78 lets its read get rows; the run then reaches a binary body).
+- Session R3g: part A (P76, P78, P79 applied, home-path scrub), P80 applied within the brief (and its step attribution fixed), iterations 30–33 accepted, none discarded. `claude -p`: 87 runs (ledger 872 → 959; cap 992). `convert-coverage --split dev`: full 15, review 30 → 32, blocked 55 → 53, preflight clean 39 → 41. New bench proposals P80 (applied), P81, P82.
+
+Failing templates of `r3g-full` by first failed gate and general cause (sole blocker in brackets where known):
+
+Gate 4, 5 and 8 (11):
+
+1. **Connector shapes behind the fixture** (P1): 4722, 2415, 2722 (connector-limited).
+2. **Agent or chain prompt built differently**: 2749 (conversational agent v1.x prompt), 1962 (Summarization Chain over a binary PDF loader).
+3. **Tool results differ**: 2085 (`list_columns` header order; `column_values` through a Drive download).
+4. **Writes**: 2605 (no Sheets writes after the Places search), 3840 (a Sheets read of the second tab goes through the Drive CSV export, which reads the first tab only).
+5. **Spreadsheet File v1 on a malformed CSV** (gate 5): 890.
+6. **No claude-driver measurement** (gate 8, P74): 2860, 3100 (form folders; gates 3–7 pass).
+
+Gate 3 (60; a template under every kind its preflight names): app REST request templates missing 16 (SerpApi tool 1954, 2324, 1959; Discord v2 webhook 3442, 3121; LinkedIn 3086, 4352; Hacker News, S3, YouTube, Airtable, NocoDB, uProc, urlscan.io, Wikipedia tool, Blotato); database steps 11; vector stores 8; logic node versions not implemented 8; connector operations without a tool map or required arguments 9; HTTP Request binary bodies and responses 4 (2813, 3085, 3291, 1826); a URL built at run time with an open host outside an HTTP Request step 3 (5230, 3986, 2557: request templates and agent tools are not asked the hosts question); forms that wait 3; baselines that fail 5 (1978, 2271, 1826, 4846 (P82), 2320); others 7 (model steps not converted, Edit Image, transcription, HTML extraction).
