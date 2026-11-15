@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 1,
+  "template": 1554,
+  "sha256": "70b6ab9c2fc4a3d02ffb719a8bd8eb7f11cbaa57922632c69f241d4fd2e40492",
+  "variant": "empty",
+  "now": "2026-11-16T06:10:00.000Z",
+  "about": "every feed is valid and has no items",
+  "trigger": {
+    "node": "Cron",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "RSS Feed Read",
+      "service": "rss",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://feeds.feedburner.com/UnikosHardware",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=UTF-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><channel><title>Unikos Hardware</title><link>https://example.invalid/</link><description>Unikos Hardware</description>\n\n</channel></rss>\n"
+          },
+          {
+            "method": "GET",
+            "url": "http://www.ithome.com.tw/rss.php",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=UTF-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><channel><title>iThome</title><link>https://example.invalid/</link><description>iThome</description>\n\n</channel></rss>\n"
+          },
+          {
+            "method": "GET",
+            "url": "http://feeds.feedburner.com/playpc",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=UTF-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><channel><title>PlayPC</title><link>https://example.invalid/</link><description>PlayPC</description>\n\n</channel></rss>\n"
+          },
+          {
+            "method": "GET",
+            "url": "https://lab.ocf.tw/feed/",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=UTF-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><channel><title>OCF Lab</title><link>https://example.invalid/</link><description>OCF Lab</description>\n\n</channel></rss>\n"
+          },
+          {
+            "method": "GET",
+            "url": "https://techcommunity.microsoft.com/plugins/custom/microsoft/o365/custom-blog-rss",
+            "query": {
+              "tid": "3754543230341459569",
+              "board": "microsoft_365blog"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=UTF-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><channel><title>Microsoft 365 Blog</title><link>https://example.invalid/</link><description>Microsoft 365 Blog</description>\n\n</channel></rss>\n"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "public feeds; no connector"
+      },
+      "note": "RSS Feed Read v1, one feed per SplitInBatches round, in RSS Source's order (the fifth URL as the overlay restores it); http feeds go through the proxy, https ones are intercepted"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Telegram_IT",
+    "Telegram_Security",
+    "Telegram_M365"
+  ],
+  "writeReplies": [
+    {
+      "node": "Telegram_M365",
+      "service": "telegram",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.telegram.org/bot{token}/sendMessage",
+            "status": 200,
+            "body": {
+              "ok": true,
+              "result": {
+                "message_id": 5100,
+                "from": {
+                  "id": 7012345678,
+                  "is_bot": true,
+                  "first_name": "RSS",
+                  "username": "rss_feed_bench_bot"
+                },
+                "chat": {
+                  "id": 100200300,
+                  "title": "IT news",
+                  "type": "group"
+                },
+                "date": 1794809400,
+                "text": "…"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Telegram connector"
+      },
+      "note": "Telegram v1 send message to the overlay's chat id: POST /bot<token>/sendMessage {chat_id, text: title + newline + link}; the three Telegram nodes share this URL, so their replies form one list in run order (P57)"
+    },
+    {
+      "node": "Telegram_Security",
+      "service": "telegram",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.telegram.org/bot{token}/sendMessage",
+            "status": 200,
+            "body": {
+              "ok": true,
+              "result": {
+                "message_id": 5100,
+                "from": {
+                  "id": 7012345678,
+                  "is_bot": true,
+                  "first_name": "RSS",
+                  "username": "rss_feed_bench_bot"
+                },
+                "chat": {
+                  "id": 100200300,
+                  "title": "IT news",
+                  "type": "group"
+                },
+                "date": 1794809400,
+                "text": "…"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Telegram connector"
+      },
+      "note": "Telegram v1 send message to the overlay's chat id: POST /bot<token>/sendMessage {chat_id, text: title + newline + link}; the three Telegram nodes share this URL, so their replies form one list in run order (P57)"
+    },
+    {
+      "node": "Telegram_IT",
+      "service": "telegram",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.telegram.org/bot{token}/sendMessage",
+            "status": 200,
+            "body": {
+              "ok": true,
+              "result": {
+                "message_id": 5100,
+                "from": {
+                  "id": 7012345678,
+                  "is_bot": true,
+                  "first_name": "RSS",
+                  "username": "rss_feed_bench_bot"
+                },
+                "chat": {
+                  "id": 100200300,
+                  "title": "IT news",
+                  "type": "group"
+                },
+                "date": 1794809400,
+                "text": "…"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Telegram connector"
+      },
+      "note": "Telegram v1 send message to the overlay's chat id: POST /bot<token>/sendMessage {chat_id, text: title + newline + link}; the three Telegram nodes share this URL, so their replies form one list in run order (P57)"
+    }
+  ],
+  "unfed": [
+    {
+      "node": "only get new RSS",
+      "why": "keeps seen isoDates in n8n's workflow static data (an in-n8n store no fixture source can seed); a manual run starts with none"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "RSS Feed Read returns no items for the first feed, so SplitInBatches is not fed again and the run ends there (n8n runs no node on zero items)"
+    ],
+    "offline": "only get new RSS keeps the seen isoDates in workflow static data, which a manual run does not persist, so every run starts with none and the first feed passes whole; later feeds pass the items whose isoDate is new in the run. The fifth feed URL in RSS Source is mangled by the template export's secret scrubber (YOUR_AWS_SECRET_KEY_HERE in place of the path); the overlay restores Microsoft Tech Community's blog RSS path. Telegram's chat id is the template's placeholder 'TelegramID', filled by the overlay"
+  }
+}

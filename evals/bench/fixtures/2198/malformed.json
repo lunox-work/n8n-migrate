@@ -1,0 +1,480 @@
+{
+  "schemaVersion": 1,
+  "template": 2198,
+  "sha256": "8e9d0de972f338ba942fcffc29a3b487e951cdbc87ab4ff26cac0c7679e43781",
+  "variant": "malformed",
+  "now": "2026-11-16T14:07:00.000Z",
+  "about": "one thread whose only message has an invalid sender, no subject, no snippet and an epoch-zero date",
+  "trigger": {
+    "node": "Schedule trigger (1 min)",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T09:07:00.000-05:00",
+          "Readable date": "November 16th 2026, 9:07:00 am",
+          "Readable time": "9:07:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "09",
+          "Minute": "07",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get threads with specific labels",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/threads",
+            "status": 200,
+            "body": {
+              "threads": [
+                {
+                  "id": "19a8f6040b9e3304",
+                  "snippet": "",
+                  "historyId": "771204"
+                }
+              ],
+              "resultSizeEstimate": 1
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_threads",
+            "result": {
+              "threads": [
+                {
+                  "id": "19a8f6040b9e3304",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8f6040b9e3304",
+                  "messages": [
+                    {
+                      "id": "19a8f6040b9e3304",
+                      "snippet": "",
+                      "subject": "",
+                      "sender": "<@@>",
+                      "labelIds": [
+                        "INBOX"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "note": "thread getAll (limit 50) on the overlay's AI label: GET /users/me/threads?labelIds=Label_8830017722501&maxResults=50"
+    },
+    {
+      "node": "Get thread messages",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/threads/19a8f6040b9e3304",
+            "query": {
+              "format": "metadata"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a8f6040b9e3304",
+              "historyId": "771204",
+              "messages": [
+                {
+                  "id": "19a8f6040b9e3304",
+                  "threadId": "19a8f6040b9e3304",
+                  "labelIds": [
+                    "INBOX"
+                  ],
+                  "snippet": "",
+                  "payload": {
+                    "partId": "",
+                    "mimeType": "multipart/alternative",
+                    "filename": "",
+                    "headers": [
+                      {
+                        "name": "From",
+                        "value": "<@@>"
+                      },
+                      {
+                        "name": "To",
+                        "value": "eva@lumen-dental.example"
+                      },
+                      {
+                        "name": "Subject",
+                        "value": ""
+                      }
+                    ]
+                  },
+                  "sizeEstimate": 4980,
+                  "historyId": "771204",
+                  "internalDate": "0"
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/labels",
+            "status": 200,
+            "body": {
+              "labels": [
+                {
+                  "id": "INBOX",
+                  "name": "INBOX",
+                  "type": "system"
+                },
+                {
+                  "id": "UNREAD",
+                  "name": "UNREAD",
+                  "type": "system"
+                },
+                {
+                  "id": "IMPORTANT",
+                  "name": "IMPORTANT",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_PERSONAL",
+                  "name": "CATEGORY_PERSONAL",
+                  "type": "system"
+                },
+                {
+                  "id": "Label_8830017722501",
+                  "name": "AI",
+                  "type": "user",
+                  "messageListVisibility": "show",
+                  "labelListVisibility": "labelShow"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "get_thread",
+            "args": {
+              "threadId": "19a8f6040b9e3304"
+            },
+            "result": {
+              "id": "19a8f6040b9e3304",
+              "messages": [
+                {
+                  "id": "19a8f6040b9e3304",
+                  "snippet": "",
+                  "subject": "",
+                  "sender": "<@@>",
+                  "labelIds": [
+                    "INBOX"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "note": "thread get (simple): GET /users/me/threads/{id}?format=metadata, then GET /users/me/labels for the messages' label names; one item per thread (returnOnlyMessages off)"
+    },
+    {
+      "node": "Get single message content",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8f6040b9e3304",
+            "query": {
+              "format": "metadata"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a8f6040b9e3304",
+              "threadId": "19a8f6040b9e3304",
+              "labelIds": [
+                "INBOX"
+              ],
+              "snippet": "",
+              "payload": {
+                "partId": "",
+                "mimeType": "multipart/alternative",
+                "filename": "",
+                "headers": [
+                  {
+                    "name": "From",
+                    "value": "<@@>"
+                  },
+                  {
+                    "name": "To",
+                    "value": "eva@lumen-dental.example"
+                  },
+                  {
+                    "name": "Subject",
+                    "value": ""
+                  }
+                ]
+              },
+              "sizeEstimate": 4980,
+              "historyId": "771204",
+              "internalDate": "0"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/labels",
+            "status": 200,
+            "body": {
+              "labels": [
+                {
+                  "id": "INBOX",
+                  "name": "INBOX",
+                  "type": "system"
+                },
+                {
+                  "id": "UNREAD",
+                  "name": "UNREAD",
+                  "type": "system"
+                },
+                {
+                  "id": "IMPORTANT",
+                  "name": "IMPORTANT",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_PERSONAL",
+                  "name": "CATEGORY_PERSONAL",
+                  "type": "system"
+                },
+                {
+                  "id": "Label_8830017722501",
+                  "name": "AI",
+                  "type": "user",
+                  "messageListVisibility": "show",
+                  "labelListVisibility": "labelShow"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "get_message",
+            "args": {
+              "messageId": "19a8f6040b9e3304"
+            },
+            "result": {
+              "id": "19a8f6040b9e3304",
+              "threadId": "19a8f6040b9e3304",
+              "snippet": "",
+              "subject": "",
+              "sender": "<@@>",
+              "labelIds": [
+                "INBOX"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "message get (simple) with the thread item's id, which is the thread id (Gmail gives a thread the id of its first message): GET /users/me/messages/{id}?format=metadata and the labels. The simple output has From, To, Subject and snippet, no text field and no from.text"
+    },
+    {
+      "node": "Ask OpenAI Assistant",
+      "service": "openai-assistants",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/threads/runs",
+            "status": 200,
+            "body": {
+              "id": "run_bench2198a",
+              "object": "thread.run",
+              "assistant_id": "asst_s32wsRpwU1HbLt40wRhghB6Y",
+              "thread_id": "thread_bench2198a",
+              "status": "queued",
+              "model": "gpt-4o"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.openai.com/v1/threads/thread_bench2198a/runs/run_bench2198a",
+            "status": 200,
+            "body": {
+              "id": "run_bench2198a",
+              "object": "thread.run",
+              "assistant_id": "asst_s32wsRpwU1HbLt40wRhghB6Y",
+              "thread_id": "thread_bench2198a",
+              "status": "completed",
+              "model": "gpt-4o",
+              "usage": {
+                "prompt_tokens": 640,
+                "completion_tokens": 120,
+                "total_tokens": 760
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.openai.com/v1/threads/thread_bench2198a/messages",
+            "query": {
+              "order": "desc"
+            },
+            "status": 200,
+            "body": {
+              "object": "list",
+              "data": [
+                {
+                  "id": "msg_bench2198b",
+                  "object": "thread.message",
+                  "role": "assistant",
+                  "run_id": "run_bench2198a",
+                  "thread_id": "thread_bench2198a",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": {
+                        "value": "Hi,\n\nThanks for your message. I've checked and will get back to you with the details by Wednesday.\n\nBest regards,\nEva",
+                        "annotations": []
+                      }
+                    }
+                  ]
+                }
+              ],
+              "has_more": false
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured OpenAI Assistants connector"
+      },
+      "note": "OpenAI node v1.8 assistant message (prompt define, text {{ $json.text }}, no memory): POST /v1/threads/runs, GET the run until completed, GET the thread's messages (desc). Served in case the run gets that far; the same reply per item"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Add email draft to thread",
+    "Remove AI label from email"
+  ],
+  "writeReplies": [
+    {
+      "node": "Add email draft to thread",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/drafts",
+            "status": 200,
+            "body": {
+              "id": "r-4410237718837001",
+              "message": {
+                "id": "19a8f6aa20c1d901",
+                "threadId": "19a8f5e0a7b2c101",
+                "labelIds": [
+                  "DRAFT"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "create_draft",
+            "result": {
+              "id": "r-4410237718837001",
+              "message": {
+                "id": "19a8f6aa20c1d901",
+                "threadId": "19a8f5e0a7b2c101"
+              }
+            }
+          }
+        ]
+      },
+      "note": "HTTP Request POST https://www.googleapis.com/gmail/v1/users/me/drafts {message: {raw, threadId}}. The node sets no authentication, so real Gmail would answer 401; the fixture answers as if authorised"
+    },
+    {
+      "node": "Remove AI label from email",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/threads/19a8f5e0a7b2c101/modify",
+            "status": 200,
+            "body": {
+              "id": "19a8f5e0a7b2c101",
+              "historyId": "771230",
+              "messages": [
+                {
+                  "id": "19a8f5e0a7b2c101",
+                  "threadId": "19a8f5e0a7b2c101",
+                  "labelIds": [
+                    "INBOX"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "unlabel_thread",
+            "result": {
+              "id": "19a8f5e0a7b2c101"
+            }
+          }
+        ]
+      },
+      "note": "thread removeLabels (the overlay's AI label): POST /users/me/threads/{id}/modify {removeLabelIds: [Label_8830017722501]}"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Loop over threads: one thread, then done"
+    ],
+    "offline": "The schedule runs every minute. The AI label the thread list filters on and the removal removes is the person's to pick (empty in the template), filled by the overlay. Add email draft to thread is an HTTP Request without credentials (real Gmail would refuse it)",
+    "n8nFails": {
+      "node": "Ask OpenAI Assistant",
+      "why": "its prompt is {{ $json.text }}, but Get single message content uses Gmail's simplified output (no text field), so the prompt resolves to nothing and n8n's OpenAI node stops with 'No prompt specified' whatever the mail says (canned n8n run 2026-11-16, every variant that reaches it); Map fields after it would also read from.text, which the simplified output lacks"
+    }
+  }
+}

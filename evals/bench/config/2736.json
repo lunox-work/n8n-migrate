@@ -1,0 +1,21 @@
+{
+  "why": "Request YouTube Transcript's URL is the template's placeholder text 'Apify API_KEY Here ???' (the person's Apify actor endpoint with their token). Filled with a placeholder run-sync URL of a public YouTube transcript actor and a placeholder token on both sides. Placeholder fill only: no logic changes.",
+  "n8n": {
+    "Request YouTube Transcript": {
+      "parameters.url": "https://api.apify.com/v2/acts/topaz_sharingan~youtube-transcript-scraper/run-sync-get-dataset-items?token=bench-apify-token"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Request YouTube Transcript": {
+          "patch": {
+            "params": {
+              "url": "https://api.apify.com/v2/acts/topaz_sharingan~youtube-transcript-scraper/run-sync-get-dataset-items?token=bench-apify-token"
+            }
+          }
+        }
+      }
+    }
+  }
+}

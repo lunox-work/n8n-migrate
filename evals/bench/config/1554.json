@@ -1,0 +1,66 @@
+{
+  "why": "RSS Source's fifth feed URL holds the template export's scrubber placeholder (YOUR_AWS_SECRET_KEY_HERE in place of 'com/plugins/custom/microsoft/o365/custom', so the host is unresolvable), and the three Telegram nodes send to chat id 'TelegramID' (the person's chat). Restored the Microsoft Tech Community blog RSS URL and filled a placeholder chat id on both sides. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "RSS Source": {
+      "parameters.functionCode": "return [\n  {\n    json: {\n      url: 'https://feeds.feedburner.com/UnikosHardware',\n    }\n  },\n  {\n    json: {\n      url: 'http://www.ithome.com.tw/rss.php',\n    }\n  },\n  {\n    json: {\n      url: 'http://feeds.feedburner.com/playpc',\n    }\n  },\n  {\n    json: {\n      url: 'https://lab.ocf.tw/feed/',\n    }\n  },\n  {\n    json: {\n      url: 'https://techcommunity.microsoft.com/plugins/custom/microsoft/o365/custom-blog-rss?tid=3754543230341459569&board=microsoft_365blog',\n    }\n  }\n];"
+    },
+    "Telegram_IT": {
+      "parameters.chatId": "100200300"
+    },
+    "Telegram_Security": {
+      "parameters.chatId": "100200300"
+    },
+    "Telegram_M365": {
+      "parameters.chatId": "100200300"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "RSS Source": {
+          "patch": {
+            "params": {
+              "functionCode": "return [\n  {\n    json: {\n      url: 'https://feeds.feedburner.com/UnikosHardware',\n    }\n  },\n  {\n    json: {\n      url: 'http://www.ithome.com.tw/rss.php',\n    }\n  },\n  {\n    json: {\n      url: 'http://feeds.feedburner.com/playpc',\n    }\n  },\n  {\n    json: {\n      url: 'https://lab.ocf.tw/feed/',\n    }\n  },\n  {\n    json: {\n      url: 'https://techcommunity.microsoft.com/plugins/custom/microsoft/o365/custom-blog-rss?tid=3754543230341459569&board=microsoft_365blog',\n    }\n  }\n];"
+            }
+          }
+        },
+        "Telegram_IT": {
+          "patch": {
+            "params": {
+              "chatId": "100200300"
+            },
+            "http": {
+              "body": {
+                "chat_id": "100200300"
+              }
+            }
+          }
+        },
+        "Telegram_Security": {
+          "patch": {
+            "params": {
+              "chatId": "100200300"
+            },
+            "http": {
+              "body": {
+                "chat_id": "100200300"
+              }
+            }
+          }
+        },
+        "Telegram_M365": {
+          "patch": {
+            "params": {
+              "chatId": "100200300"
+            },
+            "http": {
+              "body": {
+                "chat_id": "100200300"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

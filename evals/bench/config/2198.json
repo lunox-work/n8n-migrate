@@ -1,0 +1,41 @@
+{
+  "why": "Get threads with specific labels filters on an empty label list and Remove AI label from email removes no label (the person's AI label, left for them to pick; n8n 2.47.7 refuses to start the run: 'Remove AI label from email' has issues: Label Names or IDs is required). Filled with the fixture mailbox's AI label id on both nodes and both sides. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "Get threads with specific labels": {
+      "parameters.filters.labelIds": [
+        "Label_8830017722501"
+      ]
+    },
+    "Remove AI label from email": {
+      "parameters.labelIds": [
+        "Label_8830017722501"
+      ]
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Get threads with specific labels": {
+          "patch": {
+            "params": {
+              "filters": {
+                "labelIds": [
+                  "Label_8830017722501"
+                ]
+              }
+            }
+          }
+        },
+        "Remove AI label from email": {
+          "patch": {
+            "params": {
+              "labelIds": [
+                "Label_8830017722501"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

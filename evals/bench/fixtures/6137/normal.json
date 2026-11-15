@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "template": 6137,
+  "sha256": "45dcc25a0b4c66651be22dd5f33bfcd2f16c6bb987d1f666b36c73f9cd9638b3",
+  "variant": "normal",
+  "now": "2026-11-16T03:00:00.000Z",
+  "about": "one documentation page (data pinning) is fetched, cleaned and stored as one chunk",
+  "trigger": {
+    "node": "Ingest Web Page",
+    "kind": "subworkflow",
+    "items": [
+      {
+        "json": {
+          "link": "data/data-pinning/"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get Documentation Page",
+      "service": "web",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://docs.n8n.io/data/data-pinning/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Data pinning | n8n Docs</title></head><body><header><nav><a href=\"/\">Docs</a></nav></header><main><article class=\"md-content__inner md-typeset\"><h1 id=\"t\">Data pinning<a class=\"headerlink\" href=\"#t\">#</a></h1><p>You can pin data during workflow development. Data pinning means saving the output data of a node, and using the saved data instead of fetching fresh data in future workflow executions.</p><h2 id=\"p\">Pin data</h2><p>To pin data in a node: run the node to load data, then in the OUTPUT view select Pin data.</p><p>Data pinning is only available for manual executions; production executions ignore pinned data.</p><img src=\"/_images/data/pin.png\" alt=\"pin\"></article></main><footer><form><input name=\"q\"></form>Copyright n8n</footer></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no connector; plain web fetch"
+      },
+      "note": "GET https://docs.n8n.io/<link> for the item the caller passed (passthrough sub-workflow trigger)"
+    },
+    {
+      "node": "Gemini Chunk Embedding",
+      "service": "gemini-embeddings",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "embeddings": [
+                {
+                  "values": [
+                    0.036448,
+                    0.049468,
+                    0.025051,
+                    -0.018324,
+                    -0.047832,
+                    -0.041141,
+                    -0.003316,
+                    0.037019,
+                    0.049339,
+                    0.02432,
+                    -0.019104,
+                    -0.04807,
+                    -0.040658,
+                    -0.002477,
+                    0.037579,
+                    0.049195
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "embeddings stay with the provider"
+      },
+      "note": "Gemini embeddings (default model gemini-embedding-001): LangChain embedDocuments is POST /v1beta/models/gemini-embedding-001:batchEmbedContents with one request per chunk; the page text is under the splitter's 1,500 characters, so one chunk and 1 embedding(s). Vectors are synthetic and 16-dimensional (the in-memory store does not check the length)"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Simple Vector Store",
+    "Remove Duplicate Documentation Content"
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch; Remove Duplicate Documentation Content passes the page (no history)"
+    ],
+    "offline": "The workflow calls itself: Loop Over Documentation Pages hands each batch of links to Ingest Web Page (passthrough), and this fixture starts there with one link, as the analyzer's sub-workflow wake-up does. The in-memory vector store starts empty every run (README, P55/P63: n8n is restarted after a run with process state) and nothing reads it back on this path; the insert and the dedupe history are in-process or in n8n's own database, not outside services. Remove Duplicate Documentation Content keeps its history in n8n's database across executions of the same workflow; a run that repeats a page on the same imported workflow would drop it. Start Indexing and RAG Chatbot are disabled in the template"
+  }
+}

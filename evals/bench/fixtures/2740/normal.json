@@ -1,0 +1,595 @@
+{
+  "schemaVersion": 1,
+  "template": 2740,
+  "sha256": "37162d7abbf4d0e346ca3c1ef91730733557efe1e841e7e08bc66c2286102b0c",
+  "variant": "normal",
+  "now": "2026-11-16T09:05:00.000Z",
+  "about": "a product newsletter arrives; the mailbox already has a newsletters label (Nieuwsbrieven) and an ads label (Reclame)",
+  "trigger": {
+    "node": "Gmail Trigger",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {
+          "id": "19a8e7a1c0b2d301",
+          "threadId": "19a8e7a1c0b2d301",
+          "snippet": "Dev Mode updates, variables for prototyping and five new community plugins we love. Read the November roundup.",
+          "payload": {
+            "mimeType": "multipart/alternative"
+          },
+          "sizeEstimate": 5120,
+          "historyId": "4410221",
+          "internalDate": "1794819600000",
+          "labels": [
+            {
+              "id": "INBOX",
+              "name": "INBOX"
+            },
+            {
+              "id": "UNREAD",
+              "name": "UNREAD"
+            },
+            {
+              "id": "CATEGORY_PROMOTIONS",
+              "name": "CATEGORY_PROMOTIONS"
+            }
+          ],
+          "From": "\"Figma\" <no-reply@email.figma.example>",
+          "To": "sanne@studio-dekker.example",
+          "Subject": "What's new in Figma: November roundup"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Gmail Trigger",
+      "service": "gmail",
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_threads",
+            "args": {
+              "query": "in:inbox"
+            },
+            "result": {
+              "threads": [
+                {
+                  "id": "19a8e7a1c0b2d301",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8e7a1c0b2d301",
+                  "messages": [
+                    {
+                      "id": "19a8e7a1c0b2d301",
+                      "snippet": "Dev Mode updates, variables for prototyping and five new community plugins we love. Read the November roundup.",
+                      "subject": "What's new in Figma: November roundup",
+                      "sender": "\"Figma\" <no-reply@email.figma.example>",
+                      "toRecipients": [
+                        "sanne@studio-dekker.example"
+                      ],
+                      "date": "2026-11-16T09:00:00.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "UNREAD",
+                        "CATEGORY_PROMOTIONS"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "note": "poll source for the Claude side; the n8n side pins trigger.items (Gmail Trigger v1.2, simple output: labels resolved, From/To/Subject flattened)"
+    },
+    {
+      "node": "Gmail - read labels",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/labels",
+            "status": 200,
+            "body": {
+              "labels": [
+                {
+                  "id": "INBOX",
+                  "name": "INBOX",
+                  "type": "system"
+                },
+                {
+                  "id": "SENT",
+                  "name": "SENT",
+                  "type": "system"
+                },
+                {
+                  "id": "IMPORTANT",
+                  "name": "IMPORTANT",
+                  "type": "system"
+                },
+                {
+                  "id": "TRASH",
+                  "name": "TRASH",
+                  "type": "system"
+                },
+                {
+                  "id": "DRAFT",
+                  "name": "DRAFT",
+                  "type": "system"
+                },
+                {
+                  "id": "SPAM",
+                  "name": "SPAM",
+                  "type": "system"
+                },
+                {
+                  "id": "STARRED",
+                  "name": "STARRED",
+                  "type": "system"
+                },
+                {
+                  "id": "UNREAD",
+                  "name": "UNREAD",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_PERSONAL",
+                  "name": "CATEGORY_PERSONAL",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_SOCIAL",
+                  "name": "CATEGORY_SOCIAL",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_PROMOTIONS",
+                  "name": "CATEGORY_PROMOTIONS",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_UPDATES",
+                  "name": "CATEGORY_UPDATES",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_FORUMS",
+                  "name": "CATEGORY_FORUMS",
+                  "type": "system"
+                },
+                {
+                  "id": "CHAT",
+                  "name": "CHAT",
+                  "type": "system"
+                },
+                {
+                  "id": "Label_3120418877001",
+                  "name": "Reclame",
+                  "type": "user",
+                  "messageListVisibility": "show",
+                  "labelListVisibility": "labelShow"
+                },
+                {
+                  "id": "Label_3120418877002",
+                  "name": "Facturen",
+                  "type": "user",
+                  "messageListVisibility": "show",
+                  "labelListVisibility": "labelShow"
+                },
+                {
+                  "id": "Label_3120418877003",
+                  "name": "Werk",
+                  "type": "user",
+                  "messageListVisibility": "show",
+                  "labelListVisibility": "labelShow"
+                },
+                {
+                  "id": "Label_3120418877004",
+                  "name": "Nieuwsbrieven",
+                  "type": "user",
+                  "messageListVisibility": "show",
+                  "labelListVisibility": "labelShow"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "list_labels",
+            "result": {
+              "labels": [
+                {
+                  "id": "INBOX",
+                  "name": "INBOX",
+                  "type": "system"
+                },
+                {
+                  "id": "SENT",
+                  "name": "SENT",
+                  "type": "system"
+                },
+                {
+                  "id": "IMPORTANT",
+                  "name": "IMPORTANT",
+                  "type": "system"
+                },
+                {
+                  "id": "TRASH",
+                  "name": "TRASH",
+                  "type": "system"
+                },
+                {
+                  "id": "DRAFT",
+                  "name": "DRAFT",
+                  "type": "system"
+                },
+                {
+                  "id": "SPAM",
+                  "name": "SPAM",
+                  "type": "system"
+                },
+                {
+                  "id": "STARRED",
+                  "name": "STARRED",
+                  "type": "system"
+                },
+                {
+                  "id": "UNREAD",
+                  "name": "UNREAD",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_PERSONAL",
+                  "name": "CATEGORY_PERSONAL",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_SOCIAL",
+                  "name": "CATEGORY_SOCIAL",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_PROMOTIONS",
+                  "name": "CATEGORY_PROMOTIONS",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_UPDATES",
+                  "name": "CATEGORY_UPDATES",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_FORUMS",
+                  "name": "CATEGORY_FORUMS",
+                  "type": "system"
+                },
+                {
+                  "id": "CHAT",
+                  "name": "CHAT",
+                  "type": "system"
+                },
+                {
+                  "id": "Label_3120418877001",
+                  "name": "Reclame",
+                  "type": "user"
+                },
+                {
+                  "id": "Label_3120418877002",
+                  "name": "Facturen",
+                  "type": "user"
+                },
+                {
+                  "id": "Label_3120418877003",
+                  "name": "Werk",
+                  "type": "user"
+                },
+                {
+                  "id": "Label_3120418877004",
+                  "name": "Nieuwsbrieven",
+                  "type": "user"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "note": "agent tool: label getAll (returnAll): GET /users/me/labels"
+    },
+    {
+      "node": "Gmail - get message",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8e7a1c0b2d301",
+            "query": {
+              "format": "metadata"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a8e7a1c0b2d301",
+              "threadId": "19a8e7a1c0b2d301",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_PROMOTIONS"
+              ],
+              "snippet": "Dev Mode updates, variables for prototyping and five new community plugins we love. Read the November roundup.",
+              "payload": {
+                "partId": "",
+                "mimeType": "multipart/alternative",
+                "filename": "",
+                "headers": [
+                  {
+                    "name": "From",
+                    "value": "\"Figma\" <no-reply@email.figma.example>"
+                  },
+                  {
+                    "name": "To",
+                    "value": "sanne@studio-dekker.example"
+                  },
+                  {
+                    "name": "Subject",
+                    "value": "What's new in Figma: November roundup"
+                  }
+                ]
+              },
+              "sizeEstimate": 5120,
+              "historyId": "4410221",
+              "internalDate": "1794819600000"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/labels",
+            "status": 200,
+            "body": {
+              "labels": [
+                {
+                  "id": "INBOX",
+                  "name": "INBOX",
+                  "type": "system"
+                },
+                {
+                  "id": "SENT",
+                  "name": "SENT",
+                  "type": "system"
+                },
+                {
+                  "id": "IMPORTANT",
+                  "name": "IMPORTANT",
+                  "type": "system"
+                },
+                {
+                  "id": "TRASH",
+                  "name": "TRASH",
+                  "type": "system"
+                },
+                {
+                  "id": "DRAFT",
+                  "name": "DRAFT",
+                  "type": "system"
+                },
+                {
+                  "id": "SPAM",
+                  "name": "SPAM",
+                  "type": "system"
+                },
+                {
+                  "id": "STARRED",
+                  "name": "STARRED",
+                  "type": "system"
+                },
+                {
+                  "id": "UNREAD",
+                  "name": "UNREAD",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_PERSONAL",
+                  "name": "CATEGORY_PERSONAL",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_SOCIAL",
+                  "name": "CATEGORY_SOCIAL",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_PROMOTIONS",
+                  "name": "CATEGORY_PROMOTIONS",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_UPDATES",
+                  "name": "CATEGORY_UPDATES",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_FORUMS",
+                  "name": "CATEGORY_FORUMS",
+                  "type": "system"
+                },
+                {
+                  "id": "CHAT",
+                  "name": "CHAT",
+                  "type": "system"
+                },
+                {
+                  "id": "Label_3120418877001",
+                  "name": "Reclame",
+                  "type": "user",
+                  "messageListVisibility": "show",
+                  "labelListVisibility": "labelShow"
+                },
+                {
+                  "id": "Label_3120418877002",
+                  "name": "Facturen",
+                  "type": "user",
+                  "messageListVisibility": "show",
+                  "labelListVisibility": "labelShow"
+                },
+                {
+                  "id": "Label_3120418877003",
+                  "name": "Werk",
+                  "type": "user",
+                  "messageListVisibility": "show",
+                  "labelListVisibility": "labelShow"
+                },
+                {
+                  "id": "Label_3120418877004",
+                  "name": "Nieuwsbrieven",
+                  "type": "user",
+                  "messageListVisibility": "show",
+                  "labelListVisibility": "labelShow"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "get_message",
+            "args": {
+              "messageId": "19a8e7a1c0b2d301"
+            },
+            "result": {
+              "id": "19a8e7a1c0b2d301",
+              "threadId": "19a8e7a1c0b2d301",
+              "snippet": "Dev Mode updates, variables for prototyping and five new community plugins we love. Read the November roundup.",
+              "subject": "What's new in Figma: November roundup",
+              "sender": "\"Figma\" <no-reply@email.figma.example>",
+              "toRecipients": [
+                "sanne@studio-dekker.example"
+              ],
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_PROMOTIONS"
+              ],
+              "plaintextBody": "Dev Mode updates, variables for prototyping and five new community plugins we love."
+            }
+          }
+        ]
+      },
+      "connectorGaps": [
+        "labels: the simple output names each label; the connector returns label ids only"
+      ],
+      "note": "agent tool: message get (simple): GET /users/me/messages/{id}?format=metadata, then GET /users/me/labels to name the labels (the labels route is shared with Gmail - read labels, P57)"
+    }
+  ],
+  "models": [
+    "Gmail labelling agent",
+    "OpenAI Chat Model1"
+  ],
+  "writes": [
+    "Gmail - add label to message",
+    "Gmail - create label"
+  ],
+  "writeReplies": [
+    {
+      "node": "Gmail - add label to message",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8e7a1c0b2d301/modify",
+            "status": 200,
+            "body": {
+              "id": "19a8e7a1c0b2d301",
+              "threadId": "19a8e7a1c0b2d301",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_PROMOTIONS",
+                "Label_3120418877004"
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "label_message",
+            "args": {
+              "messageId": "19a8e7a1c0b2d301"
+            },
+            "result": {
+              "id": "19a8e7a1c0b2d301",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_PROMOTIONS",
+                "Label_3120418877004"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "agent tool: message addLabels: POST /users/me/messages/{id}/modify {addLabelIds} (the ids are model-chosen; the reply echoes one)"
+    },
+    {
+      "node": "Gmail - create label",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/labels",
+            "status": 200,
+            "body": {
+              "id": "Label_3120418877099",
+              "name": "(name as created)",
+              "messageListVisibility": "show",
+              "labelListVisibility": "labelShow",
+              "type": "user"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "create_label",
+            "result": {
+              "id": "Label_3120418877099",
+              "name": "(name as created)",
+              "type": "user"
+            }
+          }
+        ]
+      },
+      "note": "agent tool: label create: POST /users/me/labels {name, labelListVisibility, messageListVisibility}; the name is model-written, so the reply's name is a placeholder"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch; the agent decides which tools to call (expected: read labels, add an existing label)"
+    ],
+    "offline": "Label ids and names are the mailbox's; which labels the agent reads, creates or adds is model-driven. Window Buffer Memory keys on the message id and holds one turn per run. Wait (amount 1, Wait v1.1's default unit seconds) passes the trigger item through"
+  }
+}
