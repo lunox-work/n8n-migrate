@@ -13113,8 +13113,15 @@ function coerceValue(want, v) {
       if (v === "true") return true;
       if (v === "false") return false;
       return v;
-    case "string":
+    case "string": {
+      // A date (Luxon DateTime from $now/$today, or a Date) reaches the service as its JSON
+      // value, the ISO string, as in n8n's request body: never the quoted JSON of it.
+      if (v !== null && typeof v === "object" && typeof v.toJSON === "function") {
+        const j = v.toJSON();
+        if (typeof j === "string") return j;
+      }
       return v === null || typeof v === "object" ? JSON.stringify(v) : String(v);
+    }
     case "json":
       if (typeof v === "string") {
         try {

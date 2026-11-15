@@ -26,6 +26,12 @@ test("coerceArgs: lists from comma text, numbers, booleans, json; undefined drop
   assert.deepEqual(coerceArgs({ to: "string[]", n: "integer", b: "boolean", j: "json", s: "string" }, { to: "a@x, b@x,", n: "12.7", b: "false", j: '{"k":1}', s: 5, gone: undefined, keep: "x" }), { to: ["a@x", "b@x"], n: 12, b: false, j: { k: 1 }, s: "5", keep: "x" });
 });
 
+test("coerceArgs: a date coerced to a string is its ISO text, as n8n's request body carries it (never quoted JSON)", async () => {
+  const { DateTime } = await import("../skills/n8n-to-claude/runtime/vendor/luxon.mjs");
+  const today = DateTime.fromISO("2026-11-15T00:00:00.000-05:00", { setZone: true });
+  assert.deepEqual(coerceArgs({ title: "string", at: "string", o: "string" }, { title: today, at: new Date("2026-11-15T05:00:00Z"), o: { a: 1 } }), { title: "2026-11-15T00:00:00.000-05:00", at: "2026-11-15T05:00:00.000Z", o: '{"a":1}' });
+});
+
 test("poll cursor: max with ids at the boundary, template into an argument", () => {
   const spec = { field: "internalDate", strategy: "max", idField: "id", arg: "query", template: "after:{seconds}" };
   const first = advanceCursor(spec, [{ id: "a", internalDate: "1000" }, { id: "b", internalDate: "2000" }], null);
