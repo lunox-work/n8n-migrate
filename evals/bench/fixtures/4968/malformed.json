@@ -112,6 +112,10 @@
     "branches": [
       "the OpenAI image node fails on the 400; Merge and LinkedIn are not reached"
     ],
+    "n8nFails": {
+      "node": "LinkedIn",
+      "why": "the LinkedIn node has no text parameter (and postAs organization with no organization id): n8n 2.47.7 throws 'The Text field is empty' on its first item before any LinkedIn request"
+    },
     "offline": "Topics, post text, image description and hashtags are model-driven (n8n's replies are recorded). The LinkedIn node has no text parameter and postAs organization with no organization id: n8n 2.47.7 throws 'The Text field is empty' on its first item before any LinkedIn request, so n8n's run ends failed at LinkedIn in every variant (the template's own configuration, not the bench). Merge (v3.2, append) hands LinkedIn two items, the image item and the hashtag item"
   }
 }

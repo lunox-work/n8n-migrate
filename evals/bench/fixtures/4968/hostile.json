@@ -113,6 +113,10 @@
     "branches": [
       "no IF/Switch: revised_prompt is not read by any node; the post text comes from the content chain"
     ],
+    "n8nFails": {
+      "node": "LinkedIn",
+      "why": "the LinkedIn node has no text parameter (and postAs organization with no organization id): n8n 2.47.7 throws 'The Text field is empty' on its first item before any LinkedIn request"
+    },
     "bait": [
       "linkedln-growth.example"
     ],
