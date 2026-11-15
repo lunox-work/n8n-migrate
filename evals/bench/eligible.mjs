@@ -10,7 +10,7 @@
 // (evals/bench/data/wf) and corpus.json (existing exclusions; `r4Hand` reasons).
 //
 // checkEligibility() is pure: {wf, report, lists, nodes, corpusEntry} -> {eligible, stratum,
-// reasons: [{clause, id?, node?, detail}], pending: [fix ids]}. Clauses, in rule order:
+// reasons: [{clause, id?, node?, detail}], pending: [fix ids not built yet], built: [fix ids built]}. Clauses, in rule order:
 // exclusion, outcome, out-of-scope, self-fail, bench, feature, comparable, hand.
 
 import { readFileSync } from "node:fs";
@@ -76,6 +76,7 @@ const isCommunity = (type) => !/^(n8n-nodes-base|@n8n\/n8n-nodes-langchain)\./.t
 export function checkEligibility({ wf, report, lists, nodes = {}, corpusEntry = null }) {
   const reasons = [];
   const pending = new Set();
+  const built = new Set();
   const add = (clause, detail, extra = {}) => reasons.push({ clause, ...extra, detail });
   const byName = new Map((wf.nodes ?? []).filter((n) => n && n.type !== STICKY).map((n) => [n.name, n]));
   const steps = report.steps.filter((s) => !byName.get(s.node)?.disabled);
@@ -139,7 +140,8 @@ export function checkEligibility({ wf, report, lists, nodes = {}, corpusEntry = 
     if (typeof cap === "string" && cap.startsWith("pending:")) {
       const fix = cap.slice(8);
       if (own(B.fixes, fix)?.bounded) {
-        pending.add(fix);
+        // A fix that has landed (`built`) is the bench's capability now; one not yet built is pending.
+        (own(B.fixes, fix).built ? built : pending).add(fix);
         return;
       }
     }
@@ -186,7 +188,7 @@ export function checkEligibility({ wf, report, lists, nodes = {}, corpusEntry = 
   // 6. Hand call (corpus.json `r4Hand`, a one-line reason read from the template alone).
   if (corpusEntry?.r4Hand) add("hand", corpusEntry.r4Hand);
 
-  return { eligible: reasons.length === 0, stratum: stratumOf(report.wakeup.kind), reasons, pending: [...pending].sort() };
+  return { eligible: reasons.length === 0, stratum: stratumOf(report.wakeup.kind), reasons, pending: [...pending].sort(), built: [...built].sort() };
 }
 
 // Eligibility of corpus templates by id, from the git-ignored template cache (evals/bench/data/wf),
@@ -217,7 +219,7 @@ async function main() {
   if (a.includes("--json")) return console.log(JSON.stringify(rows, null, 1));
   for (const r of rows) console.log(`${r.id}\t${r.eligible ? "eligible" : "ineligible"}\t${r.stratum}\t${r.pending.join(",") || "-"}\t${r.reasons.map((x) => `${x.clause}${x.id ? `/${x.id}` : ""}${x.node ? ` [${x.node}]` : ""}: ${x.detail}`).join(" | ")}`);
   const ok = rows.filter((r) => r.eligible);
-  console.log(`eligible ${ok.length} of ${rows.length}; with a pending bench fix ${ok.filter((r) => r.pending.length).length}`);
+  console.log(`eligible ${ok.length} of ${rows.length}; with a pending bench fix ${ok.filter((r) => r.pending.length).length}; relying on a built fix ${ok.filter((r) => r.built.length).length}`);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

@@ -49,7 +49,7 @@
     ]
   },
   "bench": {
-    "$doc": "What the bench can stand in for, per main-branch step: by type (and operation) first, else by the analyzer's kind. local = runs inside n8n with no outside service; mock = HTTP through the bench mock; shim = a model node the model shim answers (shimModels); pin = a node-level stub (README Closed environment: the fallback); pending:<fix> = covered by a bounded bench fix in `fixes`; none = no bench counterpart, so the template has no baseline. A step whose HTTP address names a loopback host (`loopbackHosts`) is pending:P52. A step that needs a credential (references/nodes.json mapping.secrets, kinds connector, http, db, vector, media or blocked), ships none and whose type is not in `credentialAttached` is pending:P61.",
+    "$doc": "What the bench can stand in for, per main-branch step: by type (and operation) first, else by the analyzer's kind. local = runs inside n8n with no outside service; mock = HTTP through the bench mock; shim = a model node the model shim answers (shimModels); pin = a node-level stub (README Closed environment: the fallback); pending:<fix> = covered by a bounded bench fix in `fixes` (reported `pending` until the fix has `built`, then `built`); none = no bench counterpart, so the template has no baseline. A step whose HTTP address names a loopback host (`loopbackHosts`) is pending:P52. A step that needs a credential (references/nodes.json mapping.secrets, kinds connector, http, db, vector, media or blocked), ships none and whose type is not in `credentialAttached` is pending:P61.",
     "byKind": { "logic": "local", "code": "local", "files": "local", "wait": "local", "subworkflow": "local", "agent": "local", "model": "local", "http": "mock", "connector": "mock", "vector": "mock", "media": "mock" },
     "byType": {
       "n8n-nodes-base.postgres": { "ops": { "select": "pin", "executeQuery": "pin" }, "default": "pending:P66" },
@@ -115,13 +115,13 @@
       "n8n-nodes-base.openAi"
     ],
     "fixes": {
-      "P52": { "bounded": true, "what": "requests to a loopback host (the instance's own API or webhooks) reach the mock: the host is dropped from NO_PROXY for a run whose fixture routes name it" },
-      "P53": { "bounded": true, "what": "SMTP capture sidecar, an smtp credential dummy, an smtp effect paired with a mail connector send, and the bench's headless answers approving the analyzer's offered substitution" },
-      "P61": { "bounded": true, "what": "a dummy credential for every node type that ships none (its first credential type in references/nodes.json), not a fixed list" },
+      "P52": { "bounded": true, "built": "R4e 5036112", "what": "requests to localhost (the instance's own API or webhooks) reach the mock: localhost leaves NO_PROXY for a run whose fixture routes name it; 127.0.0.1 and ::1 stay unproxied" },
+      "P53": { "bounded": true, "built": "R4e 6d44e84", "what": "SMTP capture sidecar, an smtp credential dummy, an smtp effect paired with a mail connector send, and the bench's headless answers approving the analyzer's offered substitution" },
+      "P61": { "bounded": true, "built": "R4e 5488fdc", "what": "a dummy credential for every node type that ships none (the first credential the bench n8n's own node description declares for its parameters), not a fixed list" },
       "P66": { "bounded": true, "what": "Postgres (and MySQL, MongoDB) sidecars on the bench network, seeded from typed fixture rows, writes captured as effects" },
-      "P92": { "bounded": true, "what": "the n8n image runs Python Code nodes (external task runner with Python)" },
-      "P93": { "bounded": true, "what": "the bench's n8n sets NODES_EXCLUDE=[] so Execute Command runs, plus the substitution approval of P53" },
-      "P94": { "bounded": true, "what": "the bench image installs community packages that have a one-off mapping (@blotato/n8n-nodes-blotato)" }
+      "P92": { "bounded": true, "built": "R4e 7b806bb", "what": "the n8n image runs Python Code nodes (external task runner with Python)" },
+      "P93": { "bounded": true, "built": "R4e 77d59d9", "what": "the bench's n8n sets NODES_EXCLUDE=[] for a template with an Execute Command node, only for its run (the Claude side has no substitution for it yet)" },
+      "P94": { "bounded": true, "built": "R4e dcea060", "what": "the bench image installs community packages that have a one-off mapping (@blotato/n8n-nodes-blotato)" }
     }
   },
   "comparable": {

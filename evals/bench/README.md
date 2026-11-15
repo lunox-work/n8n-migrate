@@ -2,6 +2,18 @@
 
 Runs each template through gates 1–8 (PLAN Phase 5): n8n 2.47.7 in Docker is the baseline, the migrated folder is run by the runner, and the comparer decides whether both made the same effects. A template stops at its first failed gate.
 
+## What the n8n side can run
+
+Containers (all named `n8n2claude-*`, internal network, memory-capped; `node evals/n8n/container.mjs down` removes them):
+
+| Container            | Image                                                                     | Cap     | When                                                                                   |
+| -------------------- | ------------------------------------------------------------------------- | ------- | -------------------------------------------------------------------------------------- |
+| `n8n2claude-bench`   | `n8n2claude-n8n:2.47.7-<hash>`: `n8nio/n8n:2.47.7` plus the pinned community packages (P94) | 1 GiB   | every run; recreated when a template needs its own configuration (P52, P92, P93)        |
+| `n8n2claude-mock`    | `node:22-alpine` running `mock-server.mjs`: HTTP mock on 8080, SMTP sink on 2525 (P53) | 128 MiB | every run; recreated when its code changes                                              |
+| `n8n2claude-runners` | `n8nio/runners:2.47.7`                                                    | 512 MiB | only for a template with a Python Code node (P92), removed before the next             |
+
+Beyond HTTP through the mock, models through the shim and pins: Send Email over SMTP (P53, compared with the Gmail send the bench approves as a substitution), requests to `localhost` (P52), Execute Command (P93), Python Code nodes in n8n's native runner (P92; Pyodide-era code fails there on its own), community nodes in `community-packages.json` (P94), a credential dummy for any node type that ships none (P61), relative times in fixtures (P90). An OOM kill is a named failed baseline (P83). Not yet: database sidecars (Postgres, MongoDB: P66), Code nodes that `require()` a module (n8n's default refuses them, P87), a frozen clock.
+
 ## Commands
 
 ```

@@ -81,12 +81,12 @@ test("an empty required parameter and a chat model in the completion class make 
 
 test("a step without a bench counterpart today is pending a bounded fix", () => {
   const mail = check(chain(node("Start", `${B}manualTrigger`), node("Mail", `${B}emailSend`, { toEmail: "a@b.c", subject: "s", text: "t" }, { typeVersion: 2.1, credentials: { smtp: { id: "1", name: "s" } } })));
-  assert.deepEqual(mail.pending, ["P53"]);
+  assert.deepEqual([mail.pending, mail.built], [[], ["P53"]], "P53 is built (R4e): a capability now, no longer pending");
   assert.equal(mail.eligible, true, JSON.stringify(mail.reasons));
   const py = check(chain(node("Start", `${B}manualTrigger`), node("Py", `${B}code`, { language: "python", pythonCode: "return []" }, { typeVersion: 2 }), sheetsAppend()));
-  assert.deepEqual(py.pending, ["P92"]);
+  assert.deepEqual(py.built, ["P92"]);
   const self = check(chain(node("Start", `${B}manualTrigger`), node("Get", `${B}httpRequest`, { url: "http://localhost:5678/rest/workflows" }, { typeVersion: 4.2 }), sheetsAppend()));
-  assert.ok(self.pending.includes("P52"));
+  assert.ok(self.built.includes("P52"));
 });
 
 test("a node type outside the planned-feature map, a persistent-connection trigger and a hand call are ineligible", () => {
