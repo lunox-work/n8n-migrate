@@ -806,7 +806,6 @@
     "branches": [
       "no IF/Switch; Merge (choose branch, 9 inputs) waits for every platform"
     ],
-    "offline": "No outside data reaches the models: the idea comes from the model itself; Wavespeed and fal replies are stand-ins (URLs, no media). The three 4-minute waits are shortened by config time compression; the Sheets nodes' empty spreadsheet and tab ('=') are filled by config/5338.json. Blotato's request and reply shapes are from its public docs (assumed)",
-    "n8nCannotRun": "The ten Blotato nodes are the community package @blotato/n8n-nodes-blotato, which the bench image does not install: n8n 2.47.7 refuses their credential (POST /rest/credentials: Unrecognized credential type: blotatoApi, seen in a canned run), so the run cannot start"
+    "offline": "No outside data reaches the models: the idea comes from the model itself; Wavespeed and fal replies are stand-ins (URLs, no media). The three 4-minute waits are shortened by config time compression; the Sheets nodes' empty spreadsheet and tab ('=') are filled by config/5338.json. Blotato's request and reply shapes are from its public docs (assumed)"
   }
 }

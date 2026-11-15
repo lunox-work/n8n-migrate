@@ -1,0 +1,18 @@
+{
+  "$doc": "PROPOSALS P94: community node packages built into the bench's n8n image (container.mjs benchImage), each pinned by version and the registry's sha512 integrity, checked on download. Only packages whose node type has a one-off mapping in skills/n8n-to-claude/references/mappings.json and that a round's dev template uses. The tarball is unpacked as published (no install scripts, no dependencies: a peer dependency on n8n-workflow resolves to n8n's own). Their HTTP goes through the mock like every node's.",
+  "packages": [
+    {
+      "name": "@blotato/n8n-nodes-blotato",
+      "version": "1.0.10",
+      "integrity": "sha512-krZ7ivNXWcBAgatlCk13gV1NfuvtrOSs1Jy70QXO8xEq+82oog+o4mdeaPeDhfPApkEpe9AHwh6+sU15dDwjEg==",
+      "nodeTypes": ["@blotato/n8n-nodes-blotato.blotato"]
+    }
+  ],
+  "notInstalled": [
+    {
+      "name": "n8n-nodes-youtube-transcription",
+      "nodeTypes": ["n8n-nodes-youtube-transcription.youtubeTranscripter"],
+      "why": "no round-4 dev template uses it, and the registry's latest versions are 999.999.99-9.999 and 999.999.999 after 1.0.1 (a takeover or placeholder pattern); decide by hand before pinning one"
+    }
+  ]
+}

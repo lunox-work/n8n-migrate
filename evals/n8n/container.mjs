@@ -23,7 +23,7 @@
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, existsSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdirSync, existsSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -31,8 +31,52 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 
 export const IMAGE = "n8nio/n8n:2.47.7";
 export const SIDECAR_IMAGE = "node:22-alpine";
+// PROPOSALS P94: the image the bench runs: n8nio/n8n with the pinned community packages of
+// community-packages.json built in (`n8n2claude-n8n:<version>-<hash>`), or n8nio/n8n itself when
+// the list is empty. The packages sit at /home/node/.n8n/nodes/node_modules, where n8n 2.x scans
+// for community nodes; that path is a second volume, named by the same hash, so Docker fills it
+// from the image on first use while the database volume above it stays as it is.
+export function communityPackages() {
+  return JSON.parse(readFileSync(join(HERE, "community-packages.json"), "utf8")).packages ?? [];
+}
+export function benchImage(pkgs = communityPackages()) {
+  if (!pkgs.length) return IMAGE;
+  const h = createHash("sha256").update(JSON.stringify({ IMAGE, pkgs: pkgs.map(({ name, version, integrity }) => ({ name, version, integrity })) })).digest("hex").slice(0, 12);
+  return `n8n2claude-n8n:${IMAGE.split(":")[1]}-${h}`;
+}
+const nodesVolume = (image) => (image === IMAGE ? null : `n8n2claude-bench-nodes-${image.split("-").at(-1)}`);
 // A file-name-safe name of the n8n image in use (caches keyed by image: node descriptions).
-export const imageTag = () => IMAGE.replace(/[^\w.-]+/g, "_");
+export const imageTag = () => benchImage().replace(/[^\w.-]+/g, "_");
+
+// Builds benchImage() when it is missing: each tarball is fetched from the registry on the host,
+// checked against its pinned sha512 integrity, unpacked, and copied into a layer over n8nio/n8n.
+export async function ensureBenchImage({ log = console.error } = {}) {
+  const image = benchImage();
+  if (image === IMAGE || exists("image", image)) return image;
+  const dir = join(WORK, "image-build", image.split(":")[1]);
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(join(dir, "nodes"), { recursive: true });
+  for (const p of communityPackages()) {
+    const url = `https://registry.npmjs.org/${p.name}/-/${p.name.split("/").at(-1)}-${p.version}.tgz`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`community package ${p.name}@${p.version}: HTTP ${r.status}`);
+    const buf = Buffer.from(await r.arrayBuffer());
+    const got = `sha512-${createHash("sha512").update(buf).digest("base64")}`;
+    if (got !== p.integrity) throw new Error(`community package ${p.name}@${p.version}: integrity ${got} is not the pinned ${p.integrity}`);
+    const tgz = join(dir, `${p.name.replace(/[^\w.-]+/g, "_")}.tgz`);
+    writeFileSync(tgz, buf);
+    const to = join(dir, "nodes", "node_modules", ...p.name.split("/"));
+    mkdirSync(to, { recursive: true });
+    const t = spawnSync("tar", ["-xzf", tgz, "-C", to, "--strip-components=1"], { encoding: "utf8" });
+    if (t.status !== 0) throw new Error(`unpacking ${p.name}: ${t.stderr}`);
+    rmSync(tgz);
+  }
+  writeFileSync(join(dir, "Dockerfile"), `FROM ${IMAGE}\nCOPY --chown=node:node nodes/ /home/node/.n8n/nodes/\n`);
+  log(`building ${image} (${communityPackages().map((p) => `${p.name}@${p.version}`).join(", ")})`);
+  docker(["build", "-q", "-t", image, "--label", "n8n2claude.community=1", dir]);
+  rmSync(dir, { recursive: true, force: true });
+  return image;
+}
 export const NAME = "n8n2claude-bench";
 export const MOCK_NAME = "n8n2claude-mock";
 export const RUNNERS_NAME = "n8n2claude-runners"; // PROPOSALS P92, only while a template needs it
@@ -145,7 +189,7 @@ export async function waitForMemory(min = 30, { log = console.error } = {}) {
 // extraEnv over it, the runners sidecar); a running container with another hash is recreated
 // (same volume), so the bench's env overlays, a template's own env (evals/bench/n8n-side.mjs
 // templateEnv: a value dropped is dropped too) and a changed ENV always reach n8n.
-export function configHash({ extraEnv = {}, image = IMAGE, runners = false } = {}) {
+export function configHash({ extraEnv = {}, image = benchImage(), runners = false } = {}) {
   const env = { ...ENV, ...extraEnv };
   const sorted = Object.keys(env).sort().map((k) => `${k}=${env[k]}`);
   return createHash("sha256").update(JSON.stringify({ image, env: sorted, runners: runners || false })).digest("hex").slice(0, 16);
@@ -153,7 +197,8 @@ export function configHash({ extraEnv = {}, image = IMAGE, runners = false } = {
 export const configLabel = () => label(NAME, "n8n2claude.config");
 const label = (name, key) => docker(["inspect", "-f", `{{index .Config.Labels "${key}"}}`, name], { allowFail: true }).stdout?.trim() ?? "";
 
-export async function up({ fresh = false, extraEnv = {}, runners = false, image = IMAGE, log = console.error } = {}) {
+export async function up({ fresh = false, extraEnv = {}, runners = false, image = null, log = console.error } = {}) {
+  image ??= await ensureBenchImage({ log });
   const want = configHash({ extraEnv, image, runners });
   if (running(NAME) && !fresh && label(NAME, "n8n2claude.config") !== want) {
     log(`n8n container runs another configuration (env, image or runners): recreating it`);
@@ -206,7 +251,7 @@ export async function up({ fresh = false, extraEnv = {}, runners = false, image 
       "run", "-d", "--name", NAME, "--label", `n8n2claude.config=${want}`,
       "--memory=1g", "--memory-swap=1g",
       "--network", NET,
-      "-v", `${VOLUME}:/home/node/.n8n`, "-v", `${join(TLS_DIR, "ca.pem")}:/bench-ca/ca.pem:ro`,
+      "-v", `${VOLUME}:/home/node/.n8n`, ...(nodesVolume(image) ? ["-v", `${nodesVolume(image)}:/home/node/.n8n/nodes`] : []), "-v", `${join(TLS_DIR, "ca.pem")}:/bench-ca/ca.pem:ro`,
       ...env,
       image,
     ]);
@@ -306,7 +351,11 @@ export function state(name = NAME) {
 export function down({ purge = false } = {}) {
   docker(["rm", "-f", NAME, MOCK_NAME, RUNNERS_NAME], { allowFail: true });
   for (const n of [NET, EDGE]) docker(["network", "rm", n], { allowFail: true });
-  if (purge) docker(["volume", "rm", VOLUME], { allowFail: true });
+  if (purge) {
+    docker(["volume", "rm", VOLUME], { allowFail: true });
+    const vols = docker(["volume", "ls", "-q", "--filter", "name=n8n2claude-bench-nodes-"], { allowFail: true }).stdout?.trim().split("\n").filter(Boolean) ?? [];
+    for (const v of vols) docker(["volume", "rm", v], { allowFail: true });
+  }
 }
 
 // Container memory as Docker reports it, e.g. {used: "371.9MiB", limit: "1GiB", mib: 371.9}.

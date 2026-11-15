@@ -95,3 +95,12 @@ test("P92: a Python Code node gets the runners sidecar with exactly the modules 
   assert.equal(cfg["task-runners"][0]["env-overrides"].NODE_FUNCTION_ALLOW_EXTERNAL, "", "the JS runner keeps internal mode's defaults");
   assert.equal(image["task-runners"][1]["env-overrides"].N8N_RUNNERS_STDLIB_ALLOW, "", "the image's config is not changed in place");
 });
+
+test("P94: the bench image carries the pinned community packages; the image name follows the pins", async () => {
+  const { benchImage, communityPackages, IMAGE } = await import("../evals/n8n/container.mjs");
+  const pkgs = communityPackages();
+  assert.ok(pkgs.every((p) => /^sha512-/.test(p.integrity) && /^\d+\.\d+\.\d+$/.test(p.version)), "every package pinned by version and integrity");
+  assert.match(benchImage(), /^n8n2claude-n8n:2\.47\.7-[0-9a-f]{12}$/);
+  assert.equal(benchImage([]), IMAGE, "no package: n8n's own image");
+  assert.notEqual(benchImage([{ ...pkgs[0], version: "9.9.9" }]), benchImage(), "another pin, another image");
+});
