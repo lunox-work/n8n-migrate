@@ -108,7 +108,6 @@
       "7781-2234",
       "9,800.00"
     ],
-    "offline": "No write: the run's output is Extract All Deposit Table Rows' items (README P70 result effect), and both chains are model replies (Gemini 1.5 Pro, recorded on the n8n side; one transcription call per page image). Resize Images For AI runs GraphicsMagick in the n8n image. The Stirling PDF host is the person's own container (http://stirling-pdf:8080), reached through the mock",
-    "n8nCannotRun": "The bench's plain-HTTP proxy path: Split PDF into Images sends the downloaded statement (a disk-stored binary) as multipart to the person's own http:// Stirling host, and through the mock's forward proxy that body arrives malformed (the mock parses a cut-off file part and answers 400); the same request straight to a server, or to an https host through the mock's CONNECT tunnel, is well-formed (PROPOSALS P100). Probed with the Stirling route moved to https, every variant runs to its expected end"
+    "offline": "No write: the run's output is Extract All Deposit Table Rows' items (README P70 result effect), and both chains are model replies (Gemini 1.5 Pro, recorded on the n8n side; one transcription call per page image). Resize Images For AI runs GraphicsMagick in the n8n image. The Stirling PDF host is the person's own container (http://stirling-pdf:8080), reached through the mock"
   }
 }

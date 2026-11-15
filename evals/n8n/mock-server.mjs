@@ -56,7 +56,8 @@
 // cutover e2e's feed: Gmail's `after:` filter over items added while n8n runs). The log line
 // carries forwarded: <origin> and the reply.
 //
-// Log line: {seq, t, method, [proxied], path, query, [rawQuery], headers, body, bodyEncoding, fixture}
+// Log line: {seq, t, method, [proxied], [duplicateHead], path, query, [rawQuery], headers, body, bodyEncoding, fixture}
+// (duplicateHead: the client sent the request's head twice and the copy was dropped, P100)
 // (query keeps the last value of a repeated key; rawQuery is the query string as sent)
 // (proxied: the origin, when the client used this mock as its HTTP proxy)
 // where body is parsed JSON when it parses, multipart/form-data as {field: value} (files as
@@ -294,6 +295,32 @@ export const MODEL_HOSTS = [
 ];
 export const modelHost = (host, path) => MODEL_HOSTS.some((m) => (typeof m.host === "string" ? m.host === host : m.host.test(host)) && m.path.test(path));
 
+// PROPOSALS P100: n8n reaches a plain `http://` host through this mock as its forward proxy
+// with http-proxy-agent 7.0.2, whose connect() regenerates the request's stored head
+// (`_implicitHeader()`), which resets Node's `_headerSent`: when a streamed body (a disk-stored
+// binary as multipart) already queued a write, the next write sends the head again, so the
+// socket carries head, the same head, then the body. Node's parser would read the second head
+// as body (cut by its content-length) and the rest as a malformed request (an empty 400). The
+// real request, sent without a proxy, has one head; the bench's proxy is what adds the copy.
+// firstHead() looks at a plain connection's first bytes and drops an exact second copy of an
+// absolute-form (proxied) request head. -> {done, out, dropped}; done false: more bytes needed.
+const CRLF2 = Buffer.from("\r\n\r\n");
+export function firstHead(buf) {
+  const eol = buf.indexOf("\r\n");
+  if (eol < 0) return buf.length > 8192 ? { done: true, out: buf, dropped: false } : { done: false };
+  if (!/^[A-Z]+ https?:\/\/\S+ HTTP\/1\.[01]$/.test(buf.subarray(0, eol).toString("latin1"))) return { done: true, out: buf, dropped: false };
+  const end = buf.indexOf(CRLF2);
+  if (end < 0) return buf.length > 65536 ? { done: true, out: buf, dropped: false } : { done: false };
+  const head = buf.subarray(0, end + 4);
+  const rest = buf.subarray(end + 4);
+  if (rest.length >= head.length) return rest.subarray(0, head.length).equals(head) ? { done: true, out: Buffer.concat([head, rest.subarray(head.length)]), dropped: true } : { done: true, out: buf, dropped: false };
+  // Fewer bytes than a head after it: wait only while they could still be its copy and the
+  // head says a body follows (a request without one never gets a second write).
+  const text = head.toString("latin1");
+  const body = /\r\ncontent-length:\s*[1-9]/i.test(text) || /\r\ntransfer-encoding:\s*chunked/i.test(text);
+  return body && head.subarray(0, rest.length).equals(rest) ? { done: false } : { done: true, out: buf, dropped: false };
+}
+
 export function startMock({ port = 8080, log = null, fixtures = null, host = "0.0.0.0", tlsDir = null, modelShim = null } = {}) {
   let seq = 0;
   const counters = new Map();
@@ -331,6 +358,7 @@ export function startMock({ port = 8080, log = null, fixtures = null, host = "0.
         ...(origin ? { proxied: origin } : {}),
         ...(mitm ? { tls: true } : {}),
         ...(req.socket.__minted ? { mintedLeaf: true } : {}),
+        ...(req.socket.__duplicateHead ? { duplicateHead: true } : {}),
         path: u.pathname,
         query: Object.fromEntries(u.searchParams),
         ...(query ? { rawQuery: query } : {}),
@@ -398,6 +426,31 @@ export function startMock({ port = 8080, log = null, fixtures = null, host = "0.
       if (f.delayMs) setTimeout(send, f.delayMs);
       else send();
     });
+  });
+  // PROPOSALS P100: a plain connection's first request goes through firstHead() before Node's
+  // parser sees it (TLS tunnels, emitted below, carry no such copy and go straight in).
+  const [httpConnection] = server.listeners("connection");
+  server.removeListener("connection", httpConnection);
+  server.on("connection", (sock) => {
+    if (sock instanceof TLSSocket) return httpConnection.call(server, sock);
+    let buf = Buffer.alloc(0);
+    const hand = (out, dropped) => {
+      sock.removeListener("data", onData);
+      sock.removeListener("end", onEnd);
+      sock.pause();
+      if (dropped) sock.__duplicateHead = true;
+      if (out.length) sock.unshift(out);
+      httpConnection.call(server, sock);
+      sock.resume();
+    };
+    const onData = (d) => {
+      buf = Buffer.concat([buf, d]);
+      const r = firstHead(buf);
+      if (r.done) hand(r.out, r.dropped);
+    };
+    const onEnd = () => hand(buf, false);
+    sock.on("data", onData);
+    sock.on("end", onEnd);
   });
   // A client that uses this mock as an HTTPS proxy sends CONNECT host:443. With a leaf for
   // that host in --tls-dir the tunnel is terminated here (the client trusts the bench CA);
