@@ -6,8 +6,8 @@ Classes: **full** (no review flag, no blocked step), **review** (some step is fl
 
 | Mode | full | review | blocked | refused | crash | schema-invalid | preflight clean |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| default | 8 | 17 | 42 | 33 | 0 | 0 | 27 |
-| forced | 10 | 19 | 71 | 0 | 0 | 0 | 33 |
+| default | 10 | 21 | 36 | 33 | 0 | 0 | 24 |
+| forced | 12 | 25 | 63 | 0 | 0 | 0 | 29 |
 
 ## Default (refusals honoured)
 
@@ -15,21 +15,21 @@ Top reasons for blocked steps:
 
 | Reason | Templates | Steps |
 | --- | --- | --- |
-| unsupported: file steps need the files lever (not built yet) | 9 | 19 |
 | unsupported: a database step needs the bundled server or a database connector (open decision N) | 6 | 13 |
-| unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet) | 6 | 6 |
 | unsupported: a vector store needs an MCP server (lever not built yet) | 5 | 22 |
 | no-tool: no request template for wordpress post:create yet (it needs the app's REST API with a stored secret) | 4 | 4 |
 | unsupported: form waits for a person (out of scope v1) | 3 | 8 |
 | no-tool: no request template for facebookGraphApi yet (it needs the app's REST API with a stored secret) | 3 | 7 |
 | no-tool: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | no-tool: no request template for toolSerpApi yet (it needs the app's REST API with a stored secret) | 3 | 3 |
-| no-tool: no request template for twitter tweet:create yet (it needs the app's REST API with a stored secret) | 3 | 3 |
-| unsupported: toolThink cannot run in the runtime | 2 | 4 |
+| unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet) | 3 | 3 |
 | no-tool: no request template for discord channel:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
 | no-tool: no request template for hackerNews all:getAll yet (it needs the app's REST API with a stored secret) | 2 | 2 |
-| no-tool: no request template for rssFeedRead yet (it needs the app's REST API with a stored secret) | 2 | 2 |
 | no-tool: no request template for s3 file:upload yet (it needs the app's REST API with a stored secret) | 2 | 2 |
+| no-tool: no request template for toolWikipedia yet (it needs the app's REST API with a stored secret) | 2 | 2 |
+| no-tool: no request template for blotato yet (it needs the app's REST API with a stored secret) | 1 | 10 |
+| no-tool: no tool map for microsoftOutlook message:update yet | 1 | 7 |
+| no-tool: no tool map for microsoftOutlook message:move yet | 1 | 5 |
 
 Top reasons for review flags:
 
@@ -41,7 +41,6 @@ Top reasons for review flags:
 | the sheet "…" may not be the first tab; the export reads the first tab only | 4 | 6 |
 | the body is binary data, which the runtime does not send | 4 | 4 |
 | the chat page is public: outsiders cannot reach a Claude skill | 4 | 4 |
-| the file arrives as base64 text, not as binary data: steps that read $binary need translation | 4 | 4 |
 | tool "…" is left out: a vector store needs an MCP server (lever not built yet) | 4 | 4 |
 | an LLM API called with your own API key, as n8n does; approve --approve llm-api-to-claude to run it as a model step on Claude instead | 3 | 4 |
 | htmlExtract v1 is not implemented by the runtime | 3 | 4 |
@@ -50,21 +49,22 @@ Top reasons for review flags:
 | the raw OpenAI response (choices, usage) is not rebuilt; only the simplified message is | 2 | 6 |
 | parameter "…" has no counterpart in share_file | 2 | 4 |
 | reads "…" from "…", which google-drive create_file does not supply | 2 | 4 |
+| reads the local disk (a path built at run time: narrow allow.files in overrides.json): runs as a local task only, never in a cloud task or the artifact | 2 | 4 |
 
 Top preflight errors (what stops a run before any effect):
 
 | Error | Templates | Steps |
 | --- | --- | --- |
-| a request with a URL built at run time is allowed to any host (GET *); narrow it to a host in overrides.json | 10 | 10 |
-| blocked: file steps need the files lever (not built yet) | 9 | 19 |
-| blocked: media steps (transcription, image generation) go through the original provider (lever not built yet) | 6 | 6 |
+| step "…": a request with a URL built at run time is allowed to any host (GET *); its host cannot be known before a run: narrow it to a host in overrides.json | 11 | 11 |
 | blocked: a database step needs the bundled server or a database connector (open decision N) | 5 | 10 |
 | blocked: a vector store needs an MCP server (lever not built yet) | 5 | 6 |
 | not implemented: n8n-nodes-base.markdown v1 (kind logic) | 5 | 5 |
+| blocked: agent tool "…" cannot be carried (a vector store needs an MCP server (lever not built yet)); without it the agent would answer without a tool n8n gives it | 4 | 4 |
 | blocked: no request template for wordpress post:create yet (it needs the app's REST API with a stored secret) | 4 | 4 |
 | blocked: form waits for a person (out of scope v1) | 3 | 8 |
 | blocked: no request template for facebookGraphApi yet (it needs the app's REST API with a stored secret) | 3 | 7 |
 | not implemented: n8n-nodes-base.htmlExtract v1 (kind logic) | 3 | 4 |
+| blocked: agent tool "…" cannot be carried (no request template for toolSerpApi yet (it needs the app's REST API with a stored secret)); without it the agent would answer without a tool n8n gives it | 3 | 3 |
 
 ## Forced (every template converted)
 
@@ -72,8 +72,7 @@ Top reasons for blocked steps:
 
 | Reason | Templates | Steps |
 | --- | --- | --- |
-| unsupported: file steps need the files lever (not built yet) | 18 | 32 |
-| unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet) | 16 | 17 |
+| unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet) | 11 | 12 |
 | unsupported: a vector store needs an MCP server (lever not built yet) | 10 | 45 |
 | unsupported: a database step needs the bundled server or a database connector (open decision N) | 7 | 17 |
 | input-incomplete: the sub-workflow "…" is not in the export | 7 | 16 |
@@ -81,12 +80,13 @@ Top reasons for blocked steps:
 | no-tool: no request template for toolSerpApi yet (it needs the app's REST API with a stored secret) | 6 | 6 |
 | no-tool: no request template for telegram file:get yet (it needs the app's REST API with a stored secret) | 5 | 6 |
 | no-tool: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret) | 5 | 5 |
-| no-tool: no request template for twitter tweet:create yet (it needs the app's REST API with a stored secret) | 5 | 5 |
 | no-tool: no request template for wordpress post:create yet (it needs the app's REST API with a stored secret) | 4 | 4 |
-| not-captured: connector needs sign-in on this account; schemas not captured; map event:getAll once they are | 4 | 4 |
 | no-tool: no request template for whatsApp media:mediaUrlGet yet (it needs the app's REST API with a stored secret) | 3 | 9 |
 | unsupported: form waits for a person (out of scope v1) | 3 | 8 |
-| unsupported: toolThink cannot run in the runtime | 3 | 5 |
+| no-tool: no request template for toolWikipedia yet (it needs the app's REST API with a stored secret) | 3 | 3 |
+| substitution: emailSend cannot run on Claude as it is: send through the Gmail connector (send_message) instead of SMTP | 3 | 3 |
+| unsupported: sends, then waits for a human reply through an n8n webhook (out of scope v1) | 3 | 3 |
+| no-tool: no tool edits a document in place (update_file changes metadata only) | 2 | 3 |
 
 Top reasons for review flags:
 
@@ -97,7 +97,6 @@ Top reasons for review flags:
 | image analysis needs the image handed to the model, which the model step does not carry yet | 8 | 9 |
 | tool "…": the sub-workflow "…" is not in the export | 7 | 16 |
 | markdown v1 is not implemented by the runtime | 7 | 7 |
-| the file arrives as base64 text, not as binary data: steps that read $binary need translation | 7 | 7 |
 | the caller waits for a reply; a relay cannot answer it | 6 | 10 |
 | tool "…" is left out: no request template for toolSerpApi yet (it needs the app's REST API with a stored secret) | 6 | 6 |
 | $env is blocked in n8n and in the runtime | 5 | 11 |
@@ -107,27 +106,28 @@ Top reasons for review flags:
 | the body is binary data, which the runtime does not send | 4 | 4 |
 | the chat page is public: outsiders cannot reach a Claude skill | 4 | 4 |
 | reads "…" from "…", which google-drive create_file does not supply | 3 | 5 |
+| htmlExtract v1 is not implemented by the runtime | 3 | 4 |
 
 Top preflight errors (what stops a run before any effect):
 
 | Error | Templates | Steps |
 | --- | --- | --- |
-| a request with a URL built at run time is allowed to any host (GET *); narrow it to a host in overrides.json | 19 | 19 |
-| blocked: file steps need the files lever (not built yet) | 18 | 32 |
-| blocked: media steps (transcription, image generation) go through the original provider (lever not built yet) | 16 | 17 |
+| step "…": a request with a URL built at run time is allowed to any host (GET *); its host cannot be known before a run: narrow it to a host in overrides.json | 20 | 20 |
+| blocked: media steps (transcription, image generation) go through the original provider (lever not built yet) | 11 | 12 |
 | blocked: a vector store needs an MCP server (lever not built yet) | 10 | 11 |
+| blocked: agent tool "…" cannot be carried (a vector store needs an MCP server (lever not built yet)); without it the agent would answer without a tool n8n gives it | 9 | 9 |
 | blocked: a database step needs the bundled server or a database connector (open decision N) | 6 | 14 |
+| blocked: agent tool "…" cannot be carried (the sub-workflow "…" is not in the export); without it the agent would answer without a tool n8n gives it | 6 | 14 |
+| blocked: agent tool "…" cannot be carried (no request template for toolSerpApi yet (it needs the app's REST API with a stored secret)); without it the agent would answer without a tool n8n gives it | 6 | 6 |
 | not implemented: n8n-nodes-base.markdown v1 (kind logic) | 6 | 6 |
 | blocked: no request template for facebookGraphApi yet (it needs the app's REST API with a stored secret) | 5 | 11 |
 | blocked: no request template for telegram file:get yet (it needs the app's REST API with a stored secret) | 5 | 6 |
-| blocked: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret) | 4 | 4 |
-| blocked: no request template for twitter tweet:create yet (it needs the app's REST API with a stored secret) | 4 | 4 |
 
 ## Tool maps
 
-65 operation entries in `references/tool-maps.json`: 53 connector tools, 4 REST request templates, 8 explained no-tool blocks; 2 substitutions (smtp-to-gmail, imap-to-gmail-poll). Fidelity of the mapped ones: unverified 50, exact 7. 4 connector entries need their arguments translated by the skill (Notion property formats).
+72 operation entries in `references/tool-maps.json`: 59 connector tools, 5 REST request templates, 8 explained no-tool blocks; 2 substitutions (smtp-to-gmail, imap-to-gmail-poll). Fidelity of the mapped ones: unverified 50, exact 14. 4 connector entries need their arguments translated by the skill (Notion property formats).
 
-Steps in the forced run by fidelity: tools unverified 69; REST templates exact 52.
+Steps in the forced run by fidelity: tools unverified 69; REST templates exact 57.
 
 No connector output shape was captured (the schemas are input schemas), so every adapter that reads a tool's output is `unverified` until the bench's emulation check runs it against real output. REST templates are `exact` where n8n returns the API's own response body.
 
