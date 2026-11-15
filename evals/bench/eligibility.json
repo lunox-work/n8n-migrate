@@ -39,7 +39,7 @@
     { "id": "under-a-minute", "plan": "Anything that must react in under a minute", "rule": "interval", "maxSec": 60, "why": "the analyzer's shortest schedule or poll interval is under 60 s" }
   ],
   "n8nSelfFail": {
-    "$doc": "Configurations that make n8n 2.47.7 fail on the template itself, whatever the data, checked on main-branch steps. Each rule names the n8n refusal it comes from. `nodeMissing`: a node type absent from references/nodes.json (generated from the n8n 2.47.5 node packages) and from `bench.pendingTypes` is a node the image lacks.",
+    "$doc": "Configurations that make n8n 2.47.7 fail on the template itself, whatever the data, checked on main-branch steps. Each rule names the n8n refusal it comes from. An empty field that names the person's own account resource (recipient, label, document, chat id) is a placeholder the overlay fills, not a rule here; an empty content or configuration field is (EXCLUSIONS.md, Empty fields, P91). `nodeMissing`: a node type absent from references/nodes.json (generated from the n8n 2.47.5 node packages) and from `bench.pendingTypes` is a node the image lacks.",
     "rules": [
       { "id": "required-empty", "type": "n8n-nodes-base.facebookGraphApi", "param": "graphApiVersion", "when": "empty", "evidence": "n8n 2.47.7: Parameter \"Graph API Version\" is required (PROPOSALS P65)" },
       { "id": "required-empty", "type": "n8n-nodes-base.facebookGraphApi", "param": "node", "when": "empty", "evidence": "n8n 2.47.7: Parameter \"Node\" is required (PROPOSALS P65)" },

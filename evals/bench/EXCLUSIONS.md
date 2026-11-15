@@ -42,6 +42,10 @@ Fixed on 2026-11-15, before it was applied to any template. The corpus exists so
 
 Changing a list is a commit made before it is applied, like this section. Strata are the fetch's (`chat`, `manual`, `schedule`, `form`, `poll`, `other`).
 
+**Empty fields (clause 3a; PROPOSALS P91, written 2026-11-16 for later rounds; round 4's audit and corpus stay as applied).** An empty required field that names the person's own account resource (a mail sender or recipient, a label, a spreadsheet, document or folder id, a chat or channel id, a Graph object id) is a placeholder: the overlay fills it on both sides and the template keeps its baseline. An empty field that holds content or configuration (the text to post, the columns to match on, an API version, a tool's language) is self-failing configuration. Checked against `n8nSelfFail`: the post text, matching columns and Graph API version rules are content or configuration and stand; the Facebook Graph API `node` rule names the person's Graph object, so it moves to placeholder in the next round's lists (4352 stays out in round 4 on its empty API version alone).
+
+**Pending list changes for the next round** (found by R4e's canned checks; each becomes a list commit before the next round's eligibility is applied, never a bench-result exclusion of a round-4 template): a main-branch Python Code node written for the Pyodide runtime n8n 2.0 removed (`_input`, `micropip`, top-level `await`, JsProxy `.to_py()`) is self-failing (PROPOSALS P95; 1992, 2374); a main-branch JavaScript Code node that `require()`s a module is self-failing on the default image (P87); uProc's `language` is required for its text, audio and country tools in n8n 2.47.7 (1073); the Facebook Graph API `node` rule moves to placeholder (above).
+
 ## Round 4 held-out
 
 Fixed on 2026-11-15, before any round-4 template was fetched or opened. Seed **20261116**. Round 4's held-out is 20 templates nobody has read: none from the Phase 5 overflow or the round-3 candidates left undrawn, whose verdicts are in `corpus.json`.
