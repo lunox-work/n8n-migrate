@@ -118,7 +118,7 @@
       },
       "connector": {
         "shape": "assumed",
-        "none": "no connector"
+        "none": "no captured connector for the cutter"
       },
       "note": "status poll by fileRequestId; Data.DownloadLink set when the cut is ready (shape assumed from the template's If Downloads Ready)"
     },
