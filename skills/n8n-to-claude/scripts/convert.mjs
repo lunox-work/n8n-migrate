@@ -919,13 +919,20 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       // A REST program: the runtime reads the n8n parameters itself and makes n8n's requests.
       step.kind = "http";
       const cav = caveatsFor(params, entry.caveats);
-      step.rest = { program: entry.rest, effect: entry.effect === "read" ? "read" : "write", fidelity: entry.fidelity ?? "exact", ...(cav.length ? { caveats: cav } : {}), map: key };
+      // A generic request node (Facebook Graph API): the method is a parameter, so the effect
+      // and the allowed method follow it ("byMethod", hosts' "@<param>"; an expression: any method).
+      const mp = entry.methodParam;
+      const rawMethod = mp ? unwrapParam(getParam(params, mp.param), mp.param, []) ?? mp.default : undefined;
+      const stepMethod = mp ? (isExpr(rawMethod) ? "*" : String(rawMethod).toUpperCase()) : undefined;
+      const effect = entry.effect === "byMethod" ? (stepMethod === "GET" ? "read" : "write") : entry.effect === "read" ? "read" : "write";
+      if (entry.effect === "byMethod" && stepMethod === "*") review(step, "the HTTP method is set by an expression, so the step counts as a write");
+      step.rest = { program: entry.rest, effect, fidelity: entry.fidelity ?? "exact", ...(cav.length ? { caveats: cav } : {}), map: key };
       const cred = Object.entries(step.credentials ?? {}).find(([t]) => t === entry.credentialType) ?? Object.entries(step.credentials ?? {})[0];
       const credType = cred?.[0] ?? entry.credentialType;
       const secretName = cred?.[1] ?? `${entry.credentialType} (no credential named in the export)`;
       step.auth = { credentialType: credType, secret: secretName };
       for (const h of entry.hosts ?? []) {
-        addHttp(h.method, h.host, h.pathPrefix);
+        addHttp(String(h.method).startsWith("@") ? stepMethod ?? "*" : h.method, h.host, h.pathPrefix);
         addSecret(secretName, credType, h.host);
       }
     } else {
@@ -1185,7 +1192,10 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       if (info.kind === "model" && info.levers?.includes("llm-api")) {
         // handled below with the HTTP Request node
       } else {
-        const found = info.operation != null ? findMap(refs.toolMaps, baseType, v, info.resource ?? "_", info.operation) : null;
+        // A node without resource and operation parameters (one generic request: Facebook Graph
+        // API) is mapped under "_" "_".
+        const op = info.operation ?? (params.operation === undefined && params.resource === undefined ? "_" : null);
+        const found = op != null ? findMap(refs.toolMaps, baseType, v, info.resource ?? "_", op) : null;
         if (baseType === BASE + "rssFeedRead") applyRss(name, step, params);
         else if (found) applyMap(name, step, found, params);
         else if (type === LC + "toolHttpRequest" || type === BASE + "httpRequestTool") {

@@ -4396,7 +4396,89 @@ const openAiImage = {
   },
 };
 
-const restPrograms = { googleSheets, googleCalendar, rssFeedRead, openAiImage };
+// ---------- Facebook Graph API (n8n-nodes-base.facebookGraphApi v1, v1.1) ----------
+// n8n-nodes-base 2.47.7 FacebookGraphApi.node.js, per item: the access token (credential
+// facebookGraphApi) as query `access_token` first, then `fields` (options.fields.field names,
+// comma-joined), then each options.queryParameters.parameter name/value, then the keys of
+// options.queryParametersJson (when it parses); `https://<hostUrl>/<graphApiVersion>/<node>[/<edge>]`
+// with each path value encoded as n8n-workflow requestPath encodes a segment (v1 decodes an
+// already-encoded value first); the method as set; the JSON answer is the item. A text answer
+// fails with n8n's message. The token goes in the URL (placement url) to graph.facebook.com and
+// graph-video.facebook.com only.
+const GRAPH_HOSTS = ["graph.facebook.com", "graph-video.facebook.com"];
+const SEGMENT_KEEP = /%(?:21|24|26|27|28|29|2A|2B|2C|3B|3D|3A|40)/gi;
+function graphSegment(v, decodeFirst) {
+  let s = String(v);
+  if (decodeFirst) {
+    try {
+      s = decodeURIComponent(s);
+    } catch {
+      /* keep it */
+    }
+  }
+  return encodeURIComponent(s).replace(SEGMENT_KEEP, decodeURIComponent);
+}
+const facebookGraph = {
+  versions: () => true,
+  async execute(exec) {
+    const out = [];
+    const items = exec.getInputData();
+    const v1 = Number(exec.step.n8n?.typeVersion ?? 1) < 1.1;
+    for (let i = 0; i < items.length; i++) {
+      try {
+        if (exec.param("authType", i, "accessToken") !== "accessToken") throw new NodeError("Facebook Graph API with OAuth2 is not carried over; use an access token credential", { node: exec.name, itemIndex: i });
+        if (exec.param("sendBinaryData", i, false)) throw new NodeError("Facebook Graph API binary uploads are not carried over", { node: exec.name, itemIndex: i });
+        const hostUrl = String(exec.param("hostUrl", i, "graph.facebook.com"));
+        if (!GRAPH_HOSTS.includes(hostUrl)) throw new NodeError(`The Host URL "${hostUrl}" is not supported`, { node: exec.name, itemIndex: i });
+        const method = String(exec.param("httpRequestMethod", i, "GET")).toUpperCase();
+        const version = String(exec.param("graphApiVersion", i, "") ?? "");
+        const node = String(exec.param("node", i, ""));
+        const edge = String(exec.param("edge", i, "") ?? "");
+        const o = exec.param("options", i, {}) ?? {};
+        let path = version ? `/${graphSegment(version, false)}` : "";
+        for (const part of node.split("/")) path += part ? `/${graphSegment(part, v1)}` : "/";
+        if (edge) path += `/${graphSegment(edge, v1)}`;
+        const query = {};
+        if (o.fields?.field !== undefined) query.fields = [].concat(o.fields.field).map((f) => f?.name).join(",");
+        for (const p of [].concat(o.queryParameters?.parameter ?? [])) if (p && p.name !== undefined) query[p.name] = p.value;
+        if (o.queryParametersJson) {
+          try {
+            Object.assign(query, JSON.parse(o.queryParametersJson));
+          } catch {
+            /* n8n ignores JSON it cannot read */
+          }
+        }
+        const req = { kind: "http", itemIndex: i, method, url: `https://${hostUrl}${path}?access_token={{secret}}`, query, headers: { accept: "application/json,text/*;q=0.99" } };
+        if (exec.step.auth?.secret) req.auth = { credentialType: exec.step.auth.credentialType, secret: exec.step.auth.secret, placement: "url" };
+        const [r] = await exec.request([req]);
+        if (!r.ok) throw new NodeError(r.error?.message ?? "request failed", { node: exec.name, itemIndex: i });
+        const val = r.value ?? {};
+        let b = val.body;
+        if (typeof b === "string" && /^\s*[[{]/.test(b)) {
+          try {
+            b = JSON.parse(b);
+          } catch {
+            /* text */
+          }
+        }
+        const status = Number(val.status ?? 200);
+        if (status >= 400) throw new NodeError(`${status} - ${typeof b === "string" ? b : JSON.stringify(b)}`, { node: exec.name, itemIndex: i, httpCode: String(status) });
+        if (typeof b === "string") throw new NodeError("Response body is not valid JSON.", { node: exec.name, itemIndex: i });
+        out.push({ json: b ?? {}, pairedItem: { item: i } });
+      } catch (e) {
+        if (e?.name === "Suspend" || e?.name === "ContainmentViolation") throw e;
+        if (exec.continueOnFail()) {
+          out.push({ json: { error: e.message }, pairedItem: { item: i } });
+          continue;
+        }
+        throw e;
+      }
+    }
+    return [out];
+  },
+};
+
+const restPrograms = { googleSheets, googleCalendar, rssFeedRead, openAiImage, facebookGraph };
 
 return { restPrograms };
 })();

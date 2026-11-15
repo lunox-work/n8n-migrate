@@ -554,3 +554,33 @@ test("an HTTP step whose host comes from data asks for its hosts at setup: named
   const written = convertJson(flow({ url: "={{ 'https://api.example.com/v1/' + $json.id }}" }));
   assert.equal(written.report.workflows[0].questions.some((x) => /\/hosts\//.test(x.id)), false);
 });
+
+test("Facebook Graph API requests as n8n builds them: token first in the query, then fields and query parameters", async () => {
+  const fb = (params) => ({
+    id: "fb01",
+    name: "Graph",
+    nodes: [manual, { parameters: params, name: "Graph", type: "n8n-nodes-base.facebookGraphApi", typeVersion: 1, position: [200, 0], credentials: { facebookGraphApi: { id: "1", name: "FB token" } } }],
+    connections: link("Start", "Graph"),
+    settings: { executionOrder: "v1" },
+  });
+  const def = convertJson(fb({ edge: "media", node: "1784", graphApiVersion: "v22.0", httpRequestMethod: "POST", options: { fields: { field: [{ name: "id" }, { name: "status" }] }, queryParameters: { parameter: [{ name: "caption", value: "={{ $json.c }}" }, { name: "image_url", value: "https://img.example/a.png" }] } } })).definition;
+  assert.equal(def.steps.Graph.rest.program, "facebookGraph");
+  assert.equal(def.steps.Graph.rest.effect, "write");
+  assert.deepEqual(def.allow.http.map((a) => [a.method, a.host]), [["POST", "graph.facebook.com"], ["POST", "graph-video.facebook.com"]]);
+  assert.deepEqual(def.secrets, [{ name: "FB token", credentialType: "facebookGraphApi", hosts: ["graph.facebook.com", "graph-video.facebook.com"] }]);
+  assert.equal(preflight(def).ok, true, JSON.stringify(preflight(def).issues));
+  const seen = [];
+  const http = async (r) => (seen.push(r), { status: 200, headers: { "content-type": "application/json" }, body: '{"id":"c1"}' });
+  const r = await run(def, { clock: CLOCK, virtualTime: true, trigger: [{ c: "Hello" }], host: { http } });
+  assert.equal(r.status, "done", JSON.stringify(r.error));
+  assert.equal(seen[0].url, "https://graph.facebook.com/v22.0/1784/media?access_token={{secret}}");
+  assert.deepEqual(seen[0].query, { fields: "id,status", caption: "Hello", image_url: "https://img.example/a.png" });
+  assert.deepEqual([seen[0].method, seen[0].auth.placement], ["POST", "url"]);
+  assert.deepEqual(r.runData.Graph[0].data.main[0].map((i) => i.json), [{ id: "c1" }]);
+  // GET is a read; the default version adds no path segment; a text answer fails as in n8n.
+  const get = convertJson(fb({ node: "me", options: {} })).definition;
+  assert.equal(get.steps.Graph.rest.effect, "read");
+  const t = await run(get, { clock: CLOCK, virtualTime: true, trigger: [{}], host: { http: async (q) => (seen.push(q), { status: 200, headers: {}, body: "nope" }) } });
+  assert.equal(seen.at(-1).url, "https://graph.facebook.com/me?access_token={{secret}}");
+  assert.match(t.error.message, /Response body is not valid JSON/);
+});
