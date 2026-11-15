@@ -57,14 +57,14 @@ function strings(v, out = []) {
   return out;
 }
 
-function lookupType(map, type) {
+export function lookupType(map, type) {
   const hit = own(map, type);
   if (hit !== undefined) return hit;
   if (type.endsWith("Tool")) return own(map, type.slice(0, -4));
   return undefined;
 }
 // A feature or capability entry: a string, or {ops: {op: value}, default}.
-function resolveEntry(entry, step) {
+export function resolveEntry(entry, step) {
   if (entry === undefined) return undefined;
   if (entry === null || typeof entry === "string") return entry;
   for (const [op, v] of Object.entries(entry.ops ?? {})) if (opMatches(step, op)) return v;
