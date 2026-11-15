@@ -357,7 +357,9 @@ export async function runWorkflow(workflow, { trigger, mock, credentials = {}, v
       executionMs: ex.startedAt && ex.stoppedAt ? Date.parse(ex.stoppedAt) - Date.parse(ex.startedAt) : null,
       wallMs,
       ...(peakMiB !== undefined ? { peakMiB } : {}),
-      ...(resultData.error ? { error: { message: resultData.error.message, node: resultData.error.node?.name ?? null } } : {}),
+      // A task runner's error (a Code node in JS or Python) names no node; the last node that ran
+      // failing is the one.
+      ...(resultData.error ? { error: { message: resultData.error.message, node: resultData.error.node?.name ?? (resultData.runData?.[resultData.lastNodeExecuted]?.at(-1)?.error ? resultData.lastNodeExecuted : null) } } : {}),
       lastNode: resultData.lastNodeExecuted ?? null,
       nodes: summariseRunData(resultData.runData),
       effects: readEffects(),

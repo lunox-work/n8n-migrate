@@ -204,7 +204,29 @@ export function templateEnv(prep) {
     env.NODES_EXCLUDE = "[]";
     needs.push("P93: Execute Command allowed (NODES_EXCLUDE=[])");
   }
-  return { extraEnv: env, runners: false, needs };
+  // PROPOSALS P92: a Python Code node needs n8n's external runners sidecar, with the modules the
+  // node imports allowed (read from its code, never `*`).
+  const py = (prep.wf?.nodes ?? []).filter((n) => !n.disabled && n.type === "n8n-nodes-base.code" && /python/i.test(n.parameters?.language ?? ""));
+  let runners = false;
+  if (py.length) {
+    const mods = [...new Set(py.flatMap((n) => pythonImports(n.parameters?.pythonCode ?? "")))].sort();
+    runners = { stdlib: mods, external: mods };
+    needs.push(`P92: Python runner sidecar${mods.length ? ` (imports allowed: ${mods.join(", ")})` : ""}`);
+  }
+  return { extraEnv: env, runners, needs };
+}
+
+// The top-level modules a Python Code node imports (`import a.b, c as d`, `from a.b import x`;
+// relative imports skipped).
+export function pythonImports(code) {
+  const out = new Set();
+  for (const line of String(code).split(/\r?\n/)) {
+    const m = /^\s*import\s+(.+)$/.exec(line);
+    if (m) for (const part of m[1].split(",")) out.add(part.trim().split(/\s+/)[0].split(".")[0]);
+    const f = /^\s*from\s+([\w.]+)\s+import\s/.exec(line);
+    if (f && !f[1].startsWith(".")) out.add(f[1].split(".")[0]);
+  }
+  return [...out].filter((x) => /^\w+$/.test(x)).sort();
 }
 export function loopbackRouteHosts(routes) {
   const out = new Set();

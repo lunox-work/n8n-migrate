@@ -148,7 +148,7 @@ export async function waitForMemory(min = 30, { log = console.error } = {}) {
 export function configHash({ extraEnv = {}, image = IMAGE, runners = false } = {}) {
   const env = { ...ENV, ...extraEnv };
   const sorted = Object.keys(env).sort().map((k) => `${k}=${env[k]}`);
-  return createHash("sha256").update(JSON.stringify({ image, env: sorted, runners: !!runners })).digest("hex").slice(0, 16);
+  return createHash("sha256").update(JSON.stringify({ image, env: sorted, runners: runners || false })).digest("hex").slice(0, 16);
 }
 export const configLabel = () => label(NAME, "n8n2claude.config");
 const label = (name, key) => docker(["inspect", "-f", `{{index .Config.Labels "${key}"}}`, name], { allowFail: true }).stdout?.trim() ?? "";
@@ -211,7 +211,7 @@ export async function up({ fresh = false, extraEnv = {}, runners = false, image 
       image,
     ]);
   }
-  if (runners && (created || !running(RUNNERS_NAME))) startRunners(extraEnv);
+  if (runners && (created || !running(RUNNERS_NAME))) startRunners(extraEnv, runners === true ? {} : runners);
   await waitHealthy();
   log(`n8n up at ${BASE} (${image}${runners ? `, Python runners ${RUNNERS_IMAGE}` : ""}); mock at ${MOCK_URL} inside, work dir ${WORK}`);
 }
@@ -225,9 +225,14 @@ export function mockCodeHash() {
 
 // PROPOSALS P92: n8n 2.x runs Python Code nodes only in an external task runner. For a template
 // with one, n8n runs its broker in external mode and n8n's own runners image (pinned to the same
-// version) connects to it from a sidecar on the internal network: no route out, its HTTP through
-// the mock like n8n's, the bench CA trusted, 512 MiB cap. The JS runner moves there too for that
-// run (the launcher starts both).
+// version) connects to it from a sidecar on the internal network: no route out, the bench CA
+// trusted, 512 MiB cap, started only for such a template and removed for the next one. The JS
+// runner moves there too for that run (the launcher starts both). The image's launcher config
+// allows no Python import at all (N8N_RUNNERS_STDLIB_ALLOW and _EXTERNAL_ALLOW are "" in its
+// env-overrides), so the bench mounts the same config with the modules the template imports
+// allowed, as a person would configure their runners (`runners: {stdlib, external}`), never `*`;
+// the JS runner's allow lists are emptied to match internal mode's defaults. No package is
+// installed: the image has only the standard library.
 const RUNNERS_TOKEN = "n8n2claude-bench-runners-not-a-secret";
 const RUNNERS_ENV = {
   N8N_RUNNERS_MODE: "external",
@@ -235,15 +240,26 @@ const RUNNERS_ENV = {
   N8N_RUNNERS_BROKER_LISTEN_ADDRESS: "0.0.0.0",
   N8N_PYTHON_ENABLED: "true",
 };
-function startRunners(extraEnv = {}) {
+export function runnersConfig(imageConfig, { stdlib = [], external = [] } = {}) {
+  const cfg = structuredClone(imageConfig);
+  for (const r of cfg["task-runners"] ?? []) {
+    if (r["runner-type"] === "python") r["env-overrides"] = { ...r["env-overrides"], N8N_RUNNERS_STDLIB_ALLOW: stdlib.join(","), N8N_RUNNERS_EXTERNAL_ALLOW: external.join(",") };
+    if (r["runner-type"] === "javascript") r["env-overrides"] = { ...r["env-overrides"], NODE_FUNCTION_ALLOW_BUILTIN: "", NODE_FUNCTION_ALLOW_EXTERNAL: "" };
+  }
+  return cfg;
+}
+function startRunners(extraEnv = {}, runners = {}) {
   docker(["rm", "-f", RUNNERS_NAME], { allowFail: true });
-  const pass = ["GENERIC_TIMEZONE", "TZ", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "NODE_USE_ENV_PROXY", "NODE_EXTRA_CA_CERTS"];
-  const env = { ...Object.fromEntries(pass.map((k) => [k, { ...ENV, ...extraEnv }[k]]).filter(([, v]) => v !== undefined)), N8N_RUNNERS_TASK_BROKER_URI: `http://${NAME}:5679`, N8N_RUNNERS_AUTH_TOKEN: RUNNERS_TOKEN, N8N_RUNNERS_MAX_CONCURRENCY: "2", SSL_CERT_FILE: "/bench-ca/ca.pem", REQUESTS_CA_BUNDLE: "/bench-ca/ca.pem" };
+  const base = JSON.parse(docker(["run", "--rm", "--entrypoint", "cat", RUNNERS_IMAGE, "/etc/n8n-task-runners.json"]).stdout);
+  const cfgFile = join(WORK, "runners-config.json");
+  writeFileSync(cfgFile, JSON.stringify(runnersConfig(base, runners), null, 2));
+  const pass = ["GENERIC_TIMEZONE", "TZ"];
+  const env = { ...Object.fromEntries(pass.map((k) => [k, { ...ENV, ...extraEnv }[k]]).filter(([, v]) => v !== undefined)), N8N_RUNNERS_TASK_BROKER_URI: `http://${NAME}:5679`, N8N_RUNNERS_AUTH_TOKEN: RUNNERS_TOKEN, N8N_RUNNERS_MAX_CONCURRENCY: "2" };
   docker([
     "run", "-d", "--name", RUNNERS_NAME,
     "--memory=512m", "--memory-swap=512m",
     "--network", NET,
-    "-v", `${join(TLS_DIR, "ca.pem")}:/bench-ca/ca.pem:ro`,
+    "-v", `${cfgFile}:/etc/n8n-task-runners.json:ro`,
     ...Object.entries(env).flatMap(([k, v]) => ["-e", `${k}=${v}`]),
     RUNNERS_IMAGE,
   ]);

@@ -634,7 +634,10 @@
     "bait": [
       "support@hn-insights.example"
     ],
-    "n8nCannotRun": "Apply K-means Clustering Algorithm is a Code node in Python (numpy, scikit-learn), and the bench image has no Python runner, so the child execution that Trigger Insights waits for fails there in every variant, before Information Extractor and Export To Sheets",
-    "offline": "The parent run (clear, Hacker News, insert) runs in n8n; the insights part runs in a child execution of the same workflow (Execute Workflow with $workflow.id), awaited by the bench. Insight and sentiment are model-driven; the clustering is numeric and cannot be reproduced without the Python runner. Trigger Insights is left unlisted (validate warns): it only starts the child execution, whose reads and write are listed"
+    "offline": "The parent run (clear, Hacker News, insert) runs in n8n; the insights part runs in a child execution of the same workflow (Execute Workflow with $workflow.id), awaited by the bench. Insight and sentiment are model-driven; the clustering is numeric and cannot be reproduced without the Python runner. Trigger Insights is left unlisted (validate warns): it only starts the child execution, whose reads and write are listed",
+    "n8nFails": {
+      "node": "Trigger Insights",
+      "why": "the child execution's Apply K-means Clustering Algorithm is Python written for the Pyodide runtime n8n 2.x removed (_input, JsProxy .to_py(), numpy and scikit-learn): n8n 2.47.7's native Python runner has no _input and no numpy (No module named numpy), so the call fails whatever the data (canned check with the P92 runner sidecar, R4e)"
+    }
   }
 }

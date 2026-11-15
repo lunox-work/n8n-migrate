@@ -81,3 +81,17 @@ test("P93: only a template with an enabled Execute Command node runs with NODES_
   assert.equal(templateEnv({ routes: [], wf: wf(false) }).extraEnv.NODES_EXCLUDE, "[]");
   assert.equal(templateEnv({ routes: [], wf: wf(true) }).extraEnv.NODES_EXCLUDE, undefined, "a disabled node needs nothing");
 });
+
+test("P92: a Python Code node gets the runners sidecar with exactly the modules it imports allowed", async () => {
+  const { templateEnv, pythonImports } = await import("../evals/bench/n8n-side.mjs");
+  const { runnersConfig } = await import("../evals/n8n/container.mjs");
+  assert.deepEqual(pythonImports("import numpy as np\nfrom sklearn.cluster import KMeans\nimport os.path, json\nfrom . import local"), ["json", "numpy", "os", "sklearn"]);
+  const t = templateEnv({ routes: [], wf: { nodes: [{ name: "Py", type: "n8n-nodes-base.code", parameters: { language: "python", pythonCode: "import re\nreturn []" } }] } });
+  assert.deepEqual(t.runners, { stdlib: ["re"], external: ["re"] });
+  assert.equal(templateEnv({ routes: [], wf: { nodes: [{ name: "Js", type: "n8n-nodes-base.code", parameters: { jsCode: "return []" } }] } }).runners, false);
+  const image = { "task-runners": [{ "runner-type": "javascript", "env-overrides": { NODE_FUNCTION_ALLOW_BUILTIN: "crypto", NODE_FUNCTION_ALLOW_EXTERNAL: "moment" } }, { "runner-type": "python", "env-overrides": { N8N_RUNNERS_STDLIB_ALLOW: "", N8N_RUNNERS_EXTERNAL_ALLOW: "" } }] };
+  const cfg = runnersConfig(image, t.runners);
+  assert.equal(cfg["task-runners"][1]["env-overrides"].N8N_RUNNERS_STDLIB_ALLOW, "re");
+  assert.equal(cfg["task-runners"][0]["env-overrides"].NODE_FUNCTION_ALLOW_EXTERNAL, "", "the JS runner keeps internal mode's defaults");
+  assert.equal(image["task-runners"][1]["env-overrides"].N8N_RUNNERS_STDLIB_ALLOW, "", "the image's config is not changed in place");
+});
