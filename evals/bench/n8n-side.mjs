@@ -417,18 +417,27 @@ function setPath(obj, path, value) {
   o[keys.at(-1)] = value;
 }
 
-// The bench's routes for the mock and the hosts that need a TLS leaf.
+// The bench's routes for the mock and the hosts that need a TLS leaf. PROPOSALS P48: a route
+// whose URL cannot be parsed is left out and returned in `bad` ({node, method, url, error}), so
+// the run reports a fixture error on that variant instead of throwing for the whole template.
 export function routesOf(fixture) {
   const routes = [];
   const hosts = new Set();
+  const bad = [];
   for (const r of [...fixture.reads, ...(fixture.writeReplies ?? [])]) {
     for (const x of r.http?.responses ?? []) {
+      let u;
+      try {
+        u = new URL(x.url);
+      } catch (e) {
+        bad.push({ node: r.node, method: x.method, url: x.url, error: String(e.message) });
+        continue;
+      }
       routes.push({ node: r.node, method: x.method, url: x.url, ...(x.any ? { any: true } : {}), ...(x.query ? { query: x.query } : {}), ...(x.bodyMatch !== undefined ? { bodyMatch: x.bodyMatch } : {}), status: x.status, ...(x.headers ? { headers: x.headers } : {}), ...(x.body !== undefined ? { body: x.body } : {}), ...(x.bodyBase64 !== undefined ? { bodyBase64: x.bodyBase64 } : {}) });
-      const u = new URL(x.url);
       if (u.protocol === "https:") hosts.add(u.hostname);
     }
   }
-  return { routes, hosts: [...hosts] };
+  return { routes, hosts: [...hosts], bad };
 }
 
 // Builds everything runWorkflow needs. `pinFallback`: node names to pin from their `n8n` source.
@@ -461,7 +470,14 @@ export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = 
   // The S3 endpoint: the shortest host among the S3 nodes' routes (virtual-hosted routes put
   // the bucket in front of it).
   const s3Nodes = new Set(wf.nodes.filter((n) => n.type === "n8n-nodes-base.s3").map((n) => n.name));
-  const s3Endpoint = allResponses.filter((x) => s3Nodes.has(x.node)).map((x) => new URL(x.url).origin).sort((a, b) => a.length - b.length)[0];
+  const originOf = (url) => {
+    try {
+      return new URL(url).origin;
+    } catch {
+      return null;
+    }
+  };
+  const s3Endpoint = allResponses.filter((x) => s3Nodes.has(x.node)).map((x) => originOf(x.url)).filter(Boolean).sort((a, b) => a.length - b.length)[0];
   for (const n of wf.nodes) for (const t of Object.keys(n.credentials ?? {})) credentials[t] ??= credentialData(t, { wordpressUrl, s3Endpoint });
   // Overlay `credentials` (placeholder fills on a dummy, e.g. a service's domain the fixture
   // assumes): merged over the dummy of that credential type.
@@ -487,7 +503,7 @@ export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = 
     n.credentials = { ...(n.credentials ?? {}), [m.spec.type]: { id: null, name: credName } };
     credentials[credName] = m.spec.data(`${MOCK}/model/${m.tag}`);
   }
-  const { routes, hosts } = routesOf(fx);
+  const { routes, hosts, bad: badRoutes } = routesOf(fx);
   for (const h of hosts) ensureLeaf(h);
   // OAuth refreshes and the service-account token exchange stay inside the mock too.
   for (const h of ["oauth2.googleapis.com", "www.googleapis.com", "api.anthropic.com", "api.openai.com"]) ensureLeaf(h);
@@ -526,7 +542,7 @@ export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = 
   if (via !== "pin") sources[fx.trigger.node] = via === "form" ? `form (multipart submission: ${[binary && "binary trigger items", formPages.length && `${formPages.length} form page(s)`].filter(Boolean).join(", ")})` : "cli (Code-node swap: binary trigger items)";
   // A workflow that calls itself must be active for its sub-workflow calls to run (n8n 2.x).
   const selfCall = wf.nodes.some((n) => !n.disabled && /\.(executeWorkflow|toolWorkflow)$/.test(n.type) && /\$workflow\.id/.test(JSON.stringify(n.parameters?.workflowId ?? "")));
-  return { pinTrigger, via, formPages, activate: selfCall || formPages.length > 0, id, variant, name, wf: { ...wf, name: `${id} ${name}` }, fixture: fx, credentials, credentialsAttached, routes, models, overlayApplied: applied, sources, files };
+  return { pinTrigger, via, formPages, activate: selfCall || formPages.length > 0, id, variant, name, wf: { ...wf, name: `${id} ${name}` }, fixture: fx, credentials, credentialsAttached, routes, badRoutes, models, overlayApplied: applied, sources, files };
 }
 
 // Splits the mock log into service calls and model calls.

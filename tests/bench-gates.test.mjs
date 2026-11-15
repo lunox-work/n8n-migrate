@@ -958,3 +958,25 @@ test("P26: a host without a leaf gets one made from the bench CA; its request is
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("P48: an unparsable fixture route URL is a validator error and a per-variant fixture error, not a crash", async () => {
+  const { checkFixture, badRouteUrl } = await import("../evals/bench/validate.mjs");
+  const { routesOf } = await import("../evals/bench/n8n-side.mjs");
+  assert.equal(badRouteUrl("https://weirddomain.example"), null);
+  assert.ok(badRouteUrl("https://weird domain.example"));
+  const fx = { schemaVersion: 1, template: 1, sha256: "0".repeat(64), variant: "malformed", now: "2026-11-16T09:00:00Z", about: "x", trigger: { node: "Start", kind: "manual", items: [{ json: {} }] }, reads: [{ node: "Fetch", service: "web-page", connector: { shape: "assumed", none: "a plain fetch" }, note: "x", http: { via: "tls-intercept", responses: [
+    { method: "GET", url: "https://weird domain.example", status: 500, body: "x" },
+    { method: "GET", url: "https://ok.example/page", status: 200, body: "y" },
+  ] } }], models: [], writes: [], expect: { branches: [] } };
+  const { errors } = await checkFixture(fx, null);
+  assert.ok(errors.some((e) => /read Fetch: route url "https:\/\/weird domain\.example" cannot be parsed/.test(e)), errors.join("\n"));
+  // routesOf (n8n side) leaves the bad route out and names it instead of throwing.
+  const r = routesOf(fx);
+  assert.deepEqual(r.routes.map((x) => x.url), ["https://ok.example/page"]);
+  assert.deepEqual(r.hosts, ["ok.example"]);
+  assert.deepEqual(r.bad.map((b) => [b.node, b.url]), [["Fetch", "https://weird domain.example"]]);
+  // Gate 5: a variant without a usable baseline is a fixture failure, never "n8n failed, so equal".
+  const g = gate5({ empty: { relation: "equal", n8nOk: true, claudeOk: true }, malformed: { relation: "better", n8nOk: false, claudeOk: true, fixtureError: "fixture route url cannot be parsed" } });
+  assert.deepEqual([g.pass, g.bucket], [false, "fixture"]);
+  assert.match(g.cause, /^malformed: fixture route url cannot be parsed/);
+});

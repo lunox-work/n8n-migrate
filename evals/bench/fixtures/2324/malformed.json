@@ -139,15 +139,6 @@
         "responses": [
           {
             "method": "GET",
-            "url": "https://weird domain.example",
-            "status": 500,
-            "headers": {
-              "content-type": "text/html"
-            },
-            "body": "<html><body>500 Internal Server Error</body></html>"
-          },
-          {
-            "method": "GET",
             "url": "https://weirddomain.example",
             "status": 200,
             "headers": {
@@ -161,7 +152,7 @@
         "shape": "assumed",
         "none": "a plain web fetch, no connector"
       },
-      "note": "agent tool get_website_content: a workflow defined inline (source parameter) that GETs query.url with HTTP Request v4.2 and extracts the cleaned text of <html> minus <head>; the URLs are model-chosen, so the fixture answers the likely home and pricing pages"
+      "note": "agent tool get_website_content: a workflow defined inline (source parameter) that GETs query.url with HTTP Request v4.2 and extracts the cleaned text of <html> minus <head>; the URLs are model-chosen, so the fixture answers the likely home and pricing pages. No route for the sheet row's https://weird domain.example: no client can send a request to a host with a space (PROPOSALS P48), so the row stays as data only"
     },
     {
       "node": "SerpAPI - Search Google",

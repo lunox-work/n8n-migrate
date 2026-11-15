@@ -109,6 +109,10 @@ export function robustness(n8nOk, claudeOk, cmp) {
 
 export function gate5(variants) {
   const rel = Object.fromEntries(Object.entries(variants).map(([v, x]) => [v, x.relation]));
+  // PROPOSALS P48: a variant whose fixture n8n's side cannot use has no baseline to be robust
+  // against; "n8n failed" there would make any Claude outcome equal or better.
+  const unusable = Object.entries(variants).find(([, x]) => x.fixtureError);
+  if (unusable) return fail("fixture", `${unusable[0]}: ${unusable[1].fixtureError}`, { relations: rel });
   const bad = Object.entries(variants).filter(([, x]) => x.relation === "worse");
   if (bad.length) {
     const [v, x] = bad[0];

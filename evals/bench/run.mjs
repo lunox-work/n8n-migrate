@@ -117,6 +117,9 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
   const existing = readJson(recFile);
   const env = await n8n();
   let prep = prepare(id, variant);
+  // PROPOSALS P48: a fixture route n8n's side cannot build is this variant's fixture error; n8n
+  // is not run and nothing is saved, so the template's other variants and verdict still stand.
+  if (prep.badRoutes?.length) return fixtureErrorRun(prep);
   const session = canned ? { mode: "canned" } : existing && !record ? { mode: "replay", recorded: byTag(existing.modelCalls), fallback: "live" } : { mode: "live" };
   if (!canned && prep.models.length) {
     await memoryGate({ log, need: 25 });
@@ -188,6 +191,15 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
   out.recorded = existing && session.mode === "replay" ? existing.recorded : { at: new Date().toISOString(), modes: out.modelModes };
   if (!canned) writeJson(recFile, out);
   return out;
+}
+
+// The n8n run of a variant whose fixture cannot be used (PROPOSALS P48): status
+// `fixture error`, no effects, no model calls, the reason in `error`.
+const FIXTURE_ERROR = "fixture error";
+function fixtureErrorRun(prep) {
+  const b = prep.badRoutes[0];
+  const message = `fixture route url cannot be parsed: ${b.method} ${JSON.stringify(b.url)} (${b.error})${prep.badRoutes.length > 1 ? ` and ${prep.badRoutes.length - 1} more` : ""}`;
+  return { template: prep.id, variant: prep.variant, status: FIXTURE_ERROR, error: { node: b.node, message }, effects: [], modelCalls: [], modelModes: [], sources: prep.sources, overlay: prep.overlayApplied, via: prep.via, credentialsAttached: prep.credentialsAttached, logVsFixture: null, credentialsMissing: [], badRoutes: prep.badRoutes };
 }
 
 const byTag = (calls) => {
@@ -333,7 +345,8 @@ async function benchTemplate(id, args, L) {
       S[`n8n:${v}`] = { status: r.status, error: r.error, modelModes: r.modelModes, executionMs: r.executionMs, wallMs: r.wallMs, startedAt: r.startedAt, logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [] };
       save();
     }
-    recs[v] = readJson(join(RECORDINGS, String(id), `${v}.json`));
+    // PROPOSALS P48: a fixture error has no recording (and must not read an older one).
+    recs[v] = S[`n8n:${v}`].status === FIXTURE_ERROR ? { status: FIXTURE_ERROR, error: S[`n8n:${v}`].error, effects: [], modelCalls: [] } : readJson(join(RECORDINGS, String(id), `${v}.json`));
     return recs[v];
   };
   await need("normal");
@@ -367,7 +380,7 @@ async function benchTemplate(id, args, L) {
       const n8nOk = recs[v]?.status === "success";
       const claudeOk = run.res.status === "done";
       const c = n8nOk && claudeOk ? compare(n8nEffects(recs[v], fx), claudeEffects(run, fx), { modelTexts: modelTextsOf(recs[v]?.modelCalls, answerOf), mode: args.modelMode, runTime: runTime(recs[v]) }) : null;
-      vr[v] = { n8nOk, claudeOk, relation: robustness(n8nOk, claudeOk, c), claudeRun: { status: run.res.status, error: run.res.error }, n8nError: recs[v]?.error ?? null, ...(c && !c.ok ? { writes: c.writes } : {}) };
+      vr[v] = { n8nOk, claudeOk, relation: robustness(n8nOk, claudeOk, c), claudeRun: { status: run.res.status, error: run.res.error }, n8nError: recs[v]?.error ?? null, ...(recs[v]?.status === FIXTURE_ERROR ? { fixtureError: recs[v].error.message } : {}), ...(c && !c.ok ? { writes: c.writes } : {}) };
     }
     g[5] = { ...gate5(vr), driver: "inprocess" };
     out.robust = vr;
@@ -376,7 +389,8 @@ async function benchTemplate(id, args, L) {
       const fx = loadFixture(id, "hostile");
       const run = await runV("hostile");
       const n8nHits = baitHits(n8nEffects(recs.hostile, fx), fx.expect.bait ?? []);
-      g[6] = { ...gate6({ claudeCalls: run.seen, allow: run.definition.allow ?? {}, claudeEffects: claudeEffects(run, fx), n8nBaitHits: n8nHits, bait: fx.expect.bait ?? [], baitHits, modelInputs: run.seen.models.filter((m) => m.mode === "replay"), synthetic: syntheticOutcome(fx, { models: run.seen.models, http: run.seen.http }) }), driver: "inprocess" };
+      if (recs.hostile?.status === FIXTURE_ERROR) g[6] = { pass: false, bucket: "fixture", cause: `hostile: ${recs.hostile.error.message}`, driver: "inprocess" };
+      else g[6] = { ...gate6({ claudeCalls: run.seen, allow: run.definition.allow ?? {}, claudeEffects: claudeEffects(run, fx), n8nBaitHits: n8nHits, bait: fx.expect.bait ?? [], baitHits, modelInputs: run.seen.models.filter((m) => m.mode === "replay"), synthetic: syntheticOutcome(fx, { models: run.seen.models, http: run.seen.http }) }), driver: "inprocess" };
     }
     return out;
   };

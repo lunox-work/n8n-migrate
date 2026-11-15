@@ -53,6 +53,9 @@ export async function checkFixture(fx, raw) {
     if (!(fx.models ?? []).includes(sr.model)) errors.push(`expect.syntheticReplies: ${sr.model} is not in models`);
   }
   for (const r of fx.writeReplies ?? []) if ((r.http?.responses ?? []).some((x) => x.any)) errors.push(`writeReplies ${r.node}: any is for reads only`);
+  // PROPOSALS P48: a route URL no client can send (a space in the host) can never be hit, and
+  // the n8n side cannot build a route from it. An odd URL belongs in the data, not in a route.
+  for (const r of [...fx.reads, ...(fx.writeReplies ?? [])]) for (const x of r.http?.responses ?? []) if (badRouteUrl(x.url)) errors.push(`${fx.reads.includes(r) ? "read" : "writeReplies"} ${r.node}: route url ${JSON.stringify(x.url)} cannot be parsed (${badRouteUrl(x.url)})`);
   for (const r of [...fx.reads, ...(fx.writeReplies ?? [])]) {
     // A read on the trigger node is the poll source for the Claude side (the n8n side pins
     // trigger.items), so a connector alone is enough there.
@@ -102,6 +105,16 @@ export async function checkFixture(fx, raw) {
     if (s.effect === "write") warnings.push(`write step "${s.node}" is not in writes`);
   }
   return { errors, warnings };
+}
+
+// PROPOSALS P48: why a fixture route's URL cannot be parsed, or null when it can.
+export function badRouteUrl(url) {
+  try {
+    new URL(url);
+    return null;
+  } catch (e) {
+    return e.code === "ERR_INVALID_URL" ? "invalid URL" : String(e.message);
+  }
 }
 
 // PROPOSALS P18: every `models` entry needs an answer from the shim. An entry that is itself a
