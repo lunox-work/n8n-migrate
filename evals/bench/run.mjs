@@ -603,6 +603,10 @@ async function main() {
         connectorGapsHit: r.benchError ? null : connectorLimitedOf(id, g, failed),
         // PROPOSALS P21: the fixture says the bench's n8n image cannot run the main path.
         n8nCannotRun: n8nCannotRunOf(id),
+        // PROPOSALS P50: what gate 4 compared (comparedOf); `noEffect` names a pass that
+        // compared no effect ("reply" or "model inputs"), reported apart by summary.mjs.
+        compared: r.gates?.[4]?.detail?.compared ?? (r.gates?.[4]?.bucket === "bench defect" && /^nothing compared/.test(r.gates[4].cause ?? "") ? r.gates[4].detail : null),
+        noEffect: g === 9 ? r.gates?.[4]?.detail?.compared?.class ?? null : null,
         detail: failed?.detail ?? null,
         gates: Object.fromEntries(Object.entries(r.gates).map(([k, v]) => [k, { pass: v.pass, driver: v.driver ?? null, ...(v.pass ? {} : { bucket: v.bucket, cause: v.cause }) }])),
         drivers: r.drivers,

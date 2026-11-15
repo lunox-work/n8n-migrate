@@ -995,3 +995,26 @@ test("P49: n8nCannotRun agrees across variants; fixture files placed in the n8n 
   assert.deepEqual(cmds[2], ["exec", "-u", "root", NAME, "chown", "node:node", "/home/node/Demo_video.mp4"]);
   assert.equal(cmds[0].at(-1), "/home/node");
 });
+
+test("P50: gate 4 says what it compared; a pass that compared nothing is not a pass", async () => {
+  const { comparedOf, noEffectClass } = await import("../evals/bench/gates.mjs");
+  const { replyOf } = await import("../evals/bench/compare.mjs");
+  const w = fromTool({ connector: "gmail", tool: "label_message", args: { messageId: "m1", labelIds: ["L1"] } });
+  const withWrite = gate4({ cmp: compare([w], [w]), n8nStatus: "success" });
+  assert.deepEqual([withWrite.pass, withWrite.detail.compared], [true, { effects: 1, reply: false, modelInputs: 0, class: null }]);
+  // A chat workflow whose only output is its answer: the reply is compared, a pass apart.
+  const r = (side) => replyOf([{ json: { output: "Hello" } }], side);
+  const replyOnly = gate4({ cmp: compare([r("n8n")], [r("claude")]), n8nStatus: "success" });
+  assert.deepEqual([replyOnly.pass, replyOnly.detail.compared.class], [true, "reply"]);
+  // Only what the model was asked was checked (manual trigger, model output not written out).
+  const inputs = gate4({ cmp: compare([], []), n8nStatus: "success", modelInputs: [{ step: "AI Agent", index: 0, input: { same: true } }] });
+  assert.deepEqual([inputs.pass, inputs.detail.compared.class], [true, "model inputs"]);
+  // No write, reply or model input on either side: equal by emptiness, not measured.
+  const nothing = gate4({ cmp: compare([], []), n8nStatus: "success" });
+  assert.deepEqual([nothing.pass, nothing.bucket], [false, "bench defect"]);
+  assert.match(nothing.cause, /^nothing compared/);
+  assert.equal(nothing.detail.class, "nothing");
+  // A replayed request without an input check (a miss that went live) is not a compared input.
+  assert.equal(comparedOf({ cmp: compare([], []), modelInputs: [{ step: "x", index: 0 }] }).class, "nothing");
+  assert.deepEqual([noEffectClass({ effects: 2, reply: true, modelInputs: 1 }), noEffectClass({ effects: 0, reply: false, modelInputs: 0 })], [null, "nothing"]);
+});

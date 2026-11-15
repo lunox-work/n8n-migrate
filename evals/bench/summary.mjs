@@ -27,7 +27,8 @@ import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readSplits, roundOf, devWithFixtures, overfittingBound } from "./rounds.mjs";
-import { slipStats, flipsBetween } from "./gates.mjs";
+import { slipStats, flipsBetween, noEffectClass } from "./gates.mjs";
+import { fromHttp, fromFile } from "./compare.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
@@ -54,6 +55,33 @@ const cannotRunOf = (r) => {
   }
 };
 
+// PROPOSALS P50: what a passing row's gate 4 compared. Rows from P50 on carry `compared`
+// (gate 4 fails when nothing was compared). Older rows are classed from the template's n8n
+// recording of the normal fixture (git-ignored; "unknown" without it): its writes, media calls
+// and disk writes, a reply for a chat or form trigger, its model calls (in a passing replay
+// run each was replayed and its input checked). A pass that compared nothing does not count.
+const fixtureOf = (id) => {
+  try {
+    return JSON.parse(readFileSync(join(HERE, "fixtures", String(id), "normal.json"), "utf8"));
+  } catch {
+    return null;
+  }
+};
+function comparedClassOf(r, { recordings = join(HERE, "recordings") } = {}) {
+  if (!r.passedAll) return null;
+  if (r.compared) return r.compared.class;
+  const file = join(recordings, String(r.template), "normal.json");
+  if (!existsSync(file)) return "unknown";
+  const rec = JSON.parse(readFileSync(file, "utf8"));
+  const effects = [...(rec.effects ?? []).map((e) => fromHttp(e, "n8n")).filter(Boolean), ...(rec.files ?? []).filter((f) => !f.error).map((f) => fromFile(f, "n8n"))];
+  const writes = effects.filter((e) => e.effect === "write" || e.effect === "media").length;
+  const reply = ["chat", "form"].includes(fixtureOf(r.template)?.trigger?.kind);
+  return noEffectClass({ effects: writes, reply, modelInputs: (rec.modelCalls ?? []).length });
+}
+const counts = (r) => r.passedAll && comparedClassOf(r) !== "nothing";
+const noEffectOf = (rows) => rows.filter((r) => ["reply", "model inputs"].includes(comparedClassOf(r))).map((r) => ({ template: r.template, compared: comparedClassOf(r) }));
+const nothingOf = (rows) => rows.filter((r) => comparedClassOf(r) === "nothing").map((r) => r.template);
+
 if (args.includes("--release")) {
   const i = args.indexOf("--release");
   const [devTag, heldTag] = [args[i + 1], args[i + 2]];
@@ -62,8 +90,8 @@ if (args.includes("--release")) {
   const held = latest(heldTag).filter((r) => heldIds.has(r.template));
   const nDev = devIds.size;
   const nHeld = heldIds.size;
-  const passDev = dev.filter((r) => r.passedAll).length;
-  const passHeld = held.filter((r) => r.passedAll).length;
+  const passDev = dev.filter(counts).length;
+  const passHeld = held.filter(counts).length;
   const b = overfittingBound({ passDev, nDev, passHeld, nHeld, flips });
   const missing = { dev: [...devIds].filter((id) => !dev.some((r) => r.template === id)), heldOut: [...heldIds].filter((id) => !held.some((r) => r.template === id)) };
   // PROPOSALS P49: templates the bench's n8n image cannot run (expect.n8nCannotRun) stay in n
@@ -72,15 +100,20 @@ if (args.includes("--release")) {
   // pass counts on both sides, is reported beside it.
   const nr = { dev: [...devIds].filter((id) => cannotRunOf(dev.find((r) => r.template === id) ?? { template: id })), heldOut: [...heldIds].filter((id) => cannotRunOf(held.find((r) => r.template === id) ?? { template: id })) };
   const runnable = (rows, ids) => rows.filter((r) => !ids.includes(r.template));
-  const xDev = runnable(dev, nr.dev).filter((r) => r.passedAll).length;
-  const xHeld = runnable(held, nr.heldOut).filter((r) => r.passedAll).length;
+  const xDev = runnable(dev, nr.dev).filter(counts).length;
+  const xHeld = runnable(held, nr.heldOut).filter(counts).length;
   const xb = nDev - nr.dev.length && nHeld - nr.heldOut.length ? overfittingBound({ passDev: xDev, nDev: nDev - nr.dev.length, passHeld: xHeld, nHeld: nHeld - nr.heldOut.length, flips }) : null;
   const excludingN8nCannotRun = { n8nCannotRun: nr, dev: { passed: xDev, of: nDev - nr.dev.length }, heldOut: { passed: xHeld, of: nHeld - nr.heldOut.length }, ...(xb ?? {}) };
-  const out = { round: round.round, devTag, heldTag, dev: { passed: passDev, of: nDev }, heldOut: { passed: passHeld, of: nHeld }, flips, ...b, missing, excludingN8nCannotRun };
+  const noEffect = { dev: noEffectOf(dev), heldOut: noEffectOf(held) };
+  const nothingCompared = { dev: nothingOf(dev), heldOut: nothingOf(held) };
+  const out = { round: round.round, devTag, heldTag, dev: { passed: passDev, of: nDev }, heldOut: { passed: passHeld, of: nHeld }, flips, ...b, missing, passNoEffectCompared: noEffect, passNothingCompared: nothingCompared, excludingN8nCannotRun };
   if (json) console.log(JSON.stringify(out, null, 2));
   else {
     console.log(`release point, round ${round.round}: dev ${passDev}/${nDev} (${devTag}), held-out ${passHeld}/${nHeld} (${heldTag})`);
     console.log(`gap ${b.gap} points; bound ${b.bound} (pooled p ${b.pooled}%, 1.96·sqrt(p(1−p)(1/${nDev} + 1/${nHeld})) + 2 × ${flips} flips = ${b.flipsPoints} points): ${b.inside ? "inside" : "OVER"} the bound`);
+    const fmt = (xs) => (xs.length ? xs.map((x) => `${x.template} (${x.compared})`).join(", ") : "none");
+    console.log(`passes that compared no effect (counted, P50): dev ${fmt(noEffect.dev)}; held-out ${fmt(noEffect.heldOut)}`);
+    if (nothingCompared.dev.length || nothingCompared.heldOut.length) console.log(`rows that passed with nothing compared (not counted; rows from before P50, classed from the recording): dev ${nothingCompared.dev.join(", ") || "none"}; held-out ${nothingCompared.heldOut.join(", ") || "none"}`);
     const x = excludingN8nCannotRun;
     if (nr.dev.length || nr.heldOut.length) console.log(`without templates n8n cannot run on the bench image (left out of n and passes; dev ${nr.dev.join(", ") || "none"}, held-out ${nr.heldOut.join(", ") || "none"}): dev ${x.dev.passed}/${x.dev.of}, held-out ${x.heldOut.passed}/${x.heldOut.of}${xb ? `, gap ${xb.gap}, bound ${xb.bound}: ${xb.inside ? "inside" : "OVER"}` : ""}`);
     if (missing.dev.length || missing.heldOut.length) console.log(`templates without a row in their tag (counted as not passing): dev ${missing.dev.join(", ") || "none"}; held-out ${missing.heldOut.join(", ") || "none"}`);
@@ -99,11 +132,11 @@ try {
   refusal = JSON.parse(labels.stdout).summary;
 } catch {}
 
-const passed = mine.filter((r) => r.passedAll);
-const limited = mine.filter((r) => !r.passedAll && r.connectorLimited);
-const rest = mine.filter((r) => !r.connectorLimited || r.passedAll);
-const cannotRun = mine.filter((r) => !r.passedAll && cannotRunOf(r));
-const runnable = mine.filter((r) => r.passedAll || !cannotRunOf(r));
+const passed = mine.filter(counts);
+const limited = mine.filter((r) => !counts(r) && r.connectorLimited);
+const rest = mine.filter((r) => !r.connectorLimited || counts(r));
+const cannotRun = mine.filter((r) => !counts(r) && cannotRunOf(r));
+const runnable = mine.filter((r) => counts(r) || !cannotRunOf(r));
 const share = (a, b) => (b ? Math.round((a / b) * 1000) / 10 : null);
 const byGate = {};
 const byBucket = {};
@@ -120,6 +153,8 @@ const out = {
   outcomeSharesTop100: shares,
   coverageTop100: corpus.coverageTop100,
   oneShot: { passed: passed.length, of: mine.length, share: share(passed.length, mine.length) },
+  passNoEffectCompared: { templates: noEffectOf(mine), note: "counted in one-shot success: the workflow's only compared output is its reply, or only the replayed model inputs were compared (PROPOSALS P50)" },
+  passNothingCompared: { templates: nothingOf(mine), note: "not counted: passed every gate with no effect, reply or model input compared (rows from before P50, classed from the recording; from P50 on gate 4 fails them)" },
   oneShotExcludingConnectorLimited: { passed: passed.length, of: rest.length, share: share(passed.length, rest.length), connectorLimited: limited.map((r) => r.template), note: "connector-limited: the failure traces to a fixture connectorGaps field; the real connector shapes behind those gaps are unverified (shape: assumed)" },
   oneShotExcludingN8nCannotRun: { passed: passed.length, of: runnable.length, share: share(passed.length, runnable.length), n8nCannotRun: cannotRun.map((r) => ({ template: r.template, why: cannotRunOf(r) })), note: "the fixture's expect.n8nCannotRun: the bench's n8n image cannot run the template's main path, so its baseline stops early" },
   gateSum: mine.reduce((n, r) => n + (r.reached ?? 0), 0),
@@ -132,6 +167,7 @@ const out = {
   perTemplate: mine.map((r) => ({
     template: r.template,
     reached: r.reached,
+    compared: comparedClassOf(r),
     bucket: r.bucket,
     cause: r.cause,
     connectorLimited: !!r.connectorLimited,
@@ -156,6 +192,9 @@ else {
   console.log(`outcome shares, top 100 (analyzer, default answers): ${Object.entries(shares).map(([k, v]) => `${k} ${v}`).join(", ")}`);
   console.log(`coverage of the top 100: ${corpus.coverageTop100.raw.subscription} of ${corpus.coverageTop100.raw.of} raw, ${corpus.coverageTop100.afterExclusions.subscription} of ${corpus.coverageTop100.afterExclusions.of} after exclusions`);
   console.log(`one-shot success: ${out.oneShot.passed} of ${out.oneShot.of} (${out.oneShot.share ?? "-"}%); gate sum ${out.gateSum}`);
+  const ne = out.passNoEffectCompared.templates;
+  console.log(`pass, no effect compared (counted, P50): ${ne.length ? ne.map((x) => `${x.template} (${x.compared})`).join(", ") : "none"}`);
+  if (out.passNothingCompared.templates.length) console.log(`pass, nothing compared (not counted; rows from before P50): ${out.passNothingCompared.templates.join(", ")}`);
   const x = out.oneShotExcludingConnectorLimited;
   console.log(`one-shot success excluding connector-limited: ${x.passed} of ${x.of} (${x.share ?? "-"}%); connector-limited: ${x.connectorLimited.length ? x.connectorLimited.join(", ") : "none"} (${x.note})`);
   const y = out.oneShotExcludingN8nCannotRun;
@@ -166,6 +205,6 @@ else {
   console.log(`claude-driver protocol slips (P40, retried once, not a verdict): ${sl.slipped} of ${sl.runs} driver runs (${sl.rate ?? "-"}%), ${sl.retried} retried, ${sl.repeated} repeated${sl.templates.length ? ` (${sl.templates.join(", ")})` : ""}`);
   if (out.flipsAgainst) console.log(`verdict flips against ${out.flipsAgainst.tag}: ${out.flipsAgainst.flips.length}${out.flipsAgainst.flips.length ? " (" + out.flipsAgainst.flips.map((f) => `${f.template}: ${f.from} -> ${f.to}${f.slip ? " [slip]" : ""}`).join("; ") + ")" : ""}`);
   if (refusal) console.log(`refusal accuracy (labels.json vs analyzer): outcome+target ${refusal.outcomeAndTarget}/${refusal.templates}, blockers ${refusal.blockers}/${refusal.templates}, questions ${refusal.questions}/${refusal.templates}, everything ${refusal.all}/${refusal.templates}`);
-  console.log("\ntemplate  gate  convert  bucket: cause [CL = connector-limited, NR = n8n cannot run, TC = time compression]  | bench s, n8n ms, claude-driver s/$/turns, claude -p runs/$");
-  for (const p of out.perTemplate) console.log(`${String(p.template).padEnd(9)} ${String(p.reached === 9 ? "all" : p.reached).padEnd(5)} ${p.convert.padEnd(8)} ${p.connectorLimited ? "CL " : ""}${p.n8nCannotRun ? "NR " : ""}${p.nonPlaceholder.includes("time-compression") ? "TC " : ""}${p.bucket ?? "-"}: ${(p.cause ?? "").slice(0, 90)} | ${p.benchWallS}, ${p.n8nExecMs ?? "-"}, ${p.claudeDriverS ?? "-"}/${p.claudeDriverUsd ?? "-"}/${p.claudeDriverTurns ?? "-"}, ${p.claudeRuns}/${p.claudeUsd}`);
+  console.log("\ntemplate  gate  convert  bucket: cause [CL = connector-limited, NR = n8n cannot run, TC = time compression, NE = pass, no effect compared, N0 = pass, nothing compared (not counted)]  | bench s, n8n ms, claude-driver s/$/turns, claude -p runs/$");
+  for (const p of out.perTemplate) console.log(`${String(p.template).padEnd(9)} ${String(p.reached === 9 ? "all" : p.reached).padEnd(5)} ${p.convert.padEnd(8)} ${p.connectorLimited ? "CL " : ""}${p.n8nCannotRun ? "NR " : ""}${p.nonPlaceholder.includes("time-compression") ? "TC " : ""}${["reply", "model inputs"].includes(p.compared) ? `NE (${p.compared}) ` : p.compared === "nothing" ? "N0 " : ""}${p.bucket ?? "-"}: ${(p.cause ?? "").slice(0, 90)} | ${p.benchWallS}, ${p.n8nExecMs ?? "-"}, ${p.claudeDriverS ?? "-"}/${p.claudeDriverUsd ?? "-"}/${p.claudeDriverTurns ?? "-"}, ${p.claudeRuns}/${p.claudeUsd}`);
 }

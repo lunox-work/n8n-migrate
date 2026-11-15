@@ -95,8 +95,28 @@ export function gate4({ cmp, modelInputs = [], n8nStatus, judged = [] }) {
   }
   const worse = judged.filter((j) => j.verdict === "worse");
   if (worse.length) return fail("flaky model step", "judge: model-written text worse than n8n's", worse);
-  return pass({ writes: cmp.writes.matched.length, readsOnlyN8n: cmp.reads.onlyN8n.length, readsOnlyClaude: cmp.reads.onlyClaude.length, sameOrder: cmp.sameOrder });
+  // PROPOSALS P50: equal effects mean nothing when neither side made any and no model input was
+  // checked either; that is not a measured equivalence, so gate 4 does not pass.
+  const compared = comparedOf({ cmp, modelInputs });
+  if (compared.class === "nothing") return fail("bench defect", "nothing compared: no write, media call, disk write or reply on either side and no replayed model input (PROPOSALS P50)", compared);
+  return pass({ writes: cmp.writes.matched.length, readsOnlyN8n: cmp.reads.onlyN8n.length, readsOnlyClaude: cmp.reads.onlyClaude.length, sameOrder: cmp.sameOrder, compared });
 }
+
+// PROPOSALS P50: what gate 4 compared on the normal fixture. `effects`: matched writes, media
+// calls and disk writes other than the chat or form reply; `reply`: the reply was compared;
+// `modelInputs`: replayed model requests checked against n8n's. `class`: null when an effect
+// was compared; "reply" (the workflow's only output is its answer, compared as text and value
+// type) or "model inputs" (no output compared, only what the model was asked): a pass that
+// compares no effect, counted, reported apart; "nothing": not a pass.
+export const REPLY_KEY = "chat.reply:";
+export function comparedOf({ cmp, modelInputs = [] }) {
+  const matched = cmp?.writes?.matched ?? [];
+  const effects = matched.filter((k) => k !== REPLY_KEY).length;
+  const reply = matched.includes(REPLY_KEY);
+  const inputs = modelInputs.filter((m) => m.input).length;
+  return { effects, reply, modelInputs: inputs, class: noEffectClass({ effects, reply, modelInputs: inputs }) };
+}
+export const noEffectClass = ({ effects, reply, modelInputs }) => (effects ? null : reply ? "reply" : modelInputs ? "model inputs" : "nothing");
 
 // 5. Robust, per variant: n8n succeeding and Claude failing is a fail; both failing is equal;
 // n8n failing and Claude handling it is better; both succeeding needs the same writes.
