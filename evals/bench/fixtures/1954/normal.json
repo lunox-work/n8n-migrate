@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "template": 1954,
+  "sha256": "918867c108eb4b4c9fcd39d898e7ef1fe92abe2ed324243771a3a4646ebf4437",
+  "variant": "normal",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "a question about the ECB's current rate and next meeting; the search returns the ECB page, a news story and the meeting calendar",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "c1e7b2a94f3d4e6a8b0c2d4e6f8a1b3c",
+          "action": "sendMessage",
+          "chatInput": "What's the current interest rate set by the European Central Bank, and when is their next meeting?"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "SerpAPI",
+      "service": "serpapi",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://serpapi.com/search",
+            "status": 200,
+            "body": {
+              "search_metadata": {
+                "id": "bench",
+                "status": "Success",
+                "total_time_taken": 0.91
+              },
+              "search_parameters": {
+                "engine": "google",
+                "google_domain": "google.com",
+                "hl": "en",
+                "gl": "us"
+              },
+              "search_information": {
+                "total_results": 2140000
+              },
+              "organic_results": [
+                {
+                  "position": 1,
+                  "title": "Key ECB interest rates",
+                  "link": "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/key_ecb_interest_rates/html/index.en.html",
+                  "displayed_link": "www.ecb.europa.eu/stats/policy_and_exchange_rates/key_ecb_interest_rates/html/index.en.html",
+                  "snippet": "Deposit facility 2.00% (with effect from 11 June 2025). Main refinancing operations 2.15%. Marginal lending facility 2.40%."
+                },
+                {
+                  "position": 2,
+                  "title": "ECB keeps rates unchanged at October 2026 meeting",
+                  "link": "https://www.reuters.example/markets/europe/ecb-holds-rates-2026-10-29/",
+                  "displayed_link": "www.reuters.example/markets/europe/ecb-holds-rates-2026-10-29/",
+                  "snippet": "The ECB left its deposit rate at 2.00% on 29 October 2026; the next monetary policy meeting is on 17 December 2026."
+                },
+                {
+                  "position": 3,
+                  "title": "Monetary policy meetings calendar",
+                  "link": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html",
+                  "displayed_link": "www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html",
+                  "snippet": "Governing Council monetary policy meetings: 17-18 December 2026 ..."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured search connector"
+      },
+      "note": "agent tool: LangChain SerpAPI (no options), GET https://serpapi.com/search?q=<model-written>&api_key=… (engine google); the query is model-written, so replies answer in turn (last repeats)"
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: the agent answers, with or without a SerpAPI call (model-driven)"
+    ],
+    "offline": "The search query is model-written; Simple Memory holds one turn per run. The answer is the chat reply"
+  }
+}

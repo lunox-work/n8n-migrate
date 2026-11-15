@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 1,
+  "template": 2749,
+  "sha256": "4df080dd12285d0472321d7a7ccfd125312c6c0633e504900addb679ce250fed",
+  "variant": "normal",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "a status question about psb1; the cluster has three nodes (psb3 offline) and psb1 reports its CPU, memory and disk",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "pve-chat-0001",
+          "action": "sendMessage",
+          "chatInput": "What is the current CPU and memory usage of node psb1?"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Proxmox API Documentation",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://pve.proxmox.com/pve-docs/api-viewer/index.html",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html><html><head><title>Proxmox VE API Documentation</title></head><body><div id=\"app\">API Viewer: /nodes/{node}/status (GET) node status; /nodes/{node}/qemu (GET) list VMs; /nodes/{node}/qemu/{vmid}/status/start (POST) start a VM; /nodes/{node}/apt/update (POST) refresh package index; /nodes/{node}/qemu/{vmid} (DELETE) destroy a VM.</div></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured connector fetches web pages"
+      },
+      "note": "agent tool (HTTP Request Tool v1.1): GET of the fixed API viewer page"
+    },
+    {
+      "node": "Proxmox API Wiki",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://pve.proxmox.com/wiki/Proxmox_VE_API",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html><html><head><title>Proxmox VE API - Proxmox VE</title></head><body><h1>Proxmox VE API</h1><p>The API uses a REST-like interface at https://your.server:8006/api2/json/. Authenticate with an API token in the Authorization header: PVEAPIToken=USER@REALM!TOKENID=UUID.</p><p>Asynchronous tasks return a UPID such as UPID:pve1:00001F2A:0003C6B1:6738F2A0:aptupdate::root@pam:</p></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured connector fetches web pages"
+      },
+      "note": "agent tool: GET of the fixed wiki page"
+    },
+    {
+      "node": "Proxmox",
+      "service": "proxmox",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://0.0.0.0:8006/api2/json/cluster/status",
+            "status": 200,
+            "body": {
+              "data": [
+                {
+                  "type": "cluster",
+                  "name": "syncbricks",
+                  "nodes": 3,
+                  "quorate": 1,
+                  "version": 3,
+                  "id": "cluster"
+                },
+                {
+                  "type": "node",
+                  "name": "psb1",
+                  "online": 1,
+                  "local": 1,
+                  "ip": "10.11.12.101",
+                  "nodeid": 1,
+                  "id": "node/psb1",
+                  "level": ""
+                },
+                {
+                  "type": "node",
+                  "name": "psb2",
+                  "online": 1,
+                  "local": 0,
+                  "ip": "10.11.12.102",
+                  "nodeid": 2,
+                  "id": "node/psb2",
+                  "level": ""
+                },
+                {
+                  "type": "node",
+                  "name": "psb3",
+                  "online": 0,
+                  "local": 0,
+                  "ip": "10.11.12.103",
+                  "nodeid": 3,
+                  "id": "node/psb3",
+                  "level": ""
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Proxmox connector"
+      },
+      "note": "agent tool: GET https://0.0.0.0:8006/api2/json/cluster/status with header auth (the template's fixed URL; the description names 10.11.12.101-102). An IP host: the bench's leaves carry DNS names only, and this tool does not allow unauthorised certificates (PROPOSALS P62)"
+    },
+    {
+      "node": "HTTP Request",
+      "service": "proxmox",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://10.11.12.101:8006/api2/json/",
+            "status": 200,
+            "any": true,
+            "body": {
+              "data": {
+                "uptime": 1209600,
+                "cpu": 0.0712,
+                "loadavg": [
+                  "0.41",
+                  "0.38",
+                  "0.35"
+                ],
+                "memory": {
+                  "total": 68719476736,
+                  "used": 21474836480,
+                  "free": 47244640256
+                },
+                "rootfs": {
+                  "total": 100861726720,
+                  "used": 18253611008,
+                  "avail": 82608115712
+                },
+                "cpuinfo": {
+                  "model": "AMD EPYC 7302P 16-Core Processor",
+                  "cpus": 32,
+                  "sockets": 1
+                },
+                "pveversion": "pve-manager/9.0.11/bench",
+                "kversion": "Linux 6.14.8-2-pve"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Proxmox connector"
+      },
+      "note": "HTTP Request v4.2 GET https://10.11.12.101:8006/api2/json<path the agent wrote> (allowUnauthorizedCerts): the path is model-written, so one reply answers every path on the host (any)"
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "Google Gemini Chat Model",
+    "Google Gemini Chat Model1",
+    "AI Agent1",
+    "Google Gemini Chat Model2"
+  ],
+  "writes": [
+    "HTTP Request1",
+    "HTTP Request2",
+    "HTTP Request3",
+    "HTTP Request4"
+  ],
+  "writeReplies": [
+    {
+      "node": "HTTP Request1",
+      "service": "proxmox",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://proxmox.syncbricks.com/api2/json/nodes/psb1/apt/update",
+            "status": 200,
+            "body": {
+              "data": "UPID:psb1:0000ABCD:0001ABCD:6738F2A0:aptupdate::root@pam!n8n:"
+            }
+          }
+        ]
+      },
+      "note": "POST https://proxmox.syncbricks.com/api2/json<path> with the agent's details as JSON (If: details present); the path is model-written, the route covers an apt update"
+    },
+    {
+      "node": "HTTP Request2",
+      "service": "proxmox",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://10.11.12.101:8006/api2/json/nodes/psb1/apt/update",
+            "status": 200,
+            "body": {
+              "data": "UPID:psb1:0000ABCD:0001ABCD:6738F2A0:aptupdate::root@pam!n8n:"
+            }
+          }
+        ]
+      },
+      "note": "POST https://10.11.12.101:8006/api2/json<path> without a body (If: no details)"
+    },
+    {
+      "node": "HTTP Request3",
+      "service": "proxmox",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "DELETE",
+            "url": "https://10.11.12.101:8006/api2/json/nodes/psb1/qemu/105",
+            "status": 200,
+            "body": {
+              "data": "UPID:psb1:0000ABCD:0001ABCD:6738F2A0:qmdestroy:105::root@pam!n8n:"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "HTTP Request4",
+      "service": "proxmox",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "DELETE",
+            "url": "https://10.11.12.101:8006/api2/json/nodes/psb1/qemu/105",
+            "status": 200,
+            "body": {
+              "data": "UPID:psb1:0000ABCD:0001ABCD:6738F2A0:qmdestroy:105::root@pam!n8n:"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Switch on the agent's response_type: GET → HTTP Request → AI Agent1 (expected for a status question); POST → If → HTTP Request1/2; DELETE → If1 → HTTP Request3/4; PUT, OPTIONS and Invalid have no node"
+    ],
+    "offline": "The Telegram, Gmail and Webhook triggers are not connected to anything; the chat trigger runs. The API paths are model-written, so GET answers every path on the host and the POST/DELETE routes cover one likely path each (others get the write default). Hosts are private IPs with port 8006 (the bench's TLS leaves name DNS hosts only: P62). The reply is the last node's output"
+  }
+}

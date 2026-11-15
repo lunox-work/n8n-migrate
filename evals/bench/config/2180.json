@@ -1,0 +1,9 @@
+{
+  "why": "NocoDB news database uses a NocoDB API token credential whose host the template does not carry, and the bench's generic dummy has no host field. `credentials` gives it a placeholder token and NocoDB's cloud host; the fixture's route answers that host. Placeholder fill only: no logic changes.",
+  "credentials": {
+    "nocoDbApiToken": {
+      "apiToken": "bench-nocodb-token",
+      "host": "https://app.nocodb.com"
+    }
+  }
+}

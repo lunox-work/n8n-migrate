@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "template": 2180,
+  "sha256": "afb5f0c0be60f6383d825a06b9d78353e18891722d3ca11548395ce7c173e160",
+  "variant": "normal",
+  "now": "2026-11-18T09:32:00.000Z",
+  "about": "the news index lists three posts: two from the last weeks (summarised and stored) and one from 2025 (dropped)",
+  "trigger": {
+    "node": "Schedule Trigger each week",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-18T04:32:00.000-05:00",
+          "Readable date": "November 18th 2026, 4:32:00 am",
+          "Readable time": "4:32:00 am",
+          "Day of week": "Wednesday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "18",
+          "Hour": "04",
+          "Minute": "32",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Retrieve the web page for further processsing",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.colt.net/resources/type/news/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html><html><head><title>News | Colt</title></head><body><main><h1>News</h1><section class=\"grid\"><div class=\"card\"><span class=\"f0\"></span><span class=\"f1\"></span><span class=\"f2\"></span><span class=\"f3\"></span><span class=\"f4\"></span><span class=\"f5\"></span><span class=\"f6\"></span><span class=\"f7\"></span><div class=\"meta\"><div class=\"cat\">News</div><div><span>November 12, 2026</span></div><div><a href=\"https://www.colt.net/resources/colt-expands-400g-wave-services-in-asia/\"><img src=\"/img/t.jpg\"></a><a href=\"https://www.colt.net/resources/colt-expands-400g-wave-services-in-asia/\">Colt expands 400G wave services in Asia</a></div></div></div><div class=\"card\"><span class=\"f0\"></span><span class=\"f1\"></span><span class=\"f2\"></span><span class=\"f3\"></span><span class=\"f4\"></span><span class=\"f5\"></span><span class=\"f6\"></span><span class=\"f7\"></span><div class=\"meta\"><div class=\"cat\">News</div><div><span>October 28, 2026</span></div><div><a href=\"https://www.colt.net/resources/colt-on-demand-adds-cloud-routing/\"><img src=\"/img/t.jpg\"></a><a href=\"https://www.colt.net/resources/colt-on-demand-adds-cloud-routing/\">Colt On Demand adds cloud routing</a></div></div></div><div class=\"card\"><span class=\"f0\"></span><span class=\"f1\"></span><span class=\"f2\"></span><span class=\"f3\"></span><span class=\"f4\"></span><span class=\"f5\"></span><span class=\"f6\"></span><span class=\"f7\"></span><div class=\"meta\"><div class=\"cat\">News</div><div><span>March 3, 2025</span></div><div><a href=\"https://www.colt.net/resources/colt-annual-report-2024/\"><img src=\"/img/t.jpg\"></a><a href=\"https://www.colt.net/resources/colt-annual-report-2024/\">Colt annual report 2024</a></div></div></div></section></main></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured connector fetches web pages"
+      },
+      "note": "HTTP Request v4.1 GET of the news index as text; HTML v1 then takes links and dates with the template's nth-child selectors (each card's 9th child holds the date and the 'read more' link)"
+    },
+    {
+      "node": "HTTP Request1",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.colt.net/resources/colt-expands-400g-wave-services-in-asia/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html><html><body><h1 class=\"fl-heading\"><span>Colt expands 400G wave services in Asia</span></h1><div class=\"fl-node-5c7574ae7d5c6\"><div><p>Colt Technology Services has extended its 400G wavelength services to Singapore, Hong Kong and Tokyo.</p><p>The service runs on Colt's new subsea capacity and supports encryption at layer 1 for financial customers.</p></div></div></body></html>"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.colt.net/resources/colt-on-demand-adds-cloud-routing/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html><html><body><h1 class=\"fl-heading\"><span>Colt On Demand adds cloud routing</span></h1><div class=\"fl-node-5c7574ae7d5c6\"><div><p>Customers can now route traffic between AWS, Azure and Google Cloud from the Colt On Demand portal.</p><p>Bandwidth can be changed within one minute and billed by the hour.</p></div></div></body></html>"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.colt.net/resources/colt-annual-report-2024/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html><html><body><h1 class=\"fl-heading\"><span>Colt annual report 2024</span></h1><div class=\"fl-node-5c7574ae7d5c6\"><div><p>An older post the seven-day selection drops.</p></div></div></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured connector fetches web pages"
+      },
+      "note": "HTTP Request v4.1 GET of each selected post; Extract individual posts reads h1.fl-heading > span and .fl-node-5c7574ae7d5c6 > div"
+    }
+  ],
+  "models": [
+    "Summary",
+    "Keywords"
+  ],
+  "writes": [
+    "NocoDB news database"
+  ],
+  "writeReplies": [
+    {
+      "node": "NocoDB news database",
+      "service": "nocodb",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://app.nocodb.com/api/v1/db/data/bulk/noco/prqu4e8bjj4bv1j/mhbalmu9aaqcun6",
+            "status": 200,
+            "body": [
+              {
+                "id": 101
+              },
+              {
+                "id": 102
+              }
+            ]
+          }
+        ]
+      },
+      "note": "NocoDB v2 node (API version 2, its default for typeVersion 2): POST <host>/api/v1/db/data/bulk/noco/<project>/<table> with the rows; the host is the bench's (config/2180.json credentials)"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Select posts of last 7 days keeps posts from the last 70 days (the code subtracts 70, not 7)"
+    ],
+    "offline": "Select posts of last 7 days compares with new Date(), the run's wall clock, not `now`: the two recent posts stay inside its 70-day window for runs before mid-January 2027, the 2025 post never does. The legacy OpenAI node (chat, gpt-4-1106-preview) is answered by the shim. The NocoDB credential's host is the bench's choice (the template names none)"
+  }
+}

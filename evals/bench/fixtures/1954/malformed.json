@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "template": 1954,
+  "sha256": "918867c108eb4b4c9fcd39d898e7ef1fe92abe2ed324243771a3a4646ebf4437",
+  "variant": "malformed",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "a 1800-character repeated question; SerpAPI answers an error object (no organic_results)",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "c1e7b2a94f3d4e6a8b0c2d4e6f8a1b3e",
+          "action": "sendMessage",
+          "chatInput": "??? ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate ecb rate "
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "SerpAPI",
+      "service": "serpapi",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://serpapi.com/search",
+            "status": 200,
+            "body": {
+              "search_metadata": {
+                "status": "Error"
+              },
+              "error": "Your account has run out of searches."
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured search connector"
+      },
+      "note": "agent tool: LangChain SerpAPI (no options), GET https://serpapi.com/search?q=<model-written>&api_key=… (engine google); the query is model-written, so replies answer in turn (last repeats)"
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: the agent answers, with or without a SerpAPI call (model-driven)"
+    ],
+    "offline": "The search query is model-written; Simple Memory holds one turn per run. The answer is the chat reply"
+  }
+}

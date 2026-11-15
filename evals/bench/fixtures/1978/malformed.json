@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "template": 1978,
+  "sha256": "c26d7b05ff75eb6e1497806c27e1236bafd60c394e5ffaa45475e3dca6e064fa",
+  "variant": "malformed",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "rows with an invalid address and a 4000-character review, no address and a number as the item, and an empty review",
+  "trigger": {
+    "node": "When clicking \"Execute Workflow\"",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Download dummy data",
+      "service": "http-file",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://let-the-work-flow.com/dummy/n8n-contest-merch.xlsx",
+            "status": 200,
+            "headers": {
+              "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              "content-disposition": "attachment; filename=\"n8n-contest-merch.xlsx\""
+            },
+            "bodyBase64": "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"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no connector downloads files by URL"
+      },
+      "note": "HTTP Request v4.2 GET of the template's sample workbook; the xlsx reply becomes binary data, which Extract from File (xls operation) reads with SheetJS: first row = headers (Email, Custome Name, Item Purchased, Feedback)"
+    }
+  ],
+  "models": [
+    "Information Extractor",
+    "OpenAI Chat Model1"
+  ],
+  "writes": [
+    "Send Email"
+  ],
+  "expect": {
+    "branches": [
+      "Is the result valid? compares the literal strings 'Headline' and 'Body' (always true)",
+      "Coupon them or not: true when the extractor's SendCoupon is true (coupon template), false otherwise"
+    ],
+    "offline": "The workbook is a generated stand-in for the template's sample file. Fake coupon's terms read $today. The sender is the template's user@example.com",
+    "n8nCannotRun": "Send Email sends over SMTP, and the bench has no SMTP server (PROPOSALS P53), so n8n's main path fails at its only write"
+  }
+}

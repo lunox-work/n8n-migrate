@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "template": 1862,
+  "sha256": "abbb73e824074e0ee48432731184d00acd253c71957ef02326ee3cc3bb60a7be",
+  "variant": "empty",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "the sheet has only its header row, so no site is fetched",
+  "trigger": {
+    "node": "When clicking \"Execute Workflow\"",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Read Google Sheets",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/18iZ59I0q2AeElqcEpyJECNlSv4M6iJll9PQzXQkqEUk",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/18iZ59I0q2AeElqcEpyJECNlSv4M6iJll9PQzXQkqEUk/values/'Sheet1'",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:Z1",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Domain",
+                  "Market",
+                  "Industry",
+                  "Value Proposition",
+                  "Target Audience"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Sheets connector"
+      },
+      "note": "Google Sheets v3 read (the v2 implementation in n8n-nodes-base 2.47.7): sheets.properties for gid=0, then values/'Sheet1'"
+    },
+    {
+      "node": "HTTP Request",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured connector fetches web pages"
+      },
+      "note": "HTTP Request v3 GET https://www.<Domain> (redirects followed); HTML Extract takes the whole html element's text"
+    }
+  ],
+  "models": [
+    "OpenAI"
+  ],
+  "writes": [
+    "Update Google Sheets"
+  ],
+  "writeReplies": [
+    {
+      "node": "Update Google Sheets",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/18iZ59I0q2AeElqcEpyJECNlSv4M6iJll9PQzXQkqEUk",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/18iZ59I0q2AeElqcEpyJECNlSv4M6iJll9PQzXQkqEUk/values/'Sheet1'",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:Z1",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Domain",
+                  "Market",
+                  "Industry",
+                  "Value Proposition",
+                  "Target Audience"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/18iZ59I0q2AeElqcEpyJECNlSv4M6iJll9PQzXQkqEUk/values:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "18iZ59I0q2AeElqcEpyJECNlSv4M6iJll9PQzXQkqEUk",
+              "totalUpdatedRows": 1,
+              "totalUpdatedCells": 1,
+              "totalUpdatedSheets": 1
+            }
+          }
+        ]
+      },
+      "note": "Sheets v3 update matching Domain (Market, Industry, Value Proposition, Target Audience): sheets.properties, the whole tab, then POST values:batchUpdate"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no rows: nothing after the sheet read runs"
+    ],
+    "offline": "The legacy OpenAI node completes text (text resource, maxTokens 120) and Parse JSON runs JSON.parse on its text: a reply that is not bare JSON fails there on both sides"
+  }
+}
