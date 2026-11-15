@@ -518,3 +518,9 @@ Gate 4 and 5 (12):
 6. **Spreadsheet File v1 on a malformed CSV** (gate 5): 890 (n8n reads the first header as `der_id`, the runtime as `order_id`).
 
 Gate 3 (66): the same templates and kinds as `r3-base` (R3d list above): request URL built at run time 16 [4], app REST request templates missing (WordPress post 7 [3], Facebook Graph 4 [1], SerpApi tool 3 [2], Discord 3 [1], others), database steps 10 [4], vector stores 8 [5], logic node versions not implemented 9, connector operations without a tool map, transcription 3, forms that wait 3 [1], connector writes without required arguments 3, model steps not converted 2 [2], Edit Image, SMTP, baselines that fail 3.
+
+## R3f part A: bench P71–P75 (outside the loop)
+
+- Decided for the maintainer (PROPOSALS.md): P71, P73, P74, P75 applied; P72 decided with the acceptance rule and gate definition kept (the claude driver is the real measurement), its driver gaps fixed instead: P74, and the image step behind iteration 24 (a runtime gap, the next entry).
+- Re-measured the templates the change touches (tag `r3f-a`, plain `convert.mjs` of commit fa9d33f, replayed models; 2 `claude -p` runs, ledger 796 → 798, claude-driver gate-8 runs): **1963 4 → 9** (P71: the driver starts at the chat trigger; P75: its random Code Tool compared by shape); 2163 4 → 4, same cause text with the same two leads now on both sides (P73 seeds its poll cursor; only 2163 of the 10 dev poll templates has more poll rows than pinned rows), the calls pairing off because n8n sends its per-item OpenAI requests concurrently (new P76). P74 changes no row without iteration 25 (2860 stops in process at gate 4).
+- **Baseline for R3f iterations (`r3e-full` + these rows): 23 of 100 pass, gate sum 450** (was 22, 445).

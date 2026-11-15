@@ -1259,3 +1259,55 @@ test("P70: a run with no effect is compared on its terminal nodes' items, a pass
   assert.deepEqual([noEffectClass({ effects: 0, reply: true, result: 1, modelInputs: 1 }), noEffectClass({ effects: 0, reply: false, result: 1, modelInputs: 1 })], ["reply", "result"]);
   assert.equal(comparedOf({ cmp: compare([], []) }).class, "nothing");
 });
+
+test("P71, P74: the claude driver starts at the fixture's trigger; a folder it cannot stand in for is not run", async () => {
+  const { startTrigger, notRunReason } = await import("../evals/bench/claude-driver.mjs");
+  const { mkdtempSync, writeFileSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const def = { steps: { "Manual": { kind: "trigger" }, "Chat": { kind: "trigger", chat: true }, "Agent": { kind: "agent" } } };
+  const items = [{ json: { chatInput: "hi" } }];
+  assert.deepEqual(startTrigger(def, { trigger: { node: "Chat", items } }), { node: "Chat", items });
+  assert.deepEqual(startTrigger(def, { trigger: { node: "Gone", items } }), items);
+  const dir = mkdtempSync(join(tmpdir(), "n2c-p74-"));
+  try {
+    writeFileSync(join(dir, "task.json"), JSON.stringify({ source: "poll-submissions", toolPrefixes: { "artifact-db": "" } }));
+    assert.match(await notRunReason(dir, { allow: {} }), /ArtifactData/);
+    writeFileSync(join(dir, "task.json"), JSON.stringify({ toolPrefixes: { gmail: "mcp__claude_ai_Gmail__" } }));
+    assert.equal(await notRunReason(dir, { allow: { tools: [{ connector: "gmail", tool: "search_threads" }] } }), null);
+    assert.match(await notRunReason(dir, { allow: { tools: [{ connector: "no-such-connector", tool: "x" }] } }), /no captured schemas for connector "no-such-connector"/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("P73: a pinned poll trigger seeds the Claude side's cursor so the poll emits the newest pinned-count rows", async () => {
+  const { pollCursorSeed, n8nPinsTrigger } = await import("../evals/bench/claude-side.mjs");
+  const { adaptResult, advanceCursor } = await import("../skills/n8n-to-claude/runtime/src/adapt.mjs");
+  const core = { adaptResult, advanceCursor };
+  const poll = { tool: { connector: "c", name: "list" }, result: { items: "rows[*]" }, cursor: { field: "n", strategy: "max" } };
+  const fx = (pinned, rows) => ({ trigger: { node: "T", kind: "poll", items: Array.from({ length: pinned }, () => ({ json: {} })) }, reads: [{ node: "T", connector: { connector: "c", calls: [{ tool: "list", result: { rows } }] } }] });
+  const rows = [{ n: 3 }, { n: 1 }, { n: 2 }];
+  const s = pollCursorSeed(core, poll, fx(2, rows));
+  assert.equal(s.cursor.value, 1);
+  assert.deepEqual(advanceCursor(poll.cursor, rows, s.cursor).items.map((r) => r.n), [3, 2]);
+  assert.equal(pollCursorSeed(core, poll, fx(3, rows)).cursor, null);
+  assert.equal(pollCursorSeed(core, { ...poll, cursor: {} }, fx(1, rows)).cursor, null);
+  assert.equal(n8nPinsTrigger(fx(1, rows)), true);
+  assert.equal(n8nPinsTrigger({ trigger: { node: "T", kind: "poll" }, reads: [{ node: "T", http: { responses: [{}] } }] }), false);
+});
+
+test("P75: a tool whose code draws randomness or reads the clock is compared by shape", async () => {
+  const { nondeterministicTools, sameToolTurn } = await import("../evals/bench/claude-side.mjs");
+  const wf = { nodes: [{ type: "@n8n/n8n-nodes-langchain.toolCode", name: "Code Tool", parameters: { name: "pick", jsCode: "return list[Math.floor(Math.random() * list.length)];" } }, { type: "@n8n/n8n-nodes-langchain.toolCode", name: "Sum", parameters: { jsCode: "return a + b;" } }] };
+  const nd = nondeterministicTools(wf);
+  assert.deepEqual([nd.has("pick"), nd.has("code_tool"), nd.has("sum")], [true, true, false]);
+  const asked = [{ id: "c1", type: "function", function: { name: "pick", arguments: '{"input":"x"}' } }];
+  const n8nPrev = { format: "openai", seq: 1, response: { choices: [{ message: { role: "assistant", content: null, tool_calls: asked } }] } };
+  const n8nCall = { format: "openai", seq: 2, request: { messages: [{ role: "user", content: "q" }, { role: "assistant", content: null, tool_calls: asked }, { role: "tool", tool_call_id: "c1", content: "red" }] } };
+  const turn = (value, nondeterministic) => sameToolTurn({ n8nPrev, n8nCall, claudeTurn: { calls: [{ name: "pick" }], results: [{ ok: true, value }], reads: [] }, nondeterministic });
+  assert.equal(turn("white", new Set()).cause, "different tool result");
+  const ok = turn("white", nd);
+  assert.deepEqual([ok.same, ok.nondeterministic[0].valueSame], [true, false]);
+  assert.equal(turn({ color: "white" }, nd).detail.values[0].comparedBy, "shape");
+});

@@ -38,7 +38,7 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState } from "./n8n-side.mjs";
-import { convertPlain, convertSkill, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, withSynthetic, syntheticOutcome } from "./claude-side.mjs";
+import { convertPlain, convertSkill, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, withSynthetic, syntheticOutcome, nondeterministicTools } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
 import { fromHttp, fromTool, fromFile, replyOf, resultOf, isResult, lastOutputs, terminalNodes, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads } from "./compare.mjs";
 import { n8nCheckVariants, n8nCheckKey, n8nCheckSummary, gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited, n8nFailsOf } from "./gates.mjs";
@@ -511,14 +511,14 @@ async function benchTemplate(id, args, L) {
     if (!g3c.pass) gates[3] = { ...g3c, driver: "claude", inprocess: gates[3] };
     else {
       // PROPOSALS P16: the driver's replayed requests are checked like the in-process ones.
-      const modelInputs = claudeDriverModelInputs({ replayLog: cn.replayLog ?? [], effects: cn.effects ?? [], recordings: recs.normal?.modelCalls ?? [], n8nEffects: recs.normal?.effects ?? [], n8nSources: recs.normal?.sources ?? {}, runTime: runTime(recs.normal) }).concat(httpModelInputs(cn.httpModelCalls ?? [], recs.normal?.modelCalls ?? [], runTime(recs.normal)));
+      const modelInputs = claudeDriverModelInputs({ replayLog: cn.replayLog ?? [], effects: cn.effects ?? [], recordings: recs.normal?.modelCalls ?? [], n8nEffects: recs.normal?.effects ?? [], n8nSources: recs.normal?.sources ?? {}, runTime: runTime(recs.normal), nondeterministic: nondeterministicTools(wf) }).concat(httpModelInputs(cn.httpModelCalls ?? [], recs.normal?.modelCalls ?? [], runTime(recs.normal)));
       drivers.claude.modelChecks = { replayed: modelInputs.length, inputsDiffer: modelInputs.filter((m) => !m.input?.same).length, toolTurns: modelInputs.filter((m) => m.tools).length, toolTurnsFailed: modelInputs.filter((m) => m.tools && !m.tools.same).length, toolDefs: toolDefsSummary(modelInputs), ...(cn.replayLog ? {} : { note: "run made before P16: no replayed requests kept" }) };
       const g4c = gate4({ cmp: cNormal, modelInputs, n8nStatus: recs.normal?.status });
       if (!g4c.pass) gates[4] = { ...g4c, driver: "claude", inprocess: gates[4] };
       const fxH = loadFixture(id, "hostile");
       // PROPOSALS P35: the hostile run's replayed requests get the tool-list check (P28).
       const recH = await need("hostile");
-      const hostileInputs = claudeDriverModelInputs({ replayLog: ch.replayLog ?? [], effects: ch.effects ?? [], recordings: withSynthetic(recH?.modelCalls ?? [], fxH), n8nEffects: recH?.effects ?? [], n8nSources: recH?.sources ?? {}, runTime: runTime(recH) });
+      const hostileInputs = claudeDriverModelInputs({ replayLog: ch.replayLog ?? [], effects: ch.effects ?? [], recordings: withSynthetic(recH?.modelCalls ?? [], fxH), n8nEffects: recH?.effects ?? [], n8nSources: recH?.sources ?? {}, runTime: runTime(recH), nondeterministic: nondeterministicTools(wf) });
       drivers.claude.hostileToolDefs = toolDefsSummary(hostileInputs);
       const g6c = gate6({ claudeCalls: { tools: ch.effects.filter((e) => e.connector), http: ch.effects.filter((e) => e.url) }, allow: ch.allow ?? {}, claudeEffects: ch.effects.map((e) => claudeEffect(e, fxH)).filter(Boolean), n8nBaitHits: baitHits(n8nEffects(recs.hostile, fxH), fxH.expect.bait ?? []), bait: fxH.expect.bait ?? [], baitHits, modelInputs: hostileInputs, synthetic: syntheticOutcome(fxH, { models: ch.replayLog ?? [], http: ch.effects.filter((e) => e.url) }) });
       if (!g6c.pass) gates[6] = { ...g6c, driver: "claude", inprocess: gates[6] };

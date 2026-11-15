@@ -38,6 +38,11 @@ const readJson = (p, d = null) => (existsSync(p) ? JSON.parse(readFileSync(p, "u
 
 export async function runClaudeDriver(folder, fx, { wf, recordings = [], startedAt, label, model = "haiku", timeoutS = 900, log = console.error }) {
   const def = readJson(join(folder, "definition.json"));
+  // PROPOSALS P74: a folder the claude driver cannot stand in for is not run (no claude -p),
+  // with the reason named, so the in-process gates stand and gate 8 reads the measurement as
+  // missing, never a bench error that hides the in-process verdict.
+  const notRun = await notRunReason(folder, def);
+  if (notRun) return notRunResult(def, notRun);
   if (ledger().length >= MAX_RUNS) throw new BudgetExceeded(`claude -p budget of ${MAX_RUNS} runs used`);
   await memoryGate({ log });
   const runDir = join(HERE, ".work", "claude-driver", label.replace(/[^\w.-]+/g, "_"));
@@ -66,7 +71,7 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   const task = readJson(join(work, "task.json"), {});
   const { serverName, schemaFile } = await import(pathToFileURL(SERVER).href);
   const mcpServers = {};
-  for (const c of new Set([...Object.keys(task.toolPrefixes ?? {}), ...Object.keys(mcpFixtures)])) mcpServers[serverName(readJson(schemaFile(c)))] = { type: "stdio", command: process.execPath, args: ["--max-old-space-size=256", SERVER, "--connector", c, "--fixtures", fixturesPath, "--log", effectsLog] };
+  for (const c of new Set([...Object.keys(task.toolPrefixes ?? {}), ...Object.keys(mcpFixtures)])) if (c !== "artifact-db" && hasSchema(schemaFile, c)) mcpServers[serverName(readJson(schemaFile(c)))] = { type: "stdio", command: process.execPath, args: ["--max-old-space-size=256", SERVER, "--connector", c, "--fixtures", fixturesPath, "--log", effectsLog] };
   const mcpConfig = join(runDir, "mcp.json");
   writeFileSync(mcpConfig, JSON.stringify({ mcpServers }));
 
@@ -86,7 +91,7 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   // Asynchronous: the http mock answers from this process, so it must not be blocked.
   const preStart = (env) =>
     new Promise((ok) => {
-      const c = spawn(process.execPath, [join(work, "runtime", "runner.mjs"), "start", "--trigger", JSON.stringify(fx.trigger.items), "--clock", startedAt ?? fx.now], { cwd: work, env, stdio: ["ignore", "pipe", "pipe"] });
+      const c = spawn(process.execPath, [join(work, "runtime", "runner.mjs"), "start", "--trigger", JSON.stringify(startTrigger(def, fx)), "--clock", startedAt ?? fx.now], { cwd: work, env, stdio: ["ignore", "pipe", "pipe"] });
       let stdout = "";
       let stderr = "";
       c.stdout.on("data", (x) => (stdout += x));
@@ -222,6 +227,38 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
       ...(slip ? { slip } : {}),
     },
   };
+}
+
+// PROPOSALS P71: the run starts at the fixture's trigger, as n8n's and the in-process run do;
+// a bare item list would let the runner pick the definition's first trigger (a manual trigger
+// beside a chat trigger, 1963 at r3-i22). A trigger node the definition lacks keeps the list.
+export function startTrigger(def, fx) {
+  const node = fx.trigger?.node;
+  return node && Object.prototype.hasOwnProperty.call(def?.steps ?? {}, node) ? { node, items: fx.trigger.items } : fx.trigger.items;
+}
+
+// PROPOSALS P74: why the claude driver cannot run a folder, or null. A folder whose input is
+// the artifact form's submissions (task.json source poll-submissions) reads them with
+// ArtifactData, a built-in Claude tool with no MCP twin the bench could serve; a connector
+// without captured schemas has no mock. Both are said, not crashed on.
+export async function notRunReason(folder, def) {
+  const task = readJson(join(folder, "task.json"), {});
+  const { schemaFile } = await import(pathToFileURL(SERVER).href);
+  if (task.source === "poll-submissions") return "form submissions reach the task through ArtifactData, which the bench cannot stand in for; the artifact page is not run by the bench";
+  const conns = new Set([...Object.keys(task.toolPrefixes ?? {}), ...(def?.allow?.tools ?? []).map((t) => t.connector)]);
+  const missing = [...conns].filter((c) => c !== "artifact-db" && !hasSchema(schemaFile, c));
+  return missing.length ? `no captured schemas for connector ${missing.map((c) => `"${c}"`).join(", ")}` : null;
+}
+// A fixture may list a connector the folder never calls (no captured schemas): no mock for it.
+function hasSchema(schemaFile, c) {
+  try {
+    return !!schemaFile(c);
+  } catch {
+    return false;
+  }
+}
+function notRunResult(def, reason) {
+  return { run: null, effects: [], replayLog: [], httpModelCalls: [], invalidCalls: [], allow: def?.allow ?? {}, metrics: null, summary: { notRun: reason, runStatus: "not-run", problem: null } };
 }
 
 // The session's environment: no foreign keys or session ids, the runner processes' heap cap,

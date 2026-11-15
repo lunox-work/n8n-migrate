@@ -308,6 +308,33 @@ export function sameToolValue(n8nMsg, claudeValue, runTime = null) {
   return { same: false, n8n: a.slice(0, 300), claude: b.slice(0, 300) };
 }
 
+// PROPOSALS P75: tools whose result is not a function of their input. A Code tool (or a Code
+// node used as a tool) whose code draws randomness or reads the clock returns a different value
+// on each run, on n8n's side as on the Claude side, so its fed-back value is compared by shape
+// (JSON or text, the JSON type, an object's keys, a list's length), and the value difference is
+// reported, never gated. Names as n8n offers them: the node's name and a typed `name`, folded.
+const NONDETERMINISTIC_CODE = /\bMath\.random\s*\(|\bcrypto\.(?:randomUUID|randomInt|randomBytes|getRandomValues)\s*\(|\bDate\.now\s*\(|\bnew\s+Date\s*\(\s*\)|\$now\b|\brandom\.(?:random|choice|randint|shuffle|sample)\s*\(/;
+export function nondeterministicTools(wf) {
+  const out = new Set();
+  for (const n of wf?.nodes ?? []) {
+    if (!/(?:toolCode|\.code)$/.test(String(n.type ?? ""))) continue;
+    const p = n.parameters ?? {};
+    const code = [p.jsCode, p.code, p.pythonCode].filter((x) => typeof x === "string").join("\n");
+    if (!NONDETERMINISTIC_CODE.test(code)) continue;
+    out.add(toolNorm(n.name));
+    if (typeof p.name === "string" && p.name && !p.name.startsWith("=")) out.add(toolNorm(p.name));
+  }
+  return out;
+}
+const shapeOf = (v) => (Array.isArray(v) ? `list(${v.length})` : v && typeof v === "object" ? `object{${Object.keys(v).sort().join(",")}}` : v === null ? "null" : typeof v);
+export function sameToolShape(n8nMsg, claudeValue) {
+  const n = parseMaybe(n8nMsg?.result !== undefined ? n8nMsg.result : n8nMsg?.text);
+  const c = parseMaybe(claudeValue);
+  const a = n.json ? shapeOf(unwrapOne(n.value)) : "text";
+  const b = c.json ? shapeOf(unwrapOne(c.value)) : "text";
+  return a === b ? { same: true } : { same: false, n8n: a, claude: b };
+}
+
 // Read keys of Claude-side calls ({tools: [...], http: [...]} as seen by the in-process host).
 export function claudeReadKeys(tools = [], http = []) {
   const effects = [...tools.filter((t) => !t.invalid).map((t) => fromTool(t, "claude")), ...http.map((h) => fromHttp(h, "claude"))];
@@ -318,7 +345,7 @@ export function claudeReadKeys(tools = [], http = []) {
 // effects; n8nSources: its read sources by node; claudeTurn: {calls, results, reads} (the
 // Claude transcript's last turn and the read keys its tool calls made). Returns null when
 // n8n's reply asked for no tool, else {same, cause?, detail?, reads?}.
-export function sameToolTurn({ n8nPrev, n8nCall, n8nEffects = [], n8nSources = {}, claudeTurn, runTime = null }) {
+export function sameToolTurn({ n8nPrev, n8nCall, n8nEffects = [], n8nSources = {}, claudeTurn, runTime = null, nondeterministic = new Set() }) {
   if (!n8nPrev || !n8nCall || !claudeTurn) return null;
   const asked = answerOf(n8nPrev.format, n8nPrev.response).calls ?? [];
   if (!asked.length) return null;
@@ -346,6 +373,7 @@ export function sameToolTurn({ n8nPrev, n8nCall, n8nEffects = [], n8nSources = {
   // P17: each fed-back value against n8n's tool message for the same call (both sides ran it).
   const valueDiffs = [];
   const shapes = [];
+  const byShape = [];
   const used2 = new Set();
   asked.forEach((a, j) => {
     const ci = calls.findIndex((c, x) => !used2.has(x) && toolNorm(c?.name) === toolNorm(a.name));
@@ -353,12 +381,18 @@ export function sameToolTurn({ n8nPrev, n8nCall, n8nEffects = [], n8nSources = {
     const r = results[ci];
     const nm = n8nResultFor(j);
     if (!nm || n8nToolFailed(nm) || r?.ok === false) return;
+    if (nondeterministic.has(toolNorm(a.name))) {
+      const sh = sameToolShape(nm, r?.value);
+      if (!sh.same) valueDiffs.push({ tool: a.name, n8n: sh.n8n, claude: sh.claude, comparedBy: "shape" });
+      else byShape.push({ tool: a.name, valueSame: sameToolValue(nm, r?.value, runTime).same });
+      return;
+    }
     const v = sameToolValue(nm, r?.value, runTime);
     if (!v.same) valueDiffs.push({ tool: a.name, n8n: v.n8n, claude: v.claude });
     else if (v.shape) shapes.push(a.name);
   });
   if (valueDiffs.length) return { same: false, cause: "different tool result", detail: { tools: asked.map((a) => a.name), values: valueDiffs } };
-  const valuesNote = { values: asked.length, ...(shapes.length ? { shape: `single item vs list: ${shapes.join(", ")}` } : {}) };
+  const valuesNote = { values: asked.length, ...(shapes.length ? { shape: `single item vs list: ${shapes.join(", ")}` } : {}), ...(byShape.length ? { nondeterministic: byShape } : {}) };
   if (n8nPrev.seq == null || n8nCall.seq == null) return { same: true, ...valuesNote, reads: "unchecked: the recording has no model call order" };
   const notHttp = asked.map((a) => Object.keys(n8nSources).find((node) => toolNorm(node) === toolNorm(a.name))).filter((node) => node && !String(n8nSources[node]).startsWith("http"));
   if (notHttp.length) return { same: true, ...valuesNote, reads: `unchecked: n8n's ${notHttp.join(", ")} not served over http` };
@@ -378,7 +412,7 @@ export function sameToolTurn({ n8nPrev, n8nCall, n8nEffects = [], n8nSources = {
 // node and call index, and, for an agent turn after a tool call, sameToolTurn with the turn's
 // reads taken from the driver's effects (MCP mock log and host http log, both timed) between
 // the previous agent turn's answer and this one's. Returns modelInputs in gate4's shape.
-export function claudeDriverModelInputs({ replayLog = [], effects = [], recordings = [], n8nEffects = [], n8nSources = {}, runTime = null }) {
+export function claudeDriverModelInputs({ replayLog = [], effects = [], recordings = [], n8nEffects = [], n8nSources = {}, runTime = null, nondeterministic = new Set() }) {
   const byKey = {};
   for (const c of recordings) (byKey[c.node] ??= [])[c.index] = c;
   const lastTurn = new Map();
@@ -404,7 +438,7 @@ export function claudeDriverModelInputs({ replayLog = [], effects = [], recordin
     const m = { step, key: e.key, index: e.index, kind: e.req.kind, mode: "replay", input: sameModelInput(rec, e.req, runTime) };
     const defs = sameToolDefs(rec, e.req);
     if (defs) m.toolDefs = defs;
-    const tools = claudeTurn && sameToolTurn({ n8nPrev: byKey[e.key]?.[e.index - 1], n8nCall: rec, n8nEffects, n8nSources, claudeTurn, runTime });
+    const tools = claudeTurn && sameToolTurn({ n8nPrev: byKey[e.key]?.[e.index - 1], n8nCall: rec, n8nEffects, n8nSources, claudeTurn, runTime, nondeterministic });
     if (tools) m.tools = tools;
     out.push(m);
   }
@@ -596,6 +630,7 @@ export function driverFiles(stateEffects = [], fx) {
 export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects = [], n8nSources = {}, mode = "replay", liveFallback = true, startedAt, runTime = null, log = console.error } = {}) {
   const def = JSON.parse(readFileSync(join(folder, "definition.json"), "utf8"));
   const core = await import(pathToFileURL(join(folder, "runtime", "runner-core.mjs")).href);
+  const nondeterministic = nondeterministicTools(wf);
   const conn = connectorFixtures(fx);
   const usedConn = new Map();
   const routes = httpRoutes(fx);
@@ -728,7 +763,7 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
       entry.input = sameModelInput(rec, req, runTime);
       const defs = sameToolDefs(rec, req);
       if (defs) entry.toolDefs = defs;
-      const tools = claudeTurn && sameToolTurn({ n8nPrev: byKey[key]?.[i - 1], n8nCall: rec, n8nEffects, n8nSources, claudeTurn, runTime });
+      const tools = claudeTurn && sameToolTurn({ n8nPrev: byKey[key]?.[i - 1], n8nCall: rec, n8nEffects, n8nSources, claudeTurn, runTime, nondeterministic });
       if (tools) entry.tools = tools;
       return runnerValue(req, answerOf(rec.format, rec.response));
     }
@@ -748,9 +783,55 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
   // Poll triggers poll through their connector (the trigger read is the poll source); other
   // triggers get the fixture's items. Manual mode, as on the n8n side: a poll emits what it
   // read instead of only seeding the cursor.
+  // PROPOSALS P73: where the n8n side pins trigger.items (the rows a scheduled poll would emit),
+  // the Claude side's poll runs with its cursor seeded so it emits as many rows, the newest by
+  // the cursor's field, as a scheduled poll does; where n8n polls once in manual mode (http
+  // responses), both sides poll in manual mode with no cursor.
   const trig = def.steps[fx.trigger.node];
   const polls = !!trig?.poll && fx.trigger.kind === "poll";
+  const seed = polls && n8nPinsTrigger(fx) ? pollCursorSeed(core, trig.poll, fx, conn) : null;
   const t0 = Date.now();
-  const res = await core.run(def, { trigger: polls ? undefined : { node: fx.trigger.node, items: fx.trigger.items }, clock: { startedAt: startedAt ?? fx.now }, host, virtualTime: true, mode: "manual", runId: `bench-${fx.template}-${fx.variant}` });
-  return { res, seen, files: disk.files(), wallMs: Date.now() - t0, definition: def, polled: polls };
+  const res = await core.run(def, { trigger: polls ? undefined : { node: fx.trigger.node, items: fx.trigger.items }, clock: { startedAt: startedAt ?? fx.now }, host, virtualTime: true, mode: "manual", runId: `bench-${fx.template}-${fx.variant}`, ...(seed?.cursor ? { cursors: { [fx.trigger.node]: seed.cursor } } : {}) });
+  return { res, seen, files: disk.files(), wallMs: Date.now() - t0, definition: def, polled: polls, ...(seed ? { pollSeed: seed.note } : {}) };
+}
+
+// The n8n side pins a poll trigger's items unless the trigger's read has http responses, which
+// it polls once in manual mode instead (n8n-side.mjs, the same test).
+export function n8nPinsTrigger(fx) {
+  return !(fx.trigger?.kind === "poll" && (fx.reads ?? []).some((r) => r.node === fx.trigger.node && r.http?.responses?.length));
+}
+
+// PROPOSALS P73: the cursor a scheduled poll would hold before the pinned rows. The poll read's
+// first fixture answer, adapted as the runtime adapts it, gives every row the manual poll would
+// emit; the cursor is the one the older rows (all but the newest n by the cursor's field, n =
+// the pinned count) leave behind, checked to let exactly n rows through. With no more rows than
+// pinned, no cursor field, or a check that fails, no cursor: the manual poll as before, said.
+// -> {cursor|null, note}
+export function pollCursorSeed(core, poll, fx, conn = connectorFixtures(fx)) {
+  const n = (fx.trigger?.items ?? []).length;
+  const t = poll?.tool;
+  const rows = conn[`${t?.connector}.${t?.name}`] ?? [];
+  const first = rows.find((r) => r.node === fx.trigger.node) ?? rows[0];
+  if (!first || "error" in first) return { cursor: null, note: { pinned: n, rows: null, why: "no poll answer in the fixture" } };
+  let all;
+  try {
+    all = core.adaptResult(poll.result, "text" in first ? first.text : first.result ?? {});
+  } catch (e) {
+    return { cursor: null, note: { pinned: n, rows: null, why: `poll answer not adapted: ${e.message}` } };
+  }
+  if (all.length <= n) return { cursor: null, note: { pinned: n, rows: all.length, emitted: all.length } };
+  const spec = poll.cursor ?? {};
+  if (!spec.field) return { cursor: null, note: { pinned: n, rows: all.length, why: "the poll has no cursor field" } };
+  const key = (j) => {
+    const v = j?.[spec.field];
+    if (typeof v === "number") return v;
+    const ms = typeof v === "string" && /\d{4}-\d{2}-\d{2}/.test(v) ? Date.parse(v) : NaN;
+    return Number.isNaN(ms) ? (v === undefined || v === null ? -Infinity : Number.isNaN(Number(v)) ? String(v) : Number(v)) : ms;
+  };
+  const sorted = all.map((j, i) => ({ j, i, k: key(j) })).sort((a, b) => (a.k < b.k ? -1 : a.k > b.k ? 1 : a.i - b.i));
+  const older = sorted.slice(0, all.length - n).map((x) => x.j);
+  const { cursor } = core.advanceCursor(spec, older, null);
+  const emitted = core.advanceCursor(spec, all, cursor).items.length;
+  if (!cursor || emitted !== n) return { cursor: null, note: { pinned: n, rows: all.length, why: `a seeded cursor lets ${emitted} rows through` } };
+  return { cursor, note: { pinned: n, rows: all.length, emitted, cursor: cursor.value } };
 }
