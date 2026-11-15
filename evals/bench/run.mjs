@@ -37,7 +37,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync, cpS
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState, siteAnswers, hostsAnswers, loadCredentialSpecs } from "./n8n-side.mjs";
+import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState, siteAnswers, hostsAnswers, loadCredentialSpecs, ensureN8n } from "./n8n-side.mjs";
 import { convertPlain, convertSkill, filledSource, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, withSynthetic, syntheticOutcome, nondeterministicTools } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
 import { fromHttp, fromTool, fromFile, replyOf, resultOf, isResult, lastOutputs, terminalNodes, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads } from "./compare.mjs";
@@ -132,13 +132,15 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
   }
   // PROPOSALS P83: a container the last run's OOM kill (or anything else) stopped is started
   // again first, so one template's kill never becomes the next template's bench error.
-  if (!env.container.state().running) {
-    log(`n8n container is not running (P83): starting it again before ${id}/${variant}`);
-    await env.container.up({ extraEnv: benchEnv(), log });
+  // The same call recreates the container when this template needs its own configuration
+  // (templateEnv: P52 loopback, P92 Python runner, P93 Execute Command) or no longer does.
+  const ensured = await ensureN8n(prep, { container: env.container, log });
+  if (ensured.recreated) {
     const removed = await env.cleanupBenchWorkflows();
-    if (removed) log(`removed ${removed} bench workflow(s) the stopped run left (P69)`);
+    if (removed) log(`removed ${removed} bench workflow(s) a stopped run left (P69)`);
     env.dirty = false;
   }
+  env.needs = ensured.needs;
   // PROPOSALS P55, P63: the last run left state in n8n's process (a chat buffer, an in-memory
   // store, a client cache): restart n8n so this run sees only its own fixture.
   if (env.dirty) {
@@ -207,6 +209,7 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
     overlay: prep.overlayApplied,
     via: prep.via,
     credentialsAttached: prep.credentialsAttached,
+    ...(env.needs?.length ? { container: env.needs } : {}),
     logVsFixture: logVsFixture(prep, res.effects),
     ...(httpAttempt ? { httpAttempt } : {}),
     credentialsMissing: res.credentials?.missing?.map((m) => `${m.node}: ${m.type}`) ?? [],
@@ -402,7 +405,7 @@ async function benchTemplate(id, args, L) {
     if (!S[`n8n:${v}`]) {
       log(`${id}/${v}: n8n`);
       const r = await n8nRun(id, v, { record: args.record });
-      S[`n8n:${v}`] = { status: r.status, error: r.error, ...(r.modelCallCap ? { modelCallCap: r.modelCallCap } : {}), modelModes: r.modelModes, executionMs: r.executionMs, wallMs: r.wallMs, startedAt: r.startedAt, logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [] };
+      S[`n8n:${v}`] = { status: r.status, error: r.error, ...(r.modelCallCap ? { modelCallCap: r.modelCallCap } : {}), modelModes: r.modelModes, executionMs: r.executionMs, wallMs: r.wallMs, startedAt: r.startedAt, logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [], ...(r.container ? { container: r.container } : {}) };
       save();
     }
     // PROPOSALS P48: a fixture error has no recording (and must not read an older one).
@@ -599,7 +602,7 @@ function toolDefsSummary(models) {
 }
 
 function summarizeCheck(r) {
-  return { status: r.status, error: r.error, ...(r.modelCallCap ? { modelCallCap: r.modelCallCap } : {}), modelModes: r.modelModes, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [], logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, executionMs: r.executionMs, credentialsMissing: r.credentialsMissing };
+  return { status: r.status, error: r.error, ...(r.modelCallCap ? { modelCallCap: r.modelCallCap } : {}), modelModes: r.modelModes, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [], ...(r.container ? { container: r.container } : {}), logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, executionMs: r.executionMs, credentialsMissing: r.credentialsMissing };
 }
 
 // PROPOSALS P1: a failure that traces to a field the fixture marks as a connector gap.
@@ -686,6 +689,8 @@ async function main() {
         plainColumn: t.steps.plainColumn ?? null,
         config: loadOverlay(id) ? { file: `evals/bench/config/${id}.json`, n8n: t.steps["n8n:normal"]?.overlay ?? t.steps.n8nCheck?.overlay ?? [], claude: t.steps.overlayApplied ?? null, env: Object.keys(loadOverlay(id).env ?? {}), nonPlaceholder: loadOverlay(id).timeCompression ? [{ kind: "time-compression", why: loadOverlay(id).timeCompression.why ?? null }] : [] } : null,
         credentialsAttached: t.steps["n8n:normal"]?.credentialsAttached ?? t.steps.n8nCheck?.credentialsAttached ?? [],
+        // The n8n container's template-specific configuration (n8n-side.mjs templateEnv).
+        n8nContainer: t.steps["n8n:normal"]?.container ?? t.steps.n8nCheck?.container ?? null,
         stubs: t.steps["n8n:normal"]?.sources ?? t.steps.n8nCheck?.sources ?? null,
         n8nModelModes: t.steps["n8n:normal"]?.modelModes ?? t.steps.n8nCheck?.modelModes ?? null,
         logVsFixture: t.steps["n8n:normal"]?.logVsFixture ?? t.steps.n8nCheck?.logVsFixture ?? null,

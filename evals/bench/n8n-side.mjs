@@ -181,6 +181,52 @@ export function benchEnv() {
   return { ...overlayEnv(), N8N_RESTRICT_FILE_ACCESS_TO: dirs.join(";") };
 }
 
+// The n8n container's configuration for one prepared template run: the bench env (over all of
+// config/, so templates without needs of their own share one container) plus what this template
+// needs (PROPOSALS P52 loopback, P92 Python runner, P93 Execute Command), each only for the
+// templates that need it. -> {extraEnv, runners, needs: [why]}
+export const LOOPBACK_HOSTS = ["localhost", "127.0.0.1", "::1", "[::1]", "0.0.0.0"];
+export function templateEnv(prep) {
+  const env = {};
+  const needs = [];
+  // PROPOSALS P52: a fixture whose routes name `localhost` sends those requests to the mock: the
+  // name leaves NO_PROXY for the run. 127.0.0.1 and ::1 stay (n8n's task broker and runners use
+  // them), so a route on those hosts cannot be fed (validate.mjs warns).
+  const loop = loopbackRouteHosts(prep.routes ?? []);
+  if (loop.includes("localhost")) {
+    env.NO_PROXY = "127.0.0.1,::1,mock";
+    needs.push("P52: routes on localhost go to the mock");
+  }
+  return { extraEnv: env, runners: false, needs };
+}
+export function loopbackRouteHosts(routes) {
+  const out = new Set();
+  for (const r of routes) {
+    if (r.node === "(bench)") continue;
+    try {
+      const h = new URL(r.url).hostname.toLowerCase();
+      if (LOOPBACK_HOSTS.includes(h)) out.add(h === "[::1]" ? "::1" : h);
+    } catch {}
+  }
+  return [...out].sort();
+}
+
+// Starts or recreates the bench's n8n for this run's configuration (container.mjs up: a container
+// with another configuration hash is recreated, a stopped one started again, PROPOSALS P83).
+// Returns {recreated, needs}: a recreated container starts with empty process memory.
+export async function ensureN8n(prep, { container, log = console.error }) {
+  const t = templateEnv(prep);
+  const extraEnv = { ...benchEnv(), ...t.extraEnv };
+  const want = container.configHash({ extraEnv, runners: t.runners });
+  const st = container.state();
+  const have = st.running ? container.configLabel() : null;
+  if (st.running && have === want) return { recreated: false, needs: t.needs };
+  if (!st.running) log(`n8n container is not running (P83): starting it before ${prep.id}/${prep.variant}`);
+  else if (t.needs.length) log(`${prep.id}/${prep.variant}: n8n container for ${t.needs.join("; ")}`);
+  await container.up({ extraEnv, runners: t.runners, log });
+  return { recreated: true, needs: t.needs };
+}
+
 // PROPOSALS P44: the files n8n's disk-write nodes wrote in a run, from their output items
 // (both write nodes put the path they were given in json.fileName), resolved as n8n resolves
 // a path (containerPath). [{node, path}], each path once, in the order first written.

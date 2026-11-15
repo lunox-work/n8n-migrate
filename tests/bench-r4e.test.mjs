@@ -55,3 +55,22 @@ test("P61: a node that ships no credential gets the first one its n8n descriptio
   assert.equal(credentialTypeFor(node("n8n-nodes-base.googleSheets", { authentication: "serviceAccount" }), specs), "googleApi", "the fixed list wins");
   assert.equal(credentialTypeFor(node("n8n-nodes-base.emailSend", {}, 2.1)), null, "without specs only the fixed list");
 });
+
+test("P52: a fixture with routes on localhost runs with localhost out of the n8n container's NO_PROXY; others keep the shared container", async () => {
+  const { templateEnv, loopbackRouteHosts } = await import("../evals/bench/n8n-side.mjs");
+  const routes = [{ node: "Get", method: "GET", url: "http://localhost:5678/rest/workflows" }, { node: "(bench)", method: "POST", url: "https://oauth2.googleapis.com/token" }];
+  assert.deepEqual(loopbackRouteHosts(routes), ["localhost"]);
+  const t = templateEnv({ routes, wf: { nodes: [] } });
+  assert.equal(t.extraEnv.NO_PROXY, "127.0.0.1,::1,mock");
+  assert.match(t.needs[0], /P52/);
+  assert.deepEqual(templateEnv({ routes: [{ node: "A", method: "GET", url: "https://api.example/x" }], wf: { nodes: [] } }), { extraEnv: {}, runners: false, needs: [] });
+});
+
+test("container configuration hash: env, image and the runners sidecar each change it; key order does not", async () => {
+  const { configHash } = await import("../evals/n8n/container.mjs");
+  const base = configHash({ extraEnv: { A: "1", B: "2" } });
+  assert.equal(configHash({ extraEnv: { B: "2", A: "1" } }), base);
+  assert.notEqual(configHash({ extraEnv: { A: "1" } }), base, "a value dropped changes it");
+  assert.notEqual(configHash({ extraEnv: { A: "1", B: "2" }, runners: true }), base);
+  assert.notEqual(configHash({ extraEnv: { A: "1", B: "2" }, image: "other:1" }), base);
+});

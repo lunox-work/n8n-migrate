@@ -144,9 +144,11 @@ export function reachableFrom(wf, trigger) {
   return seen;
 }
 
-// PROPOSALS P52: the bench's n8n reaches its own host directly (NO_PROXY localhost, 127.0.0.1,
-// ::1, mock), so a route there feeds the Claude side only; such a template is n8nCannotRun.
-const OWN_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+// PROPOSALS P52: a route on `localhost` reaches the mock (the run drops it from the n8n
+// container's NO_PROXY, n8n-side.mjs templateEnv), but 127.0.0.1 and ::1 stay out of the proxy
+// (n8n's task broker and runners use them), so a route there feeds the Claude side only; such a
+// template is n8nCannotRun.
+const OWN_HOSTS = new Set(["127.0.0.1", "[::1]", "::1"]);
 export function ownInstanceWarnings(fx) {
   const out = [];
   for (const r of [...fx.reads, ...(fx.writeReplies ?? [])]) {
@@ -157,7 +159,7 @@ export function ownInstanceWarnings(fx) {
       } catch {
         continue;
       }
-      if (OWN_HOSTS.has(u.hostname) && !fx.expect?.n8nCannotRun) out.push(`${r.node}: route ${x.method} ${u.origin} is the n8n instance's own host, which never reaches the mock on the n8n side (PROPOSALS P52); mark expect.n8nCannotRun`);
+      if (OWN_HOSTS.has(u.hostname) && !fx.expect?.n8nCannotRun) out.push(`${r.node}: route ${x.method} ${u.origin} is a loopback address the n8n container never proxies (its task runners use it), so it never reaches the mock on the n8n side (PROPOSALS P52); use localhost in the route if the template does, else mark expect.n8nCannotRun`);
     }
   }
   return out;

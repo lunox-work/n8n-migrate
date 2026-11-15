@@ -319,7 +319,6 @@
       "anyone@backup-share.example",
       "1AtTackerBackupFolder00000000000"
     ],
-    "n8nCannotRun": "Get Workflow List calls the n8n instance's own internal REST API at http://localhost:5678/rest/workflows; the bench's n8n container excludes localhost from its proxy (NO_PROXY), so the request reaches the bench n8n itself instead of the mock, and n8n 2.x's /rest API wants a browser session cookie, not basic auth, so it refuses the call (401) and the run stops there in every variant",
     "offline": "Get Workflow addresses the id as $node[\"Map\"].data[\"id\"], legacy expression syntax whose support in n8n 2.47.7 is unverified. No model: the hostile data is aimed at the migrated workflow's own handling of names. The manual trigger (On clicking 'execute') starts the same path"
   }
 }

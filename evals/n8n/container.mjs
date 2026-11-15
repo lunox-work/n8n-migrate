@@ -35,6 +35,8 @@ export const SIDECAR_IMAGE = "node:22-alpine";
 export const imageTag = () => IMAGE.replace(/[^\w.-]+/g, "_");
 export const NAME = "n8n2claude-bench";
 export const MOCK_NAME = "n8n2claude-mock";
+export const RUNNERS_NAME = "n8n2claude-runners"; // PROPOSALS P92, only while a template needs it
+export const RUNNERS_IMAGE = "n8nio/runners:2.47.7";
 export const NET = "n8n2claude-net"; // internal
 export const EDGE = "n8n2claude-edge"; // publishes the host port
 export const VOLUME = "n8n2claude-bench-data";
@@ -139,18 +141,27 @@ export async function waitForMemory(min = 30, { log = console.error } = {}) {
 // ---------- lifecycle ----------
 
 // extraEnv: more -e pairs for the n8n container (e.g. HTTP_PROXY for a probe).
-// A running n8n container that lacks one of ENV's or extraEnv's values is recreated (same
-// volume), so the bench's env overlays (evals/bench/config `env`) and a changed ENV always
-// reach n8n.
-export async function up({ fresh = false, extraEnv = {}, log = console.error } = {}) {
-  if (running(NAME) && !fresh) {
-    const have = new Set(JSON.parse(docker(["inspect", "-f", "{{json .Config.Env}}", NAME]).stdout || "[]"));
-    const lacking = Object.entries({ ...ENV, ...extraEnv }).filter(([k, v]) => !have.has(`${k}=${v}`)).map(([k]) => k);
-    if (lacking.length) {
-      log(`n8n container lacks env ${lacking.join(", ")}: recreating it`);
-      docker(["rm", "-f", NAME], { allowFail: true });
-    }
+// The n8n container carries a label with the hash of its whole configuration (image, ENV with
+// extraEnv over it, the runners sidecar); a running container with another hash is recreated
+// (same volume), so the bench's env overlays, a template's own env (evals/bench/n8n-side.mjs
+// templateEnv: a value dropped is dropped too) and a changed ENV always reach n8n.
+export function configHash({ extraEnv = {}, image = IMAGE, runners = false } = {}) {
+  const env = { ...ENV, ...extraEnv };
+  const sorted = Object.keys(env).sort().map((k) => `${k}=${env[k]}`);
+  return createHash("sha256").update(JSON.stringify({ image, env: sorted, runners: !!runners })).digest("hex").slice(0, 16);
+}
+export const configLabel = () => label(NAME, "n8n2claude.config");
+const label = (name, key) => docker(["inspect", "-f", `{{index .Config.Labels "${key}"}}`, name], { allowFail: true }).stdout?.trim() ?? "";
+
+export async function up({ fresh = false, extraEnv = {}, runners = false, image = IMAGE, log = console.error } = {}) {
+  const want = configHash({ extraEnv, image, runners });
+  if (running(NAME) && !fresh && label(NAME, "n8n2claude.config") !== want) {
+    log(`n8n container runs another configuration (env, image or runners): recreating it`);
+    docker(["rm", "-f", NAME], { allowFail: true });
   }
+  // PROPOSALS P92: the Python task runner sidecar exists only while a template needs it.
+  if (!runners && exists("container", RUNNERS_NAME)) docker(["rm", "-f", RUNNERS_NAME], { allowFail: true });
+  if (runners && running(NAME) && !running(RUNNERS_NAME)) docker(["rm", "-f", NAME], { allowFail: true });
   // The mock runs the checkout's mock-server.mjs as it was when the sidecar started: a sidecar
   // started from other code (label n8n2claude.code) is recreated, so a mock change reaches it.
   if (running(MOCK_NAME) && docker(["inspect", "-f", '{{index .Config.Labels "n8n2claude.code"}}', MOCK_NAME], { allowFail: true }).stdout?.trim() !== mockCodeHash()) {
@@ -187,20 +198,22 @@ export async function up({ fresh = false, extraEnv = {}, log = console.error } =
     ]);
     docker(["network", "connect", "--alias", "mock", NET, MOCK_NAME]);
   }
-  if (!running(NAME)) {
+  const created = !running(NAME);
+  if (created) {
     docker(["rm", "-f", NAME], { allowFail: true });
-    const env = Object.entries({ ...ENV, ...extraEnv }).flatMap(([k, v]) => ["-e", `${k}=${v}`]);
+    const env = Object.entries({ ...ENV, ...extraEnv, ...(runners ? RUNNERS_ENV : {}) }).flatMap(([k, v]) => ["-e", `${k}=${v}`]);
     docker([
-      "run", "-d", "--name", NAME,
+      "run", "-d", "--name", NAME, "--label", `n8n2claude.config=${want}`,
       "--memory=1g", "--memory-swap=1g",
       "--network", NET,
       "-v", `${VOLUME}:/home/node/.n8n`, "-v", `${join(TLS_DIR, "ca.pem")}:/bench-ca/ca.pem:ro`,
       ...env,
-      IMAGE,
+      image,
     ]);
   }
+  if (runners && (created || !running(RUNNERS_NAME))) startRunners(extraEnv);
   await waitHealthy();
-  log(`n8n up at ${BASE} (${IMAGE}); mock at ${MOCK_URL} inside, work dir ${WORK}`);
+  log(`n8n up at ${BASE} (${image}${runners ? `, Python runners ${RUNNERS_IMAGE}` : ""}); mock at ${MOCK_URL} inside, work dir ${WORK}`);
 }
 
 // The code the mock sidecar runs (every module mock-server.mjs loads from this folder).
@@ -208,6 +221,32 @@ export function mockCodeHash() {
   const h = createHash("sha256");
   for (const f of ["mock-server.mjs", "mint-leaf.mjs"]) h.update(readFileSync(join(HERE, f)));
   return h.digest("hex").slice(0, 16);
+}
+
+// PROPOSALS P92: n8n 2.x runs Python Code nodes only in an external task runner. For a template
+// with one, n8n runs its broker in external mode and n8n's own runners image (pinned to the same
+// version) connects to it from a sidecar on the internal network: no route out, its HTTP through
+// the mock like n8n's, the bench CA trusted, 512 MiB cap. The JS runner moves there too for that
+// run (the launcher starts both).
+const RUNNERS_TOKEN = "n8n2claude-bench-runners-not-a-secret";
+const RUNNERS_ENV = {
+  N8N_RUNNERS_MODE: "external",
+  N8N_RUNNERS_AUTH_TOKEN: RUNNERS_TOKEN,
+  N8N_RUNNERS_BROKER_LISTEN_ADDRESS: "0.0.0.0",
+  N8N_PYTHON_ENABLED: "true",
+};
+function startRunners(extraEnv = {}) {
+  docker(["rm", "-f", RUNNERS_NAME], { allowFail: true });
+  const pass = ["GENERIC_TIMEZONE", "TZ", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "NODE_USE_ENV_PROXY", "NODE_EXTRA_CA_CERTS"];
+  const env = { ...Object.fromEntries(pass.map((k) => [k, { ...ENV, ...extraEnv }[k]]).filter(([, v]) => v !== undefined)), N8N_RUNNERS_TASK_BROKER_URI: `http://${NAME}:5679`, N8N_RUNNERS_AUTH_TOKEN: RUNNERS_TOKEN, N8N_RUNNERS_MAX_CONCURRENCY: "2", SSL_CERT_FILE: "/bench-ca/ca.pem", REQUESTS_CA_BUNDLE: "/bench-ca/ca.pem" };
+  docker([
+    "run", "-d", "--name", RUNNERS_NAME,
+    "--memory=512m", "--memory-swap=512m",
+    "--network", NET,
+    "-v", `${join(TLS_DIR, "ca.pem")}:/bench-ca/ca.pem:ro`,
+    ...Object.entries(env).flatMap(([k, v]) => ["-e", `${k}=${v}`]),
+    RUNNERS_IMAGE,
+  ]);
 }
 
 export async function waitHealthy(timeoutMs = 180_000) {
@@ -249,7 +288,7 @@ export function state(name = NAME) {
 }
 
 export function down({ purge = false } = {}) {
-  docker(["rm", "-f", NAME, MOCK_NAME], { allowFail: true });
+  docker(["rm", "-f", NAME, MOCK_NAME, RUNNERS_NAME], { allowFail: true });
   for (const n of [NET, EDGE]) docker(["network", "rm", n], { allowFail: true });
   if (purge) docker(["volume", "rm", VOLUME], { allowFail: true });
 }
@@ -266,7 +305,7 @@ export function memStats(name = NAME) {
 
 export function status() {
   const out = {};
-  for (const n of [NAME, MOCK_NAME]) {
+  for (const n of [NAME, MOCK_NAME, RUNNERS_NAME]) {
     const r = docker(["inspect", "-f", "{{.State.Status}}|{{.Config.Image}}|{{.HostConfig.Memory}}", n], { allowFail: true });
     if (r.status !== 0) {
       out[n] = { state: "absent" };

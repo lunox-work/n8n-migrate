@@ -1144,8 +1144,10 @@ test("P64, P57, P52: validator warns only on the trigger's reach, notes shared r
   const fx = { expect: {}, reads: [{ node: "Before", http: { responses: [{ method: "GET", url: "https://api.example/status" }] } }, { node: "After", http: { responses: [{ method: "GET", url: "https://api.example/status" }, { method: "GET", url: "https://api.example/other" }] } }], writeReplies: [{ node: "Self", http: { responses: [{ method: "POST", url: "http://localhost:5678/rest/workflows" }] } }] };
   assert.equal(sharedRouteNotes(fx).length, 1);
   assert.match(sharedRouteNotes(fx)[0], /"Before", "After"/);
-  assert.match(ownInstanceWarnings(fx)[0], /P52/);
-  assert.deepEqual(ownInstanceWarnings({ ...fx, expect: { n8nCannotRun: "calls its own API" } }), []);
+  assert.deepEqual(ownInstanceWarnings(fx), [], "a localhost route reaches the mock since P52 (R4e)");
+  const ip = { ...fx, writeReplies: [{ node: "Self", http: { responses: [{ method: "POST", url: "http://127.0.0.1:5678/rest/workflows" }] } }] };
+  assert.match(ownInstanceWarnings(ip)[0], /P52/);
+  assert.deepEqual(ownInstanceWarnings({ ...ip, expect: { n8nCannotRun: "calls its own API" } }), []);
 });
 
 test("P47: a runner process in the claude driver's session environment sends an LLM call over HTTP to the replay shim and writes absolute paths under the scratch disk", async () => {
