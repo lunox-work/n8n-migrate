@@ -1,0 +1,282 @@
+{
+  "schemaVersion": 1,
+  "template": 1897,
+  "sha256": "c89e432111c87eaeb971c87a234672a244b28e023dce1c788025c88aac9e5187",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "one new email with a payslip PDF and a logo PNG: the PNG is not a PDF, the payslip is read, classified and uploaded to the configured folder",
+  "trigger": {
+    "node": "On email received",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {
+          "id": "19a8e3c0000a1897",
+          "threadId": "19a8e3c0000a1897",
+          "labelIds": [
+            "INBOX",
+            "UNREAD",
+            "CATEGORY_UPDATES"
+          ],
+          "headers": {
+            "from": "From: \"Northwind Payroll\" <payroll@northwind-traders.example>",
+            "to": "To: \"Dana Whitfield\" <dana.whitfield@gmail.example>",
+            "subject": "Subject: Your October 2026 payslip",
+            "date": "Date: Mon, 16 Nov 2026 08:40:00 +0000",
+            "message-id": "Message-ID: <19a8e3c0000a1897@mail.example>"
+          },
+          "html": false,
+          "text": "Hi Dana,\n\nYour payslip for October 2026 is attached.\n\nNorthwind Payroll\n",
+          "subject": "Your October 2026 payslip",
+          "date": "2026-11-16T08:40:00.000Z",
+          "to": {
+            "value": [
+              {
+                "address": "dana.whitfield@gmail.example",
+                "name": "Dana Whitfield"
+              }
+            ],
+            "text": "\"Dana Whitfield\" <dana.whitfield@gmail.example>"
+          },
+          "from": {
+            "value": [
+              {
+                "address": "payroll@northwind-traders.example",
+                "name": "Northwind Payroll"
+              }
+            ],
+            "text": "\"Northwind Payroll\" <payroll@northwind-traders.example>"
+          },
+          "messageId": "<19a8e3c0000a1897@mail.example>"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "On email received",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages",
+            "query": {
+              "maxResults": "1"
+            },
+            "status": 200,
+            "body": {
+              "messages": [
+                {
+                  "id": "19a8e3c0000a1897",
+                  "threadId": "19a8e3c0000a1897"
+                }
+              ],
+              "nextPageToken": "05218862977431413066",
+              "resultSizeEstimate": 201
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8e3c0000a1897",
+            "query": {
+              "format": "raw"
+            },
+            "status": 200,
+            "body": {
+              "id": "19a8e3c0000a1897",
+              "threadId": "19a8e3c0000a1897",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_UPDATES"
+              ],
+              "snippet": "Hi Dana,\n\nYour payslip for October 2026 is attached.\n\nNorthwind Payroll\n",
+              "sizeEstimate": 7134,
+              "historyId": "6120001",
+              "internalDate": "1794818400000",
+              "raw": "RnJvbTogIk5vcnRod2luZCBQYXlyb2xsIiA8cGF5cm9sbEBub3J0aHdpbmQtdHJhZGVycy5leGFtcGxlPg0KVG86ICJEYW5hIFdoaXRmaWVsZCIgPGRhbmEud2hpdGZpZWxkQGdtYWlsLmV4YW1wbGU-DQpTdWJqZWN0OiBZb3VyIE9jdG9iZXIgMjAyNiBwYXlzbGlwDQpEYXRlOiBNb24sIDE2IE5vdiAyMDI2IDA4OjQwOjAwICswMDAwDQpNZXNzYWdlLUlEOiA8MTlhOGUzYzAwMDBhMTg5N0BtYWlsLmV4YW1wbGU-DQpNSU1FLVZlcnNpb246IDEuMA0KQ29udGVudC1UeXBlOiBtdWx0aXBhcnQvbWl4ZWQ7IGJvdW5kYXJ5PSI9X2JlbmNoXzE5YThlM2MwMDAwYTE4OTciDQoNCi0tPV9iZW5jaF8xOWE4ZTNjMDAwMGExODk3DQpDb250ZW50LVR5cGU6IHRleHQvcGxhaW47IGNoYXJzZXQ9VVRGLTgNCg0KSGkgRGFuYSwKCllvdXIgcGF5c2xpcCBmb3IgT2N0b2JlciAyMDI2IGlzIGF0dGFjaGVkLgoKTm9ydGh3aW5kIFBheXJvbGwKDQotLT1fYmVuY2hfMTlhOGUzYzAwMDBhMTg5Nw0KQ29udGVudC1UeXBlOiBhcHBsaWNhdGlvbi9wZGY7IG5hbWU9InBheXNsaXAtMjAyNi0xMC5wZGYiDQpDb250ZW50LURpc3Bvc2l0aW9uOiBhdHRhY2htZW50OyBmaWxlbmFtZT0icGF5c2xpcC0yMDI2LTEwLnBkZiINCkNvbnRlbnQtVHJhbnNmZXItRW5jb2Rpbmc6IGJhc2U2NA0KDQpKVkJFUmkweExqUUtNU0F3SUc5aWFnbzhQQ0F2Vkhsd1pTQXZRMkYwWVd4dlp5QXZVR0ZuWlhNZ01pQXdJRklnUGo0S1pXNWtiMkpxDQpDaklnTUNCdlltb0tQRHdnTDFSNWNHVWdMMUJoWjJWeklDOUxhV1J6SUZzeklEQWdVbDBnTDBOdmRXNTBJREVnUGo0S1pXNWtiMkpxDQpDak1nTUNCdlltb0tQRHdnTDFSNWNHVWdMMUJoWjJVZ0wxQmhjbVZ1ZENBeUlEQWdVaUF2VFdWa2FXRkNiM2dnV3pBZ01DQTFPVFVnDQpPRFF5WFNBdlVtVnpiM1Z5WTJWeklEdzhJQzlHYjI1MElEdzhJQzlHTVNBMUlEQWdVaUErUGlBK1BpQXZRMjl1ZEdWdWRITWdOQ0F3DQpJRklnUGo0S1pXNWtiMkpxQ2pRZ01DQnZZbW9LUER3Z0wweGxibWQwYUNBME5EUWdQajRLYzNSeVpXRnRDa0pVSUM5R01TQXhNU0JVDQpaaUExTUNBM09EQWdWR1FnTVRRZ1ZFd0tLRTV2Y25Sb2QybHVaQ0JVY21Ga1pYSnpJRXgwWkNBdElGQmhlWE5zYVhBcElGUnFJRlFxDQpDaWhGYlhCc2IzbGxaVG9nUkdGdVlTQlhhR2wwWm1sbGJHUWdJQ0JGYlhCc2IzbGxaU0J1Ynk0Z01UQTBORElwSUZScUlGUXFDaWhRDQpZWGtnY0dWeWFXOWtPaUF3TVNCUFkzUWdNakF5TmlBdElETXhJRTlqZENBeU1ESTJJQ0FnVUdGNUlHUmhkR1U2SURNeElFOWpkQ0F5DQpNREkyS1NCVWFpQlVLZ29vUW1GemFXTWdjMkZzWVhKNUlDQWdJQ0FnSUNBZ0lDQWdOQ3d5TlRBdU1EQXBJRlJxSUZRcUNpaFBkbVZ5DQpkR2x0WlNCY0tEWm9YQ2tnSUNBZ0lDQWdJQ0FnSUNBZ01UZzNMalV3S1NCVWFpQlVLZ29vU1c1amIyMWxJSFJoZUNBZ0lDQWdJQ0FnDQpJQ0FnSUNBZ0lDMDRNVEl1TkRBcElGUnFJRlFxQ2loT1lYUnBiMjVoYkNCcGJuTjFjbUZ1WTJVZ0lDQWdJQ0FnTFRNME1TNHhOeWtnDQpWR29nVkNvS0tGQmxibk5wYjI0Z05TVWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBdE1qRXlMalV3S1NCVWFpQlVLZ29vVG1WMElIQmhlU0FnDQpJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ015d3dOekV1TkRNcElGUnFJRlFxQ2tWVUNtVnVaSE4wY21WaGJRcGxibVJ2WW1vS05TQXdJRzlpDQphZ284UENBdlZIbHdaU0F2Um05dWRDQXZVM1ZpZEhsd1pTQXZWSGx3WlRFZ0wwSmhjMlZHYjI1MElDOUlaV3gyWlhScFkyRWdMMFZ1DQpZMjlrYVc1bklDOVhhVzVCYm5OcFJXNWpiMlJwYm1jZ1BqNEtaVzVrYjJKcUNuaHlaV1lLTUNBMkNqQXdNREF3TURBd01EQWdOalUxDQpNelVnWmlBS01EQXdNREF3TURBd09TQXdNREF3TUNCdUlBb3dNREF3TURBd01EVTRJREF3TURBd0lHNGdDakF3TURBd01EQXhNVFVnDQpNREF3TURBZ2JpQUtNREF3TURBd01ESTBNU0F3TURBd01DQnVJQW93TURBd01EQXdOek0xSURBd01EQXdJRzRnQ25SeVlXbHNaWElLDQpQRHdnTDFOcGVtVWdOaUF2VW05dmRDQXhJREFnVWlBK1BncHpkR0Z5ZEhoeVpXWUtPRE15Q2lVbFJVOUdDZz09DQoNCi0tPV9iZW5jaF8xOWE4ZTNjMDAwMGExODk3DQpDb250ZW50LVR5cGU6IGltYWdlL3BuZzsgbmFtZT0ibG9nby5wbmciDQpDb250ZW50LURpc3Bvc2l0aW9uOiBhdHRhY2htZW50OyBmaWxlbmFtZT0ibG9nby5wbmciDQpDb250ZW50LVRyYW5zZmVyLUVuY29kaW5nOiBiYXNlNjQNCg0KaVZCT1J3MEtHZ29BQUFBTlNVaEVVZ0FBQUFRQUFBQUdDQUlBQUFCclc2Z2lBQUFBRUVsRVFWUjRuR09RczZtQUl3WktPUUQzekJPeA0KZ2xDbndnQUFBQUJKUlU1RXJrSmdnZz09DQoNCi0tPV9iZW5jaF8xOWE4ZTNjMDAwMGExODk3LS0NCg"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_threads",
+            "args": {},
+            "result": {
+              "threads": [
+                {
+                  "id": "19a8e3c0000a1897",
+                  "messageCount": 1,
+                  "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8e3c0000a1897",
+                  "messages": [
+                    {
+                      "id": "19a8e3c0000a1897",
+                      "snippet": "Hi Dana,\n\nYour payslip for October 2026 is attached.\n\nNorthwind Payroll\n",
+                      "subject": "Your October 2026 payslip",
+                      "sender": "payroll@northwind-traders.example",
+                      "toRecipients": [
+                        "dana.whitfield@gmail.example"
+                      ],
+                      "date": "2026-11-16T08:40:00.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "UNREAD",
+                        "CATEGORY_UPDATES"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "tool": "get_message",
+            "args": {
+              "messageId": "19a8e3c0000a1897"
+            },
+            "result": {
+              "id": "19a8e3c0000a1897",
+              "threadId": "19a8e3c0000a1897",
+              "snippet": "Hi Dana,\n\nYour payslip for October 2026 is attached.\n\nNorthwind Payroll\n",
+              "subject": "Your October 2026 payslip",
+              "sender": "payroll@northwind-traders.example",
+              "toRecipients": [
+                "dana.whitfield@gmail.example"
+              ],
+              "ccRecipients": [],
+              "bccRecipients": [],
+              "date": "2026-11-16T08:40:00.000Z",
+              "labelIds": [
+                "INBOX",
+                "UNREAD",
+                "CATEGORY_UPDATES"
+              ],
+              "plaintextBody": "Hi Dana,\n\nYour payslip for October 2026 is attached.\n\nNorthwind Payroll\n",
+              "attachmentIds": [
+                "ANGjdJ0a18970",
+                "ANGjdJ0a18971"
+              ],
+              "attachments": [
+                {
+                  "attachmentId": "ANGjdJ0a18970",
+                  "filename": "payslip-2026-10.pdf",
+                  "mimeType": "application/pdf",
+                  "size": 1015
+                },
+                {
+                  "attachmentId": "ANGjdJ0a18971",
+                  "filename": "logo.png",
+                  "mimeType": "image/png",
+                  "size": 73
+                }
+              ],
+              "viewUrl": "https://mail.google.com/mail/u/0/#all/19a8e3c0000a1897"
+            }
+          },
+          {
+            "tool": "download_gmail_attachment",
+            "args": {
+              "messageId": "19a8e3c0000a1897",
+              "attachmentId": "ANGjdJ0a18970",
+              "filename": "payslip-2026-10.pdf"
+            },
+            "result": {
+              "filename": "payslip-2026-10.pdf",
+              "mimeType": "application/pdf",
+              "size": 1015,
+              "content": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA1IDAgUiA+PiA+PiAvQ29udGVudHMgNCAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA0NDQgPj4Kc3RyZWFtCkJUIC9GMSAxMSBUZiA1MCA3ODAgVGQgMTQgVEwKKE5vcnRod2luZCBUcmFkZXJzIEx0ZCAtIFBheXNsaXApIFRqIFQqCihFbXBsb3llZTogRGFuYSBXaGl0ZmllbGQgICBFbXBsb3llZSBuby4gMTA0NDIpIFRqIFQqCihQYXkgcGVyaW9kOiAwMSBPY3QgMjAyNiAtIDMxIE9jdCAyMDI2ICAgUGF5IGRhdGU6IDMxIE9jdCAyMDI2KSBUaiBUKgooQmFzaWMgc2FsYXJ5ICAgICAgICAgICAgNCwyNTAuMDApIFRqIFQqCihPdmVydGltZSBcKDZoXCkgICAgICAgICAgICAgMTg3LjUwKSBUaiBUKgooSW5jb21lIHRheCAgICAgICAgICAgICAgIC04MTIuNDApIFRqIFQqCihOYXRpb25hbCBpbnN1cmFuY2UgICAgICAgLTM0MS4xNykgVGogVCoKKFBlbnNpb24gNSUgICAgICAgICAgICAgICAtMjEyLjUwKSBUaiBUKgooTmV0IHBheSAgICAgICAgICAgICAgICAgMywwNzEuNDMpIFRqIFQqCkVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgPj4KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI0MSAwMDAwMCBuIAowMDAwMDAwNzM1IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKODMyCiUlRU9GCg=="
+            }
+          },
+          {
+            "tool": "download_gmail_attachment",
+            "args": {
+              "messageId": "19a8e3c0000a1897",
+              "attachmentId": "ANGjdJ0a18971",
+              "filename": "logo.png"
+            },
+            "result": {
+              "filename": "logo.png",
+              "mimeType": "image/png",
+              "size": 73,
+              "content": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAGCAIAAABrW6giAAAAEElEQVR4nGOQs6mAIwZKOQD3zBOxglCnwgAAAABJRU5ErkJggg=="
+            }
+          }
+        ]
+      },
+      "connectorGaps": [
+        "Reply-To header: the connector's get_message carries sender and recipients, not Reply-To or the raw headers n8n's item keeps"
+      ],
+      "note": "Gmail Trigger v1 with Simplify off and Download Attachments on, polled once in n8n's manual mode (FIXTURES.md): GET /gmail/v1/users/me/messages?maxResults=1 (the node also copies its options downloadAttachments and dataPropertyAttachmentsPrefixName into the query), then GET /gmail/v1/users/me/messages/<id>?format=raw; mailparser turns the raw message into the item and each attachment into binary attachment_<n>. The trigger polls through these responses on the n8n side (binary attachments cannot be pinned); the Claude side polls the Gmail connector"
+    }
+  ],
+  "models": [
+    "OpenAI matches PDF textual content"
+  ],
+  "writes": [
+    "Upload file to folder"
+  ],
+  "writeReplies": [
+    {
+      "node": "Upload file to folder",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "uploadType": "resumable"
+            },
+            "status": 200,
+            "headers": {
+              "location": "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=bench-1897"
+            },
+            "body": ""
+          },
+          {
+            "method": "PUT",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "upload_id": "bench-1897"
+            },
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1PaySlip1897",
+              "name": "Untitled",
+              "mimeType": "application/pdf"
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1PaySlip1897",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1PaySlip1897",
+              "name": "payslip-2026-10.pdf",
+              "mimeType": "application/pdf",
+              "parents": [
+                "1SKdHTnYoBNlnhF_QJ-Zyepy-3-WZkObo"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Google Drive v2 (the v1 implementation) upload of binary data: n8n 2.47.7 stores binaries on the filesystem by default, so the binary has an id and the node uses the resumable upload: POST /upload/drive/v3/files?uploadType=resumable, PUT the bytes to the Location URL, then PATCH /drive/v3/files/<id>?addParents=1SKdHTnYoBNlnhF_QJ-Zyepy-3-WZkObo&supportsAllDrives=true {mimeType, name, originalFilename}; resolveData is off, so no GET follows"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Has attachments? true; Is PDF: payslip-2026-10.pdf true, logo.png false (Not a PDF); token limit true; Is matched true when the model answers 'true' → one upload"
+    ],
+    "offline": "Whether a PDF matches 'payslip' is model-driven (the legacy OpenAI completion's reply is recorded; Is matched needs it to be exactly 'true'). The PDFs are one-page stand-ins whose text pdf.js extracts. Manual-mode polling asks for one message"
+  }
+}

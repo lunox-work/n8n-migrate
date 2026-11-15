@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "template": 1897,
+  "sha256": "c89e432111c87eaeb971c87a234672a244b28e023dce1c788025c88aac9e5187",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the inbox has no message, so the trigger emits nothing",
+  "trigger": {
+    "node": "On email received",
+    "kind": "poll",
+    "items": []
+  },
+  "reads": [
+    {
+      "node": "On email received",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages",
+            "query": {
+              "maxResults": "1"
+            },
+            "status": 200,
+            "body": {
+              "resultSizeEstimate": 0
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_threads",
+            "args": {},
+            "result": {
+              "threads": []
+            }
+          }
+        ]
+      },
+      "note": "Gmail Trigger v1 with Simplify off and Download Attachments on, polled once in n8n's manual mode (FIXTURES.md): GET /gmail/v1/users/me/messages?maxResults=1 (the node also copies its options downloadAttachments and dataPropertyAttachmentsPrefixName into the query), then GET /gmail/v1/users/me/messages/<id>?format=raw; mailparser turns the raw message into the item and each attachment into binary attachment_<n>. The trigger polls through these responses on the n8n side (binary attachments cannot be pinned); the Claude side polls the Gmail connector. The inbox has no message"
+    }
+  ],
+  "models": [
+    "OpenAI matches PDF textual content"
+  ],
+  "writes": [
+    "Upload file to folder"
+  ],
+  "writeReplies": [
+    {
+      "node": "Upload file to folder",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "uploadType": "resumable"
+            },
+            "status": 200,
+            "headers": {
+              "location": "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=bench-1897"
+            },
+            "body": ""
+          },
+          {
+            "method": "PUT",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "query": {
+              "upload_id": "bench-1897"
+            },
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1PaySlip1897",
+              "name": "Untitled",
+              "mimeType": "application/pdf"
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1PaySlip1897",
+            "status": 200,
+            "body": {
+              "kind": "drive#file",
+              "id": "1PaySlip1897",
+              "name": "payslip-2026-10.pdf",
+              "mimeType": "application/pdf",
+              "parents": [
+                "1SKdHTnYoBNlnhF_QJ-Zyepy-3-WZkObo"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Google Drive v2 (the v1 implementation) upload of binary data: n8n 2.47.7 stores binaries on the filesystem by default, so the binary has an id and the node uses the resumable upload: POST /upload/drive/v3/files?uploadType=resumable, PUT the bytes to the Location URL, then PATCH /drive/v3/files/<id>?addParents=1SKdHTnYoBNlnhF_QJ-Zyepy-3-WZkObo&supportsAllDrives=true {mimeType, name, originalFilename}; resolveData is off, so no GET follows"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no item: nothing runs"
+    ],
+    "offline": "Whether a PDF matches 'payslip' is model-driven (the legacy OpenAI completion's reply is recorded; Is matched needs it to be exactly 'true'). The PDFs are one-page stand-ins whose text pdf.js extracts. Manual-mode polling asks for one message"
+  }
+}

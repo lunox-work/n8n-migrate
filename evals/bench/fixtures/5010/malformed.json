@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "template": 5010,
+  "sha256": "fb40421802a11fef4a213b1d1ad9a841480945d6ad35612bf6d3128ffdac97cd",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model"
+  ],
+  "writes": [],
+  "about": "the embeddings endpoint answers 500 with a plain-text body, so a knowledge_base call fails inside the agent",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "0d9e8c7b6a5f4e3d2c1b0a9f8e7d6c5b",
+          "action": "sendMessage",
+          "chatInput": "Summarise section 4 of the uploaded PDF in three bullet points."
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Embeddings OpenAI",
+      "service": "openai-embeddings",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/embeddings",
+            "status": 500,
+            "headers": {
+              "content-type": "text/plain"
+            },
+            "body": "upstream connect error or disconnect/reset before headers. reset reason: overflow"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector for OpenAI embeddings; the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "Embeddings OpenAI v1.2 (model left at text-embedding-3-small) embeds the agent's knowledge_base query: POST /v1/embeddings; the openai SDK asks for encoding_format base64, so the vector is base64 of 1536 little-endian float32. The shim does not answer embeddings, so the vector is fixed here. Called only when the agent decides to use the knowledge_base tool. A 500 with a text body; the openai SDK retries (maxRetries 2 by default) before the tool reports the error to the agent"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: a tool call errors; the agent answers without the knowledge base or the run fails, as n8n decides"
+    ],
+    "offline": "The knowledge base is the in-memory vector store (key vector_store_key), filled only by the separate form upload path (Upload your file here → Insert Data to Store). A chat run starts with that store empty in a fresh n8n, so knowledge_base returns no documents (assumed: no other run in the same n8n process inserted under that key). Whether the agent calls the tool is model-driven; the only effect is the chat reply. Query Data Tool and Insert Data to Store are left unlisted (validate warns): they read and write n8n's process memory, which no fixture source can seed or observe"
+  }
+}

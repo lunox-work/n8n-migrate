@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "template": 5010,
+  "sha256": "fb40421802a11fef4a213b1d1ad9a841480945d6ad35612bf6d3128ffdac97cd",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model"
+  ],
+  "writes": [],
+  "about": "the chat message is empty",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "0d9e8c7b6a5f4e3d2c1b0a9f8e7d6c5b",
+          "action": "sendMessage",
+          "chatInput": ""
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Embeddings OpenAI",
+      "service": "openai-embeddings",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/embeddings",
+            "status": 200,
+            "body": {
+              "object": "list",
+              "data": [
+                {
+                  "object": "embedding",
+                  "index": 0,
+                  "embedding": "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"
+                }
+              ],
+              "model": "text-embedding-3-small",
+              "usage": {
+                "prompt_tokens": 8,
+                "total_tokens": 8
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector for OpenAI embeddings; the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "Embeddings OpenAI v1.2 (model left at text-embedding-3-small) embeds the agent's knowledge_base query: POST /v1/embeddings; the openai SDK asks for encoding_format base64, so the vector is base64 of 1536 little-endian float32. The shim does not answer embeddings, so the vector is fixed here. Called only when the agent decides to use the knowledge_base tool"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: the agent gets an empty message"
+    ],
+    "offline": "The knowledge base is the in-memory vector store (key vector_store_key), filled only by the separate form upload path (Upload your file here → Insert Data to Store). A chat run starts with that store empty in a fresh n8n, so knowledge_base returns no documents (assumed: no other run in the same n8n process inserted under that key). Whether the agent calls the tool is model-driven; the only effect is the chat reply. Query Data Tool and Insert Data to Store are left unlisted (validate warns): they read and write n8n's process memory, which no fixture source can seed or observe"
+  }
+}

@@ -1,0 +1,449 @@
+{
+  "schemaVersion": 1,
+  "template": 2799,
+  "sha256": "d9dd693b776f74ab52a954e1b28cd21db91d2ab903f40748a822b94c9f57f755",
+  "variant": "normal",
+  "now": "2026-11-16T14:15:00.000Z",
+  "trigger": {
+    "node": "Schedule Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T09:15:00.000-05:00",
+          "Readable date": "November 16th 2026, 9:15:00 am",
+          "Readable time": "9:15:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "09",
+          "Minute": "15",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "models": [
+    "Relevance Classification for Topic Monitoring",
+    "OpenAI Chat Model1",
+    "Basic LLM Chain",
+    "OpenAI Chat Model"
+  ],
+  "writes": [
+    "Slack1",
+    "Google Sheets - Add relevant article",
+    "Google Sheets - Add relevant articles"
+  ],
+  "writeReplies": [
+    {
+      "node": "Slack1",
+      "service": "slack",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://slack.com/api/chat.postMessage",
+            "status": 200,
+            "body": {
+              "ok": true,
+              "channel": "C0898R9G7JP",
+              "ts": "1794841000.000100",
+              "message": {
+                "type": "message",
+                "user": "U0BENCH2799",
+                "text": "summary",
+                "ts": "1794841000.000100"
+              }
+            }
+          }
+        ]
+      },
+      "note": "Slack v2.3 message post (OAuth2) to channel C0898R9G7JP: POST https://slack.com/api/chat.postMessage {channel, text}"
+    },
+    {
+      "node": "Google Sheets - Add relevant article",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1F2FzWt9FMkA5V5i9d_hBJRahLDvxs3DQBOLkLYowXbY",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "rss_feed",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1966921272,
+                    "title": "article_database",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1F2FzWt9FMkA5V5i9d_hBJRahLDvxs3DQBOLkLYowXbY/values/'article_database'",
+            "status": 200,
+            "body": {
+              "range": "article_database!A1:F2",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "article_url",
+                  "summarized",
+                  "summary",
+                  "website",
+                  "fetched_at",
+                  "publish_date"
+                ],
+                [
+                  "https://www.technologyreview.com/2026/11/14/1120001/chip-export-rules-ai-labs/",
+                  "YES",
+                  "*New export rules* tighten chip sales to AI labs…",
+                  "MIT Technology Review",
+                  "2026-11-14T10:15:02.114-05:00",
+                  "2026-11-14"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1F2FzWt9FMkA5V5i9d_hBJRahLDvxs3DQBOLkLYowXbY:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1F2FzWt9FMkA5V5i9d_hBJRahLDvxs3DQBOLkLYowXbY",
+              "replies": [
+                {}
+              ]
+            }
+          },
+          {
+            "method": "PUT",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1F2FzWt9FMkA5V5i9d_hBJRahLDvxs3DQBOLkLYowXbY/values/article_database!3:3",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1F2FzWt9FMkA5V5i9d_hBJRahLDvxs3DQBOLkLYowXbY",
+              "updatedRange": "article_database!A3:F3",
+              "updatedRows": 1,
+              "updatedColumns": 6,
+              "updatedCells": 6
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.5 append (autoMapInputData) to article_database: sheet properties, GET values/'article_database' (header + existing rows), POST :batchUpdate (appendDimension, one row), then PUT values/article_database!3:3 (valueInputOption USER_ENTERED). Each append node gets one item here, so each writes row 3 of the unchanged mock sheet"
+    },
+    {
+      "node": "Google Sheets - Add relevant articles",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1F2FzWt9FMkA5V5i9d_hBJRahLDvxs3DQBOLkLYowXbY",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "rss_feed",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1966921272,
+                    "title": "article_database",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1F2FzWt9FMkA5V5i9d_hBJRahLDvxs3DQBOLkLYowXbY/values/'article_database'",
+            "status": 200,
+            "body": {
+              "range": "article_database!A1:F2",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "article_url",
+                  "summarized",
+                  "summary",
+                  "website",
+                  "fetched_at",
+                  "publish_date"
+                ],
+                [
+                  "https://www.technologyreview.com/2026/11/14/1120001/chip-export-rules-ai-labs/",
+                  "YES",
+                  "*New export rules* tighten chip sales to AI labs…",
+                  "MIT Technology Review",
+                  "2026-11-14T10:15:02.114-05:00",
+                  "2026-11-14"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1F2FzWt9FMkA5V5i9d_hBJRahLDvxs3DQBOLkLYowXbY:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1F2FzWt9FMkA5V5i9d_hBJRahLDvxs3DQBOLkLYowXbY",
+              "replies": [
+                {}
+              ]
+            }
+          },
+          {
+            "method": "PUT",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1F2FzWt9FMkA5V5i9d_hBJRahLDvxs3DQBOLkLYowXbY/values/article_database!3:3",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1F2FzWt9FMkA5V5i9d_hBJRahLDvxs3DQBOLkLYowXbY",
+              "updatedRange": "article_database!A3:F3",
+              "updatedRows": 1,
+              "updatedColumns": 6,
+              "updatedCells": 6
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.5 append (autoMapInputData) to article_database: sheet properties, GET values/'article_database' (header + existing rows), POST :batchUpdate (appendDimension, one row), then PUT values/article_database!3:3 (valueInputOption USER_ENTERED). Each append node gets one item here, so each writes row 3 of the unchanged mock sheet"
+    }
+  ],
+  "about": "one feed with three articles: one already in the database, one about on-device language models, one about heat pumps",
+  "reads": [
+    {
+      "node": "Google Sheets - Get article monitored database",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1F2FzWt9FMkA5V5i9d_hBJRahLDvxs3DQBOLkLYowXbY",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "rss_feed",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1966921272,
+                    "title": "article_database",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1F2FzWt9FMkA5V5i9d_hBJRahLDvxs3DQBOLkLYowXbY/values/'article_database'",
+            "status": 200,
+            "body": {
+              "range": "article_database!A1:F2",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "article_url",
+                  "summarized",
+                  "summary",
+                  "website",
+                  "fetched_at",
+                  "publish_date"
+                ],
+                [
+                  "https://www.technologyreview.com/2026/11/14/1120001/chip-export-rules-ai-labs/",
+                  "YES",
+                  "*New export rules* tighten chip sales to AI labs…",
+                  "MIT Technology Review",
+                  "2026-11-14T10:15:02.114-05:00",
+                  "2026-11-14"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Sheets connector"
+      },
+      "note": "Google Sheets v4.5 read with the service-account credential (the bench answers the token exchange): GET the spreadsheet's sheets.properties to resolve the gid, then GET values/'<sheet>' (valueRenderOption UNFORMATTED_VALUE, dateTimeRenderOption FORMATTED_STRING); row 1 is the header. v4.5 reads once per input item. Sheet article_database (gid 1966921272): the articles already handled"
+    },
+    {
+      "node": "Google Sheets - Get RSS Feed url followed",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1F2FzWt9FMkA5V5i9d_hBJRahLDvxs3DQBOLkLYowXbY",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "rss_feed",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1966921272,
+                    "title": "article_database",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1F2FzWt9FMkA5V5i9d_hBJRahLDvxs3DQBOLkLYowXbY/values/'rss_feed'",
+            "status": 200,
+            "body": {
+              "range": "rss_feed!A1:B2",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "website",
+                  "rss_feed_url"
+                ],
+                [
+                  "MIT Technology Review",
+                  "https://www.technologyreview.com/topic/artificial-intelligence/feed"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Sheets connector"
+      },
+      "note": "Google Sheets v4.5 read with the service-account credential (the bench answers the token exchange): GET the spreadsheet's sheets.properties to resolve the gid, then GET values/'<sheet>' (valueRenderOption UNFORMATTED_VALUE, dateTimeRenderOption FORMATTED_STRING); row 1 is the header. v4.5 reads once per input item. Sheet rss_feed (gid 0): one feed. It runs once per item of Set field - existing_url, so the article database holds one row here to keep one feed read (with more rows n8n reads the feed list, and then the feed, once per row)"
+    },
+    {
+      "node": "RSS Read",
+      "service": "rss",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=UTF-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n<channel>\n  <title>Artificial intelligence – MIT Technology Review</title>\n  <link>https://www.technologyreview.com</link>\n  <description>Artificial intelligence news</description>\n  <language>en-US</language>\n  <lastBuildDate>Mon, 16 Nov 2026 13:40:00 +0000</lastBuildDate>\n  <item>\n    <title><![CDATA[Small language models are moving onto your phone]]></title>\n    <link>https://www.technologyreview.com/2026/11/15/1120044/small-language-models-on-device/</link>\n    <dc:creator><![CDATA[MIT Technology Review]]></dc:creator>\n    <pubDate>Sun, 15 Nov 2026 15:00:00 +0000</pubDate>\n    <category><![CDATA[Artificial intelligence]]></category>\n    <guid isPermaLink=\"false\">https://www.technologyreview.com/2026/11/15/1120044/small-language-models-on-device/</guid>\n    <description><![CDATA[Phone makers are shipping 3-billion-parameter models that run offline, and developers are rethinking which tasks need the cloud.]]></description>\n  </item>\n  <item>\n    <title><![CDATA[Heat pumps are keeping homes warm at -30°C]]></title>\n    <link>https://www.technologyreview.com/2026/11/15/1120050/heat-pumps-cold-climates/</link>\n    <dc:creator><![CDATA[MIT Technology Review]]></dc:creator>\n    <pubDate>Sun, 15 Nov 2026 12:00:00 +0000</pubDate>\n    <category><![CDATA[Artificial intelligence]]></category>\n    <guid isPermaLink=\"false\">https://www.technologyreview.com/2026/11/15/1120050/heat-pumps-cold-climates/</guid>\n    <description><![CDATA[Cold-climate heat pumps passed a winter field trial in northern Canada.]]></description>\n  </item>\n  <item>\n    <title><![CDATA[New export rules tighten chip sales to AI labs]]></title>\n    <link>https://www.technologyreview.com/2026/11/14/1120001/chip-export-rules-ai-labs/</link>\n    <dc:creator><![CDATA[MIT Technology Review]]></dc:creator>\n    <pubDate>Sat, 14 Nov 2026 10:00:00 +0000</pubDate>\n    <category><![CDATA[Artificial intelligence]]></category>\n    <guid isPermaLink=\"false\">https://www.technologyreview.com/2026/11/14/1120001/chip-export-rules-ai-labs/</guid>\n    <description><![CDATA[The rules cover data-center accelerators sold abroad.]]></description>\n  </item>\n</channel>\n</rss>\n"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured RSS connector; the Claude side serves the same feed through its HTTP mock"
+      },
+      "note": "RSS Read v1.1 (rss-parser on n8n's httpRequest helper, Accept application/rss+xml) for the feed URL from the sheet; each <item> becomes an n8n item (title, link, pubDate, content, contentSnippet, guid, isoDate)"
+    },
+    {
+      "node": "Jina AI - Read URL",
+      "service": "jina-reader",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://r.jina.ai/https://www.technologyreview.com/2026/11/15/1120044/small-language-models-on-device/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/plain; charset=utf-8"
+            },
+            "body": "Title: Small language models are moving onto your phone\n\nURL Source: https://www.technologyreview.com/2026/11/15/1120044/small-language-models-on-device/\n\nPublished Time: 2026-11-15T15:00:00Z\n\nMarkdown Content:\nPhone makers are now shipping language models with about three billion parameters that run entirely on the device. Apple, Google and Samsung each announced on-device assistants this autumn that summarize notifications, draft replies and translate speech without a network connection.\n\nDevelopers say the shift changes which features need a server. \"Anything that touches personal data is moving local first,\" said one engineer. Battery life remains the constraint: running the model continuously drains a phone in about four hours.\n\nResearchers expect quantized 7-billion-parameter models on flagship phones by late 2027.\n"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Jina connector; the Claude side serves the same page through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2 GET https://r.jina.ai/<article link> without credentials; Jina Reader answers text/plain markdown, which n8n's autodetected response puts in data. Only articles the classifier marks relevant are read"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Code drops the article already in the database; If true for the two new ones",
+      "classifier: the language-model article → relevant (Jina → LLM chain → Slack + Add relevant article); the heat-pump article → not_relevant (Add relevant articles)"
+    ],
+    "offline": "Relevance and the Slack summary are model-driven (n8n's replies are recorded): the fixture's articles are written so one is clearly about AI and one is not, but the classifier decides. fetched_at is $now (masked as a run-time timestamp)"
+  }
+}
