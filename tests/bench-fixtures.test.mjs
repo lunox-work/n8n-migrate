@@ -133,3 +133,35 @@ test("round 3's fresh held-out: outside the seeded split, reproducible from the 
   const survey = join(BENCH, "..", "survey", "data", "wf");
   for (const t of fresh.templates) assert.ok(!existsSync(join(survey, `${t.id}.json`)), `${t.id} is in evals/survey/data/wf`);
 });
+
+// PROPOSALS P51: a coverage run over a corpus folder without explicit ids (the survey folder by
+// default) never converts a current held-out template, and names none of them.
+test("P51: convert-coverage without --ids skips the current round's held-out", async () => {
+  const { mkdtempSync, writeFileSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { spawnSync } = await import("node:child_process");
+  const { readSplits, heldOutIds, withoutHeldOut } = await import("../evals/bench/rounds.mjs");
+  const splits = readSplits();
+  const held = heldOutIds(splits);
+  assert.ok(held.length > 0);
+  assert.deepEqual(withoutHeldOut([String(held[0]), "99999991", held[1]], splits), { kept: ["99999991"], skipped: [String(held[0]), held[1]] });
+  const dir = mkdtempSync(join(tmpdir(), "n2c-p51-"));
+  try {
+    const wf = { name: "t", nodes: [{ id: "a", name: "Start", type: "n8n-nodes-base.manualTrigger", typeVersion: 1, position: [0, 0], parameters: {} }, { id: "b", name: "Set", type: "n8n-nodes-base.set", typeVersion: 3.4, position: [200, 0], parameters: {} }], connections: { Start: { main: [[{ node: "Set", type: "main", index: 0 }]] } } };
+    for (const id of [held[0], 99999991]) writeFileSync(join(dir, `${id}.json`), JSON.stringify(wf));
+    const run = (extra) => {
+      const out = join(dir, `out${extra.length}.md`);
+      const r = spawnSync(process.execPath, [join(BENCH, "..", "convert-coverage.mjs"), "--corpus", dir, "--out", out, ...extra], { encoding: "utf8" });
+      assert.equal(r.status, 0, r.stderr);
+      return readFileSync(out, "utf8");
+    };
+    const md = run([]);
+    assert.match(md, /over 1 templates/);
+    assert.match(md, /1 template\(s\) of the current round's held-out skipped/);
+    assert.ok(!md.includes(String(held[0])), "the report names no held-out id");
+    // Explicit ids (a release point) run as given.
+    assert.match(run(["--ids", `${held[0]},99999991`]), /over 2 templates/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

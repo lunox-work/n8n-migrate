@@ -38,6 +38,17 @@ export function heldOutIds(splits, n) {
   return roundOf(splits, n).heldOut.map((r) => r.id);
 }
 
+// PROPOSALS P51: a corpus-wide tool run without explicit ids (convert-coverage.mjs over
+// evals/survey/data/wf) leaves out the current round's held-out ids. `ids` as strings or
+// numbers; returns {kept, skipped} in the input's form and order.
+export function withoutHeldOut(ids, splits, n) {
+  const held = new Set(heldOutIds(splits, n).map(String));
+  const kept = [];
+  const skipped = [];
+  for (const id of ids) (held.has(String(id)) ? skipped : kept).push(id);
+  return { kept, skipped };
+}
+
 // Dev ids of the current round that have fixtures (what `run.mjs --split dev` runs).
 export function devWithFixtures(splits, fixturesDir = join(HERE, "fixtures"), n) {
   return roundOf(splits, n).dev.map((r) => r.id).filter((id) => existsSync(join(fixturesDir, String(id))));
