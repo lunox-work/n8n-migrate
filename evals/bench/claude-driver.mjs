@@ -140,7 +140,8 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   const env = sessionEnv({ httpMockUrl: httpMock ? `http://127.0.0.1:${httpMock.address().port}` : null, secrets: def.secrets ?? [], diskRoot, absDirs });
   // The bench's start runs in the session's environment (it may reach the first http step).
   const pre = await preStart(env);
-  const preText = (pre.stdout || pre.stderr).slice(0, 600);
+  // The run directory is replaced so no home path reaches a results row.
+  const preText = (pre.stdout || pre.stderr).split(runDir).join("<run>").slice(0, 600);
   const transcript = join(runDir, "stream.jsonl");
   const ours = new Set(Object.keys(mcpServers));
   const t0 = Date.now();
@@ -216,7 +217,7 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
       runStatus: state?.status ?? "no-run",
       runError: state?.result?.error?.message ?? null,
       prestart: preText,
-      finalText: typeof r.result === "string" ? r.result.slice(0, 300) : null,
+      finalText: typeof r.result === "string" ? r.result.split(runDir).join("<run>").slice(0, 300) : null,
       permissionDenials: (r.permission_denials ?? []).map((d) => `${d.tool_name}: ${JSON.stringify(d.tool_input).slice(0, 120)}`),
       hookDenies: events.filter((e) => e.event === "hook-deny").map((e) => String(e.reason).slice(0, 140)),
       replays: replays.map((x) => `${x.key}#${x.index} ${x.mode}`),
