@@ -564,6 +564,7 @@
       "GB33BUKB20201555555555",
       "5574.00"
     ],
-    "offline": "The trigger polls once through the mock for the attachment bytes (a pin drops binary data). The OpenAI Model is the completion LLM lmOpenAi (gpt-3.5-turbo-1106, /v1/completions), which the bench README does not list among the shimmed chat models; if it is not shimmed its call reaches the proxy unanswered. The PDF is a one-page stand-in; the parsed markdown is fixed by the fixture"
+    "offline": "The trigger polls once through the mock for the attachment bytes (a pin drops binary data). The OpenAI Model is the completion LLM lmOpenAi (gpt-3.5-turbo-1106, /v1/completions), which the bench README does not list among the shimmed chat models; if it is not shimmed its call reaches the proxy unanswered. The PDF is a one-page stand-in; the parsed markdown is fixed by the fixture",
+    "n8nCannotRun": "OpenAI Model is the completion LLM with gpt-3.5-turbo-1106; the LangChain OpenAI class in the bench's n8n 2.47.7 image refuses a chat model (\"is a chat model and not a text-in/text-out LLM\"), so n8n's main path stops at Apply Data Extraction Rules before any model call."
   }
 }
