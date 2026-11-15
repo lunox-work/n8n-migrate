@@ -165,6 +165,21 @@ export function serviceRefusal(method, origin, path, body) {
   return { key: "service: gmail send without recipients", f: { status: 400, body: { error: { code: 400, message, errors: [{ message, domain: "global", reason: "invalidArgument" }], status: "INVALID_ARGUMENT" } } } };
 }
 
+// PROPOSALS P84: the transport headers Node's HTTP server adds to every answer this mock writes
+// (res.writeHead with the fixture's headers, then res.end): `date` (unless the fixture sets one),
+// `connection: close` (n8n's proxied and TLS-intercepted requests close their connection), and
+// `transfer-encoding: chunked` (no length is known when the head is written) unless the fixture
+// sets a length or an encoding. The in-process host adds the same, so a step that hands a whole
+// response (headers included) to a model sees the same text on both sides.
+export function transportHeaders(headers = {}, date = new Date()) {
+  const has = (k) => Object.keys(headers ?? {}).some((h) => h.toLowerCase() === k);
+  return {
+    ...(has("date") ? {} : { date: date.toUTCString() }),
+    ...(has("connection") ? {} : { connection: "close" }),
+    ...(has("content-length") || has("transfer-encoding") ? {} : { "transfer-encoding": "chunked" }),
+  };
+}
+
 // Picks the fixture for a request; `counters` tracks list positions.
 // `origin` (e.g. "http://api.example.test") is set for proxied requests; keys
 // that name it ("GET http://api.example.test/v1/x") are tried first.

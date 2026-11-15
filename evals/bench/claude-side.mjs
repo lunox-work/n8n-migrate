@@ -16,7 +16,7 @@ import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { pickRoute, serviceRefusal, modelHost } from "../n8n/mock-server.mjs";
+import { pickRoute, serviceRefusal, modelHost, transportHeaders } from "../n8n/mock-server.mjs";
 import { checkSchema, schemaFile } from "../mocks/mcp-server.mjs";
 import { connectorRefusal, limitErrors, pageResult } from "../mocks/limits.mjs";
 import { answerOf, formatOf, liveAnswer, normalize, normalizeRunnerRequest, pairRecorded, providerResponse, runnerValue } from "./model-shim.mjs";
@@ -737,7 +737,13 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
       if (f && "text" in f) return f.text;
       return pageResult(p.connector, p.tool, p.args, f ? f.result : { ok: true });
     },
-    http: async (p) => {
+    // PROPOSALS P84: every answer carries the transport headers the mock's Node server adds, the
+    // date at the run's virtual clock.
+    http: async (p) => withTransport(await answerHttp(p)),
+  };
+  const hostStart = Date.now();
+  const withTransport = (r) => (r && typeof r === "object" && r.headers ? { ...r, headers: { ...r.headers, ...transportHeaders(r.headers, new Date(Date.parse(startedAt ?? fx.now) + (Date.now() - hostStart))) } } : r);
+  async function answerHttp(p) {
       const u = new URL(p.url);
       const sp = new URLSearchParams(u.search);
       for (const [k, v] of Object.entries(p.query ?? {})) for (const x of [].concat(v)) sp.append(k, typeof x === "string" ? x : JSON.stringify(x));
@@ -767,7 +773,8 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
       if (f.bodyBase64 !== undefined) return { status: f.status ?? 200, headers: { "content-type": "application/octet-stream", ...(f.headers ?? {}) }, body: Buffer.from(f.bodyBase64, "base64").toString("latin1") };
       const isText = typeof f.body === "string";
       return { status: f.status ?? 200, headers: { "content-type": isText ? "text/plain" : "application/json", ...(f.headers ?? {}) }, body: f.body === undefined ? "" : isText ? f.body : JSON.stringify(f.body) };
-    },
+  }
+  Object.assign(host, {
     // PROPOSALS P44: disk steps on the scratch disk, never the real one.
     file: async (p) => {
       const entry = { op: p.op, path: containerPath(String(p.path ?? "")), ...(p.glob ? { glob: true } : {}), ...(p.append ? { append: true } : {}) };
@@ -783,7 +790,7 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
     },
     model: (p) => answerModel({ ...p, kind: "model" }),
     agent: (p) => answerModel({ ...p, kind: "agent" }),
-  };
+  });
 
   async function answerModelHttp(p, { format, host }, body) {
     const key = p.step ?? `host:${host}`;

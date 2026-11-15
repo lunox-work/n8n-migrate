@@ -29,3 +29,10 @@ test("P85: a route URL without a path answers a request for /, on the mock, the 
   assert.equal(pickRoute(R, "GET", "https://site.example", "/other", sp, new Map()), null);
   assert.equal(pickRoute(R, "GET", null, "/", sp, new Map())?.f.body, "home", "a request to the mock directly matched by path, as before");
 });
+
+test("P84: the in-process host adds the transport headers the mock's Node server adds", async () => {
+  const { transportHeaders } = await import("../evals/n8n/mock-server.mjs");
+  const d = new Date("2026-11-15T14:27:03Z");
+  assert.deepEqual(transportHeaders({ "content-type": "text/html" }, d), { date: "Sun, 15 Nov 2026 14:27:03 GMT", connection: "close", "transfer-encoding": "chunked" });
+  assert.deepEqual(transportHeaders({ "Content-Length": "3", Date: "x" }, d), { connection: "close" }, "a fixture's own length or date wins, as in Node");
+});
