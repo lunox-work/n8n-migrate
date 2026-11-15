@@ -2,7 +2,10 @@
 // Compares labels.json with the analyzer (default answers, one template per run, the
 // corpus's --now). Prints one row per template and the agreement counts as JSON.
 //
-//   node evals/bench/compare-labels.mjs [--json]
+//   node evals/bench/compare-labels.mjs [--json] [--labels evals/bench/labels-held3.json]
+//
+// --labels: another labels file (round 3's held-out labels; EXCLUSIONS.md: not for fixing
+// sessions). summary.mjs reads labels.json only.
 
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -13,7 +16,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REFS = join(HERE, "..", "..", "skills", "n8n-to-claude", "references");
 const refs = (f) => JSON.parse(readFileSync(join(REFS, f), "utf8"));
 const opts = { nodes: refs("nodes.json"), capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), now: Date.parse("2026-11-16T00:00:00Z") };
-const labels = JSON.parse(readFileSync(join(HERE, "labels.json"), "utf8")).labels;
+const labelsArg = process.argv.includes("--labels") ? process.argv[process.argv.indexOf("--labels") + 1] : join(HERE, "labels.json");
+const labels = JSON.parse(readFileSync(labelsArg, "utf8")).labels;
 
 const kindOf = (qid) => qid.split("/")[1];
 const rows = [];
