@@ -677,4 +677,3 @@ Gate 3 (60; a template under every kind its preflight names): app REST request t
 ## Round 4: how the loop picks its next feature
 
 From round 4 the loop picks its next converter feature from the gallery ranking [LEVERS.md](LEVERS.md) (top ~1,000 templates by views, round-4 held-out excluded), not from dev failures alone: the top row by templates it alone blocks, then by templates it blocks in total, preferring a row that also unlocks a dev template; a planned-feature roll-up (`byPlanned`) may pick a family when single operations tie. After each accepted converter iteration, `node evals/bench/levers.mjs --offline` is re-run and committed with it. The acceptance rule, the lint against template-specific rules and the held-out rule are unchanged. Each round reports two numbers out of the 100 dev templates: converter coverage (every step supported, `convert-coverage --split dev`) and the one-shot pass rate, from baseline `r4-base`.
-
