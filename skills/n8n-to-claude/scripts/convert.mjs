@@ -1001,6 +1001,16 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       continue;
     }
 
+    // A media operation the tool map runs over the provider's own REST API with the person's
+    // key (the same service, not a substitution): the map's REST program.
+    if (info.kind === "media" && info.operation != null) {
+      const found = findMap(refs.toolMaps, baseType, v, info.resource ?? "_", info.operation);
+      if (found?.entry?.rest) {
+        applyMap(name, step, found, params);
+        continue;
+      }
+    }
+
     // Levers the analyzer knows but the runtime does not have yet.
     if (["db", "vector", "files", "media"].includes(info.kind)) {
       const why = {

@@ -1,6 +1,7 @@
 // REST programs: node operations an app has no connector tool for, run against the app's own
 // REST API with the person's stored credential, when one operation takes more than one
-// request (a read decides what the write sends). step.rest = {program}; the n8n parameters
+// request (a read decides what the write sends) or the node builds its items from the answer
+// itself (an RSS feed, image files). step.rest = {program}; the n8n parameters
 // stay in step.params and are read as n8n reads them. Every request goes through
 // exec.request, so containment (allow.http, the secret's hosts), the effect ledger and the
 // result log apply as to any http step; step.auth names the secret. The requests and their
@@ -9,6 +10,8 @@
 import { NodeError, isObject } from "./util.mjs";
 import { DateTime } from "../vendor/luxon.mjs";
 import { parseFeed } from "./feed.mjs";
+import { prepareBinary } from "./files.mjs";
+import { base64ToBytes } from "./hash.mjs";
 
 // ---------- Google Sheets v4 (n8n Google Sheets node v4.x, sheet: append | update | appendOrUpdate) ----------
 
@@ -658,4 +661,97 @@ const rssFeedRead = {
   },
 };
 
-export const restPrograms = { googleSheets, googleCalendar, rssFeedRead };
+// ---------- OpenAI image generation (legacy OpenAI node v1 image:create; OpenAI v1.x image:generate) ----------
+// POST /v1/images/generations with the person's OpenAI key (the same service, through the
+// original provider, as n8n calls it), the body each node builds (n8n-nodes-base OpenAi
+// ImageDescription, declarative routing; @n8n/n8n-nodes-langchain vendors/OpenAi/v1
+// image/generate), and the items each node makes of the answer: a binary item per image
+// (b64_json through prepareBinaryData with the path "data", so the type comes from the bytes),
+// or the JSON entries when image URLs are asked for.
+
+const OPENAI = "https://api.openai.com/v1";
+
+async function imagesRequest(exec, i, body) {
+  const req = { kind: "http", itemIndex: i, method: "POST", url: `${OPENAI}/images/generations`, query: {}, headers: {}, body, contentType: "json" };
+  if (exec.step.auth?.secret) req.auth = { credentialType: exec.step.auth.credentialType, secret: exec.step.auth.secret };
+  const [r] = await exec.request([req]);
+  if (!r.ok) throw new NodeError(r.error?.message ?? "request failed", { node: exec.name, itemIndex: i });
+  const v = r.value ?? {};
+  let b = v.body;
+  if (typeof b === "string" && /^\s*[[{]/.test(b)) {
+    try {
+      b = JSON.parse(b);
+    } catch {
+      /* text */
+    }
+  }
+  const status = Number(v.status ?? 200);
+  if (status >= 400) throw new NodeError(`${status} - ${typeof b === "string" ? b : JSON.stringify(b)}`, { node: exec.name, itemIndex: i, httpCode: String(status) });
+  return isObject(b) ? b : {};
+}
+
+// Legacy node v1, declarative routing: displayed top-level parameters are sent with their
+// defaults (prompt, model "dall-e-2", response_format from responseFormat "binaryData");
+// options only when set and shown for the model (n, size for dall-e-2 and dall-e-3; quality
+// and style for dall-e-3).
+async function legacyImage(exec, i) {
+  const model = exec.param("model", i, "dall-e-2");
+  const format = exec.param("responseFormat", i, "binaryData");
+  const o = exec.param("options", i, {});
+  const body = { prompt: exec.param("prompt", i, ""), model, response_format: format === "imageUrl" ? "url" : "b64_json" };
+  if (o.n !== undefined) body.n = o.n;
+  if (o.quality !== undefined && model === "dall-e-3") body.quality = o.quality;
+  if (o.size !== undefined && (model === "dall-e-2" || model === "dall-e-3")) body.size = o.size;
+  if (o.style !== undefined && model === "dall-e-3") body.style = o.style;
+  const data = (await imagesRequest(exec, i, body)).data ?? [];
+  if (format === "imageUrl") return data.map((json) => ({ json, pairedItem: { item: i } }));
+  return data.map((e) => ({ json: {}, binary: { data: prepareBinary(base64ToBytes(String(e?.b64_json ?? "")), "data") }, pairedItem: { item: i } }));
+}
+
+// OpenAI node v1.x image:generate.
+async function langchainImage(exec, i) {
+  const model = exec.param("model", i, "dall-e-3");
+  const prompt = String(exec.param("prompt", i, ""));
+  if (!prompt.trim()) throw new NodeError("A non-empty prompt is required.", { node: exec.name, itemIndex: i });
+  const options = { ...exec.param("options", i, {}) };
+  const asUrl = !!options.returnImageUrls;
+  const prop = options.binaryPropertyOutput || "data";
+  delete options.binaryPropertyOutput;
+  if (options.dalleQuality) {
+    options.quality = options.dalleQuality;
+    delete options.dalleQuality;
+  }
+  delete options.returnImageUrls;
+  const body = { prompt, model, ...(model !== "gpt-image-1" ? { response_format: asUrl ? "url" : "b64_json" } : {}), ...options };
+  const data = (await imagesRequest(exec, i, body)).data ?? [];
+  if (asUrl) return data.map((json) => ({ json, pairedItem: { item: i } }));
+  return data.map((e) => {
+    const bin = prepareBinary(base64ToBytes(String(e?.b64_json ?? "")), "data");
+    const { data: _, ...meta } = bin;
+    return { json: meta, binary: { [prop]: bin }, pairedItem: { item: i } };
+  });
+}
+
+const openAiImage = {
+  versions: () => true,
+  async execute(exec) {
+    const legacy = exec.step.n8n?.type === "n8n-nodes-base.openAi";
+    const out = [];
+    const items = exec.getInputData();
+    for (let i = 0; i < items.length; i++) {
+      try {
+        out.push(...(legacy ? await legacyImage(exec, i) : await langchainImage(exec, i)));
+      } catch (e) {
+        if (e?.name === "Suspend" || e?.name === "ContainmentViolation") throw e;
+        if (exec.continueOnFail()) {
+          out.push({ json: { error: e.message }, pairedItem: { item: i } });
+          continue;
+        }
+        throw e;
+      }
+    }
+    return [out];
+  },
+};
+
+export const restPrograms = { googleSheets, googleCalendar, rssFeedRead, openAiImage };

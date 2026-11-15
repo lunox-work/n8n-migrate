@@ -260,6 +260,32 @@ test("CLI: convert writes the folders and regenerate rebuilds one", () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
+test("OpenAI image generation runs over OpenAI's REST API with the person's key, items as each node builds them", async () => {
+  const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  const cred = { openAiApi: { id: "1", name: "OpenAI" } };
+  const legacy = { parameters: { resource: "image", prompt: "={{ $json.idea }}", options: { n: 2, size: "512x512", quality: "hd" } }, name: "Draw", type: "n8n-nodes-base.openAi", typeVersion: 1, position: [200, 0], credentials: cred };
+  const lc = { parameters: { resource: "image", prompt: "={{ $json.idea }}", options: { dalleQuality: "hd", size: "1792x1024", binaryPropertyOutput: "cover" } }, name: "Cover", type: "@n8n/n8n-nodes-langchain.openAi", typeVersion: 1.8, position: [200, 0], credentials: cred };
+  const idea = { parameters: { assignments: { assignments: [{ id: "a", name: "idea", value: "a lighthouse", type: "string" }] }, options: {} }, name: "Idea", type: "n8n-nodes-base.set", typeVersion: 3.4, position: [100, 0] };
+  for (const [node, body, item] of [
+    [legacy, { prompt: "a lighthouse", model: "dall-e-2", response_format: "b64_json", n: 2, size: "512x512" }, (b) => ({ json: {}, binary: { data: b } })],
+    [lc, { prompt: "a lighthouse", model: "dall-e-3", response_format: "b64_json", size: "1792x1024", quality: "hd" }, (b) => ({ json: { mimeType: b.mimeType, fileType: b.fileType, fileExtension: b.fileExtension, fileName: b.fileName, fileSize: b.fileSize, bytes: b.bytes }, binary: { cover: b } })],
+  ]) {
+    const d = convertJson(tiny([manual, idea, node], { ...link("Start", "Idea"), ...link("Idea", node.name) })).definition;
+    assert.equal(d.steps[node.name].kind, "http");
+    assert.equal(d.steps[node.name].rest.program, "openAiImage");
+    assert.deepEqual(d.allow.http, [{ method: "POST", host: "api.openai.com", pathPrefix: "/v1/images/generations" }]);
+    assert.deepEqual(preflight(d).issues.filter((i) => i.level === "error"), []);
+    const seen = [];
+    const http = async (q) => (seen.push(q), { status: 200, headers: { "content-type": "application/json" }, body: JSON.stringify({ created: 1, data: [{ b64_json: png }] }) });
+    const r = await run(d, { clock: CLOCK, virtualTime: true, trigger: { node: "Start" }, mode: "manual", host: { http } });
+    assert.equal(r.status, "done", JSON.stringify(r.error));
+    assert.deepEqual(seen.map((q) => [q.method, q.url, q.body, q.auth]), [["POST", "https://api.openai.com/v1/images/generations", body, { credentialType: "openAiApi", secret: "OpenAI" }]]);
+    const bin = { mimeType: "image/png", fileType: "image", fileExtension: "png", data: png, fileName: "data", fileSize: "70 B", bytes: 70 };
+    const out = r.runData[node.name][0].data.main[0][0];
+    assert.deepEqual({ json: out.json, binary: out.binary }, item(bin));
+  }
+});
+
 test("agent tools from a sub-workflow (self), a Code tool and an HTTP Request tool convert and run through the runner", async () => {
   const wf = {
     id: "tools01",

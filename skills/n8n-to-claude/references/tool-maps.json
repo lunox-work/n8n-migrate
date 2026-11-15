@@ -328,6 +328,36 @@
         }
       }
     },
+    "n8n-nodes-base.openAi": {
+      "1": {
+        "image": {
+          "create": {
+            "rest": "openAiImage",
+            "credentialType": "openAiApi",
+            "hosts": [{ "method": "POST", "host": "api.openai.com", "pathPrefix": "/v1/images/generations" }],
+            "effect": "none",
+            "fidelity": "exact",
+            "caveats": ["A base URL set in the n8n OpenAI credential is not carried over: requests go to api.openai.com."],
+            "understood": ["resource", "operation", "prompt", "model", "responseFormat", "options.n", "options.size", "options.quality", "options.style"]
+          }
+        }
+      }
+    },
+    "@n8n/n8n-nodes-langchain.openAi": {
+      ">=1,<2": {
+        "image": {
+          "generate": {
+            "rest": "openAiImage",
+            "credentialType": "openAiApi",
+            "hosts": [{ "method": "POST", "host": "api.openai.com", "pathPrefix": "/v1/images/generations" }],
+            "effect": "none",
+            "fidelity": "exact",
+            "caveats": ["A base URL or extra header set in the n8n OpenAI credential is not carried over: requests go to api.openai.com."],
+            "understood": ["resource", "operation", "prompt", "model", "options.n", "options.size", "options.quality", "options.dalleQuality", "options.style", "options.returnImageUrls", "options.binaryPropertyOutput"]
+          }
+        }
+      }
+    },
     "n8n-nodes-base.gmailTrigger": {
       ">=1": {
         "_": {

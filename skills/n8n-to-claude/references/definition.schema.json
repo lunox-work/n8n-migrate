@@ -275,7 +275,7 @@
           },
           "rest": {
             "type": "object",
-            "description": "A REST program (runtime/src/rest.mjs): a node operation run against the app's own REST API with the person's stored credential (auth) when the app needs one, when one operation takes several requests (a read decides the write) or its response needs the node's own parsing (an RSS feed). The n8n parameters stay in params.",
+            "description": "A REST program (runtime/src/rest.mjs): a node operation run against the app's own REST API with the person's stored credential (auth) when the app needs one, when one operation takes several requests (a read decides the write) or its response needs the node's own parsing (an RSS feed, image files). The n8n parameters stay in params.",
             "required": ["program"],
             "additionalProperties": false,
             "properties": {

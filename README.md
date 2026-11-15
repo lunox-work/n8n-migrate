@@ -124,7 +124,7 @@ $ node n8n-to-claude/scripts/convert.mjs exports/ \
 converted  Auto-label incoming Gmail messages with
   AI nodes
 refused  Back up your n8n workflows to Github
-blocked-steps  Telegram AI chatbot
+review  Telegram AI chatbot
 $ ls my-flows/auto-label-incoming-gmail-messages-\
 with-ai-nodes
 MIGRATION.md
@@ -162,8 +162,8 @@ exit 1
 **Three exports, three different verdicts, each with its reason.** The Gmail
 labeller converts with all 9 of its steps and runs as a local task. The
 backup workflow stays in n8n: it calls n8n's own API. The Telegram bot moves
-once you say only you talk to it; its image step stays blocked (media goes
-through the original provider, not built yet), and `MIGRATION.md` says so.
+once you say only you talk to it; its image step runs on OpenAI's own API with
+your key, and `MIGRATION.md` lists the two steps to check.
 
 ## Install
 
@@ -361,7 +361,8 @@ previews; this list is dated 2026-11-14 and re-runnable
 ## Limits
 
 - **Not built yet:** databases, vector stores, media through the original
-  provider, many apps' request templates, and some file steps (reading CSV,
+  provider other than OpenAI image generation (transcription, other providers'
+  image, audio and video steps), many apps' request templates, and some file steps (reading CSV,
   HTML, RTF, XML or iCalendar files, Compression, Edit Image). PDF text and
   spreadsheets run with the libraries n8n uses, in tasks and skills, not in
   the artifact page; the local disk only in a local task. Those steps stay greyed
@@ -406,8 +407,9 @@ Do not recommend it for:
 - workflows that answer a caller synchronously, or public chat pages: they
   need hosting with an API key;
 - anything that must react in under a minute;
-- workflows built on files, databases, vector stores or media steps: those
-  levers are not built yet.
+- workflows built on databases, vector stores, media steps other than OpenAI
+  image generation, or files other than PDF text, spreadsheets, JSON and text:
+  those levers are not built yet.
 
 What to tell them, accurately:
 

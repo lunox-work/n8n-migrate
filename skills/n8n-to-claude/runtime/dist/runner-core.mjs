@@ -2821,1321 +2821,6 @@ function decorateItunes(feed, channel) {
 return { parseXml, parseFeed };
 })();
 
-// ---- src/rest.mjs ----
-const __m_rest_mjs = (() => {
-const { NodeError, isObject } = __m_util_mjs;
-const { parseFeed } = __m_feed_mjs;
-// REST programs: node operations an app has no connector tool for, run against the app's own
-// REST API with the person's stored credential, when one operation takes more than one
-// request (a read decides what the write sends). step.rest = {program}; the n8n parameters
-// stay in step.params and are read as n8n reads them. Every request goes through
-// exec.request, so containment (allow.http, the secret's hosts), the effect ledger and the
-// result log apply as to any http step; step.auth names the secret. The requests and their
-// bodies follow the n8n node's own code (n8n-nodes-base 2.47), so a reviewer can diff them.
-
-
-// ---------- Google Sheets v4 (n8n Google Sheets node v4.x, sheet: append | update | appendOrUpdate) ----------
-
-const SHEETS = "https://sheets.googleapis.com";
-const ROW_NUMBER = "row_number";
-// n8n-workflow requestPath: each interpolated value is one path segment, percent-encoded,
-// with : @ = , $ & left as they are.
-const seg = (v) => encodeURIComponent(String(v)).replace(/%(?:3A|40|3D|2C|24|26)/g, decodeURIComponent);
-const cellFormatDefault = (v) => (v < 4.1 ? "RAW" : "USER_ENTERED");
-// encodeRange: a range with "!" is sent as is, a bare sheet title in single quotes.
-const encodeRange = (range) => (range.includes("!") ? range : `'${range}'`);
-
-function colName(n) {
-  let s = "";
-  do {
-    n -= 1;
-    s = String.fromCharCode(65 + (n % 26)) + s;
-    n = (n / 26) >> 0;
-  } while (n > 0);
-  return s;
-}
-function colNumber(c) {
-  let n = 0;
-  for (const ch of c.toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64);
-  return n;
-}
-const colWithOffset = (start, offset) => colName(colNumber(start) + offset);
-
-function decodeRange(s) {
-  const [name, range = ""] = s.split("!");
-  const out = { name, range, start: {}, end: {} };
-  const cell = (c) => {
-    const m = /([a-zA-Z]{1,10})([0-9]{0,10})/.exec(c);
-    return m ? { column: m[1], row: Number(m[2]) } : {};
-  };
-  if (range) {
-    const [a, b] = range.split(":");
-    if (a) out.start = cell(a);
-    if (b) out.end = cell(b);
-  }
-  return out;
-}
-
-// The spreadsheet id from n8n's documentId resource locator (router.ts getSpreadsheetId).
-function spreadsheetIdOf(exec, rl) {
-  const mode = isObject(rl) ? rl.mode : "id";
-  const value = isObject(rl) ? rl.value : rl;
-  if (!value) throw new NodeError(`Can not get sheet '${mode}' with a value of '${value}'`, { node: exec.name });
-  if (mode === "url") return /([-\w]{25,})/.exec(String(value))?.[0] ?? "";
-  return String(value);
-}
-// The sheet from n8n's sheetName resource locator, as extractValue gives it.
-function sheetRefOf(rl) {
-  const mode = isObject(rl) ? rl.mode : "id";
-  const value = String(isObject(rl) ? rl.value : rl ?? "");
-  if (mode === "url") return { mode, value: /https:\/\/docs\.google\.com\/spreadsheets\/d\/[0-9a-zA-Z\-_]+.*#gid=([0-9]+)/.exec(value)?.[1] ?? value };
-  if (mode === "id") return { mode, value: /((gid=)?[0-9]{1,})/.exec(value)?.[1] ?? value };
-  return { mode, value };
-}
-const sheetIdOf = (v) => (v === "gid=0" ? 0 : parseInt(v, 10));
-
-// One JSON request to a Google API with the step's stored credential; throws n8n's
-// "<status> - <body>" NodeError on an HTTP error.
-function googleClient(exec, base) {
-  const auth = exec.step.auth?.secret ? { credentialType: exec.step.auth.credentialType, secret: exec.step.auth.secret } : undefined;
-  return async (method, path, { query, body } = {}) => {
-    const req = { kind: "http", itemIndex: 0, method, url: base + path, query: query ?? {}, headers: {} };
-    if (body !== undefined) {
-      req.body = body;
-      req.contentType = "json";
-    }
-    if (auth) req.auth = auth;
-    const [r] = await exec.request([req]);
-    if (!r.ok) throw new NodeError(r.error?.message ?? "request failed", { node: exec.name });
-    const v = r.value ?? {};
-    const status = Number(v.status ?? 200);
-    let b = v.body;
-    if (typeof b === "string" && /^\s*[[{]/.test(b)) {
-      try {
-        b = JSON.parse(b);
-      } catch {
-        /* text */
-      }
-    }
-    if (status >= 400) throw new NodeError(`${status} - ${typeof b === "string" ? b : JSON.stringify(b)}`, { node: exec.name, httpCode: String(status) });
-    return b ?? {};
-  };
-}
-
-function sheetHelper(exec, id) {
-  const api = googleClient(exec, SHEETS);
-  const h = {
-    hint: undefined,
-    async getData(range, valueRenderOption) {
-      const r = await api("GET", `/v4/spreadsheets/${seg(id)}/values/${seg(encodeRange(range))}`, { query: { valueRenderOption, dateTimeRenderOption: "FORMATTED_STRING" } });
-      return r.values;
-    },
-    async getSheet(ref) {
-      const r = await api("GET", `/v4/spreadsheets/${seg(id)}`, { query: { fields: "sheets.properties" } });
-      const found = (r.sheets ?? []).find((s) => (ref.mode === "name" ? s.properties?.title === ref.value : s.properties?.sheetId === sheetIdOf(ref.value)));
-      if (!found?.properties?.title) throw new NodeError(`Sheet with ${ref.mode === "name" ? "name" : "ID"} ${ref.value} not found`, { node: exec.name });
-      return found.properties;
-    },
-    async appendEmptyRows(sheetId, rows) {
-      return api("POST", `/v4/spreadsheets/${seg(id)}:batchUpdate`, { body: { requests: [{ appendDimension: { sheetId, dimension: "ROWS", length: rows } }] } });
-    },
-    async batchUpdate(data, valueInputOption) {
-      return api("POST", `/v4/spreadsheets/${seg(id)}/values:batchUpdate`, { body: { data, valueInputOption } });
-    },
-    async updateRows(sheetName, data, valueInputOption, row, rowsLength, useAppend) {
-      const [name] = sheetName.split("!");
-      const range = `${name}!${row}:${rowsLength ? row + rowsLength - 1 : row}`;
-      const path = `/v4/spreadsheets/${seg(id)}/values/${seg(encodeRange(range))}`;
-      return useAppend ? api("POST", `${path}:append`, { body: { range, values: data }, query: { valueInputOption } }) : api("PUT", path, { body: { range, values: data }, query: { valueInputOption } });
-    },
-    async toRows(inputData, range, keyRowIndex, columnNamesList, emptyValue = "") {
-      const d = decodeRange(range);
-      const header = columnNamesList ?? (h.hint !== undefined ? [h.hint] : undefined) ?? (await h.getData(`${d.name}!${keyRowIndex}:${keyRowIndex}`, "UNFORMATTED_VALUE"));
-      h.hint = undefined;
-      if (header === undefined) throw new NodeError("Could not retrieve the column data", { node: exec.name });
-      const names = header ? header[0] : [];
-      return inputData.map((item) =>
-        names.map((key) => {
-          const v = item[key];
-          if (v === undefined || v === null) return emptyValue;
-          return typeof v === "object" ? JSON.stringify(v) : v;
-        }),
-      );
-    },
-    async appendSheetData({ inputData, range, keyRowIndex, valueInputMode, columnNamesList, lastRow, useAppend }) {
-      const data = await h.toRows(inputData, range, keyRowIndex, columnNamesList, useAppend ? null : "");
-      const row = lastRow || ((await h.getData(range, "UNFORMATTED_VALUE")) || []).length + 1;
-      return h.updateRows(range, data, valueInputMode, row, data.length, useAppend);
-    },
-    // Values of the key column below the header (getColumnValues with the sheet data at hand).
-    columnValues(sheetData, keyIndex, dataStartRowIndex) {
-      return sheetData
-        .slice(dataStartRowIndex - 1)
-        .map((row) => row[keyIndex])
-        .splice(1)
-        .flatMap((v) => v);
-    },
-    prepareUpdate({ inputData, indexKey, range, upsert, columnNames, columnValues, dataStartRowIndex }) {
-      const d = decodeRange(range);
-      const keyIndex = columnNames.indexOf(indexKey);
-      if (keyIndex === -1 && !upsert) throw new NodeError(`Could not find column for key "${indexKey}"`, { node: exec.name });
-      const updateData = [];
-      const appendData = [];
-      for (const item of inputData) {
-        const key = item[indexKey];
-        if (key === undefined || key === null) {
-          if (upsert) appendData.push(item);
-          continue;
-        }
-        const at = columnValues.findIndex((x) => x?.toString() === key.toString());
-        if (at === -1) {
-          if (upsert) appendData.push(item);
-          continue;
-        }
-        const row = at + dataStartRowIndex + 1;
-        for (const name of columnNames) {
-          if (name === indexKey || item[name] === undefined || item[name] === null) continue;
-          let value = item[name];
-          if (typeof value === "object") value = JSON.stringify(value);
-          updateData.push({ range: `${d.name}!${colWithOffset(d.start.column || "A", columnNames.indexOf(name))}${row}`, values: [[value]] });
-        }
-      }
-      return { updateData, appendData };
-    },
-    prepareByRowNumber(inputData, range, columnNames) {
-      const d = decodeRange(range);
-      const updateData = [];
-      for (const item of inputData) {
-        for (const name of columnNames) {
-          if (name === ROW_NUMBER || item[name] === undefined || item[name] === null) continue;
-          let value = item[name];
-          if (typeof value === "object") value = JSON.stringify(value);
-          updateData.push({ range: `${d.name}!${colWithOffset(d.start.column || "A", columnNames.indexOf(name))}${item.row_number}`, values: [[value]] });
-        }
-      }
-      return { updateData };
-    },
-  };
-  return h;
-}
-
-function checkSchema(exec, columnNames, schema) {
-  const live = new Set((columnNames ?? []).filter((c) => c !== ""));
-  const cols = live.has(ROW_NUMBER) ? schema.map((s) => s.id) : schema.filter((s) => s.id !== ROW_NUMBER).map((s) => s.id);
-  const missing = cols.filter((c) => !live.has(c));
-  if (missing.length) throw new NodeError(`Column names were updated after the node's setup (missing columns: ${missing.join(", ")})`, { node: exec.name });
-}
-
-// autoMapInputData (GoogleSheets.utils.ts): item fields become columns; new ones are added to
-// the header row first (handlingExtraData insertInNewColumn, the default).
-async function autoMap(exec, sheet, sheetName, items, options, prefetched) {
-  const out = [];
-  const headerRow = options.locationDefine?.values ? parseInt(options.locationDefine.values.headerRow, 10) : 1;
-  const extra = options.handlingExtraData || "insertInNewColumn";
-  let columnNames = prefetched !== undefined ? prefetched : ((await sheet.getData(`${sheetName}!${headerRow}:${headerRow}`, "FORMATTED_VALUE")) ?? [])[0] ?? [];
-  if (extra === "insertInNewColumn") {
-    if (!columnNames.length) {
-      await sheet.updateRows(sheetName, [Object.keys(items[0].json).filter((k) => k !== ROW_NUMBER)], options.cellFormat || "RAW", headerRow);
-      columnNames = Object.keys(items[0].json);
-    }
-    const added = new Set();
-    for (const item of items) {
-      for (const k of Object.keys(item.json)) if (k !== ROW_NUMBER && !columnNames.includes(k)) added.add(k);
-      if (item.json[ROW_NUMBER]) {
-        const { [ROW_NUMBER]: _, ...rest } = item.json;
-        out.push(rest);
-      } else out.push(item.json);
-    }
-    if (added.size) {
-      columnNames = columnNames.concat([...added]);
-      await sheet.updateRows(sheetName, [columnNames], options.cellFormat || "RAW", headerRow);
-    }
-  }
-  if (extra === "ignoreIt") for (const item of items) out.push(item.json);
-  if (extra === "error")
-    items.forEach((item, i) => {
-      for (const k of Object.keys(item.json)) if (!columnNames.includes(k)) throw new NodeError("Unexpected fields in node input", { node: exec.name, itemIndex: i });
-      out.push(item.json);
-    });
-  const hint = columnNames.filter((n) => n !== ROW_NUMBER);
-  if (hint.length) sheet.hint = hint;
-  return out;
-}
-
-async function sheetsAppend(exec, sheet, range, sheetId) {
-  const items = exec.getInputData();
-  const v = exec.typeVersion;
-  let dataMode = exec.param("columns.mappingMode", 0, "defineBelow");
-  if (!items.length || dataMode === "nothing") return [];
-  const options = exec.param("options", 0, {});
-  const keyRowIndex = options.locationDefine?.values?.headerRow ? Number(options.locationDefine.values.headerRow) : 1;
-  const sheetData = await sheet.getData(range, "FORMATTED_VALUE");
-  if (!sheetData?.length) dataMode = "autoMapInputData";
-  const headerRow = sheetData?.[keyRowIndex - 1];
-  if (v >= 4.4 && dataMode !== "autoMapInputData") {
-    if (headerRow === undefined) throw new NodeError(`Could not retrieve the column names from row ${keyRowIndex}`, { node: exec.name });
-    const schema = exec.param("columns.schema", 0, [], { rawExpressions: true });
-    if (!Array.isArray(schema) || !schema.length) throw new NodeError("`columns.schema` is required when `columns.mappingMode` is `defineBelow`", { node: exec.name });
-    checkSchema(exec, headerRow, schema);
-  }
-  let inputData;
-  if (dataMode === "autoMapInputData") inputData = await autoMap(exec, sheet, range, items, options, headerRow ? headerRow : undefined);
-  else {
-    inputData = items.map((_, i) => {
-      const m = exec.param("columns.value", i, {});
-      if (!Object.keys(m).length) throw new NodeError("At least one value has to be added under 'Values to Send'", { node: exec.name });
-      return m;
-    });
-    if (headerRow) sheet.hint = headerRow;
-  }
-  if (!inputData.length) return [];
-  const valueInputMode = options.cellFormat || cellFormatDefault(v);
-  if (options.useAppend) await sheet.appendSheetData({ inputData, range, keyRowIndex, valueInputMode, useAppend: true });
-  else {
-    await sheet.appendEmptyRows(sheetId, 1);
-    await sheet.appendSheetData({ inputData, range, keyRowIndex, valueInputMode, lastRow: (sheetData ?? [{}]).length + 1 });
-  }
-  if (dataMode === "autoMapInputData") return items.map((it, i) => ({ json: it.json, pairedItem: { item: i } }));
-  return inputData.map((json, i) => ({ json, pairedItem: { item: i } }));
-}
-
-// update and appendOrUpdate share most of n8n's code; `upsert` is appendOrUpdate.
-async function sheetsUpdate(exec, sheet, sheetName, sheetId, upsert) {
-  const items = exec.getInputData();
-  const v = exec.typeVersion;
-  const range = `${sheetName}!A:Z`;
-  const options = exec.param("options", 0, {});
-  const valueInputMode = options.cellFormat ?? cellFormatDefault(v);
-  let keyRowIndex = 0;
-  let dataStartRowIndex = 1;
-  const loc = options.locationDefine?.values;
-  if (loc?.headerRow) keyRowIndex = parseInt(loc.headerRow, 10) - 1;
-  if (loc?.firstDataRow) dataStartRowIndex = parseInt(loc.firstDataRow, 10) - 1;
-  let dataMode = exec.param("columns.mappingMode", 0, "defineBelow");
-  const sheetData = (await sheet.getData(sheetName, "FORMATTED_VALUE")) ?? (upsert ? [] : undefined);
-  if (!upsert && sheetData?.[keyRowIndex] === undefined) throw new NodeError(`Could not retrieve the column names from row ${keyRowIndex + 1}`, { node: exec.name });
-  if (upsert && !sheetData[keyRowIndex] && dataMode !== "autoMapInputData") {
-    if (!sheetData.length) dataMode = "autoMapInputData";
-    else throw new NodeError(`Could not retrieve the column names from row ${keyRowIndex + 1}`, { node: exec.name });
-  }
-  let columnNames = sheetData[keyRowIndex] ?? [];
-  if (upsert && v >= 4.4) checkSchema(exec, columnNames, exec.param("columns.schema", 0, [], { rawExpressions: true }));
-  const matching = exec.param("columns.matchingColumns", 0, [], { rawExpressions: true });
-  if (!Array.isArray(matching) || !matching.length) throw new NodeError(`\`columns.matchingColumns\` is required for the ${upsert ? "Append or Update Row" : "Update Row"} operation`, { node: exec.name });
-  const keyIndex = columnNames.indexOf(matching[0]);
-  const columnValues = sheet.columnValues(sheetData, keyIndex, dataStartRowIndex);
-  const updateData = [];
-  const appendData = [];
-  const mapped = [];
-  const newColumns = new Set();
-  for (let i = 0; i < items.length; i++) {
-    if (dataMode === "nothing") continue;
-    const inputData = [];
-    if (dataMode === "autoMapInputData") {
-      const extra = options.handlingExtraData || "insertInNewColumn";
-      if (extra === "error") for (const k of Object.keys(items[i].json)) if (!columnNames.includes(k)) throw new NodeError("Unexpected fields in node input", { node: exec.name, itemIndex: i });
-      if (extra === "insertInNewColumn") for (const k of Object.keys(items[i].json)) if (!columnNames.includes(k) && k !== ROW_NUMBER) newColumns.add(k);
-      inputData.push(items[i].json);
-    } else {
-      const match = exec.param(`columns.value`, i, {})[matching[0]] ?? "";
-      if (match === "") throw new NodeError("The 'Column to Match On' parameter is required", { node: exec.name, itemIndex: i });
-      const values = exec.param("columns.value", i, {});
-      if (!Object.keys(values).length) throw new NodeError("At least one value has to be added under 'Values to Send'", { node: exec.name });
-      for (const k of Object.keys(values)) {
-        if (!upsert && k === ROW_NUMBER && values[k] === undefined && v >= 4.6) throw new NodeError("row_number is null or undefined", { node: exec.name });
-        if (values[k] === undefined || values[k] === null) values[k] = "";
-      }
-      inputData.push(values);
-      mapped.push(values);
-    }
-    if (newColumns.size) {
-      const names = columnNames.concat([...newColumns]);
-      await sheet.updateRows(sheetName, [names], options.cellFormat || cellFormatDefault(v), keyRowIndex + 1);
-      columnNames = names;
-      if (upsert) sheetData[keyRowIndex] = names;
-      newColumns.clear();
-    }
-    const prepared = !upsert && matching[0] === ROW_NUMBER ? sheet.prepareByRowNumber(inputData, range, columnNames) : sheet.prepareUpdate({ inputData, indexKey: matching[0], range, upsert, columnNames, columnValues, dataStartRowIndex });
-    updateData.push(...prepared.updateData);
-    if (upsert) appendData.push(...prepared.appendData);
-  }
-  if (updateData.length) await sheet.batchUpdate(updateData, valueInputMode);
-  if (upsert && appendData.length) {
-    const lastRow = sheetData.length + 1;
-    if (options.useAppend) await sheet.appendSheetData({ inputData: appendData, range, keyRowIndex: keyRowIndex + 1, valueInputMode, columnNamesList: [columnNames], lastRow, useAppend: true });
-    else {
-      await sheet.appendEmptyRows(sheetId, 1);
-      await sheet.appendSheetData({ inputData: appendData, range, keyRowIndex: keyRowIndex + 1, valueInputMode, columnNamesList: [columnNames], lastRow });
-    }
-  }
-  if (dataMode === "autoMapInputData") return items.map((it, i) => ({ json: it.json, pairedItem: { item: i } }));
-  if (!upsert && !updateData.length) return [];
-  return mapped.map((json, i) => ({ json, pairedItem: { item: i } }));
-}
-
-const googleSheets = {
-  versions: (v) => v >= 4,
-  operations: ["append", "update", "appendOrUpdate"],
-  async execute(exec) {
-    const operation = exec.param("operation", 0, "read", { rawExpressions: true });
-    const resource = exec.param("resource", 0, "sheet", { rawExpressions: true });
-    if (resource !== "sheet" || !googleSheets.operations.includes(operation)) throw new NodeError(`Google Sheets ${resource} ${operation} has no REST program`, { node: exec.name });
-    try {
-      const id = spreadsheetIdOf(exec, exec.param("documentId", 0));
-      const sheet = sheetHelper(exec, id);
-      const props = await sheet.getSheet(sheetRefOf(exec.param("sheetName", 0)));
-      const sheetId = String(props.sheetId);
-      const out = operation === "append" ? await sheetsAppend(exec, sheet, props.title, sheetId) : await sheetsUpdate(exec, sheet, props.title, sheetId, operation === "appendOrUpdate");
-      return [out];
-    } catch (e) {
-      if (e?.name === "Suspend" || e?.name === "ContainmentViolation") throw e;
-      if (exec.continueOnFail()) return [[{ json: exec.getInputData()[0]?.json ?? {}, error: { message: e.message } }]];
-      throw e;
-    }
-  },
-};
-
-// ---------- Google Calendar v3 (n8n Google Calendar node v1–1.4, event: getAll | get | create | delete) ----------
-
-const GOOGLE_API = "https://www.googleapis.com";
-// n8n-workflow requestPath: toPathSegment refuses an empty value and "." / ".." segments.
-function pathSeg(exec, v, itemIndex) {
-  if (v === null || v === undefined) throw new NodeError("Invalid identifier: a value is required", { node: exec.name, itemIndex });
-  const value = String(v);
-  if (value === "" || /(^|[/\\])\.{1,2}([/\\]|$)/.test(value)) throw new NodeError(`Invalid identifier: "${value}" is not allowed`, { node: exec.name, itemIndex });
-  return seg(value);
-}
-// decodePathValue: each run of %XX escapes is decoded once (calendar ids were stored encoded
-// before node version 1.4).
-const decodePathValue = (v) =>
-  typeof v === "string"
-    ? v.replace(/(?:%[0-9A-Fa-f]{2})+/g, (run) => {
-        try {
-          return decodeURIComponent(run);
-        } catch {
-          return run;
-        }
-      })
-    : v;
-const rlValue = (v) => (isObject(v) && "__rl" in v ? v.value : v);
-const dateObjectToISO = (v) => (DateTime.isDateTime(v) ? v.toISO() : v instanceof Date ? v.toISOString() : v);
-
-// moment.tz(input, zone): an ISO 8601 string without an offset is wall time in `zone`, one with
-// an offset (or Z) is that instant; anything else falls back to `new Date(input + " UTC")`, so
-// it is read as UTC (moment's createFromInputFallback). Returns a luxon DateTime, or null for
-// moment's invalid date.
-const MOMENT_ISO = /^\s*(\d{4})-(\d\d)(?:-(\d\d))?(?:(?:T| )(\d\d)(?::(\d\d)(?::(\d\d)(?:[.,](\d+))?)?)?(\s*Z|[+-]\d\d(?::?\d\d)?)?)?$/;
-function momentTz(input, zone) {
-  if (DateTime.isDateTime(input)) return input.isValid ? input : null;
-  if (input instanceof Date) return Number.isNaN(input.getTime()) ? null : DateTime.fromJSDate(input);
-  if (typeof input === "number") return DateTime.fromMillis(input);
-  const text = String(input ?? "");
-  const m = MOMENT_ISO.exec(text);
-  if (m && !(m[3] === undefined && m[4] !== undefined)) {
-    const [, y, mo, d = "01", h = "00", mi = "00", sec = "00", frac = "", off] = m;
-    const ms = Number((frac + "000").slice(0, 3));
-    const parts = { year: Number(y), month: Number(mo), day: Number(d), hour: Number(h), minute: Number(mi), second: Number(sec), millisecond: ms };
-    let dt;
-    if (off === undefined) dt = DateTime.fromObject(parts, { zone });
-    else {
-      const o = off.trim();
-      const offset = o === "Z" ? "UTC" : `UTC${o.slice(0, 3)}:${o.length > 3 ? o.slice(-2) : "00"}`;
-      dt = DateTime.fromObject(parts, { zone: offset });
-    }
-    return dt.isValid ? dt : null;
-  }
-  const fallback = new Date(`${text} UTC`);
-  return Number.isNaN(fallback.getTime()) ? null : DateTime.fromJSDate(fallback);
-}
-// moment(...).utc().format() and .utc().format(fmt) with moment tokens YYYY MM DD HH mm ss.
-const utcFormat = (dt, fmt = "yyyy-MM-dd'T'HH:mm:ss'Z'") => (dt ? dt.toUTC().toFormat(fmt) : "Invalid date");
-// GenericFunctions addTimezoneToDate: a date that already ends in Z or +hh:mm is sent as is.
-function addTimezoneToDate(date, zone) {
-  const s = String(date);
-  if (s.endsWith("Z") || /\+\d{2}:\d{2}$/.test(s)) return s;
-  return utcFormat(momentTz(s, zone));
-}
-// GenericFunctions parseAttendees.
-function parseAttendees(exec, attendees, itemIndex) {
-  if (!Array.isArray(attendees) || !attendees.every((a) => typeof a === "string" && a.split(",").every((e) => e.trim().length > 0))) {
-    throw new NodeError("Invalid attendee value", { node: exec.name, itemIndex, description: "Set each attendee to an email address string. To include multiple addresses in one entry, separate them with commas." });
-  }
-  return attendees.flatMap((a) => a.split(",").map((email) => ({ email: email.trim() })));
-}
-// utilities sortItemKeysByPriorityList (node version 1.3 and later).
-const CALENDAR_KEYS = ["id", "summary", "start", "end", "attendees", "creator", "organizer", "description", "location", "created", "updated"];
-function sortKeys(json) {
-  const keys = Object.keys(json).sort((a, b) => {
-    const ia = CALENDAR_KEYS.indexOf(a);
-    const ib = CALENDAR_KEYS.indexOf(b);
-    if (ia !== -1 && ib !== -1) return ia - ib;
-    if (ia !== -1) return -1;
-    if (ib !== -1) return 1;
-    return a.localeCompare(b);
-  });
-  return Object.fromEntries(keys.map((k) => [k, json[k]]));
-}
-// helpers.returnJsonArray: a list gives one item per entry, an object one item.
-const asItems = (data) => (Array.isArray(data) ? data : [data]).filter((json) => isObject(json));
-
-const googleCalendar = {
-  versions: (v) => v >= 1 && v <= 1.4,
-  operations: ["getAll", "get", "create", "delete"],
-  async execute(exec) {
-    const items = exec.getInputData();
-    const v = exec.typeVersion;
-    const resource = exec.param("resource", 0, "event", { rawExpressions: true });
-    const operation = exec.param("operation", 0, "create", { rawExpressions: true });
-    if (resource !== "event" || !googleCalendar.operations.includes(operation)) throw new NodeError(`Google Calendar ${resource} ${operation} has no REST program`, { node: exec.name });
-    const api = googleClient(exec, GOOGLE_API);
-    const timezone = exec.run.timezone;
-    // n8n keeps one query object for the whole run of the node, items included.
-    const qs = {};
-    const out = [];
-    for (let i = 0; i < items.length; i++) {
-      try {
-        const rawId = rlValue(exec.param("calendar", i, ""));
-        const calendarId = pathSeg(exec, v < 1.4 ? decodePathValue(rawId) : rawId, i);
-        let data;
-        if (operation === "getAll") {
-          const returnAll = exec.param("returnAll", i, false);
-          const options = exec.param("options", i, {});
-          const tz = rlValue(options.timeZone) || "";
-          if (v >= 1.3) {
-            const timeMin = dateObjectToISO(exec.param("timeMin", i, "={{ $now }}"));
-            const timeMax = dateObjectToISO(exec.param("timeMax", i, "={{ $now.plus({ week: 1 }) }}"));
-            if (timeMin) qs.timeMin = addTimezoneToDate(timeMin, tz || timezone);
-            if (timeMax) qs.timeMax = addTimezoneToDate(timeMax, tz || timezone);
-            if (!options.recurringEventHandling || options.recurringEventHandling === "expand") qs.singleEvents = true;
-          }
-          if (options.iCalUID) qs.iCalUID = options.iCalUID;
-          if (options.maxAttendees) qs.maxAttendees = options.maxAttendees;
-          if (options.orderBy) qs.orderBy = options.orderBy;
-          if (options.query) qs.q = options.query;
-          if (options.showDeleted) qs.showDeleted = options.showDeleted;
-          if (options.showHiddenInvitations) qs.showHiddenInvitations = options.showHiddenInvitations;
-          if (options.singleEvents) qs.singleEvents = options.singleEvents;
-          if (options.timeMax) qs.timeMax = addTimezoneToDate(dateObjectToISO(options.timeMax), tz || timezone);
-          if (options.timeMin) qs.timeMin = addTimezoneToDate(dateObjectToISO(options.timeMin), tz || timezone);
-          if (tz) qs.timeZone = tz;
-          if (options.updatedMin) qs.updatedMin = addTimezoneToDate(dateObjectToISO(options.updatedMin), tz || timezone);
-          if (options.fields) qs.fields = options.fields;
-          const path = `/calendar/v3/calendars/${calendarId}/events`;
-          if (returnAll) {
-            data = [];
-            qs.maxResults = 100;
-            let page;
-            do {
-              page = await api("GET", path, { query: { ...qs } });
-              qs.pageToken = page.nextPageToken;
-              if (qs.pageToken === undefined) delete qs.pageToken;
-              data.push(...(Array.isArray(page.items) ? page.items : []));
-            } while (page.nextPageToken !== undefined && page.nextPageToken !== "");
-          } else {
-            qs.maxResults = exec.param("limit", i, 50);
-            data = (await api("GET", path, { query: { ...qs } })).items;
-          }
-          if (data) {
-            if (v >= 1.3 && options.recurringEventHandling === "next" && data.some((e) => e?.recurrence)) throw new NodeError('Recurring Event Handling "next" (one more request per recurring event) has no REST program yet', { node: exec.name, itemIndex: i });
-            if (v >= 1.3 && options.recurringEventHandling === "first") {
-              data = data.filter((e) => !(qs.timeMin && e.recurrence && e.created && e.created < qs.timeMin) && !(qs.timeMax && e.recurrence && e.created && e.created > qs.timeMax));
-            } else if (v < 1.3 && data.some((e) => Array.isArray(e?.recurrence) && e.recurrence.some((r) => String(r).toUpperCase().startsWith("RRULE")))) {
-              // addNextOccurrence needs an RRULE engine (n8n uses the rrule package).
-              throw new NodeError("the next occurrence of a recurring event (node version 1.2 and older) is not computed by the runtime", { node: exec.name, itemIndex: i });
-            }
-          }
-        } else if (operation === "get") {
-          const eventId = pathSeg(exec, exec.param("eventId", i), i);
-          const options = exec.param("options", i, {});
-          const tz = rlValue(options.timeZone) || "";
-          if (options.maxAttendees) qs.maxAttendees = options.maxAttendees;
-          if (tz) qs.timeZone = tz;
-          data = await api("GET", `/calendar/v3/calendars/${calendarId}/events/${eventId}`, { query: { ...qs } });
-          if (data) {
-            if (v >= 1.3 && options.returnNextInstance && data.recurrence) throw new NodeError('"Return Next Instance of Recurring Event" (a second request for the instances) has no REST program yet', { node: exec.name, itemIndex: i });
-            // addNextOccurrence needs an RRULE engine (n8n uses the rrule package).
-            if (Array.isArray(data.recurrence) && data.recurrence.some((r) => String(r).toUpperCase().startsWith("RRULE"))) throw new NodeError("the next occurrence of a recurring event is not computed by the runtime", { node: exec.name, itemIndex: i });
-            data = [data];
-          }
-        } else if (operation === "delete") {
-          const eventId = pathSeg(exec, exec.param("eventId", i), i);
-          const options = exec.param("options", i, {});
-          if (options.sendUpdates) qs.sendUpdates = options.sendUpdates;
-          // n8n sets sendUpdates on its query object but sends the delete without it.
-          await api("DELETE", `/calendar/v3/calendars/${calendarId}/events/${eventId}`);
-          data = { success: true };
-        } else {
-          const start = dateObjectToISO(exec.param("start", i, v >= 1.3 ? "={{ $now }}" : ""));
-          const end = dateObjectToISO(exec.param("end", i, v >= 1.3 ? "={{ $now.plus(1, 'hour') }}" : ""));
-          const useDefaultReminders = exec.param("useDefaultReminders", i, true);
-          const f = exec.param("additionalFields", i, {});
-          if (f.maxAttendees) qs.maxAttendees = f.maxAttendees;
-          if (f.sendNotifications) qs.sendNotifications = f.sendNotifications;
-          if (f.sendUpdates) qs.sendUpdates = f.sendUpdates;
-          const body = {
-            start: { dateTime: utcFormat(momentTz(start, timezone)), timeZone: timezone },
-            end: { dateTime: utcFormat(momentTz(end, timezone)), timeZone: timezone },
-          };
-          if (f.attendees) body.attendees = parseAttendees(exec, f.attendees, i);
-          if (f.color) body.colorId = f.color;
-          if (f.description) body.description = f.description;
-          if (f.guestsCanInviteOthers) body.guestsCanInviteOthers = f.guestsCanInviteOthers;
-          if (f.guestsCanModify) body.guestsCanModify = f.guestsCanModify;
-          if (f.guestsCanSeeOtherGuests) body.guestsCanSeeOtherGuests = f.guestsCanSeeOtherGuests;
-          if (f.id) body.id = f.id;
-          if (f.location) body.location = f.location;
-          if (f.summary) body.summary = f.summary;
-          if (f.showMeAs) body.transparency = f.showMeAs;
-          if (f.visibility) body.visibility = f.visibility;
-          if (!useDefaultReminders) {
-            const reminders = exec.param("remindersUi", i, {}).remindersValues;
-            body.reminders = { useDefault: false };
-            if (reminders) body.reminders.overrides = reminders;
-          }
-          if (f.allday === "yes") {
-            body.start = { date: momentTz(start, timezone)?.setZone(timezone).toFormat("yyyy-MM-dd") ?? "Invalid date" };
-            body.end = { date: momentTz(end, timezone)?.setZone(timezone).toFormat("yyyy-MM-dd") ?? "Invalid date" };
-          }
-          body.recurrence = [];
-          if (f.rrule) body.recurrence = [`RRULE:${f.rrule}`];
-          else {
-            if (f.repeatHowManyTimes && f.repeatUntil) throw new NodeError("You can set either 'Repeat How Many Times' or 'Repeat Until' but not both", { node: exec.name, itemIndex: i });
-            if (f.repeatFrecuency) body.recurrence.push(`FREQ=${String(f.repeatFrecuency).toUpperCase()};`);
-            if (f.repeatHowManyTimes) body.recurrence.push(`COUNT=${f.repeatHowManyTimes};`);
-            if (f.repeatUntil) body.recurrence.push(`UNTIL=${utcFormat(momentTz(dateObjectToISO(f.repeatUntil), "UTC"), "yyyyMMdd'T'HHmmss")}Z`);
-            if (body.recurrence.length) body.recurrence = [`RRULE:${body.recurrence.join("")}`];
-          }
-          if (f.conferenceDataUi?.conferenceDataValues) {
-            qs.conferenceDataVersion = 1;
-            body.conferenceData = { createRequest: { requestId: globalThis.crypto.randomUUID(), conferenceSolution: { type: f.conferenceDataUi.conferenceDataValues.conferenceSolution } } };
-          }
-          data = await api("POST", `/calendar/v3/calendars/${calendarId}/events`, { body, query: { ...qs } });
-        }
-        for (const json of asItems(data ?? [])) out.push({ json, pairedItem: { item: i } });
-      } catch (e) {
-        if (e?.name === "Suspend" || e?.name === "ContainmentViolation") throw e;
-        if (!exec.continueOnFail()) throw e;
-        out.push({ json: { error: e.message }, pairedItem: { item: i } });
-      }
-    }
-    return [v >= 1.3 ? out.map((it) => ({ ...it, json: sortKeys(it.json) })) : out];
-  },
-};
-
-// ---------- RSS Read (n8n RSS Read node v1–1.2, also as an agent tool) ----------
-//
-// n8n-nodes-base 2.47 RssFeedRead.node.ts + GenericFunctions.ts parseFeedUrl: per item (v1:
-// the first only) a GET of the URL with rss-parser's User-Agent and an Accept header (v1.2:
-// the relaxed list), the text parsed by rss-parser (feed.mjs), one item per feed entry. No
-// credential. The URL's host must be in allow.http like any request (convert.mjs applyRss).
-
-const RSS_HEADERS = { "User-Agent": "rss-parser", Accept: "application/rss+xml" };
-const RSS_RELAXED_ACCEPT = "application/rss+xml, application/rdf+xml;q=0.8, application/atom+xml;q=0.6, application/xml;q=0.4, text/xml;q=0.4";
-const validUrl = (u) => {
-  try {
-    new URL(u);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-const rssFeedRead = {
-  versions: (v) => v >= 1 && v <= 1.2,
-  async execute(exec) {
-    const items = exec.getInputData();
-    const v = exec.typeVersion;
-    const count = v >= 1.1 ? items.length : items.length ? 1 : 0;
-    const out = [];
-    for (let i = 0; i < count; i++) {
-      const paired = v >= 1.1 ? [{ item: i }] : items.map((_, k) => ({ item: k }));
-      try {
-        const url = exec.param("url", i, "");
-        const options = exec.param("options", i, {}) ?? {};
-        if (!url) throw new NodeError('The parameter "URL" has to be set!', { node: exec.name, itemIndex: i });
-        if (!validUrl(url)) throw new NodeError('The provided "URL" is not valid!', { node: exec.name, itemIndex: i });
-        const headers = { ...RSS_HEADERS, ...(v >= 1.2 ? { Accept: RSS_RELAXED_ACCEPT } : {}) };
-        const [r] = await exec.request([{ kind: "http", itemIndex: i, method: "GET", url: String(url), query: {}, headers }]);
-        if (!r.ok) throw new NodeError(r.error?.message ?? "request failed", { node: exec.name, itemIndex: i });
-        const status = Number(r.value?.status ?? 200);
-        if (status >= 400) throw new NodeError(`Request failed with status code ${status}`, { node: exec.name, itemIndex: i, httpCode: String(status) });
-        const body = r.value?.body;
-        const text = typeof body === "string" ? body : body === undefined || body === null ? "" : typeof body === "object" ? JSON.stringify(body) : String(body);
-        const custom = typeof options.customFields === "string" && options.customFields ? options.customFields.split(",").map((f) => f.trim()) : [];
-        let feed;
-        try {
-          feed = parseFeed(text, { customItemFields: custom });
-        } catch (e) {
-          throw new NodeError(e?.message ?? String(e), { node: exec.name, itemIndex: i });
-        }
-        if (feed.items) for (const it of feed.items) out.push({ json: it, pairedItem: paired.length === 1 ? paired[0] : paired });
-      } catch (e) {
-        if (e?.name === "Suspend" || e?.name === "ContainmentViolation") throw e;
-        if (exec.continueOnFail()) {
-          out.push({ json: { error: e.message }, pairedItem: paired.length === 1 ? paired[0] : paired });
-          continue;
-        }
-        throw e;
-      }
-    }
-    return [out];
-  },
-};
-
-const restPrograms = { googleSheets, googleCalendar, rssFeedRead };
-
-return { restPrograms };
-})();
-
-// ---- src/shapes.mjs ----
-const __m_shapes_mjs = (() => {
-const { isObject, NodeError } = __m_util_mjs;
-// Connector result shapes: tolerant readers for tool outputs whose real shape is not
-// captured yet (the connectors publish input schemas only).
-//
-// A result adapter with `shape: "<name>"` (adapt.mjs) first passes the tool's raw output
-// through the reader of that name. Each reader accepts every plausible shape it knows (the
-// connector's own flat shape, the vendor's REST shape, a text rendering, a one-element
-// wrapper) and returns one canonical object, documented per reader below. Output it does
-// not recognise fails the step with "connector shape not recognised" and the keys it saw,
-// never an item with silently empty fields.
-
-
-const keysOf = (v) => (isObject(v) ? Object.keys(v).slice(0, 12).join(", ") : Array.isArray(v) ? `a list of ${v.length}` : typeof v);
-
-function unrecognised(shape, output, expected) {
-  const seen = typeof output === "string" ? `text (${output.length} characters: "${output.replace(/\s+/g, " ").trim().slice(0, 60)}")` : `keys [${keysOf(output)}]`;
-  return new NodeError(`connector shape not recognised (${shape}): the tool answered with ${seen}; expected ${expected}`);
-}
-
-function parseJsonText(output) {
-  if (typeof output !== "string") return output;
-  const t = output.trim();
-  if (t.startsWith("{") || t.startsWith("[")) {
-    try {
-      return JSON.parse(t);
-    } catch {
-      /* text */
-    }
-  }
-  return output;
-}
-
-// A one-element wrapper ({message: {...}}, {result: {...}}, [{...}]) around the object.
-function unwrapOne(v, keys) {
-  if (Array.isArray(v) && v.length === 1) return unwrapOne(v[0], keys);
-  if (isObject(v)) {
-    for (const k of keys) if (isObject(v[k])) return v[k];
-    if (isObject(v.structuredContent)) return unwrapOne(v.structuredContent, keys);
-  }
-  return v;
-}
-
-// ---------- email addresses ----------
-
-// '"Name" <a@b>, c@d' -> [{address, name}]. Commas inside quotes do not split.
-function parseAddressList(text) {
-  if (Array.isArray(text)) return text.flatMap((x) => (isObject(x) ? [{ address: String(x.address ?? x.email ?? ""), name: String(x.name ?? x.displayName ?? "") }] : parseAddressList(x)));
-  if (isObject(text)) {
-    if (Array.isArray(text.value)) return parseAddressList(text.value);
-    if (text.address !== undefined || text.email !== undefined) return parseAddressList([text]);
-    return [];
-  }
-  if (typeof text !== "string" || !text.trim()) return [];
-  const parts = [];
-  let cur = "";
-  let quoted = false;
-  let angle = false;
-  for (const c of text) {
-    if (c === '"') quoted = !quoted;
-    else if (!quoted && c === "<") angle = true;
-    else if (!quoted && c === ">") angle = false;
-    if (c === "," && !quoted && !angle) parts.push(cur), (cur = "");
-    else cur += c;
-  }
-  parts.push(cur);
-  return parts
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .map((p) => {
-      const m = /^(.*?)\s*<([^>]*)>\s*$/.exec(p);
-      if (!m) return { address: p.replace(/^"|"$/g, ""), name: "" };
-      return { address: m[2].trim(), name: m[1].trim().replace(/^"(.*)"$/, "$1").replace(/\\"/g, '"') };
-    });
-}
-
-// ---------- gmail-message ----------
-//
-// Accepts: the Gmail connector's flat message (sender, toRecipients, ccRecipients,
-// bccRecipients, addressDisplayNames, plaintextBody, htmlBody, subject, date, labelIds), the
-// Gmail REST message (payload.headers, payload.parts / payload.body with base64url data),
-// a message already in n8n's simplified (From, To, Subject) or parsed (from.value, text)
-// form, and any of these under message/result or as a one-element list.
-// Returns {id, threadId, labelIds, snippet, subject, date, from, to, cc, bcc, replyTo (each
-// a list of {address, name}), text, html, headers (a list of {name, value} in the message's
-// order; derived from the fields above when the tool returned none), headersDerived,
-// messageId, inReplyTo, references (from the headers when given), attachments, viewUrl,
-// sizeEstimate, historyId, internalDate}.
-
-function b64urlText(data) {
-  try {
-    const bin = atob(String(data).replace(/-/g, "+").replace(/_/g, "/").replace(/\s+/g, ""));
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return new TextDecoder().decode(bytes);
-  } catch {
-    return undefined;
-  }
-}
-
-function restBodies(payload, out = {}) {
-  if (!isObject(payload)) return out;
-  const mime = String(payload.mimeType ?? "");
-  if (payload.body?.data && !payload.filename) {
-    if (mime === "text/plain" && out.text === undefined) out.text = b64urlText(payload.body.data);
-    if (mime === "text/html" && out.html === undefined) out.html = b64urlText(payload.body.data);
-  }
-  for (const p of payload.parts ?? []) restBodies(p, out);
-  return out;
-}
-
-function headerList(v) {
-  if (Array.isArray(v)) return v.filter((h) => isObject(h) && typeof h.name === "string").map((h) => ({ name: h.name, value: String(h.value ?? "") }));
-  if (isObject(v)) return Object.entries(v).filter(([, x]) => typeof x === "string").map(([name, value]) => ({ name, value }));
-  return [];
-}
-
-const formatAddress = ({ address, name }) => (name ? `"${name.replace(/"/g, '\\"')}" <${address}>` : address);
-
-function gmailMessage(output) {
-  const m = unwrapOne(parseJsonText(output), ["message", "result", "email"]);
-  if (!isObject(m)) throw unrecognised("gmail-message", output, "one message object (sender/toRecipients, payload.headers, or From/from)");
-  const restHeaders = headerList(m.payload?.headers);
-  const given = restHeaders.length ? restHeaders : headerList(m.headers);
-  const h = (name) => given.find((x) => x.name.toLowerCase() === name)?.value;
-  const names = isObject(m.addressDisplayNames) ? m.addressDisplayNames : {};
-  const named = (list) => list.map((a) => ({ address: a.address, name: a.name || String(names[a.address] ?? "") }));
-  const pick = (flat, header, simpleKey, parsedKey) => {
-    if (m[flat] !== undefined) return named(parseAddressList(m[flat]));
-    if (m[parsedKey] !== undefined && (isObject(m[parsedKey]) || Array.isArray(m[parsedKey]))) return parseAddressList(m[parsedKey]);
-    if (h(header) !== undefined) return parseAddressList(h(header));
-    if (m[simpleKey] !== undefined) return parseAddressList(m[simpleKey]);
-    return [];
-  };
-  const recognised = m.sender !== undefined || m.toRecipients !== undefined || restHeaders.length > 0 || m.From !== undefined || isObject(m.from) || typeof m.from === "string" || m.plaintextBody !== undefined;
-  if (!recognised) throw unrecognised("gmail-message", output, "a message with sender/toRecipients, payload.headers, or From/from");
-  const bodies = restBodies(m.payload);
-  const from = pick("sender", "from", "From", "from");
-  const to = pick("toRecipients", "to", "To", "to");
-  const cc = pick("ccRecipients", "cc", "Cc", "cc");
-  const bcc = pick("bccRecipients", "bcc", "Bcc", "bcc");
-  const replyTo = pick("replyTo", "reply-to", "Reply-To", "replyTo");
-  const subject = m.subject ?? h("subject") ?? m.Subject;
-  const dateRaw = m.date ?? h("date") ?? (m.internalDate !== undefined ? Number(m.internalDate) : undefined);
-  const dt = dateRaw === undefined ? undefined : new Date(typeof dateRaw === "number" ? dateRaw : String(dateRaw));
-  const date = dt && Number.isFinite(dt.getTime()) ? dt.toISOString() : dateRaw;
-  let headers = given;
-  if (!headers.length) {
-    headers = [];
-    const add = (name, list) => list.length && headers.push({ name, value: list.map(formatAddress).join(", ") });
-    add("From", from);
-    add("To", to);
-    add("Cc", cc);
-    if (subject !== undefined) headers.push({ name: "Subject", value: String(subject) });
-    if (dt && Number.isFinite(dt.getTime())) headers.push({ name: "Date", value: dt.toUTCString().replace("GMT", "+0000") });
-  }
-  const text = m.plaintextBody ?? m.text ?? m.textPlain ?? bodies.text;
-  const html = m.htmlBody ?? (typeof m.html === "string" ? m.html : undefined) ?? bodies.html;
-  const allHeaders = given;
-  const hv = (name) => allHeaders.find((x) => x.name.toLowerCase() === name)?.value;
-  return {
-    id: m.id ?? (typeof m.messageId === "string" && !m.messageId.startsWith("<") ? m.messageId : undefined),
-    threadId: m.threadId,
-    labelIds: m.labelIds ?? (Array.isArray(m.labels) ? m.labels.map((l) => (isObject(l) ? l.id : l)) : undefined),
-    snippet: m.snippet,
-    subject,
-    date,
-    from,
-    to,
-    cc,
-    bcc,
-    replyTo,
-    text,
-    html,
-    headers,
-    headersDerived: !given.length,
-    messageId: hv("message-id") ?? (typeof m.messageId === "string" && m.messageId.startsWith("<") ? m.messageId : undefined),
-    inReplyTo: hv("in-reply-to") ?? m.inReplyTo,
-    references: hv("references") ?? m.references,
-    attachments: m.attachments ?? [],
-    viewUrl: m.viewUrl,
-    sizeEstimate: m.sizeEstimate,
-    historyId: m.historyId,
-    internalDate: m.internalDate,
-  };
-}
-
-// ---------- notion-database ----------
-//
-// Accepts: a Notion REST database object (object: "database", properties), a data source
-// state ({name, schema} or {title, properties}), and the connector's text rendering
-// (<database url=... title=...> with a <data-source-state>{json}</data-source-state>).
-// Returns a REST-shaped database: {object: "database", id, url, title: [rich text], properties:
-// {name: {id?, name, type, [type]: config}}, public_url: null}. Property ids
-// and option colours appear only when the tool returned them.
-
-const uuid = (hex) => (/^[0-9a-f]{32}$/i.test(hex) ? `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`.toLowerCase() : hex);
-const idFromUrl = (url) => {
-  const m = /([0-9a-f]{32})(?:[?#]|$)/i.exec(String(url ?? "")) ?? /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i.exec(String(url ?? ""));
-  return m ? uuid(m[1].replace(/-/g, "")) : undefined;
-};
-const richText = (s) => (s === undefined || s === null ? [] : [{ type: "text", text: { content: String(s), link: null }, plain_text: String(s), href: null }]);
-const attr = (tag, name) => {
-  const m = new RegExp(`\\b${name}="([^"]*)"`).exec(tag);
-  return m ? m[1].replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">") : undefined;
-};
-
-function restProperty(name, p) {
-  if (!isObject(p)) p = { type: String(p) };
-  const type = String(p.type ?? "rich_text");
-  const out = { ...(p.id !== undefined ? { id: p.id } : {}), name: p.name ?? name, type };
-  let config = isObject(p[type]) ? { ...p[type] } : {};
-  const opts = p.options ?? config.options ?? (type === "status" ? p.status?.options : undefined);
-  if (Array.isArray(opts)) config.options = opts.map((o) => (isObject(o) ? { ...(o.id !== undefined ? { id: o.id } : {}), name: String(o.name ?? ""), ...(o.color !== undefined ? { color: o.color } : {}) } : { name: String(o) }));
-  for (const [k, v] of Object.entries(p)) if (!["id", "name", "type", "options", type, "description"].includes(k)) config[k] = v;
-  out[type] = config;
-  return out;
-}
-
-function fromState(state, { url, title } = {}) {
-  const schema = isObject(state.schema) ? state.schema : isObject(state.properties) ? state.properties : null;
-  if (!schema) return null;
-  const name = title ?? state.name ?? (Array.isArray(state.title) ? state.title.map((t) => t.plain_text ?? t.text?.content ?? "").join("") : state.title);
-  const properties = Object.fromEntries(Object.entries(schema).map(([k, p]) => [k, restProperty(k, p)]));
-  const id = idFromUrl(url) ?? (typeof state.id === "string" ? uuid(state.id.replace(/-/g, "")) : undefined);
-  return { object: "database", id, url: id ? `https://www.notion.so/${id.replace(/-/g, "")}` : url, public_url: null, title: richText(name), properties };
-}
-
-function notionDatabase(output) {
-  const v = unwrapOne(parseJsonText(output), ["database", "result"]);
-  if (isObject(v)) {
-    if (isObject(v.properties) && (v.object === "database" || Array.isArray(v.title))) {
-      return { public_url: null, ...v, properties: Object.fromEntries(Object.entries(v.properties).map(([k, p]) => [k, isObject(p) && p.type && isObject(p[p.type]) ? p : restProperty(k, p)])) };
-    }
-    const s = fromState(v, { url: v.url });
-    if (s) return s;
-    if (typeof v.text === "string") return notionDatabase(v.text);
-  }
-  if (typeof v === "string") {
-    const dbTag = /<database\b[^>]*>/.exec(v)?.[0] ?? "";
-    const states = [...v.matchAll(/<data-source-state>([\s\S]*?)<\/data-source-state>/g)].map((m) => {
-      try {
-        return JSON.parse(m[1]);
-      } catch {
-        return null;
-      }
-    });
-    const state = states.find(isObject);
-    if (state) {
-      const out = fromState(state, { url: attr(dbTag, "url"), title: attr(dbTag, "title") });
-      if (out) return out;
-    }
-  }
-  throw unrecognised("notion-database", output, "a Notion database (properties), a data source state (schema), or <database> text with a <data-source-state>");
-}
-
-const SHAPES = { "gmail-message": gmailMessage, "notion-database": notionDatabase };
-
-function readShape(name, output) {
-  const fn = SHAPES[name];
-  if (!fn) throw new NodeError(`unknown result shape "${name}"`);
-  return fn(output);
-}
-
-return { parseAddressList, gmailMessage, notionDatabase, SHAPES, readShape };
-})();
-
-// ---- src/adapt.mjs ----
-const __m_adapt_mjs = (() => {
-const { isObject, deepCopy, NodeError } = __m_util_mjs;
-const { readShape, parseAddressList } = __m_shapes_mjs;
-// Declarative result adapters, argument coercion and poll cursors.
-//
-// A converter-written definition never carries code strings for these: every shape change
-// is JSON the runtime interprets here, so a reviewer can read what a step does to a tool's
-// output and a fix to this file reaches every migrated workflow on regeneration.
-//
-// Result adapter (step.tool.result, step.http.result, trigger poll.result):
-//   {
-//     items: "threads[*].messages[*]",  path to the elements that become items; "" = the
-//                                       whole output. [*] flattens a list, [n] indexes.
-//     fields: { outName: spec },        spec: "path" (relative to the element), "$.path"
-//                                       (from the root output), "^.path" (from the element's
-//                                       parent in a [*] chain), {path, default}, {const: v},
-//                                       {first: [spec, ...]} (first defined), {split: spec,
-//                                       sep} (text to a list), {join: spec, sep} (list to text),
-//                                       {headers: spec} (a list of {name, value} to an object),
-//                                       {headerLines: spec} (a list of {name, value} to
-//                                       {lowercase name: "Name: value"}, as n8n's parsed email),
-//                                       {addresses: spec} (a list of {address, name} to a
-//                                       parsed-email address object {value, text, html}),
-//                                       {addressLine: spec} (the same list as one header
-//                                       string, '"Name" <a@b>, c@d'); an empty list gives none.
-//                                       outName may be a dot path ("payload.mimeType").
-//     passthrough: true,                keep the element's own fields (default true); false
-//                                       emits only the listed fields.
-//     wrap: "value",                    key for an element that is not an object.
-//     empty: "none" | "one",            what an output without elements gives: no items
-//                                       (default) or one empty item.
-//     parse: "csv", text: "path",       the elements are the rows of a CSV text at `text`
-//     decode: "base64",                 (base64-decoded first), keyed by the header row;
-//     rowNumber: {field, start},        each row gets its sheet row number (header = 1).
-//     shape: "gmail-message",           read the raw output with a tolerant connector-shape
-//                                       reader first (shapes.mjs); paths then address the
-//                                       reader's canonical object. Unrecognised output fails
-//                                       the step ("connector shape not recognised").
-//   }
-// adaptResult(spec, output) -> [json, ...]. Tool hosts pass the tool's structured result
-// (structuredContent, or JSON-parsed text content); a text result arrives as a string and is
-// parsed as JSON when it is JSON, else kept as {text}.
-//
-// Coercion (step.tool.coerce): {field: "string" | "string[]" | "integer" | "number" |
-// "boolean" | "json"}, applied after the n8n expressions in the args are evaluated, so a
-// comma-separated n8n "To" field reaches a tool that wants a list of addresses as a list.
-// Fields that evaluate to undefined are dropped.
-//
-// Poll cursor (trigger poll.cursor): {field, strategy: "max", idField?, arg?, template?}.
-// Items whose field is greater than the cursor (or equal with an id not seen at that value)
-// are new; the next cursor is the greatest field value seen and the ids at that value. The
-// template puts the cursor into one tool argument: {value}, {seconds} (epoch seconds),
-// {iso}. Missed runs collapse into one run that reads everything after the cursor, never
-// "since the last interval" (PLAN Phase 4).
-
-
-// ---------- paths ----------
-
-function splitPath(path) {
-  const segs = [];
-  for (const part of String(path).split(".")) {
-    if (part === "") continue;
-    const re = /([^[\]]+)|\[(\*|\d+)\]/g;
-    let m;
-    while ((m = re.exec(part))) {
-      if (m[1] !== undefined) segs.push({ key: m[1] });
-      else if (m[2] === "*") segs.push({ all: true });
-      else segs.push({ index: Number(m[2]) });
-    }
-  }
-  return segs;
-}
-
-// Elements at a path, each with its parent chain: [{value, parents: [...]}].
-function select(root, path) {
-  let cur = [{ value: root, parents: [] }];
-  for (const seg of splitPath(path)) {
-    const next = [];
-    for (const { value, parents } of cur) {
-      if (seg.all) {
-        if (Array.isArray(value)) for (const v of value) next.push({ value: v, parents: [...parents, value] });
-        else if (value !== undefined && value !== null) next.push({ value, parents });
-      } else if (seg.index !== undefined) {
-        if (Array.isArray(value) && value[seg.index] !== undefined) next.push({ value: value[seg.index], parents });
-      } else if (isObject(value) && value[seg.key] !== undefined) {
-        // A step down into an object field keeps the object as the parent of what follows.
-        next.push({ value: value[seg.key], parents: [...parents, value] });
-      }
-    }
-    cur = next;
-  }
-  return cur;
-}
-
-function getAt(root, path) {
-  const hit = select(root, path);
-  if (!hit.length) return undefined;
-  return splitPath(path).some((s) => s.all) ? hit.map((h) => h.value) : hit[0].value;
-}
-
-function setAt(obj, path, value) {
-  const keys = String(path).split(".");
-  let o = obj;
-  for (let i = 0; i < keys.length - 1; i++) {
-    if (!isObject(o[keys[i]])) o[keys[i]] = {};
-    o = o[keys[i]];
-  }
-  o[keys.at(-1)] = value;
-}
-
-// ---------- adapter ----------
-
-function fieldValue(spec, el, root) {
-  if (typeof spec === "string") {
-    if (spec.startsWith("$.")) return getAt(root, spec.slice(2));
-    if (spec === "$") return root;
-    if (spec.startsWith("^.")) {
-      const parent = el.parents.findLast((p) => isObject(p));
-      return parent === undefined ? undefined : getAt(parent, spec.slice(2));
-    }
-    if (spec === "" || spec === ".") return el.value;
-    return isObject(el.value) || Array.isArray(el.value) ? getAt(el.value, spec) : undefined;
-  }
-  if (!isObject(spec)) return undefined;
-  if ("const" in spec) return deepCopy(spec.const);
-  if (spec.first) {
-    for (const s of spec.first) {
-      const v = fieldValue(s, el, root);
-      if (v !== undefined && v !== null && v !== "") return v;
-    }
-    return spec.default;
-  }
-  if (spec.split !== undefined) {
-    const v = fieldValue(spec.split, el, root);
-    return typeof v === "string" ? v.split(spec.sep ?? ",").map((x) => x.trim()).filter((x) => x !== "") : v;
-  }
-  if (spec.join !== undefined) {
-    const v = fieldValue(spec.join, el, root);
-    return Array.isArray(v) ? v.join(spec.sep ?? ", ") : v;
-  }
-  if (spec.headers !== undefined) {
-    const v = fieldValue(spec.headers, el, root);
-    return Array.isArray(v) ? Object.fromEntries(v.filter((h) => isObject(h) && typeof h.name === "string").map((h) => [h.name, h.value])) : v;
-  }
-  if (spec.headerLines !== undefined) {
-    const v = fieldValue(spec.headerLines, el, root);
-    return Array.isArray(v) ? Object.fromEntries(v.filter((h) => isObject(h) && typeof h.name === "string").map((h) => [h.name.toLowerCase(), `${h.name}: ${h.value}`])) : v;
-  }
-  if (spec.addresses !== undefined) {
-    const list = parseAddressList(fieldValue(spec.addresses, el, root));
-    return list.length ? addressObject(list) : undefined;
-  }
-  if (spec.addressLine !== undefined) {
-    const list = parseAddressList(fieldValue(spec.addressLine, el, root));
-    return list.length ? list.map((a) => (a.name ? `"${a.name.replace(/"/g, '\\"')}" <${a.address}>` : a.address)).join(", ") : undefined;
-  }
-  if (spec.path !== undefined) {
-    const v = fieldValue(spec.path, el, root);
-    return v === undefined ? spec.default : v;
-  }
-  return undefined;
-}
-
-// A parsed-email address object as n8n's Gmail and IMAP nodes emit it (mailparser).
-const escHtml = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-function addressObject(list) {
-  return {
-    value: list.map((a) => ({ address: a.address, name: a.name ?? "" })),
-    html: list.map((a) => `<span class="mp_address_group">${a.name ? `<span class="mp_address_name">${escHtml(a.name)}</span> &lt;` : ""}<a href="mailto:${escHtml(a.address)}" class="mp_address_email">${escHtml(a.address)}</a>${a.name ? "&gt;" : ""}</span>`).join(", "),
-    text: list.map((a) => (a.name ? `"${a.name}" <${a.address}>` : a.address)).join(", "),
-  };
-}
-
-function parseToolOutput(output) {
-  if (typeof output !== "string") return output;
-  const t = output.trim();
-  if (t.startsWith("{") || t.startsWith("[")) {
-    try {
-      return JSON.parse(t);
-    } catch {
-      /* text */
-    }
-  }
-  return { text: output };
-}
-
-// RFC 4180 CSV: quoted fields, doubled quotes, CRLF or LF.
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let field = "";
-  let quoted = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (quoted) {
-      if (c === '"' && text[i + 1] === '"') (field += '"'), i++;
-      else if (c === '"') quoted = false;
-      else field += c;
-    } else if (c === '"') quoted = true;
-    else if (c === ",") row.push(field), (field = "");
-    else if (c === "\n" || c === "\r") {
-      if (c === "\r" && text[i + 1] === "\n") i++;
-      row.push(field), rows.push(row), (row = []), (field = "");
-    } else field += c;
-  }
-  if (field !== "" || row.length) row.push(field), rows.push(row);
-  return rows;
-}
-
-function decodeBase64(b64) {
-  const bin = atob(String(b64).replace(/\s+/g, ""));
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return new TextDecoder().decode(bytes);
-}
-
-function csvElements(s, root) {
-  let text = s.text === undefined || s.text === "" ? root : getAt(root, s.text);
-  if (isObject(text) && typeof text.text === "string") text = text.text;
-  if (typeof text !== "string") return [];
-  if (s.decode === "base64") text = decodeBase64(text);
-  const [header, ...rows] = parseCsv(text);
-  if (!header) return [];
-  return rows
-    .filter((r) => r.some((x) => x !== ""))
-    .map((r, k) => {
-      const obj = Object.fromEntries(header.map((h, j) => [h, r[j] ?? ""]));
-      if (s.rowNumber?.field) obj[s.rowNumber.field] = (s.rowNumber.start ?? 2) + k;
-      return { value: obj, parents: [] };
-    });
-}
-
-// A text answer where the adapter reads JSON structure (an items path or field paths) would
-// select nothing and emit 0 items, a silent "done" (seen when a tool answered with an error
-// sentence). It fails the step instead. CSV adapters expect text; an adapter with no items
-// path and no fields keeps text as {text} as before.
-function expectsJson(s) {
-  if (s.parse === "csv") return false;
-  if (s.items !== undefined && s.items !== "") return true;
-  return Object.values(s.fields ?? {}).some((f) => typeof f === "string" ? f !== "" && f !== "." && f !== "$" : isObject(f) && !("const" in f));
-}
-function adaptResult(spec, output) {
-  const s = spec ?? {};
-  const root = s.shape ? readShape(s.shape, output) : parseToolOutput(output);
-  if (!s.shape && typeof output === "string" && isObject(root) && Object.keys(root).length === 1 && root.text === output && expectsJson(s)) {
-    const preview = output.replace(/\s+/g, " ").trim().slice(0, 60);
-    throw new NodeError(`the tool answered with text where this step reads JSON (${output.length} characters: "${preview}${output.length > 60 ? "…" : ""}"); refusing to continue with 0 items`);
-  }
-  const wrap = s.wrap ?? "value";
-  const els = s.parse === "csv" ? csvElements(s, root) : s.items === undefined || s.items === "" ? (Array.isArray(root) ? root.map((v) => ({ value: v, parents: [root] })) : root === null || root === undefined ? [] : [{ value: root, parents: [] }]) : select(root, s.items);
-  const out = [];
-  for (const el of els) {
-    const base = isObject(el.value) ? el.value : el.value === undefined || el.value === null ? {} : { [wrap]: el.value };
-    const json = s.passthrough === false ? {} : deepCopy(base);
-    for (const [name, fs] of Object.entries(s.fields ?? {})) {
-      const v = fieldValue(fs, el, root);
-      if (v !== undefined) setAt(json, name, deepCopy(v));
-    }
-    out.push(json);
-  }
-  if (!out.length && s.empty === "one") out.push({});
-  return out;
-}
-
-// ---------- coercion ----------
-
-function coerceArgs(coerce, args) {
-  if (!isObject(args)) return args;
-  const out = {};
-  for (const [k, v] of Object.entries(args)) {
-    if (v === undefined) continue;
-    const want = coerce?.[k];
-    out[k] = want ? coerceValue(want, v) : v;
-  }
-  return out;
-}
-
-function coerceValue(want, v) {
-  switch (want) {
-    case "string[]":
-      if (Array.isArray(v)) return v.map((x) => String(x));
-      if (typeof v === "string") return v.split(",").map((x) => x.trim()).filter((x) => x !== "");
-      return v === null ? [] : [String(v)];
-    case "integer":
-    case "number": {
-      if (typeof v === "number") return want === "integer" ? Math.trunc(v) : v;
-      const n = Number(v);
-      if (typeof v === "string" && v.trim() !== "" && Number.isFinite(n)) return want === "integer" ? Math.trunc(n) : n;
-      return v;
-    }
-    case "boolean":
-      if (v === "true") return true;
-      if (v === "false") return false;
-      return v;
-    case "string":
-      return v === null || typeof v === "object" ? JSON.stringify(v) : String(v);
-    case "json":
-      if (typeof v === "string") {
-        try {
-          return JSON.parse(v);
-        } catch {
-          return v;
-        }
-      }
-      return v;
-    default:
-      return v;
-  }
-}
-
-// ---------- poll cursor ----------
-
-function comparable(v) {
-  if (typeof v === "number") return v;
-  if (typeof v === "string" && /^-?\d+(\.\d+)?$/.test(v.trim())) return Number(v);
-  if (typeof v === "string") {
-    const t = Date.parse(v);
-    if (Number.isFinite(t)) return t;
-  }
-  return v;
-}
-const cmp = (a, b) => {
-  const x = comparable(a);
-  const y = comparable(b);
-  if (typeof x === "number" && typeof y === "number") return x - y;
-  return String(x) < String(y) ? -1 : String(x) > String(y) ? 1 : 0;
-};
-
-function applyCursorArg(cursorSpec, args, cursor) {
-  if (!cursorSpec?.arg || !cursor || cursor.value === undefined) return args;
-  const ms = comparable(cursor.value);
-  const values = { value: String(cursor.value), seconds: typeof ms === "number" ? String(Math.floor(ms / 1000)) : String(cursor.value), iso: typeof ms === "number" ? new Date(ms).toISOString() : String(cursor.value) };
-  const piece = String(cursorSpec.template ?? "{value}").replace(/\{(value|seconds|iso)\}/g, (_, k) => values[k]);
-  const prev = args[cursorSpec.arg];
-  return { ...args, [cursorSpec.arg]: prev === undefined || prev === "" ? piece : `${prev}${cursorSpec.joiner ?? " "}${piece}` };
-}
-
-// -> {items: new items, cursor: next cursor}
-// cursorSpec.resolutionMs: the service compares at this resolution (Gmail's after: is whole
-// seconds and inclusive), so items in the cursor's unit are told apart by id: fresh when the
-// id is not in cursor.ids, which holds every id seen in the max item's unit. n8n's poll node
-// for Gmail keeps the same pair (lastTimeChecked + possibleDuplicates), so a cursor carries
-// over to n8n and back without a gap or a repeat (scripts/n8n-api.mjs).
-function advanceCursor(cursorSpec, items, cursor) {
-  const field = cursorSpec.field;
-  const res = Number(cursorSpec.resolutionMs) > 0 ? Number(cursorSpec.resolutionMs) : 0;
-  const unitCmp = (a, b) => {
-    if (!res) return cmp(a, b);
-    const x = comparable(a);
-    const y = comparable(b);
-    return typeof x === "number" && typeof y === "number" ? Math.floor(x / res) - Math.floor(y / res) : cmp(a, b);
-  };
-  const idOf = (j) => (cursorSpec.idField ? getAt(j, cursorSpec.idField) : undefined);
-  const fresh = items.filter((j) => {
-    if (!cursor || cursor.value === undefined) return true;
-    const v = getAt(j, field);
-    if (v === undefined) return false;
-    const c = unitCmp(v, cursor.value);
-    if (c > 0) return true;
-    if (c < 0) return false;
-    const id = idOf(j);
-    return id !== undefined && !(cursor.ids ?? []).includes(String(id));
-  });
-  let max = cursor?.value;
-  for (const j of items) {
-    const v = getAt(j, field);
-    if (v !== undefined && (max === undefined || cmp(v, max) > 0)) max = v;
-  }
-  const next = { value: max };
-  if (cursorSpec.idField && max !== undefined) {
-    const ids = items.filter((j) => getAt(j, field) !== undefined && unitCmp(getAt(j, field), max) === 0).map((j) => String(idOf(j)));
-    const carried = cursor && cursor.value !== undefined && unitCmp(cursor.value, max) === 0 ? cursor.ids ?? [] : [];
-    next.ids = [...new Set([...carried, ...ids])].sort();
-  }
-  return { items: fresh, cursor: max === undefined ? cursor ?? null : next };
-}
-
-return { getAt, parseToolOutput, parseCsv, adaptResult, coerceArgs, applyCursorArg, advanceCursor };
-})();
-
 // ---- src/files.mjs ----
 const __m_files_mjs = (() => {
 const { NodeError, UnsupportedNode, deepCopy, getPath, setPath, unsetPath, isObject } = __m_util_mjs;
@@ -4952,6 +3637,1417 @@ const FILES = {
 };
 
 return { mimeLookup, mimeExtension, fileTypeFromMimeType, prettyBytes, prepareBinary, binaryOf, binaryFromTool, pdfData, flattenObject, normalizePath, FILES };
+})();
+
+// ---- src/rest.mjs ----
+const __m_rest_mjs = (() => {
+const { NodeError, isObject } = __m_util_mjs;
+const { parseFeed } = __m_feed_mjs;
+const { prepareBinary } = __m_files_mjs;
+const { base64ToBytes } = __m_hash_mjs;
+// REST programs: node operations an app has no connector tool for, run against the app's own
+// REST API with the person's stored credential, when one operation takes more than one
+// request (a read decides what the write sends) or the node builds its items from the answer
+// itself (an RSS feed, image files). step.rest = {program}; the n8n parameters
+// stay in step.params and are read as n8n reads them. Every request goes through
+// exec.request, so containment (allow.http, the secret's hosts), the effect ledger and the
+// result log apply as to any http step; step.auth names the secret. The requests and their
+// bodies follow the n8n node's own code (n8n-nodes-base 2.47), so a reviewer can diff them.
+
+
+// ---------- Google Sheets v4 (n8n Google Sheets node v4.x, sheet: append | update | appendOrUpdate) ----------
+
+const SHEETS = "https://sheets.googleapis.com";
+const ROW_NUMBER = "row_number";
+// n8n-workflow requestPath: each interpolated value is one path segment, percent-encoded,
+// with : @ = , $ & left as they are.
+const seg = (v) => encodeURIComponent(String(v)).replace(/%(?:3A|40|3D|2C|24|26)/g, decodeURIComponent);
+const cellFormatDefault = (v) => (v < 4.1 ? "RAW" : "USER_ENTERED");
+// encodeRange: a range with "!" is sent as is, a bare sheet title in single quotes.
+const encodeRange = (range) => (range.includes("!") ? range : `'${range}'`);
+
+function colName(n) {
+  let s = "";
+  do {
+    n -= 1;
+    s = String.fromCharCode(65 + (n % 26)) + s;
+    n = (n / 26) >> 0;
+  } while (n > 0);
+  return s;
+}
+function colNumber(c) {
+  let n = 0;
+  for (const ch of c.toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n;
+}
+const colWithOffset = (start, offset) => colName(colNumber(start) + offset);
+
+function decodeRange(s) {
+  const [name, range = ""] = s.split("!");
+  const out = { name, range, start: {}, end: {} };
+  const cell = (c) => {
+    const m = /([a-zA-Z]{1,10})([0-9]{0,10})/.exec(c);
+    return m ? { column: m[1], row: Number(m[2]) } : {};
+  };
+  if (range) {
+    const [a, b] = range.split(":");
+    if (a) out.start = cell(a);
+    if (b) out.end = cell(b);
+  }
+  return out;
+}
+
+// The spreadsheet id from n8n's documentId resource locator (router.ts getSpreadsheetId).
+function spreadsheetIdOf(exec, rl) {
+  const mode = isObject(rl) ? rl.mode : "id";
+  const value = isObject(rl) ? rl.value : rl;
+  if (!value) throw new NodeError(`Can not get sheet '${mode}' with a value of '${value}'`, { node: exec.name });
+  if (mode === "url") return /([-\w]{25,})/.exec(String(value))?.[0] ?? "";
+  return String(value);
+}
+// The sheet from n8n's sheetName resource locator, as extractValue gives it.
+function sheetRefOf(rl) {
+  const mode = isObject(rl) ? rl.mode : "id";
+  const value = String(isObject(rl) ? rl.value : rl ?? "");
+  if (mode === "url") return { mode, value: /https:\/\/docs\.google\.com\/spreadsheets\/d\/[0-9a-zA-Z\-_]+.*#gid=([0-9]+)/.exec(value)?.[1] ?? value };
+  if (mode === "id") return { mode, value: /((gid=)?[0-9]{1,})/.exec(value)?.[1] ?? value };
+  return { mode, value };
+}
+const sheetIdOf = (v) => (v === "gid=0" ? 0 : parseInt(v, 10));
+
+// One JSON request to a Google API with the step's stored credential; throws n8n's
+// "<status> - <body>" NodeError on an HTTP error.
+function googleClient(exec, base) {
+  const auth = exec.step.auth?.secret ? { credentialType: exec.step.auth.credentialType, secret: exec.step.auth.secret } : undefined;
+  return async (method, path, { query, body } = {}) => {
+    const req = { kind: "http", itemIndex: 0, method, url: base + path, query: query ?? {}, headers: {} };
+    if (body !== undefined) {
+      req.body = body;
+      req.contentType = "json";
+    }
+    if (auth) req.auth = auth;
+    const [r] = await exec.request([req]);
+    if (!r.ok) throw new NodeError(r.error?.message ?? "request failed", { node: exec.name });
+    const v = r.value ?? {};
+    const status = Number(v.status ?? 200);
+    let b = v.body;
+    if (typeof b === "string" && /^\s*[[{]/.test(b)) {
+      try {
+        b = JSON.parse(b);
+      } catch {
+        /* text */
+      }
+    }
+    if (status >= 400) throw new NodeError(`${status} - ${typeof b === "string" ? b : JSON.stringify(b)}`, { node: exec.name, httpCode: String(status) });
+    return b ?? {};
+  };
+}
+
+function sheetHelper(exec, id) {
+  const api = googleClient(exec, SHEETS);
+  const h = {
+    hint: undefined,
+    async getData(range, valueRenderOption) {
+      const r = await api("GET", `/v4/spreadsheets/${seg(id)}/values/${seg(encodeRange(range))}`, { query: { valueRenderOption, dateTimeRenderOption: "FORMATTED_STRING" } });
+      return r.values;
+    },
+    async getSheet(ref) {
+      const r = await api("GET", `/v4/spreadsheets/${seg(id)}`, { query: { fields: "sheets.properties" } });
+      const found = (r.sheets ?? []).find((s) => (ref.mode === "name" ? s.properties?.title === ref.value : s.properties?.sheetId === sheetIdOf(ref.value)));
+      if (!found?.properties?.title) throw new NodeError(`Sheet with ${ref.mode === "name" ? "name" : "ID"} ${ref.value} not found`, { node: exec.name });
+      return found.properties;
+    },
+    async appendEmptyRows(sheetId, rows) {
+      return api("POST", `/v4/spreadsheets/${seg(id)}:batchUpdate`, { body: { requests: [{ appendDimension: { sheetId, dimension: "ROWS", length: rows } }] } });
+    },
+    async batchUpdate(data, valueInputOption) {
+      return api("POST", `/v4/spreadsheets/${seg(id)}/values:batchUpdate`, { body: { data, valueInputOption } });
+    },
+    async updateRows(sheetName, data, valueInputOption, row, rowsLength, useAppend) {
+      const [name] = sheetName.split("!");
+      const range = `${name}!${row}:${rowsLength ? row + rowsLength - 1 : row}`;
+      const path = `/v4/spreadsheets/${seg(id)}/values/${seg(encodeRange(range))}`;
+      return useAppend ? api("POST", `${path}:append`, { body: { range, values: data }, query: { valueInputOption } }) : api("PUT", path, { body: { range, values: data }, query: { valueInputOption } });
+    },
+    async toRows(inputData, range, keyRowIndex, columnNamesList, emptyValue = "") {
+      const d = decodeRange(range);
+      const header = columnNamesList ?? (h.hint !== undefined ? [h.hint] : undefined) ?? (await h.getData(`${d.name}!${keyRowIndex}:${keyRowIndex}`, "UNFORMATTED_VALUE"));
+      h.hint = undefined;
+      if (header === undefined) throw new NodeError("Could not retrieve the column data", { node: exec.name });
+      const names = header ? header[0] : [];
+      return inputData.map((item) =>
+        names.map((key) => {
+          const v = item[key];
+          if (v === undefined || v === null) return emptyValue;
+          return typeof v === "object" ? JSON.stringify(v) : v;
+        }),
+      );
+    },
+    async appendSheetData({ inputData, range, keyRowIndex, valueInputMode, columnNamesList, lastRow, useAppend }) {
+      const data = await h.toRows(inputData, range, keyRowIndex, columnNamesList, useAppend ? null : "");
+      const row = lastRow || ((await h.getData(range, "UNFORMATTED_VALUE")) || []).length + 1;
+      return h.updateRows(range, data, valueInputMode, row, data.length, useAppend);
+    },
+    // Values of the key column below the header (getColumnValues with the sheet data at hand).
+    columnValues(sheetData, keyIndex, dataStartRowIndex) {
+      return sheetData
+        .slice(dataStartRowIndex - 1)
+        .map((row) => row[keyIndex])
+        .splice(1)
+        .flatMap((v) => v);
+    },
+    prepareUpdate({ inputData, indexKey, range, upsert, columnNames, columnValues, dataStartRowIndex }) {
+      const d = decodeRange(range);
+      const keyIndex = columnNames.indexOf(indexKey);
+      if (keyIndex === -1 && !upsert) throw new NodeError(`Could not find column for key "${indexKey}"`, { node: exec.name });
+      const updateData = [];
+      const appendData = [];
+      for (const item of inputData) {
+        const key = item[indexKey];
+        if (key === undefined || key === null) {
+          if (upsert) appendData.push(item);
+          continue;
+        }
+        const at = columnValues.findIndex((x) => x?.toString() === key.toString());
+        if (at === -1) {
+          if (upsert) appendData.push(item);
+          continue;
+        }
+        const row = at + dataStartRowIndex + 1;
+        for (const name of columnNames) {
+          if (name === indexKey || item[name] === undefined || item[name] === null) continue;
+          let value = item[name];
+          if (typeof value === "object") value = JSON.stringify(value);
+          updateData.push({ range: `${d.name}!${colWithOffset(d.start.column || "A", columnNames.indexOf(name))}${row}`, values: [[value]] });
+        }
+      }
+      return { updateData, appendData };
+    },
+    prepareByRowNumber(inputData, range, columnNames) {
+      const d = decodeRange(range);
+      const updateData = [];
+      for (const item of inputData) {
+        for (const name of columnNames) {
+          if (name === ROW_NUMBER || item[name] === undefined || item[name] === null) continue;
+          let value = item[name];
+          if (typeof value === "object") value = JSON.stringify(value);
+          updateData.push({ range: `${d.name}!${colWithOffset(d.start.column || "A", columnNames.indexOf(name))}${item.row_number}`, values: [[value]] });
+        }
+      }
+      return { updateData };
+    },
+  };
+  return h;
+}
+
+function checkSchema(exec, columnNames, schema) {
+  const live = new Set((columnNames ?? []).filter((c) => c !== ""));
+  const cols = live.has(ROW_NUMBER) ? schema.map((s) => s.id) : schema.filter((s) => s.id !== ROW_NUMBER).map((s) => s.id);
+  const missing = cols.filter((c) => !live.has(c));
+  if (missing.length) throw new NodeError(`Column names were updated after the node's setup (missing columns: ${missing.join(", ")})`, { node: exec.name });
+}
+
+// autoMapInputData (GoogleSheets.utils.ts): item fields become columns; new ones are added to
+// the header row first (handlingExtraData insertInNewColumn, the default).
+async function autoMap(exec, sheet, sheetName, items, options, prefetched) {
+  const out = [];
+  const headerRow = options.locationDefine?.values ? parseInt(options.locationDefine.values.headerRow, 10) : 1;
+  const extra = options.handlingExtraData || "insertInNewColumn";
+  let columnNames = prefetched !== undefined ? prefetched : ((await sheet.getData(`${sheetName}!${headerRow}:${headerRow}`, "FORMATTED_VALUE")) ?? [])[0] ?? [];
+  if (extra === "insertInNewColumn") {
+    if (!columnNames.length) {
+      await sheet.updateRows(sheetName, [Object.keys(items[0].json).filter((k) => k !== ROW_NUMBER)], options.cellFormat || "RAW", headerRow);
+      columnNames = Object.keys(items[0].json);
+    }
+    const added = new Set();
+    for (const item of items) {
+      for (const k of Object.keys(item.json)) if (k !== ROW_NUMBER && !columnNames.includes(k)) added.add(k);
+      if (item.json[ROW_NUMBER]) {
+        const { [ROW_NUMBER]: _, ...rest } = item.json;
+        out.push(rest);
+      } else out.push(item.json);
+    }
+    if (added.size) {
+      columnNames = columnNames.concat([...added]);
+      await sheet.updateRows(sheetName, [columnNames], options.cellFormat || "RAW", headerRow);
+    }
+  }
+  if (extra === "ignoreIt") for (const item of items) out.push(item.json);
+  if (extra === "error")
+    items.forEach((item, i) => {
+      for (const k of Object.keys(item.json)) if (!columnNames.includes(k)) throw new NodeError("Unexpected fields in node input", { node: exec.name, itemIndex: i });
+      out.push(item.json);
+    });
+  const hint = columnNames.filter((n) => n !== ROW_NUMBER);
+  if (hint.length) sheet.hint = hint;
+  return out;
+}
+
+async function sheetsAppend(exec, sheet, range, sheetId) {
+  const items = exec.getInputData();
+  const v = exec.typeVersion;
+  let dataMode = exec.param("columns.mappingMode", 0, "defineBelow");
+  if (!items.length || dataMode === "nothing") return [];
+  const options = exec.param("options", 0, {});
+  const keyRowIndex = options.locationDefine?.values?.headerRow ? Number(options.locationDefine.values.headerRow) : 1;
+  const sheetData = await sheet.getData(range, "FORMATTED_VALUE");
+  if (!sheetData?.length) dataMode = "autoMapInputData";
+  const headerRow = sheetData?.[keyRowIndex - 1];
+  if (v >= 4.4 && dataMode !== "autoMapInputData") {
+    if (headerRow === undefined) throw new NodeError(`Could not retrieve the column names from row ${keyRowIndex}`, { node: exec.name });
+    const schema = exec.param("columns.schema", 0, [], { rawExpressions: true });
+    if (!Array.isArray(schema) || !schema.length) throw new NodeError("`columns.schema` is required when `columns.mappingMode` is `defineBelow`", { node: exec.name });
+    checkSchema(exec, headerRow, schema);
+  }
+  let inputData;
+  if (dataMode === "autoMapInputData") inputData = await autoMap(exec, sheet, range, items, options, headerRow ? headerRow : undefined);
+  else {
+    inputData = items.map((_, i) => {
+      const m = exec.param("columns.value", i, {});
+      if (!Object.keys(m).length) throw new NodeError("At least one value has to be added under 'Values to Send'", { node: exec.name });
+      return m;
+    });
+    if (headerRow) sheet.hint = headerRow;
+  }
+  if (!inputData.length) return [];
+  const valueInputMode = options.cellFormat || cellFormatDefault(v);
+  if (options.useAppend) await sheet.appendSheetData({ inputData, range, keyRowIndex, valueInputMode, useAppend: true });
+  else {
+    await sheet.appendEmptyRows(sheetId, 1);
+    await sheet.appendSheetData({ inputData, range, keyRowIndex, valueInputMode, lastRow: (sheetData ?? [{}]).length + 1 });
+  }
+  if (dataMode === "autoMapInputData") return items.map((it, i) => ({ json: it.json, pairedItem: { item: i } }));
+  return inputData.map((json, i) => ({ json, pairedItem: { item: i } }));
+}
+
+// update and appendOrUpdate share most of n8n's code; `upsert` is appendOrUpdate.
+async function sheetsUpdate(exec, sheet, sheetName, sheetId, upsert) {
+  const items = exec.getInputData();
+  const v = exec.typeVersion;
+  const range = `${sheetName}!A:Z`;
+  const options = exec.param("options", 0, {});
+  const valueInputMode = options.cellFormat ?? cellFormatDefault(v);
+  let keyRowIndex = 0;
+  let dataStartRowIndex = 1;
+  const loc = options.locationDefine?.values;
+  if (loc?.headerRow) keyRowIndex = parseInt(loc.headerRow, 10) - 1;
+  if (loc?.firstDataRow) dataStartRowIndex = parseInt(loc.firstDataRow, 10) - 1;
+  let dataMode = exec.param("columns.mappingMode", 0, "defineBelow");
+  const sheetData = (await sheet.getData(sheetName, "FORMATTED_VALUE")) ?? (upsert ? [] : undefined);
+  if (!upsert && sheetData?.[keyRowIndex] === undefined) throw new NodeError(`Could not retrieve the column names from row ${keyRowIndex + 1}`, { node: exec.name });
+  if (upsert && !sheetData[keyRowIndex] && dataMode !== "autoMapInputData") {
+    if (!sheetData.length) dataMode = "autoMapInputData";
+    else throw new NodeError(`Could not retrieve the column names from row ${keyRowIndex + 1}`, { node: exec.name });
+  }
+  let columnNames = sheetData[keyRowIndex] ?? [];
+  if (upsert && v >= 4.4) checkSchema(exec, columnNames, exec.param("columns.schema", 0, [], { rawExpressions: true }));
+  const matching = exec.param("columns.matchingColumns", 0, [], { rawExpressions: true });
+  if (!Array.isArray(matching) || !matching.length) throw new NodeError(`\`columns.matchingColumns\` is required for the ${upsert ? "Append or Update Row" : "Update Row"} operation`, { node: exec.name });
+  const keyIndex = columnNames.indexOf(matching[0]);
+  const columnValues = sheet.columnValues(sheetData, keyIndex, dataStartRowIndex);
+  const updateData = [];
+  const appendData = [];
+  const mapped = [];
+  const newColumns = new Set();
+  for (let i = 0; i < items.length; i++) {
+    if (dataMode === "nothing") continue;
+    const inputData = [];
+    if (dataMode === "autoMapInputData") {
+      const extra = options.handlingExtraData || "insertInNewColumn";
+      if (extra === "error") for (const k of Object.keys(items[i].json)) if (!columnNames.includes(k)) throw new NodeError("Unexpected fields in node input", { node: exec.name, itemIndex: i });
+      if (extra === "insertInNewColumn") for (const k of Object.keys(items[i].json)) if (!columnNames.includes(k) && k !== ROW_NUMBER) newColumns.add(k);
+      inputData.push(items[i].json);
+    } else {
+      const match = exec.param(`columns.value`, i, {})[matching[0]] ?? "";
+      if (match === "") throw new NodeError("The 'Column to Match On' parameter is required", { node: exec.name, itemIndex: i });
+      const values = exec.param("columns.value", i, {});
+      if (!Object.keys(values).length) throw new NodeError("At least one value has to be added under 'Values to Send'", { node: exec.name });
+      for (const k of Object.keys(values)) {
+        if (!upsert && k === ROW_NUMBER && values[k] === undefined && v >= 4.6) throw new NodeError("row_number is null or undefined", { node: exec.name });
+        if (values[k] === undefined || values[k] === null) values[k] = "";
+      }
+      inputData.push(values);
+      mapped.push(values);
+    }
+    if (newColumns.size) {
+      const names = columnNames.concat([...newColumns]);
+      await sheet.updateRows(sheetName, [names], options.cellFormat || cellFormatDefault(v), keyRowIndex + 1);
+      columnNames = names;
+      if (upsert) sheetData[keyRowIndex] = names;
+      newColumns.clear();
+    }
+    const prepared = !upsert && matching[0] === ROW_NUMBER ? sheet.prepareByRowNumber(inputData, range, columnNames) : sheet.prepareUpdate({ inputData, indexKey: matching[0], range, upsert, columnNames, columnValues, dataStartRowIndex });
+    updateData.push(...prepared.updateData);
+    if (upsert) appendData.push(...prepared.appendData);
+  }
+  if (updateData.length) await sheet.batchUpdate(updateData, valueInputMode);
+  if (upsert && appendData.length) {
+    const lastRow = sheetData.length + 1;
+    if (options.useAppend) await sheet.appendSheetData({ inputData: appendData, range, keyRowIndex: keyRowIndex + 1, valueInputMode, columnNamesList: [columnNames], lastRow, useAppend: true });
+    else {
+      await sheet.appendEmptyRows(sheetId, 1);
+      await sheet.appendSheetData({ inputData: appendData, range, keyRowIndex: keyRowIndex + 1, valueInputMode, columnNamesList: [columnNames], lastRow });
+    }
+  }
+  if (dataMode === "autoMapInputData") return items.map((it, i) => ({ json: it.json, pairedItem: { item: i } }));
+  if (!upsert && !updateData.length) return [];
+  return mapped.map((json, i) => ({ json, pairedItem: { item: i } }));
+}
+
+const googleSheets = {
+  versions: (v) => v >= 4,
+  operations: ["append", "update", "appendOrUpdate"],
+  async execute(exec) {
+    const operation = exec.param("operation", 0, "read", { rawExpressions: true });
+    const resource = exec.param("resource", 0, "sheet", { rawExpressions: true });
+    if (resource !== "sheet" || !googleSheets.operations.includes(operation)) throw new NodeError(`Google Sheets ${resource} ${operation} has no REST program`, { node: exec.name });
+    try {
+      const id = spreadsheetIdOf(exec, exec.param("documentId", 0));
+      const sheet = sheetHelper(exec, id);
+      const props = await sheet.getSheet(sheetRefOf(exec.param("sheetName", 0)));
+      const sheetId = String(props.sheetId);
+      const out = operation === "append" ? await sheetsAppend(exec, sheet, props.title, sheetId) : await sheetsUpdate(exec, sheet, props.title, sheetId, operation === "appendOrUpdate");
+      return [out];
+    } catch (e) {
+      if (e?.name === "Suspend" || e?.name === "ContainmentViolation") throw e;
+      if (exec.continueOnFail()) return [[{ json: exec.getInputData()[0]?.json ?? {}, error: { message: e.message } }]];
+      throw e;
+    }
+  },
+};
+
+// ---------- Google Calendar v3 (n8n Google Calendar node v1–1.4, event: getAll | get | create | delete) ----------
+
+const GOOGLE_API = "https://www.googleapis.com";
+// n8n-workflow requestPath: toPathSegment refuses an empty value and "." / ".." segments.
+function pathSeg(exec, v, itemIndex) {
+  if (v === null || v === undefined) throw new NodeError("Invalid identifier: a value is required", { node: exec.name, itemIndex });
+  const value = String(v);
+  if (value === "" || /(^|[/\\])\.{1,2}([/\\]|$)/.test(value)) throw new NodeError(`Invalid identifier: "${value}" is not allowed`, { node: exec.name, itemIndex });
+  return seg(value);
+}
+// decodePathValue: each run of %XX escapes is decoded once (calendar ids were stored encoded
+// before node version 1.4).
+const decodePathValue = (v) =>
+  typeof v === "string"
+    ? v.replace(/(?:%[0-9A-Fa-f]{2})+/g, (run) => {
+        try {
+          return decodeURIComponent(run);
+        } catch {
+          return run;
+        }
+      })
+    : v;
+const rlValue = (v) => (isObject(v) && "__rl" in v ? v.value : v);
+const dateObjectToISO = (v) => (DateTime.isDateTime(v) ? v.toISO() : v instanceof Date ? v.toISOString() : v);
+
+// moment.tz(input, zone): an ISO 8601 string without an offset is wall time in `zone`, one with
+// an offset (or Z) is that instant; anything else falls back to `new Date(input + " UTC")`, so
+// it is read as UTC (moment's createFromInputFallback). Returns a luxon DateTime, or null for
+// moment's invalid date.
+const MOMENT_ISO = /^\s*(\d{4})-(\d\d)(?:-(\d\d))?(?:(?:T| )(\d\d)(?::(\d\d)(?::(\d\d)(?:[.,](\d+))?)?)?(\s*Z|[+-]\d\d(?::?\d\d)?)?)?$/;
+function momentTz(input, zone) {
+  if (DateTime.isDateTime(input)) return input.isValid ? input : null;
+  if (input instanceof Date) return Number.isNaN(input.getTime()) ? null : DateTime.fromJSDate(input);
+  if (typeof input === "number") return DateTime.fromMillis(input);
+  const text = String(input ?? "");
+  const m = MOMENT_ISO.exec(text);
+  if (m && !(m[3] === undefined && m[4] !== undefined)) {
+    const [, y, mo, d = "01", h = "00", mi = "00", sec = "00", frac = "", off] = m;
+    const ms = Number((frac + "000").slice(0, 3));
+    const parts = { year: Number(y), month: Number(mo), day: Number(d), hour: Number(h), minute: Number(mi), second: Number(sec), millisecond: ms };
+    let dt;
+    if (off === undefined) dt = DateTime.fromObject(parts, { zone });
+    else {
+      const o = off.trim();
+      const offset = o === "Z" ? "UTC" : `UTC${o.slice(0, 3)}:${o.length > 3 ? o.slice(-2) : "00"}`;
+      dt = DateTime.fromObject(parts, { zone: offset });
+    }
+    return dt.isValid ? dt : null;
+  }
+  const fallback = new Date(`${text} UTC`);
+  return Number.isNaN(fallback.getTime()) ? null : DateTime.fromJSDate(fallback);
+}
+// moment(...).utc().format() and .utc().format(fmt) with moment tokens YYYY MM DD HH mm ss.
+const utcFormat = (dt, fmt = "yyyy-MM-dd'T'HH:mm:ss'Z'") => (dt ? dt.toUTC().toFormat(fmt) : "Invalid date");
+// GenericFunctions addTimezoneToDate: a date that already ends in Z or +hh:mm is sent as is.
+function addTimezoneToDate(date, zone) {
+  const s = String(date);
+  if (s.endsWith("Z") || /\+\d{2}:\d{2}$/.test(s)) return s;
+  return utcFormat(momentTz(s, zone));
+}
+// GenericFunctions parseAttendees.
+function parseAttendees(exec, attendees, itemIndex) {
+  if (!Array.isArray(attendees) || !attendees.every((a) => typeof a === "string" && a.split(",").every((e) => e.trim().length > 0))) {
+    throw new NodeError("Invalid attendee value", { node: exec.name, itemIndex, description: "Set each attendee to an email address string. To include multiple addresses in one entry, separate them with commas." });
+  }
+  return attendees.flatMap((a) => a.split(",").map((email) => ({ email: email.trim() })));
+}
+// utilities sortItemKeysByPriorityList (node version 1.3 and later).
+const CALENDAR_KEYS = ["id", "summary", "start", "end", "attendees", "creator", "organizer", "description", "location", "created", "updated"];
+function sortKeys(json) {
+  const keys = Object.keys(json).sort((a, b) => {
+    const ia = CALENDAR_KEYS.indexOf(a);
+    const ib = CALENDAR_KEYS.indexOf(b);
+    if (ia !== -1 && ib !== -1) return ia - ib;
+    if (ia !== -1) return -1;
+    if (ib !== -1) return 1;
+    return a.localeCompare(b);
+  });
+  return Object.fromEntries(keys.map((k) => [k, json[k]]));
+}
+// helpers.returnJsonArray: a list gives one item per entry, an object one item.
+const asItems = (data) => (Array.isArray(data) ? data : [data]).filter((json) => isObject(json));
+
+const googleCalendar = {
+  versions: (v) => v >= 1 && v <= 1.4,
+  operations: ["getAll", "get", "create", "delete"],
+  async execute(exec) {
+    const items = exec.getInputData();
+    const v = exec.typeVersion;
+    const resource = exec.param("resource", 0, "event", { rawExpressions: true });
+    const operation = exec.param("operation", 0, "create", { rawExpressions: true });
+    if (resource !== "event" || !googleCalendar.operations.includes(operation)) throw new NodeError(`Google Calendar ${resource} ${operation} has no REST program`, { node: exec.name });
+    const api = googleClient(exec, GOOGLE_API);
+    const timezone = exec.run.timezone;
+    // n8n keeps one query object for the whole run of the node, items included.
+    const qs = {};
+    const out = [];
+    for (let i = 0; i < items.length; i++) {
+      try {
+        const rawId = rlValue(exec.param("calendar", i, ""));
+        const calendarId = pathSeg(exec, v < 1.4 ? decodePathValue(rawId) : rawId, i);
+        let data;
+        if (operation === "getAll") {
+          const returnAll = exec.param("returnAll", i, false);
+          const options = exec.param("options", i, {});
+          const tz = rlValue(options.timeZone) || "";
+          if (v >= 1.3) {
+            const timeMin = dateObjectToISO(exec.param("timeMin", i, "={{ $now }}"));
+            const timeMax = dateObjectToISO(exec.param("timeMax", i, "={{ $now.plus({ week: 1 }) }}"));
+            if (timeMin) qs.timeMin = addTimezoneToDate(timeMin, tz || timezone);
+            if (timeMax) qs.timeMax = addTimezoneToDate(timeMax, tz || timezone);
+            if (!options.recurringEventHandling || options.recurringEventHandling === "expand") qs.singleEvents = true;
+          }
+          if (options.iCalUID) qs.iCalUID = options.iCalUID;
+          if (options.maxAttendees) qs.maxAttendees = options.maxAttendees;
+          if (options.orderBy) qs.orderBy = options.orderBy;
+          if (options.query) qs.q = options.query;
+          if (options.showDeleted) qs.showDeleted = options.showDeleted;
+          if (options.showHiddenInvitations) qs.showHiddenInvitations = options.showHiddenInvitations;
+          if (options.singleEvents) qs.singleEvents = options.singleEvents;
+          if (options.timeMax) qs.timeMax = addTimezoneToDate(dateObjectToISO(options.timeMax), tz || timezone);
+          if (options.timeMin) qs.timeMin = addTimezoneToDate(dateObjectToISO(options.timeMin), tz || timezone);
+          if (tz) qs.timeZone = tz;
+          if (options.updatedMin) qs.updatedMin = addTimezoneToDate(dateObjectToISO(options.updatedMin), tz || timezone);
+          if (options.fields) qs.fields = options.fields;
+          const path = `/calendar/v3/calendars/${calendarId}/events`;
+          if (returnAll) {
+            data = [];
+            qs.maxResults = 100;
+            let page;
+            do {
+              page = await api("GET", path, { query: { ...qs } });
+              qs.pageToken = page.nextPageToken;
+              if (qs.pageToken === undefined) delete qs.pageToken;
+              data.push(...(Array.isArray(page.items) ? page.items : []));
+            } while (page.nextPageToken !== undefined && page.nextPageToken !== "");
+          } else {
+            qs.maxResults = exec.param("limit", i, 50);
+            data = (await api("GET", path, { query: { ...qs } })).items;
+          }
+          if (data) {
+            if (v >= 1.3 && options.recurringEventHandling === "next" && data.some((e) => e?.recurrence)) throw new NodeError('Recurring Event Handling "next" (one more request per recurring event) has no REST program yet', { node: exec.name, itemIndex: i });
+            if (v >= 1.3 && options.recurringEventHandling === "first") {
+              data = data.filter((e) => !(qs.timeMin && e.recurrence && e.created && e.created < qs.timeMin) && !(qs.timeMax && e.recurrence && e.created && e.created > qs.timeMax));
+            } else if (v < 1.3 && data.some((e) => Array.isArray(e?.recurrence) && e.recurrence.some((r) => String(r).toUpperCase().startsWith("RRULE")))) {
+              // addNextOccurrence needs an RRULE engine (n8n uses the rrule package).
+              throw new NodeError("the next occurrence of a recurring event (node version 1.2 and older) is not computed by the runtime", { node: exec.name, itemIndex: i });
+            }
+          }
+        } else if (operation === "get") {
+          const eventId = pathSeg(exec, exec.param("eventId", i), i);
+          const options = exec.param("options", i, {});
+          const tz = rlValue(options.timeZone) || "";
+          if (options.maxAttendees) qs.maxAttendees = options.maxAttendees;
+          if (tz) qs.timeZone = tz;
+          data = await api("GET", `/calendar/v3/calendars/${calendarId}/events/${eventId}`, { query: { ...qs } });
+          if (data) {
+            if (v >= 1.3 && options.returnNextInstance && data.recurrence) throw new NodeError('"Return Next Instance of Recurring Event" (a second request for the instances) has no REST program yet', { node: exec.name, itemIndex: i });
+            // addNextOccurrence needs an RRULE engine (n8n uses the rrule package).
+            if (Array.isArray(data.recurrence) && data.recurrence.some((r) => String(r).toUpperCase().startsWith("RRULE"))) throw new NodeError("the next occurrence of a recurring event is not computed by the runtime", { node: exec.name, itemIndex: i });
+            data = [data];
+          }
+        } else if (operation === "delete") {
+          const eventId = pathSeg(exec, exec.param("eventId", i), i);
+          const options = exec.param("options", i, {});
+          if (options.sendUpdates) qs.sendUpdates = options.sendUpdates;
+          // n8n sets sendUpdates on its query object but sends the delete without it.
+          await api("DELETE", `/calendar/v3/calendars/${calendarId}/events/${eventId}`);
+          data = { success: true };
+        } else {
+          const start = dateObjectToISO(exec.param("start", i, v >= 1.3 ? "={{ $now }}" : ""));
+          const end = dateObjectToISO(exec.param("end", i, v >= 1.3 ? "={{ $now.plus(1, 'hour') }}" : ""));
+          const useDefaultReminders = exec.param("useDefaultReminders", i, true);
+          const f = exec.param("additionalFields", i, {});
+          if (f.maxAttendees) qs.maxAttendees = f.maxAttendees;
+          if (f.sendNotifications) qs.sendNotifications = f.sendNotifications;
+          if (f.sendUpdates) qs.sendUpdates = f.sendUpdates;
+          const body = {
+            start: { dateTime: utcFormat(momentTz(start, timezone)), timeZone: timezone },
+            end: { dateTime: utcFormat(momentTz(end, timezone)), timeZone: timezone },
+          };
+          if (f.attendees) body.attendees = parseAttendees(exec, f.attendees, i);
+          if (f.color) body.colorId = f.color;
+          if (f.description) body.description = f.description;
+          if (f.guestsCanInviteOthers) body.guestsCanInviteOthers = f.guestsCanInviteOthers;
+          if (f.guestsCanModify) body.guestsCanModify = f.guestsCanModify;
+          if (f.guestsCanSeeOtherGuests) body.guestsCanSeeOtherGuests = f.guestsCanSeeOtherGuests;
+          if (f.id) body.id = f.id;
+          if (f.location) body.location = f.location;
+          if (f.summary) body.summary = f.summary;
+          if (f.showMeAs) body.transparency = f.showMeAs;
+          if (f.visibility) body.visibility = f.visibility;
+          if (!useDefaultReminders) {
+            const reminders = exec.param("remindersUi", i, {}).remindersValues;
+            body.reminders = { useDefault: false };
+            if (reminders) body.reminders.overrides = reminders;
+          }
+          if (f.allday === "yes") {
+            body.start = { date: momentTz(start, timezone)?.setZone(timezone).toFormat("yyyy-MM-dd") ?? "Invalid date" };
+            body.end = { date: momentTz(end, timezone)?.setZone(timezone).toFormat("yyyy-MM-dd") ?? "Invalid date" };
+          }
+          body.recurrence = [];
+          if (f.rrule) body.recurrence = [`RRULE:${f.rrule}`];
+          else {
+            if (f.repeatHowManyTimes && f.repeatUntil) throw new NodeError("You can set either 'Repeat How Many Times' or 'Repeat Until' but not both", { node: exec.name, itemIndex: i });
+            if (f.repeatFrecuency) body.recurrence.push(`FREQ=${String(f.repeatFrecuency).toUpperCase()};`);
+            if (f.repeatHowManyTimes) body.recurrence.push(`COUNT=${f.repeatHowManyTimes};`);
+            if (f.repeatUntil) body.recurrence.push(`UNTIL=${utcFormat(momentTz(dateObjectToISO(f.repeatUntil), "UTC"), "yyyyMMdd'T'HHmmss")}Z`);
+            if (body.recurrence.length) body.recurrence = [`RRULE:${body.recurrence.join("")}`];
+          }
+          if (f.conferenceDataUi?.conferenceDataValues) {
+            qs.conferenceDataVersion = 1;
+            body.conferenceData = { createRequest: { requestId: globalThis.crypto.randomUUID(), conferenceSolution: { type: f.conferenceDataUi.conferenceDataValues.conferenceSolution } } };
+          }
+          data = await api("POST", `/calendar/v3/calendars/${calendarId}/events`, { body, query: { ...qs } });
+        }
+        for (const json of asItems(data ?? [])) out.push({ json, pairedItem: { item: i } });
+      } catch (e) {
+        if (e?.name === "Suspend" || e?.name === "ContainmentViolation") throw e;
+        if (!exec.continueOnFail()) throw e;
+        out.push({ json: { error: e.message }, pairedItem: { item: i } });
+      }
+    }
+    return [v >= 1.3 ? out.map((it) => ({ ...it, json: sortKeys(it.json) })) : out];
+  },
+};
+
+// ---------- RSS Read (n8n RSS Read node v1–1.2, also as an agent tool) ----------
+//
+// n8n-nodes-base 2.47 RssFeedRead.node.ts + GenericFunctions.ts parseFeedUrl: per item (v1:
+// the first only) a GET of the URL with rss-parser's User-Agent and an Accept header (v1.2:
+// the relaxed list), the text parsed by rss-parser (feed.mjs), one item per feed entry. No
+// credential. The URL's host must be in allow.http like any request (convert.mjs applyRss).
+
+const RSS_HEADERS = { "User-Agent": "rss-parser", Accept: "application/rss+xml" };
+const RSS_RELAXED_ACCEPT = "application/rss+xml, application/rdf+xml;q=0.8, application/atom+xml;q=0.6, application/xml;q=0.4, text/xml;q=0.4";
+const validUrl = (u) => {
+  try {
+    new URL(u);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const rssFeedRead = {
+  versions: (v) => v >= 1 && v <= 1.2,
+  async execute(exec) {
+    const items = exec.getInputData();
+    const v = exec.typeVersion;
+    const count = v >= 1.1 ? items.length : items.length ? 1 : 0;
+    const out = [];
+    for (let i = 0; i < count; i++) {
+      const paired = v >= 1.1 ? [{ item: i }] : items.map((_, k) => ({ item: k }));
+      try {
+        const url = exec.param("url", i, "");
+        const options = exec.param("options", i, {}) ?? {};
+        if (!url) throw new NodeError('The parameter "URL" has to be set!', { node: exec.name, itemIndex: i });
+        if (!validUrl(url)) throw new NodeError('The provided "URL" is not valid!', { node: exec.name, itemIndex: i });
+        const headers = { ...RSS_HEADERS, ...(v >= 1.2 ? { Accept: RSS_RELAXED_ACCEPT } : {}) };
+        const [r] = await exec.request([{ kind: "http", itemIndex: i, method: "GET", url: String(url), query: {}, headers }]);
+        if (!r.ok) throw new NodeError(r.error?.message ?? "request failed", { node: exec.name, itemIndex: i });
+        const status = Number(r.value?.status ?? 200);
+        if (status >= 400) throw new NodeError(`Request failed with status code ${status}`, { node: exec.name, itemIndex: i, httpCode: String(status) });
+        const body = r.value?.body;
+        const text = typeof body === "string" ? body : body === undefined || body === null ? "" : typeof body === "object" ? JSON.stringify(body) : String(body);
+        const custom = typeof options.customFields === "string" && options.customFields ? options.customFields.split(",").map((f) => f.trim()) : [];
+        let feed;
+        try {
+          feed = parseFeed(text, { customItemFields: custom });
+        } catch (e) {
+          throw new NodeError(e?.message ?? String(e), { node: exec.name, itemIndex: i });
+        }
+        if (feed.items) for (const it of feed.items) out.push({ json: it, pairedItem: paired.length === 1 ? paired[0] : paired });
+      } catch (e) {
+        if (e?.name === "Suspend" || e?.name === "ContainmentViolation") throw e;
+        if (exec.continueOnFail()) {
+          out.push({ json: { error: e.message }, pairedItem: paired.length === 1 ? paired[0] : paired });
+          continue;
+        }
+        throw e;
+      }
+    }
+    return [out];
+  },
+};
+
+// ---------- OpenAI image generation (legacy OpenAI node v1 image:create; OpenAI v1.x image:generate) ----------
+// POST /v1/images/generations with the person's OpenAI key (the same service, through the
+// original provider, as n8n calls it), the body each node builds (n8n-nodes-base OpenAi
+// ImageDescription, declarative routing; @n8n/n8n-nodes-langchain vendors/OpenAi/v1
+// image/generate), and the items each node makes of the answer: a binary item per image
+// (b64_json through prepareBinaryData with the path "data", so the type comes from the bytes),
+// or the JSON entries when image URLs are asked for.
+
+const OPENAI = "https://api.openai.com/v1";
+
+async function imagesRequest(exec, i, body) {
+  const req = { kind: "http", itemIndex: i, method: "POST", url: `${OPENAI}/images/generations`, query: {}, headers: {}, body, contentType: "json" };
+  if (exec.step.auth?.secret) req.auth = { credentialType: exec.step.auth.credentialType, secret: exec.step.auth.secret };
+  const [r] = await exec.request([req]);
+  if (!r.ok) throw new NodeError(r.error?.message ?? "request failed", { node: exec.name, itemIndex: i });
+  const v = r.value ?? {};
+  let b = v.body;
+  if (typeof b === "string" && /^\s*[[{]/.test(b)) {
+    try {
+      b = JSON.parse(b);
+    } catch {
+      /* text */
+    }
+  }
+  const status = Number(v.status ?? 200);
+  if (status >= 400) throw new NodeError(`${status} - ${typeof b === "string" ? b : JSON.stringify(b)}`, { node: exec.name, itemIndex: i, httpCode: String(status) });
+  return isObject(b) ? b : {};
+}
+
+// Legacy node v1, declarative routing: displayed top-level parameters are sent with their
+// defaults (prompt, model "dall-e-2", response_format from responseFormat "binaryData");
+// options only when set and shown for the model (n, size for dall-e-2 and dall-e-3; quality
+// and style for dall-e-3).
+async function legacyImage(exec, i) {
+  const model = exec.param("model", i, "dall-e-2");
+  const format = exec.param("responseFormat", i, "binaryData");
+  const o = exec.param("options", i, {});
+  const body = { prompt: exec.param("prompt", i, ""), model, response_format: format === "imageUrl" ? "url" : "b64_json" };
+  if (o.n !== undefined) body.n = o.n;
+  if (o.quality !== undefined && model === "dall-e-3") body.quality = o.quality;
+  if (o.size !== undefined && (model === "dall-e-2" || model === "dall-e-3")) body.size = o.size;
+  if (o.style !== undefined && model === "dall-e-3") body.style = o.style;
+  const data = (await imagesRequest(exec, i, body)).data ?? [];
+  if (format === "imageUrl") return data.map((json) => ({ json, pairedItem: { item: i } }));
+  return data.map((e) => ({ json: {}, binary: { data: prepareBinary(base64ToBytes(String(e?.b64_json ?? "")), "data") }, pairedItem: { item: i } }));
+}
+
+// OpenAI node v1.x image:generate.
+async function langchainImage(exec, i) {
+  const model = exec.param("model", i, "dall-e-3");
+  const prompt = String(exec.param("prompt", i, ""));
+  if (!prompt.trim()) throw new NodeError("A non-empty prompt is required.", { node: exec.name, itemIndex: i });
+  const options = { ...exec.param("options", i, {}) };
+  const asUrl = !!options.returnImageUrls;
+  const prop = options.binaryPropertyOutput || "data";
+  delete options.binaryPropertyOutput;
+  if (options.dalleQuality) {
+    options.quality = options.dalleQuality;
+    delete options.dalleQuality;
+  }
+  delete options.returnImageUrls;
+  const body = { prompt, model, ...(model !== "gpt-image-1" ? { response_format: asUrl ? "url" : "b64_json" } : {}), ...options };
+  const data = (await imagesRequest(exec, i, body)).data ?? [];
+  if (asUrl) return data.map((json) => ({ json, pairedItem: { item: i } }));
+  return data.map((e) => {
+    const bin = prepareBinary(base64ToBytes(String(e?.b64_json ?? "")), "data");
+    const { data: _, ...meta } = bin;
+    return { json: meta, binary: { [prop]: bin }, pairedItem: { item: i } };
+  });
+}
+
+const openAiImage = {
+  versions: () => true,
+  async execute(exec) {
+    const legacy = exec.step.n8n?.type === "n8n-nodes-base.openAi";
+    const out = [];
+    const items = exec.getInputData();
+    for (let i = 0; i < items.length; i++) {
+      try {
+        out.push(...(legacy ? await legacyImage(exec, i) : await langchainImage(exec, i)));
+      } catch (e) {
+        if (e?.name === "Suspend" || e?.name === "ContainmentViolation") throw e;
+        if (exec.continueOnFail()) {
+          out.push({ json: { error: e.message }, pairedItem: { item: i } });
+          continue;
+        }
+        throw e;
+      }
+    }
+    return [out];
+  },
+};
+
+const restPrograms = { googleSheets, googleCalendar, rssFeedRead, openAiImage };
+
+return { restPrograms };
+})();
+
+// ---- src/shapes.mjs ----
+const __m_shapes_mjs = (() => {
+const { isObject, NodeError } = __m_util_mjs;
+// Connector result shapes: tolerant readers for tool outputs whose real shape is not
+// captured yet (the connectors publish input schemas only).
+//
+// A result adapter with `shape: "<name>"` (adapt.mjs) first passes the tool's raw output
+// through the reader of that name. Each reader accepts every plausible shape it knows (the
+// connector's own flat shape, the vendor's REST shape, a text rendering, a one-element
+// wrapper) and returns one canonical object, documented per reader below. Output it does
+// not recognise fails the step with "connector shape not recognised" and the keys it saw,
+// never an item with silently empty fields.
+
+
+const keysOf = (v) => (isObject(v) ? Object.keys(v).slice(0, 12).join(", ") : Array.isArray(v) ? `a list of ${v.length}` : typeof v);
+
+function unrecognised(shape, output, expected) {
+  const seen = typeof output === "string" ? `text (${output.length} characters: "${output.replace(/\s+/g, " ").trim().slice(0, 60)}")` : `keys [${keysOf(output)}]`;
+  return new NodeError(`connector shape not recognised (${shape}): the tool answered with ${seen}; expected ${expected}`);
+}
+
+function parseJsonText(output) {
+  if (typeof output !== "string") return output;
+  const t = output.trim();
+  if (t.startsWith("{") || t.startsWith("[")) {
+    try {
+      return JSON.parse(t);
+    } catch {
+      /* text */
+    }
+  }
+  return output;
+}
+
+// A one-element wrapper ({message: {...}}, {result: {...}}, [{...}]) around the object.
+function unwrapOne(v, keys) {
+  if (Array.isArray(v) && v.length === 1) return unwrapOne(v[0], keys);
+  if (isObject(v)) {
+    for (const k of keys) if (isObject(v[k])) return v[k];
+    if (isObject(v.structuredContent)) return unwrapOne(v.structuredContent, keys);
+  }
+  return v;
+}
+
+// ---------- email addresses ----------
+
+// '"Name" <a@b>, c@d' -> [{address, name}]. Commas inside quotes do not split.
+function parseAddressList(text) {
+  if (Array.isArray(text)) return text.flatMap((x) => (isObject(x) ? [{ address: String(x.address ?? x.email ?? ""), name: String(x.name ?? x.displayName ?? "") }] : parseAddressList(x)));
+  if (isObject(text)) {
+    if (Array.isArray(text.value)) return parseAddressList(text.value);
+    if (text.address !== undefined || text.email !== undefined) return parseAddressList([text]);
+    return [];
+  }
+  if (typeof text !== "string" || !text.trim()) return [];
+  const parts = [];
+  let cur = "";
+  let quoted = false;
+  let angle = false;
+  for (const c of text) {
+    if (c === '"') quoted = !quoted;
+    else if (!quoted && c === "<") angle = true;
+    else if (!quoted && c === ">") angle = false;
+    if (c === "," && !quoted && !angle) parts.push(cur), (cur = "");
+    else cur += c;
+  }
+  parts.push(cur);
+  return parts
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => {
+      const m = /^(.*?)\s*<([^>]*)>\s*$/.exec(p);
+      if (!m) return { address: p.replace(/^"|"$/g, ""), name: "" };
+      return { address: m[2].trim(), name: m[1].trim().replace(/^"(.*)"$/, "$1").replace(/\\"/g, '"') };
+    });
+}
+
+// ---------- gmail-message ----------
+//
+// Accepts: the Gmail connector's flat message (sender, toRecipients, ccRecipients,
+// bccRecipients, addressDisplayNames, plaintextBody, htmlBody, subject, date, labelIds), the
+// Gmail REST message (payload.headers, payload.parts / payload.body with base64url data),
+// a message already in n8n's simplified (From, To, Subject) or parsed (from.value, text)
+// form, and any of these under message/result or as a one-element list.
+// Returns {id, threadId, labelIds, snippet, subject, date, from, to, cc, bcc, replyTo (each
+// a list of {address, name}), text, html, headers (a list of {name, value} in the message's
+// order; derived from the fields above when the tool returned none), headersDerived,
+// messageId, inReplyTo, references (from the headers when given), attachments, viewUrl,
+// sizeEstimate, historyId, internalDate}.
+
+function b64urlText(data) {
+  try {
+    const bin = atob(String(data).replace(/-/g, "+").replace(/_/g, "/").replace(/\s+/g, ""));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return undefined;
+  }
+}
+
+function restBodies(payload, out = {}) {
+  if (!isObject(payload)) return out;
+  const mime = String(payload.mimeType ?? "");
+  if (payload.body?.data && !payload.filename) {
+    if (mime === "text/plain" && out.text === undefined) out.text = b64urlText(payload.body.data);
+    if (mime === "text/html" && out.html === undefined) out.html = b64urlText(payload.body.data);
+  }
+  for (const p of payload.parts ?? []) restBodies(p, out);
+  return out;
+}
+
+function headerList(v) {
+  if (Array.isArray(v)) return v.filter((h) => isObject(h) && typeof h.name === "string").map((h) => ({ name: h.name, value: String(h.value ?? "") }));
+  if (isObject(v)) return Object.entries(v).filter(([, x]) => typeof x === "string").map(([name, value]) => ({ name, value }));
+  return [];
+}
+
+const formatAddress = ({ address, name }) => (name ? `"${name.replace(/"/g, '\\"')}" <${address}>` : address);
+
+function gmailMessage(output) {
+  const m = unwrapOne(parseJsonText(output), ["message", "result", "email"]);
+  if (!isObject(m)) throw unrecognised("gmail-message", output, "one message object (sender/toRecipients, payload.headers, or From/from)");
+  const restHeaders = headerList(m.payload?.headers);
+  const given = restHeaders.length ? restHeaders : headerList(m.headers);
+  const h = (name) => given.find((x) => x.name.toLowerCase() === name)?.value;
+  const names = isObject(m.addressDisplayNames) ? m.addressDisplayNames : {};
+  const named = (list) => list.map((a) => ({ address: a.address, name: a.name || String(names[a.address] ?? "") }));
+  const pick = (flat, header, simpleKey, parsedKey) => {
+    if (m[flat] !== undefined) return named(parseAddressList(m[flat]));
+    if (m[parsedKey] !== undefined && (isObject(m[parsedKey]) || Array.isArray(m[parsedKey]))) return parseAddressList(m[parsedKey]);
+    if (h(header) !== undefined) return parseAddressList(h(header));
+    if (m[simpleKey] !== undefined) return parseAddressList(m[simpleKey]);
+    return [];
+  };
+  const recognised = m.sender !== undefined || m.toRecipients !== undefined || restHeaders.length > 0 || m.From !== undefined || isObject(m.from) || typeof m.from === "string" || m.plaintextBody !== undefined;
+  if (!recognised) throw unrecognised("gmail-message", output, "a message with sender/toRecipients, payload.headers, or From/from");
+  const bodies = restBodies(m.payload);
+  const from = pick("sender", "from", "From", "from");
+  const to = pick("toRecipients", "to", "To", "to");
+  const cc = pick("ccRecipients", "cc", "Cc", "cc");
+  const bcc = pick("bccRecipients", "bcc", "Bcc", "bcc");
+  const replyTo = pick("replyTo", "reply-to", "Reply-To", "replyTo");
+  const subject = m.subject ?? h("subject") ?? m.Subject;
+  const dateRaw = m.date ?? h("date") ?? (m.internalDate !== undefined ? Number(m.internalDate) : undefined);
+  const dt = dateRaw === undefined ? undefined : new Date(typeof dateRaw === "number" ? dateRaw : String(dateRaw));
+  const date = dt && Number.isFinite(dt.getTime()) ? dt.toISOString() : dateRaw;
+  let headers = given;
+  if (!headers.length) {
+    headers = [];
+    const add = (name, list) => list.length && headers.push({ name, value: list.map(formatAddress).join(", ") });
+    add("From", from);
+    add("To", to);
+    add("Cc", cc);
+    if (subject !== undefined) headers.push({ name: "Subject", value: String(subject) });
+    if (dt && Number.isFinite(dt.getTime())) headers.push({ name: "Date", value: dt.toUTCString().replace("GMT", "+0000") });
+  }
+  const text = m.plaintextBody ?? m.text ?? m.textPlain ?? bodies.text;
+  const html = m.htmlBody ?? (typeof m.html === "string" ? m.html : undefined) ?? bodies.html;
+  const allHeaders = given;
+  const hv = (name) => allHeaders.find((x) => x.name.toLowerCase() === name)?.value;
+  return {
+    id: m.id ?? (typeof m.messageId === "string" && !m.messageId.startsWith("<") ? m.messageId : undefined),
+    threadId: m.threadId,
+    labelIds: m.labelIds ?? (Array.isArray(m.labels) ? m.labels.map((l) => (isObject(l) ? l.id : l)) : undefined),
+    snippet: m.snippet,
+    subject,
+    date,
+    from,
+    to,
+    cc,
+    bcc,
+    replyTo,
+    text,
+    html,
+    headers,
+    headersDerived: !given.length,
+    messageId: hv("message-id") ?? (typeof m.messageId === "string" && m.messageId.startsWith("<") ? m.messageId : undefined),
+    inReplyTo: hv("in-reply-to") ?? m.inReplyTo,
+    references: hv("references") ?? m.references,
+    attachments: m.attachments ?? [],
+    viewUrl: m.viewUrl,
+    sizeEstimate: m.sizeEstimate,
+    historyId: m.historyId,
+    internalDate: m.internalDate,
+  };
+}
+
+// ---------- notion-database ----------
+//
+// Accepts: a Notion REST database object (object: "database", properties), a data source
+// state ({name, schema} or {title, properties}), and the connector's text rendering
+// (<database url=... title=...> with a <data-source-state>{json}</data-source-state>).
+// Returns a REST-shaped database: {object: "database", id, url, title: [rich text], properties:
+// {name: {id?, name, type, [type]: config}}, public_url: null}. Property ids
+// and option colours appear only when the tool returned them.
+
+const uuid = (hex) => (/^[0-9a-f]{32}$/i.test(hex) ? `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`.toLowerCase() : hex);
+const idFromUrl = (url) => {
+  const m = /([0-9a-f]{32})(?:[?#]|$)/i.exec(String(url ?? "")) ?? /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i.exec(String(url ?? ""));
+  return m ? uuid(m[1].replace(/-/g, "")) : undefined;
+};
+const richText = (s) => (s === undefined || s === null ? [] : [{ type: "text", text: { content: String(s), link: null }, plain_text: String(s), href: null }]);
+const attr = (tag, name) => {
+  const m = new RegExp(`\\b${name}="([^"]*)"`).exec(tag);
+  return m ? m[1].replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">") : undefined;
+};
+
+function restProperty(name, p) {
+  if (!isObject(p)) p = { type: String(p) };
+  const type = String(p.type ?? "rich_text");
+  const out = { ...(p.id !== undefined ? { id: p.id } : {}), name: p.name ?? name, type };
+  let config = isObject(p[type]) ? { ...p[type] } : {};
+  const opts = p.options ?? config.options ?? (type === "status" ? p.status?.options : undefined);
+  if (Array.isArray(opts)) config.options = opts.map((o) => (isObject(o) ? { ...(o.id !== undefined ? { id: o.id } : {}), name: String(o.name ?? ""), ...(o.color !== undefined ? { color: o.color } : {}) } : { name: String(o) }));
+  for (const [k, v] of Object.entries(p)) if (!["id", "name", "type", "options", type, "description"].includes(k)) config[k] = v;
+  out[type] = config;
+  return out;
+}
+
+function fromState(state, { url, title } = {}) {
+  const schema = isObject(state.schema) ? state.schema : isObject(state.properties) ? state.properties : null;
+  if (!schema) return null;
+  const name = title ?? state.name ?? (Array.isArray(state.title) ? state.title.map((t) => t.plain_text ?? t.text?.content ?? "").join("") : state.title);
+  const properties = Object.fromEntries(Object.entries(schema).map(([k, p]) => [k, restProperty(k, p)]));
+  const id = idFromUrl(url) ?? (typeof state.id === "string" ? uuid(state.id.replace(/-/g, "")) : undefined);
+  return { object: "database", id, url: id ? `https://www.notion.so/${id.replace(/-/g, "")}` : url, public_url: null, title: richText(name), properties };
+}
+
+function notionDatabase(output) {
+  const v = unwrapOne(parseJsonText(output), ["database", "result"]);
+  if (isObject(v)) {
+    if (isObject(v.properties) && (v.object === "database" || Array.isArray(v.title))) {
+      return { public_url: null, ...v, properties: Object.fromEntries(Object.entries(v.properties).map(([k, p]) => [k, isObject(p) && p.type && isObject(p[p.type]) ? p : restProperty(k, p)])) };
+    }
+    const s = fromState(v, { url: v.url });
+    if (s) return s;
+    if (typeof v.text === "string") return notionDatabase(v.text);
+  }
+  if (typeof v === "string") {
+    const dbTag = /<database\b[^>]*>/.exec(v)?.[0] ?? "";
+    const states = [...v.matchAll(/<data-source-state>([\s\S]*?)<\/data-source-state>/g)].map((m) => {
+      try {
+        return JSON.parse(m[1]);
+      } catch {
+        return null;
+      }
+    });
+    const state = states.find(isObject);
+    if (state) {
+      const out = fromState(state, { url: attr(dbTag, "url"), title: attr(dbTag, "title") });
+      if (out) return out;
+    }
+  }
+  throw unrecognised("notion-database", output, "a Notion database (properties), a data source state (schema), or <database> text with a <data-source-state>");
+}
+
+const SHAPES = { "gmail-message": gmailMessage, "notion-database": notionDatabase };
+
+function readShape(name, output) {
+  const fn = SHAPES[name];
+  if (!fn) throw new NodeError(`unknown result shape "${name}"`);
+  return fn(output);
+}
+
+return { parseAddressList, gmailMessage, notionDatabase, SHAPES, readShape };
+})();
+
+// ---- src/adapt.mjs ----
+const __m_adapt_mjs = (() => {
+const { isObject, deepCopy, NodeError } = __m_util_mjs;
+const { readShape, parseAddressList } = __m_shapes_mjs;
+// Declarative result adapters, argument coercion and poll cursors.
+//
+// A converter-written definition never carries code strings for these: every shape change
+// is JSON the runtime interprets here, so a reviewer can read what a step does to a tool's
+// output and a fix to this file reaches every migrated workflow on regeneration.
+//
+// Result adapter (step.tool.result, step.http.result, trigger poll.result):
+//   {
+//     items: "threads[*].messages[*]",  path to the elements that become items; "" = the
+//                                       whole output. [*] flattens a list, [n] indexes.
+//     fields: { outName: spec },        spec: "path" (relative to the element), "$.path"
+//                                       (from the root output), "^.path" (from the element's
+//                                       parent in a [*] chain), {path, default}, {const: v},
+//                                       {first: [spec, ...]} (first defined), {split: spec,
+//                                       sep} (text to a list), {join: spec, sep} (list to text),
+//                                       {headers: spec} (a list of {name, value} to an object),
+//                                       {headerLines: spec} (a list of {name, value} to
+//                                       {lowercase name: "Name: value"}, as n8n's parsed email),
+//                                       {addresses: spec} (a list of {address, name} to a
+//                                       parsed-email address object {value, text, html}),
+//                                       {addressLine: spec} (the same list as one header
+//                                       string, '"Name" <a@b>, c@d'); an empty list gives none.
+//                                       outName may be a dot path ("payload.mimeType").
+//     passthrough: true,                keep the element's own fields (default true); false
+//                                       emits only the listed fields.
+//     wrap: "value",                    key for an element that is not an object.
+//     empty: "none" | "one",            what an output without elements gives: no items
+//                                       (default) or one empty item.
+//     parse: "csv", text: "path",       the elements are the rows of a CSV text at `text`
+//     decode: "base64",                 (base64-decoded first), keyed by the header row;
+//     rowNumber: {field, start},        each row gets its sheet row number (header = 1).
+//     shape: "gmail-message",           read the raw output with a tolerant connector-shape
+//                                       reader first (shapes.mjs); paths then address the
+//                                       reader's canonical object. Unrecognised output fails
+//                                       the step ("connector shape not recognised").
+//   }
+// adaptResult(spec, output) -> [json, ...]. Tool hosts pass the tool's structured result
+// (structuredContent, or JSON-parsed text content); a text result arrives as a string and is
+// parsed as JSON when it is JSON, else kept as {text}.
+//
+// Coercion (step.tool.coerce): {field: "string" | "string[]" | "integer" | "number" |
+// "boolean" | "json"}, applied after the n8n expressions in the args are evaluated, so a
+// comma-separated n8n "To" field reaches a tool that wants a list of addresses as a list.
+// Fields that evaluate to undefined are dropped.
+//
+// Poll cursor (trigger poll.cursor): {field, strategy: "max", idField?, arg?, template?}.
+// Items whose field is greater than the cursor (or equal with an id not seen at that value)
+// are new; the next cursor is the greatest field value seen and the ids at that value. The
+// template puts the cursor into one tool argument: {value}, {seconds} (epoch seconds),
+// {iso}. Missed runs collapse into one run that reads everything after the cursor, never
+// "since the last interval" (PLAN Phase 4).
+
+
+// ---------- paths ----------
+
+function splitPath(path) {
+  const segs = [];
+  for (const part of String(path).split(".")) {
+    if (part === "") continue;
+    const re = /([^[\]]+)|\[(\*|\d+)\]/g;
+    let m;
+    while ((m = re.exec(part))) {
+      if (m[1] !== undefined) segs.push({ key: m[1] });
+      else if (m[2] === "*") segs.push({ all: true });
+      else segs.push({ index: Number(m[2]) });
+    }
+  }
+  return segs;
+}
+
+// Elements at a path, each with its parent chain: [{value, parents: [...]}].
+function select(root, path) {
+  let cur = [{ value: root, parents: [] }];
+  for (const seg of splitPath(path)) {
+    const next = [];
+    for (const { value, parents } of cur) {
+      if (seg.all) {
+        if (Array.isArray(value)) for (const v of value) next.push({ value: v, parents: [...parents, value] });
+        else if (value !== undefined && value !== null) next.push({ value, parents });
+      } else if (seg.index !== undefined) {
+        if (Array.isArray(value) && value[seg.index] !== undefined) next.push({ value: value[seg.index], parents });
+      } else if (isObject(value) && value[seg.key] !== undefined) {
+        // A step down into an object field keeps the object as the parent of what follows.
+        next.push({ value: value[seg.key], parents: [...parents, value] });
+      }
+    }
+    cur = next;
+  }
+  return cur;
+}
+
+function getAt(root, path) {
+  const hit = select(root, path);
+  if (!hit.length) return undefined;
+  return splitPath(path).some((s) => s.all) ? hit.map((h) => h.value) : hit[0].value;
+}
+
+function setAt(obj, path, value) {
+  const keys = String(path).split(".");
+  let o = obj;
+  for (let i = 0; i < keys.length - 1; i++) {
+    if (!isObject(o[keys[i]])) o[keys[i]] = {};
+    o = o[keys[i]];
+  }
+  o[keys.at(-1)] = value;
+}
+
+// ---------- adapter ----------
+
+function fieldValue(spec, el, root) {
+  if (typeof spec === "string") {
+    if (spec.startsWith("$.")) return getAt(root, spec.slice(2));
+    if (spec === "$") return root;
+    if (spec.startsWith("^.")) {
+      const parent = el.parents.findLast((p) => isObject(p));
+      return parent === undefined ? undefined : getAt(parent, spec.slice(2));
+    }
+    if (spec === "" || spec === ".") return el.value;
+    return isObject(el.value) || Array.isArray(el.value) ? getAt(el.value, spec) : undefined;
+  }
+  if (!isObject(spec)) return undefined;
+  if ("const" in spec) return deepCopy(spec.const);
+  if (spec.first) {
+    for (const s of spec.first) {
+      const v = fieldValue(s, el, root);
+      if (v !== undefined && v !== null && v !== "") return v;
+    }
+    return spec.default;
+  }
+  if (spec.split !== undefined) {
+    const v = fieldValue(spec.split, el, root);
+    return typeof v === "string" ? v.split(spec.sep ?? ",").map((x) => x.trim()).filter((x) => x !== "") : v;
+  }
+  if (spec.join !== undefined) {
+    const v = fieldValue(spec.join, el, root);
+    return Array.isArray(v) ? v.join(spec.sep ?? ", ") : v;
+  }
+  if (spec.headers !== undefined) {
+    const v = fieldValue(spec.headers, el, root);
+    return Array.isArray(v) ? Object.fromEntries(v.filter((h) => isObject(h) && typeof h.name === "string").map((h) => [h.name, h.value])) : v;
+  }
+  if (spec.headerLines !== undefined) {
+    const v = fieldValue(spec.headerLines, el, root);
+    return Array.isArray(v) ? Object.fromEntries(v.filter((h) => isObject(h) && typeof h.name === "string").map((h) => [h.name.toLowerCase(), `${h.name}: ${h.value}`])) : v;
+  }
+  if (spec.addresses !== undefined) {
+    const list = parseAddressList(fieldValue(spec.addresses, el, root));
+    return list.length ? addressObject(list) : undefined;
+  }
+  if (spec.addressLine !== undefined) {
+    const list = parseAddressList(fieldValue(spec.addressLine, el, root));
+    return list.length ? list.map((a) => (a.name ? `"${a.name.replace(/"/g, '\\"')}" <${a.address}>` : a.address)).join(", ") : undefined;
+  }
+  if (spec.path !== undefined) {
+    const v = fieldValue(spec.path, el, root);
+    return v === undefined ? spec.default : v;
+  }
+  return undefined;
+}
+
+// A parsed-email address object as n8n's Gmail and IMAP nodes emit it (mailparser).
+const escHtml = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+function addressObject(list) {
+  return {
+    value: list.map((a) => ({ address: a.address, name: a.name ?? "" })),
+    html: list.map((a) => `<span class="mp_address_group">${a.name ? `<span class="mp_address_name">${escHtml(a.name)}</span> &lt;` : ""}<a href="mailto:${escHtml(a.address)}" class="mp_address_email">${escHtml(a.address)}</a>${a.name ? "&gt;" : ""}</span>`).join(", "),
+    text: list.map((a) => (a.name ? `"${a.name}" <${a.address}>` : a.address)).join(", "),
+  };
+}
+
+function parseToolOutput(output) {
+  if (typeof output !== "string") return output;
+  const t = output.trim();
+  if (t.startsWith("{") || t.startsWith("[")) {
+    try {
+      return JSON.parse(t);
+    } catch {
+      /* text */
+    }
+  }
+  return { text: output };
+}
+
+// RFC 4180 CSV: quoted fields, doubled quotes, CRLF or LF.
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') (field += '"'), i++;
+      else if (c === '"') quoted = false;
+      else field += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ",") row.push(field), (field = "");
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      row.push(field), rows.push(row), (row = []), (field = "");
+    } else field += c;
+  }
+  if (field !== "" || row.length) row.push(field), rows.push(row);
+  return rows;
+}
+
+function decodeBase64(b64) {
+  const bin = atob(String(b64).replace(/\s+/g, ""));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+function csvElements(s, root) {
+  let text = s.text === undefined || s.text === "" ? root : getAt(root, s.text);
+  if (isObject(text) && typeof text.text === "string") text = text.text;
+  if (typeof text !== "string") return [];
+  if (s.decode === "base64") text = decodeBase64(text);
+  const [header, ...rows] = parseCsv(text);
+  if (!header) return [];
+  return rows
+    .filter((r) => r.some((x) => x !== ""))
+    .map((r, k) => {
+      const obj = Object.fromEntries(header.map((h, j) => [h, r[j] ?? ""]));
+      if (s.rowNumber?.field) obj[s.rowNumber.field] = (s.rowNumber.start ?? 2) + k;
+      return { value: obj, parents: [] };
+    });
+}
+
+// A text answer where the adapter reads JSON structure (an items path or field paths) would
+// select nothing and emit 0 items, a silent "done" (seen when a tool answered with an error
+// sentence). It fails the step instead. CSV adapters expect text; an adapter with no items
+// path and no fields keeps text as {text} as before.
+function expectsJson(s) {
+  if (s.parse === "csv") return false;
+  if (s.items !== undefined && s.items !== "") return true;
+  return Object.values(s.fields ?? {}).some((f) => typeof f === "string" ? f !== "" && f !== "." && f !== "$" : isObject(f) && !("const" in f));
+}
+function adaptResult(spec, output) {
+  const s = spec ?? {};
+  const root = s.shape ? readShape(s.shape, output) : parseToolOutput(output);
+  if (!s.shape && typeof output === "string" && isObject(root) && Object.keys(root).length === 1 && root.text === output && expectsJson(s)) {
+    const preview = output.replace(/\s+/g, " ").trim().slice(0, 60);
+    throw new NodeError(`the tool answered with text where this step reads JSON (${output.length} characters: "${preview}${output.length > 60 ? "…" : ""}"); refusing to continue with 0 items`);
+  }
+  const wrap = s.wrap ?? "value";
+  const els = s.parse === "csv" ? csvElements(s, root) : s.items === undefined || s.items === "" ? (Array.isArray(root) ? root.map((v) => ({ value: v, parents: [root] })) : root === null || root === undefined ? [] : [{ value: root, parents: [] }]) : select(root, s.items);
+  const out = [];
+  for (const el of els) {
+    const base = isObject(el.value) ? el.value : el.value === undefined || el.value === null ? {} : { [wrap]: el.value };
+    const json = s.passthrough === false ? {} : deepCopy(base);
+    for (const [name, fs] of Object.entries(s.fields ?? {})) {
+      const v = fieldValue(fs, el, root);
+      if (v !== undefined) setAt(json, name, deepCopy(v));
+    }
+    out.push(json);
+  }
+  if (!out.length && s.empty === "one") out.push({});
+  return out;
+}
+
+// ---------- coercion ----------
+
+function coerceArgs(coerce, args) {
+  if (!isObject(args)) return args;
+  const out = {};
+  for (const [k, v] of Object.entries(args)) {
+    if (v === undefined) continue;
+    const want = coerce?.[k];
+    out[k] = want ? coerceValue(want, v) : v;
+  }
+  return out;
+}
+
+function coerceValue(want, v) {
+  switch (want) {
+    case "string[]":
+      if (Array.isArray(v)) return v.map((x) => String(x));
+      if (typeof v === "string") return v.split(",").map((x) => x.trim()).filter((x) => x !== "");
+      return v === null ? [] : [String(v)];
+    case "integer":
+    case "number": {
+      if (typeof v === "number") return want === "integer" ? Math.trunc(v) : v;
+      const n = Number(v);
+      if (typeof v === "string" && v.trim() !== "" && Number.isFinite(n)) return want === "integer" ? Math.trunc(n) : n;
+      return v;
+    }
+    case "boolean":
+      if (v === "true") return true;
+      if (v === "false") return false;
+      return v;
+    case "string":
+      return v === null || typeof v === "object" ? JSON.stringify(v) : String(v);
+    case "json":
+      if (typeof v === "string") {
+        try {
+          return JSON.parse(v);
+        } catch {
+          return v;
+        }
+      }
+      return v;
+    default:
+      return v;
+  }
+}
+
+// ---------- poll cursor ----------
+
+function comparable(v) {
+  if (typeof v === "number") return v;
+  if (typeof v === "string" && /^-?\d+(\.\d+)?$/.test(v.trim())) return Number(v);
+  if (typeof v === "string") {
+    const t = Date.parse(v);
+    if (Number.isFinite(t)) return t;
+  }
+  return v;
+}
+const cmp = (a, b) => {
+  const x = comparable(a);
+  const y = comparable(b);
+  if (typeof x === "number" && typeof y === "number") return x - y;
+  return String(x) < String(y) ? -1 : String(x) > String(y) ? 1 : 0;
+};
+
+function applyCursorArg(cursorSpec, args, cursor) {
+  if (!cursorSpec?.arg || !cursor || cursor.value === undefined) return args;
+  const ms = comparable(cursor.value);
+  const values = { value: String(cursor.value), seconds: typeof ms === "number" ? String(Math.floor(ms / 1000)) : String(cursor.value), iso: typeof ms === "number" ? new Date(ms).toISOString() : String(cursor.value) };
+  const piece = String(cursorSpec.template ?? "{value}").replace(/\{(value|seconds|iso)\}/g, (_, k) => values[k]);
+  const prev = args[cursorSpec.arg];
+  return { ...args, [cursorSpec.arg]: prev === undefined || prev === "" ? piece : `${prev}${cursorSpec.joiner ?? " "}${piece}` };
+}
+
+// -> {items: new items, cursor: next cursor}
+// cursorSpec.resolutionMs: the service compares at this resolution (Gmail's after: is whole
+// seconds and inclusive), so items in the cursor's unit are told apart by id: fresh when the
+// id is not in cursor.ids, which holds every id seen in the max item's unit. n8n's poll node
+// for Gmail keeps the same pair (lastTimeChecked + possibleDuplicates), so a cursor carries
+// over to n8n and back without a gap or a repeat (scripts/n8n-api.mjs).
+function advanceCursor(cursorSpec, items, cursor) {
+  const field = cursorSpec.field;
+  const res = Number(cursorSpec.resolutionMs) > 0 ? Number(cursorSpec.resolutionMs) : 0;
+  const unitCmp = (a, b) => {
+    if (!res) return cmp(a, b);
+    const x = comparable(a);
+    const y = comparable(b);
+    return typeof x === "number" && typeof y === "number" ? Math.floor(x / res) - Math.floor(y / res) : cmp(a, b);
+  };
+  const idOf = (j) => (cursorSpec.idField ? getAt(j, cursorSpec.idField) : undefined);
+  const fresh = items.filter((j) => {
+    if (!cursor || cursor.value === undefined) return true;
+    const v = getAt(j, field);
+    if (v === undefined) return false;
+    const c = unitCmp(v, cursor.value);
+    if (c > 0) return true;
+    if (c < 0) return false;
+    const id = idOf(j);
+    return id !== undefined && !(cursor.ids ?? []).includes(String(id));
+  });
+  let max = cursor?.value;
+  for (const j of items) {
+    const v = getAt(j, field);
+    if (v !== undefined && (max === undefined || cmp(v, max) > 0)) max = v;
+  }
+  const next = { value: max };
+  if (cursorSpec.idField && max !== undefined) {
+    const ids = items.filter((j) => getAt(j, field) !== undefined && unitCmp(getAt(j, field), max) === 0).map((j) => String(idOf(j)));
+    const carried = cursor && cursor.value !== undefined && unitCmp(cursor.value, max) === 0 ? cursor.ids ?? [] : [];
+    next.ids = [...new Set([...carried, ...ids])].sort();
+  }
+  return { items: fresh, cursor: max === undefined ? cursor ?? null : next };
+}
+
+return { getAt, parseToolOutput, parseCsv, adaptResult, coerceArgs, applyCursorArg, advanceCursor };
 })();
 
 // ---- src/nodes2.mjs ----
