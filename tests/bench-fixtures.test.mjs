@@ -102,7 +102,7 @@ test("rolling held-out: round 2 promotes held-out 1-20 and holds out 21-40, roun
 // the seeded held-out's strata halved; reproducible from corpus.json; never in the survey folder.
 test("round 3's fresh held-out: outside the seeded split, reproducible from the seed, strata as planned", async () => {
   const { drawFresh, FRESH_SEED } = await import("../evals/bench/split.mjs");
-  const { FRESH_QUOTAS, freshCandidates, stratum } = await import("../evals/bench/fetch.mjs");
+  const { FRESH_QUOTAS, freshCandidates, freshPool, stratum } = await import("../evals/bench/fetch.mjs");
   const splits = JSON.parse(readFileSync(join(BENCH, "splits.json"), "utf8"));
   const corpus = JSON.parse(readFileSync(join(BENCH, "corpus.json"), "utf8"));
   const fresh = splits.heldOutFresh;
@@ -125,7 +125,7 @@ test("round 3's fresh held-out: outside the seeded split, reproducible from the 
   for (const t of fresh.templates) got[stratum(t.wakeup)] = (got[stratum(t.wakeup)] ?? 0) + 1;
   assert.deepEqual(got, Object.fromEntries(Object.entries(FRESH_QUOTAS).filter(([, n]) => n)));
   // Reproducible: the same draw from corpus.json gives the same list, in the same order.
-  const { drawn } = drawFresh(freshCandidates(corpus.templates).filter((e) => !seeded.has(e.id)));
+  const { drawn } = drawFresh(freshPool(corpus.templates).filter((e) => !seeded.has(e.id)));
   assert.deepEqual(drawn.map((e) => e.id), fresh.templates.map((t) => t.id));
   // Every overflow template of the Phase 5 walk is a candidate; the top-up adds entries only.
   assert.equal(freshCandidates(corpus.templates).filter((e) => e.pool === "overflow").length, corpus.counts.overflow);

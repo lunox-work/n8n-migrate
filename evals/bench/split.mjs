@@ -4,7 +4,7 @@
 // same file.
 //
 //   node evals/bench/split.mjs [--corpus evals/bench/corpus.json] [--out evals/bench/splits.json]
-//   node evals/bench/split.mjs --fresh      (round 3's fresh held-out: drawFresh() below)
+//   node evals/bench/split.mjs --fresh [--redraw "<why>"]   (round 3's fresh held-out: drawFresh() below)
 //
 // Method: one Fisher-Yates shuffle of the eligible ids (sorted ascending first) with
 // mulberry32(SEED). Each stratum gets round(60% of its size) dev slots, largest remainder
@@ -15,7 +15,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { stratum, FRESH_QUOTAS, FRESH_ROUND, freshCandidates } from "./fetch.mjs";
+import { stratum, FRESH_QUOTAS, FRESH_ROUND, freshPool } from "./fetch.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const SEED = 20261114;
@@ -66,11 +66,12 @@ export function formatSplits(doc) {
   );
 }
 
-// Round 3's fresh held-out (PLAN Phase 6): the candidates are corpus.json's templates outside
-// the seeded split that are eligible (fetch.mjs freshCandidates: Phase 5 `overflow` and the
-// round-3 top-up's `fresh`). Same method as split(): one Fisher-Yates shuffle with
-// mulberry32(FRESH_SEED) over the candidates sorted by id ascending; each stratum's first
-// quota[stratum] templates in shuffled order are drawn, and the list keeps the shuffled order.
+// Round 3's fresh held-out (PLAN Phase 6): the pool is corpus.json's templates outside the
+// seeded split that are eligible (fetch.mjs freshPool: Phase 5 `overflow` and the round-3
+// top-up's `fresh`). Same method as split(): one Fisher-Yates shuffle with mulberry32(FRESH_SEED)
+// over the pool sorted by id ascending; each stratum's first quota[stratum] templates in
+// shuffled order are drawn, skipping one excluded after the draw, and the list keeps the
+// shuffled order.
 // The seed was fixed before the draw and before any candidate was opened.
 export const FRESH_SEED = 20261115;
 export function drawFresh(candidates, quotas = FRESH_QUOTAS, seed = FRESH_SEED) {
@@ -83,6 +84,7 @@ export function drawFresh(candidates, quotas = FRESH_QUOTAS, seed = FRESH_SEED) 
   const used = {};
   const drawn = [];
   for (const e of order) {
+    if (e.excluded) continue;
     const s = stratum(e.wakeup);
     if ((used[s] ?? 0) >= (quotas[s] ?? 0)) continue;
     used[s] = (used[s] ?? 0) + 1;
@@ -92,24 +94,31 @@ export function drawFresh(candidates, quotas = FRESH_QUOTAS, seed = FRESH_SEED) 
   return { drawn, strata: used, short };
 }
 
-function writeFresh(corpusPath, out) {
+// `redraw`: why a committed draw is drawn again (a candidate excluded by a rule after the draw,
+// e.g. `hand` while labelling); the same seed and method, so only the excluded template's
+// stratum moves to its next candidate in shuffled order. Kept in heldOutFresh.redraws.
+function writeFresh(corpusPath, out, redraw = null) {
   const corpus = JSON.parse(readFileSync(corpusPath, "utf8"));
   const splits = JSON.parse(readFileSync(out, "utf8"));
   const seeded = new Set([...splits.dev, ...splits.heldOut].map((r) => r.id));
-  const candidates = freshCandidates(corpus.templates).filter((e) => !seeded.has(e.id));
-  const { drawn, strata, short } = drawFresh(candidates);
+  const pool = freshPool(corpus.templates).filter((e) => !seeded.has(e.id));
+  const candidates = pool.filter((e) => !e.excluded);
+  const { drawn, strata, short } = drawFresh(pool);
   if (Object.keys(short).length) throw new Error(`fresh draw short of ${JSON.stringify(short)}: top up with fetch.mjs --top-up first`);
   const r = splits.rounds.find((x) => x.round === FRESH_ROUND);
   if (!r) throw new Error(`splits.json has no round ${FRESH_ROUND}`);
-  if (r.heldOut.length && JSON.stringify(r.heldOut) !== JSON.stringify(drawn.map((e) => e.id))) throw new Error(`round ${FRESH_ROUND} already has a different held-out list`);
+  const changed = r.heldOut.length && JSON.stringify(r.heldOut) !== JSON.stringify(drawn.map((e) => e.id));
+  if (changed && !redraw) throw new Error(`round ${FRESH_ROUND} already has a different held-out list (pass --redraw "<why>" when a candidate was excluded after the draw)`);
+  const redraws = [...(splits.heldOutFresh?.redraws ?? []), ...(changed ? [{ why: redraw, out: r.heldOut.filter((id) => !drawn.some((e) => e.id === id)), in: drawn.map((e) => e.id).filter((id) => !r.heldOut.includes(id)) }] : [])];
   splits.heldOutFresh = {
     round: FRESH_ROUND,
     seed: FRESH_SEED,
-    method: "evals/bench/split.mjs drawFresh(): candidates = corpus.json templates outside the seeded split that are eligible (Phase 5 overflow, round-3 top-up `fresh`; fetch.mjs freshCandidates); mulberry32(seed) Fisher-Yates over them sorted by id ascending; per wake-up stratum the first quota in shuffled order; the list keeps the shuffled order",
+    method: "evals/bench/split.mjs drawFresh(): pool = corpus.json templates outside the seeded split that are eligible (Phase 5 overflow, round-3 top-up `fresh`; fetch.mjs freshPool); mulberry32(seed) Fisher-Yates over the pool sorted by id ascending; per wake-up stratum the first quota in shuffled order, skipping a template excluded after the draw (it stays in the shuffle); the list keeps the shuffled order",
     quotas: FRESH_QUOTAS,
     candidates: candidates.length,
     strata,
     rule: "the same rule as the seeded held-out: never read by a session that changes the skill, converter or runtime until release point 3 has scored it (EXCLUSIONS.md)",
+    ...(redraws.length ? { redraws } : {}),
     templates: drawn.map((e) => ({ id: e.id, sha256: e.sha256, wakeup: e.wakeup, source: e.pool === "overflow" ? "overflow" : "top-up" })),
   };
   r.heldOut = drawn.map((e) => e.id);
@@ -121,7 +130,7 @@ function writeFresh(corpusPath, out) {
 if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes("--fresh")) {
   const a = process.argv.slice(2);
   const opt = (k, d) => (a.includes(k) ? a[a.indexOf(k) + 1] : d);
-  writeFresh(opt("--corpus", join(HERE, "corpus.json")), opt("--out", join(HERE, "splits.json")));
+  writeFresh(opt("--corpus", join(HERE, "corpus.json")), opt("--out", join(HERE, "splits.json")), opt("--redraw", null));
 } else if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const a = process.argv.slice(2);
   const opt = (k, d) => (a.includes(k) ? a[a.indexOf(k) + 1] : d);

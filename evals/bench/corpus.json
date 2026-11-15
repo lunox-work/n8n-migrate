@@ -26,10 +26,10 @@
     "excluded": {
       "tutorial": 9,
       "paid": 3,
-      "hand": 1
+      "hand": 2
     },
     "eligible": 100,
-    "overflow": 19,
+    "overflow": 18,
     "refusalPool": 68,
     "strata": {
       "chat": 29,
@@ -122,7 +122,7 @@
       "candidates": {
         "chat": 8,
         "schedule": 11,
-        "manual": 9,
+        "manual": 8,
         "poll": 2,
         "form": 4,
         "other": 1
@@ -323,7 +323,7 @@
     { "rank": 190, "id": 2137, "sha256": "81f578aee8717478fba3f84fa7126e882f1043a15db8191bee87455cbd1a285b", "outcome": "subscription", "target": "cloud-task", "wakeup": "schedule", "pool": "overflow" },
     { "rank": 191, "id": 4557, "sha256": "560d5dbf92dda1d4fe0d9998f8f328c9b2b9a48231377c17c64a369455895ab4", "outcome": "subscription", "target": "local-task", "wakeup": "schedule", "pool": "overflow" },
     { "rank": 192, "id": 3169, "sha256": "3a00f3538dca4cd5b026d7ae582d2afd7691a3493db3296a55317fe11fffee1e", "outcome": "subscription", "target": "local-task", "wakeup": "poll", "pool": "overflow" },
-    { "rank": 193, "id": 3078, "sha256": "011475fd0e4e6c37dfe8d56178a6b647338c20434db91aa3153dfc71b3f445d7", "outcome": "subscription", "target": "skill", "wakeup": "manual", "pool": "overflow" },
+    { "rank": 193, "id": 3078, "sha256": "011475fd0e4e6c37dfe8d56178a6b647338c20434db91aa3153dfc71b3f445d7", "outcome": "subscription", "target": "skill", "wakeup": "manual", "pool": "overflow", "excluded": "hand", "reason": "demo of n8n techniques: five unrelated ways to send images and PDFs to Gemini on one canvas, answering a support-forum question (its description says so); found while labelling round 3's held-out, after the draw" },
     { "rank": 194, "id": 4485, "sha256": "4714344c43a47b0d0d7bf5036f15413f024767c8556ea7fb5faeb0a3f6cfc6b3", "outcome": "keep-in-n8n", "target": null, "wakeup": "relay", "pool": "refusal" },
     { "rank": 195, "id": 1938, "sha256": "60294385ae5072bf245445d27201bc902fde78fe778b2598ac31492055611923", "outcome": "subscription", "target": "cloud-task", "wakeup": "relay", "pool": "eligible" },
     { "rank": 196, "id": 4968, "sha256": "79835d82429c1101db291fa5eb95afec1f5bc373d27f352007834cc238290c42", "outcome": "subscription", "target": "cloud-task", "wakeup": "schedule", "pool": "overflow" },

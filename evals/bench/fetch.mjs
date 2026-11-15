@@ -81,6 +81,7 @@ export function tutorialExclusion(name, wf, report) {
 // template alone. Empty until a reader adds one.
 export const HAND = {
   2358: "meetup demo of n8n's AI nodes: three unrelated example flows on one canvas (its description says so)",
+  3078: "demo of n8n techniques: five unrelated ways to send images and PDFs to Gemini on one canvas, answering a support-forum question (its description says so); found while labelling round 3's held-out, after the draw",
 };
 
 // ---------- fetch ----------
@@ -308,8 +309,14 @@ async function main() {
 export const FRESH_QUOTAS = { chat: 6, manual: 5, schedule: 4, poll: 2, form: 2, other: 1 };
 export const FRESH_ROUND = 3;
 
+// The fresh pool: Phase 5 overflow and top-up `fresh` entries. An entry excluded by a rule after
+// the draw (`hand` while labelling) keeps its pool and gets `excluded`: it stays in the pool's
+// shuffle, so the draw of every other template is unchanged, and is skipped when drawn.
+export function freshPool(templates) {
+  return templates.filter((e) => e.pool === "overflow" || e.pool === "fresh");
+}
 export function freshCandidates(templates) {
-  return templates.filter((e) => !e.excluded && (e.pool === "overflow" || e.pool === "fresh"));
+  return freshPool(templates).filter((e) => !e.excluded);
 }
 
 export function freshShortfall(templates, quotas = FRESH_QUOTAS) {
