@@ -1374,6 +1374,10 @@ test("P78: the overlay's placeholder fills reach the export the Claude side conv
   const raw = JSON.parse(filledSource(2813, overlay));
   const wf = raw.workflow?.workflow ?? raw;
   assert.equal(wf.nodes.find((n) => n.name === "Get Ideas").parameters.documentId.value, "sheet-1");
+  // A partial fill merges as the converted step's patch does: a resource locator keeps its mode.
+  const part = JSON.parse(filledSource(2813, { claude: { overrides: { steps: { "Get Ideas": { patch: { params: { documentId: { value: "sheet-2" } } } } } } } }));
+  const doc = (part.workflow?.workflow ?? part).nodes.find((n) => n.name === "Get Ideas").parameters.documentId;
+  assert.deepEqual([doc.__rl, doc.value], [true, "sheet-2"]);
 });
 
 test("results rows lose the home path, also a start of it a sliced text cut off", async () => {

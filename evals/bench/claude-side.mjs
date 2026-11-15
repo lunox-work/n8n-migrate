@@ -21,6 +21,7 @@ import { checkSchema, schemaFile } from "../mocks/mcp-server.mjs";
 import { connectorRefusal, limitErrors, pageResult } from "../mocks/limits.mjs";
 import { answerOf, formatOf, liveAnswer, normalize, normalizeRunnerRequest, pairRecorded, providerResponse, runnerValue } from "./model-shim.mjs";
 import { claudeP } from "./claude.mjs";
+import { redactSecrets } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
 import { modelConsumers, containerPath, N8N_HOME } from "./n8n-side.mjs";
 import { maskRunTime, fromTool, fromHttp, keyOf } from "./compare.mjs";
 
@@ -49,9 +50,11 @@ export function convertPlain(id, out, { now = "2026-11-16T00:00:00Z", source = t
 // PROPOSALS P78: the overlay's placeholder fills reach the export the Claude side converts, as
 // a person fixes a placeholder in the template before converting, so whatever the converter
 // derives from a filled parameter (a connector's file id, a request's host) sees the filled
-// value. The fills are the Claude half's `patch.params` (step name -> parameter -> value, each
-// replacing the node's parameter as the n8n half's `parameters.<name>` does); the patch itself
-// still runs after conversion. -> the filled export as text, or null when the overlay fills none.
+// value. The fills are the Claude half's `patch.params`, merged into the node's parameters as
+// convert.mjs applyOverrides() merges them into the step (objects key by key, so `{value}`
+// fills a resource locator and keeps its mode; null removes; anything else replaces); the
+// patch itself still runs after conversion. A fill the converter would redact as an inline
+// secret is left to the patch. -> the filled export as text, or null when the overlay fills none.
 export function filledSource(id, overlay) {
   const steps = Object.entries(overlay?.claude?.overrides?.steps ?? {}).filter(([, o]) => o?.patch?.params && typeof o.patch.params === "object");
   if (!steps.length) return null;
@@ -62,9 +65,28 @@ export function filledSource(id, overlay) {
     const n = (wf.nodes ?? []).find((x) => x.name === name);
     if (!n) continue;
     n.parameters ??= {};
-    for (const [k, v] of Object.entries(o.patch.params)) (n.parameters[k] = structuredClone(v)), filled++;
+    // A fill the converter would redact as an inline secret (a dummy API key in a header) stays
+    // out of the export: it reaches the step through the patch after conversion, as before.
+    for (const [k, v] of Object.entries(o.patch.params)) {
+      const before = redactSecrets(n.parameters[k] ?? null).found.length;
+      const next = mergeFill({ [k]: structuredClone(n.parameters[k]) }, { [k]: v })[k];
+      if (redactSecrets(next ?? null).found.length > before) continue;
+      if (next === undefined) delete n.parameters[k];
+      else n.parameters[k] = next;
+      filled++;
+    }
   }
   return filled ? JSON.stringify(raw) : null;
+}
+
+const plainObj = (x) => !!x && typeof x === "object" && !Array.isArray(x);
+function mergeFill(target, patch) {
+  for (const [k, v] of Object.entries(patch ?? {})) {
+    if (v === null) delete target[k];
+    else if (plainObj(v) && plainObj(target[k])) mergeFill(target[k], v);
+    else target[k] = structuredClone(v);
+  }
+  return target;
 }
 
 // One headless skill run. The project holds the skill (as a project skill) and the raw
