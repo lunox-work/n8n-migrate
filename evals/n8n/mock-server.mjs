@@ -36,7 +36,11 @@
 // TLS (--tls-dir, evals/bench/tls.mjs): a CONNECT to a host with a leaf certificate in
 // <dir>/hosts is answered 200 and the tunnel is terminated here with that leaf, so the
 // request inside is logged and answered like a proxied plain-HTTP one (origin https://host,
-// log field tls: true). CONNECT to any other host is logged and refused (502), as before.
+// log field tls: true). A host without a leaf (PROPOSALS P26) gets one made here from the
+// bench CA (mint-leaf.mjs; <dir>/ca.key), so its requests are logged and answered like any
+// unrouted request (read-default 404, write-default) with log field mintedLeaf: true, a read
+// gap in the request log instead of a refused connection. Without the CA key, or for an IP
+// address, the CONNECT is logged and refused (502), as before.
 //
 // Model forwarding (--model-shim http://host:port): a request whose path starts with
 // /model/<tag>/ (a model credential's base URL, set per node by the bench) is forwarded to the
@@ -70,6 +74,7 @@ import { appendFileSync, readFileSync, existsSync, statSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { resolve, join } from "node:path";
 import { createHash } from "node:crypto";
+import { mintLeaf } from "./mint-leaf.mjs";
 
 export function parseArgs(argv) {
   const a = { port: 8080, log: null, fixtures: null, relays: [], tlsDir: null, modelShim: null };
@@ -307,6 +312,7 @@ export function startMock({ port = 8080, log = null, fixtures = null, host = "0.
         method: req.method,
         ...(origin ? { proxied: origin } : {}),
         ...(mitm ? { tls: true } : {}),
+        ...(req.socket.__minted ? { mintedLeaf: true } : {}),
         path: u.pathname,
         query: Object.fromEntries(u.searchParams),
         ...(query ? { rawQuery: query } : {}),
@@ -381,7 +387,14 @@ export function startMock({ port = 8080, log = null, fixtures = null, host = "0.
     if (leaves.has(h)) return leaves.get(h);
     const key = join(tlsDir, "hosts", `${h.toLowerCase()}.key`);
     const cert = join(tlsDir, "hosts", `${h.toLowerCase()}.pem`);
-    const leaf = existsSync(key) && existsSync(cert) ? { key: readFileSync(key), cert: readFileSync(cert) } : null;
+    let leaf = existsSync(key) && existsSync(cert) ? { key: readFileSync(key), cert: readFileSync(cert) } : null;
+    if (!leaf && existsSync(join(tlsDir, "ca.key")) && existsSync(join(tlsDir, "ca.pem"))) {
+      try {
+        leaf = { ...mintLeaf(h, { caKeyPem: readFileSync(join(tlsDir, "ca.key")), caCertPem: readFileSync(join(tlsDir, "ca.pem")) }), minted: true };
+      } catch {
+        leaf = null;
+      }
+    }
     if (leaf) leaves.set(h, leaf);
     return leaf;
   };
@@ -393,6 +406,7 @@ export function startMock({ port = 8080, log = null, fixtures = null, host = "0.
       if (head?.length) socket.unshift(head);
       const tlsSocket = new TLSSocket(socket, { isServer: true, key: leaf.key, cert: leaf.cert, ALPNProtocols: ["http/1.1"] });
       tlsSocket.__mitm = p === "443" ? h.toLowerCase() : `${h.toLowerCase()}:${p}`;
+      if (leaf.minted) tlsSocket.__minted = true;
       tlsSocket.on("error", () => socket.destroy());
       server.emit("connection", tlsSocket);
       return;

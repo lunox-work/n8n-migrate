@@ -1149,5 +1149,19 @@
     "service": "chat",
     "action": "reply",
     "effect": "write"
+  },
+  "file": {
+    "about": "a file written to local disk (Write Binary File, Read/Write Files from Disk; PROPOSALS P44): the path as n8n resolves it (a relative path against /home/node, n8n's working directory in the bench container; the Claude side's relative paths, relative to the workflow folder, are put there too) and the file's final bytes after the run (n8n's read back from the container; the Claude side's from its scratch disk, appends applied in order), compared by SHA-256 and size",
+    "service": "disk",
+    "action": "write",
+    "effect": "write",
+    "fields": {
+      "sha256": {
+        "cmp": "exact"
+      },
+      "size": {
+        "cmp": "exact"
+      }
+    }
   }
 }

@@ -32,14 +32,15 @@
 // A template stops at its first failed gate. One row per template goes to evals/results.jsonl.
 
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync, cpSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers } from "./n8n-side.mjs";
-import { convertPlain, convertSkill, runInProcess, folderIn, claudeDriverModelInputs, withSynthetic, syntheticOutcome } from "./claude-side.mjs";
+import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles } from "./n8n-side.mjs";
+import { convertPlain, convertSkill, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, withSynthetic, syntheticOutcome } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
-import { fromHttp, fromTool, replyOf, compare, modelTextsOf, baitHits, refsOf } from "./compare.mjs";
+import { fromHttp, fromTool, fromFile, replyOf, compare, modelTextsOf, baitHits, refsOf } from "./compare.mjs";
 import { n8nCheckVariants, n8nCheckKey, n8nCheckSummary, gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited } from "./gates.mjs";
 import { BudgetExceeded, UsageLimit, ledger as claudeLedger, memoryGate } from "./claude.mjs";
 import { readSplits, devWithFixtures } from "./rounds.mjs";
@@ -140,6 +141,22 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
     const why = recordingInterrupted({ result: res, modelCalls: r.modelCalls, models: prep.models, consumers: modelConsumers(prep.wf) });
     if (why) throw new Error(`recording interrupted (${id}/${variant}, not saved): ${why}`);
   }
+  // PROPOSALS P44: what n8n's disk-write nodes wrote, read back from the container (final
+  // bytes per path), then removed so the next run starts from the fixture's files only.
+  const files = [];
+  for (const w of writtenFiles(prep.wf, res)) {
+    const local = join(WORK, "files-out", `${id}-${variant}-${files.length}`);
+    try {
+      mkdirSync(dirname(local), { recursive: true });
+      env.container.copyOut(w.path, local);
+      const b = readFileSync(local);
+      files.push({ node: w.node, path: w.path, sha256: createHash("sha256").update(b).digest("hex"), size: b.length });
+    } catch (e) {
+      files.push({ node: w.node, path: w.path, error: String(e.message).slice(0, 200) });
+    }
+    rmSync(local, { force: true });
+    env.container.exec(["rm", "-f", w.path]);
+  }
   const out = {
     template: id,
     variant,
@@ -154,7 +171,8 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
     // PROPOSALS P20: executions the run started (their requests are in `effects`).
     ...(res.children?.length ? { children: res.children.map((c) => ({ id: c.id, status: c.status, mode: c.mode, error: c.error ?? null, nodes: Object.fromEntries(Object.entries(c.nodes ?? {}).map(([k, v]) => [k, v.map((x) => ({ status: x.status, ...(x.error ? { error: x.error.slice(0, 300) } : {}) }))])) })) } : {}),
     ...(res.response?.pages ? { formPages: res.response.pages } : {}),
-    effects: splitLog(res.effects).service.map(({ seq, method, proxied, tls, path, query, rawQuery, body, bodyEncoding, fixture }) => ({ seq, method, proxied, tls, path, query, rawQuery, body, bodyEncoding, fixture })),
+    ...(files.length ? { files } : {}),
+    effects: splitLog(res.effects).service.map(({ seq, method, proxied, tls, mintedLeaf, path, query, rawQuery, body, bodyEncoding, fixture }) => ({ seq, method, proxied, tls, mintedLeaf, path, query, rawQuery, body, bodyEncoding, fixture })),
     modelCalls: r.modelCalls.map(({ tag, node, index, format, request, response, mode, costUsd }) => ({ tag, node, index, format, request, response, mode, costUsd, seq: modelSeq[tag]?.[index] ?? null })),
     modelModes: [...new Set(r.modelCalls.map((c) => c.mode))],
     sources: prep.sources,
@@ -181,17 +199,17 @@ const byTag = (calls) => {
 // ---------- effects of each side ----------
 
 function n8nEffects(rec, fx) {
-  const list = rec.effects.map((e) => fromHttp(e, "n8n")).filter(Boolean);
+  const list = [...rec.effects.map((e) => fromHttp(e, "n8n")).filter(Boolean), ...(rec.files ?? []).filter((f) => !f.error).map((f) => fromFile(f, "n8n"))];
   if (["chat", "form"].includes(fx.trigger.kind)) list.push(replyOf(rec.lastItems?.map((j) => ({ json: j })), "n8n"));
   return list;
 }
 
 // A Claude-side call as an effect; a connector call may name a message the fixture serves
 // (PROPOSALS P10: a reply tool call resolves its thread, recipients and subject from it).
-const claudeEffect = (e, fx) => (e.connector ? fromTool(e, "claude", refsOf(fx)) : fromHttp(e, "claude"));
+const claudeEffect = (e, fx) => (e.connector ? fromTool(e, "claude", refsOf(fx)) : e.file ? fromFile(e, "claude") : fromHttp(e, "claude"));
 
 function claudeEffects(run, fx) {
-  const list = [...run.seen.tools.filter((t) => !t.invalid).map((t) => fromTool(t, "claude", refsOf(fx))), ...run.seen.http.map((h) => fromHttp(h, "claude")).filter(Boolean)];
+  const list = [...run.seen.tools.filter((t) => !t.invalid).map((t) => fromTool(t, "claude", refsOf(fx))), ...run.seen.http.map((h) => fromHttp(h, "claude")).filter(Boolean), ...(run.files ?? []).map((f) => fromFile(f, "claude"))];
   if (["chat", "form"].includes(fx.trigger.kind) && run.res.status === "done") list.push(replyOf(run.res.output, "claude"));
   return list;
 }
@@ -447,7 +465,7 @@ async function benchTemplate(id, args, L) {
     if (!g3c.pass) gates[3] = { ...g3c, driver: "claude", inprocess: gates[3] };
     else {
       // PROPOSALS P16: the driver's replayed requests are checked like the in-process ones.
-      const modelInputs = claudeDriverModelInputs({ replayLog: cn.replayLog ?? [], effects: cn.effects ?? [], recordings: recs.normal?.modelCalls ?? [], n8nEffects: recs.normal?.effects ?? [], n8nSources: recs.normal?.sources ?? {}, runTime: runTime(recs.normal) });
+      const modelInputs = claudeDriverModelInputs({ replayLog: cn.replayLog ?? [], effects: cn.effects ?? [], recordings: recs.normal?.modelCalls ?? [], n8nEffects: recs.normal?.effects ?? [], n8nSources: recs.normal?.sources ?? {}, runTime: runTime(recs.normal) }).concat(httpModelInputs(cn.httpModelCalls ?? [], recs.normal?.modelCalls ?? [], runTime(recs.normal)));
       drivers.claude.modelChecks = { replayed: modelInputs.length, inputsDiffer: modelInputs.filter((m) => !m.input?.same).length, toolTurns: modelInputs.filter((m) => m.tools).length, toolTurnsFailed: modelInputs.filter((m) => m.tools && !m.tools.same).length, toolDefs: toolDefsSummary(modelInputs), ...(cn.replayLog ? {} : { note: "run made before P16: no replayed requests kept" }) };
       const g4c = gate4({ cmp: cNormal, modelInputs, n8nStatus: recs.normal?.status });
       if (!g4c.pass) gates[4] = { ...g4c, driver: "claude", inprocess: gates[4] };

@@ -16,12 +16,12 @@ import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { pickRoute, serviceRefusal } from "../n8n/mock-server.mjs";
+import { pickRoute, serviceRefusal, modelHost } from "../n8n/mock-server.mjs";
 import { checkSchema, schemaFile } from "../mocks/mcp-server.mjs";
 import { connectorRefusal, limitErrors, pageResult } from "../mocks/limits.mjs";
-import { answerOf, liveAnswer, normalize, normalizeRunnerRequest, providerResponse, runnerValue } from "./model-shim.mjs";
+import { answerOf, formatOf, liveAnswer, normalize, normalizeRunnerRequest, providerResponse, runnerValue } from "./model-shim.mjs";
 import { claudeP } from "./claude.mjs";
-import { modelConsumers } from "./n8n-side.mjs";
+import { modelConsumers, containerPath, N8N_HOME } from "./n8n-side.mjs";
 import { maskRunTime, fromTool, fromHttp, keyOf } from "./compare.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -139,9 +139,14 @@ const squash = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 // differ, timestamps of the run itself are masked on both sides (compare.mjs maskRunTime) and
 // the check is repeated; a match then is reported with runTimeMasked: true.
 export function sameModelInput(n8nCall, claudeReq, runTime = null) {
+  return sameNormInput(n8nCall, normalizeRunnerRequest(claudeReq), runTime);
+}
+
+// The same check on a neutral conversation (normalize()), for a Claude-side request that is
+// already in a provider's format: an LLM API called over HTTP (PROPOSALS P43).
+export function sameNormInput(n8nCall, c, runTime = null) {
   const n = normalize(n8nCall.format, n8nCall.request);
   const hay = squash([n.system, ...n.messages.map((m) => m.text)].join(" "));
-  const c = normalizeRunnerRequest(claudeReq);
   const parts = [c.system, ...c.messages.filter((m) => m.role === "user").map((m) => m.text)].map(squash).filter(Boolean);
   const missing = parts.filter((p) => !hay.includes(p));
   if (!missing.length) return { same: true };
@@ -406,6 +411,45 @@ export function claudeDriverModelInputs({ replayLog = [], effects = [], recordin
   return out;
 }
 
+// ---------- LLM APIs called over HTTP on the Claude side (PROPOSALS P43) ----------
+//
+// n8n's HTTP Request to a model API on a fixed host (mock-server.mjs MODEL_HOSTS: OpenAI,
+// Anthropic, OpenRouter, Groq, Mistral, Hugging Face, Vertex) reaches the model shim and is
+// recorded as a model call (tag host:<host>, node = the HTTP Request node). The Claude side's
+// `http` step to the same host and model path is answered the same way: n8n's recorded reply
+// for that node and call index, in the API's own response format, and its request is checked
+// like a replayed model input (sameNormInput on the normalized body). It is a model call, not
+// an effect: neither side counts it among reads or writes. Only a request no fixture route
+// answers is one (as the mock forwards only those).
+export function isModelHttp(routes, method, url, body) {
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
+  if (!modelHost(u.hostname, u.pathname) || !formatOf(u.pathname)) return null;
+  if (pickRoute(routes, String(method).toUpperCase(), u.origin, u.pathname, u.searchParams, new Map(), body)) return null;
+  return { format: formatOf(u.pathname), host: u.hostname };
+}
+export const jsonBody = (b) => {
+  if (typeof b !== "string") return b ?? {};
+  try {
+    return JSON.parse(b);
+  } catch {
+    return {};
+  }
+};
+
+// The claude driver's model calls over HTTP, as its replay shim logged them
+// ([{tag, index, format, request, mode}]), in gate4's modelInputs shape.
+export function httpModelInputs(calls = [], recordings = [], runTime = null) {
+  return calls.map((c) => {
+    const rec = recordings.find((r) => r.tag === c.tag && r.index === c.index);
+    return { step: rec?.node ?? c.tag, key: rec?.node ?? c.tag, index: c.index, kind: "http", mode: c.mode, ...(rec && c.mode === "replay" ? { input: sameNormInput(rec, normalize(c.format, c.request), runTime) } : {}) };
+  });
+}
+
 // ---------- bench-written replies on the hostile fixture (PROPOSALS P38) ----------
 //
 // n8n's replayed replies never pick a tool input off the author's list, so a refusal of the
@@ -480,6 +524,75 @@ export function decodeFileParts(body) {
   return Object.fromEntries(Object.entries(body).map(([k, v]) => [k, Array.isArray(v) ? v.map(one) : one(v)]));
 }
 
+// ---------- local disk on the Claude side (PROPOSALS P44) ----------
+//
+// The runtime's disk steps (Read/Write Files from Disk, Read/Write Binary File) send `file`
+// requests ({op: read|write, path, glob?, data?, append?}) that the task driver answers from
+// the real disk. The bench never lets them reach it: a scratch disk in memory answers them,
+// holding the fixture's `file` sources at the paths n8n reads them from (containerPath: a
+// relative path under /home/node, n8n's working directory; the runtime's relative paths are
+// relative to the workflow folder, put at the same place) and every file the run writes.
+// Answers mirror driver.mjs executeFile (glob: `*` and `?` within a segment, `**` any depth,
+// sorted; a missing file without a glob is an error; a glob from `/` is refused). After the
+// run, files() gives each written path with its final bytes (appends applied in order),
+// compared with n8n's file read back from the container (effects.json `file`).
+const sha256 = (b) => createHash("sha256").update(b).digest("hex");
+export function globRe(pattern) {
+  let re = "";
+  for (let i = 0; i < pattern.length; i++) {
+    const ch = pattern[i];
+    if (ch === "*" && pattern[i + 1] === "*") {
+      const slash = pattern[i + 2] === "/";
+      re += slash ? "(?:.*/)?" : ".*";
+      i += slash ? 2 : 1;
+    } else if (ch === "*") re += "[^/]*";
+    else if (ch === "?") re += "[^/]";
+    else re += ch.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+  }
+  return new RegExp(`^${re}$`);
+}
+export function scratchDisk(fx) {
+  const disk = new Map();
+  for (const r of fx?.reads ?? []) if (r.file?.path) disk.set(containerPath(r.file.path), r.file.base64 !== undefined ? Buffer.from(r.file.base64, "base64") : Buffer.from(String(r.file.text ?? ""), "utf8"));
+  const written = [];
+  const shown = (abs, sel) => (!String(sel).startsWith("/") && abs.startsWith(`${N8N_HOME}/`) ? abs.slice(N8N_HOME.length + 1) : abs);
+  return {
+    disk,
+    request(req) {
+      if (req.op === "write") {
+        const target = containerPath(String(req.path));
+        const bytes = Buffer.from(String(req.data ?? ""), "base64");
+        disk.set(target, req.append && disk.has(target) ? Buffer.concat([disk.get(target), bytes]) : bytes);
+        if (!written.includes(target)) written.push(target);
+        return { path: req.path, bytes: bytes.length };
+      }
+      const sel = String(req.path ?? "");
+      let found;
+      if (req.glob && /[*?]/.test(sel)) {
+        const abs = containerPath(sel);
+        if (/^\/[*?]/.test(abs)) throw Object.assign(new Error(`the file selector "${sel}" would search the whole disk`), { name: "FileError" });
+        const re = globRe(abs);
+        found = [...disk.keys()].filter((k) => re.test(k)).sort();
+      } else {
+        const abs = containerPath(sel);
+        if (!disk.has(abs) && !req.glob) throw Object.assign(new Error(`The file "${sel}" could not be accessed.`), { name: "FileError", code: "ENOENT" });
+        found = disk.has(abs) ? [abs] : [];
+      }
+      return { files: found.map((k) => ({ path: shown(k, sel), data: disk.get(k).toString("base64") })) };
+    },
+    files: () => written.map((path) => ({ path, sha256: sha256(disk.get(path)), size: disk.get(path).length })),
+  };
+}
+
+// The claude driver's disk writes, from the run state's effects (kind `file`, op `write`):
+// replayed on a scratch disk with the fixture's files, so the final bytes per path compare
+// as in process.
+export function driverFiles(stateEffects = [], fx) {
+  const d = scratchDisk(fx);
+  for (const e of stateEffects) if (e.kind === "file" && e.request?.op === "write") d.request(e.request);
+  return d.files();
+}
+
 export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects = [], n8nSources = {}, mode = "replay", liveFallback = true, startedAt, runTime = null, log = console.error } = {}) {
   const def = JSON.parse(readFileSync(join(folder, "definition.json"), "utf8"));
   const core = await import(pathToFileURL(join(folder, "runtime", "runner-core.mjs")).href);
@@ -490,7 +603,8 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
   const byKey = {};
   for (const c of recordings) (byKey[c.node] ??= []).push(c);
   const modelCount = new Map();
-  const seen = { tools: [], http: [], models: [] };
+  const seen = { tools: [], http: [], models: [], files: [] };
+  const disk = scratchDisk(fx);
   // Where each agent loop (step and item) stood in `seen` at its last turn (P15).
   const turnMarks = new Map();
 
@@ -528,6 +642,9 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
       const sp = new URLSearchParams(u.search);
       for (const [k, v] of Object.entries(p.query ?? {})) for (const x of [].concat(v)) sp.append(k, typeof x === "string" ? x : JSON.stringify(x));
       const body = p.contentType === "multipart-form-data" ? decodeFileParts(p.body) : p.body;
+      // PROPOSALS P43: an LLM API over HTTP is a model call answered from n8n's recording.
+      const mh = isModelHttp(routes, p.method, p.url, body);
+      if (mh) return answerModelHttp(p, mh, jsonBody(body));
       const entry = { method: p.method, url: `${u.origin}${u.pathname}`, query: Object.fromEntries(sp), body, ...(p.contentType ? { contentType: p.contentType } : {}), auth: p.auth?.secret ?? null };
       seen.http.push(entry);
       // PROPOSALS P29: what the real service refuses whatever the fixture says, as the mock.
@@ -551,9 +668,44 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
       const isText = typeof f.body === "string";
       return { status: f.status ?? 200, headers: { "content-type": isText ? "text/plain" : "application/json", ...(f.headers ?? {}) }, body: f.body === undefined ? "" : isText ? f.body : JSON.stringify(f.body) };
     },
+    // PROPOSALS P44: disk steps on the scratch disk, never the real one.
+    file: async (p) => {
+      const entry = { op: p.op, path: containerPath(String(p.path ?? "")), ...(p.glob ? { glob: true } : {}), ...(p.append ? { append: true } : {}) };
+      seen.files.push(entry);
+      try {
+        const v = disk.request(p);
+        if (v.files) entry.found = v.files.length;
+        return v;
+      } catch (e) {
+        entry.error = e.message;
+        throw e;
+      }
+    },
     model: (p) => answerModel({ ...p, kind: "model" }),
     agent: (p) => answerModel({ ...p, kind: "agent" }),
   };
+
+  async function answerModelHttp(p, { format, host }, body) {
+    const key = p.step ?? `host:${host}`;
+    const i = modelCount.get(key) ?? 0;
+    modelCount.set(key, i + 1);
+    const rec = byKey[key]?.[i];
+    const entry = { step: p.step, key, index: i, kind: "http", url: p.url };
+    seen.models.push(entry);
+    const json = (v) => ({ status: 200, headers: { "content-type": "application/json" }, body: JSON.stringify(v) });
+    if (mode === "replay" && rec) {
+      entry.mode = "replay";
+      entry.input = sameNormInput(rec, normalize(format, body), runTime);
+      return json(rec.response);
+    }
+    if (mode === "replay" && !liveFallback) {
+      entry.mode = "missing";
+      throw new Error(`no recorded model reply for ${key}#${i}`);
+    }
+    const r = await liveAnswer(normalize(format, body), { purpose: `claude-side model ${key}#${i}`, log });
+    entry.mode = r.mode === "cached" ? "live-cached" : "live";
+    return json(providerResponse(format, r.answer, body));
+  }
 
   async function answerModel(req) {
     const step = req.step ?? "?";
@@ -600,5 +752,5 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
   const polls = !!trig?.poll && fx.trigger.kind === "poll";
   const t0 = Date.now();
   const res = await core.run(def, { trigger: polls ? undefined : { node: fx.trigger.node, items: fx.trigger.items }, clock: { startedAt: startedAt ?? fx.now }, host, virtualTime: true, mode: "manual", runId: `bench-${fx.template}-${fx.variant}` });
-  return { res, seen, wallMs: Date.now() - t0, definition: def, polled: polls };
+  return { res, seen, files: disk.files(), wallMs: Date.now() - t0, definition: def, polled: polls };
 }

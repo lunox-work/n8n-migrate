@@ -743,3 +743,217 @@ test("P38: a bench-written hostile reply asks an agent tool for a URL off the au
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("P42: a stand-in reply written as escaped JSON text is decoded; real JSON, prose and quoted text stay", async () => {
+  const { escapedTextOf, modelAnswer } = await import("../evals/bench/model-shim.mjs");
+  const escaped = '```json\\n{\\"Educational qualification\\": \\"2016 – Laurea\\", \\"Job History\\": \\"2021–present\\"}\\n```';
+  assert.equal(escapedTextOf(escaped), '```json\n{"Educational qualification": "2016 – Laurea", "Job History": "2021–present"}\n```');
+  assert.deepEqual(modelAnswer({ type: "text", text: escaped }), { text: '```json\n{"Educational qualification": "2016 – Laurea", "Job History": "2021–present"}\n```' });
+  assert.deepEqual(modelAnswer({ type: "text", text: '{\\"a\\": 1}' }), { text: '{"a": 1}' }, "a bare escaped object");
+  assert.deepEqual(modelAnswer({ type: "text", text: '"{\\"a\\": [1, 2]}"' }), { text: '{"a": [1, 2]}' }, "with its own quotes");
+  assert.deepEqual(modelAnswer({ type: "text", text: JSON.stringify({ type: "text", text: '{\\"a\\": 1}' }) }), { text: '{"a": 1}' }, "inside P13's envelope");
+  for (const t of ['{"a": "say \\"hi\\""}', "Line one\\nline two", '{"a":1}', "```json\n{\"a\": 1}\n```", 'He said \\"no\\".', '```json\\n{\\"a\\": 1\\n```', '"hello\\nworld"'])
+    assert.deepEqual(modelAnswer({ type: "text", text: t }), { text: t }, t);
+});
+
+test("P43: an LLM API over HTTP on the Claude side gets n8n's recorded reply and its request is checked; it is no effect", async () => {
+  const { mkdtempSync, writeFileSync, mkdirSync, copyFileSync, rmSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const { tmpdir } = await import("node:os");
+  const { convertItems, loadReferences } = await import("../skills/n8n-to-claude/scripts/convert.mjs");
+  const { loadInput } = await import("../skills/n8n-to-claude/scripts/analyze.mjs");
+  const { runInProcess, httpModelInputs, isModelHttp } = await import("../evals/bench/claude-side.mjs");
+  const { providerResponse } = await import("../evals/bench/model-shim.mjs");
+  const wf = {
+    id: "p43", name: "P43", settings: { executionOrder: "v1" },
+    nodes: [
+      { parameters: {}, name: "Start", type: "n8n-nodes-base.manualTrigger", typeVersion: 1, position: [0, 0] },
+      { parameters: { method: "POST", url: "https://openrouter.ai/api/v1/chat/completions", sendBody: true, specifyBody: "json", jsonBody: '={"model":"openai/gpt-4o-mini","messages":[{"role":"user","content":"Summarise: {{ $json.q }}"}]}', options: {} }, name: "Ask AI", type: "n8n-nodes-base.httpRequest", typeVersion: 4.2, position: [200, 0] },
+      { parameters: { method: "POST", url: "https://hooks.example/notify", sendBody: true, bodyParameters: { parameters: [{ name: "text", value: "={{ $json.choices[0].message.content }}" }] }, options: {} }, name: "Notify", type: "n8n-nodes-base.httpRequest", typeVersion: 4.2, position: [400, 0] },
+    ],
+    connections: { Start: { main: [[{ node: "Ask AI", type: "main", index: 0 }]] }, "Ask AI": { main: [[{ node: "Notify", type: "main", index: 0 }]] } },
+  };
+  const dir = mkdtempSync(join(tmpdir(), "n2c-p43-"));
+  try {
+    writeFileSync(join(dir, "wf.json"), JSON.stringify(wf));
+    const def = convertItems(loadInput(join(dir, "wf.json")).items, { refs: loadReferences(), now: Date.parse("2026-11-14T00:00:00Z"), forceConvert: true })[0].definition;
+    const folder = join(dir, "folder");
+    mkdirSync(join(folder, "runtime"), { recursive: true });
+    writeFileSync(join(folder, "definition.json"), JSON.stringify(def));
+    for (const f of ["runner-core.mjs", "luxon.mjs"]) copyFileSync(new URL(`../skills/n8n-to-claude/runtime/dist/${f}`, import.meta.url), join(folder, "runtime", f));
+    const fx = { template: 0, variant: "normal", now: "2026-11-16T09:00:00Z", trigger: { node: "Start", kind: "manual", items: [{ json: { q: "the report" } }] }, reads: [], expect: {} };
+    const n8nReq = (q) => ({ model: "openai/gpt-4o-mini", messages: [{ role: "user", content: `Summarise: ${q}` }] });
+    const rec = (q) => [{ tag: "host:openrouter.ai", node: "Ask AI", index: 0, format: "openai", request: n8nReq(q), response: providerResponse("openai", { text: "A short summary." }, n8nReq(q)) }];
+    const r = await runInProcess(folder, fx, { wf, recordings: rec("the report"), mode: "replay", liveFallback: false, startedAt: fx.now, log: () => {} });
+    assert.equal(r.res.status, "done");
+    assert.deepEqual(r.seen.models.map((m) => [m.step, m.kind, m.mode, m.input?.same]), [["Ask AI", "http", "replay", true]]);
+    assert.deepEqual(r.seen.http.map((h) => h.url), ["https://hooks.example/notify"], "the model call is not an http effect");
+    assert.equal(JSON.stringify(r.seen.http[0].body).includes("A short summary."), true, "the step after it got n8n's reply");
+    const other = await runInProcess(folder, fx, { wf, recordings: rec("another report"), mode: "replay", liveFallback: false, startedAt: fx.now, log: () => {} });
+    assert.equal(other.seen.models[0].input.same, false, "a different question fails the model-input check");
+    assert.equal(gate4({ cmp: { writes: { matched: [], missing: [], extra: [], fieldDiffs: [] }, reads: { onlyN8n: [], onlyClaude: [] }, unmapped: [] }, modelInputs: other.seen.models, n8nStatus: "success" }).cause, "1 replayed model call(s) got a different input");
+    // A fixture route for the URL wins (the mock forwards only unrouted model calls); other hosts are plain http.
+    assert.equal(isModelHttp([{ method: "POST", url: "https://openrouter.ai/api/v1/chat/completions" }], "POST", "https://openrouter.ai/api/v1/chat/completions", {}), null);
+    assert.deepEqual(isModelHttp([], "POST", "https://api.openai.com/v1/chat/completions", {}), { format: "openai", host: "api.openai.com" });
+    assert.equal(isModelHttp([], "POST", "https://hooks.example/v1/chat/completions", {}), null);
+    // The claude driver's shim log, checked the same way.
+    const inputs = httpModelInputs([{ tag: "host:openrouter.ai", index: 0, format: "openai", request: n8nReq("the report"), mode: "replay" }, { tag: "host:openrouter.ai", index: 1, format: "openai", request: n8nReq("x"), mode: "canned" }], rec("the report"));
+    assert.deepEqual(inputs.map((m) => [m.step, m.index, m.mode, m.input?.same]), [["Ask AI", 0, "replay", true], ["host:openrouter.ai", 1, "canned", undefined]]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("P44: disk steps on a scratch disk with the fixture's files; final bytes per path compared like writes", async () => {
+  const { mkdtempSync, writeFileSync, mkdirSync, copyFileSync, rmSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const { tmpdir } = await import("node:os");
+  const { createHash } = await import("node:crypto");
+  const { convertItems, loadReferences } = await import("../skills/n8n-to-claude/scripts/convert.mjs");
+  const { loadInput } = await import("../skills/n8n-to-claude/scripts/analyze.mjs");
+  const { runInProcess, scratchDisk, driverFiles, globRe } = await import("../evals/bench/claude-side.mjs");
+  const { writtenFiles } = await import("../evals/bench/n8n-side.mjs");
+  const { fromFile } = await import("../evals/bench/compare.mjs");
+  const sha = (s) => createHash("sha256").update(s).digest("hex");
+  // The scratch disk mirrors the driver's executeFile.
+  const d = scratchDisk({ reads: [{ node: "R", file: { path: "data/a.csv", text: "a\n" } }, { node: "S", file: { path: "/files/b.csv", base64: Buffer.from("b\n").toString("base64") } }] });
+  assert.deepEqual(d.request({ op: "read", path: "data/a.csv" }).files, [{ path: "data/a.csv", data: Buffer.from("a\n").toString("base64") }]);
+  assert.deepEqual(d.request({ op: "read", path: "/files/*.csv", glob: true }).files.map((f) => f.path), ["/files/b.csv"]);
+  assert.deepEqual(d.request({ op: "read", path: "data/**/*.txt", glob: true }).files, []);
+  assert.throws(() => d.request({ op: "read", path: "data/none.csv" }), /could not be accessed/);
+  assert.throws(() => d.request({ op: "read", path: "/*", glob: true }), /whole disk/);
+  d.request({ op: "write", path: "out/log.txt", data: Buffer.from("one\n").toString("base64") });
+  d.request({ op: "write", path: "out/log.txt", data: Buffer.from("two\n").toString("base64"), append: true });
+  assert.deepEqual(d.files(), [{ path: "/home/node/out/log.txt", sha256: sha("one\ntwo\n"), size: 8 }], "relative paths land under n8n's working directory; appends apply in order");
+  assert.equal(globRe("/home/node/data/**/*.csv").test("/home/node/data/x/y.csv"), true);
+  assert.deepEqual(driverFiles([{ kind: "file", request: { op: "write", path: "/tmp/r.xlsx", data: Buffer.from("x").toString("base64") } }, { kind: "http", request: {} }], { reads: [] }), [{ path: "/tmp/r.xlsx", sha256: sha("x"), size: 1 }]);
+  // n8n's side: the written paths from the write nodes' output items.
+  const wfW = { nodes: [{ name: "W", type: "n8n-nodes-base.writeBinaryFile", parameters: { fileName: "=/tmp/{{$json.n}}" } }, { name: "RW", type: "n8n-nodes-base.readWriteFile", parameters: { operation: "write", fileName: "out.json" } }, { name: "R", type: "n8n-nodes-base.readWriteFile", parameters: { operation: "read" } }] };
+  assert.deepEqual(writtenFiles(wfW, { nodes: { W: [{ items: { main: [[{ fileName: "/tmp/a.xlsx" }, { fileName: "/tmp/a.xlsx" }]] } }], RW: [{ items: { main: [[{ fileName: "out.json" }]] } }], R: [{ items: { main: [[{ fileName: "x" }]] } }] } }), [{ node: "W", path: "/tmp/a.xlsx" }, { node: "RW", path: "/home/node/out.json" }]);
+  // The comparer: same path and bytes pair; other bytes are a field difference.
+  const n8nF = fromFile({ path: "/out/copy.csv", sha256: sha("x,y\n"), size: 4, node: "Write" }, "n8n");
+  assert.equal(compare([n8nF], [fromFile({ path: "/out/copy.csv", sha256: sha("x,y\n"), size: 4 }, "claude")]).ok, true);
+  assert.deepEqual(compare([n8nF], [fromFile({ path: "/out/copy.csv", sha256: sha("x;y\n"), size: 4 }, "claude")]).writes.fieldDiffs.map((x) => [x.effect, x.diffs.map((f) => f.field)]), [["disk.write:/out/copy.csv", ["sha256"]]]);
+  assert.deepEqual(compare([n8nF], [fromFile({ path: "/out/other.csv", sha256: sha("x,y\n"), size: 4 }, "claude")]).writes.missing.map((x) => x.key), ["disk.write:/out/copy.csv"]);
+  // End to end in process: read a fixture file, write it elsewhere; nothing touches the real disk.
+  const wf = {
+    id: "p44", name: "P44", settings: { executionOrder: "v1" },
+    nodes: [
+      { parameters: {}, name: "Start", type: "n8n-nodes-base.manualTrigger", typeVersion: 1, position: [0, 0] },
+      { parameters: { operation: "read", fileSelector: "/n2c-bench-p44/in.csv", options: {} }, name: "Read", type: "n8n-nodes-base.readWriteFile", typeVersion: 1, position: [200, 0] },
+      { parameters: { operation: "write", fileName: "/n2c-bench-p44/out/copy.csv", options: {} }, name: "Write", type: "n8n-nodes-base.readWriteFile", typeVersion: 1, position: [400, 0] },
+    ],
+    connections: { Start: { main: [[{ node: "Read", type: "main", index: 0 }]] }, Read: { main: [[{ node: "Write", type: "main", index: 0 }]] } },
+  };
+  const dir = mkdtempSync(join(tmpdir(), "n2c-p44-"));
+  try {
+    writeFileSync(join(dir, "wf.json"), JSON.stringify(wf));
+    const def = convertItems(loadInput(join(dir, "wf.json")).items, { refs: loadReferences(), now: Date.parse("2026-11-14T00:00:00Z"), forceConvert: true })[0].definition;
+    const folder = join(dir, "folder");
+    mkdirSync(join(folder, "runtime"), { recursive: true });
+    writeFileSync(join(folder, "definition.json"), JSON.stringify(def));
+    for (const f of ["runner-core.mjs", "luxon.mjs"]) copyFileSync(new URL(`../skills/n8n-to-claude/runtime/dist/${f}`, import.meta.url), join(folder, "runtime", f));
+    const fx = { template: 0, variant: "normal", now: "2026-11-16T09:00:00Z", trigger: { node: "Start", kind: "manual", items: [{ json: {} }] }, reads: [{ node: "Read", file: { path: "/n2c-bench-p44/in.csv", text: "x,y\n" } }], expect: {} };
+    const r = await runInProcess(folder, fx, { wf, recordings: [], mode: "replay", liveFallback: false, startedAt: fx.now, log: () => {} });
+    assert.equal(r.res.status, "done", JSON.stringify(r.res.error));
+    assert.deepEqual(r.seen.files.map((f) => [f.op, f.path]), [["read", "/n2c-bench-p44/in.csv"], ["write", "/n2c-bench-p44/out/copy.csv"]]);
+    assert.deepEqual(r.files, [{ path: "/n2c-bench-p44/out/copy.csv", sha256: sha("x,y\n"), size: 4 }]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("P44: the claude driver's disk preload moves absolute paths of allow.files under a scratch root", async () => {
+  const { mkdtempSync, writeFileSync, existsSync, readFileSync, rmSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const { tmpdir } = await import("node:os");
+  const { spawnSync } = await import("node:child_process");
+  const { redirect } = await import("../evals/bench/disk-preload.mjs");
+  assert.equal(redirect("/tmp/a.xlsx", { base: "/r", within: ["/tmp"] }), "/r/tmp/a.xlsx");
+  assert.equal(redirect("/tmpx/a", { base: "/r", within: ["/tmp"] }), "/tmpx/a");
+  assert.equal(redirect("rel/a", { base: "/r", within: ["/tmp"] }), "rel/a");
+  assert.equal(redirect("/r/tmp/a", { base: "/r", within: ["/tmp", "/r"] }), "/r/tmp/a", "already under the root");
+  const dir = mkdtempSync(join(tmpdir(), "n2c-p44d-"));
+  try {
+    const script = join(dir, "s.mjs");
+    writeFileSync(script, 'import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";\nmkdirSync("/n2c-bench-p44d/sub", { recursive: true });\nwriteFileSync("/n2c-bench-p44d/sub/x.txt", "hi");\nprocess.stdout.write(String(existsSync("/n2c-bench-p44d/sub/x.txt")) + " " + readFileSync("/n2c-bench-p44d/sub/x.txt", "utf8"));\n');
+    const root = join(dir, "disk");
+    const r = spawnSync(process.execPath, [`--import=${new URL("../evals/bench/disk-preload.mjs", import.meta.url).href}`, script], { encoding: "utf8", env: { ...process.env, N2C_BENCH_DISK_ROOT: root, N2C_BENCH_DISK_DIRS: JSON.stringify(["/n2c-bench-p44d"]) } });
+    assert.equal(r.stdout, "true hi", r.stderr);
+    assert.equal(readFileSync(join(root, "n2c-bench-p44d/sub/x.txt"), "utf8"), "hi");
+    assert.equal(existsSync("/n2c-bench-p44d"), false, "the real disk was not touched");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("P25: n8n is allowed the directories of the disk writes a fixture compares", async () => {
+  const { writeDir, writeAccessDirs } = await import("../evals/bench/n8n-side.mjs");
+  const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  assert.equal(writeDir("=/tmp/{{$binary.data.fileName}}"), "/tmp");
+  assert.equal(writeDir("/data/out/x.json"), "/data/out");
+  assert.equal(writeDir("out/x.json"), "/home/node/out");
+  assert.equal(writeDir("={{ $json.path }}"), null);
+  assert.equal(writeDir("=/{{ $json.p }}"), null, "never / whole");
+  const dir = mkdtempSync(join(tmpdir(), "n2c-p25-"));
+  try {
+    mkdirSync(join(dir, "fx", "7"), { recursive: true });
+    mkdirSync(join(dir, "wf"));
+    writeFileSync(join(dir, "fx", "7", "normal.json"), JSON.stringify({ writes: ["Write Binary File"] }));
+    writeFileSync(join(dir, "wf", "7.json"), JSON.stringify({ nodes: [
+      { name: "Write Binary File", type: "n8n-nodes-base.writeBinaryFile", parameters: { fileName: "=/tmp/{{$binary.data.fileName}}" } },
+      { name: "Not compared", type: "n8n-nodes-base.writeBinaryFile", parameters: { fileName: "/var/elsewhere/x" } },
+      { name: "Local", type: "n8n-nodes-base.readWriteFile", parameters: { operation: "write", fileName: "rel.txt" } },
+    ] }));
+    assert.deepEqual(writeAccessDirs(join(dir, "fx"), join(dir, "wf")), ["/tmp"]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("P26: a host without a leaf gets one made from the bench CA; its request is logged inside the tunnel", async () => {
+  const { mkdtempSync, readFileSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { X509Certificate } = await import("node:crypto");
+  const http = await import("node:http");
+  const tls = await import("node:tls");
+  const { ensureCa } = await import("../evals/bench/tls.mjs");
+  const { mintLeaf } = await import("../evals/n8n/mint-leaf.mjs");
+  const { startMock } = await import("../evals/n8n/mock-server.mjs");
+  const dir = mkdtempSync(join(tmpdir(), "n2c-p26-"));
+  try {
+    ensureCa(dir);
+    const ca = { caKeyPem: readFileSync(join(dir, "ca.key")), caCertPem: readFileSync(join(dir, "ca.pem")) };
+    const leaf = new X509Certificate(mintLeaf("tiktoken.pages.dev", ca).cert);
+    assert.equal(leaf.verify(new X509Certificate(ca.caCertPem).publicKey), true);
+    assert.equal(leaf.checkHost("tiktoken.pages.dev"), "tiktoken.pages.dev");
+    assert.throws(() => mintLeaf("10.0.0.1", ca), /not a DNS host/);
+    const log = join(dir, "log.jsonl");
+    const server = await startMock({ port: 0, host: "127.0.0.1", log, tlsDir: dir });
+    const port = server.address().port;
+    const body = await new Promise((ok, fail) => {
+      const req = http.request({ host: "127.0.0.1", port, method: "CONNECT", path: "tiktoken.pages.dev:443" });
+      req.on("connect", (res, socket) => {
+        assert.equal(res.statusCode, 200);
+        const s = tls.connect({ socket, servername: "tiktoken.pages.dev", ca: [ca.caCertPem] }, () => {
+          s.write("GET /encodings/cl100k_base.json HTTP/1.1\r\nHost: tiktoken.pages.dev\r\nConnection: close\r\n\r\n");
+        });
+        let out = "";
+        s.on("data", (c) => (out += c));
+        s.on("end", () => ok(out));
+        s.on("error", fail);
+      });
+      req.on("error", fail);
+      req.end();
+    });
+    await new Promise((ok) => server.close(ok));
+    assert.match(body, /^HTTP\/1\.1 404/);
+    const line = JSON.parse(readFileSync(log, "utf8").trim().split("\n").at(-1));
+    assert.deepEqual([line.method, line.proxied, line.path, line.tls, line.mintedLeaf], ["GET", "https://tiktoken.pages.dev", "/encodings/cl100k_base.json", true, true]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

@@ -116,9 +116,87 @@ export function fileAccessDirs(dir = join(HERE, "fixtures")) {
   return [...dirs].sort((a, b) => (a === N8N_HOME ? -1 : b === N8N_HOME ? 1 : a.localeCompare(b)));
 }
 
-// The n8n container's env for the bench: the overlays' `env` and the file-access directories.
+// PROPOSALS P25: disk writes the template makes. Node types that write a file and the
+// parameter holding its path (n8n-nodes-base 2.47.7: Write Binary File `fileName`; Read/Write
+// Files from Disk, operation write, `fileName`). Read nodes are not here: what they read comes
+// from the fixture's `file` sources (P21).
+export const DISK_WRITERS = {
+  "n8n-nodes-base.writeBinaryFile": () => "fileName",
+  "n8n-nodes-base.readWriteFile": (n) => (n.parameters?.operation === "write" ? "fileName" : null),
+};
+// The directory a write's path names before any expression: the literal text up to the last
+// `/` before the first `{{` (`=/tmp/{{ $json.name }}.xlsx` -> /tmp), as n8n will resolve it
+// (containerPath). A path whose directory is all expression names none.
+export function writeDir(param) {
+  if (typeof param !== "string" || !param.trim()) return null;
+  const raw = param.startsWith("=") ? param.slice(1) : param;
+  const lit = raw.includes("{{") ? raw.slice(0, raw.indexOf("{{")) : raw;
+  const cut = lit.lastIndexOf("/");
+  if (cut < 0) return raw.includes("{{") ? null : N8N_HOME;
+  const dir = lit.slice(0, cut) || "/";
+  return dir === "/" ? null : containerPath(dir);
+}
+
+// The directories n8n must allow for the disk writes of the nodes a fixture names in `writes`
+// (over every template with fixtures, so the container does not restart between templates):
+// a write the bench compares must not fail on the bench's file restriction (1826's Write
+// Binary File to /tmp). `/` is never allowed whole.
+export function writeAccessDirs(dir = join(HERE, "fixtures"), wfDir = join(HERE, "data", "wf")) {
+  const dirs = new Set();
+  let ids = [];
+  try {
+    ids = readdirSync(dir);
+  } catch {}
+  for (const id of ids) {
+    let wf;
+    try {
+      const raw = JSON.parse(readFileSync(join(wfDir, `${id}.json`), "utf8"));
+      wf = raw.workflow?.workflow ?? raw;
+    } catch {
+      continue;
+    }
+    const named = new Set();
+    let files = [];
+    try {
+      files = readdirSync(join(dir, id)).filter((f) => f.endsWith(".json"));
+    } catch {}
+    for (const f of files) {
+      try {
+        for (const w of JSON.parse(readFileSync(join(dir, id, f), "utf8")).writes ?? []) named.add(typeof w === "string" ? w : w?.node);
+      } catch {}
+    }
+    for (const n of wf.nodes ?? []) {
+      const param = named.has(n.name) && DISK_WRITERS[n.type]?.(n);
+      const d = param ? writeDir(n.parameters?.[param]) : null;
+      if (d && d !== N8N_HOME && !d.startsWith(`${N8N_HOME}/`)) dirs.add(d);
+    }
+  }
+  return [...dirs].sort();
+}
+
+// The n8n container's env for the bench: the overlays' `env` and the file-access directories
+// (reads, P21; the writes the fixtures compare, P25).
 export function benchEnv() {
-  return { ...overlayEnv(), N8N_RESTRICT_FILE_ACCESS_TO: fileAccessDirs().join(";") };
+  const dirs = [...new Set([...fileAccessDirs(), ...writeAccessDirs()])];
+  return { ...overlayEnv(), N8N_RESTRICT_FILE_ACCESS_TO: dirs.join(";") };
+}
+
+// PROPOSALS P44: the files n8n's disk-write nodes wrote in a run, from their output items
+// (both write nodes put the path they were given in json.fileName), resolved as n8n resolves
+// a path (containerPath). [{node, path}], each path once, in the order first written.
+export function writtenFiles(wf, result) {
+  const out = [];
+  for (const n of wf.nodes ?? []) {
+    if (n.disabled || !DISK_WRITERS[n.type]?.(n)) continue;
+    for (const run of result?.nodes?.[n.name] ?? []) {
+      for (const j of run.items?.main?.[0] ?? []) {
+        if (typeof j?.fileName !== "string" || !j.fileName) continue;
+        const path = containerPath(j.fileName);
+        if (!out.some((x) => x.path === path)) out.push({ node: n.name, path });
+      }
+    }
+  }
+  return out;
 }
 
 // PROPOSALS P18: the one list of model node types the shim answers (README "Credentials"),
@@ -471,6 +549,9 @@ export function logVsFixture(prep, effects) {
     .filter((e) => !(e.method === "CONNECT" && /oauth2\.googleapis/.test(e.path)))
     .map((e) => ({ method: e.method, url: e.method === "CONNECT" ? `CONNECT ${e.path}` : `${e.proxied ?? ""}${e.path}`, query: e.rawQuery ?? "" }));
   const writeDefaults = service.filter((e) => e.fixture === "write-default").map((e) => ({ method: e.method, url: `${e.proxied ?? ""}${e.path}` }));
+  // PROPOSALS P26: hosts the fixtures name no route for, reached through a leaf the mock made
+  // from the bench CA (their requests are in `unanswered` or `writeDefaults` above).
+  const noFixtureHosts = [...new Set(service.filter((e) => e.mintedLeaf).map((e) => String(e.proxied ?? "").replace(/^https?:\/\//, "")))];
   const used = new Set(service.map((e) => e.fixture).filter(Boolean));
   const unused = [];
   const seen = new Set();
@@ -481,7 +562,7 @@ export function logVsFixture(prep, effects) {
     seen.add(key);
     if (!used.has(key)) unused.push({ node: r.node, method: r.method, url: r.url, ...(r.any ? { any: true } : {}), ...(r.query ? { query: r.query } : {}), ...(r.bodyMatch !== undefined ? { bodyMatch: r.bodyMatch } : {}) });
   }
-  return { unanswered, unused, writeDefaults };
+  return { unanswered, unused, writeDefaults, ...(noFixtureHosts.length ? { noFixtureHosts } : {}) };
 }
 
 // PROPOSALS P12: did a run with live model calls fail because the shim did not answer? A shim

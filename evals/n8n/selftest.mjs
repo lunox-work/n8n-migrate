@@ -78,7 +78,9 @@ const CASES = [
     wf: "f-proxy-probe.json",
     mock: "f.mock.json",
     vias: ["pin"],
-    check: (r) => sig(r) === "GET /v1/ping | CONNECT api.example.test:443" && r.effects[0].proxied === "http://api.example.test" && r.nodes["Plain HTTP"][0].items.main[0][0].pong === true,
+    // HTTPS to a host without a leaf: the mock makes one from the bench CA (PROPOSALS P26), so
+    // the request is logged inside the tunnel (404, no fixture) instead of a refused CONNECT.
+    check: (r) => sig(r) === "GET /v1/ping | GET /v1/secure" && r.effects[0].proxied === "http://api.example.test" && r.effects[1].proxied === "https://api.example.test" && r.effects[1].mintedLeaf === true && r.nodes["Plain HTTP"][0].items.main[0][0].pong === true,
   },
 ];
 

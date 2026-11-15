@@ -26,9 +26,10 @@ import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, wr
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { claudeBin, LEDGER, ledger, MAX_RUNS, memoryGate, spawnWithPrompt, BudgetExceeded, UsageLimit } from "./claude.mjs";
-import { connectorFixtures, httpRoutes, modelKeyFor } from "./claude-side.mjs";
+import { connectorFixtures, driverFiles, httpRoutes, modelKeyFor } from "./claude-side.mjs";
 import { fromTool } from "./compare.mjs";
 import { startMock } from "../n8n/mock-server.mjs";
+import { startShim } from "./model-shim.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
@@ -96,11 +97,36 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   // http steps go to a mock on the host (see the header).
   const httpLog = join(runDir, "http.jsonl");
   let httpMock = null;
+  let httpShim = null;
   if ((def.allow?.http ?? []).length) {
     const httpFixtures = join(runDir, "http-fixtures.json");
     writeFileSync(httpFixtures, JSON.stringify({ __routes: httpRoutes(fx), __writeDefault: { status: 200, body: {} } }));
     writeFileSync(httpLog, "");
-    httpMock = await startMock({ port: 0, host: "127.0.0.1", log: httpLog, fixtures: httpFixtures });
+    // PROPOSALS P43: an LLM API over HTTP goes, as on the n8n side, from the mock to a model
+    // shim, here one that replays n8n's recorded replies by tag (host:<host>) and call index; a
+    // miss gets the canned reply (no claude -p inside the session's run).
+    const hostCalls = {};
+    for (const c of recordings) if (String(c.tag ?? "").startsWith("host:")) (hostCalls[c.tag] ??= [])[c.index] = c;
+    if (Object.keys(hostCalls).length) {
+      httpShim = await startShim({ port: 0, host: "127.0.0.1", log });
+      httpShim.setSession({ mode: "replay", recorded: hostCalls, fallback: "canned", label: label });
+    }
+    httpMock = await startMock({ port: 0, host: "127.0.0.1", log: httpLog, fixtures: httpFixtures, ...(httpShim ? { modelShim: `http://127.0.0.1:${httpShim.server.address().port}` } : {}) });
+  }
+
+  // Disk steps (PROPOSALS P44): fixture `file` sources go where the runner reads them, never
+  // on the real disk; absolute paths under a scratch root that disk-preload.mjs redirects to.
+  const diskRoot = join(runDir, "disk");
+  const absDirs = (def.allow?.files ?? []).map((a) => a?.dir).filter((d) => typeof d === "string" && d.startsWith("/") && d !== "/");
+  if ((def.allow?.files ?? []).length) {
+    for (const r of fx.reads ?? []) {
+      if (!r.file?.path) continue;
+      const p = String(r.file.path);
+      const to = p.startsWith("/") ? join(diskRoot, p) : join(work, p.replace(/^~\//, ""));
+      if (!resolve(to).startsWith(`${runDir}/`)) continue;
+      mkdirSync(dirname(to), { recursive: true });
+      writeFileSync(to, r.file.base64 !== undefined ? Buffer.from(r.file.base64, "base64") : String(r.file.text ?? ""));
+    }
   }
 
   const prompt = readFileSync(join(work, "task-prompt.md"), "utf8");
@@ -112,6 +138,11 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
     env.N2C_BENCH_HTTP_MOCK = `http://127.0.0.1:${httpMock.address().port}`;
     env.NODE_OPTIONS = `${env.NODE_OPTIONS} --import=${pathToFileURL(join(HERE, "http-preload.mjs")).href}`;
     for (const sec of def.secrets ?? []) env[`N2C_SECRET_${String(sec.name).toUpperCase().replace(/[^A-Z0-9]+/g, "_")}`] = `bench-secret-${String(sec.credentialType ?? sec.name).replace(/[^\w-]+/g, "-")}`;
+  }
+  if (absDirs.length) {
+    env.N2C_BENCH_DISK_ROOT = diskRoot;
+    env.N2C_BENCH_DISK_DIRS = JSON.stringify(absDirs);
+    env.NODE_OPTIONS = `${env.NODE_OPTIONS} --import=${pathToFileURL(join(HERE, "disk-preload.mjs")).href}`;
   }
   // The bench's start runs in the session's environment (it may reach the first http step).
   const pre = await preStart(env);
@@ -169,12 +200,18 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   const replayLog = replays.filter((x) => !x.repeat).map(({ id, key, index, mode, t, req }) => ({ id, key, index, mode, t, req }));
   // The runner's http requests as the mock logged them, in the runner's request shape.
   if (httpMock) await new Promise((ok) => httpMock.close(ok));
-  const httpCalls = httpMock && existsSync(httpLog) ? readFileSync(httpLog, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
+  const httpModelCalls = httpShim ? httpShim.session.calls.map(({ tag, index, format, request, mode }) => ({ tag, index, format, request, mode })) : [];
+  if (httpShim) await new Promise((ok) => httpShim.server.close(ok));
+  // Model calls over HTTP are not effects (P43); the shim's log has them.
+  const httpCalls = httpMock && existsSync(httpLog) ? readFileSync(httpLog, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((e) => !e.model) : [];
   const httpEffects = httpCalls.map((e) => ({ t: e.t, method: e.method, url: e.method === "CONNECT" ? `https://${e.path}/` : `${e.proxied ?? "http://127.0.0.1"}${e.path}${e.rawQuery ? "?" + e.rawQuery : ""}`, query: {}, body: e.body, bodyEncoding: e.bodyEncoding, contentType: e.headers?.["content-type"] ?? null, fixture: e.fixture }));
+  // P44: the files the run wrote (final bytes per path), from the run state's file requests.
+  const files = state ? driverFiles((state.effects ?? []).filter((e) => state.resultLog?.[e.id]?.ok !== false), fx) : [];
   return {
     run: state ? { status: state.status, output: state.result?.output ?? [], error: state.result?.error ?? null } : null,
-    effects: [...effects.filter((e) => e.valid).map((e) => ({ t: e.t, connector: e.connector, tool: e.tool, args: e.args })), ...httpEffects],
+    effects: [...effects.filter((e) => e.valid).map((e) => ({ t: e.t, connector: e.connector, tool: e.tool, args: e.args })), ...httpEffects, ...files.map((f) => ({ file: true, ...f }))],
     replayLog,
+    httpModelCalls,
     invalidCalls: effects.filter((e) => !e.valid).map((e) => `${e.connector}.${e.tool}: ${e.error}`),
     allow: def.allow,
     metrics: { wallMs, turns: r.num_turns ?? null, costUsd: r.total_cost_usd ?? null, usage: r.usage ? { in: r.usage.input_tokens, out: r.usage.output_tokens, cacheRead: r.usage.cache_read_input_tokens } : null },
@@ -188,6 +225,7 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
       permissionDenials: (r.permission_denials ?? []).map((d) => `${d.tool_name}: ${JSON.stringify(d.tool_input).slice(0, 120)}`),
       hookDenies: events.filter((e) => e.event === "hook-deny").map((e) => String(e.reason).slice(0, 140)),
       replays: replays.map((x) => `${x.key}#${x.index} ${x.mode}`),
+      ...(httpModelCalls.length ? { httpModels: httpModelCalls.map((c) => `${c.tag}#${c.index} ${c.mode}`) } : {}),
       ...(httpMock ? { http: httpEffects.map((h) => `${h.method} ${h.url.replace(/\?.*$/, "")} <- ${h.fixture ?? "none"}`) } : {}),
       toolUses: summary.toolUses,
       problem: !state ? "no run state" : state.status !== "done" ? `run ${state.status}` : null,

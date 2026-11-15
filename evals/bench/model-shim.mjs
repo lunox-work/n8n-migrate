@@ -179,12 +179,47 @@ export function envelopeOf(text) {
 
 const textValue = (t) => (t === undefined || t === null ? "" : typeof t === "string" ? t : JSON.stringify(t));
 
+// PROPOSALS P42: the stand-in sometimes writes its reply with JSON string escapes spelled out
+// (a literal backslash-n and backslash-quote, no real line break: "```json\n{\"a\": 1}\n```"),
+// the escaping of its own answer envelope, not text an API model returns. escapedTextOf() tells
+// whether the whole text is such a value: it has a `\n` or `\"` escape and no real line break,
+// it decodes as a JSON string (bare, or with its own surrounding quotes), and the decoded text
+// parses as JSON (the whole text, or the body of its one ```json fence). modelAnswer() decodes
+// it, like P13's envelope, and never asks the model again.
+const parsesAsJson = (s) => {
+  const t = s.trim();
+  const fence = /^```(?:json)?[ \t]*\r?\n([\s\S]*?)\r?\n?```$/i.exec(t);
+  try {
+    JSON.parse(fence ? fence[1] : t);
+    return true;
+  } catch {
+    return false;
+  }
+};
+export function escapedTextOf(text) {
+  if (typeof text !== "string") return null;
+  const t = text.trim();
+  if (/[\r\n]/.test(t) || !/\\[n"]/.test(t)) return null;
+  let s;
+  try {
+    s = JSON.parse(t.length > 1 && t.startsWith('"') && t.endsWith('"') ? t : `"${t}"`);
+  } catch {
+    return null;
+  }
+  return typeof s === "string" && s !== t && parsesAsJson(s) ? s : null;
+}
+
 // The neutral answer for what the stand-in returned ({type, text?, calls?}).
 export function modelAnswer(a) {
   for (let k = 0; k < 20 && a && a.type !== "tool_use"; k++) {
     const e = envelopeOf(a.text);
-    if (!e) break;
-    a = e;
+    if (e) {
+      a = e;
+      continue;
+    }
+    const u = escapedTextOf(a.text);
+    if (!u) break;
+    a = { type: "text", text: u };
   }
   if (a?.type === "tool_use" && a.calls?.length) return { calls: a.calls.map((c) => ({ name: c.name, input: c.input ?? {} })) };
   return { text: textValue(a?.text) };

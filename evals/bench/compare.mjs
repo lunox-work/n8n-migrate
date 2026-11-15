@@ -5,6 +5,7 @@
 //   canonical effect = {side, service, action, effect: read|write|media, target, fields, raw}
 //   fromHttp(entry)   an n8n mock-log line, or a runner http request ({method, url, query, body})
 //   fromTool(call)    a connector call on the Claude side ({connector, tool, args})
+//   fromFile(f)       a file on local disk after the run ({path, sha256, size}, PROPOSALS P44)
 //   compare(n8n, claude, {modelTexts, mode}) -> {ok, writes, reads, reply, judge: [...]}
 //
 // Writes (and media calls) are matched as multisets by service.action.target, paired by
@@ -278,6 +279,14 @@ export function replyFields(ref, messageId, args = {}) {
 export function reply(text, side) {
   const r = table().reply;
   return { side, service: r.service, action: r.action, effect: r.effect, target: "", fields: { text }, cmp: { text: "text" }, raw: { text } };
+}
+
+// A file on local disk after the run (PROPOSALS P44, effects.json `file`): {path, sha256, size},
+// the path already resolved as n8n resolves it (n8n-side.mjs containerPath), the bytes the
+// file holds at the end of the run. Keyed by path, so a write to another path never pairs.
+export function fromFile(f, side) {
+  const r = table().file;
+  return { side, service: r.service, action: r.action, effect: r.effect, target: String(f.path), fields: { sha256: f.sha256, size: f.size }, cmp: Object.fromEntries(Object.entries(r.fields).map(([k, x]) => [k, x.cmp])), raw: { path: f.path, ...(f.node ? { node: f.node } : {}) } };
 }
 
 // ---------- comparison ----------
