@@ -341,6 +341,46 @@ export function multipartBody(fields, boundary = "--------------------------" + 
   return { body: Buffer.concat(chunks), contentType: `multipart/form-data; boundary=${boundary}` };
 }
 
+// Where this task runs: a cloud task gets its secrets through the proxy and keeps its records
+// on a git branch; anything else (a local task, a skill) runs on the person's computer.
+export const taskSurface = (task) => (task.secrets === "proxy" || task.store?.kind === "git" ? "cloud-task" : "local-task");
+
+// A `file` request (runtime/src/files.mjs: Read/Write Files from Disk, Read/Write Binary File):
+// read or write the local disk, on a local task only. The runner already checked the path
+// against allow.files; a relative path is relative to the workflow folder (n8n's is relative to
+// its own working directory). read: {path, glob} -> {files: [{path, data (base64)}]}, a glob
+// with * and ? in the last segment and ** for any depth, sorted; write: {path, data, append}.
+export function executeFile(req, task, dir) {
+  try {
+    if (taskSurface(task) !== "local-task") throw new Error("file steps run only on a local task, which has the disk; this is a cloud task");
+    const full = (p) => (isAbsolute(p) ? p : join(dir, p));
+    if (req.op === "write") {
+      const target = full(String(req.path));
+      mkdirSync(dirname(target), { recursive: true });
+      const bytes = Buffer.from(String(req.data ?? ""), "base64");
+      if (req.append) appendFileSync(target, bytes);
+      else writeFileSync(target, bytes);
+      return { ok: true, value: { path: req.path, bytes: bytes.length } };
+    }
+    const sel = String(req.path ?? "");
+    let files;
+    if (req.glob && /[*?]/.test(sel)) {
+      const parts = sel.split("/");
+      const fixed = [];
+      while (parts.length && !/[*?]/.test(parts[0])) fixed.push(parts.shift());
+      const base = fixed.join("/") || (sel.startsWith("/") ? "/" : ".");
+      if (base === "/") throw new Error(`the file selector "${sel}" would search the whole disk`);
+      const esc = (x) => x.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+      const re = new RegExp(`^${parts.map((x) => (x === "**" ? "(?:.*/)?" : esc(x).replace(/\*/g, "[^/]*").replace(/\?/g, "[^/]") + "/")).join("").replace(/\/$/, "").replace(/\(\?:\.\*\/\)\?$/, ".*")}$`);
+      const walk = (d, rel) => readdirSync(full(d), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(d, e.name), rel ? `${rel}/${e.name}` : e.name) : [rel ? `${rel}/${e.name}` : e.name]));
+      files = existsSync(full(base)) ? walk(base, "").filter((r) => re.test(r)).sort().map((r) => (base === "." ? r : `${base.replace(/\/$/, "")}/${r}`)) : [];
+    } else files = existsSync(full(sel)) ? [sel] : req.glob ? [] : (() => { throw Object.assign(new Error(`The file "${sel}" could not be accessed.`), { code: "ENOENT" }); })();
+    return { ok: true, value: { files: files.map((f) => ({ path: f, data: readFileSync(full(f)).toString("base64") })) } };
+  } catch (e) {
+    return { ok: false, error: { name: "FileError", message: String(e.message ?? e) } };
+  }
+}
+
 export async function executeHttp(req, task, fetchImpl = globalThis.fetch) {
   const source = typeof task.secrets === "function" ? task.secrets : secretSources[task.secrets ?? "env"];
   let url = req.url;
@@ -613,6 +653,7 @@ async function startRun(P, core, task, store, { kind = "scheduled", trigger, mod
   }
   const cursors = core.startCursors(store.list(core.COLLECTIONS.cursors).map((x) => x.data), "scheduled");
   const res = await core.start(definition, {
+    surface: taskSurface(task),
     trigger,
     clock: clock ? { startedAt: clock } : undefined,
     runId,
@@ -825,7 +866,11 @@ async function advance(P, core, task, store, state, opts = {}) {
         logEvent(P, { event: "dry-run-held", handle: handles[i], id: r.id, kind: r.kind, step: r.step });
         continue;
       }
-      if (r.kind === "http") {
+      if (r.kind === "file") {
+        const res = executeFile(r, task, P.dir);
+        logEvent(P, { event: "file", handle: handles[i], id: r.id, op: r.op, path: r.path, ok: res.ok });
+        saveResult(P, handles[i], res);
+      } else if (r.kind === "http") {
         const res = await executeHttp(r, task, opts.fetch);
         logEvent(P, { event: "http", handle: handles[i], id: r.id, method: r.method, url: r.url.replace(/\?.*$/, ""), ok: res.ok, status: res.value?.status });
         saveResult(P, handles[i], res);

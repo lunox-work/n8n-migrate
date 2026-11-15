@@ -15,6 +15,7 @@ import { DateTime } from "../vendor/luxon.mjs";
 import { adaptResult, coerceArgs, applyCursorArg, advanceCursor, getAt } from "./adapt.mjs";
 import { resolveParameter, compileCode } from "./expression.mjs";
 import { createLookup } from "./proxy.mjs";
+import { binaryFromTool } from "./files.mjs";
 
 const BASE = "n8n-nodes-base.";
 const inRange = (lo, hi) => (v) => v >= lo && v <= hi;
@@ -582,6 +583,11 @@ const STATUS_MESSAGES = {
   504: "Gateway timed out - perhaps try again later?",
 };
 
+// n8n-nodes-base 2.47.7 HttpRequest binaryContentTypes: an autodetected response of one of
+// these types is a file in n8n (refused here until file responses are built), anything else
+// not JSON is text.
+const BINARY_CONTENT_TYPES = ["image/", "audio/", "video/", "application/octet-stream", "application/gzip", "application/zip", "application/vnd.rar", "application/epub+zip", "application/x-bzip", "application/x-bzip2", "application/x-cdf", "application/vnd.amazon.ebook", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.ms-fontobject", "application/vnd.oasis.opendocument.presentation", "application/pdf", "application/x-tar", "application/vnd.visio", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/x-7z-compressed"];
+
 const REASONS = { 200: "OK", 201: "Created", 202: "Accepted", 204: "No Content", 301: "Moved Permanently", 302: "Found", 304: "Not Modified", 400: "Bad Request", 401: "Unauthorized", 403: "Forbidden", 404: "Not Found", 409: "Conflict", 422: "Unprocessable Entity", 429: "Too Many Requests", 500: "Internal Server Error", 502: "Bad Gateway", 503: "Service Unavailable", 504: "Gateway Timeout" };
 
 // n8n HttpRequestV3 builds key-value parameters with updadeQueryParameterConfig: before
@@ -854,7 +860,7 @@ function httpItems(exec, req, res, i) {
           else throw err(exec, "Invalid JSON in response body", { itemIndex: i });
         }
       }
-    } else if (/^(image|audio|video)\/|application\/(pdf|octet-stream|zip)/.test(ct)) throw unsupported(exec, "HTTP Request binary responses");
+    } else if (BINARY_CONTENT_TYPES.some((t) => ct.includes(t))) throw unsupported(exec, "HTTP Request binary responses");
     else {
       format = "text";
       if (body !== undefined && typeof body !== "string") body = JSON.stringify(body);
@@ -961,6 +967,7 @@ const toolStep = {
     if (t.recipients) for (let i = 0; i < items.length; i++) argsList[i] = await replyRecipients(exec, t, argsList[i], i);
     const reqs = items.map((_, i) => ({ kind: "tool", itemIndex: i, connector: t.connector, tool: t.name, args: argsList[i], effect: t.effect }));
     const results = await exec.request(reqs);
+    if (t.binary) return [binaryFromTool(exec, results, items, t.binary)];
     if (!t.result) return [toItems(exec, results, items, "tool")];
     const adapted = adaptedItems(exec, results, t.result, "tool");
     if (!t.lookup) return [adapted];

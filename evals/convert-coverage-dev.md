@@ -6,8 +6,8 @@ Classes: **full** (no review flag, no blocked step), **review** (some step is fl
 
 | Mode | full | review | blocked | refused | crash | schema-invalid | preflight clean |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| default | 12 | 18 | 50 | 0 | 0 | 0 | 30 |
-| forced | 12 | 18 | 50 | 0 | 0 | 0 | 30 |
+| default | 12 | 24 | 44 | 0 | 0 | 0 | 31 |
+| forced | 12 | 24 | 44 | 0 | 0 | 0 | 31 |
 
 ## Default (refusals honoured)
 
@@ -15,14 +15,11 @@ Top reasons for blocked steps:
 
 | Reason | Templates | Steps |
 | --- | --- | --- |
-| unsupported: file steps need the files lever (not built yet) | 13 | 24 |
 | unsupported: a database step needs the bundled server or a database connector (open decision N) | 9 | 27 |
 | unsupported: a vector store needs an MCP server (lever not built yet) | 8 | 35 |
 | unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet) | 6 | 7 |
 | no-tool: no request template for wordpress post:create yet (it needs the app's REST API with a stored secret) | 5 | 5 |
 | no-tool: no request template for facebookGraphApi yet (it needs the app's REST API with a stored secret) | 4 | 8 |
-| unsupported: toolThink cannot run in the runtime | 3 | 5 |
-| no-tool: no request template for rssFeedRead yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | unsupported: form waits for a person (out of scope v1) | 2 | 6 |
 | dropped: a database step needs the bundled server or a database connector (open decision N) | 2 | 2 |
 | no-tool: no request template for discord channel:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
@@ -30,13 +27,15 @@ Top reasons for blocked steps:
 | no-tool: no request template for blotato yet (it needs the app's REST API with a stored secret) | 1 | 10 |
 | no-tool: no tool map for microsoftOutlook message:update yet | 1 | 7 |
 | no-tool: no tool map for microsoftOutlook message:move yet | 1 | 5 |
+| dropped: a vector store needs an MCP server (lever not built yet) | 1 | 4 |
+| no-tool: no tool map for jira issueComment:add yet | 1 | 4 |
+| no-tool: no tool map for jira issue:getAll yet | 1 | 2 |
 
 Top reasons for review flags:
 
 | Reason | Templates | Steps |
 | --- | --- | --- |
 | the request URL is built at run time; narrow allow.http to its host in overrides.json | 12 | 14 |
-| the file arrives as base64 text, not as binary data: steps that read $binary need translation | 10 | 12 |
 | an LLM API called with your own API key, as n8n does; approve --approve llm-api-to-claude to run it as a model step on Claude instead | 6 | 8 |
 | the chat page is public: outsiders cannot reach a Claude skill | 6 | 6 |
 | the file comes from n8n binary data; check that the step before it puts the file into the item | 5 | 8 |
@@ -45,26 +44,27 @@ Top reasons for review flags:
 | tool "…" is left out: a vector store needs an MCP server (lever not built yet) | 5 | 5 |
 | the legacy OpenAI node's output (choices) is rebuilt from n8n's simplified shape; check the fields the next steps read | 4 | 12 |
 | markdown v1 is not implemented by the runtime | 4 | 4 |
-| tool "…" is left out: toolThink cannot run in the runtime | 3 | 6 |
 | reads "…" from "…", which google-drive create_file does not supply | 3 | 5 |
 | the summarisation chain splits long input into chunks (map-reduce) and has its own prompts; the model step summarises in one call with n8n's default prompt | 3 | 3 |
 | the raw OpenAI response (choices, usage) is not rebuilt; only the simplified message is | 2 | 6 |
 | parameter "…" has no counterpart in share_file | 2 | 4 |
+| tool "…" is left out: a database step needs the bundled server or a database connector (open decision N) | 2 | 4 |
+| $env is blocked in n8n and in the runtime | 2 | 3 |
 
 Top preflight errors (what stops a run before any effect):
 
 | Error | Templates | Steps |
 | --- | --- | --- |
-| blocked: file steps need the files lever (not built yet) | 13 | 24 |
-| step "…": a request with a URL built at run time is allowed to any host (GET *); its host cannot be known before a run: narrow it to a host in overrides.json | 12 | 12 |
+| step "…": a request with a URL built at run time is allowed to any host (GET *); its host cannot be known before a run: narrow it to a host in overrides.json | 13 | 13 |
 | blocked: a database step needs the bundled server or a database connector (open decision N) | 8 | 24 |
 | blocked: a vector store needs an MCP server (lever not built yet) | 7 | 10 |
 | blocked: media steps (transcription, image generation) go through the original provider (lever not built yet) | 6 | 7 |
+| blocked: agent tool "…" cannot be carried (a vector store needs an MCP server (lever not built yet)); without it the agent would answer without a tool n8n gives it | 5 | 5 |
 | blocked: no request template for wordpress post:create yet (it needs the app's REST API with a stored secret) | 5 | 5 |
 | blocked: no request template for facebookGraphApi yet (it needs the app's REST API with a stored secret) | 4 | 8 |
 | not implemented: n8n-nodes-base.markdown v1 (kind logic) | 3 | 3 |
 | blocked: form waits for a person (out of scope v1) | 2 | 6 |
-| not implemented: n8n-nodes-base.htmlExtract v1 (kind logic) | 2 | 3 |
+| blocked: agent tool "…" cannot be carried (a database step needs the bundled server or a database connector (open decision N)); without it the agent would answer without a tool n8n gives it | 2 | 4 |
 
 ## Forced (every template converted)
 
@@ -72,14 +72,11 @@ Top reasons for blocked steps:
 
 | Reason | Templates | Steps |
 | --- | --- | --- |
-| unsupported: file steps need the files lever (not built yet) | 13 | 24 |
 | unsupported: a database step needs the bundled server or a database connector (open decision N) | 9 | 27 |
 | unsupported: a vector store needs an MCP server (lever not built yet) | 8 | 35 |
 | unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet) | 6 | 7 |
 | no-tool: no request template for wordpress post:create yet (it needs the app's REST API with a stored secret) | 5 | 5 |
 | no-tool: no request template for facebookGraphApi yet (it needs the app's REST API with a stored secret) | 4 | 8 |
-| unsupported: toolThink cannot run in the runtime | 3 | 5 |
-| no-tool: no request template for rssFeedRead yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | unsupported: form waits for a person (out of scope v1) | 2 | 6 |
 | dropped: a database step needs the bundled server or a database connector (open decision N) | 2 | 2 |
 | no-tool: no request template for discord channel:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
@@ -87,13 +84,15 @@ Top reasons for blocked steps:
 | no-tool: no request template for blotato yet (it needs the app's REST API with a stored secret) | 1 | 10 |
 | no-tool: no tool map for microsoftOutlook message:update yet | 1 | 7 |
 | no-tool: no tool map for microsoftOutlook message:move yet | 1 | 5 |
+| dropped: a vector store needs an MCP server (lever not built yet) | 1 | 4 |
+| no-tool: no tool map for jira issueComment:add yet | 1 | 4 |
+| no-tool: no tool map for jira issue:getAll yet | 1 | 2 |
 
 Top reasons for review flags:
 
 | Reason | Templates | Steps |
 | --- | --- | --- |
 | the request URL is built at run time; narrow allow.http to its host in overrides.json | 12 | 14 |
-| the file arrives as base64 text, not as binary data: steps that read $binary need translation | 10 | 12 |
 | an LLM API called with your own API key, as n8n does; approve --approve llm-api-to-claude to run it as a model step on Claude instead | 6 | 8 |
 | the chat page is public: outsiders cannot reach a Claude skill | 6 | 6 |
 | the file comes from n8n binary data; check that the step before it puts the file into the item | 5 | 8 |
@@ -102,26 +101,27 @@ Top reasons for review flags:
 | tool "…" is left out: a vector store needs an MCP server (lever not built yet) | 5 | 5 |
 | the legacy OpenAI node's output (choices) is rebuilt from n8n's simplified shape; check the fields the next steps read | 4 | 12 |
 | markdown v1 is not implemented by the runtime | 4 | 4 |
-| tool "…" is left out: toolThink cannot run in the runtime | 3 | 6 |
 | reads "…" from "…", which google-drive create_file does not supply | 3 | 5 |
 | the summarisation chain splits long input into chunks (map-reduce) and has its own prompts; the model step summarises in one call with n8n's default prompt | 3 | 3 |
 | the raw OpenAI response (choices, usage) is not rebuilt; only the simplified message is | 2 | 6 |
 | parameter "…" has no counterpart in share_file | 2 | 4 |
+| tool "…" is left out: a database step needs the bundled server or a database connector (open decision N) | 2 | 4 |
+| $env is blocked in n8n and in the runtime | 2 | 3 |
 
 Top preflight errors (what stops a run before any effect):
 
 | Error | Templates | Steps |
 | --- | --- | --- |
-| blocked: file steps need the files lever (not built yet) | 13 | 24 |
-| step "…": a request with a URL built at run time is allowed to any host (GET *); its host cannot be known before a run: narrow it to a host in overrides.json | 12 | 12 |
+| step "…": a request with a URL built at run time is allowed to any host (GET *); its host cannot be known before a run: narrow it to a host in overrides.json | 13 | 13 |
 | blocked: a database step needs the bundled server or a database connector (open decision N) | 8 | 24 |
 | blocked: a vector store needs an MCP server (lever not built yet) | 7 | 10 |
 | blocked: media steps (transcription, image generation) go through the original provider (lever not built yet) | 6 | 7 |
+| blocked: agent tool "…" cannot be carried (a vector store needs an MCP server (lever not built yet)); without it the agent would answer without a tool n8n gives it | 5 | 5 |
 | blocked: no request template for wordpress post:create yet (it needs the app's REST API with a stored secret) | 5 | 5 |
 | blocked: no request template for facebookGraphApi yet (it needs the app's REST API with a stored secret) | 4 | 8 |
 | not implemented: n8n-nodes-base.markdown v1 (kind logic) | 3 | 3 |
 | blocked: form waits for a person (out of scope v1) | 2 | 6 |
-| not implemented: n8n-nodes-base.htmlExtract v1 (kind logic) | 2 | 3 |
+| blocked: agent tool "…" cannot be carried (a database step needs the bundled server or a database connector (open decision N)); without it the agent would answer without a tool n8n gives it | 2 | 4 |
 
 ## Tool maps
 

@@ -713,6 +713,91 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
   const addHttp = (method, host, pathPrefix, note) => {
     if (!allow.http.some((a) => a.method === method && a.host === host && (a.pathPrefix ?? "") === (pathPrefix ?? ""))) allow.http.push({ method, host, ...(pathPrefix !== undefined ? { pathPrefix } : {}), ...(note ? { note } : {}) });
   };
+  // Local disk paths (allow.files): a literal path allows that file (a glob, the directory
+  // before its first wildcard); a path built at run time allows the directory written before
+  // the expression, or "*" when none is written (refused by preflight until narrowed).
+  const addFile = (op, dir, note) => {
+    allow.files ??= [];
+    if (!allow.files.some((a) => a.op === op && a.dir === dir)) allow.files.push({ op, dir, ...(note ? { note } : {}) });
+  };
+  const fileDir = (p) => {
+    if (typeof p !== "string" || !p.trim()) return "*";
+    if (isExpr(p)) {
+      const body = p.slice(1);
+      const at = body.indexOf("{{");
+      if (at < 0) return fileDir(body);
+      const lit = body.slice(0, at);
+      const cut = lit.lastIndexOf("/");
+      return cut > 0 ? lit.slice(0, cut + 1) : "*";
+    }
+    const g = p.search(/[*?[{]/);
+    if (g < 0) return p.trim();
+    const cut = p.slice(0, g).lastIndexOf("/");
+    return cut > 0 ? p.slice(0, cut + 1) : cut === 0 ? "*" : "./";
+  };
+  // The files lever: null when the runtime runs the step (kind logic, step.files), else the
+  // reason it stays blocked.
+  const fileStep = (name, step, params, v) => {
+    const type = step.n8n.type.replace(/^n8n-nodes-base\./, "");
+    const opOf = (k, d) => (params[k] === undefined ? d : params[k]);
+    const exprOp = (op) => typeof op === "string" && isExpr(op);
+    const disk = (op, pathParam) => {
+      const p = params[pathParam];
+      const dir = fileDir(p ?? "");
+      addFile(op, dir, `step "${name}": ${dir === "*" ? "path built at run time" : "path written in the step"}`);
+      step.kind = "logic";
+      delete step.blocked;
+      step.files = { disk: op };
+      review(step, `${op === "write" ? "writes" : "reads"} the local disk (${dir === "*" ? "a path built at run time: narrow allow.files in overrides.json" : `only ${dir}`}): runs as a local task only, never in a cloud task or the artifact`);
+      return null;
+    };
+    const lib = (which) => {
+      step.kind = "logic";
+      delete step.blocked;
+      if (which) step.files = { lib: which };
+      return null;
+    };
+    if (type === "extractFromFile") {
+      const op = opOf("operation", "csv");
+      if (exprOp(op)) return "the operation is set by an expression, so the file format is not known before a run";
+      if (op === "pdf") return lib("pdfjs");
+      if (["xlsx", "xls", "ods"].includes(op)) return lib("xlsx");
+      if (["fromJson", "text", "binaryToPropery"].includes(op)) return lib(null);
+      if (op === "csv") return "Extract From File csv: n8n parses CSV with csv-parse, which the runtime does not carry yet";
+      return `Extract From File ${op} is not implemented yet (the files lever reads PDF, XLSX, XLS, ODS, JSON and text)`;
+    }
+    if (type === "convertToFile") {
+      const op = opOf("operation", "csv");
+      if (exprOp(op)) return "the operation is set by an expression, so the file format is not known before a run";
+      if (["csv", "html", "rtf", "ods", "xls", "xlsx"].includes(op)) return lib("xlsx");
+      if (["toJson", "toText", "toBinary"].includes(op)) return lib(null);
+      return `Convert To File ${op} is not implemented yet (the files lever writes CSV, XLSX, XLS, ODS, HTML, RTF, JSON, text and base64 files)`;
+    }
+    if (type === "spreadsheetFile") {
+      const op = opOf("operation", "fromFile");
+      if (exprOp(op)) return "the operation is set by an expression, so no file step can be chosen";
+      if (v >= 2 && op === "fromFile") {
+        const f = opOf("fileFormat", "autodetect");
+        if (f === "csv") return "Spreadsheet File v2 reads CSV with csv-parse, which the runtime does not carry yet";
+        if (f === "autodetect") review(step, "the file format is detected when the step runs; a CSV file is refused then (n8n parses CSV with csv-parse)");
+      }
+      return lib("xlsx");
+    }
+    if (type === "readPDF") return lib("pdfjs");
+    if (type === "readWriteFile") {
+      const op = opOf("operation", "read");
+      if (op === "read") return disk("read", "fileSelector");
+      if (op === "write") return disk("write", "fileName");
+      return "the operation is set by an expression, so it is not known whether the step reads or writes";
+    }
+    if (type === "readBinaryFile") return disk("read", "filePath");
+    if (type === "readBinaryFiles") return disk("read", "fileSelector");
+    if (type === "writeBinaryFile") return disk("write", "fileName");
+    if (type === "compression") return "Compression (zip, gzip) is not implemented yet";
+    if (type === "editImage") return "Edit Image runs GraphicsMagick inside n8n; the runtime has no image library, so resized or edited images would differ";
+    if (type === "iCal") return "iCalendar files are not implemented yet";
+    return `${shortType(step.n8n.type)} is not implemented yet`;
+  };
   const addSecret = (name, credentialType, host) => {
     const s = secrets.get(name) ?? { name, credentialType, hosts: [] };
     if (host && host !== "*" && !s.hosts.includes(host)) s.hosts.push(host);
@@ -813,6 +898,9 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         effect: entry.effect ?? "write",
         coerce: coerceFor(schema, args),
         result: resultFor(entry, params),
+        // A download whose file n8n puts into binary data: the tool's base64 content becomes
+        // item.binary[property] (runtime/src/files.mjs binaryFromTool).
+        ...(entry.binary ? { binary: { property: getParam(params, entry.binary.propertyParam) || entry.binary.propertyDefault || "data", ...(getParam(params, entry.binary.fileNameParam) !== undefined ? { fileName: getParam(params, entry.binary.fileNameParam) } : {}), content: entry.binary.content, mimeType: entry.binary.mimeType, name: entry.binary.name } } : {}),
         fidelity: entry.fidelity ?? "unverified",
         ...(entry.missingFields?.length ? { missingFields: entry.missingFields } : {}),
         ...(caveatsFor(params, entry.caveats).length ? { caveats: caveatsFor(params, entry.caveats) } : {}),
@@ -901,6 +989,15 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
     if (info.kind === "blocked") {
       const why = (opKey && entry?.operations?.[opKey]?.reason) || entry?.mapping?.reason || `${shortType(type)} ${opKey ?? ""} is not supported`.trim();
       block(step, offBranch ? "dropped" : "unsupported", why);
+      continue;
+    }
+
+    // File steps the runtime carries (runtime/src/files.mjs); the rest stay blocked, each with
+    // its reason.
+    if (info.kind === "files" && !offBranch) {
+      const why = fileStep(name, step, params, v);
+      if (!why) continue;
+      block(step, "unsupported", why);
       continue;
     }
 
@@ -1578,6 +1675,10 @@ export function applyOverrides(def, ov) {
     def.allow.http = def.allow.http.filter((a) => a.host !== "*");
     for (const a of ov.allow.http) if (!def.allow.http.some((x) => x.method === a.method && x.host === a.host && (x.pathPrefix ?? "") === (a.pathPrefix ?? ""))) def.allow.http.push(clone(a));
   }
+  if (ov?.allow?.files?.length) {
+    def.allow.files = (def.allow.files ?? []).filter((a) => a.dir !== "*");
+    for (const a of ov.allow.files) if (!def.allow.files.some((x) => x.op === a.op && x.dir === a.dir)) def.allow.files.push(clone(a));
+  }
   for (const [name, s] of Object.entries(ov?.secrets ?? {})) {
     const e = def.secrets.find((x) => x.name === name);
     if (e && Array.isArray(s.hosts)) e.hosts = uniq([...e.hosts, ...s.hosts]);
@@ -1743,10 +1844,24 @@ function writeJson(path, data) {
 }
 
 export const RUNTIME_FILES = ["runner-core.mjs", "runner.mjs", "luxon.mjs", "driver.mjs", "hook.mjs", "store.mjs"];
-export function writeRuntime(dir) {
+// The vendored libraries a file step loads (runtime/src/files.mjs), copied only when the
+// definition has such a step, with their licences; an old copy is removed when it has none.
+export const VENDOR_LIBS = { pdfjs: ["pdf.min.mjs", "pdf.worker.min.mjs", "LICENSE", "SOURCE.txt"], xlsx: ["xlsx.mjs", "LICENSE", "SOURCE.txt"] };
+export function writeRuntime(dir, def) {
   const rt = join(dir, "runtime");
   mkdirSync(rt, { recursive: true });
   for (const f of RUNTIME_FILES) copyFileSync(join(SKILL, "runtime", "dist", f), join(rt, f));
+  const want = new Set(Object.values(def?.steps ?? {}).map((st) => st.files?.lib).filter(Boolean));
+  for (const [name, files] of Object.entries(VENDOR_LIBS)) {
+    const to = join(rt, "vendor", name);
+    if (!want.has(name)) {
+      if (existsSync(to)) rmSync(to, { recursive: true, force: true });
+      continue;
+    }
+    mkdirSync(to, { recursive: true });
+    for (const f of files) copyFileSync(join(SKILL, "runtime", "vendor", name, f), join(to, f));
+  }
+  if (existsSync(join(rt, "vendor")) && !readdirSync(join(rt, "vendor")).length) rmSync(join(rt, "vendor"), { recursive: true, force: true });
   writeFileSync(join(rt, "VERSION"), `skill ${skillCommit()}\nruntime ${RUNTIME_VERSION}\nconverter ${CONVERTER_VERSION}\n`);
 }
 
@@ -1908,7 +2023,7 @@ export function writeSkill(dir, def, refs, slug) {
   copyFileSync(join(dir, "source.n8n.json"), join(sk, "source.n8n.json"));
   // State in <project>/.n2c/<skill name>/: Claude Code refuses writes under .claude/skills/.
   writeJson(join(sk, "task.json"), { ...taskJson(def, refs, "skill"), store: { kind: "file" }, stateDir: "cwd" });
-  writeRuntime(sk);
+  writeRuntime(sk, def);
   return sk;
 }
 
@@ -1988,7 +2103,7 @@ export function writeFolder(outDir, res, { overrides, refs } = {}) {
     const errs = validateSchema(def, (refs ?? loadReferences()).schema);
     if (errs.length) throw new Error(`definition for "${res.name}" is not valid against the schema: ${errs.slice(0, 5).join("; ")}`);
     writeJson(join(dir, "definition.json"), def);
-    writeRuntime(dir);
+    writeRuntime(dir, def);
     writeTaskFiles(dir, def, refs ?? loadReferences(), res.report.workflows[0].outcome?.target);
     writeArtifact(dir, def, refs ?? loadReferences());
     writeSkill(dir, def, refs ?? loadReferences(), res.slug);

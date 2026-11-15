@@ -70,6 +70,12 @@
           "review": { "type": "boolean" },
           "reviewReasons": { "type": "array", "items": { "type": "string" } },
           "subnode": { "type": "boolean", "description": "An ai_* sub-node (model, tool, memory, parser): consumed by its parent step's request, never run on its own." },
+          "files": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "A file step (runtime/src/files.mjs). lib: the vendored library it loads (pdfjs, xlsx), which the artifact page cannot; disk: it reads or writes the local disk through the host, which only a local task has. Preflight refuses either where it cannot run.",
+            "properties": { "lib": { "enum": ["pdfjs", "xlsx"] }, "disk": { "enum": ["read", "write"] } }
+          },
           "notes": { "type": "string" },
           "credentials": { "type": "object", "additionalProperties": { "type": "string" }, "description": "credential type -> credential name (never a value)." },
           "connector": { "type": "string" },
@@ -103,6 +109,13 @@
                 "description": "exact: the tool returns what n8n returns; adapted: the adapter reshapes, and the fields it lists carry n8n's names; partial: some n8n fields have no source (missingFields); none: no adapter; unverified: the tool's real output shape is not known yet, so the adapter is a best reading of the tool description, to be checked by the bench's emulation run."
               },
               "missingFields": { "type": "array", "items": { "type": "string" }, "description": "n8n output fields the tool cannot supply." },
+              "binary": {
+                "type": "object",
+                "description": "A download whose file n8n puts into binary data: the tool's base64 text at `content` becomes item.binary[property] with `mimeType` and the file name (fileName, else the result's `name` field), as n8n-core prepareBinaryData builds it; the item keeps its input fields.",
+                "required": ["property", "content"],
+                "additionalProperties": false,
+                "properties": { "property": { "type": "string" }, "fileName": { "type": "string" }, "content": { "type": "string" }, "mimeType": { "type": "string" }, "name": { "type": "string" } }
+              },
               "recipients": {
                 "type": "object",
                 "description": "A reply whose recipients n8n takes from the replied-to message: before the call the runner reads that message (tool, with args[idArg]) and sets args[arg] to the addresses in its first present field of replyTo, else from, an empty list when there are none (runtime nodes2.mjs replyRecipients). The connector's own default recipients are never relied on.",
@@ -421,6 +434,11 @@
           }
         },
         "sql": { "type": "array", "items": { "type": "string" } },
+        "files": {
+          "type": "array",
+          "description": "Local disk paths a file step may read or write: a directory (or one file) per operation, from the paths written in the steps. dir \"*\" (a path built at run time) is refused by preflight until narrowed in overrides.json.",
+          "items": { "type": "object", "required": ["op", "dir"], "additionalProperties": false, "properties": { "op": { "enum": ["read", "write"] }, "dir": { "type": "string" }, "note": { "type": "string" } } }
+        },
         "alerts": {
           "type": "array",
           "description": "The one alert channel (definition.alerts) as its own category: an alert reaches only this target, with the fixed template of runtime/src/alerts.mjs.",

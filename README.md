@@ -340,6 +340,11 @@ previews; this list is dated 2026-11-14 and re-runnable
   for the model to choose from; any other URL is refused before a request.
   A model-picked URL with no list is refused until you narrow it in
   `overrides.json`.
+- **Disk access stays on the author's paths.** A step that reads or writes
+  local files runs only in a local task, and only on the files or folders
+  written in the step; a path built from data cannot climb out of them, and
+  one with no folder written is refused until you narrow it in
+  `overrides.json`.
 - **Secrets stay with you.** The skill reads credential names only, redacts
   inline keys before writing anything, and never asks for a value. Cloud
   tasks get secrets as network secrets for listed hosts; local tasks read
@@ -355,8 +360,11 @@ previews; this list is dated 2026-11-14 and re-runnable
 
 ## Limits
 
-- **Not built yet:** files, databases, vector stores, media through the
-  original provider, many apps' request templates. Those steps stay greyed
+- **Not built yet:** databases, vector stores, media through the original
+  provider, many apps' request templates, and some file steps (reading CSV,
+  HTML, RTF, XML or iCalendar files, Compression, Edit Image). PDF text and
+  spreadsheets run with the libraries n8n uses, in tasks and skills, not in
+  the artifact page; the local disk only in a local task. Those steps stay greyed
   out in the graph with the reason; an agent whose tool is one of them is
   refused before a run rather than run without that tool.
 - **Out of scope for v1:** synchronous webhook replies and public chat pages

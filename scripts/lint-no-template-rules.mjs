@@ -8,6 +8,8 @@
 //   - template ids: every id in evals/bench/corpus.json, as a whole number not part of a longer
 //     number, version or identifier (not in vendored or built code: runtime/vendor holds
 //     luxon, runtime/dist is built from runtime/src and vendor, and src is checked);
+//   - third-party libraries vendored unmodified under runtime/vendor/<lib>/ (their SHA-256 as
+//     the folder's SOURCE.txt records it) are skipped for ids and fixture strings;
 //   - template names: the `name` of each corpus template in evals/bench/data/wf (git-ignored;
 //     skipped with a note on a fresh clone), case-insensitive, names of 12+ characters;
 //   - fixture strings: string values of 12+ characters in evals/bench/fixtures that look
@@ -16,6 +18,7 @@
 //     node catalogue references/nodes.json or the captured connector schemas).
 // Exit 1 with file:line and the match on any hit.
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { join, relative, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -37,6 +40,21 @@ const read = (f) => content.get(f) ?? (existsSync(f) ? readFileSync(f, "utf8") :
 const VENDOR = [join(SKILLS, "n8n-to-claude", "references", "nodes.json"), ...walk(join(SKILLS, "n8n-to-claude", "references", "connectors"))];
 const NO_ID_CHECK = [join(SKILLS, "n8n-to-claude", "runtime", "vendor"), join(SKILLS, "n8n-to-claude", "runtime", "dist")];
 const vendorText = VENDOR.map(read).join("\n");
+// Third-party libraries vendored unmodified (runtime/vendor/<lib>/, files.mjs): a file counts
+// as one only when its SHA-256 is the one its folder's SOURCE.txt records ("sha256 <file>
+// <hex>"), so nothing the loop writes can hide there. They are skipped for ids and fixture
+// strings (SheetJS carries MIME header lines that also occur in fixtures); names stay checked.
+const THIRD_PARTY = new Set();
+const VENDOR_DIR = join(SKILLS, "n8n-to-claude", "runtime", "vendor");
+if (existsSync(VENDOR_DIR))
+  for (const d of readdirSync(VENDOR_DIR).filter((x) => statSync(join(VENDOR_DIR, x)).isDirectory())) {
+    const src = join(VENDOR_DIR, d, "SOURCE.txt");
+    if (!existsSync(src)) continue;
+    for (const m of readFileSync(src, "utf8").matchAll(/^sha256\s+(\S+)\s+([0-9a-f]{64})\s*$/gm)) {
+      const f = join(VENDOR_DIR, d, m[1]);
+      if (existsSync(f) && createHash("sha256").update(readFileSync(f)).digest("hex") === m[2]) THIRD_PARTY.add(f);
+    }
+  }
 
 const corpus = JSON.parse(readFileSync(join(BENCH, "corpus.json"), "utf8"));
 const ids = [...new Set(corpus.templates.map((t) => String(t.id)))];
@@ -77,7 +95,7 @@ const lineOf = (text, idx) => text.slice(0, idx).split("\n").length;
 const idRe = new RegExp(`(?<![\\w.\\-])(${ids.join("|")})(?![\\w.\\-])`, "g");
 for (const [file, text] of content) {
   const rel = relative(ROOT, file);
-  const vendor = VENDOR.includes(file);
+  const vendor = VENDOR.includes(file) || THIRD_PARTY.has(file);
   // Ids: vendor files are generated from n8n or captured from connectors, never by the loop,
   // and carry many unrelated numbers; skip them for ids only.
   if (!vendor && !NO_ID_CHECK.some((d) => file.startsWith(d + "/"))) for (const m of text.matchAll(idRe)) hits.push(`${rel}:${lineOf(text, m.index)}: template id ${m[1]}`);

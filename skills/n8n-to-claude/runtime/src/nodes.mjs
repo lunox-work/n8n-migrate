@@ -13,6 +13,7 @@ import { createLookup } from "./proxy.mjs";
 import { executeFilter, validateFieldType } from "./filter.mjs";
 import { DateTime } from "../vendor/luxon.mjs";
 import { GROUP2, requestImplFor } from "./nodes2.mjs";
+import { FILES } from "./files.mjs";
 
 const BASE = "n8n-nodes-base.";
 const inRange = (lo, hi) => (v) => v >= lo && v <= hi;
@@ -1416,6 +1417,7 @@ const IMPLS = {
   [BASE + "functionItem"]: functionItemNode,
   [BASE + "executeWorkflow"]: executeWorkflow,
   ...GROUP2,
+  ...FILES,
 };
 
 // The implementation for a definition step, or null when the runtime cannot run it.

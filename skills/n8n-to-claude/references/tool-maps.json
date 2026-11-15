@@ -494,11 +494,10 @@
             "effect": "read",
             "args": { "fileId": "fileId", "exportMimeType": "options.googleFileConversion.conversion.docsToFormat" },
             "result": {},
+            "binary": { "propertyParam": "options.binaryPropertyName", "propertyDefault": "data", "fileNameParam": "options.fileName", "content": "content", "mimeType": "mimeType", "name": "title" },
             "fidelity": "unverified",
-            "missingFields": ["binary data"],
-            "caveats": ["n8n puts the file into binary data; the tool returns it as base64 text in the item."],
-            "understood": ["operation", "resource", "fileId", "options.binaryPropertyName", "options.googleFileConversion", "options.fileName"],
-            "review": [{"reason":"the file arrives as base64 text, not as binary data: steps that read $binary need translation"}]
+            "caveats": ["The tool returns the file as base64 text; the runner puts it into binary data as n8n does (the item keeps its input fields). The tool's output shape is assumed: content, mimeType and title."],
+            "understood": ["operation", "resource", "fileId", "options.binaryPropertyName", "options.googleFileConversion", "options.fileName"]
           },
           "upload": {
             "connector": "google-drive",

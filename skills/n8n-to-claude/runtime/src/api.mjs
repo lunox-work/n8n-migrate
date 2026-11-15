@@ -8,7 +8,7 @@
 //     Step mode for the task driver: all state is in `state` (plain JSON). A resume
 //     replays the run from the start with the logged results (same clock, same seeds),
 //     so it reaches the same point and continues past it.
-//   preflight(definition, {availableTools, sourceText, pinned}) -> {ok, issues}
+//   preflight(definition, {availableTools, sourceText, pinned, surface}) -> {ok, issues}
 //   opts.pinData ({stepName: items}) pins steps as n8n's pinData does in a manual run: the
 //   step emits those items instead of running. A pinned trigger without trigger items
 //   starts from n8n's start input [{json: {}}].
@@ -52,7 +52,7 @@ export function validateDefinition(def) {
     if (!isObject(e) || !hasOwn(def.steps ?? {}, e.from) || !hasOwn(def.steps ?? {}, e.to)) add(`$.edges[${i}]`, "edge refers to a missing step");
     else if (!Number.isInteger(e.fromOutput) || !Number.isInteger(e.toInput) || e.fromOutput < 0 || e.toInput < 0) add(`$.edges[${i}]`, "fromOutput/toInput must be non-negative integers");
   });
-  for (const k of ["tools", "http", "sql"]) if (def.allow?.[k] !== undefined && !Array.isArray(def.allow[k])) add(`$.allow.${k}`, "not an array");
+  for (const k of ["tools", "http", "sql", "files"]) if (def.allow?.[k] !== undefined && !Array.isArray(def.allow[k])) add(`$.allow.${k}`, "not an array");
   return issues;
 }
 
@@ -77,7 +77,10 @@ export function unreachableSteps(definition) {
 }
 
 // pinned: names of steps that emit pinned items (run's pinData) and so need no implementation.
-export function preflight(definition, { availableTools, sourceText, pinned } = {}) {
+// surface: where the run happens ("local-task", "cloud-task", "artifact", "skill"; unknown when
+// absent). A step on the local disk (files.disk) runs only where there is one, and a step that
+// needs a vendored library (files.lib) not on the artifact page.
+export function preflight(definition, { availableTools, sourceText, pinned, surface } = {}) {
   const issues = validateDefinition(definition);
   if (issues.length) return { ok: false, issues };
   const err = (path, message, extra = {}) => issues.push({ level: "error", path, message, ...extra });
@@ -97,6 +100,8 @@ export function preflight(definition, { availableTools, sourceText, pinned } = {
       warn(`$.steps.${name}`, `never runs (no trigger reaches it)${why ? `; ${why}` : ""}`, { step: name });
       continue;
     }
+    if (s.files?.disk && (surface === "cloud-task" || surface === "artifact")) err(`$.steps.${name}`, `blocked: ${s.files.disk === "write" ? "writes" : "reads"} files on the local disk, which only a local task has (this is ${surface === "artifact" ? "the artifact page" : "a cloud task"}): run the workflow as a local task`, { step: name });
+    if (s.files?.lib && surface === "artifact") err(`$.steps.${name}`, `blocked: ${s.files.lib === "pdfjs" ? "PDF text extraction (pdf.js)" : "spreadsheet files (SheetJS)"} loads a library from the runtime folder, which the artifact page cannot: run the workflow as a task`, { step: name });
     if (s.n8n.type === "n8n-nodes-base.executeWorkflow" && !s.subflow) err(`$.steps.${name}`, "the sub-workflow is not in the definition (only inline and self-referencing sub-workflows run)", { step: name });
     if (s.kind === "blocked") err(`$.steps.${name}`, `blocked: ${s.blocked?.reason ?? "no reason given"}`, { step: name });
     else if (!nodeImplFor(s)) err(`$.steps.${name}`, `not implemented: ${s.n8n.type} v${s.n8n.typeVersion ?? 1} (kind ${s.kind})`, { step: name });
@@ -137,6 +142,11 @@ export function preflight(definition, { availableTools, sourceText, pinned } = {
     const where = /^(step|agent tool) "/.test(a.note ?? "") ? `${a.note.replace(/: URL built at run time$/, "")}: ` : "";
     const step = /^(?:step|agent tool) "(.+)": /.exec(a.note ?? "")?.[1];
     if (a.host === "*") err(`$.allow.http[${i}]`, `${where}a request with a URL built at run time is allowed to any host (${a.method} *); its host cannot be known before a run: narrow it to a host in overrides.json`, step ? { step } : {});
+  });
+  (definition.allow?.files ?? []).forEach((a, i) => {
+    // A path built at run time names no directory before a run: refused, by name, until narrowed.
+    const step = /^step "(.+)": /.exec(a.note ?? "")?.[1];
+    if (a.dir === "*") err(`$.allow.files[${i}]`, `${step ? `step "${step}": ` : ""}a file ${a.op} whose path is built at run time is allowed anywhere on the disk; narrow it to a directory in overrides.json`, step ? { step } : {});
   });
   if (!Object.values(steps).some((s) => isTriggerStep(s) && s.settings?.disabled !== true)) warn("$.steps", "no trigger step; runs start at the first step without inputs");
   if (availableTools) {
@@ -283,7 +293,7 @@ function preflightOrThrow(definition, opts) {
 }
 
 export async function run(definition, opts = {}) {
-  const pf = preflightOrThrow(definition, { availableTools: opts.availableTools, sourceText: opts.sourceText, pinned: Object.keys(opts.pinData ?? {}) });
+  const pf = preflightOrThrow(definition, { availableTools: opts.availableTools, sourceText: opts.sourceText, pinned: Object.keys(opts.pinData ?? {}), surface: opts.surface });
   if (pf) return pf;
   const r = createRun(definition, { ...opts, stepMode: false });
   return execute(r, opts.trigger);
@@ -314,7 +324,7 @@ async function step(state) {
 }
 
 export async function start(definition, opts = {}) {
-  const pf = preflightOrThrow(definition, { availableTools: opts.availableTools, sourceText: opts.sourceText, pinned: Object.keys(opts.pinData ?? {}) });
+  const pf = preflightOrThrow(definition, { availableTools: opts.availableTools, sourceText: opts.sourceText, pinned: Object.keys(opts.pinData ?? {}), surface: opts.surface });
   if (pf) return pf;
   const startedAt = opts.clock?.startedAt != null ? new Date(Date.parse(opts.clock.startedAt) || Number(opts.clock.startedAt)).toISOString() : new Date().toISOString();
   const state = {

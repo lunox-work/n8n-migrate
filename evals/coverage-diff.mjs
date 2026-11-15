@@ -43,7 +43,7 @@ export function refusalKind(message) {
   if (/lacks required arguments/.test(m)) return "arguments";
   if (/^secret "|names no host/.test(m)) return "secret";
   if (/source hash/.test(m)) return "source";
-  if (/^blocked:|not implemented|URL built at run time|not converted yet|need translation|Python|sub-workflow is not in the definition|without a connected chat model|without (agent|model)\.prompt|without tool\.connector/.test(m)) return "step refused";
+  if (/^blocked:|not implemented|(URL|path) is built at run time|URL built at run time|not converted yet|need translation|Python|sub-workflow is not in the definition|without a connected chat model|without (agent|model)\.prompt|without tool\.connector/.test(m)) return "step refused";
   return `other: ${m.replace(/"[^"]*"/g, '"…"').replace(/\d+/g, "N").slice(0, 120)}`;
 }
 

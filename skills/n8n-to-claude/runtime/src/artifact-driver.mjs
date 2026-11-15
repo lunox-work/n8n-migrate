@@ -141,7 +141,7 @@ export function createArtifactDriver(opts) {
         add("warning", `Could not list your connectors (${errText(e)}); the first failed connector call stops the run.`);
       }
     }
-    const pf = core.preflight(definition, { availableTools: available });
+    const pf = core.preflight(definition, { availableTools: available, surface: "artifact" });
     for (const i of pf.issues) add(i.level, i.message);
     try {
       const meta = await getDoc(core.META_CURRENT);
@@ -378,7 +378,7 @@ export function createArtifactDriver(opts) {
           const d = db();
           if (d) cursors = core.startCursors((await d.collection(core.COLLECTIONS.cursors).get()).docs.map((x) => x.data()), "manual");
         } catch {}
-        const res = await core.start(definition, { runId, clock: { startedAt }, mode: "manual", trigger: triggerFor(input), cursors: cursors && Object.keys(cursors).length ? cursors : undefined, virtualTime: true });
+        const res = await core.start(definition, { surface: "artifact", runId, clock: { startedAt }, mode: "manual", trigger: triggerFor(input), cursors: cursors && Object.keys(cursors).length ? cursors : undefined, virtualTime: true });
         if (!res.state) {
           const error = res.error ?? { message: "preflight failed" };
           const out = await writeRecord(ctx, { runData: {}, effects: [] }, "preflight-failed", { error });

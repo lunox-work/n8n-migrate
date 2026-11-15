@@ -32,6 +32,7 @@ import { hashHex } from "./hash.mjs";
 import { resolveParameter } from "./expression.mjs";
 import { createScope, enterRun } from "./proxy.mjs";
 import { nodeImplFor } from "./nodes.mjs";
+import { normalizePath } from "./files.mjs";
 
 export class Suspend extends Error {
   constructor(requests) {
@@ -218,6 +219,13 @@ export function checkContainment(definition, req) {
         throw new ContainmentViolation(`secret "${req.auth.secret}" may not be sent to ${t.host}`, { requestId: req.id });
       }
     }
+  } else if (req.kind === "file") {
+    // Local disk (files.mjs): the path must lie in a directory the definition names for this
+    // operation (allow.files: {op, dir}); ".." never climbs out of it.
+    const p = normalizePath(req.path);
+    const op = req.op === "write" ? "write" : "read";
+    const ok = p && (allow.files || []).some((a) => a.op === op && a.dir !== "*" && pathWithin(p, a.dir));
+    if (!ok) throw new ContainmentViolation(`file ${op} of "${req.path}" is not in the definition's allowlist`, { requestId: req.id });
   } else if (req.kind === "agent") {
     for (const tool of req.tools || []) {
       if (tool.connector) checkContainment(definition, { kind: "tool", connector: tool.connector, tool: tool.tool, id: req.id });
@@ -229,7 +237,16 @@ export function checkContainment(definition, req) {
   }
 }
 
+// A normalized path within an allowed directory (or the allowed file itself).
+export function pathWithin(p, dir) {
+  const d = normalizePath(dir);
+  if (!d) return false;
+  if (p === d) return true;
+  return p.startsWith(d.endsWith("/") ? d : `${d}/`);
+}
+
 export function requestEffect(req) {
+  if (req.kind === "file") return req.op === "write" ? "write" : "read";
   if (req.kind === "http") return WRITE_METHODS.has(String(req.method || "GET").toUpperCase()) ? "write" : "read";
   if (req.kind === "tool") return req.effect === "read" ? "read" : "write";
   // An agent turn has no effect of its own: each tool call it asks for is a separate tool or

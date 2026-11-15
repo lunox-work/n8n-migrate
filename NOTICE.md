@@ -31,5 +31,13 @@ the software works with.
 - `skills/n8n-to-claude/runtime/vendor/luxon.mjs` (and its copies in
   `runtime/dist/`): [Luxon](https://moment.github.io/luxon/), MIT License,
   copyright JS Foundation and other contributors.
+- `skills/n8n-to-claude/runtime/vendor/pdfjs/` (pdf.min.mjs, pdf.worker.min.mjs; copied
+  into a migrated folder only when it has a PDF step): [PDF.js](https://mozilla.github.io/pdf.js/)
+  (npm pdfjs-dist 6.3.289, legacy build, unmodified), Apache License 2.0, copyright Mozilla
+  Foundation; licence and checksums beside it.
+- `skills/n8n-to-claude/runtime/vendor/xlsx/` (xlsx.mjs; copied into a migrated folder only
+  when it has a spreadsheet step): [SheetJS](https://sheetjs.com/) Community Edition 0.20.3
+  (npm @e965/xlsx 0.20.3, unmodified), Apache License 2.0, copyright SheetJS LLC; licence and
+  checksum beside it.
 - `assets/src/fonts/`: DM Mono, DM Sans and Space Grotesk, SIL Open Font
   License 1.1. Used only to render the README images.
