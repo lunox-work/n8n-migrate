@@ -134,9 +134,10 @@
     { "id": 1959, "sha256": "812fc020cefa1b66263208b5a08f85f205f207beb1b256bc64018ad72523b728", "wakeup": "chat" }
   ],
   "roundsRule": "rolling held-out (PLAN Phase 6): the seeded dev/heldOut lists never change; after a release point is scored, the held-out templates it scored join dev and the next release point scores fresh held-out templates. A round's dev = dev + every id promoted up to it (evals/bench/rounds.mjs)",
-  "currentRound": 2,
+  "currentRound": 3,
   "rounds": [
     { "round": 1, "promoted": [], "heldOut": [2468, 2271, 2178, 3986, 3904, 5035, 2860, 3291, 1826, 3224, 3018, 2090, 2729, 4846, 1951, 2275, 2139, 2473, 2395, 2703], "scored": "release point 1 (2026-11-14, evals/bench/RELEASE-1.md)" },
-    { "round": 2, "promoted": [2468, 2271, 2178, 3986, 3904, 5035, 2860, 3291, 1826, 3224, 3018, 2090, 2729, 4846, 1951, 2275, 2139, 2473, 2395, 2703], "heldOut": [1992, 1980, 2786, 2557, 2894, 2552, 2384, 1748, 1938, 890, 1960, 2872, 2324, 2878, 2026, 2085, 2006, 3085, 2320, 1959], "note": "held-out 1-20 join dev after release point 1; held-out 21-40 score release point 2" }
+    { "round": 2, "promoted": [2468, 2271, 2178, 3986, 3904, 5035, 2860, 3291, 1826, 3224, 3018, 2090, 2729, 4846, 1951, 2275, 2139, 2473, 2395, 2703], "heldOut": [1992, 1980, 2786, 2557, 2894, 2552, 2384, 1748, 1938, 890, 1960, 2872, 2324, 2878, 2026, 2085, 2006, 3085, 2320, 1959], "note": "held-out 1-20 join dev after release point 1; held-out 21-40 score release point 2", "scored": "release point 2 (2026-11-15, evals/bench/RELEASE-2.md)" },
+    { "round": 3, "promoted": [1992, 1980, 2786, 2557, 2894, 2552, 2384, 1748, 1938, 890, 1960, 2872, 2324, 2878, 2026, 2085, 2006, 3085, 2320, 1959], "heldOut": [], "note": "held-out 21-40 join dev after release point 2, so dev is all 100 seeded templates (70 with fixtures). The seeded held-out list is used up: release point 3 needs fresh held-out templates from outside the seeded split, fetched, labelled and fixtured blind (PLAN Phase 6, round 3), added here as this round's heldOut before any is run; until then round 3 has no held-out and no release point can be scored" }
   ]
 }
