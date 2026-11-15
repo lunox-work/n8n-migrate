@@ -745,7 +745,7 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
       // PROPOSALS P43: an LLM API over HTTP is a model call answered from n8n's recording.
       const mh = isModelHttp(routes, p.method, p.url, body);
       if (mh) return answerModelHttp(p, mh, jsonBody(body));
-      const entry = { method: p.method, url: `${u.origin}${u.pathname}`, query: Object.fromEntries(sp), body, ...(p.contentType ? { contentType: p.contentType } : {}), auth: p.auth?.secret ?? null, ...(p.step ? { step: p.step } : {}) };
+      const entry = { method: p.method, url: `${u.origin}${u.pathname}`, query: Object.fromEntries(sp), body, ...(p.contentType ? { contentType: p.contentType } : {}), auth: p.auth?.secret ?? null, ...(p.ownStep ?? p.step ? { step: p.ownStep ?? p.step } : {}) };
       seen.http.push(entry);
       // PROPOSALS P29: what the real service refuses whatever the fixture says, as the mock.
       const refused = serviceRefusal(p.method, u.origin, u.pathname, body);
@@ -845,7 +845,8 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
   }
 
   // The runner's request payload carries no step name; its id does ("<step>#<run>#<item>...").
-  const wrap = (fn) => async (payload, meta) => fn({ ...payload, step: String(meta?.id ?? "").split("#")[0] || null }, meta);
+  // P80: the request's own step (inside a sub-workflow the id starts with the calling step).
+  const wrap = (fn) => async (payload, meta) => fn({ ...payload, ownStep: payload?.step ?? null, step: String(meta?.id ?? "").split("#")[0] || null }, meta);
   for (const k of Object.keys(host)) host[k] = wrap(host[k]);
 
   // Poll triggers poll through their connector (the trigger read is the poll source); other
