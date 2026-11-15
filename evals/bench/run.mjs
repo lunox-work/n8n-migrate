@@ -49,7 +49,7 @@ import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loa
 import { convertPlain, convertSkill, filledSource, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, withSynthetic, syntheticOutcome, nondeterministicTools } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
 import { fromHttp, fromTool, fromFile, fromDb, replyOf, resultOf, isResult, lastOutputs, terminalNodes, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads } from "./compare.mjs";
-import { n8nCheckVariants, n8nCheckKey, n8nCheckSummary, gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited, n8nFailsOf } from "./gates.mjs";
+import { n8nCheckVariants, n8nCheckKey, n8nCheckSummary, gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited, n8nFailsOf, modelRefusal } from "./gates.mjs";
 import { BudgetExceeded, UsageLimit, ledger as claudeLedger, memoryGate } from "./claude.mjs";
 import { readSplits, devWithFixtures } from "./rounds.mjs";
 
@@ -628,7 +628,7 @@ async function benchTemplate(id, args, L) {
     if (!cn.summary?.notRun) {
     const n8nCN = n8nEffects(recs.normal, fxN, { result: true });
     const cNormal = cn.run && compare(n8nCN, cn.effects.map((e) => claudeEffect(e, fxN)).filter(Boolean).concat(["chat", "form"].includes(fxN.trigger.kind) && cn.run.status === "done" ? [replyOf(cn.run.output, "claude")] : [], claudeResults(n8nCN, (node) => cn.run.outputs?.[node] ?? null)), { modelTexts: modelTextsOf(recs.normal?.modelCalls, answerOf), mode: args.modelMode, runTime: runTime(recs.normal) });
-    const g3c = cn.run?.status === "done" ? { pass: true } : { ...runFailureCause({ error: cn.run?.error ?? { message: cn.summary?.problem ?? "no run" } }) };
+    const g3c = cn.run?.status === "done" ? { pass: true } : modelRefusal(slips.normal) ?? { ...runFailureCause({ error: cn.run?.error ?? { message: cn.summary?.problem ?? "no run" } }) };
     if (!g3c.pass) gates[3] = { ...g3c, driver: "claude", inprocess: gates[3] };
     else {
       // PROPOSALS P16: the driver's replayed requests are checked like the in-process ones.

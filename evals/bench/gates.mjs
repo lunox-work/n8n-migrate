@@ -2,10 +2,11 @@
 // observed, so they are tested without Docker or a model. run.mjs gathers the inputs.
 // Each gate returns {pass, cause?, bucket?, detail?}; a template stops at its first failed gate.
 //
-// Buckets (PLAN Phase 6 plus two bench-side ones): unmapped node, field map, expression
-// translation, runner bug, skill instruction, flaky model step, bench defect, fixture.
+// Buckets (PLAN Phase 6 plus three bench-side ones): unmapped node, field map, expression
+// translation, runner bug, skill instruction, flaky model step, bench defect, fixture, model
+// refusal (PROPOSALS P106: the claude driver's model declined the template's own prompt).
 
-export const BUCKETS = ["unmapped node", "field map", "expression translation", "runner bug", "skill instruction", "flaky model step", "bench defect", "fixture"];
+export const BUCKETS = ["unmapped node", "field map", "expression translation", "runner bug", "skill instruction", "flaky model step", "bench defect", "fixture", "model refusal"];
 
 const pass = (detail) => ({ pass: true, ...(detail ? { detail } : {}) });
 const fail = (bucket, cause, detail) => ({ pass: false, bucket, cause, ...(detail !== undefined ? { detail } : {}) });
@@ -351,6 +352,18 @@ export function slipStats(rows) {
     }
   }
   return { runs, slipped, retried, repeated, rate: runs ? Math.round((slipped / runs) * 1000) / 10 : null, templates };
+}
+
+// PROPOSALS P106: a repeated slip (both attempts) whose final texts decline to write the
+// answer of a model or agent step is the driver model refusing the template's own prompt, not
+// a runner or converter fault. Returns {bucket: "model refusal", cause, detail} or null; the
+// gate still fails. `slip` is drivers.claude.slips[variant].
+const DECLINE_RE = /\b(won['’]t|will not|can['’]t|cannot|unable to|not able to|decline|refuse|not comfortable)\b/i;
+export function modelRefusal(slip) {
+  if (!slip?.repeated || !Array.isArray(slip.attempts) || slip.attempts.length < 2) return null;
+  if (!slip.attempts.every((a) => a?.runStatus === "needs" && a?.slip && DECLINE_RE.test(a?.finalText ?? ""))) return null;
+  const steps = [...new Set(slip.attempts.flatMap((a) => (a.slip.outstanding ?? []).map((o) => String(o).split("#")[0])))];
+  return fail("model refusal", `the claude driver's model declined to write the answer of step ${steps.map((x) => `"${x}"`).join(", ") || "?"} on both attempts (P106)`, { finalText: String(slip.attempts.at(-1).finalText ?? "").slice(0, 300) });
 }
 
 // Verdict flips between two runs: templates in both whose reached gate or cause differ. With

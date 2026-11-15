@@ -180,6 +180,8 @@ const out = {
   gateSum: mine.reduce((n, r) => n + (r.reached ?? 0), 0),
   nonPlaceholderOverlays: mine.filter((r) => r.config?.nonPlaceholder?.length).map((r) => ({ template: r.template, kinds: r.config.nonPlaceholder.map((x) => x.kind) })),
   claudeDriverSlips: slipStats(mine),
+  // PROPOSALS P106: failures where the claude driver's model declined the template's own prompt.
+  modelRefusals: mine.filter((r) => r.bucket === "model refusal").map((r) => r.template),
   ...(args.includes("--against") ? { flipsAgainst: { tag: args[args.indexOf("--against") + 1], flips: flipsBetween(mine, latest(args[args.indexOf("--against") + 1])) } } : {}),
   failuresByGate: byGate,
   failuresByBucket: byBucket,
@@ -226,6 +228,7 @@ else {
   console.log(`failures by gate: ${JSON.stringify(byGate)}; by bucket: ${JSON.stringify(byBucket)}`);
   const sl = out.claudeDriverSlips;
   console.log(`claude-driver protocol slips (P40, retried once, not a verdict): ${sl.slipped} of ${sl.runs} driver runs (${sl.rate ?? "-"}%), ${sl.retried} retried, ${sl.repeated} repeated${sl.templates.length ? ` (${sl.templates.join(", ")})` : ""}`);
+  if (out.modelRefusals.length) console.log(`model refusals (P106, the driver's model declined the template's own prompt; failures, bucket "model refusal"): ${out.modelRefusals.join(", ")}`);
   if (out.flipsAgainst) console.log(`verdict flips against ${out.flipsAgainst.tag}: ${out.flipsAgainst.flips.length}${out.flipsAgainst.flips.length ? " (" + out.flipsAgainst.flips.map((f) => `${f.template}: ${f.from} -> ${f.to}${f.slip ? " [slip]" : ""}`).join("; ") + ")" : ""}`);
   if (refusal) console.log(`refusal accuracy (labels.json vs analyzer): outcome+target ${refusal.outcomeAndTarget}/${refusal.templates}, blockers ${refusal.blockers}/${refusal.templates}, questions ${refusal.questions}/${refusal.templates}, everything ${refusal.all}/${refusal.templates}`);
   console.log("\ntemplate  gate  convert  bucket: cause [CL = connector-limited, NR = n8n cannot run, NF = n8n fails on the template itself, TC = time compression, NE = pass, no effect compared, N0 = pass, nothing compared (not counted)]  | bench s, n8n ms, claude-driver s/$/turns, claude -p runs/$");

@@ -1400,3 +1400,16 @@ test("P80: a step's hosts question is answered public, and gate 6 reads a public
   for (const h of [{ method: "GET", url: "https://shop.example/a", step: "Other" }, { method: "POST", url: "https://shop.example/a", step: "Fetch" }, { method: "GET", url: "http://shop.example/a", step: "Fetch" }, { method: "GET", url: "https://169.254.169.254/x", step: "Fetch" }, { method: "GET", url: "https://shop.example/a", step: "Fetch", auth: "K" }]) assert.equal(g([h]).pass, false, JSON.stringify(h));
   assert.deepEqual(["https://a.example/", "https://10.0.0.1/", "https://localhost/", "https://x.internal/", "https://[::1]/"].map((u) => publicTarget(new URL(u))), [true, false, false, false, false]);
 });
+
+test("P106: a repeated slip whose final texts decline the step is a model refusal", async () => {
+  const { modelRefusal } = await import("../evals/bench/gates.mjs");
+  const attempt = (finalText) => ({ runStatus: "needs", slip: { why: "w", outstanding: ["Idea creator#0#0 (Model#0)"] }, finalText });
+  const r = modelRefusal({ repeated: true, attempts: [attempt("Writing that would mean producing such content, and I won't do that."), attempt("I'm stopping this run without writing the answer; I won't generate that.")] });
+  assert.equal(r.bucket, "model refusal");
+  assert.equal(r.pass, false);
+  assert.match(r.cause, /"Idea creator"/);
+  assert.ok(BUCKETS.includes(r.bucket));
+  assert.equal(modelRefusal({ repeated: false, attempts: [attempt("I won't"), attempt("ok")] }), null);
+  assert.equal(modelRefusal({ repeated: true, attempts: [attempt("Done, the answer is above."), attempt("Here it is.")] }), null);
+  assert.equal(modelRefusal(undefined), null);
+});
