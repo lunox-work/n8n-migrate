@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "template": 2572,
+  "sha256": "d484c4eeefe95223d7c1504243bd398bb2ff3c726e1b45f62281d2929d506230",
+  "variant": "normal",
+  "now": "2026-11-16T15:00:00.000Z",
+  "about": "a one-page software engineer resume (Python, LangChain, AWS, Docker; two job changes in five years) is extracted and scored against the role",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Download File",
+      "service": "supabase-storage",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://cflobdhpqwnoisuctsoc.supabase.co/storage/v1/object/public/my_storage/software_engineer_resume_example.pdf",
+            "status": 200,
+            "headers": {
+              "content-type": "application/pdf"
+            },
+            "bodyBase64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgODQyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA4MTcgPj4Kc3RyZWFtCkJUIC9GMSAxMSBUZiA1MCA3ODAgVGQgMTQgVEwKKEpPUkRBTiBFTExJUyAtIFNvZnR3YXJlIEVuZ2luZWVyKSAnCihCcm9va2x5biwgTlkgfCBqb3JkYW4uZWxsaXNAbWFpbGJveC5leGFtcGxlIHwgZ2l0aHViLmNvbS9qZWxsaXMtZGV2KSAnCigpICcKKEVYUEVSSUVOQ0UpICcKKFNlbmlvciBTb2Z0d2FyZSBFbmdpbmVlciwgUXVpbGxzdGFjayBcKDIwMjMgLSBwcmVzZW50XCkpICcKKC0gQnVpbHQgY29udmVyc2F0aW9uIGdyYXBocyB3aXRoIExhbmdDaGFpbiBhbmQgTGFuZ0dyYXBoIGZvciBhIGxlZ2FsIHJlc2VhcmNoIGFzc2lzdGFudCkgJwooLSBTaGlwcGVkIGFuIGV2YWx1YXRpb24gaGFybmVzcyBmb3IgcHJvbXB0IGNoYW5nZXM7IGN1dCByZWdyZXNzaW9ucyBieSA0MCUpICcKKFNvZnR3YXJlIEVuZ2luZWVyLCBCcmlnaHRsYW5lIEhlYWx0aCBcKDIwMjEgLSAyMDIzXCkpICcKKC0gUHl0aG9uIHNlcnZpY2VzIG9uIEFXUyBcKEVDUywgTGFtYmRhXCksIERvY2tlciBhbmQgVGVycmFmb3JtKSAnCihTb2Z0d2FyZSBFbmdpbmVlciwgVGFsbHkgUm9ib3RpY3MgXCgyMDIwIC0gMjAyMVwpKSAnCigtIERhdGEgcGlwZWxpbmVzIGluIFB5dGhvbjsgc3BhQ3kgTkVSIGZvciBwYXJ0cyBjYXRhbG9ndWVzKSAnCigpICcKKFNLSUxMUykgJwooUHl0aG9uLCBUeXBlU2NyaXB0LCBMYW5nQ2hhaW4sIExhbmdHcmFwaCwgc3BhQ3ksIEFXUywgR0NQLCBEb2NrZXIsIEt1YmVybmV0ZXMsIFBvc3RncmVTUUwpICcKKCkgJwooRURVQ0FUSU9OKSAnCihCLlMuIENvbXB1dGVyIFNjaWVuY2UsIFN0b255IEJyb29rIFVuaXZlcnNpdHksIDIwMjApICcKRVQKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBlMSAvQmFzZUZvbnQgL0hlbHZldGljYSA+PgplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjQxIDAwMDAwIG4gCjAwMDAwMDExMDkgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoxMTc5CiUlRU9GCg=="
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "public file URL; no connector"
+      },
+      "note": "the resume at the hard-coded public Supabase Storage URL, served as application/pdf"
+    }
+  ],
+  "models": [],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: one CV, one model call, Parsed JSON is the result"
+    ],
+    "offline": "OpenAI - Analyze CV is an LLM API over HTTP (POST api.openai.com/v1/chat/completions, response_format json_schema) whose URL is written as an expression with nothing to evaluate (a leading =, no {{ }}); the bench's model routing and validate.mjs take any =-prefixed URL as built at run time and refuse it in models, so it is left out of models until that is fixed (pending bench fix, PROPOSALS P86). The mock still forwards the request to the shim by host and path (no route answers it). Parsed JSON parses the reply's message content, so a reply that is not JSON fails there. The resume PDF is a one-page stand-in written for the bench"
+  }
+}

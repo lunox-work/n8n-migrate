@@ -1,0 +1,195 @@
+{
+  "schemaVersion": 1,
+  "template": 3132,
+  "sha256": "e76b7ee285c1dd1dfdf9c1290c9208383286274314638e28fe22af6bbd9c0591",
+  "variant": "empty",
+  "now": "2026-11-16T15:11:00.000Z",
+  "about": "the trends feed has no items and the sheet only its header row",
+  "trigger": {
+    "node": "Start every hour past 11 minutes",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T10:11:00.000-05:00",
+          "Readable date": "November 16th 2026, 10:11:00 am",
+          "Readable time": "10:11:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "10",
+          "Minute": "11",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get saved keywords",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1TrendsBench3132SheetIdeas0aB1cD2eF3gH4iJ5",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Foglio1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1TrendsBench3132SheetIdeas0aB1cD2eF3gH4iJ5/values/'Foglio1'",
+            "status": 200,
+            "body": {
+              "range": "Foglio1!A1:Q1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "status",
+                  "trending_keyword",
+                  "approx_traffic",
+                  "abstract",
+                  "pubDate",
+                  "news_item_url1",
+                  "news_item_title1",
+                  "news_item_picture1",
+                  "news_item_source1",
+                  "news_item_url2",
+                  "news_item_title2",
+                  "news_item_picture2",
+                  "news_item_source2",
+                  "news_item_url3",
+                  "news_item_title3",
+                  "news_item_picture3",
+                  "news_item_source3"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1TrendsBench3132SheetIdeas0aB1cD2eF3gH4iJ5",
+              "exportMimeType": "text/csv"
+            },
+            "result": {
+              "fileId": "1TrendsBench3132SheetIdeas0aB1cD2eF3gH4iJ5",
+              "title": "Google Trends ideas",
+              "mimeType": "text/csv",
+              "content": "c3RhdHVzLHRyZW5kaW5nX2tleXdvcmQsYXBwcm94X3RyYWZmaWMsYWJzdHJhY3QscHViRGF0ZSxuZXdzX2l0ZW1fdXJsMSxuZXdzX2l0ZW1fdGl0bGUxLG5ld3NfaXRlbV9waWN0dXJlMSxuZXdzX2l0ZW1fc291cmNlMSxuZXdzX2l0ZW1fdXJsMixuZXdzX2l0ZW1fdGl0bGUyLG5ld3NfaXRlbV9waWN0dXJlMixuZXdzX2l0ZW1fc291cmNlMixuZXdzX2l0ZW1fdXJsMyxuZXdzX2l0ZW1fdGl0bGUzLG5ld3NfaXRlbV9waWN0dXJlMyxuZXdzX2l0ZW1fc291cmNlMwo="
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.5 read of the overlay's spreadsheet, first tab (gid=0): sheet properties, then the tab's values"
+    },
+    {
+      "node": "GoogleTrends",
+      "service": "google-trends",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://trends.google.it/trending/rss",
+            "query": {
+              "geo": "IT"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=utf-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss xmlns:atom=\"http://www.w3.org/2005/Atom\" xmlns:ht=\"https://trends.google.com/trending/rss\" version=\"2.0\">\n  <channel>\n    <title>Daily Search Trends</title>\n    <description>Recent searches</description>\n    <link>https://trends.google.com/trending/rss?geo=IT</link>\n    <atom:link href=\"https://trends.google.com/trending/rss?geo=IT\" rel=\"self\" type=\"application/rss+xml\"/>\n\n  </channel>\n</rss>\n"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "public feed; no connector"
+      },
+      "note": "Google Trends daily trending RSS for Italy (ht: namespace: approx_traffic, news_item title/url/picture/source)"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Google Sheets"
+  ],
+  "writeReplies": [
+    {
+      "node": "Google Sheets",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1TrendsBench3132SheetIdeas0aB1cD2eF3gH4iJ5",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Foglio1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1TrendsBench3132SheetIdeas0aB1cD2eF3gH4iJ5:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1TrendsBench3132SheetIdeas0aB1cD2eF3gH4iJ5",
+              "replies": [
+                {}
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Sheets connector that writes cells"
+      },
+      "note": "Sheets v4.5 append (defineBelow) to the overlay's spreadsheet: sheet properties and the tab's values (shared with Get saved keywords' routes), POST :batchUpdate, then PUT values per row (write-default)"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Get saved keywords returns no rows, so GoogleTrends and everything after it get no item and do not run (the feed is served empty anyway)"
+    ],
+    "offline": "Google Sheets maps its abstract column from $json.abstract, a field Mapping never sets (the text is in summary); the canned n8n run of 2026-11-16 shows n8n writes the row anyway. Get saved keywords and Google Sheets name no spreadsheet (empty document id, a template placeholder the overlay fills, with the empty Jina key). Article texts are short stand-ins"
+  }
+}

@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "template": 4506,
+  "sha256": "e532c3e9d22aba3c765b734771815810cba53166dbf187bb37520cc0337aa6f1",
+  "variant": "normal",
+  "now": "2026-11-16T16:00:00.000Z",
+  "about": "a new video is posted; the scrape is still running at the first status check and done at the second; its subtitles have no timestamps in the description yet, so metadata is generated and the video updated",
+  "trigger": {
+    "node": "Trigger New Video Posted",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {
+          "title": "Build a Home Media Server with Docker Compose",
+          "link": "https://www.youtube.com/watch?v=dQ7bench4506",
+          "pubDate": "2030-01-15T15:58:00+00:00",
+          "author": "Pixel & Pipeline",
+          "id": "yt:video:dQ7bench4506",
+          "isoDate": "2030-01-15T15:58:00.000Z"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Trigger New Video Posted",
+      "service": "youtube-rss",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.youtube.com/feeds/videos.xml",
+            "query": {
+              "channel_id": "UCq7bench4506YtChannel01"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "text/xml; charset=UTF-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<feed xmlns:yt=\"http://www.youtube.com/xml/schemas/2015\" xmlns:media=\"http://search.yahoo.com/mrss/\" xmlns=\"http://www.w3.org/2005/Atom\">\n <link rel=\"self\" href=\"http://www.youtube.com/feeds/videos.xml?channel_id=UCq7bench4506YtChannel01\"/>\n <id>yt:channel:q7bench4506YtChannel01</id>\n <yt:channelId>q7bench4506YtChannel01</yt:channelId>\n <title>Pixel &amp; Pipeline</title>\n <link rel=\"alternate\" href=\"https://www.youtube.com/channel/UCq7bench4506YtChannel01\"/>\n <author><name>Pixel &amp; Pipeline</name><uri>https://www.youtube.com/channel/UCq7bench4506YtChannel01</uri></author>\n <published>2019-03-02T10:11:12+00:00</published>\n <entry>\n  <id>yt:video:dQ7bench4506</id>\n  <yt:videoId>dQ7bench4506</yt:videoId>\n  <yt:channelId>q7bench4506YtChannel01</yt:channelId>\n  <title>Build a Home Media Server with Docker Compose</title>\n  <link rel=\"alternate\" href=\"https://www.youtube.com/watch?v=dQ7bench4506\"/>\n  <author><name>Pixel &amp; Pipeline</name><uri>https://www.youtube.com/channel/UCq7bench4506YtChannel01</uri></author>\n  <published>2030-01-15T15:58:00+00:00</published>\n  <updated>2030-01-15T15:58:00+00:00</updated>\n  <media:group><media:title>Build a Home Media Server with Docker Compose</media:title><media:description>Step by step: Jellyfin, Sonarr and a reverse proxy.</media:description></media:group>\n </entry>\n</feed>\n"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "public feed; no connector"
+      },
+      "note": "the channel's Atom feed (channel id from the overlay); in manual mode the RSS Feed Read Trigger emits the feed's first entry only, so the feed holds one"
+    },
+    {
+      "node": "Check IF Finished",
+      "service": "apify",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.apify.com/v2/acts/streamers~youtube-scraper/runs/last",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "data": {
+                "id": "HG7ML7M8z78YcAPEB",
+                "actId": "h7sDV53CddomktSi5",
+                "status": "RUNNING",
+                "startedAt": "2026-11-16T16:00:02.000Z",
+                "finishedAt": null,
+                "defaultDatasetId": "WkzbQMuFYuamGv3YF",
+                "buildNumber": "0.3.41"
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.apify.com/v2/acts/streamers~youtube-scraper/runs/last",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "data": {
+                "id": "HG7ML7M8z78YcAPEB",
+                "actId": "h7sDV53CddomktSi5",
+                "status": "SUCCEEDED",
+                "startedAt": "2026-11-16T16:00:02.000Z",
+                "finishedAt": "2026-11-16T16:00:41.000Z",
+                "defaultDatasetId": "WkzbQMuFYuamGv3YF",
+                "buildNumber": "0.3.41"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Apify connector"
+      },
+      "note": "GET the actor's last run (token in the query); replies in turn: RUNNING then SUCCEEDED"
+    },
+    {
+      "node": "Get DataSet",
+      "service": "apify",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.apify.com/v2/acts/streamers~youtube-scraper/runs/last/dataset/items",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": [
+              {
+                "title": "Build a Home Media Server with Docker Compose",
+                "id": "dQ7bench4506",
+                "url": "https://www.youtube.com/watch?v=dQ7bench4506",
+                "viewCount": 1843,
+                "date": "2030-01-15T15:58:00.000Z",
+                "likes": 211,
+                "channelName": "Pixel & Pipeline",
+                "channelUrl": "https://www.youtube.com/channel/UCq7bench4506YtChannel01",
+                "duration": "00:08:41",
+                "text": "Step by step: Jellyfin, Sonarr and a reverse proxy.",
+                "subtitles": [
+                  {
+                    "srt": "1\n00:00:00,000 --> 00:00:06,500\nToday we build a home media server from scratch with Docker Compose.\n\n2\n00:01:10,000 --> 00:01:16,000\nFirst, the compose file: Jellyfin, Sonarr and Caddy as a reverse proxy.\n\n3\n00:03:40,000 --> 00:03:47,000\nNext, hardware transcoding: pass the GPU into the Jellyfin container.\n\n4\n00:06:20,000 --> 00:06:27,000\nFinally, backups: a nightly restic job for the config volumes.\n",
+                    "type": "user_generated",
+                    "language": "en"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Apify connector"
+      },
+      "note": "the run's dataset items (streamers/youtube-scraper output: title, id, url, text = description, subtitles[] with srt)"
+    }
+  ],
+  "models": [
+    "Generate Description",
+    "Mistral Cloud Chat Model"
+  ],
+  "writes": [
+    "Scrape Video",
+    "Update YTB Video"
+  ],
+  "writeReplies": [
+    {
+      "node": "Scrape Video",
+      "service": "apify",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.apify.com/v2/acts/streamers~youtube-scraper/runs",
+            "status": 201,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "data": {
+                "id": "HG7ML7M8z78YcAPEB",
+                "actId": "h7sDV53CddomktSi5",
+                "status": "READY",
+                "startedAt": "2026-11-16T16:00:02.000Z",
+                "finishedAt": null,
+                "defaultDatasetId": "WkzbQMuFYuamGv3YF",
+                "buildNumber": "0.3.41"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Apify connector"
+      },
+      "note": "starts the actor run with the video URL (POST /v2/acts/streamers~youtube-scraper/runs); 201 with the run object"
+    },
+    {
+      "node": "Update YTB Video",
+      "service": "youtube",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "PUT",
+            "url": "https://www.googleapis.com/youtube/v3/videos",
+            "status": 200,
+            "body": {
+              "kind": "youtube#video",
+              "etag": "bench-etag-4506",
+              "id": "dQ7bench4506",
+              "snippet": {
+                "title": "Build a Home Media Server with Docker Compose",
+                "categoryId": "28",
+                "description": "(updated)",
+                "tags": []
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured YouTube connector"
+      },
+      "note": "YouTube v1 video update: PUT /youtube/v3/videos?part=snippet, status, recordingDetails with {id, snippet: {title, categoryId, description, tags}}. The template sets no category, so categoryId is sent empty; YouTube's docs require it when the snippet is updated, so the real API may refuse the update; the fixture answers success (assumed)"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "If Recent: true",
+      "If Finished: false, then true after Wait",
+      "If Not Generated: true (description lacks 00:00)"
+    ],
+    "offline": "If Recent compares the entry's pubDate with n8n's wall clock (not frozen: README, Timezone), so the entries are dated in 2030 to count as posted in the last ten minutes whenever the bench runs; the Claude side's clock starts from n8n's startedAt, so it agrees. Wait is a parameterless Wait v1.1 (5 s) between status checks. The Apify token and channel id are template placeholders the overlay fills"
+  }
+}

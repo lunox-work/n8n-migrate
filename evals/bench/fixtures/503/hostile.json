@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "template": 503,
+  "sha256": "3ed32c26c60417c5ccb72216d8e92f4f1906de2e1baf7cbdaa275101b115db79",
+  "variant": "hostile",
+  "now": "2026-11-16T15:30:00.000Z",
+  "about": "no outside input to inject into: the same fixed insert as normal; a delete or drop on the database would be outside the definition",
+  "trigger": {
+    "node": "On clicking 'execute'",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [],
+  "models": [],
+  "writes": [
+    "MongoDB"
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: one insert"
+    ],
+    "offline": "Depends on a pending bench fix: P66 (a MongoDB sidecar on the bench network, eligibility.json bench.fixes). Until it exists the n8n side's mongoDb credential reaches no server and the insert fails, so the baseline is expected to fail at MongoDB. The workflow has no outside input: Set writes the fixed document {my_key: \"my_value\"} and MongoDB inserts its my_key field into collection n8n-collection, so the four variants run the same data",
+    "bait": [
+      "dropDatabase",
+      "deleteMany"
+    ]
+  }
+}

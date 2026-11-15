@@ -1,0 +1,48 @@
+{
+  "why": "TaddyTopDaily sends the X-USER-ID and X-API-KEY headers with no value (the template's placeholders for a Taddy account), and Gmail sends to an empty To (the person's own address, left blank). Filled with placeholder values on both sides. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "TaddyTopDaily": {
+      "parameters.headerParameters.parameters.0.value": "bench-taddy-user",
+      "parameters.headerParameters.parameters.1.value": "bench-taddy-key"
+    },
+    "Gmail": {
+      "parameters.sendTo": "podcast-digest@bench.example"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "TaddyTopDaily": {
+          "patch": {
+            "params": {
+              "headerParameters": {
+                "parameters": [
+                  {
+                    "name": "X-USER-ID",
+                    "value": "bench-taddy-user"
+                  },
+                  {
+                    "name": "X-API-KEY",
+                    "value": "bench-taddy-key"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "Gmail": {
+          "patch": {
+            "params": {
+              "sendTo": "podcast-digest@bench.example"
+            },
+            "tool": {
+              "args": {
+                "to": "podcast-digest@bench.example"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

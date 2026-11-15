@@ -1,0 +1,102 @@
+{
+  "why": "Get saved keywords and Google Sheets name no spreadsheet (empty document id, left for the user to pick), and CONFIG's jina_key is empty (the user's Jina key). Filled with a placeholder spreadsheet id (first tab, gid=0) and a placeholder key on both sides; the fixture's routes answer that spreadsheet. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "Get saved keywords": {
+      "parameters.documentId": {
+        "__rl": true,
+        "mode": "id",
+        "value": "1TrendsBench3132SheetIdeas0aB1cD2eF3gH4iJ5"
+      },
+      "parameters.sheetName": {
+        "__rl": true,
+        "mode": "list",
+        "value": "gid=0",
+        "cachedResultName": "Foglio1"
+      }
+    },
+    "Google Sheets": {
+      "parameters.documentId": {
+        "__rl": true,
+        "mode": "id",
+        "value": "1TrendsBench3132SheetIdeas0aB1cD2eF3gH4iJ5"
+      },
+      "parameters.sheetName": {
+        "__rl": true,
+        "mode": "list",
+        "value": "gid=0",
+        "cachedResultName": "Foglio1"
+      }
+    },
+    "CONFIG": {
+      "parameters.assignments.assignments.2.value": "bench-jina-key"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Get saved keywords": {
+          "patch": {
+            "params": {
+              "documentId": {
+                "__rl": true,
+                "mode": "id",
+                "value": "1TrendsBench3132SheetIdeas0aB1cD2eF3gH4iJ5"
+              },
+              "sheetName": {
+                "__rl": true,
+                "mode": "list",
+                "value": "gid=0",
+                "cachedResultName": "Foglio1"
+              }
+            }
+          }
+        },
+        "Google Sheets": {
+          "patch": {
+            "params": {
+              "documentId": {
+                "__rl": true,
+                "mode": "id",
+                "value": "1TrendsBench3132SheetIdeas0aB1cD2eF3gH4iJ5"
+              },
+              "sheetName": {
+                "__rl": true,
+                "mode": "list",
+                "value": "gid=0",
+                "cachedResultName": "Foglio1"
+              }
+            }
+          }
+        },
+        "CONFIG": {
+          "patch": {
+            "params": {
+              "assignments": {
+                "assignments": [
+                  {
+                    "id": "25d7e553-9678-40ad-bb69-e4eb4bce4d11",
+                    "name": "min_traffic",
+                    "type": "number",
+                    "value": 500
+                  },
+                  {
+                    "id": "decd0a3d-ddc5-45c3-a56f-ee1f14705019",
+                    "name": "max_results",
+                    "type": "number",
+                    "value": 3
+                  },
+                  {
+                    "id": "12cdd78a-45a7-499e-8fe5-0ab6a7da8a10",
+                    "name": "jina_key",
+                    "type": "string",
+                    "value": "bench-jina-key"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

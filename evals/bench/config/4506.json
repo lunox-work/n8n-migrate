@@ -1,0 +1,51 @@
+{
+  "why": "Trigger New Video Posted reads the feed of channel_id=[YOUR_CHANNEL_ID], and Scrape Video, Check IF Finished and Get DataSet call Apify with token=YOUR_TOKEN_HERE (template placeholders). Filled with a placeholder channel id and token on both sides. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "Trigger New Video Posted": {
+      "parameters.feedUrl": "https://www.youtube.com/feeds/videos.xml?channel_id=UCq7bench4506YtChannel01"
+    },
+    "Scrape Video": {
+      "parameters.url": "https://api.apify.com/v2/acts/streamers~youtube-scraper/runs?token=bench-apify-token"
+    },
+    "Check IF Finished": {
+      "parameters.url": "https://api.apify.com/v2/acts/streamers~youtube-scraper/runs/last?token=bench-apify-token"
+    },
+    "Get DataSet": {
+      "parameters.url": "https://api.apify.com/v2/acts/streamers~youtube-scraper/runs/last/dataset/items?token=bench-apify-token"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Trigger New Video Posted": {
+          "patch": {
+            "params": {
+              "feedUrl": "https://www.youtube.com/feeds/videos.xml?channel_id=UCq7bench4506YtChannel01"
+            }
+          }
+        },
+        "Scrape Video": {
+          "patch": {
+            "params": {
+              "url": "https://api.apify.com/v2/acts/streamers~youtube-scraper/runs?token=bench-apify-token"
+            }
+          }
+        },
+        "Check IF Finished": {
+          "patch": {
+            "params": {
+              "url": "https://api.apify.com/v2/acts/streamers~youtube-scraper/runs/last?token=bench-apify-token"
+            }
+          }
+        },
+        "Get DataSet": {
+          "patch": {
+            "params": {
+              "url": "https://api.apify.com/v2/acts/streamers~youtube-scraper/runs/last/dataset/items?token=bench-apify-token"
+            }
+          }
+        }
+      }
+    }
+  }
+}

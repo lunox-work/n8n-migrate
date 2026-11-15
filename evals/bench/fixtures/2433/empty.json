@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "template": 2433,
+  "sha256": "7f1aef14b75ea882658b48bced96b89fcb32ef82fe392bb4cfed96bb09fe0a7d",
+  "variant": "empty",
+  "now": "2026-11-16T13:00:00.000Z",
+  "about": "the chart for the genre has no episodes: Split Out emits nothing and no mail is sent",
+  "trigger": {
+    "node": "Schedule",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T08:00:00.000-05:00",
+          "Readable date": "November 16th 2026, 8:00:00 am",
+          "Readable time": "8:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "08",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "TaddyTopDaily",
+      "service": "taddy",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.taddy.org/",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "data": {
+                "getTopChartsByGenres": {
+                  "topChartsId": "TECHNOLOGY-US-2026-11-16",
+                  "podcastEpisodes": []
+                }
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured podcast-directory connector"
+      },
+      "note": "Taddy GraphQL: POST https://api.taddy.org/ with the query as a form field (bodyParameters, n8n's default form-urlencoded body) and the X-USER-ID / X-API-KEY headers the overlay fills; the reply is {data: {getTopChartsByGenres: {topChartsId, podcastEpisodes: [...]}}}"
+    }
+  ],
+  "models": [
+    "Summarize Podcast"
+  ],
+  "writes": [
+    "Request Audio Crop",
+    "Whisper Transcribe Audio",
+    "Gmail"
+  ],
+  "writeReplies": [
+    {
+      "node": "Gmail",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/send",
+            "status": 200,
+            "body": {
+              "id": "19a8f2c4b1000433",
+              "threadId": "19a8f2c4b1000433",
+              "labelIds": [
+                "SENT"
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "send_message",
+            "args": {
+              "subject": "Podcast Review"
+            },
+            "result": {
+              "id": "19a8f2c4b1000433",
+              "threadId": "19a8f2c4b1000433",
+              "labelIds": [
+                "SENT"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Gmail v2.1 send: POST /users/me/messages/send (To from the overlay)"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no episode reaches If Downloads Ready; Gmail not reached"
+    ],
+    "offline": "Audio is a few stand-in bytes, not real MP3: the cutter and Whisper answers are fixed. The Aspose cutter is a public web tool with no API docs; its reply shapes come from the template's expressions. Wait (parameterless v1.1, 5 s) only runs when a cut is not ready, which no variant serves. The overlay fills the empty Taddy headers and the Gmail recipient the template leaves blank (Gmail v2.1 send throws 'Invalid email address' on an empty To)"
+  }
+}

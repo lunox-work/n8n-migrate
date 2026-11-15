@@ -1,0 +1,258 @@
+{
+  "schemaVersion": 1,
+  "template": 2433,
+  "sha256": "7f1aef14b75ea882658b48bced96b89fcb32ef82fe392bb4cfed96bb09fe0a7d",
+  "variant": "malformed",
+  "now": "2026-11-16T13:00:00.000Z",
+  "about": "one episode whose title carries quotes, a line break and 600 extra characters, and a transcript that is empty; Final Data splices the title into raw JSON",
+  "trigger": {
+    "node": "Schedule",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T08:00:00.000-05:00",
+          "Readable date": "November 16th 2026, 8:00:00 am",
+          "Readable time": "8:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "08",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "TaddyTopDaily",
+      "service": "taddy",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.taddy.org/",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "data": {
+                "getTopChartsByGenres": {
+                  "topChartsId": "TECHNOLOGY-US-2026-11-16",
+                  "podcastEpisodes": [
+                    {
+                      "uuid": "b1d2c3e4-0000-4000-8000-000000002431",
+                      "name": "Episode 47: \"Why\nAI Agents Fail\" — a very long title xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                      "audioUrl": "https://traffic.megaphone.fm/BENCH2433M.mp3",
+                      "podcastSeries": {
+                        "uuid": "a9e8d7c6-0000-4000-8000-000000002431",
+                        "name": "Latent \"Space\""
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured podcast-directory connector"
+      },
+      "note": "Taddy GraphQL: POST https://api.taddy.org/ with the query as a form field (bodyParameters, n8n's default form-urlencoded body) and the X-USER-ID / X-API-KEY headers the overlay fills; the reply is {data: {getTopChartsByGenres: {topChartsId, podcastEpisodes: [...]}}}"
+    },
+    {
+      "node": "Download Podcast",
+      "service": "podcast-audio",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://traffic.megaphone.fm/BENCH2433M.mp3",
+            "status": 200,
+            "headers": {
+              "content-type": "audio/mpeg"
+            },
+            "bodyBase64": "SUQzAwAAAAAAAGJlbmNoLW1wMy1mdWxsLTA="
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "plain file download"
+      },
+      "note": "each episode's audioUrl, a few stand-in bytes (not real audio)"
+    },
+    {
+      "node": "Get Download Link",
+      "service": "aspose-audio-cutter",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.products.aspose.app/audio/cutter/api/cutter/HandleStatus",
+            "query": {
+              "fileRequestId": "5c1e9a00-3b7d-4f2e-9a61-bench2433cut"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "Status": "Ok",
+              "Data": {
+                "DownloadLink": "https://api.products.aspose.app/audio/cutter/api/Download/bench-0/episode-cut.mp3",
+                "FileName": "episode-cut.mp3"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no connector"
+      },
+      "note": "status poll by fileRequestId; Data.DownloadLink set when the cut is ready (shape assumed from the template's If Downloads Ready)"
+    },
+    {
+      "node": "Download Cut MP3",
+      "service": "aspose-audio-cutter",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.products.aspose.app/audio/cutter/api/Download/bench-0/episode-cut.mp3",
+            "status": 200,
+            "headers": {
+              "content-type": "audio/mpeg"
+            },
+            "bodyBase64": "SUQzAwAAAAAAAGJlbmNoLW1wMy1jdXQtMA=="
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "plain file download"
+      }
+    }
+  ],
+  "models": [
+    "Summarize Podcast"
+  ],
+  "writes": [
+    "Request Audio Crop",
+    "Whisper Transcribe Audio",
+    "Gmail"
+  ],
+  "writeReplies": [
+    {
+      "node": "Request Audio Crop",
+      "service": "aspose-audio-cutter",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.products.aspose.app/audio/cutter/api/cutter",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "Status": "Ok",
+              "Data": {
+                "FileRequestId": "5c1e9a00-3b7d-4f2e-9a61-bench2433cut"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no connector; a public web tool's upload endpoint"
+      },
+      "note": "multipart upload of the episode (field 1) with convertOption 08:00-24:00; the template reads Data.FileRequestId. Response shape assumed from the template's own expressions (no public API docs). One POST per episode, replied in turn"
+    },
+    {
+      "node": "Whisper Transcribe Audio",
+      "service": "openai-audio",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/audio/transcriptions",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "text": ""
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "transcription stays with the provider"
+      },
+      "note": "POST /v1/audio/transcriptions multipart (model whisper-1, file); default response_format json gives {text}. Not a model path the shim answers, so the transcript is fixed here, one per episode in turn"
+    },
+    {
+      "node": "Gmail",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/send",
+            "status": 200,
+            "body": {
+              "id": "19a8f2c4b1000433",
+              "threadId": "19a8f2c4b1000433",
+              "labelIds": [
+                "SENT"
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "send_message",
+            "args": {
+              "subject": "Podcast Review"
+            },
+            "result": {
+              "id": "19a8f2c4b1000433",
+              "threadId": "19a8f2c4b1000433",
+              "labelIds": [
+                "SENT"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Gmail v2.1 send: POST /users/me/messages/send (To from the overlay)"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "If Downloads Ready: true"
+    ],
+    "offline": "Audio is a few stand-in bytes, not real MP3: the cutter and Whisper answers are fixed. The Aspose cutter is a public web tool with no API docs; its reply shapes come from the template's expressions. Wait (parameterless v1.1, 5 s) only runs when a cut is not ready, which no variant serves. The overlay fills the empty Taddy headers and the Gmail recipient the template leaves blank (Gmail v2.1 send throws 'Invalid email address' on an empty To). Final Data writes the title into raw JSON text unescaped (its replace swaps a quote for itself), so a quote in the title is expected to make Final Data fail in n8n"
+  }
+}

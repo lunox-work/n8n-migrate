@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "template": 2572,
+  "sha256": "d484c4eeefe95223d7c1504243bd398bb2ff3c726e1b45f62281d2929d506230",
+  "variant": "malformed",
+  "now": "2026-11-16T15:00:00.000Z",
+  "about": "the storage URL serves a truncated PDF (180 bytes, no xref or trailer)",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Download File",
+      "service": "supabase-storage",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://cflobdhpqwnoisuctsoc.supabase.co/storage/v1/object/public/my_storage/software_engineer_resume_example.pdf",
+            "status": 200,
+            "headers": {
+              "content-type": "application/pdf"
+            },
+            "bodyBase64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgODQyXSAvQ29u"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "public file URL; no connector"
+      },
+      "note": "a truncated PDF: Extract Document PDF is expected to fail on it in n8n"
+    }
+  ],
+  "models": [],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: one CV, one model call, Parsed JSON is the result"
+    ],
+    "offline": "OpenAI - Analyze CV is an LLM API over HTTP (POST api.openai.com/v1/chat/completions, response_format json_schema) whose URL is written as an expression with nothing to evaluate (a leading =, no {{ }}); the bench's model routing and validate.mjs take any =-prefixed URL as built at run time and refuse it in models, so it is left out of models until that is fixed (pending bench fix, PROPOSALS P86). The mock still forwards the request to the shim by host and path (no route answers it). Parsed JSON parses the reply's message content, so a reply that is not JSON fails there. The resume PDF is a one-page stand-in written for the bench"
+  }
+}
