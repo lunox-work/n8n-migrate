@@ -85,6 +85,14 @@ the person's key is not a substitution. Flagged steps:
   (`SKILL/runtime/src/hook.mjs`).
 - **Preflight.** Definition hash, every named tool present, no blocked step
   reachable from a trigger. Fails closed.
+- **Hosts.** `allow.http` holds the hosts and path prefixes written in each
+  step; every request is checked against it at run time
+  (`SKILL/runtime/src/engine.mjs` `checkContainment`), and a secret goes only
+  to its own hosts. A URL built at run time that writes its own address in the
+  expression (`'https://api.github.com/repos/' + …`) may reach only the
+  addresses written there (`convert.mjs` `writtenTargets()`); one whose host
+  comes from data (`{{ $json.url }}`) is allowed to `*`, which preflight
+  refuses until the person names its hosts in `overrides.json` `allow.http`.
 - **Ledger.** `sending` before each write, `sent` after. A `sending` with no
   `sent` stops the workflow until `resolve`.
 - **Resume.** The next start continues an open run with the same id (replay

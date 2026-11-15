@@ -850,6 +850,12 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       review(step, `the model picks the feed URL; it can reach only the ${targets.length} URL(s) written in the tool's URL parameter`);
       return;
     }
+    const written = writtenTargets(url);
+    if (written.length) {
+      for (const t of written) addHttp("GET", t.host, t.pathPrefix, `${who}: URL built at run time, limited to the addresses written in it`);
+      review(step, `the feed URL is built at run time; it may reach only ${written.map((t) => t.host + t.pathPrefix).join(", ")}, written in the step (any other host is refused at run time)`);
+      return;
+    }
     addHttp("GET", "*", undefined, `${who}: URL built at run time`);
     review(step, "the feed URL is built at run time; narrow allow.http to its host in overrides.json");
   };
@@ -880,6 +886,13 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       if (target) {
         addHttp(h.method, target.host, target.pathPrefix);
         addSecret(secretName, entry.credentialType, target.host);
+      } else if (writtenTargets(url).length) {
+        const written = writtenTargets(url);
+        for (const t of written) {
+          addHttp(h.method, t.host, t.pathPrefix, `step "${name}": URL built at run time, limited to the addresses written in it`);
+          addSecret(secretName, entry.credentialType, t.host);
+        }
+        review(step, `the request URL is built at run time; it may reach only ${written.map((t) => t.host + t.pathPrefix).join(", ")} (any other host is refused at run time)`);
       } else {
         addHttp(h.method, "*", undefined, `step "${name}": URL built at run time`);
         review(step, "the request URL is built at run time; narrow allow.http to its host in overrides.json");
@@ -1193,13 +1206,18 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       const methodOut = isExpr(method) ? "*" : String(method).toUpperCase();
       if (isExpr(method)) review(step, "the HTTP method is set by an expression");
       const target = urlTarget(params.url);
+      const written = target ? [] : writtenTargets(params.url);
       if (target) addHttp(methodOut, target.host, target.pathPrefix);
-      else {
+      else if (written.length) {
+        for (const t of written) addHttp(methodOut, t.host, t.pathPrefix, `step "${name}": URL built at run time, limited to the addresses written in it`);
+        review(step, `the request URL is built at run time; it may reach only ${written.map((t) => t.host + t.pathPrefix).join(", ")}, written in the step (any other host is refused at run time)`);
+      } else {
         addHttp(methodOut, "*", undefined, `step "${name}": URL built at run time`);
         review(step, "the request URL is built at run time; narrow allow.http to its host in overrides.json");
       }
       if (step.auth?.secret) {
         addSecret(step.auth.secret, step.auth.credentialType, target?.host);
+        for (const t of written) addSecret(step.auth.secret, step.auth.credentialType, t.host);
         for (const host of refs.toolMaps.credentialHosts?.[step.auth.credentialType] ?? []) addSecret(step.auth.secret, step.auth.credentialType, host);
       }
       if (params.options?.pagination?.pagination?.paginationMode === "responseContainsNextURL") review(step, "pagination follows a next URL from the response; a page on another host than the first request's is refused at run time");
@@ -1649,6 +1667,24 @@ function staticTarget(url) {
   return t;
 }
 
+// A URL built at run time by an expression that writes its own address(es): the origins the
+// author typed inside the expression (string literals such as 'https://api.github.com/repos/'
+// in a function that builds the rest) are the only hosts it may reach, each with the path
+// written before the literal's last "/". Requests to any other host are refused at run time by
+// containment (engine.mjs checkContainment), so data cannot steer the request elsewhere. An
+// expression that writes no full origin (`{{ $json.url }}`, `'https://' + $json.domain`) has
+// an open host and stays `*`, refused by preflight until the person narrows it. -> [{host,
+// pathPrefix}] or [] (also for a URL urlTarget() already reads).
+export function writtenTargets(url) {
+  if (typeof url !== "string" || !url.startsWith("=") || urlTarget(url)) return [];
+  const found = [];
+  for (const m of url.matchAll(/https?:\/\/[A-Za-z0-9.-]+(?::\d+)?(?:\/[A-Za-z0-9._~!&*+,;=:@%\/-]*)?/g)) {
+    const t = urlTarget(m[0]);
+    if (t && t.host.includes(".") && !found.some((x) => x.host === t.host && x.pathPrefix === t.pathPrefix)) found.push(t);
+  }
+  return found;
+}
+
 function mergeAllow(allow, secrets, sub) {
   for (const t of sub.allow?.tools ?? []) if (!allow.tools.some((x) => x.connector === t.connector && x.tool === t.tool)) allow.tools.push(clone(t));
   for (const h of sub.allow?.http ?? []) if (!allow.http.some((x) => x.method === h.method && x.host === h.host && (x.pathPrefix ?? "") === (h.pathPrefix ?? ""))) allow.http.push(clone(h));
@@ -1731,8 +1767,12 @@ function buildHttpTool(tn, ts, review, addHttp, addSecret, refs) {
   const inputSchema = { type: "object", properties: props, required: Object.keys(props) };
   const lit = String(url).replace(/\{[A-Za-z_][\w-]*\}.*$/, "");
   const target = lit.startsWith("=") ? urlTarget(lit) : urlTarget(lit.replace(/[^/]*$/, "") || lit);
+  const written = target ? [] : writtenTargets(String(url));
   if (target) addHttp(method, target.host, target.pathPrefix);
-  else {
+  else if (written.length) {
+    for (const t of written) addHttp(method, t.host, t.pathPrefix, `agent tool "${tn}": URL built at run time, limited to the addresses written in it`);
+    review(ts, `the tool's URL is built at run time; it may reach only ${written.map((t) => t.host + t.pathPrefix).join(", ")}, written in the tool (any other host is refused at run time)`);
+  } else {
     addHttp(method, "*", undefined, `agent tool "${tn}": URL built at run time`);
     review(ts, "the tool's URL is built at run time; narrow allow.http to its host in overrides.json");
   }
@@ -1743,6 +1783,7 @@ function buildHttpTool(tn, ts, review, addHttp, addSecret, refs) {
     const name = ts.credentials[credType] ?? creds[0][1];
     ts.auth = { credentialType: credType, secret: name };
     addSecret(name, credType, target?.host);
+    for (const t of written) addSecret(name, credType, t.host);
     for (const host of refs.toolMaps.credentialHosts?.[credType] ?? []) addSecret(name, credType, host);
   }
   return { inputSchema, effect: method === "GET" ? "read" : "write" };

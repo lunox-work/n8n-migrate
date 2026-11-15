@@ -409,3 +409,30 @@ test("Basic LLM Chain on a text-completion model sends only the prompt, as n8n's
   const chat = convertJson(chain("@n8n/n8n-nodes-langchain.lmChatOpenAi")).definition.steps.Chain.model;
   assert.equal(chat.system, "=You are a helpful assistant.");
 });
+
+test("a URL built at run time that writes its own address may reach only that address; an open host stays refused", async () => {
+  const { writtenTargets } = await import("../skills/n8n-to-claude/scripts/convert.mjs");
+  assert.deepEqual(writtenTargets("={{ (function (r) { return 'https://api.github.com/repos/' + r.owner + '/' + r.repo; })($json) }}"), [{ host: "api.github.com", pathPrefix: "/repos/" }]);
+  assert.deepEqual(writtenTargets("={{ $json.url }}"), []);
+  assert.deepEqual(writtenTargets("={{ 'https://' + $json.domain + '/x' }}"), []);
+  assert.deepEqual(writtenTargets("={{ `https://api.example.com/v1/${$json.id}` }}"), [{ host: "api.example.com", pathPrefix: "/v1/" }]);
+  assert.deepEqual(writtenTargets("=https://api.example.com/v1/{{ $json.id }}"), []);
+  const flow = (url) => ({
+    id: "rt01",
+    name: "Run-time URL",
+    nodes: [manual, { parameters: { url, options: {} }, name: "Fetch", type: "n8n-nodes-base.httpRequest", typeVersion: 4.2, position: [200, 0] }],
+    connections: link("Start", "Fetch"),
+    settings: { executionOrder: "v1" },
+  });
+  const written = convertJson(flow("={{ 'https://api.example.com/v1/items/' + $json.id }}")).definition;
+  assert.deepEqual(written.allow.http.map((a) => [a.method, a.host, a.pathPrefix]), [["GET", "api.example.com", "/v1/items/"]]);
+  const ok = await run(written, { clock: CLOCK, virtualTime: true, trigger: [{ id: 7 }], host: { http: async (r) => (assert.equal(r.url, "https://api.example.com/v1/items/7"), { status: 200, headers: {}, body: "{\"ok\":true}" }) } });
+  assert.equal(ok.status, "done", JSON.stringify(ok.error));
+  const open = convertJson(flow("={{ $json.url }}")).definition;
+  assert.equal(open.allow.http[0].host, "*");
+  // Data cannot steer a written-address request to another host: refused at run time.
+  const steered = convertJson(flow("={{ $json.base ?? 'https://api.example.com/v1/' }}")).definition;
+  const bad = await run(steered, { clock: CLOCK, virtualTime: true, trigger: [{ base: "https://evil.example/collect" }], host: { http: async () => ({ status: 200, headers: {}, body: "{}" }) } });
+  assert.equal(bad.status, "failed");
+  assert.match(bad.error.message, /not in the definition's allowlist/);
+});
