@@ -411,3 +411,38 @@ Bench changes decided by the maintainer, not loop iterations (no acceptance rule
 - Analyzer kinds from the release-time label check (no ids; the labels and their comparison are held-out material):
   - An Execute Workflow Trigger that the same workflow calls by `$workflow.id` is reported as a sub-workflow with no caller, and that wake-up wins over the trigger that starts the run. Two dev templates show it (`compare-labels`-style check: self-call plus Execute Workflow Trigger, wake-up `subworkflow`, reason "no caller in this export").
   - Decided by the maintainer (2026-11-15): a Python Code node is a `review` requirement (translated to JavaScript by the model and flagged until a dry run passes; dev 1992 shows it), never silently clean; n8n's own REST API over HTTP Request stays an `http` step but gets a `review` note that it depends on the n8n instance staying online after cutover (the cutover checklist names it). The held-out-only analyzer kind from the label check was removed from this file so it cannot steer.
+
+## R3d: bench P45–P47 and P52–P66, 2894, baseline `r3-base` (100 dev templates; outside the loop)
+
+- Bench decisions (PROPOSALS.md, commit aa93529): applied P45, P46, P47, P54, P57, P58, P60, P62, P63, P64, P65; in part P52, P55, P56, P59, P61; deferred P53, P66. Dev marked `expect.n8nFails`: 4352, 5110, 2328, 1826; `n8nCannotRun`: 2090, 2859 (no database sidecar). P47's self-test found that the claude driver's LLM calls over HTTP were refused by the replay shim (chunked body forwarded with a length); fixed.
+- `r3d-check` (0 `claude -p`, commit 2a36506): 2894's canned check no longer fails with EACCES (P49); 2454 runs on all four variants with P61's Outlook dummy (not marked); 3442 and 3121 stop at the shim's model call cap in the caption loop (P65).
+- Found during `r3-base` and fixed (commit b965a38): Form Trigger v2.2 keeps its path in `options.path` (2878's first container run with P49's form pages posted to the webhook id); an unknown (community-node) credential type is a failed baseline `unsupported`, not a bench error (5338). 2878 then hung in its form submission (P67) and was measured with `--no-n8n-check`; 2878 and 5338 were re-run in the same tag.
+- `r3-base` (commits 2a36506 and b965a38, plain `convert.mjs`, replayed models, all 100 round-3 dev templates, P50's rule: nothing compared fails gate 4; 46 `claude -p` runs, ledger 671 → 717: 37 claude-driver runs, the rest live n8n recordings of templates first measured in this round): **18 of 100 pass** (1953, 2063, 2139, 2167, 2197, 2299, 2384, 2413, 2473, 2552, 2703, 2729, 2777, 3102, 3904, 4573, 5035, 6270), **gate sum 424**. Failures by gate: 3: 66, 4: 16. By bucket: unmapped node 54, field map 11, runner bug 8, bench defect 5, fixture 3, expression translation 1. Passes that compared no effect (counted): 7 (2777, 2413, 6270, 2729, 2703, 2384 reply; 2473 model inputs). Nothing compared (gate 4 fail): 3 (1747, 890, 585). `n8nCannotRun` 8 (1073, 1978, 1992, 2090, 2320, 2859, 5230, 5338); `n8nFails` 4 (1826, 2328, 4352, 5110; 4352's row reads `confirmed: false` because n8n names the node only in its message, fixed in b965a38); one-shot without both: 18 of 88. Connector-limited: 2722. Claude-driver slips: 1 of 37 (2197 hostile, retried, not repeated).
+- Against the latest earlier row of the same template (70 templates: `rel2-dev`, `rel2-held-b`): 1747 9 → 4 and 890 9 → 4 (P50, bench got stricter), 1826 same gate with the cause naming `expect.n8nFails`; the other 67 the same gate and cause. Seeded dev 31–60 had no earlier row: 2299 passes, 2722, 1962, 2163, 2605, 2749, 1963 stop at gate 4, 585 nothing compared, 22 at gate 3.
+- Starting point for loop round 3: 18 of 100, gate sum 424, the per-template rows of `r3-base`. Acceptance rules as PLAN Phase 6, flips 0 (the one slip did not repeat).
+
+Failing templates of `r3-base` by first failed gate and general cause (a template under every kind its gate names; sole blocker in brackets):
+
+Gate 4 (16):
+
+1. **Nothing compared** (manual workflow whose result stays in its last node; P50's other option open, P70): 585, 890, 1747.
+2. **Agent or chain prompt built differently**: 2749 (older agent's system message option not carried: the Claude side sends the default "You are a helpful assistant"), 1980 (Basic LLM Chain on a completion model sends the system message where n8n sends the user's text), 2163 (OpenAI node message: the instruction text before the lead is missing and the per-item calls pair with different leads), 1962 (Summarization Chain gets `{}`: the loaded PDF text does not reach the chain), 2860 (Summarization Chain document as JSON text where n8n sends `key: value` lines).
+3. **Agent tool names from the node name instead of the name typed in the tool**: 1963 (Code Tool `my_color_selector`), 2085 (three workflow tools).
+4. **Connector shapes behind the fixture** (P1): 4722 (Gmail headers), 2415 (Notion property ids), 2722 (Gmail `From` display name; connector-limited).
+5. **Comparer table gaps** (P68): 2605 (Google Places `searchText` and Sheets `batchUpdate` sent over REST by the Claude side), 1900 (legacy OpenAI `/v1/edits`, answered by a Claude model step on the Claude side).
+6. **Converter defect**: 2614 (Drive upload file name JSON-quoted; P46 now folds n8n's upload into one create, so the name is the last difference).
+
+Gate 3 (66; preflight unless marked):
+
+1. **Request URL built at run time** (allowed to any host until narrowed): 16 [4] — 2006, 2180, 2315, 2557, 2567, 3100, 3121, 3224, 3291, 3442, 3986, 4846, 5110, 5230, 5657, 13270 (sole: 2567, 3100, 4846, 13270).
+2. **App REST request template missing**: WordPress post 7 [3] (2187, 2813, 3018, 3085, 3086, 3291, 5230; sole 2813, 3018, 3085), Facebook Graph 4 [1] (2803, 3086, 3840, 4352; sole 3840), SerpApi agent tool 3 [2] (1954, 1959, 2324; sole 1954, 2324), Discord 3 [1] (1938, 3121, 3442; sole 1938), LinkedIn 2 (3086, 4352), Hacker News 2 [1] (2026, 2557; sole 2026), one each: S3 upload (2417, sole), YouTube upload (5110), Airtable upsert (5657), NocoDB (2180), uProc (1073), urlscan.io (1992), Wikipedia tool (1959), Blotato community node (5338, sole).
+3. **Database steps** (open decision 1): 10 [4] — 1073, 2090, 2315, 2508, 2621, 2803, 2859, 3393, 5230, 5993 (sole 2090, 2508, 2859, 3393).
+4. **Vector stores**: 8 [5] — 1960, 2165, 2621, 2658, 2753, 3986, 5148, 5993 (sole 1960, 2165, 2658, 2753, 5148).
+5. **Logic node not implemented**: Markdown v1 5 (2006, 2454, 2878, 3224, 3986), HTML Extract v1 3 (1073, 1748, 1862), HTTP Request v1 1 (1073); plus HTML extraction refused at run time after a clean preflight (1951, sole).
+6. **Connector operations without a tool map**: Outlook message update/move/send 3 [1] (1992, 2454; 2786 sole), Jira issue and comment operations (2468), Excel worksheet append (2275, sole), Drive file move (3016, sole), Drive file download (2894), Calendar event update with uncaptured schemas (2328), Sheets row update (1862), editing a document in place 2 [2] (2872, 3025).
+7. **Media through the original provider** (transcription): 3 — 2178, 2894, 3442.
+8. **Forms that wait** (out of scope v1): 3 [1] — 2187, 2878, 3669 (sole 3669).
+9. **Connector write without its required arguments**: 3 — 2178, 2468, 2878.
+10. **Model step not converted**: 2 [2] — 2098 (OpenAI Assistants), 2395 (Question and Answer Chain).
+11. **Edit Image** (GraphicsMagick): 2420 (sole). **SMTP** Send Email: 1978 (sole; `n8nCannotRun`).
+12. **Baseline failed** (`fixture`): 1826 (`n8nFails`), 2271 (the stand-in draw omits a level of the structured-output wrapper), 2320 (`n8nCannotRun`); their Claude side passes gate 3 in process except 1826 (HTTP Request binary download unsupported).
