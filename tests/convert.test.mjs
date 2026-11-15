@@ -367,6 +367,31 @@ test("OpenAI JSON output: n8n's JSON system message first; a JSON reply becomes 
   }
 });
 
+test("Basic LLM Chain image messages: the item's image goes to the model with the prompt appended, as n8n's chain sends it", async () => {
+  const flow = {
+    id: "img01",
+    name: "Image chain",
+    nodes: [
+      manual,
+      { parameters: { promptType: "define", text: "=Read the receipt", messages: { messageValues: [{ message: "=You read receipts." }, { type: "HumanMessagePromptTemplate", messageType: "imageBinary" }] } }, name: "Chain", type: "@n8n/n8n-nodes-langchain.chainLlm", typeVersion: 1.4, position: [200, 0] },
+      { parameters: { options: {} }, name: "LM", type: "@n8n/n8n-nodes-langchain.lmChatGoogleGemini", typeVersion: 1, position: [200, 200] },
+    ],
+    connections: { ...link("Start", "Chain"), LM: { ai_languageModel: [[{ node: "Chain", type: "ai_languageModel", index: 0 }]] } },
+    settings: { executionOrder: "v1" },
+  };
+  const step = convertJson(flow).definition.steps.Chain;
+  assert.deepEqual(step.model.messages, [{ role: "user", image: { binary: "data" } }]);
+  assert.ok(!(step.reviewReasons ?? []).includes("image messages are not mapped"));
+  const def = convertJson(flow).definition;
+  const seen = [];
+  const r = await run(def, { clock: CLOCK, virtualTime: true, trigger: [{ json: {}, binary: { data: { mimeType: "image/png", data: "iVBORw0KGgo=", fileName: "r.png" } } }], host: { model: async (p) => (seen.push(p), "ok") } });
+  assert.equal(r.status, "done", JSON.stringify(r.error));
+  assert.equal(seen[0].prompt, undefined);
+  assert.deepEqual(seen[0].messages, [{ role: "user", content: [{ type: "image", mimeType: "image/png", data: "iVBORw0KGgo=" }, { type: "text", text: "Read the receipt" }] }]);
+  const bad = await run(def, { clock: CLOCK, virtualTime: true, trigger: [{ json: {}, binary: { data: { mimeType: "application/pdf", data: "JVBERg==" } } }], host: { model: async () => "ok" } });
+  assert.match(bad.error.message, /application\/pdf is not a supported type of binary data\. Only images are supported\./);
+});
+
 test("Basic LLM Chain on a text-completion model sends only the prompt, as n8n's chain does", async () => {
   const chain = (lmType) => ({
     id: "lm01",

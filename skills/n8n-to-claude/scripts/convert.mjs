@@ -1460,6 +1460,18 @@ function hintOf(name, step) {
   return { provider: shortType(step.n8n.type), ...(model !== undefined && model !== "" ? { model: String(model) } : {}), node: name };
 }
 
+// A Basic LLM Chain's image message (n8n 2.47.7 ChainLLM/methods/imageUtils.js
+// createImageMessage): imageBinary sends the item's binary under binaryImageDataKey (default
+// "data") as a data URI, imageUrl the URL; imageDetail "auto" sends no detail. The runtime
+// resolves {image: {binary|url, detail?}} per item (nodes2.mjs chainImages()).
+function chainImage(x) {
+  if (x?.type !== "HumanMessagePromptTemplate") return undefined;
+  const detail = x.imageDetail && x.imageDetail !== "auto" ? { detail: x.imageDetail } : {};
+  if (x.messageType === "imageBinary") return { binary: x.binaryImageDataKey || "data", ...detail };
+  if (x.messageType === "imageUrl" && x.imageUrl) return { url: x.imageUrl, ...detail };
+  return undefined;
+}
+
 function convertModel(name, step, { params, type, v, review, translate, subnodesTo, steps, block }) {
   const p = params;
   const [lm] = subnodesTo(name, "ai_languageModel");
@@ -1471,10 +1483,10 @@ function convertModel(name, step, { params, type, v, review, translate, subnodes
   };
   let model;
   if (type === LC + "chainLlm") {
-    const msgs = (p.messages?.messageValues ?? []).map((x) => ({ role: { AIMessagePromptTemplate: "assistant", HumanMessagePromptTemplate: "user" }[x.type] ?? "system", kind: x.messageType ?? "text", content: x.message ?? x.imageUrl }));
-    if (msgs.some((m) => m.kind !== "text")) reasons.push("image messages are not mapped");
+    const msgs = (p.messages?.messageValues ?? []).map((x) => ({ role: { AIMessagePromptTemplate: "assistant", HumanMessagePromptTemplate: "user" }[x.type] ?? "system", kind: x.messageType ?? "text", content: x.message ?? x.imageUrl, image: chainImage(x) }));
+    if (msgs.some((m) => m.kind !== "text" && (m.role !== "user" || !m.image))) reasons.push("image messages are not mapped");
     const system = msgs.filter((m) => m.role === "system").map((m) => m.content);
-    const rest = msgs.filter((m) => m.role !== "system").map(({ role, content }) => ({ role, content }));
+    const rest = msgs.filter((m) => m.role !== "system").map(({ role, content, image }) => (image && role === "user" ? { role, image } : { role, content }));
     const schema = p.hasOutputParser || v < 1.4 ? parserOf() : undefined;
     // A text-completion model (an lm* node that is not lmChat*): n8n's chain sends only the
     // prompt (LangChain's PromptTemplate `{query}`); the chain's messages are never sent.

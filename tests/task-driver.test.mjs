@@ -189,6 +189,36 @@ test("long instructions are paged under the Bash output limit; outputSchema answ
   }
 });
 
+test("a model request's image is written to a file the session reads, never printed as base64", async () => {
+  const { command } = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/runtime/src/driver.mjs")).href);
+  const core = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/runtime/src/index.mjs")).href);
+  const dir = mkdtempSync(join(tmpdir(), "n2c-img-"));
+  try {
+    const def = {
+      schemaVersion: 1,
+      name: "Image",
+      steps: {
+        Start: { kind: "trigger", n8n: { type: "n8n-nodes-base.manualTrigger", typeVersion: 1 }, params: {} },
+        Ask: { kind: "model", n8n: { type: "@n8n/n8n-nodes-langchain.chainLlm", typeVersion: 1.4 }, params: {}, model: { prompt: "=Read it", messages: [{ role: "user", image: { binary: "data" } }] } },
+      },
+      edges: [{ from: "Start", fromOutput: 0, to: "Ask", toInput: 0 }],
+      allow: { tools: [], http: [], sql: [] },
+      secrets: [],
+    };
+    writeFileSync(join(dir, "definition.json"), JSON.stringify(def));
+    const png = "iVBORw0KGgoAAAANSUhEUg==";
+    const a = await command("start", [], { trigger: JSON.stringify([{ json: {}, binary: { data: { mimeType: "image/png", data: png } } }]) }, { core, dir, cwd: dir, stdin: () => "" });
+    const m = /\[image 1: ([^\]]+\.png)\]/.exec(a.text);
+    assert.ok(m, a.text);
+    assert.equal(readFileSync(m[1]).toString("base64"), png);
+    assert.ok(!a.text.includes(png));
+    assert.match(a.text, /look at it with the Read tool/);
+    assert.match(a.text, /Read it/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("an agent's final answer that reads as JSON stays text without an output schema; tool-call intents are still JSON", async () => {
   const { paths, command } = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/runtime/src/driver.mjs")).href);
   const core = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/runtime/src/index.mjs")).href);

@@ -6224,6 +6224,30 @@ const httpTemplateStep = {
 
 const LC = "@n8n/n8n-nodes-langchain.";
 const subnodesOf = (exec, type) => (exec.run.graph.subnodesOf[exec.name] ?? []).filter((s) => s.type === type).map((s) => ({ name: s.from, step: exec.run.definition.steps[s.from] })).filter((s) => s.step && s.step.settings?.disabled !== true);
+// A Basic LLM Chain's image messages (convert.mjs chainImage()), as n8n 2.47.7 builds them
+// (ChainLLM/methods/imageUtils.js, promptUtils.js finalizePromptTemplate): each becomes a user
+// message whose content is one image part, {type: "image", mimeType, data} (base64) from the
+// item's binary under its key, or {type: "image", url}; a binary that is not an image fails
+// the step as n8n does ("... is not a supported type of binary data. Only images are
+// supported."), a missing one with "No binary data set.". When the last message is an image,
+// n8n appends the prompt to that message as a text part instead of sending it as its own.
+function chainImages(exec, r, item, i) {
+  r.messages = r.messages.map((x) => {
+    if (!isObject(x?.image)) return x;
+    const detail = x.image.detail ? { detail: String(x.image.detail) } : {};
+    if (x.image.url !== undefined) return { role: "user", content: [{ type: "image", url: String(x.image.url), ...detail }] };
+    const bin = item?.binary?.[String(x.image.binary ?? "data")];
+    if (!bin) throw err(exec, "No binary data set.", { itemIndex: i });
+    if (!String(bin.mimeType ?? "").startsWith("image/")) throw err(exec, `${bin.mimeType} is not a supported type of binary data. Only images are supported.`, { itemIndex: i });
+    return { role: "user", content: [{ type: "image", mimeType: bin.mimeType, data: String(bin.data ?? ""), ...detail }] };
+  });
+  const last = r.messages.at(-1);
+  if (r.prompt !== undefined && Array.isArray(last?.content) && last.content.some((p) => p?.type === "image")) {
+    last.content.push({ type: "text", text: typeof r.prompt === "string" ? r.prompt : JSON.stringify(r.prompt) });
+    delete r.prompt;
+  }
+}
+
 function canDeriveRequest(step) {
   const t = step.n8n?.type;
   return (step.kind === "model" && t === LC + "chainLlm") || (step.kind === "agent" && t === LC + "agent");
@@ -6349,19 +6373,20 @@ const modelStep = {
       const r = { kind: "model", itemIndex: i };
       if (derived) {
         r.prompt = promptOf(exec, i, "text");
-        const messages = exec.param("messages.messageValues", i, []).map((x) => ({ role: { AIMessagePromptTemplate: "assistant", HumanMessagePromptTemplate: "user" }[x.type] ?? "system", type: x.messageType ?? "text", content: x.message ?? x.imageUrl }));
-        if (messages.some((x) => x.type !== "text")) throw unsupported(exec, "Image messages in the Basic LLM Chain");
+        const messages = exec.param("messages.messageValues", i, []).map((x) => ({ role: { AIMessagePromptTemplate: "assistant", HumanMessagePromptTemplate: "user" }[x.type] ?? "system", type: x.messageType ?? "text", content: x.message ?? x.imageUrl, image: x.type === "HumanMessagePromptTemplate" && x.messageType === "imageBinary" ? { binary: x.binaryImageDataKey || "data", ...(x.imageDetail && x.imageDetail !== "auto" ? { detail: x.imageDetail } : {}) } : x.type === "HumanMessagePromptTemplate" && x.messageType === "imageUrl" && x.imageUrl ? { url: x.imageUrl, ...(x.imageDetail && x.imageDetail !== "auto" ? { detail: x.imageDetail } : {}) } : undefined }));
+        if (messages.some((x) => x.type !== "text" && !x.image)) throw unsupported(exec, "Image messages in the Basic LLM Chain");
         // A text-completion model (lm*, not lmChat*) gets only the prompt, as n8n's chain sends it.
         const completion = /^lm(?!Chat)[A-Za-z]/.test(m.provider ?? "");
         const system = messages.filter((x) => x.role === "system").map((x) => x.content);
         if (system.length && !completion) r.system = system.join("\n");
-        const rest = messages.filter((x) => x.role !== "system").map(({ role, content }) => ({ role, content }));
+        const rest = messages.filter((x) => x.role !== "system").map(({ role, content, image }) => (image ? { role, image } : { role, content }));
         if (rest.length && !completion) r.messages = rest;
       } else {
         if (m.prompt !== undefined) r.prompt = exec.evaluate(m.prompt, i);
         if (m.system !== undefined) r.system = exec.evaluate(m.system, i);
         if (m.messages) r.messages = exec.evaluate(m.messages, i);
       }
+      if (r.messages?.some((x) => isObject(x?.image))) chainImages(exec, r, items[i], i);
       if (m.outputSchema) r.outputSchema = m.outputSchema;
       if (derived && m.model) r.model = m.model;
       return r;
