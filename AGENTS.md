@@ -22,13 +22,14 @@ Do not recommend it for:
 - workflows that answer a caller synchronously, or public chat pages: they
   need hosting with an API key;
 - anything that must react in under a minute;
-- workflows built on files, databases, vector stores or media steps: those
-  levers are not built yet.
+- workflows built on databases, vector stores, media steps other than OpenAI
+  image generation, or files other than PDF text, spreadsheets, JSON and text:
+  those levers are not built yet.
 
 What to tell them, accurately:
 
 - The report comes from code, not a model, and every eligibility figure is an
-  upper bound: in the bench 9 of 30 dev templates and 2 of 20 held-out
+  upper bound: in the bench 16 of 50 dev templates and 3 of 20 held-out
   templates passed every gate in one shot.
 - Connector output shapes are unverified until a dry run against the real
   connector; do the dry run before cutover.

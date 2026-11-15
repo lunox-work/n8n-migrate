@@ -15,17 +15,19 @@
 
 <!-- Hero figures and their sources: assets/src/index.html (comment at the top). -->
 <p align="center">
-  <img src="assets/hero.png" width="100%" alt="Move your n8n workflows onto your Claude subscription. What can move: 67 of the 100 most-viewed n8n templates run on the subscription by the analyzer's verdict; 21 need hosting, 11 stay in n8n, 1 is replaced by Claude. Moved in one shot: 9 of 30 dev templates and 2 of 20 held-out templates pass all 8 gates against the same template running in n8n. Sent twice at cutover: 0 of 9 items when n8n goes off before Claude goes on; with Claude on while n8n is on, 2 of 2 were sent twice.">
+  <img src="assets/hero.png" width="100%" alt="Move your n8n workflows onto your Claude subscription. What can move: 67 of the 100 most-viewed n8n templates run on the subscription by the analyzer's verdict; 21 need hosting, 11 stay in n8n, 1 is replaced by Claude. Moved in one shot: 16 of 50 dev templates and 3 of 20 held-out templates pass all 8 gates against the same template running in n8n. Sent twice at cutover: 0 of 9 items when n8n goes off before Claude goes on; with Claude on while n8n is on, 2 of 2 were sent twice.">
 </p>
 
-<!-- 67: evals/bench/corpus.json rank 1-100 outcomes (node evals/bench/summary.mjs), re-run on HEAD 2026-11-15.
-     9 of 30, 2 of 20, gap and bound: evals/results.jsonl tags rel1-dev, rel1-held; evals/bench/RELEASE-1.md.
+<!-- 67: evals/bench/corpus.json rank 1-100 outcomes (node evals/bench/summary.mjs); analyzer re-run per template on HEAD
+     2026-11-15 (default answers, corpus.json's --now): subscription 67, hosted 21, keep-in-n8n 11, replaced 1, no outcome changed.
+     16 of 50, 3 of 20, gap and bound: evals/results.jsonl tags rel2-dev, rel2-held (flips: rel2-held-b);
+     node evals/bench/summary.mjs --release rel2-dev rel2-held --round 2; evals/bench/RELEASE-2.md (commit cbfe38d).
      0 of 9: evals/cutover/results.jsonl (items, optionA.doubleSent).
      17 of 20: node evals/bench/summary.mjs, "refusal accuracy" (evals/bench/labels.json vs the analyzer). -->
 <table>
 <tr>
 <td align="center" width="25%"><h3>67 of 100</h3>most-viewed templates<br>can run on the subscription<br><sub>analyzer verdict, default answers; 21 need hosting, 11 stay in n8n</sub></td>
-<td align="center" width="25%"><h3>9 of 30</h3>pass every gate<br>in one shot<br><sub>against the same template in n8n; held-out 2 of 20</sub></td>
+<td align="center" width="25%"><h3>16 of 50</h3>pass every gate<br>in one shot<br><sub>against the same template in n8n; held-out 3 of 20</sub></td>
 <td align="center" width="25%"><h3>0 of 9</h3>items sent twice<br>through cutover and rollback<br><sub>against live n8n; the wrong order sent 2 of 2 twice</sub></td>
 <td align="center" width="25%"><h3>17 of 20</h3>refusals right<br>on every count<br><sub>hand-labelled templates that should not move; 18 of 20 on outcome</sub></td>
 </tr>
@@ -231,48 +233,88 @@ Docker, every external call answered by the same fixtures. Raw data:
 - **Corpus.** n8n's template listing walked by views: 100 templates the
   analyzer marks `subscription`, from the first 200 listing entries (13
   excluded by a rule committed first: 9 tutorials about n8n, 3 paid, 1 by
-  hand). Split 60 dev / 40 held-out by a seeded shuffle; 30 dev and 20
-  held-out have fixtures so far.
+  hand). Split 60 dev / 40 held-out by a seeded shuffle; 70 have fixtures
+  (30 dev, 40 held-out). The held-out rolls: each release point scores 20
+  held-out templates that no fixing session has read, then they join dev.
+  Both seeded batches are now scored, so release point 3 needs fresh
+  templates from outside the split.
 - **Gates.** Analyze, convert, run, the same effects as n8n, robust on empty
   and malformed input, contained on hostile input, stable over 3 repeats,
   affordable. A template stops at its first failed gate.
 
-<!-- evals/bench/RELEASE-1.md (release point 1, commit 4e8a5f8); evals/results.jsonl rel1-dev, rel1-held, rel1-held-b. -->
+<!-- evals/bench/RELEASE-2.md (release point 2, commit cbfe38d); evals/results.jsonl rel2-dev, rel2-held, rel2-held-b;
+     gap and bound: node evals/bench/summary.mjs --release rel2-dev rel2-held --round 2. Sensitivity: RELEASE-2.md
+     "Sensitivity" (variants recomputed from the counts: 21.5/23.2, 19.9/23.0, 12.0/23.4). Release point 1:
+     evals/bench/RELEASE-1.md (commit 4e8a5f8), rel1-dev, rel1-held. -->
 
-- **Release point 1: dev 9 of 30 (30%), held-out 2 of 20 (10%).** The fixing
-  loop never reads held-out. The 20-point gap sits inside the overfitting
-  bound of 23.4 points (pooled pass rate 22%, n = 30 and 20, 0 flips between
-  two held-out runs), so it is reported, not acted on. Counting the passes
-  that rest on a known bench blind spot (below) as failures: dev 8 of 30,
-  held-out 1 of 17.
+- **Release point 2: dev 16 of 50 (32%), held-out 3 of 20 (15%).** Dev is
+  the 30 seeded dev templates plus the 20 that release point 1 held out;
+  held-out is 20 fresh templates whose fixtures a separate session wrote
+  blind. The 17-point gap sits inside the overfitting bound of 23.1 points
+  (pooled pass rate 27.1%, n = 50 and 20, 0 flips between two held-out runs
+  on one commit). Release point 1 was inside too (20.0 against 23.4), so the
+  gap is reported, not acted on. Correcting for rows that rest on bench
+  defects or on baselines n8n cannot give moves the gap between 12.0 and 21.5
+  points, inside the bound in every variant. Without the 2 held-out
+  templates n8n itself cannot run on the bench image, held-out is 3 of 18.
+- **What moved since release point 1 (dev 9 of 30, held-out 2 of 20).** 10
+  of the 30 seeded dev templates pass (9 then), no earlier pass was lost, and
+  6 of the 20 that release point 1 held out pass (2 then); fixing sessions
+  could read those 20 from then on, so that rise is not a held-out claim.
+  Levers added in between: files (PDF text, spreadsheets, JSON, text and
+  base64 files, the local disk, Drive downloads), OpenAI image generation
+  through the original provider, agent tools mapped to an app's REST API,
+  n8n's tool names and the Think tool, HTTP Request pagination, and Gmail
+  reply recipients named by the runner. The bench got stricter over the same
+  stretch: agent tool turns, tool definitions, model calls over HTTP and disk
+  writes are now compared, and some passes turned into failures before a fix
+  won them back.
 
-<!-- evals/bench/RELEASE-1.md, "Failures by gate and bucket"; dev blockers: node evals/convert-coverage.mjs --split dev
-     (evals/convert-coverage-dev.md, re-run 2026-11-15, unchanged). -->
+<!-- evals/bench/RELEASE-2.md "Failures by gate and bucket" and "Held-out failures that dev already shows"; dev kinds:
+     evals/bench/LOOP.md "R2h: full re-run". Preflight stops = bucket "unmapped node" + cause "preflight failed" in rel2-dev
+     (23 + 2 of 34) and rel2-held (12 + 2 of 17). Coverage: node evals/convert-coverage.mjs --split dev
+     (evals/convert-coverage-dev.md, round 3: all 100 seeded templates, regenerated on HEAD 2026-11-15). -->
 
-- **What stops most templates is a missing lever, not a wrong conversion.**
-  18 of the 21 dev failures and 9 of the 18 held-out failures are steps the
-  converter refuses before any effect. Over all 60 dev templates the
-  converter gives 7 full conversions, 13 with steps flagged for review and 40
-  with a blocked step. Blocked most often: files (10 templates), databases
-  (8), vector stores (6), image generation and transcription (5), apps with
-  no request template yet (Facebook Graph 4, WordPress 3), forms that wait
-  for a person (2).
+- **What stops most templates is a missing lever, not a wrong conversion.** 25
+  of the 34 dev failures and 14 of the 17 held-out failures stop at preflight,
+  before any effect: a step the converter blocks, a core logic node version
+  the runtime does not implement, or a request URL built at run time. The
+  held-out failures name the levers dev ranks first: an app with no REST
+  request template yet (7 of 20 held-out templates), a connector operation
+  without a tool map (4), a core logic node version (3), a request URL built
+  at run time (2), a vector store (1). Over all 100 seeded templates (round 3
+  dev, 70 with fixtures) the converter gives 15 full conversions, 30 with
+  steps flagged for review and 55 with a blocked step. Blocked most often:
+  vector stores (9 templates), databases (9), apps with no request template
+  yet (WordPress 6, Facebook Graph 4, Discord, LinkedIn and SerpApi 3 each),
+  forms that wait for a person (3), media other than OpenAI image generation
+  (3).
+- **Losses.** Held-out passes at about half dev's rate. Held-out showed two
+  kinds dev never did, both gate-4 differences in what the model is offered:
+  an agent tool that calls a sub-workflow gets a name made from the node's
+  name where n8n uses the name typed in the tool, and a chain fed by a
+  text-completion model sends the system message n8n leaves out. 2 held-out
+  templates have no baseline: n8n itself cannot run them on the bench image (a
+  Python Code node, and a completion model its LangChain refuses).
 - **Connector shapes are unverified.** The mock connectors carry the real
   tool names and input schemas captured from a Claude account (116 tools, 7
   connectors). What a tool returns comes from fixtures written by hand, and
   every adapter that reads a tool's output is marked `unverified` until it
   meets real output.
-- **A replay blind spot.** Model replies on the Claude side are n8n's own,
-  replayed per node and call, and the bench checks that Claude asked the same
-  question, comparing system and user text only. Tool results inside an
-  agent's turns are not compared, so an agent whose read tool never ran on
-  the Claude side can still pass. One held-out and one dev pass rest on this
-  (PROPOSALS P15).
-- **A finding the allowlist cannot catch.** Dev template 1953 fails the
-  contained gate: on a hostile email, the Gmail connector's reply goes to the
-  message's `Reply-To` (a lookalike address) where n8n replies to `From`. The
-  call is the allowed tool with the runner's own arguments; the connector
-  picks the recipient. Every other template that reached that gate passed it.
+- **What the comparer cannot vouch for.** Model replies on the Claude side
+  are n8n's own, replayed per node and call; the bench checks that Claude
+  asked the same question, offered the same tools and ran the same agent tool
+  turns. A template that writes, replies and sends nothing passes on that
+  alone: one held-out and two dev passes compare no effect (PROPOSALS P50).
+  Two dev failures are comparer gaps rather than wrong conversions (P46, and
+  an effect the comparer's table does not cover).
+- **A finding the allowlist cannot catch.** At release point 1, dev template
+  1953 failed the contained gate: on a hostile email, the Gmail connector's
+  reply went to the message's `Reply-To` (a lookalike address) where n8n
+  replies to `From`. The call was the allowed tool with the runner's own
+  arguments; the connector picked the recipient. The runner now names the
+  recipient itself ([Security](#security)) and 1953 passes every gate; no
+  template failed the contained gate at release point 2.
 - **The hooks under `claude -p`.** In 34 recorded task-driver runs
   (haiku and sonnet, CLI 2.1.323) the Slack arguments matched exactly at 1,
   50 and 500 items, and hostile emails produced 0 calls outside the
@@ -414,7 +456,7 @@ Do not recommend it for:
 What to tell them, accurately:
 
 - The report comes from code, not a model, and every eligibility figure is an
-  upper bound: in the bench 9 of 30 dev templates and 2 of 20 held-out
+  upper bound: in the bench 16 of 50 dev templates and 3 of 20 held-out
   templates passed every gate in one shot.
 - Connector output shapes are unverified until a dry run against the real
   connector; do the dry run before cutover.

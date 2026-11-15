@@ -1,9 +1,11 @@
 <!doctype html>
 <!-- Source of assets/hero.png; render with `PLAYWRIGHT=<dir with node_modules/playwright> node assets/src/render.mjs hero`.
      "67 of 100": evals/bench/corpus.json templates rank 1-100, analyzer outcome with default answers
-       (node evals/bench/summary.mjs: subscription 67, hosted 21, keep-in-n8n 11, replaced 1; re-run on HEAD 2026-11-15, same).
-     "9 of 30" and "2 of 20": evals/results.jsonl tags rel1-dev and rel1-held, reached = 9 (all 8 gates);
-       evals/bench/RELEASE-1.md (commit 4e8a5f8). Dev passes: 1747 2063 2167 2197 2413 2777 3102 4573 6270; held-out 2473 2703.
+       (node evals/bench/summary.mjs: subscription 67, hosted 21, keep-in-n8n 11, replaced 1; analyzer re-run per template
+       on HEAD 2026-11-15 with corpus.json's --now, same).
+     "16 of 50" and "3 of 20": evals/results.jsonl tags rel2-dev and rel2-held, passedAll (all 8 gates);
+       evals/bench/RELEASE-2.md (commit cbfe38d); node evals/bench/summary.mjs --release rel2-dev rel2-held --round 2.
+       Dev passes: 1747 1953 2063 2139 2167 2197 2413 2473 2703 2729 2777 3102 3904 4573 5035 6270; held-out 890 2384 2552.
      "0 sent twice": evals/cutover/results.jsonl (one e2e run, 2026-11-14): 9 items over 100 each sent by exactly one system
        across cutover and rollback; the rejected order (task on while n8n on) sent 2 of 2 twice (optionA.doubleSent). -->
 <html>
@@ -71,14 +73,14 @@ h1 em { font-style: normal; color: var(--ok); }
     </div>
     <div class="col">
       <div class="label">Moved in one shot</div>
-      <div class="num ok">9<small>of 30</small></div>
+      <div class="num ok">16<small>of 50</small></div>
       <div class="row">
-        <div class="rowlabel"><span>dev</span><span>9 of 30</span></div>
-        <div class="grid" id="dev" style="grid-template-columns: repeat(15, 1fr); gap: 5px"></div>
+        <div class="rowlabel"><span>dev</span><span>16 of 50</span></div>
+        <div class="grid" id="dev" style="grid-template-columns: repeat(25, 1fr); gap: 4px"></div>
       </div>
       <div class="row">
-        <div class="rowlabel"><span>held-out, never tuned on</span><span>2 of 20</span></div>
-        <div class="grid" id="held" style="grid-template-columns: repeat(15, 1fr); gap: 5px"></div>
+        <div class="rowlabel"><span>held-out, never tuned on</span><span>3 of 20</span></div>
+        <div class="grid" id="held" style="grid-template-columns: repeat(25, 1fr); gap: 4px"></div>
       </div>
       <div class="of">pass all 8 gates against the same<br>template running in n8n itself</div>
     </div>
@@ -96,7 +98,7 @@ h1 em { font-style: normal; color: var(--ok); }
       <div class="of">cutover and rollback against<br>live n8n, one Gmail-poll workflow</div>
     </div>
   </div>
-  <div class="foot">n8n 2.47.7 in Docker as the baseline · top 100 by views, 2026-11-14 · evals/bench/RELEASE-1.md, evals/cutover/</div>
+  <div class="foot">n8n 2.47.7 in Docker as the baseline · top 100 by views, 2026-11-14 · evals/bench/RELEASE-2.md, evals/cutover/</div>
 </section>
 
 <script>
@@ -104,8 +106,8 @@ h1 em { font-style: normal; color: var(--ok); }
 const outcomes = [...Array(67).fill("s"), ...Array(21).fill("m"), ...Array(11).fill("f"), "c"];
 document.getElementById("top").innerHTML = outcomes.map((k) => `<u class="${k}"></u>`).join("");
 const cells = (pass, of) => Array.from({ length: of }, (_, i) => `<u class="${i < pass ? "s" : "f"}"></u>`).join("");
-document.getElementById("dev").innerHTML = cells(9, 30);
-document.getElementById("held").innerHTML = cells(2, 20);
+document.getElementById("dev").innerHTML = cells(16, 50);
+document.getElementById("held").innerHTML = cells(3, 20);
 document.getElementById("once").innerHTML = cells(9, 9);
 document.getElementById("twice").innerHTML = Array.from({ length: 9 }, (_, i) => `<u class="${i < 2 ? "f" : ""}" style="${i < 2 ? "" : "visibility:hidden"}"></u>`).join("");
 </script>
