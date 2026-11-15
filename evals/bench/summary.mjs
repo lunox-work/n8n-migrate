@@ -43,6 +43,17 @@ const tag = args.includes("--tag") ? args[args.indexOf("--tag") + 1] : rows.at(-
 const latest = (t) => [...new Map(rows.filter((r) => r.tag === t).map((r) => [r.template, r])).values()];
 const mine = latest(tag);
 
+// PROPOSALS P21: templates whose fixture says the bench's n8n image cannot run the main path
+// (expect.n8nCannotRun), from the row or, for rows written before it, the normal fixture.
+const cannotRunOf = (r) => {
+  if (r.n8nCannotRun !== undefined) return r.n8nCannotRun;
+  try {
+    return JSON.parse(readFileSync(join(HERE, "fixtures", String(r.template), "normal.json"), "utf8")).expect?.n8nCannotRun ?? null;
+  } catch {
+    return null;
+  }
+};
+
 if (args.includes("--release")) {
   const i = args.indexOf("--release");
   const [devTag, heldTag] = [args[i + 1], args[i + 2]];
@@ -55,11 +66,23 @@ if (args.includes("--release")) {
   const passHeld = held.filter((r) => r.passedAll).length;
   const b = overfittingBound({ passDev, nDev, passHeld, nHeld, flips });
   const missing = { dev: [...devIds].filter((id) => !dev.some((r) => r.template === id)), heldOut: [...heldIds].filter((id) => !held.some((r) => r.template === id)) };
-  const out = { round: round.round, devTag, heldTag, dev: { passed: passDev, of: nDev }, heldOut: { passed: passHeld, of: nHeld }, flips, ...b, missing };
+  // PROPOSALS P49: templates the bench's n8n image cannot run (expect.n8nCannotRun) stay in n
+  // in the headline (a template without a baseline is not a pass, and n stays the round's
+  // fixtured size the bound was planned with); the gap without them, left out of n and of the
+  // pass counts on both sides, is reported beside it.
+  const nr = { dev: [...devIds].filter((id) => cannotRunOf(dev.find((r) => r.template === id) ?? { template: id })), heldOut: [...heldIds].filter((id) => cannotRunOf(held.find((r) => r.template === id) ?? { template: id })) };
+  const runnable = (rows, ids) => rows.filter((r) => !ids.includes(r.template));
+  const xDev = runnable(dev, nr.dev).filter((r) => r.passedAll).length;
+  const xHeld = runnable(held, nr.heldOut).filter((r) => r.passedAll).length;
+  const xb = nDev - nr.dev.length && nHeld - nr.heldOut.length ? overfittingBound({ passDev: xDev, nDev: nDev - nr.dev.length, passHeld: xHeld, nHeld: nHeld - nr.heldOut.length, flips }) : null;
+  const excludingN8nCannotRun = { n8nCannotRun: nr, dev: { passed: xDev, of: nDev - nr.dev.length }, heldOut: { passed: xHeld, of: nHeld - nr.heldOut.length }, ...(xb ?? {}) };
+  const out = { round: round.round, devTag, heldTag, dev: { passed: passDev, of: nDev }, heldOut: { passed: passHeld, of: nHeld }, flips, ...b, missing, excludingN8nCannotRun };
   if (json) console.log(JSON.stringify(out, null, 2));
   else {
     console.log(`release point, round ${round.round}: dev ${passDev}/${nDev} (${devTag}), held-out ${passHeld}/${nHeld} (${heldTag})`);
     console.log(`gap ${b.gap} points; bound ${b.bound} (pooled p ${b.pooled}%, 1.96·sqrt(p(1−p)(1/${nDev} + 1/${nHeld})) + 2 × ${flips} flips = ${b.flipsPoints} points): ${b.inside ? "inside" : "OVER"} the bound`);
+    const x = excludingN8nCannotRun;
+    if (nr.dev.length || nr.heldOut.length) console.log(`without templates n8n cannot run on the bench image (left out of n and passes; dev ${nr.dev.join(", ") || "none"}, held-out ${nr.heldOut.join(", ") || "none"}): dev ${x.dev.passed}/${x.dev.of}, held-out ${x.heldOut.passed}/${x.heldOut.of}${xb ? `, gap ${xb.gap}, bound ${xb.bound}: ${xb.inside ? "inside" : "OVER"}` : ""}`);
     if (missing.dev.length || missing.heldOut.length) console.log(`templates without a row in their tag (counted as not passing): dev ${missing.dev.join(", ") || "none"}; held-out ${missing.heldOut.join(", ") || "none"}`);
   }
   process.exit(0);
@@ -76,16 +99,6 @@ try {
   refusal = JSON.parse(labels.stdout).summary;
 } catch {}
 
-// PROPOSALS P21: templates whose fixture says the bench's n8n image cannot run the main path
-// (expect.n8nCannotRun), from the row or, for rows written before it, the normal fixture.
-const cannotRunOf = (r) => {
-  if (r.n8nCannotRun !== undefined) return r.n8nCannotRun;
-  try {
-    return JSON.parse(readFileSync(join(HERE, "fixtures", String(r.template), "normal.json"), "utf8")).expect?.n8nCannotRun ?? null;
-  } catch {
-    return null;
-  }
-};
 const passed = mine.filter((r) => r.passedAll);
 const limited = mine.filter((r) => !r.passedAll && r.connectorLimited);
 const rest = mine.filter((r) => !r.connectorLimited || r.passedAll);

@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkFixture } from "../evals/bench/validate.mjs";
+import { checkFixture, crossVariantErrors } from "../evals/bench/validate.mjs";
 
 const BENCH = join(dirname(fileURLToPath(import.meta.url)), "..", "evals", "bench");
 const VARIANTS = ["normal", "empty", "malformed", "hostile"];
@@ -16,13 +16,16 @@ test("every bench fixture validates, four variants per template", async () => {
   for (const id of ids) {
     const tpl = join(BENCH, "data", "wf", `${id}.json`);
     const raw = existsSync(tpl) ? JSON.parse(readFileSync(tpl, "utf8")) : null;
+    const byVariant = {};
     for (const v of VARIANTS) {
       const fx = JSON.parse(readFileSync(join(BENCH, "fixtures", id, `${v}.json`), "utf8"));
       assert.equal(fx.template, Number(id));
       assert.equal(fx.variant, v);
       const { errors } = await checkFixture(fx, raw);
       assert.deepEqual(errors, [], `${id}/${v}`);
+      byVariant[v] = fx;
     }
+    assert.deepEqual(crossVariantErrors(byVariant), [], id);
   }
 });
 

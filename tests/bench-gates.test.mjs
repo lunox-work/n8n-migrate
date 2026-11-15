@@ -980,3 +980,18 @@ test("P48: an unparsable fixture route URL is a validator error and a per-varian
   assert.deepEqual([g.pass, g.bucket], [false, "fixture"]);
   assert.match(g.cause, /^malformed: fixture route url cannot be parsed/);
 });
+
+test("P49: n8nCannotRun agrees across variants; fixture files placed in the n8n container belong to n8n's user", async () => {
+  const { crossVariantErrors } = await import("../evals/bench/validate.mjs");
+  const fx = (why) => ({ expect: why ? { n8nCannotRun: why } : {} });
+  assert.deepEqual(crossVariantErrors({ normal: fx("no Python runner"), empty: fx("no Python runner"), malformed: fx("no Python runner"), hostile: fx("no Python runner") }), []);
+  assert.deepEqual(crossVariantErrors({ normal: fx(), empty: fx(), malformed: fx(), hostile: fx() }), []);
+  assert.match(crossVariantErrors({ normal: fx("no Python runner"), empty: fx(), malformed: fx(), hostile: fx() })[0], /differs between variants \(normal: set, empty: none/);
+  // A workflow that writes the file a fixture placed (a relative path under /home/node) must be
+  // able to overwrite it: docker cp creates it as root, so it is handed to node:node.
+  const { copyInCommands, NAME } = await import("../evals/n8n/container.mjs");
+  const cmds = copyInCommands("/tmp/x/Demo_video.mp4", "/home/node/Demo_video.mp4");
+  assert.deepEqual(cmds[1], ["cp", "/tmp/x/Demo_video.mp4", `${NAME}:/home/node/Demo_video.mp4`]);
+  assert.deepEqual(cmds[2], ["exec", "-u", "root", NAME, "chown", "node:node", "/home/node/Demo_video.mp4"]);
+  assert.equal(cmds[0].at(-1), "/home/node");
+});

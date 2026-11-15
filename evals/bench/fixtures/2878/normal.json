@@ -15,6 +15,41 @@
           "formMode": "production"
         }
       }
+    ],
+    "formPages": [
+      {
+        "node": "Research Request",
+        "fields": [
+          "How do the main open-source vector databases compare for a 10-million-document retrieval system: query latency, filtering, and operating cost?",
+          "1",
+          "1",
+          [
+            "I understand higher depth and breath values I've selected may incur longer wait times and higher costs. I acknowledging this and wish to proceed with the research request."
+          ]
+        ]
+      },
+      {
+        "node": "Ask Clarity Questions",
+        "fields": [
+          "Self-hosted on our own servers; p95 query latency under 100 ms matters most."
+        ]
+      },
+      {
+        "node": "Ask Clarity Questions",
+        "fields": [
+          "Mostly metadata filters on date and customer id, combined with vector search."
+        ]
+      },
+      {
+        "node": "Ask Clarity Questions",
+        "fields": [
+          "A two-person team runs it, so operating effort counts as much as licence cost."
+        ]
+      },
+      {
+        "node": "Confirmation",
+        "fields": {}
+      }
     ]
   },
   "reads": [
@@ -1103,6 +1138,6 @@
       "JobType Router (subworkflow executions): initiate → Get Existing Row → Set In-Progress → learnings loop; learnings → SERP queries → RAG Web Browser per query; report → Get Existing Row1 → report → Notion blocks → Set Done",
       "Is Apify Auth Error?: false when results arrive; Is Depth Reached? and Has Content? are data- and model-driven"
     ],
-    "offline": "Not benchable past the first page: On form submission (a page with only an HTML field) is followed by Research Request, a Form node page that waits for the browser to submit the research prompt and depth/breadth, then one Ask Clarity Questions page per model-written question. The bench submits the trigger form once (--via form) and n8n parks the execution in waiting at Research Request, so every read and write here is unreached on the n8n side. The research itself runs in separate executions of this workflow (Initiate DeepResearch, waitForSubWorkflow false, then Generate Learnings/Generate Report through the DeepResearch Subworkflow trigger), which a single-execution comparison cannot follow. The fixture still answers Notion and Apify for a bench that can drive multi-page forms and child executions"
+    "offline": "On form submission (a page with only an HTML field) is followed by Form node pages: Research Request (the research prompt; the depth and breadth inputs that the page's HTML adds as field-1 and field-2, read by Set Variables as input-depth and input-breadth; the cost acknowledgement, a multiselect whose label is an expression), one Ask Clarity Questions page per model-written question (at most 3 by the prompt; the label is the question, so the answer goes by position), then Confirmation. trigger.formPages (P20, added for PROPOSALS P49) answers them in order, each when n8n waits for a page: with fewer than 3 questions a spare answer goes to the next waiting page (Confirmation, an HTML-only page) and later entries go to whatever waits next or are skipped once the execution ends; with canned models the question list is empty and the run ends after Research Request. The research runs in child executions of this workflow (Initiate DeepResearch, waitForSubWorkflow false, then Generate Learnings / Generate Report through the DeepResearch Subworkflow trigger), started before Confirmation and awaited by the n8n side (P20), so the pages after the questions do not change any effect. The same person answers the pages in every variant; the variants differ in what Notion and Apify return. The Claude side has no form pages (forms that wait are out of scope v1)"
   }
 }

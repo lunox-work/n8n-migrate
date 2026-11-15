@@ -253,10 +253,21 @@ export function exec(cmd, { input, allowFail = true, inherit = false } = {}) {
 }
 
 // The parent directory is made first (as root, owned by node), since `docker cp` needs it.
-export function copyIn(local, inside) {
+// `docker cp` creates the file as root. PROPOSALS P49: a fixture file the workflow also
+// writes (2894's Write Binary File writes the downloaded video to the relative path the
+// fixture's `file` read places it at, then reads it back) must be writable by n8n's user, so
+// the copied file is handed to node:node like its directory.
+export function copyInCommands(local, inside) {
   const dir = inside.replace(/\/[^/]*$/, "") || "/";
-  docker(["exec", "-u", "root", NAME, "sh", "-c", `mkdir -p "$1" && chown node:node "$1"`, "sh", dir]);
-  docker(["cp", local, `${NAME}:${inside}`]);
+  return [
+    ["exec", "-u", "root", NAME, "sh", "-c", `mkdir -p "$1" && chown node:node "$1"`, "sh", dir],
+    ["cp", local, `${NAME}:${inside}`],
+    ["exec", "-u", "root", NAME, "chown", "node:node", inside],
+  ];
+}
+
+export function copyIn(local, inside) {
+  for (const args of copyInCommands(local, inside)) docker(args);
 }
 
 export function copyOut(inside, local) {

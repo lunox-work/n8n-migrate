@@ -7,7 +7,8 @@
 // Errors (exit 1): schema violations, a hash that differs from corpus.json, node names that
 // are not enabled nodes of the template, a `models` entry the model shim does not answer (P18), a read with no http/n8n/file source, a connector
 // tool that is not captured, a hostile fixture without bait, a template folder missing a
-// variant. Warnings (errors with --strict): steps the analyzer marks read/unknown on the
+// variant, a route URL that cannot be parsed (P48), expect.n8nCannotRun not the same in all
+// four variants (P49). Warnings (errors with --strict): steps the analyzer marks read/unknown on the
 // main branch that the fixture neither feeds nor lists; a poll trigger's http list longer than
 // n8n's manual mode asks for (P22). Cross-checks against the template
 // need evals/bench/data/ (git-ignored; `node evals/bench/fetch.mjs --offline` or a fetch).
@@ -107,6 +108,16 @@ export async function checkFixture(fx, raw) {
   return { errors, warnings };
 }
 
+// PROPOSALS P49: what holds for a template, not a variant, must agree across its four fixtures:
+// expect.n8nCannotRun (the bench's n8n image cannot run the main path whatever the data), so
+// the row and summary.mjs never depend on which variant was read.
+export function crossVariantErrors(byVariant) {
+  const errors = [];
+  const why = Object.entries(byVariant).map(([v, fx]) => [v, fx?.expect?.n8nCannotRun ?? null]);
+  if (new Set(why.map(([, w]) => w)).size > 1) errors.push(`expect.n8nCannotRun differs between variants (${why.map(([v, w]) => `${v}: ${w === null ? "none" : "set"}`).join(", ")}); it describes the image, not the data, so all four carry the same text`);
+  return errors;
+}
+
 // PROPOSALS P48: why a fixture route's URL cannot be parsed, or null when it can.
 export function badRouteUrl(url) {
   try {
@@ -177,6 +188,7 @@ async function main() {
   for (const id of readdirSync(dir).filter((d) => statSync(join(dir, d)).isDirectory()).sort()) {
     const tplFile = join(HERE, "data", "wf", `${id}.json`);
     const raw = existsSync(tplFile) ? JSON.parse(readFileSync(tplFile, "utf8")) : null;
+    const byVariant = {};
     for (const v of VARIANTS) {
       const p = join(dir, id, `${v}.json`);
       if (!existsSync(p)) {
@@ -193,12 +205,17 @@ async function main() {
         bad++;
         continue;
       }
+      byVariant[v] = fx;
       const { errors, warnings } = await checkFixture(fx, raw);
       if (fx.template !== Number(id) || fx.variant !== v) errors.push("template or variant does not match the path");
       const fail = errors.length || (strict && warnings.length);
       if (fail) bad++;
       for (const e of errors) console.log(`${id}/${v}: ERROR ${e}`);
       for (const w of warnings) console.log(`${id}/${v}: ${strict ? "ERROR" : "warn"} ${w}`);
+    }
+    for (const e of crossVariantErrors(byVariant)) {
+      console.log(`${id}: ERROR ${e}`);
+      bad++;
     }
   }
   console.log(`${files} fixture files, ${bad} failing`);
