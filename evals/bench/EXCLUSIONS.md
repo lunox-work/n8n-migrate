@@ -41,3 +41,18 @@ Fixed on 2026-11-15, before it was applied to any template. The corpus exists so
 6. **Hand.** A template whose own configuration makes n8n fail in a way the lists cannot see (wiring, an expression over a step's input) is ineligible only with a one-line reason in its `corpus.json` entry (`r4Hand`), decided from the template alone, never from a bench result.
 
 Changing a list is a commit made before it is applied, like this section. Strata are the fetch's (`chat`, `manual`, `schedule`, `form`, `poll`, `other`).
+
+## Round 4 held-out
+
+Fixed on 2026-11-15, before any round-4 template was fetched or opened. Seed **20261116**. Round 4's held-out is 20 templates nobody has read: none from the Phase 5 overflow or the round-3 candidates left undrawn, whose verdicts are in `corpus.json`.
+
+1. **Walk.** `node evals/bench/fetch.mjs --top-up --round 4` reads the same listing (views, descending, 50 rows a page). It starts at the page holding the highest rank an earlier walk read. It applies the rules above, unchanged and in the same order, with the same analyzer settings (default answers, `--now 2026-11-16T00:00:00Z`, the checkout's analyzer). It keeps the same two skips: ids already in `corpus.json`, and templates in `evals/survey/data/wf` (P51). Requests are at least 1 s apart, with 3 tries and backoff. Template JSON stays git-ignored. Every new entry that no rule excludes also gets the round-4 eligibility verdict ("Round 4 eligibility" above, `eligible.mjs` `checkEligibility()`, `eligibility.json` as committed). It is written to `corpus.json` as `r4` (`eligible`/`ineligible`) with `r4Reasons`. New entries carry `topUp: 4`, and their pool is `fresh` only when eligible.
+2. **Stop.** The walk stops once every wake-up stratum has its quota of eligible round-4 candidates (chat 6, manual 5, schedule 4, poll 2, form 2, other 1), but first finishes the listing page it is on. The common strata therefore have more candidates than slots, and the draw is a real draw.
+3. **Draw.** `node evals/bench/split.mjs --fresh --round 4` uses round 3's method with this seed. It is a mulberry32 Fisher-Yates shuffle over the eligible round-4 entries sorted by id ascending, and each stratum takes its first quota in shuffled order. A template excluded after the draw (rule `hand`, or `r4Hand`) stays in the shuffle, and only its stratum moves to the next candidate (`--redraw`, recorded). The result goes to `splits.json` `heldOutFresh4`. Round 4 in `rounds`:
+   - **promoted:** round 3's 20 held-out (scored at release point 3).
+   - **dropped:** the 20 of those 120 that fail round-4 eligibility (AUDIT-R4.md), so dev is the 100 eligible.
+   - **held-out:** the 20 drawn.
+
+   `currentRound` becomes 4 only after release point 3 is committed. Until then, the P51 guards also skip every later round's held-out.
+
+4. **Labels.** Hand labels go in `labels-held4.json` and `LABELS-HELD4.md`. They are written from the template JSON alone, before anyone looks at the analyzer's output for these templates or reads their `corpus.json` entries. Then `compare-labels.mjs --labels evals/bench/labels-held4.json` runs. The labels are held-out material, like `labels-held3.json`.
