@@ -171,3 +171,11 @@ test("P87: modules a template's Code nodes require are named, builtins told apar
     { node: "T", module: "node:fs", builtin: true },
   ]);
 });
+
+test("P90: relative times in a fixture are filled from the run's start, the same on both sides", async () => {
+  const { fillRelativeTimes } = await import("../evals/bench/n8n-side.mjs");
+  const at = Date.parse("2026-11-16T09:00:00.000Z");
+  const fx = { trigger: { items: [{ json: { created: "{{bench.now-5m}}", day: "{{bench.now+1d|date}}", ts: "{{bench.now|epoch}}", note: "posted {{bench.now-2h|rfc2822}}", other: "{{ $json.x }}" } }] } };
+  assert.deepEqual(fillRelativeTimes(fx, at).trigger.items[0].json, { created: "2026-11-16T08:55:00.000Z", day: "2026-11-17", ts: 1794819600, note: "posted Mon, 16 Nov 2026 07:00:00 +0000", other: "{{ $json.x }}" });
+  assert.deepEqual(fillRelativeTimes(fx, "2026-11-16T09:00:00.000Z"), fillRelativeTimes(fx, at), "an ISO start (a recording's startedAt) counts the same");
+});

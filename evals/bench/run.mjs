@@ -424,7 +424,7 @@ async function benchTemplate(id, args, L) {
   const evaluate = async (rep) => {
     const out = { runs: {}, gates: {} };
     const g = out.gates;
-    const runV = async (v) => (out.runs[v] ??= await runInProcess(folder, loadFixture(id, v), { wf, recordings: withSynthetic((await need(v))?.modelCalls ?? [], loadFixture(id, v)), n8nEffects: recs[v]?.effects ?? [], n8nSources: recs[v]?.sources ?? {}, mode: args.modelMode, startedAt: recs[v]?.startedAt, runTime: runTime(recs[v]), log }));
+    const runV = async (v) => (out.runs[v] ??= await runInProcess(folder, loadFixture(id, v, { at: recs[v]?.startedAt }), { wf, recordings: withSynthetic((await need(v))?.modelCalls ?? [], loadFixture(id, v, { at: recs[v]?.startedAt })), n8nEffects: recs[v]?.effects ?? [], n8nSources: recs[v]?.sources ?? {}, mode: args.modelMode, startedAt: recs[v]?.startedAt, runTime: runTime(recs[v]), log }));
     const N = await runV("normal");
     g[3] = { ...gate3(N.res), driver: "inprocess" };
     // In replay mode the Claude side runs on n8n's recorded replies: a baseline that failed
@@ -447,7 +447,7 @@ async function benchTemplate(id, args, L) {
     if (!g[4].pass) return out;
     const vr = {};
     for (const v of ["empty", "malformed"].filter((x) => args.variants.includes(x))) {
-      const fx = loadFixture(id, v);
+      const fx = loadFixture(id, v, { at: recs[v]?.startedAt });
       const run = await runV(v);
       const n8nOk = recs[v]?.status === "success";
       const claudeOk = run.res.status === "done";
@@ -459,7 +459,7 @@ async function benchTemplate(id, args, L) {
     out.robust = vr;
     if (!g[5].pass) return out;
     if (args.variants.includes("hostile")) {
-      const fx = loadFixture(id, "hostile");
+      const fx = loadFixture(id, "hostile", { at: recs.hostile?.startedAt });
       const run = await runV("hostile");
       const n8nHits = baitHits(n8nEffects(recs.hostile, fx), fx.expect.bait ?? []);
       if (recs.hostile?.status === FIXTURE_ERROR) g[6] = { pass: false, bucket: "fixture", cause: `hostile: ${recs.hostile.error.message}`, driver: "inprocess" };
@@ -488,8 +488,8 @@ async function benchTemplate(id, args, L) {
       t.diagnostics ??= {};
       const D = t.diagnostics;
       if (!D.inprocessHostile && args.variants.includes("hostile")) {
-        const fx = loadFixture(id, "hostile");
         const rec = await need("hostile");
+        const fx = loadFixture(id, "hostile", { at: rec?.startedAt });
         const run = await runInProcess(folder, fx, { wf, recordings: withSynthetic(rec?.modelCalls ?? [], fx), n8nEffects: rec?.effects ?? [], n8nSources: rec?.sources ?? {}, mode: args.modelMode, startedAt: rec?.startedAt, runTime: runTime(rec), log });
         const n8nHits = baitHits(n8nEffects(rec, fx), fx.expect.bait ?? []);
         D.inprocessHostile = { run: { status: run.res.status, error: run.res.error?.message ?? null }, n8n: rec?.status, gate6: gate6({ claudeCalls: run.seen, allow: run.definition.allow ?? {}, claudeEffects: claudeEffects(run, fx), n8nBaitHits: n8nHits, bait: fx.expect.bait ?? [], baitHits, synthetic: syntheticOutcome(fx, { models: run.seen.models, http: run.seen.http }) }), calls: [...run.seen.tools.map((x) => `${x.connector}.${x.tool}`), ...run.seen.http.map((h) => `${h.method} ${h.url}`)] };
@@ -501,7 +501,7 @@ async function benchTemplate(id, args, L) {
           if (D[`claude:${v}`]) continue;
           log(`${id}/${v}: claude driver (haiku), diagnostic`);
           const rec = await need(v);
-          const fx = loadFixture(id, v);
+          const fx = loadFixture(id, v, { at: rec?.startedAt });
           const r = await runClaudeDriver(folder, fx, { wf, recordings: withSynthetic(rec?.modelCalls ?? [], fx), startedAt: rec?.startedAt, runTime: runTime(rec), label: `${args.tag}-${id}-${v}`, log });
           if (r.run || r.summary?.notRun) {
             const ce = r.effects.map((e) => claudeEffect(e, fx)).filter(Boolean);
@@ -527,7 +527,7 @@ async function benchTemplate(id, args, L) {
     for (const v of ["normal", "hostile"]) {
       if (!S[`claude:${v}`]) {
         log(`${id}/${v}: claude driver (haiku)`);
-        S[`claude:${v}`] = await runClaudeDriver(folder, loadFixture(id, v), { wf, recordings: withSynthetic((await need(v))?.modelCalls ?? [], loadFixture(id, v)), startedAt: recs[v]?.startedAt, runTime: runTime(recs[v]), label: `${args.tag}-${id}-${v}`, log });
+        S[`claude:${v}`] = await runClaudeDriver(folder, loadFixture(id, v, { at: recs[v]?.startedAt }), { wf, recordings: withSynthetic((await need(v))?.modelCalls ?? [], loadFixture(id, v, { at: recs[v]?.startedAt })), startedAt: recs[v]?.startedAt, runTime: runTime(recs[v]), label: `${args.tag}-${id}-${v}`, log });
         save();
       }
       // PROPOSALS P40: a protocol slip (the session broke the runner protocol; not a gate
@@ -537,7 +537,7 @@ async function benchTemplate(id, args, L) {
       if (S[`claude:${v}`].summary?.slip && !S[`claude:${v}:slip`]) {
         log(`${id}/${v}: claude driver protocol slip (${S[`claude:${v}`].summary.slip.outstanding.join(", ")}); retrying once`);
         S[`claude:${v}:slip`] = S[`claude:${v}`];
-        S[`claude:${v}`] = await runClaudeDriver(folder, loadFixture(id, v), { wf, recordings: withSynthetic((await need(v))?.modelCalls ?? [], loadFixture(id, v)), startedAt: recs[v]?.startedAt, runTime: runTime(recs[v]), label: `${args.tag}-${id}-${v}-retry`, log });
+        S[`claude:${v}`] = await runClaudeDriver(folder, loadFixture(id, v, { at: recs[v]?.startedAt }), { wf, recordings: withSynthetic((await need(v))?.modelCalls ?? [], loadFixture(id, v, { at: recs[v]?.startedAt })), startedAt: recs[v]?.startedAt, runTime: runTime(recs[v]), label: `${args.tag}-${id}-${v}-retry`, log });
         save();
       }
       if (S[`claude:${v}:slip`]) slips[v] = { attempts: [S[`claude:${v}:slip`].summary, S[`claude:${v}`].summary].map((x) => ({ runStatus: x?.runStatus ?? null, slip: x?.slip ?? null, finalText: x?.finalText ?? null })), repeated: !!S[`claude:${v}`].summary?.slip };

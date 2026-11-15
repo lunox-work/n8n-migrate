@@ -43,8 +43,43 @@ export function loadTemplate(id) {
   return { raw, wf: structuredClone(wf), name: raw.workflow?.name ?? wf.name ?? String(id) };
 }
 
-export function loadFixture(id, variant) {
-  return JSON.parse(readFileSync(join(HERE, "fixtures", String(id), `${variant}.json`), "utf8"));
+// `at`: the run's start (ms or ISO) that relative times in the fixture count from (P90); the n8n
+// side fills them just before its run, the Claude side from n8n's recorded start.
+export function loadFixture(id, variant, { at } = {}) {
+  return fillRelativeTimes(JSON.parse(readFileSync(join(HERE, "fixtures", String(id), `${variant}.json`), "utf8")), at);
+}
+
+// PROPOSALS P90: n8n's clock is not frozen, so data a condition compares with the current time
+// ("posted in the last 10 minutes") is written relative to the run: `{{bench.now}}`,
+// `{{bench.now-5m}}`, `{{bench.now+2d}}` (units s, m, h, d), optionally `|iso` (default,
+// UTC with milliseconds), `|date` (YYYY-MM-DD, UTC), `|rfc2822`, `|epoch` (seconds) or
+// `|epochMs`. A string that is only an epoch token becomes a number. Both sides get the same
+// values: they count from the same start (n8n's run, and its recorded startedAt on the Claude
+// side), and run-time masking (README "Timezone") covers the seconds between them.
+const REL_TIME = /\{\{bench\.now(?:([+-]\d+)([smhd]))?(?:\|(iso|date|rfc2822|epoch|epochMs))?\}\}/g;
+export function fillRelativeTimes(value, at) {
+  const t0 = at === undefined || at === null ? Date.now() : typeof at === "number" ? at : Date.parse(at);
+  const unit = { s: 1e3, m: 6e4, h: 36e5, d: 864e5 };
+  const fmt = (n, u, f) => {
+    const d = new Date(t0 + (n ? Number(n) * unit[u] : 0));
+    if (f === "epoch") return Math.floor(d.getTime() / 1000);
+    if (f === "epochMs") return d.getTime();
+    if (f === "date") return d.toISOString().slice(0, 10);
+    if (f === "rfc2822") return d.toUTCString().replace("GMT", "+0000");
+    return d.toISOString();
+  };
+  const walk = (v) => {
+    if (typeof v === "string") {
+      if (!v.includes("{{bench.now")) return v;
+      const whole = /^\{\{bench\.now(?:([+-]\d+)([smhd]))?\|(epoch|epochMs)\}\}$/.exec(v);
+      if (whole) return fmt(whole[1], whole[2], whole[3]);
+      return v.replace(REL_TIME, (_, n, u, f) => String(fmt(n, u, f)));
+    }
+    if (Array.isArray(v)) return v.map(walk);
+    if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x)]));
+    return v;
+  };
+  return walk(value);
 }
 
 export function loadOverlay(id) {
