@@ -404,11 +404,14 @@ previews; this list is dated 2026-11-14 and re-runnable
 
 - **Not built yet:** databases, vector stores, media through the original
   provider other than OpenAI image generation (transcription, other providers'
-  image, audio and video steps), many apps' request templates, and some file steps (reading CSV,
-  HTML, RTF, XML or iCalendar files, Compression, Edit Image). PDF text and
-  spreadsheets run with the libraries n8n uses, in tasks and skills, not in
-  the artifact page; the local disk only in a local task. Those steps stay greyed
-  out in the graph with the reason; an agent whose tool is one of them is
+  image, audio and video steps), many apps' request templates, and some file
+  steps (reading CSV with Extract From File or Spreadsheet File v2, which n8n
+  parses with csv-parse; reading HTML, RTF, XML or iCalendar files;
+  Compression; Edit Image). PDF text and spreadsheets run with the libraries
+  n8n uses, in tasks and skills, not in the artifact page; the legacy
+  Spreadsheet File v1 reads CSV too, as n8n's v1 does with the same
+  spreadsheet library. The local disk works only in a local task. Those steps stay
+  greyed out in the graph with the reason; an agent whose tool is one of them is
   refused before a run rather than run without that tool.
 - **Out of scope for v1:** synchronous webhook replies and public chat pages
   (reported as `hosted`), anything that must react in under a minute, a
