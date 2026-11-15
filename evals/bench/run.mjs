@@ -37,7 +37,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync, cpS
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState } from "./n8n-side.mjs";
+import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState, siteAnswers } from "./n8n-side.mjs";
 import { convertPlain, convertSkill, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, withSynthetic, syntheticOutcome, nondeterministicTools } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
 import { fromHttp, fromTool, fromFile, replyOf, resultOf, isResult, lastOutputs, terminalNodes, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads } from "./compare.mjs";
@@ -310,6 +310,12 @@ async function benchTemplate(id, args, L) {
   // The overlay's Claude half: overrides merged into the folder, then a regenerate (black box).
   // Placeholder fills and time compression alike; the latter is listed apart in the row.
   const claudeOv = [overlay?.claude?.overrides, overlay?.timeCompression?.claude?.overrides].filter(Boolean);
+  // PROPOSALS P77: the setup answer for a credential's site (the person names the site their
+  // n8n credential points to) comes from the bench credential n8n's run uses.
+  if (folder && !S.overlayApplied) {
+    const sites = siteAnswers(readJson(join(folder, "report.json")), wf, loadFixture(id, "normal"), overlay);
+    if (Object.keys(sites).length) claudeOv.push({ answers: sites });
+  }
   if (folder && claudeOv.length && !S.overlayApplied) {
     const of = join(folder, "overrides.json");
     const o = readJson(of, {});
@@ -319,7 +325,7 @@ async function benchTemplate(id, args, L) {
     }
     writeFileSync(of, JSON.stringify(o, null, 2) + "\n");
     const r = spawnSync(process.execPath, [join(SKILL, "scripts", "convert.mjs"), "--regenerate", folder], { encoding: "utf8" });
-    S.overlayApplied = { status: r.status, steps: claudeOv.flatMap((ov) => Object.keys(ov.steps ?? {})), ...(overlay?.timeCompression?.claude ? { timeCompression: Object.keys(overlay.timeCompression.claude.overrides?.steps ?? {}) } : {}) };
+    S.overlayApplied = { status: r.status, steps: claudeOv.flatMap((ov) => Object.keys(ov.steps ?? {})), ...(claudeOv.some((ov) => ov.answers) ? { answers: Object.assign({}, ...claudeOv.map((ov) => ov.answers ?? {})) } : {}), ...(overlay?.timeCompression?.claude ? { timeCompression: Object.keys(overlay.timeCompression.claude.overrides?.steps ?? {}) } : {}) };
     save();
   }
   const g2 = async (f, skillError) => {

@@ -322,6 +322,28 @@ const oauth = (extra = {}) => ({ clientId: "bench", clientSecret: "bench", oauth
 // Dummies per credential type (n8n credential property names). None is a real secret.
 // Services the fixtures answer `via: direct` (self-hosted Ollama, Qdrant, a Supabase project)
 // point at the mock itself, which matches those requests by path.
+// PROPOSALS P77: the person's setup answer for a credential whose base URL is their own site
+// (analyze.mjs SITE_CREDENTIALS: a question `<wf>/site/<credential name>`): the bench answers
+// with the same field of the credential its n8n run gets (the dummy, its fixture-derived site,
+// and the overlay's `credentials` fill), so both sides talk to one site. -> {questionId: url}
+export const SITE_FIELDS = { wordpressApi: "url" };
+export function siteAnswers(report, wf, fx, overlay = null) {
+  const wordpressUrl = (fx.writeReplies ?? []).flatMap((r) => r.http?.responses ?? []).map((x) => x.url).find((u) => /\/wp-json\//.test(u))?.replace(/\/wp-json\/.*$/, "");
+  const out = {};
+  for (const w of report?.workflows ?? []) {
+    for (const q of w.questions ?? []) {
+      const m = /\/site\/(.+)$/.exec(q.id);
+      if (!m) continue;
+      const name = m[1].split(" \u203a ").pop();
+      const type = (wf.nodes ?? []).flatMap((n) => Object.entries(n.credentials ?? {})).find(([t, c]) => c?.name === name && SITE_FIELDS[t])?.[0];
+      if (!type) continue;
+      const cred = { ...credentialData(type, { wordpressUrl }), ...(overlay?.credentials?.[type] ?? {}) };
+      if (typeof cred[SITE_FIELDS[type]] === "string") out[q.id] = cred[SITE_FIELDS[type]];
+    }
+  }
+  return out;
+}
+
 export function credentialData(type, { wordpressUrl, s3Endpoint } = {}) {
   const t = {
     openAiApi: { apiKey: "bench-dummy", url: "https://api.openai.com/v1" },

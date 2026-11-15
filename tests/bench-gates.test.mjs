@@ -1311,3 +1311,13 @@ test("P75: a tool whose code draws randomness or reads the clock is compared by 
   assert.deepEqual([ok.same, ok.nondeterministic[0].valueSame], [true, false]);
   assert.equal(turn({ color: "white" }, nd).detail.values[0].comparedBy, "shape");
 });
+
+test("P77: a credential's site question is answered with the site the bench's n8n credential uses", async () => {
+  const { siteAnswers } = await import("../evals/bench/n8n-side.mjs");
+  const wf = { nodes: [{ name: "Post", type: "n8n-nodes-base.wordpress", credentials: { wordpressApi: { id: "1", name: "Blog" } } }] };
+  const report = { workflows: [{ questions: [{ id: "w1/site/Blog" }, { id: "w1/timezone" }] }] };
+  const fx = { writeReplies: [{ node: "Post", http: { responses: [{ method: "POST", url: "https://wp.bench.example/wp-json/wp/v2/posts" }] } }] };
+  assert.deepEqual(siteAnswers(report, wf, fx), { "w1/site/Blog": "https://wp.bench.example" });
+  assert.deepEqual(siteAnswers(report, wf, {}), { "w1/site/Blog": "https://wordpress.example" });
+  assert.deepEqual(siteAnswers(report, wf, fx, { credentials: { wordpressApi: { url: "https://other.example" } } }), { "w1/site/Blog": "https://other.example" });
+});
