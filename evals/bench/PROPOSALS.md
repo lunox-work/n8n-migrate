@@ -700,3 +700,26 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Risk.** About 400 MB resident; cap 512 MiB, started only for such a fixture. **Effort.** About half a day on P66's framework, plus 2508's fixtures.
 - **Why not in the loop.** It adds a container.
 
+
+## P100. A downloaded file sent as multipart to a plain `http://` host arrives malformed through the bench's proxy (2421)
+
+- **Evidence.** 2421's canned check (2026-11-16) fails on all four variants at Split PDF into Images: `Bad request - please check your parameters`, `400 - ""`. The node posts the statement it downloaded from Drive (a binary n8n stores on disk, `filesystem-v2`) as `multipart/form-data` to the person's own `http://stirling-pdf:8080`, which reaches the mock as a plain-HTTP forward-proxy request. The mock matched the route but parsed a cut-off file part (1980 of 2009 bytes) and none of the three text fields after it, and the client got Node's empty 400. Probes in the bench's n8n: the same node with an in-memory binary (a Code node's base64) arrives whole (`content-length` 2584, all four parts); the disk-stored binary sent straight to a raw TCP listener inside the container is well-formed (`content-length` 2571, all four parts); the same disk-stored upload to an `https://` host (CONNECT tunnel, minted leaf) arrives whole. Only the disk-stored stream over the plain-HTTP proxy path breaks. With Split PDF into Images moved to `https` in a probe, 2421 reaches its expected end on every variant.
+- **Proposed change.** Capture what the mock receives on that path (raw socket bytes before Node's parser) and fix the side at fault: the mock's proxy handling of a request body that ends after its `content-length`, or the n8n container's proxy settings for plain HTTP (for example sending plain HTTP through CONNECT as HTTPS already goes). Then drop 2421's `expect.n8nCannotRun`.
+- **Why not in the loop.** It changes the mock or the n8n container's proxy configuration.
+
+## P101. A template written against a service or API version that has since been retired
+
+- **Evidence.** 2695 posts to Google Ads API `v18` (`…/v18/customers/{id}:generateKeywordIdeas`); Google retired v18 in 2025, so the real API now refuses that path whatever the data. The fixture answers as the API answered when the template was written and says so in a note; another writer could answer the refusal and turn the template into a baseline failure. Neither case is an empty parameter or wiring, so eligibility's self-fail clauses do not see it, and FIXTURES.md has no rule.
+- **Proposed change.** Write the rule in FIXTURES.md: a fixture answers a retired API version or a service that no longer exists as it answered when the template was written, marks the route (for example `retired: "<what and when>"`, reported in the row like `assumedAuthorised`), and the migration is compared against that answer. Updating the version is the person's fix on both sides, not the bench's. Alternatively list such templates apart in the summary.
+- **Why not in the loop.** It changes the fixture contract and the schema.
+
+## P102. No command runs only the canned n8n check for a template whose Claude side passes preflight
+
+- **Evidence.** `run.mjs` runs the canned check (P36) only for a template stopped at preflight; any other template's n8n side is a live recording (`claude -p`). A blind fixture session must check its fixtures against n8n without the converter and without a model, so this session (like the round-4 held-out ones) wrote its own script that repeats `run.mjs`'s `n8nRun({canned: true})` path: `prepare()`, `ensureN8n()`, the P55 restart, `runN8n()` with `{mode: "canned"}`, the pin fallback, then `logVsFixture()`. The copy can drift from `run.mjs`.
+- **Proposed change.** `run.mjs --n8n-check-only [--n8n-check all|normal] <ids>`: the canned run per variant, no convert, no Claude side, nothing saved as a recording, printing the same `drivers.n8nCheck` summary plus the run's full error (`executionData.error`: description, HTTP code) so a fixture writer sees why a node failed.
+- **Why not in the loop.** It changes the bench's orchestrator.
+
+## P103. The template-rule lint read a fixture's copied pinData as invented fixture strings (2695)
+
+- **Evidence.** `lint-no-template-rules.mjs` collects string values from every fixture. 2695's template pins its trigger with a keyword list holding a generic phrase that the skill's own prose also uses, and `validate.mjs` requires that pinData copied into each fixture verbatim, so the lint failed on the skill's text although no rule names a template.
+- **Status: applied** (2026-11-16, with 2695's fixtures). The lint skips the fixture's `pinData` key (the template's own pins, like its other parameters, which the lint never scans); 78 strings from other templates' pins left the collected set (6067 to 5989). Template ids and names stay checked everywhere.
