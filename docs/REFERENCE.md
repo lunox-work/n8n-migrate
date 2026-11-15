@@ -118,6 +118,12 @@ the person's key is not a substitution. Flagged steps:
   selectors; `htmltext.mjs` is html-to-text 9.0.5's conversion (MIT, ported),
   which Html 1.2 uses for text. A selector or construct they do not carry
   refuses the step.
+- **Files over HTTP.** An HTTP Request step's file response (or an
+  autodetected binary type, n8n's list) becomes binary data as n8n builds it
+  (name from `content-disposition` or the URL path, type from the response);
+  a binary body sends the item's binary property typed by its `mimeType`. The
+  task driver hands such responses back as `bodyBase64`; a host may also give
+  a string, read as one character per byte under a binary content type.
 - **Ledger.** `sending` before each write, `sent` after. A `sending` with no
   `sent` stops the workflow until `resolve`.
 - **Resume.** The next start continues an open run with the same id (replay

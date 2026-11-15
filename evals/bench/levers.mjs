@@ -36,7 +36,7 @@
 // question it is the person's answer) and a connector call missing required arguments (kind
 // `arguments`). Options the runtime refuses when the step runs, decidable from the step's own
 // parameters (kind `run-time`, `runTimeRefusals()`), count too. Refusals that depend on the
-// response (an HTTP Request answered with a binary body) cannot be seen without a run and are
+// response cannot be seen without a run and are
 // named in LOOP.md instead.
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -95,17 +95,12 @@ export function blockersOf(def, report, wf) {
 export const ANSWER_KINDS = new Set(["input-incomplete", "substitution"]);
 
 // Options the runtime refuses when the step runs, read from the step's own parameters. Mirrors
-// the run-time refusals in runtime/src/nodes2.mjs (HTTP Request file responses and binary
-// bodies; an HTML node operation it does not implement). Returns [{what}].
-const METHODS_WITHOUT_BODY = ["GET", "HEAD", "OPTIONS"];
+// the run-time refusals in runtime/src/nodes2.mjs (an HTML node operation it does not
+// implement). Returns [{what}].
 export function runTimeRefusals(step) {
   const t = step?.n8n?.type ?? "";
   const p = step?.params ?? {};
   const out = [];
-  if (t === "n8n-nodes-base.httpRequest" && (step.n8n.typeVersion ?? 1) >= 3) {
-    if (p.options?.response?.response?.responseFormat === "file") out.push({ what: "file response" });
-    if (p.sendBody && p.contentType === "binaryData" && !METHODS_WITHOUT_BODY.includes(String(p.method ?? "GET").toUpperCase())) out.push({ what: "binary body" });
-  }
   if (t === "n8n-nodes-base.html") {
     const op = p.operation ?? "generateHtmlTemplate";
     if (typeof op === "string" && !["generateHtmlTemplate", "convertToHtmlTable", "extractHtmlContent"].includes(op)) out.push({ what: op });
@@ -496,7 +491,7 @@ export function markdown(doc) {
   for (const g of doc.byType.slice(0, 25)) L.push(`| \`${esc(g.group)}\` | ${g.planned} | ${g.keys} | ${g.galleryUnlock} | ${g.galleryTotal} | ${g.devUnlock} | ${g.devTotal} |`);
   L.push("");
   L.push("## Missing features", "");
-  L.push("Gallery counts are over the in-scope templates; *alone* = the only missing feature of that template; dev counts are over round-" + doc.round + " dev (*unlock* = the only missing feature left). Sorted by alone, then total. Ids per row are in `levers.json`. Block kinds: the converter's (\`no-tool\`, \`unsupported\`, \`dropped\`), and since PROPOSALS P105 the runtime's on steps the converter does not block: \`runtime\` (preflight: a node version the runtime does not implement, a URL built at run time with no hosts question), \`arguments\` (a connector call missing required arguments), \`run-time\` (an option the runtime refuses when the step runs, read from its parameters). A refusal that depends on a response (an HTTP Request answered with a binary body) is not visible without a run; LOOP.md names those.", "");
+  L.push("Gallery counts are over the in-scope templates; *alone* = the only missing feature of that template; dev counts are over round-" + doc.round + " dev (*unlock* = the only missing feature left). Sorted by alone, then total. Ids per row are in `levers.json`. Block kinds: the converter's (\`no-tool\`, \`unsupported\`, \`dropped\`), and since PROPOSALS P105 the runtime's on steps the converter does not block: \`runtime\` (preflight: a node version the runtime does not implement, a URL built at run time with no hosts question), \`arguments\` (a connector call missing required arguments), \`run-time\` (an option the runtime refuses when the step runs, read from its parameters). A refusal that depends on what a run receives is not visible without a run; LOOP.md names those.", "");
   L.push("| # | Node type + operation | Planned | Block kind | Alone | Total | Dev unlock | Dev total | Converter reason (most frequent) |", "| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
   doc.features.forEach((f, i) => L.push(`| ${i + 1} | \`${esc(f.key)}\` | ${f.planned} | ${f.kinds.join(", ")} | ${f.galleryAlone} | ${f.galleryTotal} | ${f.devUnlock} | ${f.devTotal} | ${esc(f.reason.replace(/^[\w-]+: /, ""))} |`));
   return L.join("\n") + "\n";

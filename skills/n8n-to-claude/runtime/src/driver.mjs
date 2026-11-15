@@ -387,6 +387,10 @@ export function executeFile(req, task, dir) {
 // request. publicOnly: the step's setup answer is "public", so each hop's host must also resolve
 // to public addresses only (isPublicAddress, engine.mjs publicAddress; resolve(host) ->
 // [addresses]; a name that does not resolve is left to fetch, which fails on it).
+// The same list as nodes2.mjs BINARY_CONTENT_TYPES (n8n's HTTP Request binaryContentTypes);
+// tests/task-driver.test.mjs checks they agree.
+export const BINARY_CONTENT_TYPES = ["image/", "audio/", "video/", "application/octet-stream", "application/gzip", "application/zip", "application/vnd.rar", "application/epub+zip", "application/x-bzip", "application/x-bzip2", "application/x-cdf", "application/vnd.amazon.ebook", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.ms-fontobject", "application/vnd.oasis.opendocument.presentation", "application/pdf", "application/x-tar", "application/vnd.visio", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/x-7z-compressed"];
+
 export async function executeHttp(req, task, fetchImpl = globalThis.fetch, { check = null, publicOnly = false, isPublicAddress = null, resolve = defaultResolve } = {}) {
   const source = typeof task.secrets === "function" ? task.secrets : secretSources[task.secrets ?? "env"];
   let url = req.url;
@@ -410,7 +414,8 @@ export async function executeHttp(req, task, fetchImpl = globalThis.fetch, { che
     } else if (req.contentType === "form-urlencoded") {
       body = new URLSearchParams(Object.entries(req.body ?? {}).map(([k, v]) => [k, typeof v === "object" ? JSON.stringify(v) : String(v)])).toString();
       headers["content-type"] ??= "application/x-www-form-urlencoded";
-    } else if (typeof req.body === "string") body = req.body;
+    } else if (req.bodyEncoding === "base64" && typeof req.body === "string") body = Buffer.from(req.body, "base64");
+    else if (typeof req.body === "string") body = req.body;
     else {
       body = JSON.stringify(req.body);
       headers["content-type"] ??= "application/json";
@@ -443,9 +448,16 @@ export async function executeHttp(req, task, fetchImpl = globalThis.fetch, { che
       }
     }
     clearTimeout(timer);
-    const text = await res.text();
+    const bytes = Buffer.from(await res.arrayBuffer());
     const rh = {};
     res.headers.forEach((v, k) => (rh[k] = v));
+    // A file response, or an autodetected binary type, goes back as bytes (the runtime makes
+    // binary data of it); anything else as UTF-8 text.
+    const fmt = req.response?.format;
+    if (fmt === "file" || (fmt === "autodetect" && !/application\/json/i.test(rh["content-type"] ?? "") && BINARY_CONTENT_TYPES.some((t) => String(rh["content-type"] ?? "").includes(t)))) {
+      return { ok: true, value: { status: res.status, statusMessage: res.statusText, headers: rh, bodyBase64: bytes.toString("base64"), url: res.url || hopUrl } };
+    }
+    const text = new TextDecoder("utf-8").decode(bytes);
     let parsed = text;
     if (/json/i.test(rh["content-type"] ?? "")) {
       try {

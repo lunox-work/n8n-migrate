@@ -368,3 +368,21 @@ test("http redirects are followed hop by hop under the allowlist; a public-only 
   assert.deepEqual(["10.1.2.3", "172.20.0.1", "192.168.1.1", "169.254.169.254", "100.64.0.1", "0.0.0.0", "::1", "fd00::1", "fe80::1", "::ffff:127.0.0.1"].filter(publicAddress), []);
   assert.deepEqual(["93.184.216.34", "2606:2800:220:1::1"].filter(publicAddress).length, 2);
 });
+
+test("http in the driver: a binary body goes as bytes; a file response or a binary type comes back as bodyBase64", async () => {
+  const { executeHttp, BINARY_CONTENT_TYPES } = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/runtime/src/driver.mjs")).href);
+  const nodes2 = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/runtime/src/nodes2.mjs")).href);
+  assert.deepEqual(BINARY_CONTENT_TYPES, nodes2.BINARY_CONTENT_TYPES, "the driver and the runtime agree on n8n's binary content types");
+  const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff, 0x00]);
+  const seen = [];
+  const fakeFetch = async (url, init) => {
+    seen.push(init);
+    return new Response(png, { status: 200, headers: { "content-type": "image/png" } });
+  };
+  const up = await executeHttp({ kind: "http", method: "POST", url: "https://wp.example.com/wp-json/wp/v2/media", headers: { "content-type": "image/png" }, body: png.toString("base64"), bodyEncoding: "base64", contentType: "binaryData", response: { format: "autodetect" } }, { secrets: "env" }, fakeFetch);
+  assert.ok(Buffer.isBuffer(seen[0].body) && seen[0].body.equals(png));
+  assert.equal(up.value.bodyBase64, png.toString("base64"));
+  assert.equal(up.value.body, undefined);
+  const text = await executeHttp({ kind: "http", method: "GET", url: "https://x.example.com/a", headers: {}, response: { format: "text" } }, { secrets: "env" }, async () => new Response("héllo", { headers: { "content-type": "image/png" } }));
+  assert.equal(text.value.body, "héllo", "an explicit text format stays text whatever the type");
+});

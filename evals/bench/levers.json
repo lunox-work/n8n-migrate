@@ -147,33 +147,33 @@
    "out-of-scope/under-a-minute": 2
   },
   "inScope": 475,
-  "supportedToday": 151,
+  "supportedToday": 155,
   "fullClass": 88,
-  "answersOnly": 24,
-  "blocked": 300,
+  "answersOnly": 31,
+  "blocked": 289,
   "crashes": 0
  },
  "dev": {
   "templates": 100,
   "unnamed": 0,
-  "supportedToday": 38,
-  "answersOnly": 7,
-  "blocked": 55,
+  "supportedToday": 39,
+  "answersOnly": 10,
+  "blocked": 51,
   "missing": 0
  },
  "byPlanned": [
   {
    "group": "rest-template",
    "keys": 40,
-   "galleryUnlock": 36,
+   "galleryUnlock": 40,
    "galleryTotal": 76,
-   "devUnlock": 7,
+   "devUnlock": 8,
    "devTotal": 13
   },
   {
    "group": "unplanned",
    "keys": 92,
-   "galleryUnlock": 35,
+   "galleryUnlock": 37,
    "galleryTotal": 73,
    "devUnlock": 0,
    "devTotal": 0
@@ -181,18 +181,18 @@
   {
    "group": "connector",
    "keys": 56,
-   "galleryUnlock": 34,
+   "galleryUnlock": 35,
    "galleryTotal": 74,
    "devUnlock": 8,
    "devTotal": 14
   },
   {
    "group": "http",
-   "keys": 8,
-   "galleryUnlock": 31,
-   "galleryTotal": 77,
-   "devUnlock": 9,
-   "devTotal": 15
+   "keys": 6,
+   "galleryUnlock": 20,
+   "galleryTotal": 54,
+   "devUnlock": 5,
+   "devTotal": 9
   },
   {
    "group": "core",
@@ -213,7 +213,7 @@
   {
    "group": "files",
    "keys": 10,
-   "galleryUnlock": 10,
+   "galleryUnlock": 12,
    "galleryTotal": 24,
    "devUnlock": 3,
    "devTotal": 4
@@ -229,7 +229,7 @@
   {
    "group": "form-ending",
    "keys": 1,
-   "galleryUnlock": 1,
+   "galleryUnlock": 2,
    "galleryTotal": 6,
    "devUnlock": 1,
    "devTotal": 3
@@ -237,7 +237,7 @@
   {
    "group": "substitution",
    "keys": 1,
-   "galleryUnlock": 1,
+   "galleryUnlock": 2,
    "galleryTotal": 5,
    "devUnlock": 0,
    "devTotal": 0
@@ -278,11 +278,11 @@
  "byType": [
   {
    "group": "n8n-nodes-base.httpRequest",
-   "keys": 5,
-   "galleryUnlock": 20,
-   "galleryTotal": 60,
-   "devUnlock": 4,
-   "devTotal": 9,
+   "keys": 3,
+   "galleryUnlock": 9,
+   "galleryTotal": 35,
+   "devUnlock": 0,
+   "devTotal": 1,
    "planned": "http"
   },
   {
@@ -324,7 +324,7 @@
   {
    "group": "n8n-nodes-base.youTube",
    "keys": 5,
-   "galleryUnlock": 6,
+   "galleryUnlock": 7,
    "galleryTotal": 14,
    "devUnlock": 0,
    "devTotal": 1,
@@ -338,6 +338,15 @@
    "devUnlock": 1,
    "devTotal": 4,
    "planned": "model/media/rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.googleDrive",
+   "keys": 5,
+   "galleryUnlock": 5,
+   "galleryTotal": 9,
+   "devUnlock": 1,
+   "devTotal": 2,
+   "planned": "connector"
   },
   {
    "group": "@n8n/n8n-nodes-langchain.toolWikipedia",
@@ -356,15 +365,6 @@
    "devUnlock": 1,
    "devTotal": 2,
    "planned": "files"
-  },
-  {
-   "group": "n8n-nodes-base.googleDrive",
-   "keys": 5,
-   "galleryUnlock": 4,
-   "galleryTotal": 9,
-   "devUnlock": 1,
-   "devTotal": 2,
-   "planned": "connector"
   },
   {
    "group": "n8n-nodes-base.mySql",
@@ -439,6 +439,15 @@
    "planned": "unplanned"
   },
   {
+   "group": "n8n-nodes-base.spreadsheetFile",
+   "keys": 1,
+   "galleryUnlock": 3,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "files"
+  },
+  {
    "group": "n8n-nodes-base.notion",
    "keys": 4,
    "galleryUnlock": 2,
@@ -455,6 +464,15 @@
    "devUnlock": 0,
    "devTotal": 1,
    "planned": "files"
+  },
+  {
+   "group": "n8n-nodes-base.form",
+   "keys": 1,
+   "galleryUnlock": 2,
+   "galleryTotal": 6,
+   "devUnlock": 1,
+   "devTotal": 3,
+   "planned": "form-ending (some operations)"
   },
   {
    "group": "n8n-nodes-base.twitter",
@@ -482,6 +500,15 @@
    "devUnlock": 0,
    "devTotal": 0,
    "planned": "core"
+  },
+  {
+   "group": "n8n-nodes-base.executeCommand",
+   "keys": 1,
+   "galleryUnlock": 2,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "substitution"
   },
   {
    "group": "n8n-nodes-base.hubspot",
@@ -583,6 +610,15 @@
    "planned": "unplanned"
   },
   {
+   "group": "n8n-nodes-base.mistralAi",
+   "keys": 1,
+   "galleryUnlock": 2,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
    "group": "n8n-nodes-base.trello",
    "keys": 2,
    "galleryUnlock": 2,
@@ -619,22 +655,13 @@
    "planned": "connector"
   },
   {
-   "group": "n8n-nodes-base.form",
-   "keys": 1,
-   "galleryUnlock": 1,
-   "galleryTotal": 6,
-   "devUnlock": 1,
-   "devTotal": 3,
-   "planned": "form-ending (some operations)"
-  },
-  {
-   "group": "n8n-nodes-base.executeCommand",
-   "keys": 1,
+   "group": "n8n-nodes-base.discord",
+   "keys": 2,
    "galleryUnlock": 1,
    "galleryTotal": 5,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "substitution"
+   "devUnlock": 1,
+   "devTotal": 2,
+   "planned": "rest-template"
   },
   {
    "group": "n8n-nodes-base.mongoDb",
@@ -682,15 +709,6 @@
    "planned": "trigger-poll"
   },
   {
-   "group": "n8n-nodes-base.spreadsheetFile",
-   "keys": 1,
-   "galleryUnlock": 1,
-   "galleryTotal": 3,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "files"
-  },
-  {
    "group": "n8n-nodes-base.supabase",
    "keys": 2,
    "galleryUnlock": 1,
@@ -718,6 +736,15 @@
    "planned": "unplanned"
   },
   {
+   "group": "n8n-nodes-base.dropbox",
+   "keys": 2,
+   "galleryUnlock": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "rest-template"
+  },
+  {
    "group": "n8n-nodes-base.googleCalendar",
    "keys": 1,
    "galleryUnlock": 1,
@@ -725,6 +752,15 @@
    "devUnlock": 0,
    "devTotal": 0,
    "planned": "connector"
+  },
+  {
+   "group": "n8n-nodes-base.linear",
+   "keys": 2,
+   "galleryUnlock": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
   },
   {
    "group": "n8n-nodes-base.microsoftOneDrive",
@@ -738,15 +774,6 @@
   {
    "group": "n8n-nodes-base.microsoftTeams",
    "keys": 4,
-   "galleryUnlock": 1,
-   "galleryTotal": 2,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "unplanned"
-  },
-  {
-   "group": "n8n-nodes-base.mistralAi",
-   "keys": 1,
    "galleryUnlock": 1,
    "galleryTotal": 2,
    "devUnlock": 0,
@@ -943,15 +970,6 @@
    "planned": "vector"
   },
   {
-   "group": "n8n-nodes-base.discord",
-   "keys": 2,
-   "galleryUnlock": 0,
-   "galleryTotal": 5,
-   "devUnlock": 0,
-   "devTotal": 2,
-   "planned": "rest-template"
-  },
-  {
    "group": "n8n-nodes-base.removeDuplicates",
    "keys": 1,
    "galleryUnlock": 0,
@@ -1006,15 +1024,6 @@
    "planned": "unplanned"
   },
   {
-   "group": "n8n-nodes-base.dropbox",
-   "keys": 2,
-   "galleryUnlock": 0,
-   "galleryTotal": 2,
-   "devUnlock": 0,
-   "devTotal": 1,
-   "planned": "rest-template"
-  },
-  {
    "group": "n8n-nodes-base.googleCalendarTrigger",
    "keys": 1,
    "galleryUnlock": 0,
@@ -1026,15 +1035,6 @@
   {
    "group": "n8n-nodes-base.hunter",
    "keys": 1,
-   "galleryUnlock": 0,
-   "galleryTotal": 2,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "unplanned"
-  },
-  {
-   "group": "n8n-nodes-base.linear",
-   "keys": 2,
    "galleryUnlock": 0,
    "galleryTotal": 2,
    "devUnlock": 0,
@@ -1287,26 +1287,6 @@
  ],
  "features": [
   {
-   "key": "n8n-nodes-base.httpRequest (file response)",
-   "type": "n8n-nodes-base.httpRequest",
-   "op": "",
-   "planned": "http",
-   "kinds": [
-    "run-time"
-   ],
-   "reason": "run-time: refused by the runtime when the step runs: file response",
-   "galleryAlone": 8,
-   "galleryTotal": 17,
-   "devUnlock": 1,
-   "devTotal": 3,
-   "ids": {
-    "galleryAlone": [1748, 2083, 2294, 2314, 3146, 3460, 4056, 4987],
-    "galleryTotal": [1748, 1969, 2041, 2083, 2294, 2314, 2419, 3121, 3146, 3442, 3460, 4056, 4767, 4987, 7990, 8404, 16419],
-    "devUnlock": [1748],
-    "devTotal": [1748, 3121, 3442]
-   }
-  },
-  {
    "key": "n8n-nodes-base.markdown v1",
    "type": "n8n-nodes-base.markdown",
    "op": "",
@@ -1407,26 +1387,6 @@
    }
   },
   {
-   "key": "n8n-nodes-base.httpRequest (binary body)",
-   "type": "n8n-nodes-base.httpRequest",
-   "op": "",
-   "planned": "http",
-   "kinds": [
-    "run-time"
-   ],
-   "reason": "run-time: refused by the runtime when the step runs: binary body",
-   "galleryAlone": 3,
-   "galleryTotal": 10,
-   "devUnlock": 3,
-   "devTotal": 5,
-   "ids": {
-    "galleryAlone": [2813, 3085, 3291],
-    "galleryTotal": [2187, 2281, 2393, 2424, 2813, 2981, 3085, 3291, 3328, 5230],
-    "devUnlock": [2813, 3085, 3291],
-    "devTotal": [2187, 2813, 3085, 3291, 5230]
-   }
-  },
-  {
    "key": "n8n-nodes-base.linkedIn post:create",
    "type": "n8n-nodes-base.linkedIn",
    "op": "post:create",
@@ -1467,6 +1427,26 @@
    }
   },
   {
+   "key": "n8n-nodes-base.spreadsheetFile fromFile",
+   "type": "n8n-nodes-base.spreadsheetFile",
+   "op": "fromFile",
+   "planned": "files",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: Spreadsheet File v2 reads CSV with csv-parse, which the runtime does not carry yet",
+   "galleryAlone": 3,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [1968, 1969, 2041],
+    "galleryTotal": [1968, 1969, 2041],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
    "key": "n8n-nodes-base.airtable record:create",
    "type": "n8n-nodes-base.airtable",
    "op": "record:create",
@@ -1504,6 +1484,26 @@
     "galleryTotal": [175, 652, 837, 1150, 1690, 1731, 1791, 1967],
     "devUnlock": [],
     "devTotal": [1150]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.form completion",
+   "type": "n8n-nodes-base.form",
+   "op": "completion",
+   "planned": "form-ending",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: form waits for a person (out of scope v1)",
+   "galleryAlone": 2,
+   "galleryTotal": 6,
+   "devUnlock": 1,
+   "devTotal": 3,
+   "ids": {
+    "galleryAlone": [3669, 4767],
+    "galleryTotal": [2187, 2976, 3082, 3289, 3669, 4767],
+    "devUnlock": [3669],
+    "devTotal": [2187, 3082, 3669]
    }
   },
   {
@@ -1584,6 +1584,27 @@
     "galleryTotal": [2025, 2201, 2288, 2693, 4709],
     "devUnlock": [],
     "devTotal": [2201, 2288]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.executeCommand",
+   "type": "n8n-nodes-base.executeCommand",
+   "op": "",
+   "planned": "substitution",
+   "kinds": [
+    "unsupported",
+    "dropped"
+   ],
+   "reason": "unsupported: runs a shell command on the n8n host",
+   "galleryAlone": 2,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [1053, 3328],
+    "galleryTotal": [837, 1053, 1942, 2307, 3328],
+    "devUnlock": [],
+    "devTotal": []
    }
   },
   {
@@ -1728,6 +1749,26 @@
    }
   },
   {
+   "key": "n8n-nodes-base.googleDrive file:move",
+   "type": "n8n-nodes-base.googleDrive",
+   "op": "file:move",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for googleDrive file:move yet",
+   "galleryAlone": 2,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2393, 4376],
+    "galleryTotal": [2393, 3647, 4376],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
    "key": "n8n-nodes-base.shopify order:getAll",
    "type": "n8n-nodes-base.shopify",
    "op": "order:getAll",
@@ -1828,6 +1869,26 @@
    }
   },
   {
+   "key": "n8n-nodes-base.mistralAi document:extractText",
+   "type": "n8n-nodes-base.mistralAi",
+   "op": "document:extractText",
+   "planned": "unplanned",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet)",
+   "galleryAlone": 2,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [7456, 7990],
+    "galleryTotal": [7456, 7990],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
    "key": "n8n-nodes-base.reddit post:search",
    "type": "n8n-nodes-base.reddit",
    "op": "post:search",
@@ -1885,26 +1946,6 @@
     "galleryTotal": [6, 600, 694, 772, 812, 1752, 1754, 1792, 3161],
     "devUnlock": [],
     "devTotal": []
-   }
-  },
-  {
-   "key": "n8n-nodes-base.form completion",
-   "type": "n8n-nodes-base.form",
-   "op": "completion",
-   "planned": "form-ending",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: form waits for a person (out of scope v1)",
-   "galleryAlone": 1,
-   "galleryTotal": 6,
-   "devUnlock": 1,
-   "devTotal": 3,
-   "ids": {
-    "galleryAlone": [3669],
-    "galleryTotal": [2187, 2976, 3082, 3289, 3669, 4767],
-    "devUnlock": [3669],
-    "devTotal": [2187, 3082, 3669]
    }
   },
   {
@@ -2008,24 +2049,23 @@
    }
   },
   {
-   "key": "n8n-nodes-base.executeCommand",
-   "type": "n8n-nodes-base.executeCommand",
-   "op": "",
-   "planned": "substitution",
+   "key": "n8n-nodes-base.discord channel:create",
+   "type": "n8n-nodes-base.discord",
+   "op": "channel:create",
+   "planned": "rest-template",
    "kinds": [
-    "unsupported",
-    "dropped"
+    "no-tool"
    ],
-   "reason": "unsupported: runs a shell command on the n8n host",
+   "reason": "no-tool: no request template for discord channel:create yet (it needs the app's REST API with a stored secret)",
    "galleryAlone": 1,
-   "galleryTotal": 5,
-   "devUnlock": 0,
-   "devTotal": 0,
+   "galleryTotal": 4,
+   "devUnlock": 1,
+   "devTotal": 2,
    "ids": {
-    "galleryAlone": [1053],
-    "galleryTotal": [837, 1053, 1942, 2307, 3328],
-    "devUnlock": [],
-    "devTotal": []
+    "galleryAlone": [3121],
+    "galleryTotal": [2249, 2564, 3121, 3442],
+    "devUnlock": [3121],
+    "devTotal": [3121, 3442]
    }
   },
   {
@@ -2109,6 +2149,26 @@
    }
   },
   {
+   "key": "n8n-nodes-base.youTube video:upload",
+   "type": "n8n-nodes-base.youTube",
+   "op": "video:upload",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for youTube video:upload yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [16419],
+    "galleryTotal": [2557, 3906, 8404, 16419],
+    "devUnlock": [],
+    "devTotal": [2557]
+   }
+  },
+  {
    "key": "n8n-nodes-base.compression decompress",
    "type": "n8n-nodes-base.compression",
    "op": "decompress",
@@ -2189,26 +2249,6 @@
    }
   },
   {
-   "key": "n8n-nodes-base.googleDrive file:move",
-   "type": "n8n-nodes-base.googleDrive",
-   "op": "file:move",
-   "planned": "connector",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no tool map for googleDrive file:move yet",
-   "galleryAlone": 1,
-   "galleryTotal": 3,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [4376],
-    "galleryTotal": [2393, 3647, 4376],
-    "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
    "key": "n8n-nodes-base.jira issue:create",
    "type": "n8n-nodes-base.jira",
    "op": "issue:create",
@@ -2244,26 +2284,6 @@
    "ids": {
     "galleryAlone": [4478],
     "galleryTotal": [2249, 4478, 4887],
-    "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
-   "key": "n8n-nodes-base.spreadsheetFile fromFile",
-   "type": "n8n-nodes-base.spreadsheetFile",
-   "op": "fromFile",
-   "planned": "files",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: Spreadsheet File v2 reads CSV with csv-parse, which the runtime does not carry yet",
-   "galleryAlone": 1,
-   "galleryTotal": 3,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [1968],
-    "galleryTotal": [1968, 1969, 2041],
     "devUnlock": [],
     "devTotal": []
    }
@@ -2409,21 +2429,21 @@
    }
   },
   {
-   "key": "n8n-nodes-base.mistralAi document:extractText",
-   "type": "n8n-nodes-base.mistralAi",
-   "op": "document:extractText",
+   "key": "n8n-nodes-base.linear issue:create",
+   "type": "n8n-nodes-base.linear",
+   "op": "issue:create",
    "planned": "unplanned",
    "kinds": [
-    "unsupported"
+    "no-tool"
    ],
-   "reason": "unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet)",
+   "reason": "no-tool: no request template for linear issue:create yet (it needs the app's REST API with a stored secret)",
    "galleryAlone": 1,
    "galleryTotal": 2,
    "devUnlock": 0,
    "devTotal": 0,
    "ids": {
-    "galleryAlone": [7456],
-    "galleryTotal": [7456, 7990],
+    "galleryAlone": [2419],
+    "galleryTotal": [2323, 2419],
     "devUnlock": [],
     "devTotal": []
    }
@@ -2564,6 +2584,26 @@
    "ids": {
     "galleryAlone": [3700],
     "galleryTotal": [3700],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.dropbox file:download",
+   "type": "n8n-nodes-base.dropbox",
+   "op": "file:download",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for dropbox file:download yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2424],
+    "galleryTotal": [2424],
     "devUnlock": [],
     "devTotal": []
    }
@@ -3230,26 +3270,6 @@
    }
   },
   {
-   "key": "n8n-nodes-base.discord channel:create",
-   "type": "n8n-nodes-base.discord",
-   "op": "channel:create",
-   "planned": "rest-template",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no request template for discord channel:create yet (it needs the app's REST API with a stored secret)",
-   "galleryAlone": 0,
-   "galleryTotal": 4,
-   "devUnlock": 0,
-   "devTotal": 2,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [2249, 2564, 3121, 3442],
-    "devUnlock": [],
-    "devTotal": [3121, 3442]
-   }
-  },
-  {
    "key": "n8n-nodes-base.github file:edit",
    "type": "n8n-nodes-base.github",
    "op": "file:edit",
@@ -3347,26 +3367,6 @@
     "galleryTotal": [2273, 2288, 2290, 2797],
     "devUnlock": [],
     "devTotal": [2288]
-   }
-  },
-  {
-   "key": "n8n-nodes-base.youTube video:upload",
-   "type": "n8n-nodes-base.youTube",
-   "op": "video:upload",
-   "planned": "rest-template",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no request template for youTube video:upload yet (it needs the app's REST API with a stored secret)",
-   "galleryAlone": 0,
-   "galleryTotal": 4,
-   "devUnlock": 0,
-   "devTotal": 1,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [2557, 3906, 8404, 16419],
-    "devUnlock": [],
-    "devTotal": [2557]
    }
   },
   {
@@ -3888,26 +3888,6 @@
     "galleryTotal": [2468, 3868],
     "devUnlock": [],
     "devTotal": [2468]
-   }
-  },
-  {
-   "key": "n8n-nodes-base.linear issue:create",
-   "type": "n8n-nodes-base.linear",
-   "op": "issue:create",
-   "planned": "unplanned",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no request template for linear issue:create yet (it needs the app's REST API with a stored secret)",
-   "galleryAlone": 0,
-   "galleryTotal": 2,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [2323, 2419],
-    "devUnlock": [],
-    "devTotal": []
    }
   },
   {
@@ -4606,26 +4586,6 @@
    "ids": {
     "galleryAlone": [],
     "galleryTotal": [2322],
-    "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
-   "key": "n8n-nodes-base.dropbox file:download",
-   "type": "n8n-nodes-base.dropbox",
-   "op": "file:download",
-   "planned": "rest-template",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no request template for dropbox file:download yet (it needs the app's REST API with a stored secret)",
-   "galleryAlone": 0,
-   "galleryTotal": 1,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [2424],
     "devUnlock": [],
     "devTotal": []
    }

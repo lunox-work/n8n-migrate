@@ -92,8 +92,6 @@ test("levers P105: preflight refusals of unblocked steps and run-time refusals a
       Md: { kind: "logic", n8n: { type: "n8n-nodes-base.markdown", typeVersion: 1 } },
       Rss: { kind: "http", n8n: { type: "n8n-nodes-base.rssFeedRead", typeVersion: 1 } },
       Fetch: { kind: "http", n8n: { type: "n8n-nodes-base.httpRequest", typeVersion: 4.2 }, params: { url: "={{ $json.u }}" } },
-      Up: { kind: "http", n8n: { type: "n8n-nodes-base.httpRequest", typeVersion: 4.2 }, params: { method: "POST", sendBody: true, contentType: "binaryData" } },
-      Dl: { kind: "http", n8n: { type: "n8n-nodes-base.httpRequest", typeVersion: 4.2 }, params: { options: { response: { response: { responseFormat: "file" } } } } },
       Ex: { kind: "logic", n8n: { type: "n8n-nodes-base.html", typeVersion: 1.2 }, params: { operation: "someLaterOperation" } },
       Tpl: { kind: "logic", n8n: { type: "n8n-nodes-base.html", typeVersion: 1.2 }, params: {} },
       Page: { kind: "tool", n8n: { type: "n8n-nodes-base.notion", typeVersion: 2.2 } },
@@ -114,9 +112,7 @@ test("levers P105: preflight refusals of unblocked steps and run-time refusals a
     ["n8n-nodes-base.rssFeedRead (URL built at run time)", "runtime"],
     ["n8n-nodes-base.httpRequest (URL built at run time)", "input-incomplete"],
     ["n8n-nodes-base.notion databasePage:create (required arguments)", "arguments"],
-    ["n8n-nodes-base.httpRequest (binary body)", "run-time"],
-    ["n8n-nodes-base.httpRequest (file response)", "run-time"],
     ["n8n-nodes-base.html (someLaterOperation)", "run-time"],
   ]);
-  assert.deepEqual(runTimeRefusals({ n8n: { type: "n8n-nodes-base.httpRequest", typeVersion: 4.2 }, params: { method: "GET", sendBody: true, contentType: "binaryData" } }), []);
+  assert.deepEqual(runTimeRefusals({ n8n: { type: "n8n-nodes-base.httpRequest", typeVersion: 4.2 }, params: { method: "POST", sendBody: true, contentType: "binaryData" } }), []);
 });

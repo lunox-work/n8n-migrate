@@ -80,3 +80,44 @@ test("preflight names the step whose URL is built at run time: its host cannot b
   const anyHost = wf([start(), node("Get", "httpRequest", { url: "={{ $json.url }}" }, { v: 4.2 })], [["Start", "Get"]], { allow: { tools: [], sql: [], http: [{ method: "GET", host: "*", note: 'step "Get": URL built at run time' }] } });
   assert.match(preflight(anyHost).issues.find((i) => i.level === "error").message, /^step "Get": a request with a URL built at run time .* its host cannot be known before a run/);
 });
+
+test("HTTP Request file responses and binary bodies as n8n's HTTP Request v3 builds them", async () => {
+  const H = "files.example.com";
+  const allowAll = { tools: [], sql: [], http: [{ method: "GET", host: H, pathPrefix: "/" }, { method: "POST", host: H, pathPrefix: "/" }] };
+  const bytes = Uint8Array.from([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0xe9, 0x00]);
+  const seen = [];
+  const host = {
+    http: async (r) => {
+      seen.push(r);
+      if (r.method === "POST") return { status: 201, headers: { "content-type": "application/json" }, body: JSON.stringify({ id: 7 }) };
+      // A latin1 byte string under a binary type (the bench's in-process host) and bodyBase64 (the driver).
+      if (r.url.endsWith("/doc")) return { status: 200, headers: { "content-type": "application/pdf; charset=binary", "content-disposition": 'attachment; filename="report.pdf"' }, body: String.fromCharCode(...bytes) };
+      return { status: 200, headers: { "content-type": "image/png" }, bodyBase64: Buffer.from(bytes).toString("base64") };
+    },
+  };
+  const def = wf(
+    [
+      start(),
+      node("Doc", "httpRequest", { url: `https://${H}/files/doc`, options: {} }, { v: 4.2 }),
+      node("Img", "httpRequest", { url: `https://${H}/`, options: { response: { response: { responseFormat: "file", outputPropertyName: "pic" } } } }, { v: 4.2 }),
+      node("Up", "httpRequest", { method: "POST", url: `https://${H}/upload`, sendBody: true, contentType: "binaryData", inputDataFieldName: "data", sendHeaders: true, headerParameters: { parameters: [{ name: "Content-Type", value: "text/plain" }] }, options: {} }, { v: 4.2 }),
+    ],
+    [["Start", "Doc"], ["Doc", "Img"], ["Img", "Up"]],
+    { allow: allowAll },
+  );
+  const r = await run(def, { host, trigger: [{ q: 1 }] });
+  assert.equal(r.status, "done", JSON.stringify(r.error));
+  const doc = r.runData.Doc[0].data.main[0][0];
+  assert.deepEqual(doc.json, { q: 1 });
+  assert.equal(doc.binary.data.fileName, "report.pdf");
+  assert.equal(doc.binary.data.mimeType, "application/pdf");
+  assert.equal(doc.binary.data.directory, `https://${H}/files/doc`);
+  assert.equal(doc.binary.data.data, Buffer.from(bytes).toString("base64"));
+  const img = r.runData.Img[0].data.main[0][0];
+  assert.deepEqual(Object.keys(img.binary).sort(), ["data", "pic"]);
+  assert.equal(img.binary.pic.fileName, "pic.png", "no name from the URL: <property>.<extension>");
+  const post = seen.find((x) => x.method === "POST");
+  assert.equal(post.bodyEncoding, "base64");
+  assert.equal(post.body, Buffer.from(bytes).toString("base64"));
+  assert.equal(post.headers["content-type"], "application/pdf", "the binary's type wins over the step's header");
+});

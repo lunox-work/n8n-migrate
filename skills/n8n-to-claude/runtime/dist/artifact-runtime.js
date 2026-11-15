@@ -16972,12 +16972,12 @@ return { DEFAULT_PROMPT, REFINE_PROMPT, parseFString, formatFString, jsonStrings
 const __m_nodes2_mjs = (() => {
 const { restPrograms } = __m_rest_mjs;
 const { NodeError, UnsupportedNode, deepCopy, getPath, setPath, unsetPath, isEqual, isObject } = __m_util_mjs;
-const { hashHex, hmacBytes, digestBytes, bytesToBase64, toHex } = __m_hash_mjs;
+const { hashHex, hmacBytes, digestBytes, bytesToBase64, base64ToBytes, utf8Bytes, toHex } = __m_hash_mjs;
 const { tryToParseDateTime } = __m_extensions_mjs;
 const { adaptResult, coerceArgs, applyCursorArg, advanceCursor, getAt } = __m_adapt_mjs;
 const { resolveParameter, compileCode } = __m_expression_mjs;
 const { createLookup } = __m_proxy_mjs;
-const { binaryFromTool, binaryOf } = __m_files_mjs;
+const { binaryFromTool, binaryOf, prepareBinary } = __m_files_mjs;
 const { parseHtml, selectAll, innerHtml, textContent, isTag, UnsupportedHtml } = __m_htmldom_mjs;
 const { htmlToText } = __m_htmltext_mjs;
 const { summarizeItem } = __m_summarize_mjs;
@@ -17675,8 +17675,8 @@ const STATUS_MESSAGES = {
 };
 
 // n8n-nodes-base 2.47.7 HttpRequest binaryContentTypes: an autodetected response of one of
-// these types is a file in n8n (refused here until file responses are built), anything else
-// not JSON is text.
+// these types is a file in n8n, anything else not JSON is text. driver.mjs keeps the same list
+// to know which responses to hand back as bytes.
 const BINARY_CONTENT_TYPES = ["image/", "audio/", "video/", "application/octet-stream", "application/gzip", "application/zip", "application/vnd.rar", "application/epub+zip", "application/x-bzip", "application/x-bzip2", "application/x-cdf", "application/vnd.amazon.ebook", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.ms-fontobject", "application/vnd.oasis.opendocument.presentation", "application/pdf", "application/x-tar", "application/vnd.visio", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/x-7z-compressed"];
 
 const REASONS = { 200: "OK", 201: "Created", 202: "Accepted", 204: "No Content", 301: "Moved Permanently", 302: "Found", 304: "Not Modified", 400: "Bad Request", 401: "Unauthorized", 403: "Forbidden", 404: "Not Found", 409: "Conflict", 422: "Unprocessable Entity", 429: "Too Many Requests", 500: "Internal Server Error", 502: "Bad Gateway", 503: "Service Unavailable", 504: "Gateway Timeout" };
@@ -17749,7 +17749,6 @@ function buildHttpRequest(exec, i) {
   const options = p("options", {});
   const r = options.response?.response ?? {};
   const responseFormat = r.responseFormat || "autodetect";
-  if (responseFormat === "file") throw unsupported(exec, "HTTP Request file responses");
   const req = { kind: "http", itemIndex: i, method, url, headers: {}, query: {} };
   const sendBody = p("sendBody", false);
   const ct = p("contentType", "json");
@@ -17769,7 +17768,14 @@ function buildHttpRequest(exec, i) {
       body = typeof jb !== "object" && jb !== null ? jsonParam(exec, jb, "JSON Body", i) : jb;
     } else if (specifyBody === "string") body = Object.fromEntries(new URLSearchParams(String(p("body", ""))));
     if (!METHODS_WITHOUT_BODY.includes(method)) {
-      if (ct === "binaryData") throw unsupported(exec, "HTTP Request binary bodies");
+      if (ct === "binaryData") {
+        // n8n sends the item's binary property as the body, typed by its mimeType (set after
+        // the step's own headers, so it wins), base64 here for the host to send as bytes.
+        const { meta } = binaryOf(exec, i, p("inputDataFieldName", ""));
+        body = meta.data;
+        req.bodyEncoding = "base64";
+        req.binaryContentType = meta.mimeType ?? "application/octet-stream";
+      }
       if (ct === "raw") body = p("body", "");
     }
     if (body !== undefined) req.body = body;
@@ -17785,6 +17791,11 @@ function buildHttpRequest(exec, i) {
     req.headers = lower ? Object.fromEntries(Object.entries(extra ?? {}).map(([k, x]) => [k.toLowerCase(), x])) : { ...extra };
   }
   if (sendBody && ct === "raw") req.headers["content-type"] = p("rawContentType", "");
+  if (req.binaryContentType) {
+    for (const k of Object.keys(req.headers)) if (k.toLowerCase() === "content-type") delete req.headers[k];
+    req.headers["content-type"] = req.binaryContentType;
+    delete req.binaryContentType;
+  }
   // Lists in the query and in a form body are encoded with qs, "indices" by default
   // (a[0]=1&a[1]=2); the option queryParameterArrays (brackets / repeat) applies to the query
   // only. Observed from n8n 2.47.7 (tests/fixtures/n8n-observed/http-request-build.json).
@@ -17801,6 +17812,7 @@ function buildHttpRequest(exec, i) {
   if (options.timeout) req.timeoutMs = options.timeout;
   if (options.redirect?.redirect?.followRedirects === false) req.followRedirects = false;
   req.response = { format: responseFormat, fullResponse: !!r.fullResponse, neverError: !!r.neverError };
+  if (responseFormat === "file" || responseFormat === "autodetect") req.response.outputPropertyName = exec.param("options.response.response.outputPropertyName", 0, "data");
   // n8n reads the pagination settings once, from item 0, with their expressions unevaluated.
   const pg = exec.param("options.pagination.pagination", 0, null, { rawExpressions: true });
   if (pg && pg.paginationMode !== "off") req.pagination = paginationOf(exec, pg, req.response);
@@ -17951,7 +17963,7 @@ function httpItems(exec, req, res, i) {
           else throw err(exec, "Invalid JSON in response body", { itemIndex: i });
         }
       }
-    } else if (BINARY_CONTENT_TYPES.some((t) => ct.includes(t))) throw unsupported(exec, "HTTP Request binary responses");
+    } else if (BINARY_CONTENT_TYPES.some((t) => ct.includes(t))) format = "file";
     else {
       format = "text";
       if (body !== undefined && typeof body !== "string") body = JSON.stringify(body);
@@ -17959,6 +17971,7 @@ function httpItems(exec, req, res, i) {
     }
   }
   const pi = { item: i };
+  if (format === "file") return [fileItem(exec, req, value, headers, status, statusMessage, i)];
   // An explicit json or text format asks for a JSON response (request option json: true):
   // a JSON body arrives parsed, an empty one as undefined (observed from n8n 2.47.7,
   // tests/fixtures/n8n-observed/http-empty-bodies.json).
@@ -17987,6 +18000,60 @@ function httpItems(exec, req, res, i) {
   const nonNull = (j) => (j === null || j === undefined ? {} : j);
   if (Array.isArray(body)) return body.map((j) => ({ json: nonNull(j), pairedItem: pi }));
   return [{ json: nonNull(body), pairedItem: pi }];
+}
+
+// The response bytes: a host hands them as bodyBase64, or as a string, which under a binary
+// content type is one character per byte (the bench's in-process host) and otherwise text.
+function responseBytes(value, contentType) {
+  if (typeof value.bodyBase64 === "string") return base64ToBytes(value.bodyBase64);
+  const b = value.body;
+  if (b === undefined || b === null) return new Uint8Array(0);
+  if (typeof b !== "string") return utf8Bytes(JSON.stringify(b));
+  if (BINARY_CONTENT_TYPES.some((t) => contentType.includes(t)) && !/[^\u0000-\u00ff]/.test(b)) return Uint8Array.from(b, (c) => c.charCodeAt(0));
+  return utf8Bytes(b);
+}
+// content-disposition's filename (filename* first, as the content-disposition package reads it).
+function dispositionFilename(h) {
+  if (typeof h !== "string") return undefined;
+  const star = /filename\*\s*=\s*([^']*)'[^']*'([^;]+)/i.exec(h);
+  if (star) {
+    try {
+      return decodeURIComponent(star[2].trim());
+    } catch {}
+  }
+  const m = /(?:^|;)\s*filename\s*=\s*(?:"((?:\\.|[^"\\])*)"|([^;\s]+))/i.exec(h);
+  return m ? (m[1] !== undefined ? m[1].replace(/\\(.)/g, "$1") : m[2]) : undefined;
+}
+// A file response (format "file", or an autodetected binary content type), as n8n's HTTP
+// Request v3 builds it: the input item's json (or the full response's headers, status code and
+// message), its binary plus the response under outputPropertyName, prepared as n8n-core's
+// prepareBinaryData prepares a response stream: the type from the content type, the file name
+// from content-disposition or the URL's path (the URL, without query, credentials or hash, as
+// its directory), then the node's setFilename (<property>.<extension> when there is none).
+function fileItem(exec, req, value, headers, status, statusMessage, i) {
+  const ct = String(headers["content-type"] ?? "");
+  const mime = ct ? ct.split(" ")[0].split(";")[0] : undefined;
+  const bytes = responseBytes(value, ct);
+  let finalUrl;
+  let pathname;
+  try {
+    const u = new URL(value.url ?? req.url);
+    u.username = u.password = u.search = u.hash = "";
+    finalUrl = u.toString();
+    pathname = u.pathname;
+  } catch {}
+  const filePath = dispositionFilename(headers["content-disposition"]) ?? pathname?.slice(1);
+  const bin = prepareBinary(bytes, filePath || undefined, mime, { stream: true, url: finalUrl });
+  if (!bin.fileName && bin.fileExtension) {
+    let reqPath;
+    try {
+      reqPath = new URL(req.url).pathname;
+    } catch {}
+    bin.fileName = reqPath?.endsWith(bin.fileExtension) ? reqPath.split("/").pop() : `${req.response.outputPropertyName ?? "data"}.${bin.fileExtension}`;
+  }
+  const input = exec.getInputData()[i] ?? { json: {} };
+  const json = req.response.fullResponse ? { headers, statusCode: status, statusMessage } : input.json;
+  return { json, binary: { ...(input.binary ?? {}), [req.response.outputPropertyName ?? "data"]: bin }, pairedItem: { item: i } };
 }
 
 const httpRequest = {
@@ -18841,7 +18908,7 @@ function requestImplFor(step) {
   return null;
 }
 
-return { GROUP2, buildHttpRequest, applyLookup, canDeriveRequest, executeAgentTool, requestImplFor };
+return { GROUP2, BINARY_CONTENT_TYPES, buildHttpRequest, applyLookup, canDeriveRequest, executeAgentTool, requestImplFor };
 })();
 
 // ---- src/nodes.mjs ----
