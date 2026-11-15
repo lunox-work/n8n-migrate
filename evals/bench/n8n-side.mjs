@@ -367,6 +367,15 @@ export const UNSHIMMED_MODELS = {
   [`${LC}miniMax`]: "the vendor node strips /v1 from the credential url and uses its own paths (unverified)",
 };
 
+// PROPOSALS P86: a parameter's literal value. n8n evaluates `=text` with no `{{ }}` to `text`, so
+// an expression-mode URL with nothing to evaluate is the literal URL; one with `{{` is built at
+// run time (null).
+export function literalUrl(v) {
+  if (typeof v !== "string" || !v.trim()) return null;
+  if (!v.startsWith("=")) return v;
+  return v.includes("{{") ? null : v.slice(1).trim();
+}
+
 // The route for a node: {spec, host?} or {why} (the shim cannot answer it) or null (not a
 // model node). HTTP Request nodes listed as models are answered when they call a host+path the
 // mock forwards to the shim (an LLM API over HTTP).
@@ -383,7 +392,7 @@ export function modelRoute(n, { listed = false } = {}) {
   if (n.type === "n8n-nodes-base.httpRequest" && listed) {
     let u = null;
     try {
-      u = typeof n.parameters?.url === "string" && !n.parameters.url.startsWith("=") ? new URL(n.parameters.url) : null;
+      u = literalUrl(n.parameters?.url) ? new URL(literalUrl(n.parameters.url)) : null;
     } catch {}
     if (u && modelHost(u.hostname, u.pathname)) return { spec: null, host: u.hostname };
     return { why: `HTTP Request ${u ? u.hostname + u.pathname : "(URL built at run time)"} is not a model API the mock forwards to the shim` };

@@ -126,3 +126,13 @@ test("P53: an SMTP message from the sink is a mail.send effect that pairs with a
   assert.equal(r2.substituted.length, 1);
   assert.equal(compare([own], [c]).substituted, undefined, "no SMTP send on n8n's side: nothing substitutes");
 });
+
+test("P86: an expression-mode LLM API URL with nothing to evaluate is the literal URL, so the node can be listed as a model", async () => {
+  const { modelRoute, literalUrl } = await import("../evals/bench/n8n-side.mjs");
+  const http = (url) => ({ name: "Call", type: "n8n-nodes-base.httpRequest", parameters: { url } });
+  assert.deepEqual(modelRoute(http("=https://api.openai.com/v1/chat/completions"), { listed: true }), { spec: null, host: "api.openai.com" });
+  assert.match(modelRoute(http("=https://api.openai.com/{{ $json.path }}"), { listed: true }).why, /built at run time/);
+  assert.equal(literalUrl("= https://x.example/a"), "https://x.example/a");
+  assert.equal(literalUrl("https://x.example/a"), "https://x.example/a");
+  assert.equal(literalUrl("={{ $json.u }}"), null);
+});
