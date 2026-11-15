@@ -501,3 +501,56 @@ test("answers keyed by the first report's workflow id still apply after a regene
   rmSync(dir, { recursive: true, force: true });
   rmSync(src, { recursive: true, force: true });
 });
+
+test("an HTTP step whose host comes from data asks for its hosts at setup: named hosts, or any public https host", async () => {
+  const { parseHostsAnswer } = await import("../skills/n8n-to-claude/scripts/convert.mjs");
+  assert.deepEqual(parseHostsAnswer("public"), { public: true });
+  assert.deepEqual(parseHostsAnswer("api.example.com, https://cdn.example.com/x"), { hosts: ["api.example.com", "cdn.example.com"] });
+  assert.match(parseHostsAnswer("*.example.com").invalid, /wildcard/);
+  assert.equal(parseHostsAnswer(""), null);
+  const flow = (params = {}, creds) => ({
+    id: "dh01",
+    name: "Data host",
+    nodes: [manual, { parameters: { url: "={{ $json.url }}", options: {}, ...params }, name: "Fetch", type: "n8n-nodes-base.httpRequest", typeVersion: 4.2, position: [200, 0], ...(creds ? { credentials: creds } : {}) }],
+    connections: link("Start", "Fetch"),
+    settings: { executionOrder: "v1" },
+  });
+  // Unanswered: the question is asked and preflight refuses the step, naming it.
+  const open = convertJson(flow());
+  const q = open.report.workflows[0].questions.find((x) => x.id === "dh01/hosts/Fetch");
+  assert.ok(q && q.answer === null, "the hosts question is asked");
+  assert.equal(open.definition.allow.http[0].host, "*");
+  assert.match(preflight(open.definition).issues.find((i) => i.level === "error" && /any host/.test(i.message)).message, /hosts question/);
+  // Named hosts: only those.
+  const named = convertJson(flow(), { answers: { "dh01/hosts/Fetch": "shop.example.com, blog.example.com" } }).definition;
+  assert.deepEqual(named.allow.http.map((a) => a.host), ["shop.example.com", "blog.example.com"]);
+  assert.equal(preflight(named).ok, true, JSON.stringify(preflight(named).issues));
+  const http = async (r) => ({ status: 200, headers: { "content-type": "text/html" }, body: `<p>${r.url}</p>` });
+  assert.equal((await run(named, { clock: CLOCK, virtualTime: true, trigger: [{ url: "https://shop.example.com/a" }], host: { http } })).status, "done");
+  const off = await run(named, { clock: CLOCK, virtualTime: true, trigger: [{ url: "https://evil.example/collect" }], host: { http } });
+  assert.match(off.error.message, /not in the definition's allowlist/);
+  // "public": one step, any public https host; private, loopback, metadata and plain http refused.
+  const pub = convertJson(flow(), { answers: { "dh01/hosts/Fetch": "public" } }).definition;
+  assert.deepEqual(pub.allow.http, [{ method: "GET", host: "*", scope: "public", step: "Fetch", note: 'step "Fetch": URL built at run time, any public https host (answered at setup)' }]);
+  assert.equal(preflight(pub).ok, true, JSON.stringify(preflight(pub).issues));
+  assert.equal((await run(pub, { clock: CLOCK, virtualTime: true, trigger: [{ url: "https://any-site.example/contact" }], host: { http } })).status, "done");
+  for (const url of ["http://any-site.example/", "https://169.254.169.254/latest/meta-data/", "https://127.0.0.1/", "https://10.0.0.8/", "https://localhost/", "https://metadata.google.internal/", "https://[::1]/", "https://intranet/", "https://site.example:8443/", "https://user:pw@site.example/"]) {
+    const r = await run(pub, { clock: CLOCK, virtualTime: true, trigger: [{ url }], host: { http } });
+    assert.equal(r.status, "failed", url);
+    assert.match(r.error.message, /public https hosts only|not an http\(s\) URL|not in the definition's allowlist/, url);
+  }
+  // "public" is refused for a write or a request that sends a credential: the hosts must be named.
+  for (const f of [flow({ method: "POST" }), flow({ authentication: "genericCredentialType", genericAuthType: "httpHeaderAuth" }, { httpHeaderAuth: { id: "1", name: "Key" } })]) {
+    const d = convertJson(f, { answers: { "dh01/hosts/Fetch": "public" } }).definition;
+    assert.equal(d.allow.http.find((a) => a.host === "*").scope, undefined);
+    assert.match(d.steps.Fetch.reviewReasons.join(" "), /accepted only for a GET or HEAD request that sends no credential/);
+    assert.equal(preflight(d).ok, false);
+  }
+  // Another step cannot use the public entry: it belongs to "Fetch" only.
+  const { checkContainment } = await import("../skills/n8n-to-claude/runtime/src/engine.mjs");
+  assert.throws(() => checkContainment(pub, { kind: "http", method: "GET", url: "https://any-site.example/", id: "Other#0#0", step: "Other" }), /not in the definition's allowlist/);
+  assert.doesNotThrow(() => checkContainment(pub, { kind: "http", method: "GET", url: "https://any-site.example/", id: "Fetch#0#0", step: "Fetch" }));
+  // A URL with an address written in it is not asked about.
+  const written = convertJson(flow({ url: "={{ 'https://api.example.com/v1/' + $json.id }}" }));
+  assert.equal(written.report.workflows[0].questions.some((x) => /\/hosts\//.test(x.id)), false);
+});

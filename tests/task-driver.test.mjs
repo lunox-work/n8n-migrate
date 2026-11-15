@@ -334,3 +334,37 @@ test("hooks off: a response the session cut for size fails the step instead of p
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("http redirects are followed hop by hop under the allowlist; a public-only step refuses a name that resolves to a private address", async () => {
+  const { executeHttp } = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/runtime/src/driver.mjs")).href);
+  const { checkContainment, publicAddress } = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/runtime/src/engine.mjs")).href);
+  const def = { allow: { http: [{ method: "GET", host: "api.example.com" }, { method: "GET", host: "cdn.example.com" }] }, secrets: [{ name: "K", hosts: ["api.example.com"] }] };
+  const seen = [];
+  const hops = { "https://api.example.com/a": "https://cdn.example.com/b", "https://api.example.com/c": "https://evil.example/d", "https://api.example.com/k": "https://cdn.example.com/k2" };
+  const fetchImpl = async (url, init) => {
+    seen.push({ url, init });
+    if (hops[url]) return new Response(null, { status: 302, headers: { location: hops[url] } });
+    return new Response(JSON.stringify({ at: url }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  const req = (url, extra = {}) => ({ kind: "http", method: "GET", url, headers: {}, id: "Fetch#0#0", step: "Fetch", ...extra });
+  const check = (r) => (url, method) => checkContainment(def, { ...r, url, method });
+  const ok = await executeHttp(req("https://api.example.com/a"), { secrets: "env" }, fetchImpl, { check: check(req("https://api.example.com/a")) });
+  assert.deepEqual([ok.ok, ok.value.body.at, seen[0].init.redirect], [true, "https://cdn.example.com/b", "manual"]);
+  const off = await executeHttp(req("https://api.example.com/c"), { secrets: "env" }, fetchImpl, { check: check(req("https://api.example.com/c")) });
+  assert.equal(off.ok, false);
+  assert.match(off.error.message, /evil\.example.*not in the definition's allowlist/);
+  // A secret never follows a redirect to a host it may not go to.
+  const withKey = req("https://api.example.com/k", { auth: { secret: "K", credentialType: "httpHeaderAuth" } });
+  const keyed = await executeHttp(withKey, { secrets: () => "tok" }, fetchImpl, { check: check(withKey) });
+  assert.match(keyed.error.message, /secret "K" may not be sent to cdn\.example\.com/);
+  // Without a check (as before), fetch follows redirects itself.
+  await executeHttp(req("https://api.example.com/z"), { secrets: "env" }, fetchImpl);
+  assert.equal(seen.at(-1).init.redirect, "follow");
+  // A step answered "public": each hop's host must resolve to public addresses only.
+  const pub = await executeHttp(req("https://rebind.example/x"), { secrets: "env" }, fetchImpl, { check: () => {}, publicOnly: true, isPublicAddress: publicAddress, resolve: async () => ["93.184.216.34", "127.0.0.1"] });
+  assert.match(pub.error.message, /resolves to 127\.0\.0\.1/);
+  const fine = await executeHttp(req("https://site.example/x"), { secrets: "env" }, fetchImpl, { check: () => {}, publicOnly: true, isPublicAddress: publicAddress, resolve: async () => ["93.184.216.34"] });
+  assert.equal(fine.ok, true);
+  assert.deepEqual(["10.1.2.3", "172.20.0.1", "192.168.1.1", "169.254.169.254", "100.64.0.1", "0.0.0.0", "::1", "fd00::1", "fe80::1", "::ffff:127.0.0.1"].filter(publicAddress), []);
+  assert.deepEqual(["93.184.216.34", "2606:2800:220:1::1"].filter(publicAddress).length, 2);
+});

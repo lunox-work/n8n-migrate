@@ -36,6 +36,7 @@ Schema: `SKILL/references/report.schema.json`. Per workflow:
 | `blockers[].kind` | `input-incomplete`, `unsupported`, `unmapped`, `substitution`, `dropped-branch`, `not-an-automation`                                                                   |
 | `questions[]`     | `id`, `text`, `options`, `assumed`; answer with `--answers {"<id>": <answer>}`                                                                                         |
 | site question     | `<workflow id>/site/<credential name>`: the address of the person's own site for a credential that names one (WordPress `url`); requests go to it and the secret only to its host; unanswered, the step is blocked |
+| hosts question    | `<workflow id>/hosts/<step name>`: an HTTP Request whose host comes from data; a list of hosts, or `public` (any public https host; GET or HEAD without a credential only); unanswered, preflight refuses the step ([Runs](#runs), Hosts) |
 
 ## Outcomes
 
@@ -91,9 +92,26 @@ the person's key is not a substitution. Flagged steps:
   (`SKILL/runtime/src/engine.mjs` `checkContainment`), and a secret goes only
   to its own hosts. A URL built at run time that writes its own address in the
   expression (`'https://api.github.com/repos/' + …`) may reach only the
-  addresses written there (`convert.mjs` `writtenTargets()`); one whose host
-  comes from data (`{{ $json.url }}`) is allowed to `*`, which preflight
-  refuses until the person names its hosts in `overrides.json` `allow.http`.
+  addresses written there (`writtenTargets()`); one whose host comes from data
+  (`{{ $json.url }}`, a sheet cell, a form field, a scraped link) gets the
+  hosts question at setup. A list of hosts allows those hosts only (and the
+  step's secret goes to them). `public` adds `{host: "*", scope: "public",
+  step}`: that step alone may reach any public https host, which is the honest
+  answer for a scraper that visits sites from a list, and the person's explicit
+  choice, recorded in the report and in `MIGRATION.md`. It is refused for a
+  write method or a step with a credential (name the hosts instead), and on
+  every request `engine.mjs` `publicHttpsUrl()` refuses plain http, a port, user
+  info, IP literals in private, loopback, link-local (metadata), carrier-NAT and
+  reserved ranges, IPv6 literals and local names (`localhost`, `.local`,
+  `.internal`, …); in a task the driver also refuses a name that resolves to
+  such an address (`publicAddress()`; a rebinding between that lookup and the
+  connection is not covered). Unanswered, the step stays `*` and preflight
+  refuses it. Agent tools whose URL the model picks are not asked about: they
+  stay limited to the URLs written in the tool.
+- **Redirects.** In a task the driver follows redirects itself, hop by hop:
+  each hop is checked against `allow.http` (and a secret against its hosts)
+  like a new request, so a redirect cannot carry a request or a credential to a
+  host the definition does not allow.
 - **Ledger.** `sending` before each write, `sent` after. A `sending` with no
   `sent` stops the workflow until `resolve`.
 - **Resume.** The next start continues an open run with the same id (replay

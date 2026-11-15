@@ -141,7 +141,10 @@ export function preflight(definition, { availableTools, sourceText, pinned, surf
     // rather than allowed to any host or failed in the middle of a run.
     const where = /^(step|agent tool) "/.test(a.note ?? "") ? `${a.note.replace(/: URL built at run time$/, "")}: ` : "";
     const step = /^(?:step|agent tool) "(.+)": /.exec(a.note ?? "")?.[1];
-    if (a.host === "*") err(`$.allow.http[${i}]`, `${where}a request with a URL built at run time is allowed to any host (${a.method} *); its host cannot be known before a run: narrow it to a host in overrides.json`, step ? { step } : {});
+    // A setup answer "public" (convert.mjs, analyze.mjs askHosts) is the person's explicit
+    // choice for one read step: allowed, and checked on each request (engine.mjs publicHttpsUrl).
+    if (a.host === "*" && a.scope === "public" && a.step && ["GET", "HEAD"].includes(String(a.method).toUpperCase())) warn(`$.allow.http[${i}]`, `step "${a.step}" may reach any public https host (answered at setup); private, loopback, link-local and metadata addresses are refused`, { step: a.step });
+    else if (a.host === "*") err(`$.allow.http[${i}]`, `${where}a request with a URL built at run time is allowed to any host (${a.method} *); its host cannot be known before a run: narrow it to a host in overrides.json, or answer the step's hosts question`, step ? { step } : {});
   });
   (definition.allow?.files ?? []).forEach((a, i) => {
     // A path built at run time names no directory before a run: refused, by name, until narrowed.

@@ -209,8 +209,16 @@ export function checkContainment(definition, req) {
     const t = hostOf(req.url);
     if (!t || !/^https?:$/.test(new URL(req.url).protocol)) throw new ContainmentViolation(`http request to "${req.url}" is not an http(s) URL`, { requestId: req.id });
     const method = String(req.method || "GET").toUpperCase();
-    const ok = (allow.http || []).some((a) => (a.method === "*" || String(a.method).toUpperCase() === method) && String(a.host).toLowerCase() === t.host && t.path.startsWith(a.pathPrefix || "/"));
-    if (!ok) throw new ContainmentViolation(`http ${method} ${t.host}${t.path} is not in the definition's allowlist`, { requestId: req.id });
+    const methodOk = (a) => a.method === "*" || String(a.method).toUpperCase() === method;
+    const ok = (allow.http || []).some((a) => methodOk(a) && a.scope !== "public" && String(a.host).toLowerCase() === t.host && t.path.startsWith(a.pathPrefix || "/"));
+    if (!ok) {
+      // A step the person answered "public" for at setup: any public https host, never a
+      // private, loopback, link-local or metadata address, and never with a secret (below).
+      const step = req.step ?? String(req.id ?? "").split("#")[0];
+      const pub = (allow.http || []).find((a) => a.scope === "public" && a.host === "*" && a.step === step && methodOk(a));
+      if (!pub) throw new ContainmentViolation(`http ${method} ${t.host}${t.path} is not in the definition's allowlist`, { requestId: req.id });
+      if (!publicHttpsUrl(req.url)) throw new ContainmentViolation(`http ${method} ${t.host}${t.path}: step "${step}" may reach public https hosts only (answered at setup); this address is plain http, private, loopback, link-local, metadata or names a port`, { requestId: req.id });
+    }
     if (req.auth?.secret) {
       const secret = (definition.secrets || []).find((s) => s.name === req.auth.secret);
       if (!secret) throw new ContainmentViolation(`secret "${req.auth.secret}" is not declared in the definition`, { requestId: req.id });
@@ -235,6 +243,53 @@ export function checkContainment(definition, req) {
       }
     }
   }
+}
+
+// An address a step answered "public" may reach: https on the default port, no user info, a
+// host name with a dot that is not a local or internal name, or a public IPv4 literal. IPv6
+// literals are refused. A name that resolves to a private address is refused when the request
+// is made (driver.mjs executeHttp), and every redirect hop is checked again.
+const LOCAL_NAMES = /(?:^|\.)(?:localhost|local|localdomain|internal|intranet|lan|home|corp|home\.arpa)$/;
+export function publicHttpsUrl(url) {
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    return false;
+  }
+  if (u.protocol !== "https:" || u.username || u.password || (u.port && u.port !== "443")) return false;
+  const h = u.hostname.toLowerCase().replace(/\.$/, "");
+  if (!h || h.startsWith("[") || h.includes(":")) return false;
+  const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
+  if (v4) return publicAddress(h);
+  return h.includes(".") && !LOCAL_NAMES.test(h);
+}
+// A resolved address that is public: not unspecified, loopback, private, carrier-grade NAT,
+// link-local (cloud metadata), benchmarking, documentation, multicast or reserved; IPv6 only in
+// 2000::/3 outside documentation, an IPv4-mapped address judged as its IPv4.
+export function publicAddress(ip) {
+  const s = String(ip).toLowerCase().replace(/^\[|\]$/g, "");
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(s);
+  if (mapped) return publicAddress(mapped[1]);
+  const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(s);
+  if (v4) {
+    const [a, b, c] = v4.slice(1).map(Number);
+    if (v4.slice(1).some((x) => Number(x) > 255)) return false;
+    if (a === 0 || a === 10 || a === 127 || a >= 224) return false;
+    if (a === 100 && b >= 64 && b <= 127) return false;
+    if (a === 169 && b === 254) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 192 && b === 168) return false;
+    if (a === 192 && b === 0 && (c === 0 || c === 2)) return false;
+    if (a === 198 && (b === 18 || b === 19)) return false;
+    if (a === 198 && b === 51 && c === 100) return false;
+    if (a === 203 && b === 0 && c === 113) return false;
+    return true;
+  }
+  if (!s.includes(":")) return false;
+  const first = parseInt(s.split(":")[0] || "0", 16);
+  if (!(first >= 0x2000 && first <= 0x3fff)) return false;
+  return !s.startsWith("2001:db8:") && !s.startsWith("2001:0db8:");
 }
 
 // A normalized path within an allowed directory (or the allowed file itself).

@@ -30,6 +30,26 @@ function strings(v, out = []) {
   return out;
 }
 
+// The addresses an expression URL writes itself: full http(s)://host[/path] literals inside it
+// (a string literal in a function that builds the rest). [] when the URL has a literal address
+// before its first `{{` (urlTarget answers that) or writes none. A request steered by data can
+// then change only what follows a written prefix; any other host is refused at run time.
+export function writtenTargets(url) {
+  if (typeof url !== "string" || !url.startsWith("=") || urlTarget(url)) return [];
+  const found = [];
+  for (const m of url.matchAll(/https?:\/\/[A-Za-z0-9.-]+(?::\d+)?(?:\/[A-Za-z0-9._~!&*+,;=:@%\/-]*)?/g)) {
+    const t = urlTarget(m[0]);
+    if (t && t.host.includes(".") && !found.some((x) => x.host === t.host && x.pathPrefix === t.pathPrefix)) found.push(t);
+  }
+  return found;
+}
+
+// A URL built at run time whose host comes from data (`{{ $json.url }}`, `'https://' +
+// $json.domain`): an expression with no address before its first `{{` and none written in it.
+export function openHost(url) {
+  return typeof url === "string" && url.startsWith("=") && url.slice(1).trim() !== "" && !urlTarget(url) && !writtenTargets(url).length;
+}
+
 // Literal host and path prefix of an http(s) URL parameter, if the host is not an expression.
 export function urlTarget(url) {
   if (typeof url !== "string") return null;

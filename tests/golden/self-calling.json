@@ -34,7 +34,7 @@
     },
     "blockers": {},
     "notAnAutomation": 0,
-    "questions": 0,
+    "questions": 1,
     "unmappedTypes": [],
     "cloudScheduledRunsPerHour": 0,
     "cloudScheduledRunsPerHourLimit": 100,
@@ -109,7 +109,23 @@
           }
         }
       ],
-      "questions": [],
+      "questions": [
+        {
+          "id": "self-calling/hosts/Fetch page",
+          "text": "The step \"Fetch page\" takes its address from data at run time, so its host is not known before a run. Which hosts may it reach? Name them, comma-separated (for example api.example.com, cdn.example.com), or answer \"public\" to let it reach any public https host, as a scraper that visits sites from a list needs; private, loopback, link-local and cloud-metadata addresses are always refused, and \"public\" is accepted only for a GET or HEAD request that sends no credential. Any other host is refused at run time.",
+          "nodes": [
+            "Fetch page"
+          ],
+          "affects": "allow.http",
+          "answerType": "text",
+          "options": {
+            "<hosts>": "only these hosts, comma-separated",
+            "public": "any public https host (data picks the site)"
+          },
+          "assumed": null,
+          "answer": null
+        }
+      ],
       "blockers": [],
       "credentials": [
         {

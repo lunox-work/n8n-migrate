@@ -58,7 +58,7 @@ import { dirname, join, resolve, basename } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { execFileSync } from "node:child_process";
 import { analyze, loadInput, unwrap, redactSecrets, legacyCron, simulateCron, parseCron, httpTarget } from "./analyze.mjs";
-import { fromN8n, urlTarget } from "../runtime/src/convert.mjs";
+import { fromN8n, urlTarget, writtenTargets } from "../runtime/src/convert.mjs";
 import { preflight, expressionSupport, nodeImplFor, definitionHash, RUNTIME_VERSION } from "../runtime/src/api.mjs";
 import { ALERT_TOOLS } from "../runtime/src/alerts.mjs";
 
@@ -731,8 +731,8 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
   const addTool = (connector, tool) => {
     if (!allow.tools.some((t) => t.connector === connector && t.tool === tool)) allow.tools.push({ connector, tool });
   };
-  const addHttp = (method, host, pathPrefix, note) => {
-    if (!allow.http.some((a) => a.method === method && a.host === host && (a.pathPrefix ?? "") === (pathPrefix ?? ""))) allow.http.push({ method, host, ...(pathPrefix !== undefined ? { pathPrefix } : {}), ...(note ? { note } : {}) });
+  const addHttp = (method, host, pathPrefix, note, extra = {}) => {
+    if (!allow.http.some((a) => a.method === method && a.host === host && (a.pathPrefix ?? "") === (pathPrefix ?? "") && (a.step ?? "") === (extra.step ?? ""))) allow.http.push({ method, host, ...(pathPrefix !== undefined ? { pathPrefix } : {}), ...extra, ...(note ? { note } : {}) });
   };
   // Local disk paths (allow.files): a literal path allows that file (a glob, the directory
   // before its first wildcard); a path built at run time allows the directory written before
@@ -1223,17 +1223,39 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       if (isExpr(method)) review(step, "the HTTP method is set by an expression");
       const target = urlTarget(params.url);
       const written = target ? [] : writtenTargets(params.url);
+      let named = [];
       if (target) addHttp(methodOut, target.host, target.pathPrefix);
       else if (written.length) {
         for (const t of written) addHttp(methodOut, t.host, t.pathPrefix, `step "${name}": URL built at run time, limited to the addresses written in it`);
         review(step, `the request URL is built at run time; it may reach only ${written.map((t) => t.host + t.pathPrefix).join(", ")}, written in the step (any other host is refused at run time)`);
       } else {
-        addHttp(methodOut, "*", undefined, `step "${name}": URL built at run time`);
-        review(step, "the request URL is built at run time; narrow allow.http to its host in overrides.json");
+        // The host comes from data: the person's setup answer (analyze.mjs askHosts) names the
+        // hosts, or "public" (any public https host; a GET or HEAD without a credential only).
+        const q = hostsQuestion(report, name);
+        const ans = parseHostsAnswer(q?.answer);
+        if (ans?.hosts) {
+          named = ans.hosts;
+          for (const h of ans.hosts) addHttp(methodOut, h, undefined, `step "${name}": URL built at run time, limited to the hosts named at setup`);
+          review(step, `the request URL is built at run time from data; it may reach only ${ans.hosts.join(", ")}, named at setup (question ${q.id}); any other host is refused at run time`);
+        } else if (ans?.public && ["GET", "HEAD"].includes(methodOut) && !step.auth?.secret) {
+          addHttp(methodOut, "*", undefined, `step "${name}": URL built at run time, any public https host (answered at setup)`, { scope: "public", step: name });
+          review(step, `the request URL is built at run time from data and may reach any public https host (answered "public" at setup, question ${q.id}): the data picks the site; private, loopback, link-local and metadata addresses and plain http are refused at run time, redirects are checked hop by hop, and the request sends no credential`);
+        } else {
+          addHttp(methodOut, "*", undefined, `step "${name}": URL built at run time`);
+          const why = ans?.public
+            ? `"public" (question ${q.id}) is accepted only for a GET or HEAD request that sends no credential; name the hosts instead`
+            : ans?.invalid
+              ? `the answer to question ${q.id} is not usable (${ans.invalid}); name the hosts, comma-separated, or answer "public"`
+              : q
+                ? `the request URL is built at run time from data; answer question ${q.id} with the hosts it may reach, or "public" for any public https host`
+                : "the request URL is built at run time; narrow allow.http to its host in overrides.json";
+          review(step, why);
+        }
       }
       if (step.auth?.secret) {
         addSecret(step.auth.secret, step.auth.credentialType, target?.host);
         for (const t of written) addSecret(step.auth.secret, step.auth.credentialType, t.host);
+        for (const h of named) addSecret(step.auth.secret, step.auth.credentialType, h);
         for (const host of refs.toolMaps.credentialHosts?.[step.auth.credentialType] ?? []) addSecret(step.auth.secret, step.auth.credentialType, host);
       }
       if (params.options?.pagination?.pagination?.paginationMode === "responseContainsNextURL") review(step, "pagination follows a next URL from the response; a page on another host than the first request's is refused at run time");
@@ -1670,6 +1692,36 @@ function summarizeSpec(name, p, v, subnodesTo, steps) {
   return { method, prompts, docs, outputKey: batched ? "output" : "response" };
 }
 
+// The hosts question for an HTTP Request step whose address comes from data (analyze.mjs
+// askHosts), and its answer: "public" -> {public: true}; host names (comma or space separated,
+// a URL's host taken) -> {hosts}; anything else -> {invalid: reason}; unanswered -> null.
+function hostsQuestion(report, stepName) {
+  for (const w of report?.workflows ?? []) for (const q of w.questions ?? []) if (/\/hosts\//.test(q.id) && q.id.endsWith(`/hosts/${stepName}`)) return q;
+  return null;
+}
+export function parseHostsAnswer(a) {
+  if (typeof a !== "string" || !a.trim()) return null;
+  const s = a.trim().toLowerCase();
+  if (/^(?:"?public"?|any public(?: https)? hosts?)$/.test(s)) return { public: true };
+  const hosts = [];
+  for (const part of s.split(/[\s,]+/).filter(Boolean)) {
+    let h = part;
+    if (/^[a-z][a-z0-9+.-]*:\/\//.test(h)) {
+      try {
+        const u = new URL(h);
+        if (!/^https?:$/.test(u.protocol)) return { invalid: `"${part}" is not an http(s) address` };
+        h = u.hostname;
+      } catch {
+        return { invalid: `"${part}" is not a host name` };
+      }
+    }
+    h = h.replace(/\.$/, "");
+    if (!/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/.test(h)) return { invalid: `"${part}" is not a host name (a wildcard is not accepted; name each host, or answer "public")` };
+    if (!hosts.includes(h)) hosts.push(h);
+  }
+  return hosts.length ? { hosts } : null;
+}
+
 // The answered site question for a credential (analyze.mjs askSites), normalized to an
 // origin plus path without a trailing "/" ("https://example.com/blog"), or null.
 function siteQuestion(report, credName) {
@@ -1723,19 +1775,11 @@ function staticTarget(url) {
 // expression that writes no full origin (`{{ $json.url }}`, `'https://' + $json.domain`) has
 // an open host and stays `*`, refused by preflight until the person narrows it. -> [{host,
 // pathPrefix}] or [] (also for a URL urlTarget() already reads).
-export function writtenTargets(url) {
-  if (typeof url !== "string" || !url.startsWith("=") || urlTarget(url)) return [];
-  const found = [];
-  for (const m of url.matchAll(/https?:\/\/[A-Za-z0-9.-]+(?::\d+)?(?:\/[A-Za-z0-9._~!&*+,;=:@%\/-]*)?/g)) {
-    const t = urlTarget(m[0]);
-    if (t && t.host.includes(".") && !found.some((x) => x.host === t.host && x.pathPrefix === t.pathPrefix)) found.push(t);
-  }
-  return found;
-}
+export { writtenTargets };
 
 function mergeAllow(allow, secrets, sub) {
   for (const t of sub.allow?.tools ?? []) if (!allow.tools.some((x) => x.connector === t.connector && x.tool === t.tool)) allow.tools.push(clone(t));
-  for (const h of sub.allow?.http ?? []) if (!allow.http.some((x) => x.method === h.method && x.host === h.host && (x.pathPrefix ?? "") === (h.pathPrefix ?? ""))) allow.http.push(clone(h));
+  for (const h of sub.allow?.http ?? []) if (!allow.http.some((x) => x.method === h.method && x.host === h.host && (x.pathPrefix ?? "") === (h.pathPrefix ?? "") && (x.step ?? "") === (h.step ?? ""))) allow.http.push(clone(h));
   for (const s of sub.secrets ?? []) {
     const e = secrets.get(s.name) ?? { name: s.name, credentialType: s.credentialType, hosts: [] };
     for (const h of s.hosts ?? []) if (!e.hosts.includes(h)) e.hosts.push(h);
@@ -1876,7 +1920,7 @@ export function applyOverrides(def, ov) {
     step.override = true;
   }
   if (ov?.allow?.http?.length) {
-    def.allow.http = def.allow.http.filter((a) => a.host !== "*");
+    def.allow.http = def.allow.http.filter((a) => a.host !== "*" || a.scope === "public");
     for (const a of ov.allow.http) if (!def.allow.http.some((x) => x.method === a.method && x.host === a.host && (x.pathPrefix ?? "") === (a.pathPrefix ?? ""))) def.allow.http.push(clone(a));
   }
   if (ov?.allow?.files?.length) {
@@ -1957,7 +2001,7 @@ export function migrationMd(wr, def, { refused, overrides } = {}) {
     }
     L.push("## Allowed targets", "", "The run can only reach these. Anything else is refused.", "");
     for (const t of def.allow.tools) L.push(`- tool ${t.connector} \`${t.tool}\``);
-    for (const h of def.allow.http) L.push(`- ${h.method} ${h.host}${h.pathPrefix ?? ""}${h.host === "*" ? " (refused until narrowed in overrides.json)" : ""}`);
+    for (const h of def.allow.http) L.push(h.scope === "public" ? `- ${h.method} any public https host, step ${mdEscape(h.step)} only (answered at setup; private, loopback, link-local and metadata addresses refused)` : `- ${h.method} ${h.host}${h.pathPrefix ?? ""}${h.host === "*" ? " (refused until narrowed in overrides.json)" : ""}`);
     if (!def.allow.tools.length && !def.allow.http.length) L.push("- nothing outside the runner");
     L.push("");
     if (def.secrets.length) {

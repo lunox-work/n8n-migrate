@@ -181,7 +181,7 @@
               "id": { "description": "<workflow id>/<kind>[/<node path>]; the key for --answers. A node path inside an inline sub-workflow is \"<call node> › <node>\"", "type": "string" },
               "text": { "type": "string" },
               "nodes": { "$ref": "#/$defs/nodes" },
-              "affects": { "enum": ["outcome", "effect", "timezone", "sub-workflow", "schedule"] },
+              "affects": { "description": "allow.http: the site question (a credential's own site) and the hosts question (an HTTP Request whose address comes from data)", "enum": ["outcome", "effect", "timezone", "sub-workflow", "schedule", "allow.http"] },
               "answerType": { "description": "nodes: true (every listed node), false (none) or a list of the listed node names", "enum": ["boolean", "choice", "text", "nodes"] },
               "options": { "description": "accepted answer → what it changes; <placeholder> keys stand for free text", "type": "object", "additionalProperties": { "type": "string" } },
               "assumed": { "description": "value the report uses while unanswered" },

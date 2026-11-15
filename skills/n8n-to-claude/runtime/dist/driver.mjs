@@ -382,7 +382,13 @@ export function executeFile(req, task, dir) {
   }
 }
 
-export async function executeHttp(req, task, fetchImpl = globalThis.fetch) {
+// check(url, method): the containment check for a redirect hop (the definition's allowlist and
+// the secret's hosts, engine.mjs checkContainment); with it, redirects are followed here hop by
+// hop instead of by fetch, so a hop to a host the definition does not allow is refused like any
+// request. publicOnly: the step's setup answer is "public", so each hop's host must also resolve
+// to public addresses only (isPublicAddress, engine.mjs publicAddress; resolve(host) ->
+// [addresses]; a name that does not resolve is left to fetch, which fails on it).
+export async function executeHttp(req, task, fetchImpl = globalThis.fetch, { check = null, publicOnly = false, isPublicAddress = null, resolve = defaultResolve } = {}) {
   const source = typeof task.secrets === "function" ? task.secrets : secretSources[task.secrets ?? "env"];
   let url = req.url;
   const headers = { ...(req.headers ?? {}) };
@@ -415,7 +421,28 @@ export async function executeHttp(req, task, fetchImpl = globalThis.fetch) {
   try {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), req.timeoutMs ?? 30_000);
-    const res = await fetchImpl(url, { method: req.method, headers, body, redirect: req.followRedirects === false ? "manual" : "follow", signal: ctl.signal });
+    let res;
+    let method = req.method;
+    let hopUrl = url;
+    for (let hop = 0; ; hop++) {
+      if (hop && check) check(hopUrl, method);
+      if (publicOnly) {
+        const host = new URL(hopUrl).hostname.replace(/^\[|\]$/g, "");
+        const addrs = await resolve(host);
+        const bad = addrs.find((a) => !isPublicAddress?.(a));
+        if (bad) throw Object.assign(new Error(`${host} resolves to ${bad}, a private, loopback, link-local or metadata address, which a step answered "public" never reaches`), { name: "ContainmentViolation" });
+      }
+      res = await fetchImpl(hopUrl, { method, headers, body, redirect: req.followRedirects === false || check ? "manual" : "follow", signal: ctl.signal });
+      const loc = res.headers?.get?.("location");
+      if (!check || req.followRedirects === false || ![301, 302, 303, 307, 308].includes(res.status) || !loc) break;
+      if (hop >= 20) throw new Error(`more than 20 redirects from ${redact(url)}`);
+      hopUrl = new URL(loc, hopUrl).toString();
+      if (res.status === 303 || ((res.status === 301 || res.status === 302) && method === "POST")) {
+        method = "GET";
+        body = undefined;
+        for (const k of Object.keys(headers)) if (k.toLowerCase() === "content-type") delete headers[k];
+      }
+    }
     clearTimeout(timer);
     const text = await res.text();
     const rh = {};
@@ -431,6 +458,23 @@ export async function executeHttp(req, task, fetchImpl = globalThis.fetch) {
     return { ok: false, error: { name: e.name ?? "Error", message: redact(e.message ?? e) } };
   }
 }
+
+async function defaultResolve(host) {
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(host) || host.includes(":")) return [host];
+  try {
+    const { lookup } = await import("node:dns/promises");
+    return (await lookup(host, { all: true })).map((a) => a.address);
+  } catch {
+    return [];
+  }
+}
+const hostOfUrl = (s) => {
+  try {
+    return new URL(String(s).includes("://") ? s : `https://${s}`).hostname.toLowerCase();
+  } catch {
+    return String(s).toLowerCase();
+  }
+};
 
 // ---------- a small JSON Schema check for model answers ----------
 
@@ -905,7 +949,9 @@ async function advance(P, core, task, store, state, opts = {}) {
         logEvent(P, { event: "file", handle: handles[i], id: r.id, op: r.op, path: r.path, ok: res.ok });
         saveResult(P, handles[i], res);
       } else if (r.kind === "http") {
-        const res = await executeHttp(r, task, opts.fetch);
+        const step = r.step ?? String(r.id ?? "").split("#")[0];
+        const publicOnly = (state.definition?.allow?.http ?? []).some((a) => a.scope === "public" && a.step === step) && !(state.definition?.allow?.http ?? []).some((a) => a.scope !== "public" && hostOfUrl(a.host) === hostOfUrl(r.url));
+        const res = await executeHttp(r, task, opts.fetch, { check: (url, method) => core.checkContainment(state.definition, { ...r, url, method }), publicOnly, isPublicAddress: core.publicAddress, ...(opts.resolve ? { resolve: opts.resolve } : {}) });
         logEvent(P, { event: "http", handle: handles[i], id: r.id, method: r.method, url: r.url.replace(/\?.*$/, ""), ok: res.ok, status: res.value?.status });
         saveResult(P, handles[i], res);
       } else if (r.kind === "sleep") {

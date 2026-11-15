@@ -8729,8 +8729,16 @@ function checkContainment(definition, req) {
     const t = hostOf(req.url);
     if (!t || !/^https?:$/.test(new URL(req.url).protocol)) throw new ContainmentViolation(`http request to "${req.url}" is not an http(s) URL`, { requestId: req.id });
     const method = String(req.method || "GET").toUpperCase();
-    const ok = (allow.http || []).some((a) => (a.method === "*" || String(a.method).toUpperCase() === method) && String(a.host).toLowerCase() === t.host && t.path.startsWith(a.pathPrefix || "/"));
-    if (!ok) throw new ContainmentViolation(`http ${method} ${t.host}${t.path} is not in the definition's allowlist`, { requestId: req.id });
+    const methodOk = (a) => a.method === "*" || String(a.method).toUpperCase() === method;
+    const ok = (allow.http || []).some((a) => methodOk(a) && a.scope !== "public" && String(a.host).toLowerCase() === t.host && t.path.startsWith(a.pathPrefix || "/"));
+    if (!ok) {
+      // A step the person answered "public" for at setup: any public https host, never a
+      // private, loopback, link-local or metadata address, and never with a secret (below).
+      const step = req.step ?? String(req.id ?? "").split("#")[0];
+      const pub = (allow.http || []).find((a) => a.scope === "public" && a.host === "*" && a.step === step && methodOk(a));
+      if (!pub) throw new ContainmentViolation(`http ${method} ${t.host}${t.path} is not in the definition's allowlist`, { requestId: req.id });
+      if (!publicHttpsUrl(req.url)) throw new ContainmentViolation(`http ${method} ${t.host}${t.path}: step "${step}" may reach public https hosts only (answered at setup); this address is plain http, private, loopback, link-local, metadata or names a port`, { requestId: req.id });
+    }
     if (req.auth?.secret) {
       const secret = (definition.secrets || []).find((s) => s.name === req.auth.secret);
       if (!secret) throw new ContainmentViolation(`secret "${req.auth.secret}" is not declared in the definition`, { requestId: req.id });
@@ -8755,6 +8763,53 @@ function checkContainment(definition, req) {
       }
     }
   }
+}
+
+// An address a step answered "public" may reach: https on the default port, no user info, a
+// host name with a dot that is not a local or internal name, or a public IPv4 literal. IPv6
+// literals are refused. A name that resolves to a private address is refused when the request
+// is made (driver.mjs executeHttp), and every redirect hop is checked again.
+const LOCAL_NAMES = /(?:^|\.)(?:localhost|local|localdomain|internal|intranet|lan|home|corp|home\.arpa)$/;
+function publicHttpsUrl(url) {
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    return false;
+  }
+  if (u.protocol !== "https:" || u.username || u.password || (u.port && u.port !== "443")) return false;
+  const h = u.hostname.toLowerCase().replace(/\.$/, "");
+  if (!h || h.startsWith("[") || h.includes(":")) return false;
+  const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
+  if (v4) return publicAddress(h);
+  return h.includes(".") && !LOCAL_NAMES.test(h);
+}
+// A resolved address that is public: not unspecified, loopback, private, carrier-grade NAT,
+// link-local (cloud metadata), benchmarking, documentation, multicast or reserved; IPv6 only in
+// 2000::/3 outside documentation, an IPv4-mapped address judged as its IPv4.
+function publicAddress(ip) {
+  const s = String(ip).toLowerCase().replace(/^\[|\]$/g, "");
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(s);
+  if (mapped) return publicAddress(mapped[1]);
+  const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(s);
+  if (v4) {
+    const [a, b, c] = v4.slice(1).map(Number);
+    if (v4.slice(1).some((x) => Number(x) > 255)) return false;
+    if (a === 0 || a === 10 || a === 127 || a >= 224) return false;
+    if (a === 100 && b >= 64 && b <= 127) return false;
+    if (a === 169 && b === 254) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 192 && b === 168) return false;
+    if (a === 192 && b === 0 && (c === 0 || c === 2)) return false;
+    if (a === 198 && (b === 18 || b === 19)) return false;
+    if (a === 198 && b === 51 && c === 100) return false;
+    if (a === 203 && b === 0 && c === 113) return false;
+    return true;
+  }
+  if (!s.includes(":")) return false;
+  const first = parseInt(s.split(":")[0] || "0", 16);
+  if (!(first >= 0x2000 && first <= 0x3fff)) return false;
+  return !s.startsWith("2001:db8:") && !s.startsWith("2001:0db8:");
 }
 
 // A normalized path within an allowed directory (or the allowed file itself).
@@ -9203,7 +9258,7 @@ function serializeRunData(runData) {
 }
 
 
-return { Suspend, DEFAULT_TIMEZONE, SLEEP_THRESHOLD_MS, Graph, createRun, normalizePinData, checkContainment, pathWithin, requestEffect, dispatch, NodeExecution, runEngine, NodeFailure, serializeRunData, stableStringify };
+return { Suspend, DEFAULT_TIMEZONE, SLEEP_THRESHOLD_MS, Graph, createRun, normalizePinData, checkContainment, publicHttpsUrl, publicAddress, pathWithin, requestEffect, dispatch, NodeExecution, runEngine, NodeFailure, serializeRunData, stableStringify };
 })();
 
 // ---- src/api.mjs ----
@@ -9351,7 +9406,10 @@ function preflight(definition, { availableTools, sourceText, pinned, surface } =
     // rather than allowed to any host or failed in the middle of a run.
     const where = /^(step|agent tool) "/.test(a.note ?? "") ? `${a.note.replace(/: URL built at run time$/, "")}: ` : "";
     const step = /^(?:step|agent tool) "(.+)": /.exec(a.note ?? "")?.[1];
-    if (a.host === "*") err(`$.allow.http[${i}]`, `${where}a request with a URL built at run time is allowed to any host (${a.method} *); its host cannot be known before a run: narrow it to a host in overrides.json`, step ? { step } : {});
+    // A setup answer "public" (convert.mjs, analyze.mjs askHosts) is the person's explicit
+    // choice for one read step: allowed, and checked on each request (engine.mjs publicHttpsUrl).
+    if (a.host === "*" && a.scope === "public" && a.step && ["GET", "HEAD"].includes(String(a.method).toUpperCase())) warn(`$.allow.http[${i}]`, `step "${a.step}" may reach any public https host (answered at setup); private, loopback, link-local and metadata addresses are refused`, { step: a.step });
+    else if (a.host === "*") err(`$.allow.http[${i}]`, `${where}a request with a URL built at run time is allowed to any host (${a.method} *); its host cannot be known before a run: narrow it to a host in overrides.json, or answer the step's hosts question`, step ? { step } : {});
   });
   (definition.allow?.files ?? []).forEach((a, i) => {
     // A path built at run time names no directory before a run: refused, by name, until narrowed.
@@ -9633,6 +9691,26 @@ function strings(v, out = []) {
   return out;
 }
 
+// The addresses an expression URL writes itself: full http(s)://host[/path] literals inside it
+// (a string literal in a function that builds the rest). [] when the URL has a literal address
+// before its first `{{` (urlTarget answers that) or writes none. A request steered by data can
+// then change only what follows a written prefix; any other host is refused at run time.
+function writtenTargets(url) {
+  if (typeof url !== "string" || !url.startsWith("=") || urlTarget(url)) return [];
+  const found = [];
+  for (const m of url.matchAll(/https?:\/\/[A-Za-z0-9.-]+(?::\d+)?(?:\/[A-Za-z0-9._~!&*+,;=:@%\/-]*)?/g)) {
+    const t = urlTarget(m[0]);
+    if (t && t.host.includes(".") && !found.some((x) => x.host === t.host && x.pathPrefix === t.pathPrefix)) found.push(t);
+  }
+  return found;
+}
+
+// A URL built at run time whose host comes from data (`{{ $json.url }}`, `'https://' +
+// $json.domain`): an expression with no address before its first `{{` and none written in it.
+function openHost(url) {
+  return typeof url === "string" && url.startsWith("=") && url.slice(1).trim() !== "" && !urlTarget(url) && !writtenTargets(url).length;
+}
+
 // Literal host and path prefix of an http(s) URL parameter, if the host is not an expression.
 function urlTarget(url) {
   if (typeof url !== "string") return null;
@@ -9807,7 +9885,7 @@ function fromN8n(workflowJson, { nodes, sourceText, file } = {}) {
   };
 }
 
-return { unwrapWorkflow, urlTarget, fromN8n };
+return { unwrapWorkflow, writtenTargets, openHost, urlTarget, fromN8n };
 })();
 
 // ---- src/records.mjs ----
@@ -10421,6 +10499,8 @@ const unwrapWorkflow = __m_convert_mjs.unwrapWorkflow;
 const urlTarget = __m_convert_mjs.urlTarget;
 const checkContainment = __m_engine_mjs.checkContainment;
 const requestEffect = __m_engine_mjs.requestEffect;
+const publicHttpsUrl = __m_engine_mjs.publicHttpsUrl;
+const publicAddress = __m_engine_mjs.publicAddress;
 const adaptResult = __m_adapt_mjs.adaptResult;
 const coerceArgs = __m_adapt_mjs.coerceArgs;
 const applyCursorArg = __m_adapt_mjs.applyCursorArg;
@@ -10488,4 +10568,4 @@ const alertChannel = __m_alerts_mjs.alertChannel;
 const alertRequest = __m_alerts_mjs.alertRequest;
 const isAllowedAlert = __m_alerts_mjs.isAllowedAlert;
 const cleanName = __m_alerts_mjs.cleanName;
-export { run, start, resume, preflight, validateDefinition, definitionHash, resolveTrigger, expressionSupport, RUNTIME_VERSION, DEFINITION_SCHEMA_VERSION, SUPPORTED_TYPES, fromN8n, unwrapWorkflow, urlTarget, checkContainment, requestEffect, adaptResult, coerceArgs, applyCursorArg, advanceCursor, executeAgentTool, evaluateExpression, isExpression, RunnerError, ExpressionError, UnsupportedExpression, UnsupportedNode, ContainmentViolation, NodeError, BadInput, RECORD_FORMAT, COLLECTIONS, LOCK_PATH, META_CURRENT, META_CUTOVER, META_SCHEDULE, LOCK_TTL_MS, HISTORY_LIMIT, CURSOR_KINDS, cursorId, runPath, statePath, ledgerPath, cursorPath, submissionPath, clip, stepStatuses, stepItems, runRecord, ledgerEntry, cursorRecord, cursorsFromDocs, startCursors, seedCursorRecord, submissionRecord, SUBMISSION_STATUS, FORM_TYPES, formFields, formErrors, formItem, lockBody, lockBlocks, cutoverChecklist, CUTOVER_COLLECTION, CUTOVER_STEPS, cutoverPath, cutoverEntry, cutoverMeta, cutoverOwner, cutoverLog, cutoverRound, parseCron, expectedRuns, missedRuns, definitionSchedule, DEFAULT_GRACE_MS, ALERT_TOOLS, ALERT_KINDS, alertMessage, alertChannel, alertRequest, isAllowedAlert, cleanName };
+export { run, start, resume, preflight, validateDefinition, definitionHash, resolveTrigger, expressionSupport, RUNTIME_VERSION, DEFINITION_SCHEMA_VERSION, SUPPORTED_TYPES, fromN8n, unwrapWorkflow, urlTarget, checkContainment, requestEffect, publicHttpsUrl, publicAddress, adaptResult, coerceArgs, applyCursorArg, advanceCursor, executeAgentTool, evaluateExpression, isExpression, RunnerError, ExpressionError, UnsupportedExpression, UnsupportedNode, ContainmentViolation, NodeError, BadInput, RECORD_FORMAT, COLLECTIONS, LOCK_PATH, META_CURRENT, META_CUTOVER, META_SCHEDULE, LOCK_TTL_MS, HISTORY_LIMIT, CURSOR_KINDS, cursorId, runPath, statePath, ledgerPath, cursorPath, submissionPath, clip, stepStatuses, stepItems, runRecord, ledgerEntry, cursorRecord, cursorsFromDocs, startCursors, seedCursorRecord, submissionRecord, SUBMISSION_STATUS, FORM_TYPES, formFields, formErrors, formItem, lockBody, lockBlocks, cutoverChecklist, CUTOVER_COLLECTION, CUTOVER_STEPS, cutoverPath, cutoverEntry, cutoverMeta, cutoverOwner, cutoverLog, cutoverRound, parseCron, expectedRuns, missedRuns, definitionSchedule, DEFAULT_GRACE_MS, ALERT_TOOLS, ALERT_KINDS, alertMessage, alertChannel, alertRequest, isAllowedAlert, cleanName };

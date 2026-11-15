@@ -35,6 +35,7 @@ import { readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from
 import { createHash } from "node:crypto";
 import { dirname, join, relative, resolve, basename } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { openHost } from "../runtime/src/convert.mjs";
 
 export const VERSION = "0.1.0";
 const REFS = join(dirname(fileURLToPath(import.meta.url)), "..", "references");
@@ -1093,6 +1094,27 @@ function askSites(W, ctx) {
       affects: "allow.http",
       answerType: "text",
       options: { "<site address>": "the site the steps' requests and the credential go to" },
+      assumed: null,
+    });
+  }
+}
+
+// HTTP Request steps whose address comes from data at run time (a URL expression that writes no
+// address of its own: runtime/src/convert.mjs openHost). n8n sends them to any host; the folder
+// sends them only where the person says at setup: the hosts it may reach, or "public" (any
+// public https host; private, loopback, link-local and metadata addresses are always refused,
+// and only for a GET or HEAD request without a credential). Unanswered, preflight refuses the
+// step (convert.mjs hostsQuestion()).
+function askHosts(W, ctx) {
+  for (const n of W.order) {
+    const d = W.infos.get(n);
+    if (!d || d.disabled || d.baseType !== "n8n-nodes-base.httpRequest" || d.kind === "model" || d.levers?.includes("llm-api") || (d.typeVersion ?? 1) < 3) continue;
+    if (!openHost(d.params?.url)) continue;
+    ask(W, ctx, "hosts", d.name, {
+      text: `The step "${d.name}" takes its address from data at run time, so its host is not known before a run. Which hosts may it reach? Name them, comma-separated (for example api.example.com, cdn.example.com), or answer "public" to let it reach any public https host, as a scraper that visits sites from a list needs; private, loopback, link-local and cloud-metadata addresses are always refused, and "public" is accepted only for a GET or HEAD request that sends no credential. Any other host is refused at run time.`,
+      affects: "allow.http",
+      answerType: "text",
+      options: { "<hosts>": "only these hosts, comma-separated", public: "any public https host (data picks the site)" },
       assumed: null,
     });
   }
@@ -2176,6 +2198,7 @@ export function analyze(items, { nodes, capabilities, hosts = { model: [], read:
   for (const W of Ws) resolveCalls(W, ctx);
   for (const W of Ws) askWrites(W, ctx);
   for (const W of Ws) askSites(W, ctx);
+  for (const W of Ws) askHosts(W, ctx);
   const all = [...Ws, ...ctx.pseudo];
   all.forEach(snapshotOwn);
   all.forEach((W) => propagate(W));

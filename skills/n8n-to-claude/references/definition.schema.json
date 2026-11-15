@@ -452,8 +452,8 @@
             "type": "object",
             "required": ["method", "host"],
             "additionalProperties": false,
-            "properties": { "method": { "type": "string" }, "host": { "type": "string" }, "pathPrefix": { "type": "string" }, "note": { "type": "string" } },
-            "description": "host \"*\" (a URL built at run time) is refused by preflight until narrowed in overrides.json."
+            "properties": { "method": { "type": "string" }, "host": { "type": "string" }, "pathPrefix": { "type": "string" }, "scope": { "enum": ["public"] }, "step": { "type": "string" }, "note": { "type": "string" } },
+            "description": "host \"*\" (a URL built at run time) is refused by preflight until narrowed in overrides.json or answered at setup; with scope \"public\" and step (the person answered \"public\" for that GET or HEAD step) it allows that step any public https host, never a private, loopback, link-local or metadata address, never with a secret, each redirect hop checked."
           }
         },
         "sql": { "type": "array", "items": { "type": "string" } },
