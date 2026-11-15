@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 1,
+  "template": 4352,
+  "sha256": "eac92431728691e4cd5e2b97e92c55b004e88decaf99c824d8d51bde7981b56f",
+  "variant": "empty",
+  "now": "2026-11-16T11:00:00.000Z",
+  "about": "SerpApi answers with empty rising and top lists and Perplexity with an empty message, so 2 Most Trending has nothing to read",
+  "trigger": {
+    "node": "Schedule Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T06:00:00.000-05:00",
+          "Readable date": "November 16th 2026, 6:00:00 am",
+          "Readable time": "6:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "06",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Google Trends",
+      "service": "serpapi",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://serpapi.com/search",
+            "status": 200,
+            "query": {
+              "engine": "google_trends",
+              "api_key": "bench-serpapi-key"
+            },
+            "body": {
+              "search_metadata": {
+                "id": "bench-serp-4352",
+                "status": "Success",
+                "created_at": "2026-11-16 11:00:01 UTC",
+                "total_time_taken": 2.1
+              },
+              "search_parameters": {
+                "engine": "google_trends",
+                "q": "ai agents",
+                "geo": "US",
+                "hl": "en",
+                "date": "2026-11-13 2026-11-16",
+                "data_type": "RELATED_QUERIES"
+              },
+              "related_queries": {
+                "rising": [],
+                "top": []
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured SerpApi connector"
+      },
+      "note": "HTTP Request v4.2 GET https://serpapi.com/search?q=ai agents&geo=US&hl=en&date=<3 days>&data_type=RELATED_QUERIES&engine=google_trends&api_key (placeholder filled by config/4352.json)"
+    },
+    {
+      "node": "Research Topic- Perplexity",
+      "service": "perplexity",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.perplexity.ai/chat/completions",
+            "status": 200,
+            "body": {
+              "id": "bench-pplx-1",
+              "model": "sonar-pro",
+              "created": 1794826800,
+              "object": "chat.completion",
+              "choices": [
+                {
+                  "index": 0,
+                  "finish_reason": "stop",
+                  "message": {
+                    "role": "assistant",
+                    "content": ""
+                  }
+                }
+              ],
+              "usage": {
+                "prompt_tokens": 812,
+                "completion_tokens": 420,
+                "total_tokens": 1232
+              },
+              "citations": [
+                "https://www.example-news.example/ai-agents-enterprise"
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Perplexity connector"
+      },
+      "note": "HTTP Request v4.2 POST /chat/completions (sonar-pro, the chosen topic in the user message); Perplexity is not a model host the shim answers, so its reply is fixtured"
+    }
+  ],
+  "models": [
+    "Choosing Topic"
+  ],
+  "writes": [
+    "X1",
+    "Facebook Graph API1",
+    "LinkedIn1",
+    "Google Sheets2"
+  ],
+  "writeReplies": [
+    {
+      "node": "X1",
+      "service": "x",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.x.com/2/tweets",
+            "status": 400,
+            "body": {
+              "errors": [
+                {
+                  "parameters": {
+                    "text": [
+                      ""
+                    ]
+                  },
+                  "message": "The `text` field cannot be empty"
+                }
+              ],
+              "title": "Invalid Request",
+              "detail": "One or more parameters to your request was invalid.",
+              "type": "https://api.twitter.com/2/problems/invalid-request"
+            }
+          }
+        ]
+      },
+      "note": "Twitter v2 create tweet: POST https://api.x.com/2/tweets. The template sets no text (the field is left at its empty default), so X refuses it (400, invalid request)"
+    },
+    {
+      "node": "LinkedIn1",
+      "service": "linkedin",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.linkedin.com/rest/posts",
+            "status": 201,
+            "headers": {
+              "x-restli-id": "urn:li:share:7263000000000004352"
+            },
+            "body": ""
+          }
+        ]
+      },
+      "note": "LinkedIn v1 post as a person (community management auth): POST /rest/posts, 201 with the id in x-restli-id (from memory of the node's Posts API calls)"
+    },
+    {
+      "node": "Google Sheets2",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1LinkedInAutoBenchSheet3pQ7rS2tU5vW8xZ1aB4c",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1LinkedInAutoBenchSheet3pQ7rS2tU5vW8xZ1aB4c/values/'Sheet1'",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:Z2",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Topic",
+                  "Status",
+                  "AI Output",
+                  "Date Posted"
+                ],
+                [
+                  "ai agents for customer service",
+                  "Posted",
+                  "…",
+                  "2026-11-15T06:00:00.000-05:00"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1LinkedInAutoBenchSheet3pQ7rS2tU5vW8xZ1aB4c/values:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1LinkedInAutoBenchSheet3pQ7rS2tU5vW8xZ1aB4c",
+              "totalUpdatedRows": 1,
+              "totalUpdatedCells": 1,
+              "totalUpdatedSheets": 1
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1LinkedInAutoBenchSheet3pQ7rS2tU5vW8xZ1aB4c:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1LinkedInAutoBenchSheet3pQ7rS2tU5vW8xZ1aB4c",
+              "replies": [
+                {}
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.5 appendOrUpdate matching Topic: sheets.properties, the whole tab, then values:batchUpdate or an appended row"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch; Split Out fans the Perplexity text out to X, Facebook and LinkedIn"
+    ],
+    "offline": "n8n 2.47.7 refuses to start the run on the template's own configuration, whatever the data (canned run 2026-11-15: '2 nodes have issues: Facebook Graph API1: Parameter Graph API Version is required. Parameter Node is required. X1: Parameter Text is required'; PROPOSALS P54); Facebook Graph API1 also ships without a credential. Placeholders filled by config/4352.json: the SerpApi key, the LinkedIn person id and the spreadsheet id"
+  }
+}

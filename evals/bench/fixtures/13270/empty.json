@@ -1,0 +1,355 @@
+{
+  "schemaVersion": 1,
+  "template": 13270,
+  "sha256": "969f3dbd97dff611b7be72d7769bbee363f88e0c7eab22fe21dd951f59d97c51",
+  "variant": "empty",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "the approved root 'skills' holds no Markdown files at the pinned commit, so Prepare approved skill index refuses before the agent runs",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "bench-session-13270",
+          "action": "sendMessage",
+          "chatInput": "Summarise the docx skill."
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Fetch pinned repository trees",
+      "service": "github",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.github.com/repos/anthropics/skills/git/trees/aa450534a843985f7280f251fcb6ab971245e5e6",
+            "status": 200,
+            "query": {
+              "recursive": "1"
+            },
+            "body": {
+              "sha": "aa450534a843985f7280f251fcb6ab971245e5e6",
+              "url": "https://api.github.com/repos/x/y/git/trees/aa450534a843985f7280f251fcb6ab971245e5e6",
+              "tree": [
+                {
+                  "path": "README.md",
+                  "mode": "100644",
+                  "type": "blob",
+                  "sha": "8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d",
+                  "size": 1200,
+                  "url": "https://api.github.com/repos/x/y/git/blobs/8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d"
+                },
+                {
+                  "path": "skills",
+                  "mode": "040000",
+                  "type": "tree",
+                  "sha": "8a14e879d9edb6fc2a72754f8d9e5bbf1567e5bb",
+                  "url": "https://api.github.com/repos/x/y/git/trees/8a14e879d9edb6fc2a72754f8d9e5bbf1567e5bb"
+                },
+                {
+                  "path": "skills/pdf",
+                  "mode": "040000",
+                  "type": "tree",
+                  "sha": "e0e16f19949b54b1dfb5a06e7b1d4e0b09edc3bd",
+                  "url": "https://api.github.com/repos/x/y/git/trees/e0e16f19949b54b1dfb5a06e7b1d4e0b09edc3bd"
+                },
+                {
+                  "path": "skills/pdf/scripts/merge.py",
+                  "mode": "100644",
+                  "type": "blob",
+                  "sha": "4b05518d1068aef52132b678883edd9de164d140",
+                  "size": 2300,
+                  "url": "https://api.github.com/repos/x/y/git/blobs/4b05518d1068aef52132b678883edd9de164d140"
+                }
+              ],
+              "truncated": false
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.github.com/repos/anthropics/knowledge-work-plugins/git/trees/0ee04f54eea9e80c6184a98172a48b83dffb2011",
+            "status": 200,
+            "query": {
+              "recursive": "1"
+            },
+            "body": {
+              "sha": "0ee04f54eea9e80c6184a98172a48b83dffb2011",
+              "url": "https://api.github.com/repos/x/y/git/trees/0ee04f54eea9e80c6184a98172a48b83dffb2011",
+              "tree": [
+                {
+                  "path": "README.md",
+                  "mode": "100644",
+                  "type": "blob",
+                  "sha": "8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d",
+                  "size": 900,
+                  "url": "https://api.github.com/repos/x/y/git/blobs/8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d"
+                },
+                {
+                  "path": "sales",
+                  "mode": "040000",
+                  "type": "tree",
+                  "sha": "2dc3ce1b6e672b645dc51c5a9441f7319feb8a7d",
+                  "url": "https://api.github.com/repos/x/y/git/trees/2dc3ce1b6e672b645dc51c5a9441f7319feb8a7d"
+                },
+                {
+                  "path": "sales/skills",
+                  "mode": "040000",
+                  "type": "tree",
+                  "sha": "2d472f92959449ee2e4f9fe1f3f890587e3514f1",
+                  "url": "https://api.github.com/repos/x/y/git/trees/2d472f92959449ee2e4f9fe1f3f890587e3514f1"
+                },
+                {
+                  "path": "sales/skills/call-prep",
+                  "mode": "040000",
+                  "type": "tree",
+                  "sha": "a139fd74893df3b14aa3075575ee7433ffc40da9",
+                  "url": "https://api.github.com/repos/x/y/git/trees/a139fd74893df3b14aa3075575ee7433ffc40da9"
+                },
+                {
+                  "path": "sales/skills/call-prep/SKILL.md",
+                  "mode": "100644",
+                  "type": "blob",
+                  "sha": "18d0d7e106e0fb6feb81d8e389fab98743757165",
+                  "size": 175,
+                  "url": "https://api.github.com/repos/x/y/git/blobs/18d0d7e106e0fb6feb81d8e389fab98743757165"
+                }
+              ],
+              "truncated": false
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured GitHub connector"
+      },
+      "note": "HTTP Request v4.4 GET /repos/<owner>/<repo>/git/trees/<commit>?recursive=1 per approved repository (githubApi credential, full JSON response; Prepare approved skill index needs status 200, a tree array and truncated false)"
+    },
+    {
+      "node": "List Files by Path Name",
+      "service": "github",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.github.com/repos/anthropics/skills/contents/skills",
+            "status": 200,
+            "query": {
+              "ref": "aa450534a843985f7280f251fcb6ab971245e5e6"
+            },
+            "body": [
+              {
+                "name": "pdf",
+                "path": "skills/pdf",
+                "sha": "e0e16f19949b54b1dfb5a06e7b1d4e0b09edc3bd",
+                "size": 0,
+                "url": "https://api.github.com/repos/anthropics/skills/contents/skills/pdf?ref=aa450534a843985f7280f251fcb6ab971245e5e6",
+                "html_url": "https://github.com/anthropics/skills/tree/aa450534a843985f7280f251fcb6ab971245e5e6/skills/pdf",
+                "git_url": "https://api.github.com/repos/x/y/git/trees/e0e16f19949b54b1dfb5a06e7b1d4e0b09edc3bd",
+                "download_url": null,
+                "type": "dir"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "url": "https://api.github.com/repos/anthropics/skills/contents/skills/pdf",
+            "status": 200,
+            "query": {
+              "ref": "aa450534a843985f7280f251fcb6ab971245e5e6"
+            },
+            "body": []
+          },
+          {
+            "method": "GET",
+            "url": "https://api.github.com/repos/anthropics/skills/contents/skills/docx",
+            "status": 200,
+            "query": {
+              "ref": "aa450534a843985f7280f251fcb6ab971245e5e6"
+            },
+            "body": []
+          },
+          {
+            "method": "GET",
+            "url": "https://api.github.com/repos/anthropics/knowledge-work-plugins/contents",
+            "status": 200,
+            "query": {
+              "ref": "0ee04f54eea9e80c6184a98172a48b83dffb2011"
+            },
+            "body": [
+              {
+                "name": "README.md",
+                "path": "README.md",
+                "sha": "8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d",
+                "size": 900,
+                "url": "https://api.github.com/repos/anthropics/knowledge-work-plugins/contents/README.md?ref=0ee04f54eea9e80c6184a98172a48b83dffb2011",
+                "html_url": "https://github.com/anthropics/knowledge-work-plugins/blob/0ee04f54eea9e80c6184a98172a48b83dffb2011/README.md",
+                "git_url": "https://api.github.com/repos/x/y/git/blobs/8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d",
+                "download_url": "https://raw.githubusercontent.com/anthropics/knowledge-work-plugins/0ee04f54eea9e80c6184a98172a48b83dffb2011/README.md",
+                "type": "file"
+              },
+              {
+                "name": "sales",
+                "path": "sales",
+                "sha": "2dc3ce1b6e672b645dc51c5a9441f7319feb8a7d",
+                "size": 0,
+                "url": "https://api.github.com/repos/anthropics/knowledge-work-plugins/contents/sales?ref=0ee04f54eea9e80c6184a98172a48b83dffb2011",
+                "html_url": "https://github.com/anthropics/knowledge-work-plugins/tree/0ee04f54eea9e80c6184a98172a48b83dffb2011/sales",
+                "git_url": "https://api.github.com/repos/x/y/git/trees/2dc3ce1b6e672b645dc51c5a9441f7319feb8a7d",
+                "download_url": null,
+                "type": "dir"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "url": "https://api.github.com/repos/anthropics/knowledge-work-plugins/contents/sales",
+            "status": 200,
+            "query": {
+              "ref": "0ee04f54eea9e80c6184a98172a48b83dffb2011"
+            },
+            "body": [
+              {
+                "name": "skills",
+                "path": "sales/skills",
+                "sha": "2d472f92959449ee2e4f9fe1f3f890587e3514f1",
+                "size": 0,
+                "url": "https://api.github.com/repos/anthropics/knowledge-work-plugins/contents/sales/skills?ref=0ee04f54eea9e80c6184a98172a48b83dffb2011",
+                "html_url": "https://github.com/anthropics/knowledge-work-plugins/tree/0ee04f54eea9e80c6184a98172a48b83dffb2011/sales/skills",
+                "git_url": "https://api.github.com/repos/x/y/git/trees/2d472f92959449ee2e4f9fe1f3f890587e3514f1",
+                "download_url": null,
+                "type": "dir"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "url": "https://api.github.com/repos/anthropics/knowledge-work-plugins/contents/sales/skills",
+            "status": 200,
+            "query": {
+              "ref": "0ee04f54eea9e80c6184a98172a48b83dffb2011"
+            },
+            "body": [
+              {
+                "name": "call-prep",
+                "path": "sales/skills/call-prep",
+                "sha": "a139fd74893df3b14aa3075575ee7433ffc40da9",
+                "size": 0,
+                "url": "https://api.github.com/repos/anthropics/knowledge-work-plugins/contents/sales/skills/call-prep?ref=0ee04f54eea9e80c6184a98172a48b83dffb2011",
+                "html_url": "https://github.com/anthropics/knowledge-work-plugins/tree/0ee04f54eea9e80c6184a98172a48b83dffb2011/sales/skills/call-prep",
+                "git_url": "https://api.github.com/repos/x/y/git/trees/a139fd74893df3b14aa3075575ee7433ffc40da9",
+                "download_url": null,
+                "type": "dir"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "url": "https://api.github.com/repos/anthropics/knowledge-work-plugins/contents/sales/skills/call-prep",
+            "status": 200,
+            "query": {
+              "ref": "0ee04f54eea9e80c6184a98172a48b83dffb2011"
+            },
+            "body": [
+              {
+                "name": "SKILL.md",
+                "path": "sales/skills/call-prep/SKILL.md",
+                "sha": "18d0d7e106e0fb6feb81d8e389fab98743757165",
+                "size": 175,
+                "url": "https://api.github.com/repos/anthropics/knowledge-work-plugins/contents/sales/skills/call-prep/SKILL.md?ref=0ee04f54eea9e80c6184a98172a48b83dffb2011",
+                "html_url": "https://github.com/anthropics/knowledge-work-plugins/blob/0ee04f54eea9e80c6184a98172a48b83dffb2011/sales/skills/call-prep/SKILL.md",
+                "git_url": "https://api.github.com/repos/x/y/git/blobs/18d0d7e106e0fb6feb81d8e389fab98743757165",
+                "download_url": "https://raw.githubusercontent.com/anthropics/knowledge-work-plugins/0ee04f54eea9e80c6184a98172a48b83dffb2011/sales/skills/call-prep/SKILL.md",
+                "type": "file"
+              }
+            ]
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured GitHub connector"
+      },
+      "note": "agent tool: GET /repos/<owner>/<repo>/contents/<dir>?ref=<commit> (JSON; the node keeps name, path, type, size)"
+    },
+    {
+      "node": "Get a File From GitHub",
+      "service": "github",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.github.com/repos/anthropics/skills/contents/skills/pdf/SKILL.md",
+            "status": 200,
+            "query": {
+              "ref": "aa450534a843985f7280f251fcb6ab971245e5e6"
+            },
+            "headers": {
+              "content-type": "application/vnd.github.raw+json; charset=utf-8"
+            },
+            "body": "---\nname: pdf\ndescription: Merge, split, rotate and number PDF pages; fill forms; extract text.\n---\n\n# PDF skill\n\n## Merge files\nUse pypdf: create a PdfWriter, append each file's pages in order, write the result.\n\n## Page numbers\nRender a page-number overlay (reportlab) per page and merge it onto each page with pypdf's merge_page.\n\nSee reference.md for form filling.\n"
+          },
+          {
+            "method": "GET",
+            "url": "https://api.github.com/repos/anthropics/skills/contents/skills/pdf/reference.md",
+            "status": 200,
+            "query": {
+              "ref": "aa450534a843985f7280f251fcb6ab971245e5e6"
+            },
+            "headers": {
+              "content-type": "application/vnd.github.raw+json; charset=utf-8"
+            },
+            "body": "# PDF reference\n\n- Forms: read fields with reader.get_fields(), fill with writer.update_page_form_field_values().\n- Rotation: page.rotate(90).\n"
+          },
+          {
+            "method": "GET",
+            "url": "https://api.github.com/repos/anthropics/skills/contents/skills/docx/SKILL.md",
+            "status": 200,
+            "query": {
+              "ref": "aa450534a843985f7280f251fcb6ab971245e5e6"
+            },
+            "headers": {
+              "content-type": "application/vnd.github.raw+json; charset=utf-8"
+            },
+            "body": "---\nname: docx\ndescription: Create and edit Word documents with tracked changes.\n---\n\n# DOCX skill\nUse python-docx for new documents; for tracked changes edit the XML (w:ins, w:del).\n"
+          },
+          {
+            "method": "GET",
+            "url": "https://api.github.com/repos/anthropics/knowledge-work-plugins/contents/sales/skills/call-prep/SKILL.md",
+            "status": 200,
+            "query": {
+              "ref": "0ee04f54eea9e80c6184a98172a48b83dffb2011"
+            },
+            "headers": {
+              "content-type": "application/vnd.github.raw+json; charset=utf-8"
+            },
+            "body": "---\nname: call-prep\ndescription: Prepare for a sales call from CRM notes.\n---\n\n# Call prep\nSummarise the account, list open opportunities and draft three discovery questions.\n"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured GitHub connector"
+      },
+      "note": "agent tool: GET /repos/<owner>/<repo>/contents/<file>.md?ref=<commit> with Accept application/vnd.github.raw+json (raw text)"
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "Chat Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "Prepare approved skill index throws (no Markdown files under the approved root): the run fails before the agent"
+    ],
+    "offline": "Skill Configuration ships with an empty model and empty commit SHAs, which Validate setup and chat refuses; config/13270.json fills a placeholder OpenRouter model id and one 40-character SHA per repository (the trees and contents routes answer those). The repositories' trees and files are small stand-ins, not the real anthropics repositories. The tool URLs are built from the model's repositoryKey and Path: only the paths in the stand-in trees are routed; any other path gets the bench's 404. The chat trigger answers with the last node (Return bounded chat answer)"
+  }
+}

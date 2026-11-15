@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "template": 5657,
+  "sha256": "0d3af2f005009ad994efc60e0c392dfedf3e429e188712f642ac3bcf7527f690",
+  "variant": "malformed",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "the submitted URL is a JSON API: n8n parses it, so $json.data is null and the HTML code step fails on null.replace",
+  "trigger": {
+    "node": "Website Name",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "Website Name ": "https://api.northwind-solar.example/v2/site",
+          "submittedAt": "2026-11-16T08:59:30.118-05:00",
+          "formMode": "production"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "HTTP",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.northwind-solar.example/v2/site",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "data": null,
+              "sections": [
+                {
+                  "html": null
+                },
+                {
+                  "html": "<p>kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw kw </p>"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured connector fetches web pages"
+      },
+      "note": "HTTP Request v4.2 GET of the submitted URL (the form field's label has a trailing space: 'Website Name ')"
+    }
+  ],
+  "models": [
+    "Topic Wise information.",
+    "OpenAI Chat Model",
+    "list",
+    "OpenAI Chat Model1"
+  ],
+  "writes": [
+    "Airtable"
+  ],
+  "writeReplies": [
+    {
+      "node": "Airtable",
+      "service": "airtable",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "PATCH",
+            "url": "https://api.airtable.com/v0/appzInHZw2u0BuI74/tblmDPwBaTyXXgHJX",
+            "status": 200,
+            "body": {
+              "records": [
+                {
+                  "id": "recBench5657a01",
+                  "createdTime": "2026-11-16T14:00:40.000Z",
+                  "fields": {
+                    "WebSite Name": "https://api.northwind-solar.example/v2/site",
+                    "Keywords": "solar panels arizona, residential solar phoenix, …"
+                  }
+                }
+              ],
+              "createdRecords": [
+                "recBench5657a01"
+              ],
+              "updatedRecords": []
+            }
+          }
+        ]
+      },
+      "note": "Airtable v2.1 record upsert matching 'WebSite Name': PATCH https://api.airtable.com/v0/<base>/<table> {typecast: false, performUpsert: {fieldsToMergeOn: ['WebSite Name']}, records: [{fields}]} (n8n-nodes-base 2.47.7 upsert.operation, batchUpdate); the form answers with the last node's output (responseMode lastNode)"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch; Merge (SQL, the default LEFT JOIN on fields neither side has) hands the keyword list on"
+    ],
+    "offline": "The keywords and topics come from the stand-in model (gpt-5-mini in the template). Wait1 holds the second branch 20 seconds. The form's reply is the Airtable record"
+  }
+}

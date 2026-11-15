@@ -1,0 +1,1025 @@
+{
+  "schemaVersion": 1,
+  "template": 2605,
+  "sha256": "04619f5b92ee5491f5b5c2bb7216adfbb3ba55cf6d775b1e3db58c36cefeb3ac",
+  "variant": "normal",
+  "now": "2026-11-16T15:00:00.000Z",
+  "about": "four zips waiting (three taken by Limit) and two active subcategories (Roofer ignored): six Places searches, one empty, one place found in two zips",
+  "trigger": {
+    "node": "When clicking \"Execute Workflow\"",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "GS - Get Zip Codes",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 853393043,
+                    "title": "AZ Zips",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Google Maps Categories",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1203344551,
+                    "title": "Results",
+                    "index": 2,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g/values/'AZ Zips'",
+            "status": 200,
+            "body": {
+              "range": "AZ Zips!A1:Z6",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "zip",
+                  "status",
+                  "subcat"
+                ],
+                [
+                  "85001",
+                  "scraped",
+                  "Plumber"
+                ],
+                [
+                  "85003",
+                  "",
+                  ""
+                ],
+                [
+                  "85004",
+                  "",
+                  ""
+                ],
+                [
+                  "85006",
+                  "",
+                  ""
+                ],
+                [
+                  "85007",
+                  "",
+                  ""
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Sheets connector"
+      },
+      "note": "Sheets v4.2 by tab name on the spreadsheet in Settings' gs_url (url mode): sheets.properties (name → tab), then values/'<tab>'; every Sheets node of the run reads the same three tabs, so the same replies are listed per node"
+    },
+    {
+      "node": "GS - Get Subcategory",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 853393043,
+                    "title": "AZ Zips",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Google Maps Categories",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1203344551,
+                    "title": "Results",
+                    "index": 2,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g/values/'Google Maps Categories'",
+            "status": 200,
+            "body": {
+              "range": "Google Maps Categories!A1:Z4",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Subcategory",
+                  "STATUS"
+                ],
+                [
+                  "Plumber",
+                  ""
+                ],
+                [
+                  "Electrician",
+                  ""
+                ],
+                [
+                  "Roofer",
+                  "Ignore"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Sheets connector"
+      },
+      "note": "Sheets v4.2 by tab name on the spreadsheet in Settings' gs_url (url mode): sheets.properties (name → tab), then values/'<tab>'; every Sheets node of the run reads the same three tabs, so the same replies are listed per node"
+    },
+    {
+      "node": "GS - Get Status",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 853393043,
+                    "title": "AZ Zips",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Google Maps Categories",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1203344551,
+                    "title": "Results",
+                    "index": 2,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g/values/'AZ Zips'",
+            "status": 200,
+            "body": {
+              "range": "AZ Zips!A1:Z6",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "zip",
+                  "status",
+                  "subcat"
+                ],
+                [
+                  "85001",
+                  "scraped",
+                  "Plumber"
+                ],
+                [
+                  "85003",
+                  "",
+                  ""
+                ],
+                [
+                  "85004",
+                  "",
+                  ""
+                ],
+                [
+                  "85006",
+                  "",
+                  ""
+                ],
+                [
+                  "85007",
+                  "",
+                  ""
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Sheets connector"
+      },
+      "note": "Sheets v4.2 by tab name on the spreadsheet in Settings' gs_url (url mode): sheets.properties (name → tab), then values/'<tab>'; every Sheets node of the run reads the same three tabs, so the same replies are listed per node"
+    },
+    {
+      "node": "GMaps API",
+      "service": "google-places",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://places.googleapis.com/v1/places:searchText",
+            "status": 200,
+            "bodyMatch": {
+              "textQuery": "Plumber 85003"
+            },
+            "body": {
+              "places": [
+                {
+                  "id": "ChIJbench0001",
+                  "types": [
+                    "plumber",
+                    "point_of_interest",
+                    "establishment"
+                  ],
+                  "nationalPhoneNumber": "(602) 555-0101",
+                  "formattedAddress": "113 N Central Ave, Phoenix, AZ 85003, USA",
+                  "addressComponents": [
+                    {
+                      "longText": "85003",
+                      "shortText": "85003",
+                      "types": [
+                        "postal_code"
+                      ],
+                      "languageCode": "en-US"
+                    }
+                  ],
+                  "location": {
+                    "latitude": 33.463,
+                    "longitude": -112.07
+                  },
+                  "rating": 4.6,
+                  "userRatingCount": 128,
+                  "websiteUri": "https://www.copperstateplumbing.example/",
+                  "displayName": {
+                    "text": "Copper State Plumbing",
+                    "languageCode": "en"
+                  },
+                  "primaryType": "plumber",
+                  "primaryTypeDisplayName": {
+                    "text": "Plumber",
+                    "languageCode": "en-US"
+                  },
+                  "editorialSummary": {
+                    "text": "Copper State Plumbing serves the Phoenix metro area.",
+                    "languageCode": "en"
+                  },
+                  "reviews": [
+                    {
+                      "name": "places/ChIJbench0001/reviews/r1",
+                      "rating": 5,
+                      "text": {
+                        "text": "Fast and fair.",
+                        "languageCode": "en"
+                      },
+                      "authorAttribution": {
+                        "displayName": "Dana R."
+                      },
+                      "publishTime": "2026-10-30T18:22:10Z"
+                    }
+                  ]
+                },
+                {
+                  "id": "ChIJbench0002",
+                  "types": [
+                    "plumber",
+                    "point_of_interest",
+                    "establishment"
+                  ],
+                  "nationalPhoneNumber": "(602) 555-0102",
+                  "formattedAddress": "113 N Central Ave, Phoenix, AZ 85003, USA",
+                  "addressComponents": [
+                    {
+                      "longText": "85003",
+                      "shortText": "85003",
+                      "types": [
+                        "postal_code"
+                      ],
+                      "languageCode": "en-US"
+                    }
+                  ],
+                  "location": {
+                    "latitude": 33.463,
+                    "longitude": -112.07
+                  },
+                  "rating": 4.6,
+                  "userRatingCount": 128,
+                  "websiteUri": "https://www.desertflowrooter.example/",
+                  "displayName": {
+                    "text": "Desert Flow Rooter",
+                    "languageCode": "en"
+                  },
+                  "primaryType": "plumber",
+                  "primaryTypeDisplayName": {
+                    "text": "Plumber",
+                    "languageCode": "en-US"
+                  },
+                  "editorialSummary": {
+                    "text": "Desert Flow Rooter serves the Phoenix metro area.",
+                    "languageCode": "en"
+                  },
+                  "reviews": [
+                    {
+                      "name": "places/ChIJbench0002/reviews/r1",
+                      "rating": 5,
+                      "text": {
+                        "text": "Fast and fair.",
+                        "languageCode": "en"
+                      },
+                      "authorAttribution": {
+                        "displayName": "Dana R."
+                      },
+                      "publishTime": "2026-10-30T18:22:10Z"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://places.googleapis.com/v1/places:searchText",
+            "status": 200,
+            "bodyMatch": {
+              "textQuery": "Electrician 85003"
+            },
+            "body": {
+              "places": [
+                {
+                  "id": "ChIJbench0003",
+                  "types": [
+                    "electrician",
+                    "establishment"
+                  ],
+                  "nationalPhoneNumber": "(602) 555-0103",
+                  "formattedAddress": "113 N Central Ave, Phoenix, AZ 85003, USA",
+                  "addressComponents": [
+                    {
+                      "longText": "85003",
+                      "shortText": "85003",
+                      "types": [
+                        "postal_code"
+                      ],
+                      "languageCode": "en-US"
+                    }
+                  ],
+                  "location": {
+                    "latitude": 33.463,
+                    "longitude": -112.07
+                  },
+                  "rating": 4.6,
+                  "userRatingCount": 128,
+                  "websiteUri": "https://www.valleysparkelectric.example/",
+                  "displayName": {
+                    "text": "Valley Spark Electric",
+                    "languageCode": "en"
+                  },
+                  "primaryType": "electrician",
+                  "primaryTypeDisplayName": {
+                    "text": "Plumber",
+                    "languageCode": "en-US"
+                  },
+                  "editorialSummary": {
+                    "text": "Valley Spark Electric serves the Phoenix metro area.",
+                    "languageCode": "en"
+                  },
+                  "reviews": [
+                    {
+                      "name": "places/ChIJbench0003/reviews/r1",
+                      "rating": 5,
+                      "text": {
+                        "text": "Fast and fair.",
+                        "languageCode": "en"
+                      },
+                      "authorAttribution": {
+                        "displayName": "Dana R."
+                      },
+                      "publishTime": "2026-10-30T18:22:10Z"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://places.googleapis.com/v1/places:searchText",
+            "status": 200,
+            "bodyMatch": {
+              "textQuery": "Plumber 85004"
+            },
+            "body": {
+              "places": [
+                {
+                  "id": "ChIJbench0002",
+                  "types": [
+                    "plumber",
+                    "point_of_interest",
+                    "establishment"
+                  ],
+                  "nationalPhoneNumber": "(602) 555-0102",
+                  "formattedAddress": "113 N Central Ave, Phoenix, AZ 85004, USA",
+                  "addressComponents": [
+                    {
+                      "longText": "85004",
+                      "shortText": "85004",
+                      "types": [
+                        "postal_code"
+                      ],
+                      "languageCode": "en-US"
+                    }
+                  ],
+                  "location": {
+                    "latitude": 33.463,
+                    "longitude": -112.07
+                  },
+                  "rating": 4.6,
+                  "userRatingCount": 128,
+                  "websiteUri": "https://www.desertflowrooter.example/",
+                  "displayName": {
+                    "text": "Desert Flow Rooter",
+                    "languageCode": "en"
+                  },
+                  "primaryType": "plumber",
+                  "primaryTypeDisplayName": {
+                    "text": "Plumber",
+                    "languageCode": "en-US"
+                  },
+                  "editorialSummary": {
+                    "text": "Desert Flow Rooter serves the Phoenix metro area.",
+                    "languageCode": "en"
+                  },
+                  "reviews": [
+                    {
+                      "name": "places/ChIJbench0002/reviews/r1",
+                      "rating": 5,
+                      "text": {
+                        "text": "Fast and fair.",
+                        "languageCode": "en"
+                      },
+                      "authorAttribution": {
+                        "displayName": "Dana R."
+                      },
+                      "publishTime": "2026-10-30T18:22:10Z"
+                    }
+                  ]
+                },
+                {
+                  "id": "ChIJbench0004",
+                  "types": [
+                    "plumber",
+                    "point_of_interest",
+                    "establishment"
+                  ],
+                  "nationalPhoneNumber": "(602) 555-0104",
+                  "formattedAddress": "113 N Central Ave, Phoenix, AZ 85004, USA",
+                  "addressComponents": [
+                    {
+                      "longText": "85004",
+                      "shortText": "85004",
+                      "types": [
+                        "postal_code"
+                      ],
+                      "languageCode": "en-US"
+                    }
+                  ],
+                  "location": {
+                    "latitude": 33.463,
+                    "longitude": -112.07
+                  },
+                  "rating": 4.6,
+                  "userRatingCount": 128,
+                  "websiteUri": "https://www.rooseveltrowplumbing.example/",
+                  "displayName": {
+                    "text": "Roosevelt Row Plumbing",
+                    "languageCode": "en"
+                  },
+                  "primaryType": "plumber",
+                  "primaryTypeDisplayName": {
+                    "text": "Plumber",
+                    "languageCode": "en-US"
+                  },
+                  "editorialSummary": {
+                    "text": "Roosevelt Row Plumbing serves the Phoenix metro area.",
+                    "languageCode": "en"
+                  },
+                  "reviews": [
+                    {
+                      "name": "places/ChIJbench0004/reviews/r1",
+                      "rating": 5,
+                      "text": {
+                        "text": "Fast and fair.",
+                        "languageCode": "en"
+                      },
+                      "authorAttribution": {
+                        "displayName": "Dana R."
+                      },
+                      "publishTime": "2026-10-30T18:22:10Z"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://places.googleapis.com/v1/places:searchText",
+            "status": 200,
+            "bodyMatch": {
+              "textQuery": "Electrician 85004"
+            },
+            "body": {}
+          },
+          {
+            "method": "POST",
+            "url": "https://places.googleapis.com/v1/places:searchText",
+            "status": 200,
+            "bodyMatch": {
+              "textQuery": "Plumber 85006"
+            },
+            "body": {
+              "places": [
+                {
+                  "id": "ChIJbench0005",
+                  "types": [
+                    "plumber",
+                    "point_of_interest",
+                    "establishment"
+                  ],
+                  "nationalPhoneNumber": "(602) 555-0105",
+                  "formattedAddress": "113 N Central Ave, Phoenix, AZ 85006, USA",
+                  "addressComponents": [
+                    {
+                      "longText": "85006",
+                      "shortText": "85006",
+                      "types": [
+                        "postal_code"
+                      ],
+                      "languageCode": "en-US"
+                    }
+                  ],
+                  "location": {
+                    "latitude": 33.463,
+                    "longitude": -112.07
+                  },
+                  "rating": 4.6,
+                  "userRatingCount": 128,
+                  "websiteUri": "https://www.garfieldpipedrain.example/",
+                  "displayName": {
+                    "text": "Garfield Pipe & Drain",
+                    "languageCode": "en"
+                  },
+                  "primaryType": "plumber",
+                  "primaryTypeDisplayName": {
+                    "text": "Plumber",
+                    "languageCode": "en-US"
+                  },
+                  "editorialSummary": {
+                    "text": "Garfield Pipe & Drain serves the Phoenix metro area.",
+                    "languageCode": "en"
+                  },
+                  "reviews": [
+                    {
+                      "name": "places/ChIJbench0005/reviews/r1",
+                      "rating": 5,
+                      "text": {
+                        "text": "Fast and fair.",
+                        "languageCode": "en"
+                      },
+                      "authorAttribution": {
+                        "displayName": "Dana R."
+                      },
+                      "publishTime": "2026-10-30T18:22:10Z"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://places.googleapis.com/v1/places:searchText",
+            "status": 200,
+            "bodyMatch": {
+              "textQuery": "Electrician 85006"
+            },
+            "body": {
+              "places": [
+                {
+                  "id": "ChIJbench0006",
+                  "types": [
+                    "electrician"
+                  ],
+                  "nationalPhoneNumber": "(602) 555-0106",
+                  "formattedAddress": "113 N Central Ave, Phoenix, AZ 85006, USA",
+                  "addressComponents": [
+                    {
+                      "longText": "85006",
+                      "shortText": "85006",
+                      "types": [
+                        "postal_code"
+                      ],
+                      "languageCode": "en-US"
+                    }
+                  ],
+                  "location": {
+                    "latitude": 33.463,
+                    "longitude": -112.07
+                  },
+                  "rating": 4.6,
+                  "userRatingCount": 128,
+                  "websiteUri": "https://www.brightlineelectricalservices.example/",
+                  "displayName": {
+                    "text": "Brightline Electrical Services",
+                    "languageCode": "en"
+                  },
+                  "primaryType": "electrician",
+                  "primaryTypeDisplayName": {
+                    "text": "Plumber",
+                    "languageCode": "en-US"
+                  },
+                  "editorialSummary": {
+                    "text": "Brightline Electrical Services serves the Phoenix metro area.",
+                    "languageCode": "en"
+                  },
+                  "reviews": [
+                    {
+                      "name": "places/ChIJbench0006/reviews/r1",
+                      "rating": 5,
+                      "text": {
+                        "text": "Fast and fair.",
+                        "languageCode": "en"
+                      },
+                      "authorAttribution": {
+                        "displayName": "Dana R."
+                      },
+                      "publishTime": "2026-10-30T18:22:10Z"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Places connector"
+      },
+      "note": "HTTP Request v4.2 POST https://places.googleapis.com/v1/places:searchText {textQuery: '<Subcategory> <zip>'} with an X-Goog-FieldMask header, googleOAuth2Api credential, full response; Places API (New) answers {} when nothing matches"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Add rows in Google Sheets",
+    "Update Status to Success"
+  ],
+  "writeReplies": [
+    {
+      "node": "Add rows in Google Sheets",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 853393043,
+                    "title": "AZ Zips",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Google Maps Categories",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1203344551,
+                    "title": "Results",
+                    "index": 2,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g/values/'Results'",
+            "status": 200,
+            "body": {
+              "range": "Results!A1:Z1",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "ACTION",
+                  "STATUS",
+                  "title",
+                  "email",
+                  "name",
+                  "firstname",
+                  "lastname",
+                  "phone",
+                  "clean url",
+                  "website",
+                  "WP API",
+                  "WP",
+                  "facebook",
+                  "instagram",
+                  "youtube",
+                  "tiktok",
+                  "twitter",
+                  "linkedin",
+                  "pinterest",
+                  "reddit",
+                  "rating",
+                  "reviews",
+                  "type",
+                  "address",
+                  "price",
+                  "place_id",
+                  "position",
+                  "data_id",
+                  "data_cid",
+                  "reviews_link",
+                  "photos_link",
+                  "gps_coordinates",
+                  "place_id_search",
+                  "provider_id",
+                  "types",
+                  "open_state",
+                  "hours",
+                  "operating_hours",
+                  "description",
+                  "service_options",
+                  "order_online",
+                  "thumbnail",
+                  "editorial_reviews",
+                  "unclaimed_listing",
+                  "reserve_a_table",
+                  "user_review",
+                  "amenities",
+                  "book_online"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g/values:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g",
+              "totalUpdatedRows": 1,
+              "totalUpdatedCells": 1,
+              "totalUpdatedSheets": 1
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g",
+              "replies": [
+                {}
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.2 appendOrUpdate on tab Results matching place_id: sheets.properties, the whole tab, then values:batchUpdate for matches and new rows appended"
+    },
+    {
+      "node": "Update Status to Success",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 853393043,
+                    "title": "AZ Zips",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Google Maps Categories",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1203344551,
+                    "title": "Results",
+                    "index": 2,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g/values/'AZ Zips'",
+            "status": 200,
+            "body": {
+              "range": "AZ Zips!A1:Z6",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "zip",
+                  "status",
+                  "subcat"
+                ],
+                [
+                  "85001",
+                  "scraped",
+                  "Plumber"
+                ],
+                [
+                  "85003",
+                  "",
+                  ""
+                ],
+                [
+                  "85004",
+                  "",
+                  ""
+                ],
+                [
+                  "85006",
+                  "",
+                  ""
+                ],
+                [
+                  "85007",
+                  "",
+                  ""
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g/values:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g",
+              "totalUpdatedRows": 1,
+              "totalUpdatedCells": 1,
+              "totalUpdatedSheets": 1
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.2 update on tab AZ Zips matching zip (status scraped, executeOnce)"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Filter Zips keeps zips with an empty status; Limit keeps three",
+      "Filter Subcategories drops STATUS Ignore",
+      "If Empty: true for a search answering {} (next subcategory), false otherwise (rows appended)",
+      "the Sheets error outputs (backoff and retry) are not taken",
+      "Loop Subcats is never reset, so after the first zip's subcategories it reports done at once: n8n searches only the first zip (canned run 2026-11-15); the later zips' routes are there for a run that resets it"
+    ],
+    "offline": "The disabled schedule and Execute Workflow triggers are not used; the run starts from the manual trigger. Places results are stand-ins in the Places API (New) shape for the field mask the node asks"
+  }
+}

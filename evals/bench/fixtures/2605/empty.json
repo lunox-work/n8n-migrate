@@ -1,0 +1,576 @@
+{
+  "schemaVersion": 1,
+  "template": 2605,
+  "sha256": "04619f5b92ee5491f5b5c2bb7216adfbb3ba55cf6d775b1e3db58c36cefeb3ac",
+  "variant": "empty",
+  "now": "2026-11-16T15:00:00.000Z",
+  "about": "every zip is already scraped, so Filter Zips passes nothing and no search runs",
+  "trigger": {
+    "node": "When clicking \"Execute Workflow\"",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "GS - Get Zip Codes",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 853393043,
+                    "title": "AZ Zips",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Google Maps Categories",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1203344551,
+                    "title": "Results",
+                    "index": 2,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g/values/'AZ Zips'",
+            "status": 200,
+            "body": {
+              "range": "AZ Zips!A1:Z6",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "zip",
+                  "status",
+                  "subcat"
+                ],
+                [
+                  "85001",
+                  "scraped",
+                  "Plumber"
+                ],
+                [
+                  "85003",
+                  "scraped",
+                  "Plumber"
+                ],
+                [
+                  "85004",
+                  "scraped",
+                  "Plumber"
+                ],
+                [
+                  "85006",
+                  "scraped",
+                  "Plumber"
+                ],
+                [
+                  "85007",
+                  "scraped",
+                  "Plumber"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Sheets connector"
+      },
+      "note": "Sheets v4.2 by tab name on the spreadsheet in Settings' gs_url (url mode): sheets.properties (name → tab), then values/'<tab>'; every Sheets node of the run reads the same three tabs, so the same replies are listed per node"
+    },
+    {
+      "node": "GS - Get Subcategory",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 853393043,
+                    "title": "AZ Zips",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Google Maps Categories",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1203344551,
+                    "title": "Results",
+                    "index": 2,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g/values/'Google Maps Categories'",
+            "status": 200,
+            "body": {
+              "range": "Google Maps Categories!A1:Z4",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Subcategory",
+                  "STATUS"
+                ],
+                [
+                  "Plumber",
+                  ""
+                ],
+                [
+                  "Electrician",
+                  ""
+                ],
+                [
+                  "Roofer",
+                  "Ignore"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Sheets connector"
+      },
+      "note": "Sheets v4.2 by tab name on the spreadsheet in Settings' gs_url (url mode): sheets.properties (name → tab), then values/'<tab>'; every Sheets node of the run reads the same three tabs, so the same replies are listed per node"
+    },
+    {
+      "node": "GS - Get Status",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 853393043,
+                    "title": "AZ Zips",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Google Maps Categories",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1203344551,
+                    "title": "Results",
+                    "index": 2,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g/values/'AZ Zips'",
+            "status": 200,
+            "body": {
+              "range": "AZ Zips!A1:Z6",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "zip",
+                  "status",
+                  "subcat"
+                ],
+                [
+                  "85001",
+                  "scraped",
+                  "Plumber"
+                ],
+                [
+                  "85003",
+                  "scraped",
+                  "Plumber"
+                ],
+                [
+                  "85004",
+                  "scraped",
+                  "Plumber"
+                ],
+                [
+                  "85006",
+                  "scraped",
+                  "Plumber"
+                ],
+                [
+                  "85007",
+                  "scraped",
+                  "Plumber"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Sheets connector"
+      },
+      "note": "Sheets v4.2 by tab name on the spreadsheet in Settings' gs_url (url mode): sheets.properties (name → tab), then values/'<tab>'; every Sheets node of the run reads the same three tabs, so the same replies are listed per node"
+    },
+    {
+      "node": "GMaps API",
+      "service": "google-places",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Places connector"
+      },
+      "note": "HTTP Request v4.2 POST https://places.googleapis.com/v1/places:searchText {textQuery: '<Subcategory> <zip>'} with an X-Goog-FieldMask header, googleOAuth2Api credential, full response; Places API (New) answers {} when nothing matches"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Add rows in Google Sheets",
+    "Update Status to Success"
+  ],
+  "writeReplies": [
+    {
+      "node": "Add rows in Google Sheets",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 853393043,
+                    "title": "AZ Zips",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Google Maps Categories",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1203344551,
+                    "title": "Results",
+                    "index": 2,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g/values/'Results'",
+            "status": 200,
+            "body": {
+              "range": "Results!A1:Z1",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "ACTION",
+                  "STATUS",
+                  "title",
+                  "email",
+                  "name",
+                  "firstname",
+                  "lastname",
+                  "phone",
+                  "clean url",
+                  "website",
+                  "WP API",
+                  "WP",
+                  "facebook",
+                  "instagram",
+                  "youtube",
+                  "tiktok",
+                  "twitter",
+                  "linkedin",
+                  "pinterest",
+                  "reddit",
+                  "rating",
+                  "reviews",
+                  "type",
+                  "address",
+                  "price",
+                  "place_id",
+                  "position",
+                  "data_id",
+                  "data_cid",
+                  "reviews_link",
+                  "photos_link",
+                  "gps_coordinates",
+                  "place_id_search",
+                  "provider_id",
+                  "types",
+                  "open_state",
+                  "hours",
+                  "operating_hours",
+                  "description",
+                  "service_options",
+                  "order_online",
+                  "thumbnail",
+                  "editorial_reviews",
+                  "unclaimed_listing",
+                  "reserve_a_table",
+                  "user_review",
+                  "amenities",
+                  "book_online"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g/values:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g",
+              "totalUpdatedRows": 1,
+              "totalUpdatedCells": 1,
+              "totalUpdatedSheets": 1
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g",
+              "replies": [
+                {}
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.2 appendOrUpdate on tab Results matching place_id: sheets.properties, the whole tab, then values:batchUpdate for matches and new rows appended"
+    },
+    {
+      "node": "Update Status to Success",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 853393043,
+                    "title": "AZ Zips",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Google Maps Categories",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1203344551,
+                    "title": "Results",
+                    "index": 2,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g/values/'AZ Zips'",
+            "status": 200,
+            "body": {
+              "range": "AZ Zips!A1:Z6",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "zip",
+                  "status",
+                  "subcat"
+                ],
+                [
+                  "85001",
+                  "scraped",
+                  "Plumber"
+                ],
+                [
+                  "85003",
+                  "scraped",
+                  "Plumber"
+                ],
+                [
+                  "85004",
+                  "scraped",
+                  "Plumber"
+                ],
+                [
+                  "85006",
+                  "scraped",
+                  "Plumber"
+                ],
+                [
+                  "85007",
+                  "scraped",
+                  "Plumber"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g/values:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "11bzNIQDE4GB2NWkyGv2IfEsTggSIBCKe2z39Ecp2Z4g",
+              "totalUpdatedRows": 1,
+              "totalUpdatedCells": 1,
+              "totalUpdatedSheets": 1
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.2 update on tab AZ Zips matching zip (status scraped, executeOnce)"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Filter Zips passes nothing: the run stops there"
+    ],
+    "offline": "The disabled schedule and Execute Workflow triggers are not used; the run starts from the manual trigger. Places results are stand-ins in the Places API (New) shape for the field mask the node asks"
+  }
+}

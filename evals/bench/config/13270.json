@@ -1,0 +1,21 @@
+{
+  "why": "Skill Configuration leaves setup.model and both repositories' commit SHAs empty for the user to fill in (Validate setup and chat refuses empty values). Filled with a placeholder OpenRouter model id and one placeholder 40-character SHA per repository, keeping the owners, repositories and roots; the fixture's GitHub routes answer those commits. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "Skill Configuration": {
+      "parameters.jsonOutput": "{\n  \"setup\": {\n    \"model\": \"openai/gpt-4o-mini\",\n    \"repositories\": [\n      {\n        \"owner\": \"anthropics\",\n        \"repo\": \"skills\",\n        \"commit\": \"aa450534a843985f7280f251fcb6ab971245e5e6\",\n        \"roots\": [\n          \"skills\"\n        ]\n      },\n      {\n        \"owner\": \"anthropics\",\n        \"repo\": \"knowledge-work-plugins\",\n        \"commit\": \"0ee04f54eea9e80c6184a98172a48b83dffb2011\",\n        \"roots\": [\n          \"\"\n        ]\n      }\n    ]\n  }\n}"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Skill Configuration": {
+          "patch": {
+            "params": {
+              "jsonOutput": "{\n  \"setup\": {\n    \"model\": \"openai/gpt-4o-mini\",\n    \"repositories\": [\n      {\n        \"owner\": \"anthropics\",\n        \"repo\": \"skills\",\n        \"commit\": \"aa450534a843985f7280f251fcb6ab971245e5e6\",\n        \"roots\": [\n          \"skills\"\n        ]\n      },\n      {\n        \"owner\": \"anthropics\",\n        \"repo\": \"knowledge-work-plugins\",\n        \"commit\": \"0ee04f54eea9e80c6184a98172a48b83dffb2011\",\n        \"roots\": [\n          \"\"\n        ]\n      }\n    ]\n  }\n}"
+            }
+          }
+        }
+      }
+    }
+  }
+}

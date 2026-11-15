@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "template": 2454,
+  "sha256": "582d12b92799cd6e6b89e2790b2584479bb7757a020910eb284b3f2348edbcf2",
+  "variant": "normal",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "one unflagged, uncategorised Inbox mail: a SaaS receipt",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Microsoft Outlook23",
+      "service": "outlook",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://graph.microsoft.com/v1.0/me/messages",
+            "status": 200,
+            "body": {
+              "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('bench')/messages(flag,from,importance,replyTo,sender,subject,toRecipients,body,categories,isRead)",
+              "value": [
+                {
+                  "@odata.etag": "W/\"CQAAABYAAACfP4g5xYEYTaWtW5CAAXrMAAQbench\"",
+                  "id": "AAMkAGE3ZTU5MGMzLTFkNGItNGQ5Zi04MDQ1LThmNGFlMTVhYjMwYgBGAAAAAAD8UhruVwm402lgPBG2Tj-aBwCfP4g5xYEYTaWtW5CAAXrMAAAAAAEMAACfP4g5xYEYTaWtW5CAAXrMAAQbench01AAA=",
+                  "subject": "Your receipt from Linear #2026-1042",
+                  "importance": "normal",
+                  "isRead": false,
+                  "categories": [],
+                  "flag": {
+                    "flagStatus": "notFlagged"
+                  },
+                  "sender": {
+                    "emailAddress": {
+                      "name": "Linear",
+                      "address": "receipts@linear.example"
+                    }
+                  },
+                  "from": {
+                    "emailAddress": {
+                      "name": "Linear",
+                      "address": "receipts@linear.example"
+                    }
+                  },
+                  "replyTo": [],
+                  "toRecipients": [
+                    {
+                      "emailAddress": {
+                        "name": "Sam Patel",
+                        "address": "sam@patel-dev.example"
+                      }
+                    }
+                  ],
+                  "body": {
+                    "contentType": "html",
+                    "content": "<html><body><h2>Receipt #2026-1042</h2><p>Thanks for your payment.</p><table><tr><td>Linear Standard (1 seat)</td><td>$10.00</td></tr><tr><td>Total paid</td><td><b>$10.00</b></td></tr></table><p>Paid with Visa •••• 4242 on Nov 15, 2026.</p></body></html>"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Outlook connector"
+      },
+      "note": "Microsoft Outlook v2 message getAll, limit 1, output fields: GET https://graph.microsoft.com/v1.0/me/messages?$select=flag,from,importance,replyTo,sender,subject,toRecipients,body,categories,isRead&$top=1 with the filter built from the custom filter and the Inbox folder; n8n emits value[]"
+    }
+  ],
+  "models": [
+    "AI Agent1",
+    "Ollama Chat Model1"
+  ],
+  "writes": [
+    "Microsoft Outlook10",
+    "Microsoft Outlook12",
+    "Microsoft Outlook13",
+    "Microsoft Outlook15",
+    "Microsoft Outlook16",
+    "Microsoft Outlook17",
+    "Microsoft Outlook18",
+    "Microsoft Outlook19",
+    "Microsoft Outlook20",
+    "Microsoft Outlook21",
+    "Microsoft Outlook22",
+    "Microsoft Outlook Move Message1"
+  ],
+  "writeReplies": [
+    {
+      "node": "Microsoft Outlook13",
+      "service": "outlook",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "PATCH",
+            "url": "https://graph.microsoft.com/v1.0/me/messages/AAMkAGE3ZTU5MGMzLTFkNGItNGQ5Zi04MDQ1LThmNGFlMTVhYjMwYgBGAAAAAAD8UhruVwm402lgPBG2Tj-aBwCfP4g5xYEYTaWtW5CAAXrMAAAAAAEMAACfP4g5xYEYTaWtW5CAAXrMAAQbench01AAA=",
+            "status": 200,
+            "body": {
+              "@odata.etag": "W/\"CQAAABYAAACfP4g5xYEYTaWtW5CAAXrMAAQbench\"",
+              "id": "AAMkAGE3ZTU5MGMzLTFkNGItNGQ5Zi04MDQ1LThmNGFlMTVhYjMwYgBGAAAAAAD8UhruVwm402lgPBG2Tj-aBwCfP4g5xYEYTaWtW5CAAXrMAAAAAAEMAACfP4g5xYEYTaWtW5CAAXrMAAQbench01AAA=",
+              "subject": "Your receipt from Linear #2026-1042",
+              "importance": "normal",
+              "isRead": false,
+              "categories": [
+                "Receipt"
+              ],
+              "flag": {
+                "flagStatus": "notFlagged"
+              },
+              "sender": {
+                "emailAddress": {
+                  "name": "Linear",
+                  "address": "receipts@linear.example"
+                }
+              },
+              "from": {
+                "emailAddress": {
+                  "name": "Linear",
+                  "address": "receipts@linear.example"
+                }
+              },
+              "replyTo": [],
+              "toRecipients": [
+                {
+                  "emailAddress": {
+                    "name": "Sam Patel",
+                    "address": "sam@patel-dev.example"
+                  }
+                }
+              ],
+              "body": {
+                "contentType": "html",
+                "content": "<html><body><h2>Receipt #2026-1042</h2><p>Thanks for your payment.</p><table><tr><td>Linear Standard (1 seat)</td><td>$10.00</td></tr><tr><td>Total paid</td><td><b>$10.00</b></td></tr></table><p>Paid with Visa •••• 4242 on Nov 15, 2026.</p></body></html>"
+              }
+            }
+          }
+        ]
+      },
+      "note": "Outlook v2 message update (categories from the model's JSON): PATCH /v1.0/me/messages/<id>; the eight update nodes all PATCH this URL, and the If1 branch reads isRead from the reply"
+    },
+    {
+      "node": "Microsoft Outlook15",
+      "service": "outlook",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://graph.microsoft.com/v1.0/me/messages/AAMkAGE3ZTU5MGMzLTFkNGItNGQ5Zi04MDQ1LThmNGFlMTVhYjMwYgBGAAAAAAD8UhruVwm402lgPBG2Tj-aBwCfP4g5xYEYTaWtW5CAAXrMAAAAAAEMAACfP4g5xYEYTaWtW5CAAXrMAAQbench01AAA=/move",
+            "status": 200,
+            "body": {
+              "@odata.etag": "W/\"CQAAABYAAACfP4g5xYEYTaWtW5CAAXrMAAQbench\"",
+              "id": "AAMkAGE3ZTU5MGMzLTFkNGItNGQ5Zi04MDQ1LThmNGFlMTVhYjMwYgBGAAAAAAD8UhruVwm402lgPBG2Tj-aBwCfP4g5xYEYTaWtW5CAAXrMAAAAAAEMAACfP4g5xYEYTaWtW5CAAXrMAAQmoved1AAA=",
+              "subject": "Your receipt from Linear #2026-1042",
+              "importance": "normal",
+              "isRead": false,
+              "categories": [
+                "Receipt"
+              ],
+              "flag": {
+                "flagStatus": "notFlagged"
+              },
+              "sender": {
+                "emailAddress": {
+                  "name": "Linear",
+                  "address": "receipts@linear.example"
+                }
+              },
+              "from": {
+                "emailAddress": {
+                  "name": "Linear",
+                  "address": "receipts@linear.example"
+                }
+              },
+              "replyTo": [],
+              "toRecipients": [
+                {
+                  "emailAddress": {
+                    "name": "Sam Patel",
+                    "address": "sam@patel-dev.example"
+                  }
+                }
+              ],
+              "body": {
+                "contentType": "html",
+                "content": "<html><body><h2>Receipt #2026-1042</h2><p>Thanks for your payment.</p><table><tr><td>Linear Standard (1 seat)</td><td>$10.00</td></tr><tr><td>Total paid</td><td><b>$10.00</b></td></tr></table><p>Paid with Visa •••• 4242 on Nov 15, 2026.</p></body></html>"
+              },
+              "parentFolderId": "AQMkAGE3ZTU5MGMzLTFkNGItNGQ5Zi04MDQ1LThmNGFlMTVhYjMwYgAuAAAD8UhruVwm402lgPBG2Tj-aQEAnz-IOcWBGE2lrVuQgAF6zAADLJmrBwAAAA=="
+            }
+          }
+        ]
+      },
+      "note": "Outlook v2 message move: POST /v1.0/me/messages/<id>/move {destinationId}; every move node posts this URL"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Switch1 on the model's category (receipt expected for the normal mail: Microsoft Outlook13 then 15)",
+      "If1 (action/business): isRead from the update's reply"
+    ],
+    "offline": "The Outlook nodes ship without credentials (the export stripped them) and the bench attaches none for the Outlook node type, so n8n stops at Microsoft Outlook23 before any request (canned run 2026-11-15: Node does not have any credentials set; PROPOSALS P61). The model is the template's Ollama qwen2.5:14b, answered by the shim"
+  }
+}

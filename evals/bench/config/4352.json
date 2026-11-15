@@ -1,0 +1,74 @@
+{
+  "why": "Google Trends sends api_key=[YOUR_SERPAPI_KEY], LinkedIn1 posts as person [CONFIGURE_YOUR_LINKEDIN_PERSON_ID] and Google Sheets2 names spreadsheet [YOUR_GOOGLE_SHEETS_DOCUMENT_ID] (template placeholders). Filled with placeholder values on both sides; the fixture's routes ask for the key and answer the spreadsheet. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "Google Trends": {
+      "parameters.queryParameters.parameters.6.value": "bench-serpapi-key"
+    },
+    "LinkedIn1": {
+      "parameters.person": "BenchPerson4352"
+    },
+    "Google Sheets2": {
+      "parameters.documentId.value": "1LinkedInAutoBenchSheet3pQ7rS2tU5vW8xZ1aB4c"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Google Trends": {
+          "patch": {
+            "params": {
+              "queryParameters": {
+                "parameters": [
+                  {
+                    "name": "q",
+                    "value": "=ai agents"
+                  },
+                  {
+                    "name": "geo",
+                    "value": "US"
+                  },
+                  {
+                    "name": "hl",
+                    "value": "en"
+                  },
+                  {
+                    "name": "date",
+                    "value": "={{ $now.minus({ days: 3 }).format('yyyy-MM-dd') }} {{ $now.format('yyyy-MM-dd') }}"
+                  },
+                  {
+                    "name": "data_type",
+                    "value": "RELATED_QUERIES"
+                  },
+                  {
+                    "name": "engine",
+                    "value": "google_trends"
+                  },
+                  {
+                    "name": "api_key",
+                    "value": "bench-serpapi-key"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "LinkedIn1": {
+          "patch": {
+            "params": {
+              "person": "BenchPerson4352"
+            }
+          }
+        },
+        "Google Sheets2": {
+          "patch": {
+            "params": {
+              "documentId": {
+                "value": "1LinkedInAutoBenchSheet3pQ7rS2tU5vW8xZ1aB4c"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
