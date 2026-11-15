@@ -123,3 +123,7 @@ Release point 1's new kinds, again: refused at run time after a clean preflight 
 ## Fixture check
 
 No fixture fixes. No held-out n8n run had an unanswered service request. Unused routes are on paths that stopped earlier (preflight-stopped templates get canned n8n checks only, 2878 parks at its first form page).
+
+## Restated under P50 (2026-11-15, round 3 setup)
+
+P50 (commit 4d1932e) stops counting a pass that compared nothing: no write, media call, disk write or reply on either side and no checked model input. Two rows of this release point were such passes, classed from their n8n recordings: 1747 (dev) and 890 (held-out; manual trigger, a CSV read, nothing written). Restated: **dev 15 of 50, held-out 2 of 20, gap 20.0 points, bound 22.2: inside** (`node evals/bench/summary.mjs --release rel2-dev rel2-held --round 2`). Passes that compared no effect but count: dev 2777, 2413, 6270, 2729, 2703 (reply), 2473 (model inputs); held-out 2384 (reply). Without the two templates n8n cannot run (P49, left out of n and passes): held-out 2 of 18, gap 18.9, bound 23.3, inside. The headline above, the README and the hero keep the numbers as scored.
