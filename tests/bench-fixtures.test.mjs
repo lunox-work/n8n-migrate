@@ -29,9 +29,13 @@ test("every bench fixture validates, four variants per template", async () => {
   }
 });
 
-test("the first thirty dev templates of splits.json have fixtures", () => {
+test("every seeded dev template of splits.json has fixtures pinned to its hash", () => {
   const splits = JSON.parse(readFileSync(join(BENCH, "splits.json"), "utf8"));
-  for (const { id } of splits.dev.slice(0, 30)) assert.ok(existsSync(join(BENCH, "fixtures", String(id), "normal.json")), String(id));
+  for (const { id, sha256 } of splits.dev) {
+    const p = join(BENCH, "fixtures", String(id), "normal.json");
+    assert.ok(existsSync(p), String(id));
+    assert.equal(JSON.parse(readFileSync(p, "utf8")).sha256, sha256, String(id));
+  }
 });
 
 // Held-out fixtures feed release points only (EXCLUSIONS.md); the first twenty in the seeded
@@ -99,11 +103,9 @@ test("rolling held-out: round 2 promotes held-out 1-20 and holds out 21-40, roun
   assert.deepEqual(ids(r3.dev), [...ids(splits.dev), ...ids(splits.heldOut)]);
   assert.deepEqual(ids(r3.heldOut), ids(splits.heldOutFresh.templates));
   assert.equal(r3.heldOut.length, 20);
-  // Seeded dev 31-60 get fixtures in batches; each counts in every round's dev.
-  const late = splits.dev.slice(30, 60).filter(({ id }) => existsSync(join(BENCH, "fixtures", String(id)))).length;
-  assert.equal(devWithFixtures(splits).length, 70 + late);
-  assert.equal(devWithFixtures(splits, undefined, 2).length, 50 + late);
-  assert.equal(devWithFixtures(splits, undefined, 1).length, 30 + late);
+  assert.equal(devWithFixtures(splits).length, 100);
+  assert.equal(devWithFixtures(splits, undefined, 2).length, 80);
+  assert.equal(devWithFixtures(splits, undefined, 1).length, 60);
   // The lint forbids every corpus id in skill files, promoted ones included.
   const corpusIds = new Set(JSON.parse(readFileSync(join(BENCH, "corpus.json"), "utf8")).templates.map((t) => t.id));
   for (const r of splits.rounds) for (const id of [...r.promoted, ...r.heldOut]) assert.ok(corpusIds.has(id), String(id));
