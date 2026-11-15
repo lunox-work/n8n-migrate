@@ -22,6 +22,7 @@ Beyond HTTP through the mock, models through the shim and pins: Send Email over 
 node evals/bench/run.mjs [<id>...] [--split dev] [--limit n] [--variants normal,empty,malformed,hostile]
      [--repeats 3] [--model-mode replay|live] [--driver inprocess|claude] [--skill <id,...|all>]
      [--tag <name>] [--reuse-convert <tag>] [--record] [--n8n-check all|normal] [--no-n8n-check] [--diagnose]
+node evals/bench/run.mjs --n8n-check-only <id>... [--n8n-check all|normal] [--variants ...]   # canned n8n check alone (P102)
 node evals/bench/judge.mjs --calibrate <id>[,<id>] [--variant normal]
 node evals/bench/summary.mjs [--tag <name>] [--json]
 node evals/bench/summary.mjs --release <dev tag> <held tag> [--flips n] [--round n]
@@ -29,7 +30,7 @@ node evals/bench/tls.mjs [host...]          # CA and leaves (made on demand by t
 node evals/bench/validate.mjs [--ids a,b]   # fixtures (FIXTURES.md); current held-out skipped without --ids
 ```
 
-`--tag` names a bench run; re-running the same tag resumes from `.work/ledger/<tag>.json`. `held-out` never runs without explicit ids (EXCLUSIONS.md).
+`--n8n-check-only` (P102) runs only the canned n8n check (P36) of the ids given, every variant unless `--n8n-check normal`, on the bench's own `n8nRun` path: no convert, no Claude side, no model call (`claude -p` never runs), nothing saved (no recording, ledger or results row). It prints one JSON line per variant: the `drivers.n8nCheck` summary, `errorDetail` (n8n's error as the editor shows it: message, description, HTTP code), each node's runs, and the request log (`<method> <url> -> <route>`). Held-out ids run only when named. `--tag` names a bench run; re-running the same tag resumes from `.work/ledger/<tag>.json`. `held-out` never runs without explicit ids (EXCLUSIONS.md).
 
 **Rolling held-out** (PLAN Phase 6). `splits.json` keeps the seeded `dev`/`heldOut` lists and adds `rounds` and `currentRound`: after a release point is scored, the held-out templates it scored join dev (`promoted`), and the next release point scores fresh ones. `rounds.mjs` gives the current round to `run.mjs` (no ids or `--split dev`: the round's dev templates with fixtures), `convert-coverage.mjs --split dev` and `summary.mjs`. Round 2: dev = 60 seeded + held-out 1–20 (50 with fixtures), held-out = held-out 21–40 (scored at release point 2). Round 3: dev = all 100 seeded templates (all with fixtures since seeded dev 31–60 got theirs, 2026-11-15); held-out = 20 fresh templates from outside the seeded split (`splits.json` `heldOutFresh`, which `rounds.mjs` resolves like the seeded lists): the Phase 5 `overflow` entries plus a top-up walk of the listing (`fetch.mjs --top-up`, same exclusion rules, EXCLUSIONS.md), drawn by `split.mjs --fresh` (seed 20261115, per wake-up stratum, the seeded held-out's strata halved). Their fixtures are written by a separate blind session before release point 3. Round 4: dev = the 100 round-4-eligible templates (EXCLUSIONS.md, Round 4 eligibility); held-out = 20 fresh templates (`splits.json` `heldOutFresh4`, seed 20261116), whose fixtures a separate blind session wrote on 2026-11-16, all four variants each, before release point 4. `summary.mjs --release <dev tag> <held tag> [--flips n] [--round n]` prints the gap and the overfitting bound with n = the round's fixtured sizes.
 

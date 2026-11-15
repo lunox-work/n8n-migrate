@@ -6,6 +6,7 @@
 //        [--variants normal,empty,malformed,hostile] [--repeats 3] [--model-mode replay|live]
 //        [--driver inprocess|claude] [--skill <id,id|all|none>] [--tag <run tag>]
 //        [--reuse-convert <tag>] [--record] [--n8n-check all|normal] [--no-n8n-check] [--diagnose]
+//   node evals/bench/run.mjs --n8n-check-only <templateId>... [--n8n-check all|normal] [--variants ...]
 //
 // Without ids (or with --split dev): the current round's dev templates that have fixtures
 // (splits.json `rounds`, evals/bench/rounds.mjs).
@@ -28,6 +29,13 @@
 //                Contained on the hostile fixture (in process, and with the claude driver on
 //                normal and hostile under --driver claude). Recorded as diagnostics; the
 //                verdict stays the first failed gate.
+//
+// --n8n-check-only (PROPOSALS P102) only the canned n8n check (P36) of the ids given, on every
+//                variant (`--n8n-check normal`: normal only): the same n8nRun path the bench takes,
+//                no convert, no Claude side, no model call, nothing saved (no recording, ledger
+//                or results row). One JSON line per variant on stdout: the n8nCheck summary plus
+//                the run's full error (description, HTTP code), each node's runs, and the
+//                request log. For fixture writers; held-out ids are run only when named.
 //
 // A template stops at its first failed gate. One row per template goes to evals/results.jsonl.
 
@@ -57,7 +65,7 @@ const RESULTS = join(ROOT, "evals", "results.jsonl");
 const VARIANTS = ["normal", "empty", "malformed", "hostile"];
 
 function parseArgs(argv) {
-  const a = { diagnose: false, ids: [], variants: VARIANTS, repeats: 3, modelMode: "replay", driver: "inprocess", skill: [], tag: null, reuseConvert: null, record: false, n8nCheck: true, split: null, limit: null };
+  const a = { diagnose: false, ids: [], variants: VARIANTS, repeats: 3, modelMode: "replay", driver: "inprocess", skill: [], tag: null, reuseConvert: null, record: false, n8nCheck: true, n8nCheckOnly: false, split: null, limit: null };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     const v = () => argv[++i];
@@ -72,11 +80,13 @@ function parseArgs(argv) {
     else if (k === "--no-n8n-check") a.n8nCheck = false;
     else if (k === "--n8n-check") a.n8nCheck = v() === "normal" ? "normal" : true;
     else if (k === "--diagnose") a.diagnose = true;
+    else if (k === "--n8n-check-only") a.n8nCheckOnly = true;
     else if (k === "--split") a.split = v();
     else if (k === "--limit") a.limit = Number(v());
     else if (k.startsWith("--")) throw new Error(`unknown flag ${k}`);
     else a.ids.push(Number(k));
   }
+  if (a.n8nCheckOnly && !a.ids.length) throw new Error("--n8n-check-only needs template ids");
   if (!a.ids.length) {
     if (a.split === "held-out") throw new Error("held-out runs only at release points (EXCLUSIONS.md); pass ids explicitly");
     // The current round's dev (rolling held-out, rounds.mjs): templates with fixtures.
@@ -201,6 +211,8 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
     variant,
     status: res.status,
     error: res.error ?? null,
+    // PROPOSALS P102: a canned check keeps n8n's whole error, so a fixture writer sees why.
+    ...(canned && res.executionData?.error ? { errorDetail: errorDetailOf(res.executionData.error) } : {}),
     startedAt: res.startedAt,
     executionMs: res.executionMs,
     wallMs: res.wallMs,
@@ -236,6 +248,54 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
   out.recorded = existing && session.mode === "replay" ? existing.recorded : { at: new Date().toISOString(), modes: out.modelModes };
   if (!canned) writeJson(recFile, out);
   return out;
+}
+
+// n8n's error object (NodeApiError, NodeOperationError, a runner's error) as the fields a person
+// reads in the editor's error panel.
+export function errorDetailOf(e) {
+  const pick = (v, n = 2000) => (v === undefined || v === null || v === "" ? undefined : typeof v === "string" ? v.slice(0, n) : JSON.stringify(v).slice(0, n));
+  const out = { node: e.node?.name ?? null, name: e.name ?? null, message: pick(e.message), description: pick(e.description), httpCode: pick(e.httpCode ?? e.context?.httpCode, 20), cause: pick(e.cause?.message ?? e.cause), stack: pick(e.stack, 600) };
+  return Object.fromEntries(Object.entries(out).filter(([, v]) => v !== undefined));
+}
+
+// PROPOSALS P102: the canned n8n check alone, for the ids named (no convert, no Claude side, no
+// model call, nothing saved). Prints one JSON line per variant; returns how many variants ran.
+async function n8nCheckOnly(args) {
+  let n = 0;
+  for (const id of args.ids) {
+    for (const v of n8nCheckVariants(args.n8nCheck || true, args.variants)) {
+      const t0 = Date.now();
+      log(`${id}/${v}: n8n check (canned, check only)`);
+      let r;
+      try {
+        r = await n8nRun(id, v, { canned: true });
+      } catch (e) {
+        console.log(JSON.stringify({ template: id, variant: v, benchError: String(e.stack ?? e).slice(0, 1500) }));
+        continue;
+      }
+      n++;
+      const steps = { [n8nCheckKey(v)]: summarizeCheck(r) };
+      const line = {
+        template: id,
+        variant: v,
+        seconds: Math.round((Date.now() - t0) / 1000),
+        ...n8nCheckSummary(steps, [v])[v],
+        ...(r.errorDetail ? { errorDetail: r.errorDetail } : {}),
+        lastNode: r.lastNode ?? null,
+        nodes: r.nodes ?? null,
+        ...(r.children ? { children: r.children } : {}),
+        requests: (r.effects ?? []).map((e) => `${e.method} ${e.proxied ?? ""}${e.path} -> ${e.fixture ?? "none"}`),
+        modelModes: r.modelModes,
+        credentialsAttached: r.credentialsAttached,
+        credentialsMissing: r.credentialsMissing,
+        ...(r.pinnedPath ? { pinnedPath: r.pinnedPath } : {}),
+        ...(r.httpAttempt ? { httpAttempt: r.httpAttempt } : {}),
+        ...(r.badRoutes ? { badRoutes: r.badRoutes } : {}),
+      };
+      console.log(scrubHome(JSON.stringify(line)));
+    }
+  }
+  return n;
 }
 
 // The n8n run of a variant whose fixture cannot be used (PROPOSALS P48): status
@@ -653,6 +713,20 @@ function n8nCannotRunOf(id) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  if (args.n8nCheckOnly) {
+    let code = 0;
+    try {
+      const n = await n8nCheckOnly(args);
+      log(`n8n check only: ${n} variant run(s), no claude -p, nothing saved`);
+    } catch (e) {
+      log(`stopped: ${e.stack ?? e.message}`);
+      code = 3;
+    } finally {
+      if (n8nEnv) n8nEnv.shim.server.close();
+      if (n8nEnv) n8nEnv.databases.removeDatabases();
+    }
+    process.exit(code);
+  }
   const file = join(WORK, "ledger", `${args.tag}.json`);
   const L = { file, data: readJson(file, { tag: args.tag, started: new Date().toISOString(), args: { ...args, ids: undefined }, templates: {} }) };
   L.templates = L.data.templates;
