@@ -137,10 +137,13 @@ export function fromN8n(workflowJson, { nodes, sourceText, file } = {}) {
         if (!allow.http.some((a) => a.method === method && a.host === target.host && a.pathPrefix === target.pathPrefix)) allow.http.push({ method, host: target.host, pathPrefix: target.pathPrefix });
       } else notes.push(`step "${node.name}": the URL host is an expression, so no allowlist entry was made`);
       const auth = node.parameters?.authentication;
-      if (auth && auth !== "none" && creds.length) {
-        const credType = auth === "genericCredentialType" ? node.parameters?.genericAuthType : node.parameters?.nodeCredentialType;
-        const ref = node.credentials?.[credType] ?? creds[0][1];
-        const name = ref?.name ?? String(ref?.id ?? credType);
+      const credType = auth === "genericCredentialType" ? node.parameters?.genericAuthType : node.parameters?.nodeCredentialType;
+      // An export with its credentials stripped still says which credential type the step
+      // uses: the secret is named after the type, as for request templates, so the person
+      // stores it at setup instead of the run failing on a step with no secret.
+      if (auth && auth !== "none" && (creds.length || (typeof credType === "string" && credType))) {
+        const ref = creds.length ? node.credentials?.[credType] ?? creds[0][1] : null;
+        const name = ref ? ref?.name ?? String(ref?.id ?? credType) : `${credType} (no credential named in the export)`;
         step.auth = { credentialType: credType ?? creds[0][0], secret: name };
         const s = secrets.get(name) ?? { name, credentialType: step.auth.credentialType, hosts: [] };
         if (target && !s.hosts.includes(target.host)) s.hosts.push(target.host);

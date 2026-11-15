@@ -436,3 +436,16 @@ test("a URL built at run time that writes its own address may reach only that ad
   assert.equal(bad.status, "failed");
   assert.match(bad.error.message, /not in the definition's allowlist/);
 });
+
+test("an HTTP step whose credential the export stripped gets a secret named after its credential type", async () => {
+  const flow = {
+    id: "cr01",
+    name: "Stripped credential",
+    nodes: [manual, { parameters: { url: "https://api.github.com/repos/o/r", authentication: "predefinedCredentialType", nodeCredentialType: "githubApi", options: {} }, name: "Repo", type: "n8n-nodes-base.httpRequest", typeVersion: 4.2, position: [200, 0] }],
+    connections: link("Start", "Repo"),
+    settings: { executionOrder: "v1" },
+  };
+  const def = convertJson(flow).definition;
+  assert.deepEqual(def.steps.Repo.auth, { credentialType: "githubApi", secret: "githubApi (no credential named in the export)" });
+  assert.deepEqual(def.secrets.find((s) => s.name === "githubApi (no credential named in the export)").hosts, ["api.github.com"]);
+});

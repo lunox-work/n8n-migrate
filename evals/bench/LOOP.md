@@ -554,3 +554,12 @@ Gate 3 (66): the same templates and kinds as `r3-base` (R3d list above): request
 - Bench `r3f-i26` (the 1 dev template whose definition changed: 13270; 3 `claude -p` runs, ledger 800 → 803: live n8n recordings of variants first reached): 13270 3 → 3 with a later blocking cause: preflight now passes; the run stops at `Fetch pinned repository trees` (`HTTP Request uses a credential the definition does not name`: the export strips the GitHub credential and the converter names no secret for it). **24 of 100, gate sum 459** (unchanged).
 - `convert-coverage --split dev`: preflight clean 38 → 39 (13270), no regression; `node --test` 400 pass, lint ok.
 - Verdict: accepted (rule c: later blocking cause, no gate fell, no pass lost).
+
+## Iteration 27: an HTTP step whose credential the export stripped names a secret (accepted)
+
+- Bucket: runner bug (gate 3, exposed by iteration 26): 13270's HTTP Request and HTTP tools set `authentication: predefinedCredentialType`, `nodeCredentialType: githubApi`, but the export carries no credential, so the converter named no secret and the run stopped (`HTTP Request uses a credential the definition does not name`). n8n needs the credential too; the person adds it at setup.
+- Hypothesis: naming the secret after the credential type, as request templates already do (`<type> (no credential named in the export)`), with the type's known hosts (`credentialHosts`), lets the step run with the secret the person stores.
+- Change: `runtime/src/convert.mjs` (`fromN8n`, HTTP Request) and `scripts/convert.mjs` `buildHttpTool()`. Test in `tests/convert.test.mjs`.
+- Bench `r3f-i27` (the 5 dev templates whose definitions changed: 13270, 2658, 5110, 4846, 2557; 0 `claude -p` runs): **13270 3 → 4** (the run finishes; gate 4 `different tool result`: n8n's HTTP Request tool v4.4 trims its response with `optimizeResponse` and `fields` (`name,path,type,size`) and wraps a text body as `{data}`, where the runtime feeds the whole GitHub response back); the other 4 the same gate and the same preflight detail. **24 of 100, gate sum 460** (was 459).
+- `convert-coverage --split dev`: unchanged (preflight clean 39), no regression; `node --test` 401 pass, lint ok.
+- Verdict: accepted (gate sum +1, no gate fell, no pass lost).

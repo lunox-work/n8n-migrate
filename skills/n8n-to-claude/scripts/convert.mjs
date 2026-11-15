@@ -1778,9 +1778,11 @@ function buildHttpTool(tn, ts, review, addHttp, addSecret, refs) {
   }
   const auth = tp.authentication;
   const creds = Object.entries(ts.credentials ?? {});
-  if (auth && auth !== "none" && creds.length) {
+  const typed = auth === "genericCredentialType" ? tp.genericAuthType : tp.nodeCredentialType;
+  // Credentials stripped from the export: the secret is named after the credential type.
+  if (auth && auth !== "none" && (creds.length || (typeof typed === "string" && typed))) {
     const credType = auth === "genericCredentialType" ? tp.genericAuthType : tp.nodeCredentialType ?? creds[0][0];
-    const name = ts.credentials[credType] ?? creds[0][1];
+    const name = creds.length ? ts.credentials[credType] ?? creds[0][1] : `${credType} (no credential named in the export)`;
     ts.auth = { credentialType: credType, secret: name };
     addSecret(name, credType, target?.host);
     for (const t of written) addSecret(name, credType, t.host);
