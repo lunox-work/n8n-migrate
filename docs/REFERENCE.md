@@ -56,15 +56,15 @@ directory connectors, DST): PLAN.md, Phase 1, "Decisions taken here".
 
 Per folder (`SKILL/scripts/convert.mjs`, header comment):
 
-| File                                          | Holds                                                                                              |
-| --------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `definition.json`                             | Steps, edges, allowed tools and hosts, secrets by name (`SKILL/references/definition.schema.json`) |
-| `source.n8n.json`                             | The export, inline secrets redacted; its sha256 is in the definition                               |
-| `report.json`, `MIGRATION.md`                 | The analyzer's report; what moved, what is flagged or blocked, what it needs                       |
-| `overrides.json`                              | Translations, alert channel, host narrowing; survives `--regenerate`                               |
-| `task.json`, `task-prompt.md`                 | Store, secrets mode, schedule; the task's prompt                                                   |
-| `artifact.html`, `artifact.capabilities.json` | The page and the capabilities to publish it with (`SKILL/references/artifact-runtime.md`)          |
-| `runtime/`                                    | A copy of the runner, driver and hooks: the folder runs without the skill                          |
+| File                                          | Holds                                                                                                                                                                                                                                           |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `definition.json`                             | Steps, edges, allowed tools and hosts, secrets by name (`SKILL/references/definition.schema.json`)                                                                                                                                              |
+| `source.n8n.json`                             | The export, inline secrets redacted; its sha256 is in the definition                                                                                                                                                                            |
+| `report.json`, `MIGRATION.md`                 | The analyzer's report; what moved, what is flagged or blocked, what it needs                                                                                                                                                                    |
+| `overrides.json`                              | Translations, alert channel, host narrowing; survives `--regenerate`                                                                                                                                                                            |
+| `task.json`, `task-prompt.md`                 | Store, secrets mode, schedule; the task's prompt                                                                                                                                                                                                |
+| `artifact.html`, `artifact.capabilities.json` | The page and the capabilities to publish it with (`SKILL/references/artifact-runtime.md`)                                                                                                                                                       |
+| `runtime/`                                    | A copy of the runner, driver and hooks: the folder runs without the skill; `runtime/vendor/pdfjs/` and `runtime/vendor/xlsx/` (Apache-2.0, licence and checksums beside them, NOTICE.md) only when the definition has a PDF or spreadsheet step |
 
 Printed status per workflow: `converted`, `review` (steps flagged),
 `blocked-steps` (greyed with the reason), `refused` (not `subscription`:
