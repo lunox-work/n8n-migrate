@@ -96,7 +96,7 @@ export const ANSWER_KINDS = new Set(["input-incomplete", "substitution"]);
 
 // Options the runtime refuses when the step runs, read from the step's own parameters. Mirrors
 // the run-time refusals in runtime/src/nodes2.mjs (HTTP Request file responses and binary
-// bodies; the HTML node's operations other than the two it implements). Returns [{what}].
+// bodies; an HTML node operation it does not implement). Returns [{what}].
 const METHODS_WITHOUT_BODY = ["GET", "HEAD", "OPTIONS"];
 export function runTimeRefusals(step) {
   const t = step?.n8n?.type ?? "";
@@ -108,7 +108,7 @@ export function runTimeRefusals(step) {
   }
   if (t === "n8n-nodes-base.html") {
     const op = p.operation ?? "generateHtmlTemplate";
-    if (typeof op === "string" && !["generateHtmlTemplate", "convertToHtmlTable"].includes(op)) out.push({ what: op });
+    if (typeof op === "string" && !["generateHtmlTemplate", "convertToHtmlTable", "extractHtmlContent"].includes(op)) out.push({ what: op });
   }
   return out;
 }

@@ -147,60 +147,60 @@
    "out-of-scope/under-a-minute": 2
   },
   "inScope": 475,
-  "supportedToday": 144,
-  "fullClass": 83,
-  "answersOnly": 22,
-  "blocked": 309,
+  "supportedToday": 151,
+  "fullClass": 88,
+  "answersOnly": 24,
+  "blocked": 300,
   "crashes": 0
  },
  "dev": {
   "templates": 100,
   "unnamed": 0,
-  "supportedToday": 37,
+  "supportedToday": 38,
   "answersOnly": 7,
-  "blocked": 56,
+  "blocked": 55,
   "missing": 0
  },
  "byPlanned": [
   {
+   "group": "rest-template",
+   "keys": 40,
+   "galleryUnlock": 36,
+   "galleryTotal": 76,
+   "devUnlock": 7,
+   "devTotal": 13
+  },
+  {
    "group": "unplanned",
    "keys": 92,
-   "galleryUnlock": 34,
+   "galleryUnlock": 35,
    "galleryTotal": 73,
    "devUnlock": 0,
    "devTotal": 0
   },
   {
-   "group": "rest-template",
-   "keys": 40,
-   "galleryUnlock": 32,
-   "galleryTotal": 76,
-   "devUnlock": 5,
-   "devTotal": 13
-  },
-  {
    "group": "connector",
    "keys": 56,
-   "galleryUnlock": 31,
+   "galleryUnlock": 34,
    "galleryTotal": 74,
-   "devUnlock": 6,
+   "devUnlock": 8,
    "devTotal": 14
   },
   {
    "group": "http",
    "keys": 8,
-   "galleryUnlock": 28,
+   "galleryUnlock": 31,
    "galleryTotal": 77,
-   "devUnlock": 8,
+   "devUnlock": 9,
    "devTotal": 15
   },
   {
    "group": "core",
-   "keys": 9,
-   "galleryUnlock": 23,
-   "galleryTotal": 67,
-   "devUnlock": 4,
-   "devTotal": 13
+   "keys": 7,
+   "galleryUnlock": 14,
+   "galleryTotal": 43,
+   "devUnlock": 3,
+   "devTotal": 6
   },
   {
    "group": "db",
@@ -279,11 +279,20 @@
   {
    "group": "n8n-nodes-base.httpRequest",
    "keys": 5,
-   "galleryUnlock": 17,
+   "galleryUnlock": 20,
    "galleryTotal": 60,
-   "devUnlock": 3,
+   "devUnlock": 4,
    "devTotal": 9,
    "planned": "http"
+  },
+  {
+   "group": "n8n-nodes-base.airtable",
+   "keys": 10,
+   "galleryUnlock": 9,
+   "galleryTotal": 25,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "planned": "rest-template"
   },
   {
    "group": "n8n-nodes-base.postgres",
@@ -295,38 +304,20 @@
    "planned": "db"
   },
   {
-   "group": "n8n-nodes-base.airtable",
-   "keys": 10,
-   "galleryUnlock": 8,
-   "galleryTotal": 25,
-   "devUnlock": 1,
-   "devTotal": 1,
-   "planned": "rest-template"
-  },
-  {
-   "group": "n8n-nodes-base.html",
-   "keys": 1,
-   "galleryUnlock": 8,
-   "galleryTotal": 18,
-   "devUnlock": 1,
-   "devTotal": 6,
-   "planned": "core"
-  },
-  {
    "group": "n8n-nodes-base.googleSheets",
    "keys": 8,
-   "galleryUnlock": 7,
+   "galleryUnlock": 8,
    "galleryTotal": 19,
-   "devUnlock": 0,
+   "devUnlock": 1,
    "devTotal": 1,
    "planned": "connector"
   },
   {
    "group": "n8n-nodes-base.markdown",
    "keys": 1,
-   "galleryUnlock": 6,
+   "galleryUnlock": 7,
    "galleryTotal": 18,
-   "devUnlock": 2,
+   "devUnlock": 3,
    "devTotal": 5,
    "planned": "core"
   },
@@ -502,6 +493,15 @@
    "planned": "connector"
   },
   {
+   "group": "n8n-nodes-base.microsoftExcel",
+   "keys": 3,
+   "galleryUnlock": 2,
+   "galleryTotal": 4,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "planned": "connector"
+  },
+  {
    "group": "n8n-nodes-base.hackerNews",
    "keys": 1,
    "galleryUnlock": 2,
@@ -619,15 +619,6 @@
    "planned": "connector"
   },
   {
-   "group": "n8n-nodes-base.htmlExtract",
-   "keys": 1,
-   "galleryUnlock": 1,
-   "galleryTotal": 7,
-   "devUnlock": 0,
-   "devTotal": 2,
-   "planned": "core"
-  },
-  {
    "group": "n8n-nodes-base.form",
    "keys": 1,
    "galleryUnlock": 1,
@@ -646,15 +637,6 @@
    "planned": "substitution"
   },
   {
-   "group": "n8n-nodes-base.microsoftExcel",
-   "keys": 3,
-   "galleryUnlock": 1,
-   "galleryTotal": 4,
-   "devUnlock": 0,
-   "devTotal": 1,
-   "planned": "connector"
-  },
-  {
    "group": "n8n-nodes-base.mongoDb",
    "keys": 3,
    "galleryUnlock": 1,
@@ -671,6 +653,15 @@
    "devUnlock": 1,
    "devTotal": 2,
    "planned": "files"
+  },
+  {
+   "group": "n8n-nodes-base.nocoDb",
+   "keys": 2,
+   "galleryUnlock": 1,
+   "galleryTotal": 3,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "planned": "rest-template"
   },
   {
    "group": "@n8n/n8n-nodes-langchain.toolCalculator",
@@ -698,6 +689,15 @@
    "devUnlock": 0,
    "devTotal": 0,
    "planned": "files"
+  },
+  {
+   "group": "n8n-nodes-base.supabase",
+   "keys": 2,
+   "galleryUnlock": 1,
+   "galleryTotal": 2,
+   "devUnlock": 1,
+   "devTotal": 2,
+   "planned": "rest-template"
   },
   {
    "group": "n8n-nodes-base.airtop",
@@ -844,6 +844,15 @@
    "planned": "unplanned"
   },
   {
+   "group": "n8n-nodes-base.quickChart",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
    "group": "n8n-nodes-base.sendInBlue",
    "keys": 1,
    "galleryUnlock": 1,
@@ -979,15 +988,6 @@
    "planned": "vector"
   },
   {
-   "group": "n8n-nodes-base.nocoDb",
-   "keys": 2,
-   "galleryUnlock": 0,
-   "galleryTotal": 3,
-   "devUnlock": 0,
-   "devTotal": 1,
-   "planned": "rest-template"
-  },
-  {
    "group": "n8n-nodes-base.notionTrigger",
    "keys": 1,
    "galleryUnlock": 0,
@@ -1048,15 +1048,6 @@
    "galleryTotal": 2,
    "devUnlock": 0,
    "devTotal": 1,
-   "planned": "rest-template"
-  },
-  {
-   "group": "n8n-nodes-base.supabase",
-   "keys": 2,
-   "galleryUnlock": 0,
-   "galleryTotal": 2,
-   "devUnlock": 0,
-   "devTotal": 2,
    "planned": "rest-template"
   },
   {
@@ -1249,15 +1240,6 @@
    "planned": "unplanned"
   },
   {
-   "group": "n8n-nodes-base.quickChart",
-   "keys": 1,
-   "galleryUnlock": 0,
-   "galleryTotal": 1,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "unplanned"
-  },
-  {
    "group": "n8n-nodes-base.raindrop",
    "keys": 1,
    "galleryUnlock": 0,
@@ -1305,26 +1287,6 @@
  ],
  "features": [
   {
-   "key": "n8n-nodes-base.html (extractHtmlContent)",
-   "type": "n8n-nodes-base.html",
-   "op": "",
-   "planned": "core",
-   "kinds": [
-    "run-time"
-   ],
-   "reason": "run-time: refused by the runtime when the step runs: extractHtmlContent",
-   "galleryAlone": 8,
-   "galleryTotal": 18,
-   "devUnlock": 1,
-   "devTotal": 6,
-   "ids": {
-    "galleryAlone": [1951, 2582, 2688, 2792, 2832, 2866, 3150, 3684],
-    "galleryTotal": [1951, 2180, 2267, 2275, 2315, 2393, 2491, 2582, 2648, 2688, 2792, 2825, 2832, 2866, 2972, 3150, 3684, 5230],
-    "devUnlock": [1951],
-    "devTotal": [1951, 2180, 2275, 2315, 2648, 5230]
-   }
-  },
-  {
    "key": "n8n-nodes-base.httpRequest (file response)",
    "type": "n8n-nodes-base.httpRequest",
    "op": "",
@@ -1333,14 +1295,14 @@
     "run-time"
    ],
    "reason": "run-time: refused by the runtime when the step runs: file response",
-   "galleryAlone": 7,
+   "galleryAlone": 8,
    "galleryTotal": 17,
-   "devUnlock": 0,
+   "devUnlock": 1,
    "devTotal": 3,
    "ids": {
-    "galleryAlone": [2083, 2294, 2314, 3146, 3460, 4056, 4987],
+    "galleryAlone": [1748, 2083, 2294, 2314, 3146, 3460, 4056, 4987],
     "galleryTotal": [1748, 1969, 2041, 2083, 2294, 2314, 2419, 3121, 3146, 3442, 3460, 4056, 4767, 4987, 7990, 8404, 16419],
-    "devUnlock": [],
+    "devUnlock": [1748],
     "devTotal": [1748, 3121, 3442]
    }
   },
@@ -1353,14 +1315,14 @@
     "runtime"
    ],
    "reason": "runtime: not implemented in the runtime: n8n-nodes-base.markdown vN",
-   "galleryAlone": 6,
+   "galleryAlone": 7,
    "galleryTotal": 18,
-   "devUnlock": 2,
+   "devUnlock": 3,
    "devTotal": 5,
    "ids": {
-    "galleryAlone": [2006, 2164, 2942, 2965, 3012, 3224],
+    "galleryAlone": [2006, 2164, 2648, 2942, 2965, 3012, 3224],
     "galleryTotal": [1690, 2006, 2164, 2281, 2454, 2648, 2809, 2942, 2965, 2981, 3012, 3224, 3289, 3396, 3796, 3971, 3986, 5817],
-    "devUnlock": [2006, 3224],
+    "devUnlock": [2006, 2648, 3224],
     "devTotal": [2006, 2454, 2648, 3224, 3986]
    }
   },
@@ -1373,12 +1335,12 @@
     "runtime"
    ],
    "reason": "runtime: not implemented in the runtime: n8n-nodes-base.httpRequest vN",
-   "galleryAlone": 4,
+   "galleryAlone": 6,
    "galleryTotal": 24,
    "devUnlock": 0,
    "devTotal": 1,
    "ids": {
-    "galleryAlone": [437, 1169, 1471, 2043],
+    "galleryAlone": [434, 437, 1169, 1471, 2043, 2972],
     "galleryTotal": [159, 175, 434, 437, 576, 591, 652, 674, 681, 693, 817, 837, 867, 1150, 1169, 1222, 1471, 1520, 1621, 1785, 2043, 2972, 3796, 4671],
     "devUnlock": [],
     "devTotal": [1150]
@@ -1926,26 +1888,6 @@
    }
   },
   {
-   "key": "n8n-nodes-base.htmlExtract v1",
-   "type": "n8n-nodes-base.htmlExtract",
-   "op": "",
-   "planned": "core",
-   "kinds": [
-    "runtime"
-   ],
-   "reason": "runtime: not implemented in the runtime: n8n-nodes-base.htmlExtract vN",
-   "galleryAlone": 1,
-   "galleryTotal": 7,
-   "devUnlock": 0,
-   "devTotal": 2,
-   "ids": {
-    "galleryAlone": [1309],
-    "galleryTotal": [434, 837, 1309, 1748, 1785, 1862, 4403],
-    "devUnlock": [],
-    "devTotal": [1748, 1862]
-   }
-  },
-  {
    "key": "n8n-nodes-base.form completion",
    "type": "n8n-nodes-base.form",
    "op": "completion",
@@ -1963,6 +1905,26 @@
     "galleryTotal": [2187, 2976, 3082, 3289, 3669, 4767],
     "devUnlock": [3669],
     "devTotal": [2187, 3082, 3669]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleSheets sheet:update",
+   "type": "n8n-nodes-base.googleSheets",
+   "op": "sheet:update",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no Sheets API tool",
+   "galleryAlone": 1,
+   "galleryTotal": 6,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [1862],
+    "galleryTotal": [6, 694, 1754, 1810, 1862, 4403],
+    "devUnlock": [1862],
+    "devTotal": [1862]
    }
   },
   {
@@ -2167,6 +2129,26 @@
    }
   },
   {
+   "key": "n8n-nodes-base.nocoDb row:create",
+   "type": "n8n-nodes-base.nocoDb",
+   "op": "row:create",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for nocoDb row:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 3,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [2180],
+    "galleryTotal": [1074, 2180, 2491],
+    "devUnlock": [2180],
+    "devTotal": [2180]
+   }
+  },
+  {
    "key": "@n8n/n8n-nodes-langchain.openAi audio:transcribe",
    "type": "@n8n/n8n-nodes-langchain.openAi",
    "op": "audio:transcribe",
@@ -2304,6 +2286,26 @@
     "galleryTotal": [3450, 3900, 4459],
     "devUnlock": [],
     "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftExcel worksheet:append",
+   "type": "n8n-nodes-base.microsoftExcel",
+   "op": "worksheet:append",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftExcel worksheet:append yet",
+   "galleryAlone": 1,
+   "galleryTotal": 2,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [2275],
+    "galleryTotal": [2275, 3396],
+    "devUnlock": [2275],
+    "devTotal": [2275]
    }
   },
   {
@@ -2787,6 +2789,26 @@
    }
   },
   {
+   "key": "n8n-nodes-base.quickChart",
+   "type": "n8n-nodes-base.quickChart",
+   "op": "",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for quickChart yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2825],
+    "galleryTotal": [2825],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
    "key": "n8n-nodes-base.sendInBlue contact:upsert",
    "type": "n8n-nodes-base.sendInBlue",
    "op": "contact:upsert",
@@ -3025,26 +3047,6 @@
     "galleryTotal": [2267, 2281, 2330, 2377, 2618, 2817],
     "devUnlock": [],
     "devTotal": []
-   }
-  },
-  {
-   "key": "n8n-nodes-base.googleSheets sheet:update",
-   "type": "n8n-nodes-base.googleSheets",
-   "op": "sheet:update",
-   "planned": "connector",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no Sheets API tool",
-   "galleryAlone": 0,
-   "galleryTotal": 6,
-   "devUnlock": 0,
-   "devTotal": 1,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [6, 694, 1754, 1810, 1862, 4403],
-    "devUnlock": [],
-    "devTotal": [1862]
    }
   },
   {
@@ -3488,26 +3490,6 @@
    }
   },
   {
-   "key": "n8n-nodes-base.nocoDb row:create",
-   "type": "n8n-nodes-base.nocoDb",
-   "op": "row:create",
-   "planned": "rest-template",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no request template for nocoDb row:create yet (it needs the app's REST API with a stored secret)",
-   "galleryAlone": 0,
-   "galleryTotal": 3,
-   "devUnlock": 0,
-   "devTotal": 1,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [1074, 2180, 2491],
-    "devUnlock": [],
-    "devTotal": [2180]
-   }
-  },
-  {
    "key": "n8n-nodes-base.notion databasePage:getAll (required arguments)",
    "type": "n8n-nodes-base.notion",
    "op": "databasePage:getAll",
@@ -3926,26 +3908,6 @@
     "galleryTotal": [2323, 2419],
     "devUnlock": [],
     "devTotal": []
-   }
-  },
-  {
-   "key": "n8n-nodes-base.microsoftExcel worksheet:append",
-   "type": "n8n-nodes-base.microsoftExcel",
-   "op": "worksheet:append",
-   "planned": "connector",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no tool map for microsoftExcel worksheet:append yet",
-   "galleryAlone": 0,
-   "galleryTotal": 2,
-   "devUnlock": 0,
-   "devTotal": 1,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [2275, 3396],
-    "devUnlock": [],
-    "devTotal": [2275]
    }
   },
   {
@@ -5824,26 +5786,6 @@
    "ids": {
     "galleryAlone": [],
     "galleryTotal": [1822],
-    "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
-   "key": "n8n-nodes-base.quickChart",
-   "type": "n8n-nodes-base.quickChart",
-   "op": "",
-   "planned": "unplanned",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no request template for quickChart yet (it needs the app's REST API with a stored secret)",
-   "galleryAlone": 0,
-   "galleryTotal": 1,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [2825],
     "devUnlock": [],
     "devTotal": []
    }

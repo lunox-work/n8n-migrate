@@ -112,6 +112,12 @@ the person's key is not a substitution. Flagged steps:
   each hop is checked against `allow.http` (and a secret against its hosts)
   like a new request, so a redirect cannot carry a request or a credential to a
   host the definition does not allow.
+- **HTML.** The HTML node's extraction (v1–1.2) and HTML Extract v1 run in the
+  runtime with no library: `SKILL/runtime/src/htmldom.mjs` builds the trees
+  cheerio 1.1 (parse5) and htmlparser2 8 build and matches css-select's
+  selectors; `htmltext.mjs` is html-to-text 9.0.5's conversion (MIT, ported),
+  which Html 1.2 uses for text. A selector or construct they do not carry
+  refuses the step.
 - **Ledger.** `sending` before each write, `sent` after. A `sending` with no
   `sent` stops the workflow until `resolve`.
 - **Resume.** The next start continues an open run with the same id (replay

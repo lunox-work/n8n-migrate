@@ -15,7 +15,9 @@ import { DateTime } from "../vendor/luxon.mjs";
 import { adaptResult, coerceArgs, applyCursorArg, advanceCursor, getAt } from "./adapt.mjs";
 import { resolveParameter, compileCode } from "./expression.mjs";
 import { createLookup } from "./proxy.mjs";
-import { binaryFromTool } from "./files.mjs";
+import { binaryFromTool, binaryOf } from "./files.mjs";
+import { parseHtml, selectAll, innerHtml, textContent, isTag, UnsupportedHtml } from "./htmldom.mjs";
+import { htmlToText } from "./htmltext.mjs";
 import { summarizeItem } from "./summarize.mjs";
 
 const BASE = "n8n-nodes-base.";
@@ -513,7 +515,7 @@ const itemLists = {
   },
 };
 
-// ---------- Html (template / table only) ----------
+// ---------- Html (template, table, extraction) ----------
 
 const html = {
   versions: inRange(1, 1.2),
@@ -541,7 +543,123 @@ const html = {
       t += `<tbody>${items.map((it) => `<tr>${keys.map((k) => `<td>${typeof it.json[k] === "object" && it.json[k] !== null ? esc(JSON.stringify(it.json[k])) : esc(it.json[k])}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
       return [[{ json: { table: t }, pairedItem: items.map((_, item) => ({ item })) }]];
     }
-    throw unsupported(exec, `Html operation "${op}" (needs an HTML parser)`);
+    if (op === "extractHtmlContent") return [extractHtml(exec, exec.typeVersion, { v1Key: true })];
+    throw unsupported(exec, `Html operation "${op}"`);
+  },
+};
+
+// ---------- HTML extraction (Html extractHtmlContent v1-1.2, HTML Extract v1) ----------
+
+// n8n's Html node and HTML Extract node: per item, the HTML from a json field (or a binary
+// property, as UTF-8), one string or a list of them; each is loaded with cheerio and every
+// extraction value is the selector's attribute, inner HTML, text or form value, one value or a
+// list (returnArray), then trimmed and cleaned as the options say. Text is cheerio's .text() up
+// to Html 1.1 and in HTML Extract; Html 1.2 converts the first match's inner HTML with
+// html-to-text (htmltext.mjs), skipping the step's skip selectors. htmldom.mjs builds the trees
+// as cheerio (parse5) and html-to-text (htmlparser2) do.
+const BOOLEAN_ATTRS = /^(?:autofocus|autoplay|async|checked|controls|defer|disabled|hidden|loop|multiple|open|readonly|required|scoped|selected)$/i;
+// cheerio's attr(name) on the first element: the whole attribs object without a name, a boolean
+// attribute as its name, an option's text as its value, "on" for a radio or checkbox.
+function cheerioAttr(el, name) {
+  if (!isTag(el)) return undefined;
+  if (!name) return { ...el.attribs };
+  if (Object.prototype.hasOwnProperty.call(el.attribs, name)) return BOOLEAN_ATTRS.test(name) ? name : el.attribs[name];
+  if (el.name === "option" && name === "value") return textContent(el.children);
+  if (el.name === "input" && (el.attribs.type === "radio" || el.attribs.type === "checkbox") && name === "value") return "on";
+  return undefined;
+}
+function cheerioVal(els) {
+  const el = els[0];
+  if (!isTag(el)) return undefined;
+  if (el.name === "textarea") return els.map(textContent).join("");
+  if (el.name === "select") {
+    const opts = selectAll("option:selected", el).filter((o) => o !== el);
+    return el.attribs.multiple !== undefined ? opts.map((o) => textContent(o.children)) : cheerioAttr(opts[0], "value");
+  }
+  if (el.name === "input" || el.name === "option") return cheerioAttr(el, "value");
+  return undefined;
+}
+function extractValue(exec, els, v, options, version, textMode) {
+  let value;
+  const rv = v.returnValue ?? "text";
+  if (rv === "attribute") value = cheerioAttr(els[0], v.attribute ?? "");
+  else if (rv === "html") value = (isTag(els[0]) ? innerHtml(els[0]) : null) || undefined;
+  else if (rv === "text") {
+    if (textMode === "cheerio") value = els.map(textContent).join("");
+    else if (version <= 1.1) value = els.map(textContent).join("") || undefined;
+    else value = htmlToText(isTag(els[0]) ? innerHtml(els[0]) : "", v.skipSelectors);
+  } else if (rv === "value") {
+    value = cheerioVal(els);
+    if (Array.isArray(value)) value = value.join(",");
+  } else throw new TypeError("extractFunctions[valueData.returnValue] is not a function");
+  if (value === undefined) return value;
+  if (options.trimValues) {
+    if (typeof value !== "string") throw new TypeError("value.trim is not a function");
+    value = value.trim();
+  }
+  if (options.cleanUpText) {
+    if (typeof value !== "string") throw new TypeError("value.replace is not a function");
+    value = value.replace(/^\s+|\s+$/g, "").replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/g, " ");
+  }
+  return value;
+}
+// v1Key: Html v1 reads a top-level key (sanitizeDataPathKey: also its ['key'] form) where later
+// versions and HTML Extract read a path. textMode "cheerio": HTML Extract's text, never undefined.
+function extractHtml(exec, version, { v1Key = false, textMode = null } = {}) {
+  const items = exec.getInputData();
+  const out = [];
+  for (let i = 0; i < items.length; i++) {
+    try {
+      const prop = exec.param("dataPropertyName", i, "data");
+      const values = exec.param("extractionValues", i, {})?.values;
+      const options = exec.param("options", i, {}) ?? {};
+      const source = exec.param("sourceData", i, "json");
+      const item = items[i];
+      let htmlArray;
+      if (source === "json") {
+        let data;
+        if (v1Key && version === 1) {
+          let key = prop;
+          if (item.json[key] === undefined && /^\[(['"]).*\1\]$/.test(key) && item.json[key.slice(2, -2)] !== undefined) key = key.slice(2, -2);
+          data = item.json[key];
+        } else data = getPath(item.json, prop);
+        if (data === undefined) throw err(exec, `No property named "${prop}" exists!`, { itemIndex: i });
+        htmlArray = data;
+      } else {
+        const { bytes } = binaryOf(exec, i, prop);
+        htmlArray = new TextDecoder("utf-8", { ignoreBOM: true }).decode(bytes);
+      }
+      if (!Array.isArray(htmlArray)) htmlArray = [htmlArray];
+      if (values == null || typeof values[Symbol.iterator] !== "function") throw new TypeError("extractionValues.values is not iterable");
+      for (const html of htmlArray) {
+        if (typeof html !== "string") throw unsupported(exec, "HTML extraction from a value that is not text");
+        const doc = parseHtml(html);
+        const json = {};
+        for (const v of values) {
+          const sel = String(v.cssSelector ?? "");
+          const els = sel.trim() ? selectAll(sel, doc) : [];
+          json[v.key ?? ""] = v.returnArray ? els.map((el) => extractValue(exec, [el], v, options, version, textMode)) : extractValue(exec, els, v, options, version, textMode);
+        }
+        out.push({ json, pairedItem: { item: i } });
+      }
+    } catch (e) {
+      if (e instanceof UnsupportedHtml) throw unsupported(exec, `HTML extraction: ${e.message}`);
+      if (e instanceof UnsupportedNode) throw e;
+      if (exec.continueOnFail()) {
+        out.push({ json: { error: e.message }, pairedItem: { item: i } });
+        continue;
+      }
+      throw e instanceof NodeError ? e : err(exec, e.message, { itemIndex: i });
+    }
+  }
+  return out;
+}
+
+const htmlExtract = {
+  versions: (v) => v === 1,
+  defaults: () => ({ sourceData: "json", dataPropertyName: "data", extractionValues: {}, options: {} }),
+  execute(exec) {
+    return [extractHtml(exec, 1, { textMode: "cheerio" })];
   },
 };
 
@@ -566,6 +684,7 @@ export const GROUP2 = {
   [BASE + "respondToWebhook"]: respondToWebhook,
   [BASE + "itemLists"]: itemLists,
   [BASE + "html"]: html,
+  [BASE + "htmlExtract"]: htmlExtract,
   [BASE + "executionData"]: executionData,
 };
 

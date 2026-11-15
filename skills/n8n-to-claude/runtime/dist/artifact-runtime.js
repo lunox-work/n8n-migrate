@@ -13356,6 +13356,3371 @@ function advanceCursor(cursorSpec, items, cursor) {
 return { getAt, parseToolOutput, parseCsv, adaptResult, coerceArgs, applyCursorArg, advanceCursor };
 })();
 
+// ---- src/htmlentities.mjs ----
+const __m_htmlentities_mjs = (() => {
+// HTML named character references (the WHATWG list, as the `entities` package that parse5 and
+// htmlparser2 decode with ships it: name without "&" and ";" -> text), the legacy names that
+// decode without a ";", and the numeric references HTML maps to other code points. Data only.
+const NAMED_ENTITIES = JSON.parse("{\"Aacute\":\"Á\",\"aacute\":\"á\",\"Abreve\":\"Ă\",\"abreve\":\"ă\",\"ac\":\"∾\",\"acd\":\"∿\",\"acE\":\"∾̳\",\"Acirc\":\"Â\",\"acirc\":\"â\",\"acute\":\"´\",\"Acy\":\"А\",\"acy\":\"а\",\"AElig\":\"Æ\",\"aelig\":\"æ\",\"af\":\"⁡\",\"Afr\":\"𝔄\",\"afr\":\"𝔞\",\"Agrave\":\"À\",\"agrave\":\"à\",\"alefsym\":\"ℵ\",\"aleph\":\"ℵ\",\"Alpha\":\"Α\",\"alpha\":\"α\",\"Amacr\":\"Ā\",\"amacr\":\"ā\",\"amalg\":\"⨿\",\"amp\":\"&\",\"AMP\":\"&\",\"andand\":\"⩕\",\"And\":\"⩓\",\"and\":\"∧\",\"andd\":\"⩜\",\"andslope\":\"⩘\",\"andv\":\"⩚\",\"ang\":\"∠\",\"ange\":\"⦤\",\"angle\":\"∠\",\"angmsdaa\":\"⦨\",\"angmsdab\":\"⦩\",\"angmsdac\":\"⦪\",\"angmsdad\":\"⦫\",\"angmsdae\":\"⦬\",\"angmsdaf\":\"⦭\",\"angmsdag\":\"⦮\",\"angmsdah\":\"⦯\",\"angmsd\":\"∡\",\"angrt\":\"∟\",\"angrtvb\":\"⊾\",\"angrtvbd\":\"⦝\",\"angsph\":\"∢\",\"angst\":\"Å\",\"angzarr\":\"⍼\",\"Aogon\":\"Ą\",\"aogon\":\"ą\",\"Aopf\":\"𝔸\",\"aopf\":\"𝕒\",\"apacir\":\"⩯\",\"ap\":\"≈\",\"apE\":\"⩰\",\"ape\":\"≊\",\"apid\":\"≋\",\"apos\":\"'\",\"ApplyFunction\":\"⁡\",\"approx\":\"≈\",\"approxeq\":\"≊\",\"Aring\":\"Å\",\"aring\":\"å\",\"Ascr\":\"𝒜\",\"ascr\":\"𝒶\",\"Assign\":\"≔\",\"ast\":\"*\",\"asymp\":\"≈\",\"asympeq\":\"≍\",\"Atilde\":\"Ã\",\"atilde\":\"ã\",\"Auml\":\"Ä\",\"auml\":\"ä\",\"awconint\":\"∳\",\"awint\":\"⨑\",\"backcong\":\"≌\",\"backepsilon\":\"϶\",\"backprime\":\"‵\",\"backsim\":\"∽\",\"backsimeq\":\"⋍\",\"Backslash\":\"∖\",\"Barv\":\"⫧\",\"barvee\":\"⊽\",\"barwed\":\"⌅\",\"Barwed\":\"⌆\",\"barwedge\":\"⌅\",\"bbrk\":\"⎵\",\"bbrktbrk\":\"⎶\",\"bcong\":\"≌\",\"Bcy\":\"Б\",\"bcy\":\"б\",\"bdquo\":\"„\",\"becaus\":\"∵\",\"because\":\"∵\",\"Because\":\"∵\",\"bemptyv\":\"⦰\",\"bepsi\":\"϶\",\"bernou\":\"ℬ\",\"Bernoullis\":\"ℬ\",\"Beta\":\"Β\",\"beta\":\"β\",\"beth\":\"ℶ\",\"between\":\"≬\",\"Bfr\":\"𝔅\",\"bfr\":\"𝔟\",\"bigcap\":\"⋂\",\"bigcirc\":\"◯\",\"bigcup\":\"⋃\",\"bigodot\":\"⨀\",\"bigoplus\":\"⨁\",\"bigotimes\":\"⨂\",\"bigsqcup\":\"⨆\",\"bigstar\":\"★\",\"bigtriangledown\":\"▽\",\"bigtriangleup\":\"△\",\"biguplus\":\"⨄\",\"bigvee\":\"⋁\",\"bigwedge\":\"⋀\",\"bkarow\":\"⤍\",\"blacklozenge\":\"⧫\",\"blacksquare\":\"▪\",\"blacktriangle\":\"▴\",\"blacktriangledown\":\"▾\",\"blacktriangleleft\":\"◂\",\"blacktriangleright\":\"▸\",\"blank\":\"␣\",\"blk12\":\"▒\",\"blk14\":\"░\",\"blk34\":\"▓\",\"block\":\"█\",\"bne\":\"=⃥\",\"bnequiv\":\"≡⃥\",\"bNot\":\"⫭\",\"bnot\":\"⌐\",\"Bopf\":\"𝔹\",\"bopf\":\"𝕓\",\"bot\":\"⊥\",\"bottom\":\"⊥\",\"bowtie\":\"⋈\",\"boxbox\":\"⧉\",\"boxdl\":\"┐\",\"boxdL\":\"╕\",\"boxDl\":\"╖\",\"boxDL\":\"╗\",\"boxdr\":\"┌\",\"boxdR\":\"╒\",\"boxDr\":\"╓\",\"boxDR\":\"╔\",\"boxh\":\"─\",\"boxH\":\"═\",\"boxhd\":\"┬\",\"boxHd\":\"╤\",\"boxhD\":\"╥\",\"boxHD\":\"╦\",\"boxhu\":\"┴\",\"boxHu\":\"╧\",\"boxhU\":\"╨\",\"boxHU\":\"╩\",\"boxminus\":\"⊟\",\"boxplus\":\"⊞\",\"boxtimes\":\"⊠\",\"boxul\":\"┘\",\"boxuL\":\"╛\",\"boxUl\":\"╜\",\"boxUL\":\"╝\",\"boxur\":\"└\",\"boxuR\":\"╘\",\"boxUr\":\"╙\",\"boxUR\":\"╚\",\"boxv\":\"│\",\"boxV\":\"║\",\"boxvh\":\"┼\",\"boxvH\":\"╪\",\"boxVh\":\"╫\",\"boxVH\":\"╬\",\"boxvl\":\"┤\",\"boxvL\":\"╡\",\"boxVl\":\"╢\",\"boxVL\":\"╣\",\"boxvr\":\"├\",\"boxvR\":\"╞\",\"boxVr\":\"╟\",\"boxVR\":\"╠\",\"bprime\":\"‵\",\"breve\":\"˘\",\"Breve\":\"˘\",\"brvbar\":\"¦\",\"bscr\":\"𝒷\",\"Bscr\":\"ℬ\",\"bsemi\":\"⁏\",\"bsim\":\"∽\",\"bsime\":\"⋍\",\"bsolb\":\"⧅\",\"bsol\":\"\\\\\",\"bsolhsub\":\"⟈\",\"bull\":\"•\",\"bullet\":\"•\",\"bump\":\"≎\",\"bumpE\":\"⪮\",\"bumpe\":\"≏\",\"Bumpeq\":\"≎\",\"bumpeq\":\"≏\",\"Cacute\":\"Ć\",\"cacute\":\"ć\",\"capand\":\"⩄\",\"capbrcup\":\"⩉\",\"capcap\":\"⩋\",\"cap\":\"∩\",\"Cap\":\"⋒\",\"capcup\":\"⩇\",\"capdot\":\"⩀\",\"CapitalDifferentialD\":\"ⅅ\",\"caps\":\"∩︀\",\"caret\":\"⁁\",\"caron\":\"ˇ\",\"Cayleys\":\"ℭ\",\"ccaps\":\"⩍\",\"Ccaron\":\"Č\",\"ccaron\":\"č\",\"Ccedil\":\"Ç\",\"ccedil\":\"ç\",\"Ccirc\":\"Ĉ\",\"ccirc\":\"ĉ\",\"Cconint\":\"∰\",\"ccups\":\"⩌\",\"ccupssm\":\"⩐\",\"Cdot\":\"Ċ\",\"cdot\":\"ċ\",\"cedil\":\"¸\",\"Cedilla\":\"¸\",\"cemptyv\":\"⦲\",\"cent\":\"¢\",\"centerdot\":\"·\",\"CenterDot\":\"·\",\"cfr\":\"𝔠\",\"Cfr\":\"ℭ\",\"CHcy\":\"Ч\",\"chcy\":\"ч\",\"check\":\"✓\",\"checkmark\":\"✓\",\"Chi\":\"Χ\",\"chi\":\"χ\",\"circ\":\"ˆ\",\"circeq\":\"≗\",\"circlearrowleft\":\"↺\",\"circlearrowright\":\"↻\",\"circledast\":\"⊛\",\"circledcirc\":\"⊚\",\"circleddash\":\"⊝\",\"CircleDot\":\"⊙\",\"circledR\":\"®\",\"circledS\":\"Ⓢ\",\"CircleMinus\":\"⊖\",\"CirclePlus\":\"⊕\",\"CircleTimes\":\"⊗\",\"cir\":\"○\",\"cirE\":\"⧃\",\"cire\":\"≗\",\"cirfnint\":\"⨐\",\"cirmid\":\"⫯\",\"cirscir\":\"⧂\",\"ClockwiseContourIntegral\":\"∲\",\"CloseCurlyDoubleQuote\":\"”\",\"CloseCurlyQuote\":\"’\",\"clubs\":\"♣\",\"clubsuit\":\"♣\",\"colon\":\":\",\"Colon\":\"∷\",\"Colone\":\"⩴\",\"colone\":\"≔\",\"coloneq\":\"≔\",\"comma\":\",\",\"commat\":\"@\",\"comp\":\"∁\",\"compfn\":\"∘\",\"complement\":\"∁\",\"complexes\":\"ℂ\",\"cong\":\"≅\",\"congdot\":\"⩭\",\"Congruent\":\"≡\",\"conint\":\"∮\",\"Conint\":\"∯\",\"ContourIntegral\":\"∮\",\"copf\":\"𝕔\",\"Copf\":\"ℂ\",\"coprod\":\"∐\",\"Coproduct\":\"∐\",\"copy\":\"©\",\"COPY\":\"©\",\"copysr\":\"℗\",\"CounterClockwiseContourIntegral\":\"∳\",\"crarr\":\"↵\",\"cross\":\"✗\",\"Cross\":\"⨯\",\"Cscr\":\"𝒞\",\"cscr\":\"𝒸\",\"csub\":\"⫏\",\"csube\":\"⫑\",\"csup\":\"⫐\",\"csupe\":\"⫒\",\"ctdot\":\"⋯\",\"cudarrl\":\"⤸\",\"cudarrr\":\"⤵\",\"cuepr\":\"⋞\",\"cuesc\":\"⋟\",\"cularr\":\"↶\",\"cularrp\":\"⤽\",\"cupbrcap\":\"⩈\",\"cupcap\":\"⩆\",\"CupCap\":\"≍\",\"cup\":\"∪\",\"Cup\":\"⋓\",\"cupcup\":\"⩊\",\"cupdot\":\"⊍\",\"cupor\":\"⩅\",\"cups\":\"∪︀\",\"curarr\":\"↷\",\"curarrm\":\"⤼\",\"curlyeqprec\":\"⋞\",\"curlyeqsucc\":\"⋟\",\"curlyvee\":\"⋎\",\"curlywedge\":\"⋏\",\"curren\":\"¤\",\"curvearrowleft\":\"↶\",\"curvearrowright\":\"↷\",\"cuvee\":\"⋎\",\"cuwed\":\"⋏\",\"cwconint\":\"∲\",\"cwint\":\"∱\",\"cylcty\":\"⌭\",\"dagger\":\"†\",\"Dagger\":\"‡\",\"daleth\":\"ℸ\",\"darr\":\"↓\",\"Darr\":\"↡\",\"dArr\":\"⇓\",\"dash\":\"‐\",\"Dashv\":\"⫤\",\"dashv\":\"⊣\",\"dbkarow\":\"⤏\",\"dblac\":\"˝\",\"Dcaron\":\"Ď\",\"dcaron\":\"ď\",\"Dcy\":\"Д\",\"dcy\":\"д\",\"ddagger\":\"‡\",\"ddarr\":\"⇊\",\"DD\":\"ⅅ\",\"dd\":\"ⅆ\",\"DDotrahd\":\"⤑\",\"ddotseq\":\"⩷\",\"deg\":\"°\",\"Del\":\"∇\",\"Delta\":\"Δ\",\"delta\":\"δ\",\"demptyv\":\"⦱\",\"dfisht\":\"⥿\",\"Dfr\":\"𝔇\",\"dfr\":\"𝔡\",\"dHar\":\"⥥\",\"dharl\":\"⇃\",\"dharr\":\"⇂\",\"DiacriticalAcute\":\"´\",\"DiacriticalDot\":\"˙\",\"DiacriticalDoubleAcute\":\"˝\",\"DiacriticalGrave\":\"`\",\"DiacriticalTilde\":\"˜\",\"diam\":\"⋄\",\"diamond\":\"⋄\",\"Diamond\":\"⋄\",\"diamondsuit\":\"♦\",\"diams\":\"♦\",\"die\":\"¨\",\"DifferentialD\":\"ⅆ\",\"digamma\":\"ϝ\",\"disin\":\"⋲\",\"div\":\"÷\",\"divide\":\"÷\",\"divideontimes\":\"⋇\",\"divonx\":\"⋇\",\"DJcy\":\"Ђ\",\"djcy\":\"ђ\",\"dlcorn\":\"⌞\",\"dlcrop\":\"⌍\",\"dollar\":\"$\",\"Dopf\":\"𝔻\",\"dopf\":\"𝕕\",\"Dot\":\"¨\",\"dot\":\"˙\",\"DotDot\":\"⃜\",\"doteq\":\"≐\",\"doteqdot\":\"≑\",\"DotEqual\":\"≐\",\"dotminus\":\"∸\",\"dotplus\":\"∔\",\"dotsquare\":\"⊡\",\"doublebarwedge\":\"⌆\",\"DoubleContourIntegral\":\"∯\",\"DoubleDot\":\"¨\",\"DoubleDownArrow\":\"⇓\",\"DoubleLeftArrow\":\"⇐\",\"DoubleLeftRightArrow\":\"⇔\",\"DoubleLeftTee\":\"⫤\",\"DoubleLongLeftArrow\":\"⟸\",\"DoubleLongLeftRightArrow\":\"⟺\",\"DoubleLongRightArrow\":\"⟹\",\"DoubleRightArrow\":\"⇒\",\"DoubleRightTee\":\"⊨\",\"DoubleUpArrow\":\"⇑\",\"DoubleUpDownArrow\":\"⇕\",\"DoubleVerticalBar\":\"∥\",\"DownArrowBar\":\"⤓\",\"downarrow\":\"↓\",\"DownArrow\":\"↓\",\"Downarrow\":\"⇓\",\"DownArrowUpArrow\":\"⇵\",\"DownBreve\":\"̑\",\"downdownarrows\":\"⇊\",\"downharpoonleft\":\"⇃\",\"downharpoonright\":\"⇂\",\"DownLeftRightVector\":\"⥐\",\"DownLeftTeeVector\":\"⥞\",\"DownLeftVectorBar\":\"⥖\",\"DownLeftVector\":\"↽\",\"DownRightTeeVector\":\"⥟\",\"DownRightVectorBar\":\"⥗\",\"DownRightVector\":\"⇁\",\"DownTeeArrow\":\"↧\",\"DownTee\":\"⊤\",\"drbkarow\":\"⤐\",\"drcorn\":\"⌟\",\"drcrop\":\"⌌\",\"Dscr\":\"𝒟\",\"dscr\":\"𝒹\",\"DScy\":\"Ѕ\",\"dscy\":\"ѕ\",\"dsol\":\"⧶\",\"Dstrok\":\"Đ\",\"dstrok\":\"đ\",\"dtdot\":\"⋱\",\"dtri\":\"▿\",\"dtrif\":\"▾\",\"duarr\":\"⇵\",\"duhar\":\"⥯\",\"dwangle\":\"⦦\",\"DZcy\":\"Џ\",\"dzcy\":\"џ\",\"dzigrarr\":\"⟿\",\"Eacute\":\"É\",\"eacute\":\"é\",\"easter\":\"⩮\",\"Ecaron\":\"Ě\",\"ecaron\":\"ě\",\"Ecirc\":\"Ê\",\"ecirc\":\"ê\",\"ecir\":\"≖\",\"ecolon\":\"≕\",\"Ecy\":\"Э\",\"ecy\":\"э\",\"eDDot\":\"⩷\",\"Edot\":\"Ė\",\"edot\":\"ė\",\"eDot\":\"≑\",\"ee\":\"ⅇ\",\"efDot\":\"≒\",\"Efr\":\"𝔈\",\"efr\":\"𝔢\",\"eg\":\"⪚\",\"Egrave\":\"È\",\"egrave\":\"è\",\"egs\":\"⪖\",\"egsdot\":\"⪘\",\"el\":\"⪙\",\"Element\":\"∈\",\"elinters\":\"⏧\",\"ell\":\"ℓ\",\"els\":\"⪕\",\"elsdot\":\"⪗\",\"Emacr\":\"Ē\",\"emacr\":\"ē\",\"empty\":\"∅\",\"emptyset\":\"∅\",\"EmptySmallSquare\":\"◻\",\"emptyv\":\"∅\",\"EmptyVerySmallSquare\":\"▫\",\"emsp13\":\" \",\"emsp14\":\" \",\"emsp\":\" \",\"ENG\":\"Ŋ\",\"eng\":\"ŋ\",\"ensp\":\" \",\"Eogon\":\"Ę\",\"eogon\":\"ę\",\"Eopf\":\"𝔼\",\"eopf\":\"𝕖\",\"epar\":\"⋕\",\"eparsl\":\"⧣\",\"eplus\":\"⩱\",\"epsi\":\"ε\",\"Epsilon\":\"Ε\",\"epsilon\":\"ε\",\"epsiv\":\"ϵ\",\"eqcirc\":\"≖\",\"eqcolon\":\"≕\",\"eqsim\":\"≂\",\"eqslantgtr\":\"⪖\",\"eqslantless\":\"⪕\",\"Equal\":\"⩵\",\"equals\":\"=\",\"EqualTilde\":\"≂\",\"equest\":\"≟\",\"Equilibrium\":\"⇌\",\"equiv\":\"≡\",\"equivDD\":\"⩸\",\"eqvparsl\":\"⧥\",\"erarr\":\"⥱\",\"erDot\":\"≓\",\"escr\":\"ℯ\",\"Escr\":\"ℰ\",\"esdot\":\"≐\",\"Esim\":\"⩳\",\"esim\":\"≂\",\"Eta\":\"Η\",\"eta\":\"η\",\"ETH\":\"Ð\",\"eth\":\"ð\",\"Euml\":\"Ë\",\"euml\":\"ë\",\"euro\":\"€\",\"excl\":\"!\",\"exist\":\"∃\",\"Exists\":\"∃\",\"expectation\":\"ℰ\",\"exponentiale\":\"ⅇ\",\"ExponentialE\":\"ⅇ\",\"fallingdotseq\":\"≒\",\"Fcy\":\"Ф\",\"fcy\":\"ф\",\"female\":\"♀\",\"ffilig\":\"ﬃ\",\"fflig\":\"ﬀ\",\"ffllig\":\"ﬄ\",\"Ffr\":\"𝔉\",\"ffr\":\"𝔣\",\"filig\":\"ﬁ\",\"FilledSmallSquare\":\"◼\",\"FilledVerySmallSquare\":\"▪\",\"fjlig\":\"fj\",\"flat\":\"♭\",\"fllig\":\"ﬂ\",\"fltns\":\"▱\",\"fnof\":\"ƒ\",\"Fopf\":\"𝔽\",\"fopf\":\"𝕗\",\"forall\":\"∀\",\"ForAll\":\"∀\",\"fork\":\"⋔\",\"forkv\":\"⫙\",\"Fouriertrf\":\"ℱ\",\"fpartint\":\"⨍\",\"frac12\":\"½\",\"frac13\":\"⅓\",\"frac14\":\"¼\",\"frac15\":\"⅕\",\"frac16\":\"⅙\",\"frac18\":\"⅛\",\"frac23\":\"⅔\",\"frac25\":\"⅖\",\"frac34\":\"¾\",\"frac35\":\"⅗\",\"frac38\":\"⅜\",\"frac45\":\"⅘\",\"frac56\":\"⅚\",\"frac58\":\"⅝\",\"frac78\":\"⅞\",\"frasl\":\"⁄\",\"frown\":\"⌢\",\"fscr\":\"𝒻\",\"Fscr\":\"ℱ\",\"gacute\":\"ǵ\",\"Gamma\":\"Γ\",\"gamma\":\"γ\",\"Gammad\":\"Ϝ\",\"gammad\":\"ϝ\",\"gap\":\"⪆\",\"Gbreve\":\"Ğ\",\"gbreve\":\"ğ\",\"Gcedil\":\"Ģ\",\"Gcirc\":\"Ĝ\",\"gcirc\":\"ĝ\",\"Gcy\":\"Г\",\"gcy\":\"г\",\"Gdot\":\"Ġ\",\"gdot\":\"ġ\",\"ge\":\"≥\",\"gE\":\"≧\",\"gEl\":\"⪌\",\"gel\":\"⋛\",\"geq\":\"≥\",\"geqq\":\"≧\",\"geqslant\":\"⩾\",\"gescc\":\"⪩\",\"ges\":\"⩾\",\"gesdot\":\"⪀\",\"gesdoto\":\"⪂\",\"gesdotol\":\"⪄\",\"gesl\":\"⋛︀\",\"gesles\":\"⪔\",\"Gfr\":\"𝔊\",\"gfr\":\"𝔤\",\"gg\":\"≫\",\"Gg\":\"⋙\",\"ggg\":\"⋙\",\"gimel\":\"ℷ\",\"GJcy\":\"Ѓ\",\"gjcy\":\"ѓ\",\"gla\":\"⪥\",\"gl\":\"≷\",\"glE\":\"⪒\",\"glj\":\"⪤\",\"gnap\":\"⪊\",\"gnapprox\":\"⪊\",\"gne\":\"⪈\",\"gnE\":\"≩\",\"gneq\":\"⪈\",\"gneqq\":\"≩\",\"gnsim\":\"⋧\",\"Gopf\":\"𝔾\",\"gopf\":\"𝕘\",\"grave\":\"`\",\"GreaterEqual\":\"≥\",\"GreaterEqualLess\":\"⋛\",\"GreaterFullEqual\":\"≧\",\"GreaterGreater\":\"⪢\",\"GreaterLess\":\"≷\",\"GreaterSlantEqual\":\"⩾\",\"GreaterTilde\":\"≳\",\"Gscr\":\"𝒢\",\"gscr\":\"ℊ\",\"gsim\":\"≳\",\"gsime\":\"⪎\",\"gsiml\":\"⪐\",\"gtcc\":\"⪧\",\"gtcir\":\"⩺\",\"gt\":\">\",\"GT\":\">\",\"Gt\":\"≫\",\"gtdot\":\"⋗\",\"gtlPar\":\"⦕\",\"gtquest\":\"⩼\",\"gtrapprox\":\"⪆\",\"gtrarr\":\"⥸\",\"gtrdot\":\"⋗\",\"gtreqless\":\"⋛\",\"gtreqqless\":\"⪌\",\"gtrless\":\"≷\",\"gtrsim\":\"≳\",\"gvertneqq\":\"≩︀\",\"gvnE\":\"≩︀\",\"Hacek\":\"ˇ\",\"hairsp\":\" \",\"half\":\"½\",\"hamilt\":\"ℋ\",\"HARDcy\":\"Ъ\",\"hardcy\":\"ъ\",\"harrcir\":\"⥈\",\"harr\":\"↔\",\"hArr\":\"⇔\",\"harrw\":\"↭\",\"Hat\":\"^\",\"hbar\":\"ℏ\",\"Hcirc\":\"Ĥ\",\"hcirc\":\"ĥ\",\"hearts\":\"♥\",\"heartsuit\":\"♥\",\"hellip\":\"…\",\"hercon\":\"⊹\",\"hfr\":\"𝔥\",\"Hfr\":\"ℌ\",\"HilbertSpace\":\"ℋ\",\"hksearow\":\"⤥\",\"hkswarow\":\"⤦\",\"hoarr\":\"⇿\",\"homtht\":\"∻\",\"hookleftarrow\":\"↩\",\"hookrightarrow\":\"↪\",\"hopf\":\"𝕙\",\"Hopf\":\"ℍ\",\"horbar\":\"―\",\"HorizontalLine\":\"─\",\"hscr\":\"𝒽\",\"Hscr\":\"ℋ\",\"hslash\":\"ℏ\",\"Hstrok\":\"Ħ\",\"hstrok\":\"ħ\",\"HumpDownHump\":\"≎\",\"HumpEqual\":\"≏\",\"hybull\":\"⁃\",\"hyphen\":\"‐\",\"Iacute\":\"Í\",\"iacute\":\"í\",\"ic\":\"⁣\",\"Icirc\":\"Î\",\"icirc\":\"î\",\"Icy\":\"И\",\"icy\":\"и\",\"Idot\":\"İ\",\"IEcy\":\"Е\",\"iecy\":\"е\",\"iexcl\":\"¡\",\"iff\":\"⇔\",\"ifr\":\"𝔦\",\"Ifr\":\"ℑ\",\"Igrave\":\"Ì\",\"igrave\":\"ì\",\"ii\":\"ⅈ\",\"iiiint\":\"⨌\",\"iiint\":\"∭\",\"iinfin\":\"⧜\",\"iiota\":\"℩\",\"IJlig\":\"Ĳ\",\"ijlig\":\"ĳ\",\"Imacr\":\"Ī\",\"imacr\":\"ī\",\"image\":\"ℑ\",\"ImaginaryI\":\"ⅈ\",\"imagline\":\"ℐ\",\"imagpart\":\"ℑ\",\"imath\":\"ı\",\"Im\":\"ℑ\",\"imof\":\"⊷\",\"imped\":\"Ƶ\",\"Implies\":\"⇒\",\"incare\":\"℅\",\"in\":\"∈\",\"infin\":\"∞\",\"infintie\":\"⧝\",\"inodot\":\"ı\",\"intcal\":\"⊺\",\"int\":\"∫\",\"Int\":\"∬\",\"integers\":\"ℤ\",\"Integral\":\"∫\",\"intercal\":\"⊺\",\"Intersection\":\"⋂\",\"intlarhk\":\"⨗\",\"intprod\":\"⨼\",\"InvisibleComma\":\"⁣\",\"InvisibleTimes\":\"⁢\",\"IOcy\":\"Ё\",\"iocy\":\"ё\",\"Iogon\":\"Į\",\"iogon\":\"į\",\"Iopf\":\"𝕀\",\"iopf\":\"𝕚\",\"Iota\":\"Ι\",\"iota\":\"ι\",\"iprod\":\"⨼\",\"iquest\":\"¿\",\"iscr\":\"𝒾\",\"Iscr\":\"ℐ\",\"isin\":\"∈\",\"isindot\":\"⋵\",\"isinE\":\"⋹\",\"isins\":\"⋴\",\"isinsv\":\"⋳\",\"isinv\":\"∈\",\"it\":\"⁢\",\"Itilde\":\"Ĩ\",\"itilde\":\"ĩ\",\"Iukcy\":\"І\",\"iukcy\":\"і\",\"Iuml\":\"Ï\",\"iuml\":\"ï\",\"Jcirc\":\"Ĵ\",\"jcirc\":\"ĵ\",\"Jcy\":\"Й\",\"jcy\":\"й\",\"Jfr\":\"𝔍\",\"jfr\":\"𝔧\",\"jmath\":\"ȷ\",\"Jopf\":\"𝕁\",\"jopf\":\"𝕛\",\"Jscr\":\"𝒥\",\"jscr\":\"𝒿\",\"Jsercy\":\"Ј\",\"jsercy\":\"ј\",\"Jukcy\":\"Є\",\"jukcy\":\"є\",\"Kappa\":\"Κ\",\"kappa\":\"κ\",\"kappav\":\"ϰ\",\"Kcedil\":\"Ķ\",\"kcedil\":\"ķ\",\"Kcy\":\"К\",\"kcy\":\"к\",\"Kfr\":\"𝔎\",\"kfr\":\"𝔨\",\"kgreen\":\"ĸ\",\"KHcy\":\"Х\",\"khcy\":\"х\",\"KJcy\":\"Ќ\",\"kjcy\":\"ќ\",\"Kopf\":\"𝕂\",\"kopf\":\"𝕜\",\"Kscr\":\"𝒦\",\"kscr\":\"𝓀\",\"lAarr\":\"⇚\",\"Lacute\":\"Ĺ\",\"lacute\":\"ĺ\",\"laemptyv\":\"⦴\",\"lagran\":\"ℒ\",\"Lambda\":\"Λ\",\"lambda\":\"λ\",\"lang\":\"⟨\",\"Lang\":\"⟪\",\"langd\":\"⦑\",\"langle\":\"⟨\",\"lap\":\"⪅\",\"Laplacetrf\":\"ℒ\",\"laquo\":\"«\",\"larrb\":\"⇤\",\"larrbfs\":\"⤟\",\"larr\":\"←\",\"Larr\":\"↞\",\"lArr\":\"⇐\",\"larrfs\":\"⤝\",\"larrhk\":\"↩\",\"larrlp\":\"↫\",\"larrpl\":\"⤹\",\"larrsim\":\"⥳\",\"larrtl\":\"↢\",\"latail\":\"⤙\",\"lAtail\":\"⤛\",\"lat\":\"⪫\",\"late\":\"⪭\",\"lates\":\"⪭︀\",\"lbarr\":\"⤌\",\"lBarr\":\"⤎\",\"lbbrk\":\"❲\",\"lbrace\":\"{\",\"lbrack\":\"[\",\"lbrke\":\"⦋\",\"lbrksld\":\"⦏\",\"lbrkslu\":\"⦍\",\"Lcaron\":\"Ľ\",\"lcaron\":\"ľ\",\"Lcedil\":\"Ļ\",\"lcedil\":\"ļ\",\"lceil\":\"⌈\",\"lcub\":\"{\",\"Lcy\":\"Л\",\"lcy\":\"л\",\"ldca\":\"⤶\",\"ldquo\":\"“\",\"ldquor\":\"„\",\"ldrdhar\":\"⥧\",\"ldrushar\":\"⥋\",\"ldsh\":\"↲\",\"le\":\"≤\",\"lE\":\"≦\",\"LeftAngleBracket\":\"⟨\",\"LeftArrowBar\":\"⇤\",\"leftarrow\":\"←\",\"LeftArrow\":\"←\",\"Leftarrow\":\"⇐\",\"LeftArrowRightArrow\":\"⇆\",\"leftarrowtail\":\"↢\",\"LeftCeiling\":\"⌈\",\"LeftDoubleBracket\":\"⟦\",\"LeftDownTeeVector\":\"⥡\",\"LeftDownVectorBar\":\"⥙\",\"LeftDownVector\":\"⇃\",\"LeftFloor\":\"⌊\",\"leftharpoondown\":\"↽\",\"leftharpoonup\":\"↼\",\"leftleftarrows\":\"⇇\",\"leftrightarrow\":\"↔\",\"LeftRightArrow\":\"↔\",\"Leftrightarrow\":\"⇔\",\"leftrightarrows\":\"⇆\",\"leftrightharpoons\":\"⇋\",\"leftrightsquigarrow\":\"↭\",\"LeftRightVector\":\"⥎\",\"LeftTeeArrow\":\"↤\",\"LeftTee\":\"⊣\",\"LeftTeeVector\":\"⥚\",\"leftthreetimes\":\"⋋\",\"LeftTriangleBar\":\"⧏\",\"LeftTriangle\":\"⊲\",\"LeftTriangleEqual\":\"⊴\",\"LeftUpDownVector\":\"⥑\",\"LeftUpTeeVector\":\"⥠\",\"LeftUpVectorBar\":\"⥘\",\"LeftUpVector\":\"↿\",\"LeftVectorBar\":\"⥒\",\"LeftVector\":\"↼\",\"lEg\":\"⪋\",\"leg\":\"⋚\",\"leq\":\"≤\",\"leqq\":\"≦\",\"leqslant\":\"⩽\",\"lescc\":\"⪨\",\"les\":\"⩽\",\"lesdot\":\"⩿\",\"lesdoto\":\"⪁\",\"lesdotor\":\"⪃\",\"lesg\":\"⋚︀\",\"lesges\":\"⪓\",\"lessapprox\":\"⪅\",\"lessdot\":\"⋖\",\"lesseqgtr\":\"⋚\",\"lesseqqgtr\":\"⪋\",\"LessEqualGreater\":\"⋚\",\"LessFullEqual\":\"≦\",\"LessGreater\":\"≶\",\"lessgtr\":\"≶\",\"LessLess\":\"⪡\",\"lesssim\":\"≲\",\"LessSlantEqual\":\"⩽\",\"LessTilde\":\"≲\",\"lfisht\":\"⥼\",\"lfloor\":\"⌊\",\"Lfr\":\"𝔏\",\"lfr\":\"𝔩\",\"lg\":\"≶\",\"lgE\":\"⪑\",\"lHar\":\"⥢\",\"lhard\":\"↽\",\"lharu\":\"↼\",\"lharul\":\"⥪\",\"lhblk\":\"▄\",\"LJcy\":\"Љ\",\"ljcy\":\"љ\",\"llarr\":\"⇇\",\"ll\":\"≪\",\"Ll\":\"⋘\",\"llcorner\":\"⌞\",\"Lleftarrow\":\"⇚\",\"llhard\":\"⥫\",\"lltri\":\"◺\",\"Lmidot\":\"Ŀ\",\"lmidot\":\"ŀ\",\"lmoustache\":\"⎰\",\"lmoust\":\"⎰\",\"lnap\":\"⪉\",\"lnapprox\":\"⪉\",\"lne\":\"⪇\",\"lnE\":\"≨\",\"lneq\":\"⪇\",\"lneqq\":\"≨\",\"lnsim\":\"⋦\",\"loang\":\"⟬\",\"loarr\":\"⇽\",\"lobrk\":\"⟦\",\"longleftarrow\":\"⟵\",\"LongLeftArrow\":\"⟵\",\"Longleftarrow\":\"⟸\",\"longleftrightarrow\":\"⟷\",\"LongLeftRightArrow\":\"⟷\",\"Longleftrightarrow\":\"⟺\",\"longmapsto\":\"⟼\",\"longrightarrow\":\"⟶\",\"LongRightArrow\":\"⟶\",\"Longrightarrow\":\"⟹\",\"looparrowleft\":\"↫\",\"looparrowright\":\"↬\",\"lopar\":\"⦅\",\"Lopf\":\"𝕃\",\"lopf\":\"𝕝\",\"loplus\":\"⨭\",\"lotimes\":\"⨴\",\"lowast\":\"∗\",\"lowbar\":\"_\",\"LowerLeftArrow\":\"↙\",\"LowerRightArrow\":\"↘\",\"loz\":\"◊\",\"lozenge\":\"◊\",\"lozf\":\"⧫\",\"lpar\":\"(\",\"lparlt\":\"⦓\",\"lrarr\":\"⇆\",\"lrcorner\":\"⌟\",\"lrhar\":\"⇋\",\"lrhard\":\"⥭\",\"lrm\":\"‎\",\"lrtri\":\"⊿\",\"lsaquo\":\"‹\",\"lscr\":\"𝓁\",\"Lscr\":\"ℒ\",\"lsh\":\"↰\",\"Lsh\":\"↰\",\"lsim\":\"≲\",\"lsime\":\"⪍\",\"lsimg\":\"⪏\",\"lsqb\":\"[\",\"lsquo\":\"‘\",\"lsquor\":\"‚\",\"Lstrok\":\"Ł\",\"lstrok\":\"ł\",\"ltcc\":\"⪦\",\"ltcir\":\"⩹\",\"lt\":\"<\",\"LT\":\"<\",\"Lt\":\"≪\",\"ltdot\":\"⋖\",\"lthree\":\"⋋\",\"ltimes\":\"⋉\",\"ltlarr\":\"⥶\",\"ltquest\":\"⩻\",\"ltri\":\"◃\",\"ltrie\":\"⊴\",\"ltrif\":\"◂\",\"ltrPar\":\"⦖\",\"lurdshar\":\"⥊\",\"luruhar\":\"⥦\",\"lvertneqq\":\"≨︀\",\"lvnE\":\"≨︀\",\"macr\":\"¯\",\"male\":\"♂\",\"malt\":\"✠\",\"maltese\":\"✠\",\"Map\":\"⤅\",\"map\":\"↦\",\"mapsto\":\"↦\",\"mapstodown\":\"↧\",\"mapstoleft\":\"↤\",\"mapstoup\":\"↥\",\"marker\":\"▮\",\"mcomma\":\"⨩\",\"Mcy\":\"М\",\"mcy\":\"м\",\"mdash\":\"—\",\"mDDot\":\"∺\",\"measuredangle\":\"∡\",\"MediumSpace\":\" \",\"Mellintrf\":\"ℳ\",\"Mfr\":\"𝔐\",\"mfr\":\"𝔪\",\"mho\":\"℧\",\"micro\":\"µ\",\"midast\":\"*\",\"midcir\":\"⫰\",\"mid\":\"∣\",\"middot\":\"·\",\"minusb\":\"⊟\",\"minus\":\"−\",\"minusd\":\"∸\",\"minusdu\":\"⨪\",\"MinusPlus\":\"∓\",\"mlcp\":\"⫛\",\"mldr\":\"…\",\"mnplus\":\"∓\",\"models\":\"⊧\",\"Mopf\":\"𝕄\",\"mopf\":\"𝕞\",\"mp\":\"∓\",\"mscr\":\"𝓂\",\"Mscr\":\"ℳ\",\"mstpos\":\"∾\",\"Mu\":\"Μ\",\"mu\":\"μ\",\"multimap\":\"⊸\",\"mumap\":\"⊸\",\"nabla\":\"∇\",\"Nacute\":\"Ń\",\"nacute\":\"ń\",\"nang\":\"∠⃒\",\"nap\":\"≉\",\"napE\":\"⩰̸\",\"napid\":\"≋̸\",\"napos\":\"ŉ\",\"napprox\":\"≉\",\"natural\":\"♮\",\"naturals\":\"ℕ\",\"natur\":\"♮\",\"nbsp\":\" \",\"nbump\":\"≎̸\",\"nbumpe\":\"≏̸\",\"ncap\":\"⩃\",\"Ncaron\":\"Ň\",\"ncaron\":\"ň\",\"Ncedil\":\"Ņ\",\"ncedil\":\"ņ\",\"ncong\":\"≇\",\"ncongdot\":\"⩭̸\",\"ncup\":\"⩂\",\"Ncy\":\"Н\",\"ncy\":\"н\",\"ndash\":\"–\",\"nearhk\":\"⤤\",\"nearr\":\"↗\",\"neArr\":\"⇗\",\"nearrow\":\"↗\",\"ne\":\"≠\",\"nedot\":\"≐̸\",\"NegativeMediumSpace\":\"​\",\"NegativeThickSpace\":\"​\",\"NegativeThinSpace\":\"​\",\"NegativeVeryThinSpace\":\"​\",\"nequiv\":\"≢\",\"nesear\":\"⤨\",\"nesim\":\"≂̸\",\"NestedGreaterGreater\":\"≫\",\"NestedLessLess\":\"≪\",\"NewLine\":\"\\n\",\"nexist\":\"∄\",\"nexists\":\"∄\",\"Nfr\":\"𝔑\",\"nfr\":\"𝔫\",\"ngE\":\"≧̸\",\"nge\":\"≱\",\"ngeq\":\"≱\",\"ngeqq\":\"≧̸\",\"ngeqslant\":\"⩾̸\",\"nges\":\"⩾̸\",\"nGg\":\"⋙̸\",\"ngsim\":\"≵\",\"nGt\":\"≫⃒\",\"ngt\":\"≯\",\"ngtr\":\"≯\",\"nGtv\":\"≫̸\",\"nharr\":\"↮\",\"nhArr\":\"⇎\",\"nhpar\":\"⫲\",\"ni\":\"∋\",\"nis\":\"⋼\",\"nisd\":\"⋺\",\"niv\":\"∋\",\"NJcy\":\"Њ\",\"njcy\":\"њ\",\"nlarr\":\"↚\",\"nlArr\":\"⇍\",\"nldr\":\"‥\",\"nlE\":\"≦̸\",\"nle\":\"≰\",\"nleftarrow\":\"↚\",\"nLeftarrow\":\"⇍\",\"nleftrightarrow\":\"↮\",\"nLeftrightarrow\":\"⇎\",\"nleq\":\"≰\",\"nleqq\":\"≦̸\",\"nleqslant\":\"⩽̸\",\"nles\":\"⩽̸\",\"nless\":\"≮\",\"nLl\":\"⋘̸\",\"nlsim\":\"≴\",\"nLt\":\"≪⃒\",\"nlt\":\"≮\",\"nltri\":\"⋪\",\"nltrie\":\"⋬\",\"nLtv\":\"≪̸\",\"nmid\":\"∤\",\"NoBreak\":\"⁠\",\"NonBreakingSpace\":\" \",\"nopf\":\"𝕟\",\"Nopf\":\"ℕ\",\"Not\":\"⫬\",\"not\":\"¬\",\"NotCongruent\":\"≢\",\"NotCupCap\":\"≭\",\"NotDoubleVerticalBar\":\"∦\",\"NotElement\":\"∉\",\"NotEqual\":\"≠\",\"NotEqualTilde\":\"≂̸\",\"NotExists\":\"∄\",\"NotGreater\":\"≯\",\"NotGreaterEqual\":\"≱\",\"NotGreaterFullEqual\":\"≧̸\",\"NotGreaterGreater\":\"≫̸\",\"NotGreaterLess\":\"≹\",\"NotGreaterSlantEqual\":\"⩾̸\",\"NotGreaterTilde\":\"≵\",\"NotHumpDownHump\":\"≎̸\",\"NotHumpEqual\":\"≏̸\",\"notin\":\"∉\",\"notindot\":\"⋵̸\",\"notinE\":\"⋹̸\",\"notinva\":\"∉\",\"notinvb\":\"⋷\",\"notinvc\":\"⋶\",\"NotLeftTriangleBar\":\"⧏̸\",\"NotLeftTriangle\":\"⋪\",\"NotLeftTriangleEqual\":\"⋬\",\"NotLess\":\"≮\",\"NotLessEqual\":\"≰\",\"NotLessGreater\":\"≸\",\"NotLessLess\":\"≪̸\",\"NotLessSlantEqual\":\"⩽̸\",\"NotLessTilde\":\"≴\",\"NotNestedGreaterGreater\":\"⪢̸\",\"NotNestedLessLess\":\"⪡̸\",\"notni\":\"∌\",\"notniva\":\"∌\",\"notnivb\":\"⋾\",\"notnivc\":\"⋽\",\"NotPrecedes\":\"⊀\",\"NotPrecedesEqual\":\"⪯̸\",\"NotPrecedesSlantEqual\":\"⋠\",\"NotReverseElement\":\"∌\",\"NotRightTriangleBar\":\"⧐̸\",\"NotRightTriangle\":\"⋫\",\"NotRightTriangleEqual\":\"⋭\",\"NotSquareSubset\":\"⊏̸\",\"NotSquareSubsetEqual\":\"⋢\",\"NotSquareSuperset\":\"⊐̸\",\"NotSquareSupersetEqual\":\"⋣\",\"NotSubset\":\"⊂⃒\",\"NotSubsetEqual\":\"⊈\",\"NotSucceeds\":\"⊁\",\"NotSucceedsEqual\":\"⪰̸\",\"NotSucceedsSlantEqual\":\"⋡\",\"NotSucceedsTilde\":\"≿̸\",\"NotSuperset\":\"⊃⃒\",\"NotSupersetEqual\":\"⊉\",\"NotTilde\":\"≁\",\"NotTildeEqual\":\"≄\",\"NotTildeFullEqual\":\"≇\",\"NotTildeTilde\":\"≉\",\"NotVerticalBar\":\"∤\",\"nparallel\":\"∦\",\"npar\":\"∦\",\"nparsl\":\"⫽⃥\",\"npart\":\"∂̸\",\"npolint\":\"⨔\",\"npr\":\"⊀\",\"nprcue\":\"⋠\",\"nprec\":\"⊀\",\"npreceq\":\"⪯̸\",\"npre\":\"⪯̸\",\"nrarrc\":\"⤳̸\",\"nrarr\":\"↛\",\"nrArr\":\"⇏\",\"nrarrw\":\"↝̸\",\"nrightarrow\":\"↛\",\"nRightarrow\":\"⇏\",\"nrtri\":\"⋫\",\"nrtrie\":\"⋭\",\"nsc\":\"⊁\",\"nsccue\":\"⋡\",\"nsce\":\"⪰̸\",\"Nscr\":\"𝒩\",\"nscr\":\"𝓃\",\"nshortmid\":\"∤\",\"nshortparallel\":\"∦\",\"nsim\":\"≁\",\"nsime\":\"≄\",\"nsimeq\":\"≄\",\"nsmid\":\"∤\",\"nspar\":\"∦\",\"nsqsube\":\"⋢\",\"nsqsupe\":\"⋣\",\"nsub\":\"⊄\",\"nsubE\":\"⫅̸\",\"nsube\":\"⊈\",\"nsubset\":\"⊂⃒\",\"nsubseteq\":\"⊈\",\"nsubseteqq\":\"⫅̸\",\"nsucc\":\"⊁\",\"nsucceq\":\"⪰̸\",\"nsup\":\"⊅\",\"nsupE\":\"⫆̸\",\"nsupe\":\"⊉\",\"nsupset\":\"⊃⃒\",\"nsupseteq\":\"⊉\",\"nsupseteqq\":\"⫆̸\",\"ntgl\":\"≹\",\"Ntilde\":\"Ñ\",\"ntilde\":\"ñ\",\"ntlg\":\"≸\",\"ntriangleleft\":\"⋪\",\"ntrianglelefteq\":\"⋬\",\"ntriangleright\":\"⋫\",\"ntrianglerighteq\":\"⋭\",\"Nu\":\"Ν\",\"nu\":\"ν\",\"num\":\"#\",\"numero\":\"№\",\"numsp\":\" \",\"nvap\":\"≍⃒\",\"nvdash\":\"⊬\",\"nvDash\":\"⊭\",\"nVdash\":\"⊮\",\"nVDash\":\"⊯\",\"nvge\":\"≥⃒\",\"nvgt\":\">⃒\",\"nvHarr\":\"⤄\",\"nvinfin\":\"⧞\",\"nvlArr\":\"⤂\",\"nvle\":\"≤⃒\",\"nvlt\":\"<⃒\",\"nvltrie\":\"⊴⃒\",\"nvrArr\":\"⤃\",\"nvrtrie\":\"⊵⃒\",\"nvsim\":\"∼⃒\",\"nwarhk\":\"⤣\",\"nwarr\":\"↖\",\"nwArr\":\"⇖\",\"nwarrow\":\"↖\",\"nwnear\":\"⤧\",\"Oacute\":\"Ó\",\"oacute\":\"ó\",\"oast\":\"⊛\",\"Ocirc\":\"Ô\",\"ocirc\":\"ô\",\"ocir\":\"⊚\",\"Ocy\":\"О\",\"ocy\":\"о\",\"odash\":\"⊝\",\"Odblac\":\"Ő\",\"odblac\":\"ő\",\"odiv\":\"⨸\",\"odot\":\"⊙\",\"odsold\":\"⦼\",\"OElig\":\"Œ\",\"oelig\":\"œ\",\"ofcir\":\"⦿\",\"Ofr\":\"𝔒\",\"ofr\":\"𝔬\",\"ogon\":\"˛\",\"Ograve\":\"Ò\",\"ograve\":\"ò\",\"ogt\":\"⧁\",\"ohbar\":\"⦵\",\"ohm\":\"Ω\",\"oint\":\"∮\",\"olarr\":\"↺\",\"olcir\":\"⦾\",\"olcross\":\"⦻\",\"oline\":\"‾\",\"olt\":\"⧀\",\"Omacr\":\"Ō\",\"omacr\":\"ō\",\"Omega\":\"Ω\",\"omega\":\"ω\",\"Omicron\":\"Ο\",\"omicron\":\"ο\",\"omid\":\"⦶\",\"ominus\":\"⊖\",\"Oopf\":\"𝕆\",\"oopf\":\"𝕠\",\"opar\":\"⦷\",\"OpenCurlyDoubleQuote\":\"“\",\"OpenCurlyQuote\":\"‘\",\"operp\":\"⦹\",\"oplus\":\"⊕\",\"orarr\":\"↻\",\"Or\":\"⩔\",\"or\":\"∨\",\"ord\":\"⩝\",\"order\":\"ℴ\",\"orderof\":\"ℴ\",\"ordf\":\"ª\",\"ordm\":\"º\",\"origof\":\"⊶\",\"oror\":\"⩖\",\"orslope\":\"⩗\",\"orv\":\"⩛\",\"oS\":\"Ⓢ\",\"Oscr\":\"𝒪\",\"oscr\":\"ℴ\",\"Oslash\":\"Ø\",\"oslash\":\"ø\",\"osol\":\"⊘\",\"Otilde\":\"Õ\",\"otilde\":\"õ\",\"otimesas\":\"⨶\",\"Otimes\":\"⨷\",\"otimes\":\"⊗\",\"Ouml\":\"Ö\",\"ouml\":\"ö\",\"ovbar\":\"⌽\",\"OverBar\":\"‾\",\"OverBrace\":\"⏞\",\"OverBracket\":\"⎴\",\"OverParenthesis\":\"⏜\",\"para\":\"¶\",\"parallel\":\"∥\",\"par\":\"∥\",\"parsim\":\"⫳\",\"parsl\":\"⫽\",\"part\":\"∂\",\"PartialD\":\"∂\",\"Pcy\":\"П\",\"pcy\":\"п\",\"percnt\":\"%\",\"period\":\".\",\"permil\":\"‰\",\"perp\":\"⊥\",\"pertenk\":\"‱\",\"Pfr\":\"𝔓\",\"pfr\":\"𝔭\",\"Phi\":\"Φ\",\"phi\":\"φ\",\"phiv\":\"ϕ\",\"phmmat\":\"ℳ\",\"phone\":\"☎\",\"Pi\":\"Π\",\"pi\":\"π\",\"pitchfork\":\"⋔\",\"piv\":\"ϖ\",\"planck\":\"ℏ\",\"planckh\":\"ℎ\",\"plankv\":\"ℏ\",\"plusacir\":\"⨣\",\"plusb\":\"⊞\",\"pluscir\":\"⨢\",\"plus\":\"+\",\"plusdo\":\"∔\",\"plusdu\":\"⨥\",\"pluse\":\"⩲\",\"PlusMinus\":\"±\",\"plusmn\":\"±\",\"plussim\":\"⨦\",\"plustwo\":\"⨧\",\"pm\":\"±\",\"Poincareplane\":\"ℌ\",\"pointint\":\"⨕\",\"popf\":\"𝕡\",\"Popf\":\"ℙ\",\"pound\":\"£\",\"prap\":\"⪷\",\"Pr\":\"⪻\",\"pr\":\"≺\",\"prcue\":\"≼\",\"precapprox\":\"⪷\",\"prec\":\"≺\",\"preccurlyeq\":\"≼\",\"Precedes\":\"≺\",\"PrecedesEqual\":\"⪯\",\"PrecedesSlantEqual\":\"≼\",\"PrecedesTilde\":\"≾\",\"preceq\":\"⪯\",\"precnapprox\":\"⪹\",\"precneqq\":\"⪵\",\"precnsim\":\"⋨\",\"pre\":\"⪯\",\"prE\":\"⪳\",\"precsim\":\"≾\",\"prime\":\"′\",\"Prime\":\"″\",\"primes\":\"ℙ\",\"prnap\":\"⪹\",\"prnE\":\"⪵\",\"prnsim\":\"⋨\",\"prod\":\"∏\",\"Product\":\"∏\",\"profalar\":\"⌮\",\"profline\":\"⌒\",\"profsurf\":\"⌓\",\"prop\":\"∝\",\"Proportional\":\"∝\",\"Proportion\":\"∷\",\"propto\":\"∝\",\"prsim\":\"≾\",\"prurel\":\"⊰\",\"Pscr\":\"𝒫\",\"pscr\":\"𝓅\",\"Psi\":\"Ψ\",\"psi\":\"ψ\",\"puncsp\":\" \",\"Qfr\":\"𝔔\",\"qfr\":\"𝔮\",\"qint\":\"⨌\",\"qopf\":\"𝕢\",\"Qopf\":\"ℚ\",\"qprime\":\"⁗\",\"Qscr\":\"𝒬\",\"qscr\":\"𝓆\",\"quaternions\":\"ℍ\",\"quatint\":\"⨖\",\"quest\":\"?\",\"questeq\":\"≟\",\"quot\":\"\\\"\",\"QUOT\":\"\\\"\",\"rAarr\":\"⇛\",\"race\":\"∽̱\",\"Racute\":\"Ŕ\",\"racute\":\"ŕ\",\"radic\":\"√\",\"raemptyv\":\"⦳\",\"rang\":\"⟩\",\"Rang\":\"⟫\",\"rangd\":\"⦒\",\"range\":\"⦥\",\"rangle\":\"⟩\",\"raquo\":\"»\",\"rarrap\":\"⥵\",\"rarrb\":\"⇥\",\"rarrbfs\":\"⤠\",\"rarrc\":\"⤳\",\"rarr\":\"→\",\"Rarr\":\"↠\",\"rArr\":\"⇒\",\"rarrfs\":\"⤞\",\"rarrhk\":\"↪\",\"rarrlp\":\"↬\",\"rarrpl\":\"⥅\",\"rarrsim\":\"⥴\",\"Rarrtl\":\"⤖\",\"rarrtl\":\"↣\",\"rarrw\":\"↝\",\"ratail\":\"⤚\",\"rAtail\":\"⤜\",\"ratio\":\"∶\",\"rationals\":\"ℚ\",\"rbarr\":\"⤍\",\"rBarr\":\"⤏\",\"RBarr\":\"⤐\",\"rbbrk\":\"❳\",\"rbrace\":\"}\",\"rbrack\":\"]\",\"rbrke\":\"⦌\",\"rbrksld\":\"⦎\",\"rbrkslu\":\"⦐\",\"Rcaron\":\"Ř\",\"rcaron\":\"ř\",\"Rcedil\":\"Ŗ\",\"rcedil\":\"ŗ\",\"rceil\":\"⌉\",\"rcub\":\"}\",\"Rcy\":\"Р\",\"rcy\":\"р\",\"rdca\":\"⤷\",\"rdldhar\":\"⥩\",\"rdquo\":\"”\",\"rdquor\":\"”\",\"rdsh\":\"↳\",\"real\":\"ℜ\",\"realine\":\"ℛ\",\"realpart\":\"ℜ\",\"reals\":\"ℝ\",\"Re\":\"ℜ\",\"rect\":\"▭\",\"reg\":\"®\",\"REG\":\"®\",\"ReverseElement\":\"∋\",\"ReverseEquilibrium\":\"⇋\",\"ReverseUpEquilibrium\":\"⥯\",\"rfisht\":\"⥽\",\"rfloor\":\"⌋\",\"rfr\":\"𝔯\",\"Rfr\":\"ℜ\",\"rHar\":\"⥤\",\"rhard\":\"⇁\",\"rharu\":\"⇀\",\"rharul\":\"⥬\",\"Rho\":\"Ρ\",\"rho\":\"ρ\",\"rhov\":\"ϱ\",\"RightAngleBracket\":\"⟩\",\"RightArrowBar\":\"⇥\",\"rightarrow\":\"→\",\"RightArrow\":\"→\",\"Rightarrow\":\"⇒\",\"RightArrowLeftArrow\":\"⇄\",\"rightarrowtail\":\"↣\",\"RightCeiling\":\"⌉\",\"RightDoubleBracket\":\"⟧\",\"RightDownTeeVector\":\"⥝\",\"RightDownVectorBar\":\"⥕\",\"RightDownVector\":\"⇂\",\"RightFloor\":\"⌋\",\"rightharpoondown\":\"⇁\",\"rightharpoonup\":\"⇀\",\"rightleftarrows\":\"⇄\",\"rightleftharpoons\":\"⇌\",\"rightrightarrows\":\"⇉\",\"rightsquigarrow\":\"↝\",\"RightTeeArrow\":\"↦\",\"RightTee\":\"⊢\",\"RightTeeVector\":\"⥛\",\"rightthreetimes\":\"⋌\",\"RightTriangleBar\":\"⧐\",\"RightTriangle\":\"⊳\",\"RightTriangleEqual\":\"⊵\",\"RightUpDownVector\":\"⥏\",\"RightUpTeeVector\":\"⥜\",\"RightUpVectorBar\":\"⥔\",\"RightUpVector\":\"↾\",\"RightVectorBar\":\"⥓\",\"RightVector\":\"⇀\",\"ring\":\"˚\",\"risingdotseq\":\"≓\",\"rlarr\":\"⇄\",\"rlhar\":\"⇌\",\"rlm\":\"‏\",\"rmoustache\":\"⎱\",\"rmoust\":\"⎱\",\"rnmid\":\"⫮\",\"roang\":\"⟭\",\"roarr\":\"⇾\",\"robrk\":\"⟧\",\"ropar\":\"⦆\",\"ropf\":\"𝕣\",\"Ropf\":\"ℝ\",\"roplus\":\"⨮\",\"rotimes\":\"⨵\",\"RoundImplies\":\"⥰\",\"rpar\":\")\",\"rpargt\":\"⦔\",\"rppolint\":\"⨒\",\"rrarr\":\"⇉\",\"Rrightarrow\":\"⇛\",\"rsaquo\":\"›\",\"rscr\":\"𝓇\",\"Rscr\":\"ℛ\",\"rsh\":\"↱\",\"Rsh\":\"↱\",\"rsqb\":\"]\",\"rsquo\":\"’\",\"rsquor\":\"’\",\"rthree\":\"⋌\",\"rtimes\":\"⋊\",\"rtri\":\"▹\",\"rtrie\":\"⊵\",\"rtrif\":\"▸\",\"rtriltri\":\"⧎\",\"RuleDelayed\":\"⧴\",\"ruluhar\":\"⥨\",\"rx\":\"℞\",\"Sacute\":\"Ś\",\"sacute\":\"ś\",\"sbquo\":\"‚\",\"scap\":\"⪸\",\"Scaron\":\"Š\",\"scaron\":\"š\",\"Sc\":\"⪼\",\"sc\":\"≻\",\"sccue\":\"≽\",\"sce\":\"⪰\",\"scE\":\"⪴\",\"Scedil\":\"Ş\",\"scedil\":\"ş\",\"Scirc\":\"Ŝ\",\"scirc\":\"ŝ\",\"scnap\":\"⪺\",\"scnE\":\"⪶\",\"scnsim\":\"⋩\",\"scpolint\":\"⨓\",\"scsim\":\"≿\",\"Scy\":\"С\",\"scy\":\"с\",\"sdotb\":\"⊡\",\"sdot\":\"⋅\",\"sdote\":\"⩦\",\"searhk\":\"⤥\",\"searr\":\"↘\",\"seArr\":\"⇘\",\"searrow\":\"↘\",\"sect\":\"§\",\"semi\":\";\",\"seswar\":\"⤩\",\"setminus\":\"∖\",\"setmn\":\"∖\",\"sext\":\"✶\",\"Sfr\":\"𝔖\",\"sfr\":\"𝔰\",\"sfrown\":\"⌢\",\"sharp\":\"♯\",\"SHCHcy\":\"Щ\",\"shchcy\":\"щ\",\"SHcy\":\"Ш\",\"shcy\":\"ш\",\"ShortDownArrow\":\"↓\",\"ShortLeftArrow\":\"←\",\"shortmid\":\"∣\",\"shortparallel\":\"∥\",\"ShortRightArrow\":\"→\",\"ShortUpArrow\":\"↑\",\"shy\":\"­\",\"Sigma\":\"Σ\",\"sigma\":\"σ\",\"sigmaf\":\"ς\",\"sigmav\":\"ς\",\"sim\":\"∼\",\"simdot\":\"⩪\",\"sime\":\"≃\",\"simeq\":\"≃\",\"simg\":\"⪞\",\"simgE\":\"⪠\",\"siml\":\"⪝\",\"simlE\":\"⪟\",\"simne\":\"≆\",\"simplus\":\"⨤\",\"simrarr\":\"⥲\",\"slarr\":\"←\",\"SmallCircle\":\"∘\",\"smallsetminus\":\"∖\",\"smashp\":\"⨳\",\"smeparsl\":\"⧤\",\"smid\":\"∣\",\"smile\":\"⌣\",\"smt\":\"⪪\",\"smte\":\"⪬\",\"smtes\":\"⪬︀\",\"SOFTcy\":\"Ь\",\"softcy\":\"ь\",\"solbar\":\"⌿\",\"solb\":\"⧄\",\"sol\":\"/\",\"Sopf\":\"𝕊\",\"sopf\":\"𝕤\",\"spades\":\"♠\",\"spadesuit\":\"♠\",\"spar\":\"∥\",\"sqcap\":\"⊓\",\"sqcaps\":\"⊓︀\",\"sqcup\":\"⊔\",\"sqcups\":\"⊔︀\",\"Sqrt\":\"√\",\"sqsub\":\"⊏\",\"sqsube\":\"⊑\",\"sqsubset\":\"⊏\",\"sqsubseteq\":\"⊑\",\"sqsup\":\"⊐\",\"sqsupe\":\"⊒\",\"sqsupset\":\"⊐\",\"sqsupseteq\":\"⊒\",\"square\":\"□\",\"Square\":\"□\",\"SquareIntersection\":\"⊓\",\"SquareSubset\":\"⊏\",\"SquareSubsetEqual\":\"⊑\",\"SquareSuperset\":\"⊐\",\"SquareSupersetEqual\":\"⊒\",\"SquareUnion\":\"⊔\",\"squarf\":\"▪\",\"squ\":\"□\",\"squf\":\"▪\",\"srarr\":\"→\",\"Sscr\":\"𝒮\",\"sscr\":\"𝓈\",\"ssetmn\":\"∖\",\"ssmile\":\"⌣\",\"sstarf\":\"⋆\",\"Star\":\"⋆\",\"star\":\"☆\",\"starf\":\"★\",\"straightepsilon\":\"ϵ\",\"straightphi\":\"ϕ\",\"strns\":\"¯\",\"sub\":\"⊂\",\"Sub\":\"⋐\",\"subdot\":\"⪽\",\"subE\":\"⫅\",\"sube\":\"⊆\",\"subedot\":\"⫃\",\"submult\":\"⫁\",\"subnE\":\"⫋\",\"subne\":\"⊊\",\"subplus\":\"⪿\",\"subrarr\":\"⥹\",\"subset\":\"⊂\",\"Subset\":\"⋐\",\"subseteq\":\"⊆\",\"subseteqq\":\"⫅\",\"SubsetEqual\":\"⊆\",\"subsetneq\":\"⊊\",\"subsetneqq\":\"⫋\",\"subsim\":\"⫇\",\"subsub\":\"⫕\",\"subsup\":\"⫓\",\"succapprox\":\"⪸\",\"succ\":\"≻\",\"succcurlyeq\":\"≽\",\"Succeeds\":\"≻\",\"SucceedsEqual\":\"⪰\",\"SucceedsSlantEqual\":\"≽\",\"SucceedsTilde\":\"≿\",\"succeq\":\"⪰\",\"succnapprox\":\"⪺\",\"succneqq\":\"⪶\",\"succnsim\":\"⋩\",\"succsim\":\"≿\",\"SuchThat\":\"∋\",\"sum\":\"∑\",\"Sum\":\"∑\",\"sung\":\"♪\",\"sup1\":\"¹\",\"sup2\":\"²\",\"sup3\":\"³\",\"sup\":\"⊃\",\"Sup\":\"⋑\",\"supdot\":\"⪾\",\"supdsub\":\"⫘\",\"supE\":\"⫆\",\"supe\":\"⊇\",\"supedot\":\"⫄\",\"Superset\":\"⊃\",\"SupersetEqual\":\"⊇\",\"suphsol\":\"⟉\",\"suphsub\":\"⫗\",\"suplarr\":\"⥻\",\"supmult\":\"⫂\",\"supnE\":\"⫌\",\"supne\":\"⊋\",\"supplus\":\"⫀\",\"supset\":\"⊃\",\"Supset\":\"⋑\",\"supseteq\":\"⊇\",\"supseteqq\":\"⫆\",\"supsetneq\":\"⊋\",\"supsetneqq\":\"⫌\",\"supsim\":\"⫈\",\"supsub\":\"⫔\",\"supsup\":\"⫖\",\"swarhk\":\"⤦\",\"swarr\":\"↙\",\"swArr\":\"⇙\",\"swarrow\":\"↙\",\"swnwar\":\"⤪\",\"szlig\":\"ß\",\"Tab\":\"\\t\",\"target\":\"⌖\",\"Tau\":\"Τ\",\"tau\":\"τ\",\"tbrk\":\"⎴\",\"Tcaron\":\"Ť\",\"tcaron\":\"ť\",\"Tcedil\":\"Ţ\",\"tcedil\":\"ţ\",\"Tcy\":\"Т\",\"tcy\":\"т\",\"tdot\":\"⃛\",\"telrec\":\"⌕\",\"Tfr\":\"𝔗\",\"tfr\":\"𝔱\",\"there4\":\"∴\",\"therefore\":\"∴\",\"Therefore\":\"∴\",\"Theta\":\"Θ\",\"theta\":\"θ\",\"thetasym\":\"ϑ\",\"thetav\":\"ϑ\",\"thickapprox\":\"≈\",\"thicksim\":\"∼\",\"ThickSpace\":\"  \",\"ThinSpace\":\" \",\"thinsp\":\" \",\"thkap\":\"≈\",\"thksim\":\"∼\",\"THORN\":\"Þ\",\"thorn\":\"þ\",\"tilde\":\"˜\",\"Tilde\":\"∼\",\"TildeEqual\":\"≃\",\"TildeFullEqual\":\"≅\",\"TildeTilde\":\"≈\",\"timesbar\":\"⨱\",\"timesb\":\"⊠\",\"times\":\"×\",\"timesd\":\"⨰\",\"tint\":\"∭\",\"toea\":\"⤨\",\"topbot\":\"⌶\",\"topcir\":\"⫱\",\"top\":\"⊤\",\"Topf\":\"𝕋\",\"topf\":\"𝕥\",\"topfork\":\"⫚\",\"tosa\":\"⤩\",\"tprime\":\"‴\",\"trade\":\"™\",\"TRADE\":\"™\",\"triangle\":\"▵\",\"triangledown\":\"▿\",\"triangleleft\":\"◃\",\"trianglelefteq\":\"⊴\",\"triangleq\":\"≜\",\"triangleright\":\"▹\",\"trianglerighteq\":\"⊵\",\"tridot\":\"◬\",\"trie\":\"≜\",\"triminus\":\"⨺\",\"TripleDot\":\"⃛\",\"triplus\":\"⨹\",\"trisb\":\"⧍\",\"tritime\":\"⨻\",\"trpezium\":\"⏢\",\"Tscr\":\"𝒯\",\"tscr\":\"𝓉\",\"TScy\":\"Ц\",\"tscy\":\"ц\",\"TSHcy\":\"Ћ\",\"tshcy\":\"ћ\",\"Tstrok\":\"Ŧ\",\"tstrok\":\"ŧ\",\"twixt\":\"≬\",\"twoheadleftarrow\":\"↞\",\"twoheadrightarrow\":\"↠\",\"Uacute\":\"Ú\",\"uacute\":\"ú\",\"uarr\":\"↑\",\"Uarr\":\"↟\",\"uArr\":\"⇑\",\"Uarrocir\":\"⥉\",\"Ubrcy\":\"Ў\",\"ubrcy\":\"ў\",\"Ubreve\":\"Ŭ\",\"ubreve\":\"ŭ\",\"Ucirc\":\"Û\",\"ucirc\":\"û\",\"Ucy\":\"У\",\"ucy\":\"у\",\"udarr\":\"⇅\",\"Udblac\":\"Ű\",\"udblac\":\"ű\",\"udhar\":\"⥮\",\"ufisht\":\"⥾\",\"Ufr\":\"𝔘\",\"ufr\":\"𝔲\",\"Ugrave\":\"Ù\",\"ugrave\":\"ù\",\"uHar\":\"⥣\",\"uharl\":\"↿\",\"uharr\":\"↾\",\"uhblk\":\"▀\",\"ulcorn\":\"⌜\",\"ulcorner\":\"⌜\",\"ulcrop\":\"⌏\",\"ultri\":\"◸\",\"Umacr\":\"Ū\",\"umacr\":\"ū\",\"uml\":\"¨\",\"UnderBar\":\"_\",\"UnderBrace\":\"⏟\",\"UnderBracket\":\"⎵\",\"UnderParenthesis\":\"⏝\",\"Union\":\"⋃\",\"UnionPlus\":\"⊎\",\"Uogon\":\"Ų\",\"uogon\":\"ų\",\"Uopf\":\"𝕌\",\"uopf\":\"𝕦\",\"UpArrowBar\":\"⤒\",\"uparrow\":\"↑\",\"UpArrow\":\"↑\",\"Uparrow\":\"⇑\",\"UpArrowDownArrow\":\"⇅\",\"updownarrow\":\"↕\",\"UpDownArrow\":\"↕\",\"Updownarrow\":\"⇕\",\"UpEquilibrium\":\"⥮\",\"upharpoonleft\":\"↿\",\"upharpoonright\":\"↾\",\"uplus\":\"⊎\",\"UpperLeftArrow\":\"↖\",\"UpperRightArrow\":\"↗\",\"upsi\":\"υ\",\"Upsi\":\"ϒ\",\"upsih\":\"ϒ\",\"Upsilon\":\"Υ\",\"upsilon\":\"υ\",\"UpTeeArrow\":\"↥\",\"UpTee\":\"⊥\",\"upuparrows\":\"⇈\",\"urcorn\":\"⌝\",\"urcorner\":\"⌝\",\"urcrop\":\"⌎\",\"Uring\":\"Ů\",\"uring\":\"ů\",\"urtri\":\"◹\",\"Uscr\":\"𝒰\",\"uscr\":\"𝓊\",\"utdot\":\"⋰\",\"Utilde\":\"Ũ\",\"utilde\":\"ũ\",\"utri\":\"▵\",\"utrif\":\"▴\",\"uuarr\":\"⇈\",\"Uuml\":\"Ü\",\"uuml\":\"ü\",\"uwangle\":\"⦧\",\"vangrt\":\"⦜\",\"varepsilon\":\"ϵ\",\"varkappa\":\"ϰ\",\"varnothing\":\"∅\",\"varphi\":\"ϕ\",\"varpi\":\"ϖ\",\"varpropto\":\"∝\",\"varr\":\"↕\",\"vArr\":\"⇕\",\"varrho\":\"ϱ\",\"varsigma\":\"ς\",\"varsubsetneq\":\"⊊︀\",\"varsubsetneqq\":\"⫋︀\",\"varsupsetneq\":\"⊋︀\",\"varsupsetneqq\":\"⫌︀\",\"vartheta\":\"ϑ\",\"vartriangleleft\":\"⊲\",\"vartriangleright\":\"⊳\",\"vBar\":\"⫨\",\"Vbar\":\"⫫\",\"vBarv\":\"⫩\",\"Vcy\":\"В\",\"vcy\":\"в\",\"vdash\":\"⊢\",\"vDash\":\"⊨\",\"Vdash\":\"⊩\",\"VDash\":\"⊫\",\"Vdashl\":\"⫦\",\"veebar\":\"⊻\",\"vee\":\"∨\",\"Vee\":\"⋁\",\"veeeq\":\"≚\",\"vellip\":\"⋮\",\"verbar\":\"|\",\"Verbar\":\"‖\",\"vert\":\"|\",\"Vert\":\"‖\",\"VerticalBar\":\"∣\",\"VerticalLine\":\"|\",\"VerticalSeparator\":\"❘\",\"VerticalTilde\":\"≀\",\"VeryThinSpace\":\" \",\"Vfr\":\"𝔙\",\"vfr\":\"𝔳\",\"vltri\":\"⊲\",\"vnsub\":\"⊂⃒\",\"vnsup\":\"⊃⃒\",\"Vopf\":\"𝕍\",\"vopf\":\"𝕧\",\"vprop\":\"∝\",\"vrtri\":\"⊳\",\"Vscr\":\"𝒱\",\"vscr\":\"𝓋\",\"vsubnE\":\"⫋︀\",\"vsubne\":\"⊊︀\",\"vsupnE\":\"⫌︀\",\"vsupne\":\"⊋︀\",\"Vvdash\":\"⊪\",\"vzigzag\":\"⦚\",\"Wcirc\":\"Ŵ\",\"wcirc\":\"ŵ\",\"wedbar\":\"⩟\",\"wedge\":\"∧\",\"Wedge\":\"⋀\",\"wedgeq\":\"≙\",\"weierp\":\"℘\",\"Wfr\":\"𝔚\",\"wfr\":\"𝔴\",\"Wopf\":\"𝕎\",\"wopf\":\"𝕨\",\"wp\":\"℘\",\"wr\":\"≀\",\"wreath\":\"≀\",\"Wscr\":\"𝒲\",\"wscr\":\"𝓌\",\"xcap\":\"⋂\",\"xcirc\":\"◯\",\"xcup\":\"⋃\",\"xdtri\":\"▽\",\"Xfr\":\"𝔛\",\"xfr\":\"𝔵\",\"xharr\":\"⟷\",\"xhArr\":\"⟺\",\"Xi\":\"Ξ\",\"xi\":\"ξ\",\"xlarr\":\"⟵\",\"xlArr\":\"⟸\",\"xmap\":\"⟼\",\"xnis\":\"⋻\",\"xodot\":\"⨀\",\"Xopf\":\"𝕏\",\"xopf\":\"𝕩\",\"xoplus\":\"⨁\",\"xotime\":\"⨂\",\"xrarr\":\"⟶\",\"xrArr\":\"⟹\",\"Xscr\":\"𝒳\",\"xscr\":\"𝓍\",\"xsqcup\":\"⨆\",\"xuplus\":\"⨄\",\"xutri\":\"△\",\"xvee\":\"⋁\",\"xwedge\":\"⋀\",\"Yacute\":\"Ý\",\"yacute\":\"ý\",\"YAcy\":\"Я\",\"yacy\":\"я\",\"Ycirc\":\"Ŷ\",\"ycirc\":\"ŷ\",\"Ycy\":\"Ы\",\"ycy\":\"ы\",\"yen\":\"¥\",\"Yfr\":\"𝔜\",\"yfr\":\"𝔶\",\"YIcy\":\"Ї\",\"yicy\":\"ї\",\"Yopf\":\"𝕐\",\"yopf\":\"𝕪\",\"Yscr\":\"𝒴\",\"yscr\":\"𝓎\",\"YUcy\":\"Ю\",\"yucy\":\"ю\",\"yuml\":\"ÿ\",\"Yuml\":\"Ÿ\",\"Zacute\":\"Ź\",\"zacute\":\"ź\",\"Zcaron\":\"Ž\",\"zcaron\":\"ž\",\"Zcy\":\"З\",\"zcy\":\"з\",\"Zdot\":\"Ż\",\"zdot\":\"ż\",\"zeetrf\":\"ℨ\",\"ZeroWidthSpace\":\"​\",\"Zeta\":\"Ζ\",\"zeta\":\"ζ\",\"zfr\":\"𝔷\",\"Zfr\":\"ℨ\",\"ZHcy\":\"Ж\",\"zhcy\":\"ж\",\"zigrarr\":\"⇝\",\"zopf\":\"𝕫\",\"Zopf\":\"ℤ\",\"Zscr\":\"𝒵\",\"zscr\":\"𝓏\",\"zwj\":\"‍\",\"zwnj\":\"‌\"}");
+const LEGACY_ENTITIES = new Set(["AElig", "AMP", "Aacute", "Acirc", "Agrave", "Aring", "Atilde", "Auml", "COPY", "Ccedil", "ETH", "Eacute", "Ecirc", "Egrave", "Euml", "GT", "Iacute", "Icirc", "Igrave", "Iuml", "LT", "Ntilde", "Oacute", "Ocirc", "Ograve", "Oslash", "Otilde", "Ouml", "QUOT", "REG", "THORN", "Uacute", "Ucirc", "Ugrave", "Uuml", "Yacute", "aacute", "acirc", "acute", "aelig", "agrave", "amp", "aring", "atilde", "auml", "brvbar", "ccedil", "cedil", "cent", "copy", "curren", "deg", "divide", "eacute", "ecirc", "egrave", "eth", "euml", "frac12", "frac14", "frac34", "gt", "iacute", "icirc", "iexcl", "igrave", "iquest", "iuml", "laquo", "lt", "macr", "micro", "middot", "nbsp", "not", "ntilde", "oacute", "ocirc", "ograve", "ordf", "ordm", "oslash", "otilde", "ouml", "para", "plusmn", "pound", "quot", "raquo", "reg", "sect", "shy", "sup1", "sup2", "sup3", "szlig", "thorn", "times", "uacute", "ucirc", "ugrave", "uml", "uuml", "yacute", "yen", "yuml"]);
+const NUMERIC_REMAP = JSON.parse("{\"0\":65533,\"128\":8364,\"130\":8218,\"131\":402,\"132\":8222,\"133\":8230,\"134\":8224,\"135\":8225,\"136\":710,\"137\":8240,\"138\":352,\"139\":8249,\"140\":338,\"142\":381,\"145\":8216,\"146\":8217,\"147\":8220,\"148\":8221,\"149\":8226,\"150\":8211,\"151\":8212,\"152\":732,\"153\":8482,\"154\":353,\"155\":8250,\"156\":339,\"158\":382,\"159\":376}");
+
+return { NAMED_ENTITIES, LEGACY_ENTITIES, NUMERIC_REMAP };
+})();
+
+// ---- src/htmldom.mjs ----
+const __m_htmldom_mjs = (() => {
+const { NAMED_ENTITIES, LEGACY_ENTITIES, NUMERIC_REMAP } = __m_htmlentities_mjs;
+// HTML documents for the HTML node's extraction, built the way n8n's libraries build them:
+//
+// - parseHtml(html): the tree cheerio 1.1's load() gives (parse5 7: html, head and body always
+//   present, implied end tags, tbody inserted in tables, text in a table moved before it). This
+//   is the common subset of the HTML tree-construction algorithm, not all of it: misnested
+//   formatting elements are closed where they end instead of being reconstructed (the adoption
+//   agency), and frameset and template contents are plain children.
+// - parseHtmlLoose(html): the tree htmlparser2 8 gives (html-to-text parses with it): no implied
+//   html, head, body or tbody; a start tag closes the open tags its table names
+//   (openImpliesClose); an end tag closes up to its open element, or is ignored.
+// - selectAll(selector, roots): css-select's matching (cheerio's $(selector)) in document order.
+// - innerHtml(el), outerHtml(node): parse5's serializer, as cheerio's .html() renders.
+// - textContent(node): domutils' textContent (cheerio's .text()), comments left out.
+//
+// Nodes are domhandler-shaped, which is what css-select and html-to-text walk: {type: "root" |
+// "tag" | "script" | "style" | "text" | "comment" | "directive", name, attribs, children, parent,
+// data}. A selector or construct this module does not carry throws UnsupportedHtml, so a step
+// refuses instead of extracting something n8n would not.
+
+
+class UnsupportedHtml extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "UnsupportedHtml";
+  }
+}
+
+const set = (s) => new Set(s.split(" "));
+const VOID_ELEMENTS = set("area base basefont bgsound br col embed frame hr img input keygen link meta param source track wbr");
+const LOOSE_VOID = set("area base basefont br col command embed frame hr img input isindex keygen link meta param source track wbr");
+
+// ---------- entities ----------
+
+const MAX_NAME = Math.max(...Object.keys(NAMED_ENTITIES).map((k) => k.length));
+function codePoint(n) {
+  if (n === 0 || n > 0x10ffff || (n >= 0xd800 && n <= 0xdfff)) return "�";
+  if (NUMERIC_REMAP[n] !== undefined) return String.fromCodePoint(NUMERIC_REMAP[n]);
+  return String.fromCodePoint(n);
+}
+const isAlnum = (c) => /[A-Za-z0-9]/.test(c ?? "");
+
+// Decodes the character reference at s[i] === "&". Returns [text, length] or null.
+function entityAt(s, i, inAttribute) {
+  const c = s[i + 1];
+  if (c === "#") {
+    const hex = s[i + 2] === "x" || s[i + 2] === "X";
+    const re = hex ? /^[0-9a-fA-F]+/ : /^[0-9]+/;
+    const m = re.exec(s.slice(i + (hex ? 3 : 2), i + (hex ? 3 : 2) + 12));
+    if (!m) return null;
+    let len = (hex ? 3 : 2) + m[0].length;
+    if (s[i + len] === ";") len++;
+    return [codePoint(parseInt(m[0], hex ? 16 : 10)), len];
+  }
+  if (!isAlnum(c)) return null;
+  let j = i + 1;
+  while (j < s.length && j - i - 1 < MAX_NAME && isAlnum(s[j])) j++;
+  const name = s.slice(i + 1, j);
+  if (s[j] === ";" && NAMED_ENTITIES[name] !== undefined) return [NAMED_ENTITIES[name], name.length + 2];
+  // Legacy names decode without ";" (the longest that matches); in an attribute value not when
+  // an alphanumeric or "=" follows.
+  for (let k = name.length; k > 1; k--) {
+    const n = name.slice(0, k);
+    if (!LEGACY_ENTITIES.has(n)) continue;
+    const next = s[i + 1 + k];
+    if (inAttribute && (next === "=" || isAlnum(next))) return null;
+    return [NAMED_ENTITIES[n], k + 1];
+  }
+  return null;
+}
+
+function decodeEntities(s, inAttribute = false) {
+  if (!s.includes("&")) return s;
+  let out = "";
+  let last = 0;
+  for (let i = s.indexOf("&"); i !== -1; i = s.indexOf("&", i + 1)) {
+    const e = entityAt(s, i, inAttribute);
+    if (!e) continue;
+    out += s.slice(last, i) + e[0];
+    last = i + e[1];
+    i = last - 1;
+  }
+  return out + s.slice(last);
+}
+
+// ---------- tokenizer ----------
+
+const WS = /[\t\n\f\r ]/;
+
+// Pull tokenizer. After a start tag the builder may call raw(name, kind): "raw" (no entities, no
+// tags), "rcdata" (entities, no tags) or "plaintext", until the matching end tag.
+class Tokenizer {
+  constructor(src) {
+    this.s = src;
+    this.i = 0;
+    this.rawName = null;
+    this.rawKind = null;
+  }
+  raw(name, kind) {
+    this.rawName = name;
+    this.rawKind = kind;
+  }
+  next() {
+    const s = this.s;
+    if (this.i >= s.length) return null;
+    if (this.rawKind) {
+      const kind = this.rawKind;
+      const name = this.rawName;
+      this.rawKind = this.rawName = null;
+      let end = s.length;
+      if (kind !== "plaintext") {
+        const re = new RegExp(`</${name}(?=[\\t\\n\\f\\r />])`, "ig");
+        re.lastIndex = this.i;
+        const m = re.exec(s);
+        if (m) end = m.index;
+      }
+      const data = s.slice(this.i, end);
+      this.i = end;
+      if (data) return { type: "text", data: kind === "rcdata" ? decodeEntities(data) : data, raw: true };
+      return this.next();
+    }
+    if (s[this.i] !== "<") {
+      let j = s.indexOf("<", this.i);
+      while (j !== -1 && !this.tagStartsAt(j)) j = s.indexOf("<", j + 1);
+      if (j === -1) j = s.length;
+      const data = s.slice(this.i, j);
+      this.i = j;
+      return { type: "text", data: decodeEntities(data) };
+    }
+    if (!this.tagStartsAt(this.i)) {
+      // A lone "<" is text.
+      let j = s.indexOf("<", this.i + 1);
+      while (j !== -1 && !this.tagStartsAt(j)) j = s.indexOf("<", j + 1);
+      if (j === -1) j = s.length;
+      const data = s.slice(this.i, j);
+      this.i = j;
+      return { type: "text", data: decodeEntities(data) };
+    }
+    const c = s[this.i + 1];
+    if (c === "!") {
+      if (s.startsWith("<!--", this.i)) {
+        const start = this.i + 4;
+        let end;
+        if (s.startsWith(">", start)) end = start, (this.i = start + 1);
+        else if (s.startsWith("->", start)) end = start, (this.i = start + 2);
+        else {
+          const k = s.indexOf("-->", start);
+          end = k === -1 ? s.length : k;
+          this.i = k === -1 ? s.length : k + 3;
+        }
+        return { type: "comment", data: s.slice(start, end) };
+      }
+      const k = s.indexOf(">", this.i);
+      const body = s.slice(this.i + 2, k === -1 ? s.length : k);
+      this.i = k === -1 ? s.length : k + 1;
+      if (/^doctype/i.test(body)) return { type: "doctype", data: body };
+      return { type: "comment", data: body };
+    }
+    if (c === "?") {
+      const k = s.indexOf(">", this.i);
+      const body = s.slice(this.i + 1, k === -1 ? s.length : k);
+      this.i = k === -1 ? s.length : k + 1;
+      return { type: "comment", data: body, pi: true };
+    }
+    if (c === "/") {
+      if (s[this.i + 2] === ">") {
+        this.i += 3;
+        return this.next();
+      }
+      if (!/[A-Za-z]/.test(s[this.i + 2] ?? "")) {
+        const k = s.indexOf(">", this.i);
+        const body = s.slice(this.i + 2, k === -1 ? s.length : k);
+        this.i = k === -1 ? s.length : k + 1;
+        return { type: "comment", data: body };
+      }
+      const m = /^<\/([^\t\n\f\r />]+)/.exec(s.slice(this.i, this.i + 256));
+      const k = s.indexOf(">", this.i);
+      this.i = k === -1 ? s.length : k + 1;
+      return { type: "end", name: m[1].toLowerCase() };
+    }
+    return this.startTag();
+  }
+  tagStartsAt(j) {
+    const c = this.s[j + 1];
+    return c !== undefined && (/[A-Za-z!?]/.test(c) || (c === "/" && this.s[j + 2] !== undefined));
+  }
+  startTag() {
+    const s = this.s;
+    let i = this.i + 1;
+    let j = i;
+    while (j < s.length && !WS.test(s[j]) && s[j] !== "/" && s[j] !== ">") j++;
+    const name = s.slice(i, j).toLowerCase();
+    i = j;
+    const attrs = [];
+    let selfClosing = false;
+    for (;;) {
+      while (i < s.length && (WS.test(s[i]) || (s[i] === "/" && s[i + 1] !== ">"))) i++;
+      if (i >= s.length) break;
+      if (s[i] === ">") {
+        i++;
+        break;
+      }
+      if (s[i] === "/" && s[i + 1] === ">") {
+        selfClosing = true;
+        i += 2;
+        break;
+      }
+      let k = i + 1;
+      while (k < s.length && !WS.test(s[k]) && s[k] !== "/" && s[k] !== ">" && s[k] !== "=") k++;
+      const an = s.slice(i, k).toLowerCase();
+      i = k;
+      while (i < s.length && WS.test(s[i])) i++;
+      let value = "";
+      if (s[i] === "=") {
+        i++;
+        while (i < s.length && WS.test(s[i])) i++;
+        const q = s[i];
+        if (q === '"' || q === "'") {
+          const e = s.indexOf(q, i + 1);
+          value = s.slice(i + 1, e === -1 ? s.length : e);
+          i = e === -1 ? s.length : e + 1;
+        } else {
+          let e = i;
+          while (e < s.length && !WS.test(s[e]) && s[e] !== ">") e++;
+          value = s.slice(i, e);
+          i = e;
+        }
+        value = decodeEntities(value, true);
+      }
+      if (!attrs.some(([n]) => n === an)) attrs.push([an, value]);
+    }
+    this.i = i;
+    return { type: "start", name, attrs, selfClosing };
+  }
+}
+
+// ---------- nodes ----------
+
+const elementType = (name) => (name === "script" ? "script" : name === "style" ? "style" : "tag");
+function element(name, attrs = []) {
+  return { type: elementType(name), name, attribs: Object.fromEntries(attrs), children: [], parent: null };
+}
+function append(parent, node) {
+  const last = parent.children[parent.children.length - 1];
+  if (node.type === "text" && last?.type === "text") {
+    last.data += node.data;
+    return last;
+  }
+  node.parent = parent;
+  parent.children.push(node);
+  return node;
+}
+function insertBefore(parent, node, ref) {
+  const at = parent.children.indexOf(ref);
+  const prev = parent.children[at - 1];
+  if (node.type === "text" && prev?.type === "text") {
+    prev.data += node.data;
+    return prev;
+  }
+  node.parent = parent;
+  parent.children.splice(at, 0, node);
+  return node;
+}
+
+// ---------- parse5-like tree construction (cheerio.load) ----------
+
+const SPECIAL = set(
+  "address applet area article aside base basefont bgsound blockquote body br button caption center col colgroup dd details dir div dl dt embed fieldset figcaption figure footer form frame frameset h1 h2 h3 h4 h5 h6 head header hgroup hr html iframe img input keygen li link listing main marquee menu meta nav noembed noframes noscript object ol p param plaintext pre script search section select source style summary table tbody td template textarea tfoot th thead title tr track ul wbr xmp",
+);
+const CLOSES_P = set("address article aside blockquote center details dialog dir div dl fieldset figcaption figure footer header hgroup main menu nav ol p search section summary ul");
+const HEADINGS = set("h1 h2 h3 h4 h5 h6");
+const IMPLIED_END = set("dd dt li optgroup option p rb rp rt rtc");
+const SCOPE = set("applet caption html table td th marquee object template");
+const HEAD_ELEMENTS = set("base basefont bgsound link meta noframes script style template title");
+const RAW_TEXT = set("style xmp iframe noembed noframes noscript");
+const TABLE_CONTEXT = set("table tbody thead tfoot tr");
+const TABLE_SECTIONS = set("tbody thead tfoot");
+
+function quirksOf(doctype) {
+  if (doctype === null) return true;
+  const m = /^doctype\s+(\S+)?\s*(.*)$/is.exec(doctype.trim());
+  if (!m || (m[1] ?? "").toLowerCase() !== "html") return true;
+  const rest = m[2] ?? "";
+  const pub = /public\s+["']([^"']*)["']\s*(["'][^"']*["'])?/i.exec(rest);
+  if (!pub) return false;
+  const id = pub[1].toLowerCase();
+  const system = pub[2];
+  if (/^-\/\/w3c\/\/dtd html 4\.01 (transitional|frameset)\/\//.test(id)) return !system;
+  if (/^-\/\/w3c\/\/dtd xhtml 1\.0 (transitional|frameset)\/\//.test(id)) return false;
+  if (/^-\/\/(w3c|ietf|w3o|webtechs|softquad|sun microsystems|o'reilly|netscape|microsoft|metrius|spyglass|sq|as|advasoft|silmaril|ibm)\/\/dtd /.test(id) && !/^-\/\/w3c\/\/dtd (html 4\.01|xhtml)/.test(id)) return true;
+  return false;
+}
+
+function parseHtml(html) {
+  const tok = new Tokenizer(String(html));
+  const doc = { type: "root", name: "root", children: [], parent: null };
+  let htmlEl = null;
+  let head = null;
+  let body = null;
+  const stack = [];
+  let doctype = null;
+  let quirks = null;
+  let dropNewline = false;
+  const current = () => stack[stack.length - 1];
+  const ensureHtml = (attrs = []) => {
+    if (htmlEl) return;
+    htmlEl = append(doc, element("html", attrs));
+    stack.push(htmlEl);
+  };
+  const ensureHead = () => {
+    ensureHtml();
+    if (head) return;
+    head = append(htmlEl, element("head"));
+  };
+  const ensureBody = (attrs = []) => {
+    ensureHead();
+    if (body) return;
+    body = append(htmlEl, element("body", attrs));
+    stack.length = 0;
+    stack.push(htmlEl, body);
+  };
+  const inScope = (names, extra = null) => {
+    for (let k = stack.length - 1; k >= 0; k--) {
+      const n = stack[k].name;
+      if (names.has(n)) return k;
+      if (SCOPE.has(n) || extra?.has(n)) return -1;
+    }
+    return -1;
+  };
+  const BUTTON = set("button");
+  const LIST = set("ol ul");
+  const TABLE_SCOPE = set("html table template");
+  const inTableScope = (names) => {
+    for (let k = stack.length - 1; k >= 0; k--) {
+      if (names.has(stack[k].name)) return k;
+      if (TABLE_SCOPE.has(stack[k].name)) return -1;
+    }
+    return -1;
+  };
+  const popTo = (k) => {
+    if (k >= 0) stack.length = Math.max(k, 2);
+  };
+  const generateImplied = (except = null) => {
+    while (stack.length > 2 && IMPLIED_END.has(current().name) && current().name !== except) stack.pop();
+  };
+  const closeP = () => {
+    const k = inScope(set("p"), BUTTON);
+    if (k >= 0) {
+      generateImplied("p");
+      popTo(k);
+    }
+  };
+  // Where a node goes: the current node, or before the table when the current node is a table
+  // part (foster parenting).
+  const insert = (node, foster = true) => {
+    const cur = current();
+    if (foster && TABLE_CONTEXT.has(cur.name) && !(node.type === "text" && !/[^\t\n\f\r ]/.test(node.data))) {
+      let t = -1;
+      for (let k = stack.length - 1; k >= 0; k--) if (stack[k].name === "table") (t = k), (k = -1);
+      const table = stack[t];
+      if (table?.parent) return insertBefore(table.parent, node, table);
+      return append(stack[t - 1] ?? cur, node);
+    }
+    return append(cur, node);
+  };
+  const insertElement = (t, push = true, foster = true) => {
+    const el = insert(element(t.name === "image" ? "img" : t.name, t.attrs), foster);
+    if (push && !VOID_ELEMENTS.has(el.name) && !(t.selfClosing && inForeign())) stack.push(el);
+    return el;
+  };
+  const inForeign = () => stack.some((e) => e.name === "svg" || e.name === "math");
+  // The innermost table part on the stack decides how table tokens are handled.
+  const tableMode = () => {
+    for (let k = stack.length - 1; k >= 0; k--) {
+      const n = stack[k].name;
+      if (n === "td" || n === "th") return "cell";
+      if (n === "caption") return "caption";
+      if (n === "tr") return "row";
+      if (TABLE_SECTIONS.has(n)) return "section";
+      if (n === "table") return "table";
+    }
+    return null;
+  };
+  const clearTo = (names) => {
+    while (stack.length > 2 && !names.has(current().name)) stack.pop();
+  };
+
+  const startInBody = (t) => {
+    const n = t.name;
+    if (n === "html") {
+      for (const [a, v] of t.attrs) if (!(a in htmlEl.attribs)) htmlEl.attribs[a] = v;
+      return;
+    }
+    if (n === "body") {
+      for (const [a, v] of t.attrs) if (!(a in body.attribs)) body.attribs[a] = v;
+      return;
+    }
+    if (n === "head" || n === "frameset" || n === "frame") return;
+    // Table structure.
+    const mode = tableMode();
+    if (["caption", "col", "colgroup", "tbody", "tfoot", "thead", "td", "th", "tr", "table"].includes(n) && mode) return startInTable(t, mode);
+    if (n === "table" && !mode) {
+      if (!quirks) closeP();
+      insertElement(t);
+      return;
+    }
+    if (["caption", "col", "colgroup", "tbody", "tfoot", "thead", "td", "th", "tr"].includes(n)) return; // outside a table: ignored
+    if (HEAD_ELEMENTS.has(n)) {
+      const el = insertElement(t, true, !["script", "style", "template"].includes(n));
+      if (n === "title") tok.raw("title", "rcdata");
+      else if (n === "script") tok.raw("script", "raw");
+      else if (n === "style" || n === "noframes") tok.raw(n, "raw");
+      return el;
+    }
+    if (CLOSES_P.has(n)) {
+      closeP();
+      insertElement(t);
+      return;
+    }
+    if (HEADINGS.has(n)) {
+      closeP();
+      if (HEADINGS.has(current().name)) stack.pop();
+      insertElement(t);
+      return;
+    }
+    if (n === "pre" || n === "listing") {
+      closeP();
+      insertElement(t);
+      dropNewline = true;
+      return;
+    }
+    if (n === "form") {
+      closeP();
+      insertElement(t);
+      return;
+    }
+    if (n === "li" || n === "dd" || n === "dt") {
+      const names = n === "li" ? set("li") : set("dd dt");
+      for (let k = stack.length - 1; k >= 2; k--) {
+        const e = stack[k];
+        if (names.has(e.name)) {
+          generateImplied(e.name);
+          popTo(k);
+          break;
+        }
+        if (SPECIAL.has(e.name) && !["address", "div", "p"].includes(e.name)) break;
+      }
+      closeP();
+      insertElement(t);
+      return;
+    }
+    if (n === "plaintext") {
+      closeP();
+      insertElement(t);
+      tok.raw("plaintext", "plaintext");
+      return;
+    }
+    if (n === "button") {
+      const k = inScope(set("button"));
+      if (k >= 0) {
+        generateImplied();
+        popTo(k);
+      }
+      insertElement(t);
+      return;
+    }
+    if (n === "a") {
+      // A second <a> closes the first (the adoption agency, for the common case).
+      for (let k = stack.length - 1; k >= 2; k--) {
+        if (stack[k].name === "a") {
+          popTo(k);
+          break;
+        }
+        if (SPECIAL.has(stack[k].name)) break;
+      }
+      insertElement(t);
+      return;
+    }
+    if (n === "nobr") {
+      const k = inScope(set("nobr"));
+      if (k >= 0) popTo(k);
+      insertElement(t);
+      return;
+    }
+    if (n === "hr") {
+      closeP();
+      insertElement(t);
+      return;
+    }
+    if (n === "textarea") {
+      insertElement(t);
+      tok.raw("textarea", "rcdata");
+      dropNewline = true;
+      return;
+    }
+    if (n === "xmp") {
+      closeP();
+      insertElement(t);
+      tok.raw("xmp", "raw");
+      return;
+    }
+    if (RAW_TEXT.has(n)) {
+      insertElement(t);
+      tok.raw(n, "raw");
+      return;
+    }
+    if (n === "option" || n === "optgroup") {
+      if (current().name === "option") stack.pop();
+      insertElement(t);
+      return;
+    }
+    if (n === "rb" || n === "rtc") {
+      if (inScope(set("ruby")) >= 0) generateImplied();
+      insertElement(t);
+      return;
+    }
+    if (n === "rp" || n === "rt") {
+      if (inScope(set("ruby")) >= 0) generateImplied("rtc");
+      insertElement(t);
+      return;
+    }
+    if (n === "select") {
+      insertElement(t);
+      return;
+    }
+    insertElement(t);
+  };
+
+  const startInTable = (t, mode) => {
+    const n = t.name;
+    if (mode === "cell" || mode === "caption") {
+      if (["caption", "col", "colgroup", "tbody", "tfoot", "thead", "td", "th", "tr", "table"].includes(n)) {
+        if (n === "table" && mode === "cell") {
+          // A table inside a cell is content of the cell.
+          if (!quirks) closeP();
+          insertElement(t, true, false);
+          return;
+        }
+        const k = inTableScope(mode === "cell" ? set("td th") : set("caption"));
+        if (k < 0) return;
+        generateImplied();
+        popTo(k);
+        return startInBody(t);
+      }
+    }
+    if (mode === "row") {
+      if (n === "td" || n === "th") {
+        clearTo(set("tr template html"));
+        insertElement(t, true, false);
+        return;
+      }
+      clearTo(set("tr template html"));
+      if (current().name === "tr") stack.pop();
+      return startInBody(t);
+    }
+    if (mode === "section") {
+      if (n === "tr") {
+        clearTo(set("tbody thead tfoot template html"));
+        insertElement(t, true, false);
+        return;
+      }
+      if (n === "td" || n === "th") {
+        clearTo(set("tbody thead tfoot template html"));
+        insertElement({ name: "tr", attrs: [] }, true, false);
+        insertElement(t, true, false);
+        return;
+      }
+      clearTo(set("tbody thead tfoot template html"));
+      if (TABLE_SECTIONS.has(current().name)) stack.pop();
+      return startInBody(t);
+    }
+    // mode === "table"
+    if (n === "caption") {
+      clearTo(set("table template html"));
+      insertElement(t, true, false);
+      return;
+    }
+    if (n === "colgroup") {
+      clearTo(set("table template html"));
+      insertElement(t, true, false);
+      return;
+    }
+    if (n === "col") {
+      clearTo(set("table template html"));
+      const cg = insertElement({ name: "colgroup", attrs: [] }, true, false);
+      append(cg, element("col", t.attrs));
+      stack.pop();
+      return;
+    }
+    if (TABLE_SECTIONS.has(n)) {
+      clearTo(set("table template html"));
+      insertElement(t, true, false);
+      return;
+    }
+    if (n === "td" || n === "th" || n === "tr") {
+      clearTo(set("table template html"));
+      insertElement({ name: "tbody", attrs: [] }, true, false);
+      return startInTable(t, "section");
+    }
+    if (n === "table") {
+      const k = inTableScope(set("table"));
+      if (k < 0) return;
+      popTo(k);
+      return startInBody(t);
+    }
+  };
+
+  const endInBody = (name) => {
+    if (name === "body" || name === "html") return;
+    const mode = tableMode();
+    if (mode && ["table", "tbody", "tfoot", "thead", "tr", "td", "th", "caption", "colgroup"].includes(name)) {
+      const k = inTableScope(set(name));
+      if (k < 0) return;
+      generateImplied();
+      popTo(k);
+      return;
+    }
+    if (name === "p") {
+      if (inScope(set("p"), BUTTON) < 0) {
+        insertElement({ name: "p", attrs: [] });
+      }
+      closeP();
+      return;
+    }
+    if (name === "li") {
+      const k = inScope(set("li"), LIST);
+      if (k >= 0) {
+        generateImplied("li");
+        popTo(k);
+      }
+      return;
+    }
+    if (name === "dd" || name === "dt") {
+      const k = inScope(set(name));
+      if (k >= 0) {
+        generateImplied(name);
+        popTo(k);
+      }
+      return;
+    }
+    if (HEADINGS.has(name)) {
+      const k = inScope(HEADINGS);
+      if (k >= 0) {
+        generateImplied();
+        popTo(k);
+      }
+      return;
+    }
+    if (name === "br") {
+      insertElement({ name: "br", attrs: [] });
+      return;
+    }
+    if (CLOSES_P.has(name) || ["pre", "listing", "form", "button", "applet", "marquee", "object"].includes(name)) {
+      const k = inScope(set(name));
+      if (k >= 0) {
+        generateImplied();
+        popTo(k);
+      }
+      return;
+    }
+    for (let k = stack.length - 1; k >= 2; k--) {
+      const e = stack[k];
+      if (e.name === name) {
+        generateImplied(name);
+        popTo(k);
+        return;
+      }
+      if (SPECIAL.has(e.name)) return;
+    }
+  };
+
+  for (let t = tok.next(); t; t = tok.next()) {
+    if (t.type === "doctype") {
+      if (!htmlEl && doctype === null) {
+        doctype = t.data;
+        const name = /^doctype\s*(\S*)/i.exec(t.data)?.[1]?.toLowerCase() ?? "";
+        append(doc, { type: "directive", name: "!doctype", data: `!${t.data}`, doctypeName: name, parent: null });
+      }
+      continue;
+    }
+    if (quirks === null && t.type !== "comment") quirks = quirksOf(doctype);
+    if (t.type === "comment") {
+      const where = body ? current() : head && stack.includes(head) ? head : htmlEl ?? doc;
+      insertComment(where, t.data, insert, body);
+      continue;
+    }
+    if (t.type === "text") {
+      let data = t.data;
+      if (dropNewline) {
+        dropNewline = false;
+        if (data.startsWith("\n")) data = data.slice(1);
+        if (!data) continue;
+      }
+      if (!body) {
+        const lead = /^[\t\n\f\r ]*/.exec(data)[0];
+        if (!htmlEl || !head) {
+          data = data.slice(lead.length);
+          if (!data) continue;
+        } else if (stack[stack.length - 1] === head || t.raw) {
+          if (t.raw) {
+            append(current(), { type: "text", data });
+            continue;
+          }
+          if (lead) append(head, { type: "text", data: lead });
+          data = data.slice(lead.length);
+          if (!data) continue;
+          stack.pop(); // head
+        } else {
+          if (lead) append(htmlEl, { type: "text", data: lead });
+          data = data.slice(lead.length);
+          if (!data) continue;
+        }
+        ensureBody();
+      }
+      insert({ type: "text", data });
+      continue;
+    }
+    if (t.type === "start") {
+      dropNewline = false;
+      if (!body) {
+        if (t.name === "html") {
+          if (!htmlEl) ensureHtml(t.attrs);
+          else for (const [a, v] of t.attrs) if (!(a in htmlEl.attribs)) htmlEl.attribs[a] = v;
+          continue;
+        }
+        if (t.name === "head" && !head) {
+          ensureHtml();
+          head = append(htmlEl, element("head", t.attrs));
+          stack.push(head);
+          continue;
+        }
+        if (HEAD_ELEMENTS.has(t.name) || (t.name === "noscript" && current() === head)) {
+          // In head (or back into it after head): the element goes into head; a raw-text one
+          // stays open on the stack until its end tag.
+          ensureHead();
+          const el = append(head, element(t.name, t.attrs));
+          if (!VOID_ELEMENTS.has(t.name)) {
+            stack.push(el);
+            tok.raw(t.name, t.name === "title" ? "rcdata" : "raw");
+          }
+          continue;
+        }
+        if (t.name === "body") {
+          if (current() === head) stack.pop();
+          ensureBody(t.attrs);
+          continue;
+        }
+        if (current() === head) stack.pop();
+        ensureBody();
+      }
+      startInBody(t);
+      continue;
+    }
+    if (t.type === "end") {
+      if (!body) {
+        if (current() !== head && current() !== htmlEl && current().name === t.name) {
+          stack.pop();
+          continue;
+        }
+        if (t.name === "head" && current() === head) {
+          stack.pop();
+          continue;
+        }
+        if (!["body", "html", "br"].includes(t.name)) continue;
+        if (t.name === "br") {
+          if (current() === head) stack.pop();
+          ensureBody();
+        } else continue;
+      }
+      endInBody(t.name);
+    }
+  }
+  ensureBody();
+  return doc;
+}
+
+function insertComment(where, data, insert, inBody) {
+  const node = { type: "comment", data, parent: null };
+  if (inBody) insert(node);
+  else append(where, node);
+}
+
+// ---------- htmlparser2-like tree construction (html-to-text) ----------
+
+const P = set("p");
+const FORM_TAGS = set("input option optgroup select button datalist textarea");
+const DDT = set("dd dt");
+const RTP = set("rt rp");
+const SECTIONS = set("thead tbody");
+const OPEN_IMPLIES_CLOSE = new Map([
+  ["tr", set("tr th td")],
+  ["th", set("th")],
+  ["td", set("thead th td")],
+  ["body", set("head link script")],
+  ["li", set("li")],
+  ...["p", "h1", "h2", "h3", "h4", "h5", "h6"].map((n) => [n, P]),
+  ...["select", "input", "output", "button", "datalist", "textarea"].map((n) => [n, FORM_TAGS]),
+  ["option", set("option")],
+  ["optgroup", set("optgroup option")],
+  ["dd", DDT],
+  ["dt", DDT],
+  ...["address", "article", "aside", "blockquote", "details", "div", "dl", "fieldset", "figcaption", "figure", "footer", "form", "header", "hr", "main", "nav", "ol", "pre", "section", "table", "ul"].map((n) => [n, P]),
+  ["rt", RTP],
+  ["rp", RTP],
+  ["tbody", SECTIONS],
+  ["tfoot", SECTIONS],
+]);
+const FOREIGN = set("math svg");
+const INTEGRATION = set("mi mo mn ms mtext annotation-xml foreignobject desc title");
+
+function parseHtmlLoose(html) {
+  const tok = new Tokenizer(String(html));
+  const doc = { type: "root", name: "root", children: [], parent: null };
+  const stack = [doc];
+  const foreign = [];
+  const current = () => stack[stack.length - 1];
+  for (let t = tok.next(); t; t = tok.next()) {
+    if (t.type === "text") append(current(), { type: "text", data: t.data });
+    else if (t.type === "comment") {
+      if (t.pi) append(current(), { type: "directive", name: t.data.split(/\s|\//)[0].toLowerCase(), data: t.data, parent: null });
+      else append(current(), { type: "comment", data: t.data, parent: null });
+    } else if (t.type === "doctype") append(current(), { type: "directive", name: "!doctype", data: `!${t.data}`, parent: null });
+    else if (t.type === "start") {
+      const imp = OPEN_IMPLIES_CLOSE.get(t.name);
+      if (imp) while (stack.length > 1 && imp.has(current().name)) stack.pop();
+      const el = append(current(), element(t.name, t.attrs));
+      if (LOOSE_VOID.has(t.name)) continue;
+      if (FOREIGN.has(t.name)) foreign.push(true);
+      else if (INTEGRATION.has(t.name)) foreign.push(false);
+      if (t.selfClosing && foreign[foreign.length - 1]) {
+        if (FOREIGN.has(t.name) || INTEGRATION.has(t.name)) foreign.pop();
+        continue;
+      }
+      stack.push(el);
+      if (t.name === "script" || t.name === "style") tok.raw(t.name, "raw");
+      else if (t.name === "title") tok.raw("title", "rcdata");
+    } else if (t.type === "end") {
+      if (FOREIGN.has(t.name) || INTEGRATION.has(t.name)) foreign.pop();
+      if (LOOSE_VOID.has(t.name)) {
+        if (t.name === "br") append(current(), element("br"));
+        continue;
+      }
+      let k = stack.length - 1;
+      while (k > 0 && stack[k].name !== t.name) k--;
+      if (k > 0) stack.length = k;
+      else if (t.name === "p") append(current(), element("p"));
+    }
+  }
+  return doc;
+}
+
+// ---------- serializer (parse5) and text ----------
+
+const RAW_PARENTS = set("style script xmp iframe noembed noframes plaintext noscript");
+const escapeText = (s) => s.replace(/&/g, "&amp;").replace(/ /g, "&nbsp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const escapeAttr = (s) => s.replace(/&/g, "&amp;").replace(/ /g, "&nbsp;").replace(/"/g, "&quot;");
+
+function outerHtml(node) {
+  if (node.type === "text") return node.parent && RAW_PARENTS.has(node.parent.name) ? node.data : escapeText(node.data);
+  if (node.type === "comment") return `<!--${node.data}-->`;
+  if (node.type === "directive") return node.name === "!doctype" ? `<!DOCTYPE ${node.doctypeName ?? "html"}>` : `<${node.data}>`;
+  if (node.type === "root") return innerHtml(node);
+  let s = `<${node.name}`;
+  for (const [a, v] of Object.entries(node.attribs ?? {})) s += ` ${a}="${escapeAttr(String(v))}"`;
+  s += ">";
+  if (VOID_ELEMENTS.has(node.name)) return s;
+  return `${s}${innerHtml(node)}</${node.name}>`;
+}
+const innerHtml = (node) => (node.children ?? []).map(outerHtml).join("");
+
+function textContent(node) {
+  if (Array.isArray(node)) return node.map(textContent).join("");
+  if (node.type === "text") return node.data;
+  if (node.type === "comment" || node.type === "directive") return "";
+  return (node.children ?? []).map(textContent).join("");
+}
+
+const isTag = (n) => n?.type === "tag" || n?.type === "script" || n?.type === "style";
+
+// ---------- CSS selectors (css-select, with cheerio's defaults) ----------
+
+// Parses a selector list into [[{combinator, compound}]]; compound = {tag, ids, classes, attrs,
+// pseudos}. Throws UnsupportedHtml on syntax it does not carry.
+function parseSelector(src) {
+  const s = String(src);
+  let i = 0;
+  const groups = [];
+  let seq = [];
+  let comb = null;
+  const ws = () => {
+    const st = i;
+    while (i < s.length && /\s/.test(s[i])) i++;
+    return i > st;
+  };
+  const ident = () => {
+    const m = /^(?:\\.|[\w -￿-])+/.exec(s.slice(i));
+    if (!m) return null;
+    i += m[0].length;
+    return m[0].replace(/\\(.)/g, "$1");
+  };
+  const fail = (why) => {
+    throw new UnsupportedHtml(`CSS selector "${s}": ${why}`);
+  };
+  ws();
+  while (i < s.length) {
+    const compound = { tag: null, ids: [], classes: [], attrs: [], pseudos: [] };
+    let any = false;
+    if (s[i] === "*") {
+      i++;
+      any = true;
+    } else {
+      const t = ident();
+      if (t) (compound.tag = t.toLowerCase()), (any = true);
+    }
+    for (;;) {
+      const c = s[i];
+      if (c === "#") {
+        i++;
+        const v = ident();
+        if (v === null) fail("an id needs a name");
+        compound.ids.push(v);
+      } else if (c === ".") {
+        i++;
+        const v = ident();
+        if (v === null) fail("a class needs a name");
+        compound.classes.push(v);
+      } else if (c === "[") {
+        i++;
+        ws();
+        const name = ident();
+        if (!name) fail("an attribute selector needs a name");
+        ws();
+        let op = null;
+        let value = null;
+        let flag = null;
+        const m = /^([~|^$*!]?=)/.exec(s.slice(i));
+        if (m) {
+          op = m[1];
+          i += m[1].length;
+          ws();
+          const q = s[i];
+          if (q === '"' || q === "'") {
+            let j = i + 1;
+            let v = "";
+            while (j < s.length && s[j] !== q) {
+              if (s[j] === "\\" && j + 1 < s.length) j++;
+              v += s[j++];
+            }
+            if (j >= s.length) fail("an unclosed string");
+            value = v;
+            i = j + 1;
+          } else {
+            value = ident();
+            if (value === null) fail("an attribute value");
+          }
+          ws();
+          const f = /^([iIsS])(?=\s*\])/.exec(s.slice(i));
+          if (f) (flag = f[1].toLowerCase()), (i += 1), ws();
+        }
+        if (s[i] !== "]") fail("an unclosed attribute selector");
+        i++;
+        compound.attrs.push({ name: name.toLowerCase(), op, value, flag });
+      } else if (c === ":") {
+        i++;
+        if (s[i] === ":") fail("pseudo-elements select nothing");
+        const name = (ident() ?? "").toLowerCase();
+        if (!name) fail("a pseudo-class needs a name");
+        let arg = null;
+        if (s[i] === "(") {
+          let depth = 1;
+          let j = i + 1;
+          let quote = null;
+          while (j < s.length && depth) {
+            const ch = s[j];
+            if (quote) {
+              if (ch === "\\") j++;
+              else if (ch === quote) quote = null;
+            } else if (ch === '"' || ch === "'") quote = ch;
+            else if (ch === "(") depth++;
+            else if (ch === ")") depth--;
+            j++;
+          }
+          if (depth) fail("an unclosed pseudo-class argument");
+          arg = s.slice(i + 1, j - 1).trim();
+          i = j;
+        }
+        compound.pseudos.push(pseudo(name, arg, fail));
+      } else break;
+      any = true;
+    }
+    if (!any) fail(`unexpected "${s[i]}"`);
+    seq.push({ combinator: comb ?? (seq.length ? " " : null), compound });
+    comb = null;
+    const hadWs = ws();
+    const c = s[i];
+    if (c === ">" || c === "+" || c === "~") {
+      comb = c;
+      i++;
+      ws();
+    } else if (c === ",") {
+      groups.push(seq);
+      seq = [];
+      i++;
+      ws();
+    } else if (i < s.length) {
+      if (!hadWs) fail(`unexpected "${c}"`);
+      comb = " ";
+    }
+  }
+  if (comb && comb !== " ") fail("a combinator without a selector after it");
+  if (!seq.length) fail("an empty selector");
+  groups.push(seq);
+  return groups;
+}
+
+function nthParser(arg, fail) {
+  const a0 = String(arg ?? "").trim().toLowerCase().replace(/\s+/g, "");
+  if (a0 === "odd") return [2, 1];
+  if (a0 === "even") return [2, 0];
+  const m = /^([+-]?\d*)?n([+-]\d+)?$/.exec(a0);
+  if (m) {
+    const a = m[1] === undefined || m[1] === "" || m[1] === "+" ? 1 : m[1] === "-" ? -1 : Number(m[1]);
+    return [a, m[2] ? Number(m[2]) : 0];
+  }
+  if (/^[+-]?\d+$/.test(a0)) return [0, Number(a0)];
+  fail(`nth argument "${arg}"`);
+}
+const nthMatch = ([a, b], pos) => (a === 0 ? pos === b : (pos - b) / a >= 0 && (pos - b) % a === 0);
+const unquote = (x) => {
+  const t = String(x ?? "").trim();
+  return /^(["']).*\1$/.test(t) ? t.slice(1, -1) : t;
+};
+
+function pseudo(name, arg, fail) {
+  switch (name) {
+    case "first-child":
+    case "last-child":
+    case "only-child":
+    case "first-of-type":
+    case "last-of-type":
+    case "only-of-type":
+    case "empty":
+    case "root":
+    case "checked":
+    case "selected":
+    case "disabled":
+    case "enabled":
+    case "header":
+    case "parent":
+    case "link":
+    case "any-link":
+      return { name };
+    case "nth-child":
+    case "nth-last-child":
+    case "nth-of-type":
+    case "nth-last-of-type":
+      return { name, nth: nthParser(arg, fail) };
+    case "not":
+    case "is":
+    case "matches":
+    case "where":
+    case "has":
+      if (!arg) fail(`:${name}() needs a selector`);
+      return { name, groups: parseSelector(arg) };
+    case "contains":
+    case "icontains":
+      return { name, text: unquote(arg) };
+    default:
+      fail(`:${name} is not carried`);
+  }
+}
+
+const elementSiblings = (el) => (el.parent?.children ?? [el]).filter(isTag);
+
+function matchAttr(el, a) {
+  const attribs = el.attribs ?? {};
+  if (!Object.prototype.hasOwnProperty.call(attribs, a.name)) return a.op === "!=";
+  if (!a.op) return true;
+  let v = String(attribs[a.name]);
+  let want = a.value;
+  // css-select compares these HTML attributes case-insensitively unless the flag says "s".
+  const ci = a.flag === "i" || (a.flag !== "s" && CI_ATTRS.has(a.name));
+  if (ci) (v = v.toLowerCase()), (want = want.toLowerCase());
+  switch (a.op) {
+    case "=":
+      return v === want;
+    case "!=":
+      return v !== want;
+    case "~=":
+      return want !== "" && !/\s/.test(want) && v.split(/[\t\n\f\r ]+/).includes(want);
+    case "|=":
+      return v === want || v.startsWith(want + "-");
+    case "^=":
+      return want !== "" && v.startsWith(want);
+    case "$=":
+      return want !== "" && v.endsWith(want);
+    case "*=":
+      return want !== "" && v.includes(want);
+  }
+  return false;
+}
+const CI_ATTRS = set("accept accept-charset align alink axis bgcolor charset checked clear codetype color compact declare defer dir direction disabled enctype face frame hreflang http-equiv lang language link media method multiple nohref noresize noshade nowrap readonly rel rev rules scope scrolling selected shape target text type valign valuetype vlink");
+
+function matchCompound(el, c, scope) {
+  if (!isTag(el)) return false;
+  if (c.tag && el.name !== c.tag) return false;
+  const attribs = el.attribs ?? {};
+  for (const id of c.ids) if (attribs.id !== id) return false;
+  if (c.classes.length) {
+    const cls = String(attribs.class ?? "").split(/[\t\n\f\r ]+/);
+    for (const k of c.classes) if (!cls.includes(k)) return false;
+  }
+  for (const a of c.attrs) if (!matchAttr(el, a)) return false;
+  for (const p of c.pseudos) if (!matchPseudo(el, p, scope)) return false;
+  return true;
+}
+
+function matchPseudo(el, p, scope) {
+  const sib = () => elementSiblings(el);
+  const sameType = () => sib().filter((x) => x.name === el.name);
+  switch (p.name) {
+    case "first-child":
+      return sib()[0] === el;
+    case "last-child":
+      return sib().at(-1) === el;
+    case "only-child":
+      return sib().length === 1;
+    case "first-of-type":
+      return sameType()[0] === el;
+    case "last-of-type":
+      return sameType().at(-1) === el;
+    case "only-of-type":
+      return sameType().length === 1;
+    case "nth-child":
+      return nthMatch(p.nth, sib().indexOf(el) + 1);
+    case "nth-last-child": {
+      const s = sib();
+      return nthMatch(p.nth, s.length - s.indexOf(el));
+    }
+    case "nth-of-type":
+      return nthMatch(p.nth, sameType().indexOf(el) + 1);
+    case "nth-last-of-type": {
+      const s = sameType();
+      return nthMatch(p.nth, s.length - s.indexOf(el));
+    }
+    case "empty":
+      return !(el.children ?? []).some((c) => isTag(c) || (c.type === "text" && c.data !== ""));
+    case "parent":
+      return (el.children ?? []).some((c) => isTag(c) || (c.type === "text" && c.data !== ""));
+    case "root":
+      return !isTag(el.parent);
+    case "checked":
+      return (el.name === "input" && "checked" in (el.attribs ?? {})) || (el.name === "option" && "selected" in (el.attribs ?? {}));
+    case "selected":
+      if ("selected" in (el.attribs ?? {})) return el.name === "option";
+      return el.name === "option" && selectedByDefault(el);
+    case "disabled":
+      return "disabled" in (el.attribs ?? {}) && ["button", "input", "select", "textarea", "optgroup", "option", "fieldset"].includes(el.name);
+    case "enabled":
+      return !("disabled" in (el.attribs ?? {})) && ["button", "input", "select", "textarea", "optgroup", "option", "fieldset"].includes(el.name);
+    case "header":
+      return HEADINGS.has(el.name);
+    case "link":
+    case "any-link":
+      return ["a", "area", "link"].includes(el.name) && "href" in (el.attribs ?? {});
+    case "not":
+      return !p.groups.some((g) => matchComplex(el, g, scope));
+    case "is":
+    case "matches":
+    case "where":
+      return p.groups.some((g) => matchComplex(el, g, scope));
+    case "has":
+      return descendants(el).some((d) => p.groups.some((g) => matchComplex(d, g, el)));
+    case "contains":
+      return textContent(el).includes(p.text);
+    case "icontains":
+      return textContent(el).toLowerCase().includes(p.text.toLowerCase());
+  }
+  return false;
+}
+
+// css-select's :selected for an option without the attribute: the first option of a select
+// that has no selected option and is not multiple.
+function selectedByDefault(opt) {
+  let sel = opt.parent;
+  if (sel?.name === "optgroup") sel = sel.parent;
+  if (sel?.name !== "select" || "multiple" in (sel.attribs ?? {})) return false;
+  const opts = descendants(sel).filter((x) => x.name === "option");
+  return !opts.some((o) => "selected" in (o.attribs ?? {})) && opts[0] === opt;
+}
+
+// Right to left over the compound list.
+function matchComplex(el, seq, scope, k = seq.length - 1) {
+  if (!matchCompound(el, seq[k].compound, scope)) return false;
+  if (k === 0) return true;
+  const comb = seq[k].combinator;
+  if (comb === ">") return isTag(el.parent) && matchComplex(el.parent, seq, scope, k - 1);
+  if (comb === " ") {
+    for (let p = el.parent; isTag(p); p = p.parent) if (matchComplex(p, seq, scope, k - 1)) return true;
+    return false;
+  }
+  const s = elementSiblings(el);
+  const at = s.indexOf(el);
+  if (comb === "+") return at > 0 && matchComplex(s[at - 1], seq, scope, k - 1);
+  if (comb === "~") {
+    for (let j = at - 1; j >= 0; j--) if (matchComplex(s[j], seq, scope, k - 1)) return true;
+    return false;
+  }
+  return false;
+}
+
+function descendants(node, out = []) {
+  for (const c of node.children ?? []) {
+    if (isTag(c)) out.push(c);
+    if (c.children) descendants(c, out);
+  }
+  return out;
+}
+
+// Elements under the roots (roots included only when they are elements matched as descendants
+// of a document) matching the selector, in document order, each once.
+function selectAll(selector, roots) {
+  const groups = typeof selector === "string" ? parseSelector(selector) : selector;
+  const out = [];
+  for (const r of [].concat(roots)) for (const el of r.type === "root" ? descendants(r) : [r, ...descendants(r)]) if (groups.some((g) => matchComplex(el, g, r))) out.push(el);
+  return out;
+}
+
+const matches = (el, selector) => (typeof selector === "string" ? parseSelector(selector) : selector).some((g) => matchComplex(el, g, null));
+
+// Specificity [ids, classes+attributes+pseudo-classes, types] of one complex selector, as
+// html-to-text's selector picker ranks its formats.
+function specificity(seq) {
+  const sp = [0, 0, 0];
+  for (const { compound: c } of seq) {
+    sp[0] += c.ids.length;
+    sp[1] += c.classes.length + c.attrs.length + c.pseudos.length;
+    if (c.tag) sp[2]++;
+  }
+  return sp;
+}
+
+return { UnsupportedHtml, VOID_ELEMENTS, decodeEntities, parseHtml, parseHtmlLoose, outerHtml, innerHtml, textContent, isTag, parseSelector, selectAll, matches, specificity };
+})();
+
+// ---- src/htmltext.mjs ----
+const __m_htmltext_mjs = (() => {
+const { parseHtmlLoose, parseSelector, matches, specificity, outerHtml, isTag, UnsupportedHtml } = __m_htmldom_mjs;
+// html-to-text 9.0.5's convert(), the text the HTML node (v1.2) extracts: n8n renders the selected
+// element's inner HTML (cheerio) and converts it with html-to-text's defaults, plus "skip" formats
+// for the step's skip selectors. Ported from html-to-text's lib/html-to-text.mjs with its own
+// dependencies replaced: htmlparser2's parseDocument by htmldom.mjs parseHtmlLoose, selderee's
+// selector picker by makePicker() (most specific match, the later one on a tie, as selderee's
+// pick1), deepmerge by plain object spreads, dom-serializer by htmldom.mjs outerHtml (only the
+// "...Html" formats use it, which n8n never selects).
+//
+// html-to-text is MIT licensed: Copyright (c) 2012-2019 werk85 <malte@werk85.de>, Copyright (c)
+// 2020-2022 KillyMXI <killy@mxii.eu.org>. Permission is hereby granted, free of charge, to any
+// person obtaining a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation the rights to use,
+// copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+// to permit persons to whom the Software is furnished to do so, subject to the following
+// conditions: The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT
+// WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+// ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+// OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+// selderee's pick1 over [selector, value] pairs.
+function makePicker (pairs) {
+  const compiled = pairs.map(([sel, value], index) => {
+    const groups = parseSelector(sel);
+    if (groups.some(g => g.some(x => x.compound.pseudos.length))) {
+      throw new UnsupportedHtml(`skip selector "${sel}": pseudo-classes are not supported`);
+    }
+    return groups.map(g => ({ g, value, index, sp: specificity(g) }));
+  }).flat();
+  const cmp = (a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+  return {
+    pick1 (el) {
+      if (!isTag(el)) { return null; }
+      let best = null;
+      for (const c of compiled) {
+        if (!matches(el, [c.g])) { continue; }
+        if (!best) { best = c; continue; }
+        const d = cmp(c.sp, best.sp);
+        if (d > 0 || (d === 0 && c.index > best.index)) { best = c; }
+      }
+      return best ? best.value : null;
+    }
+  };
+}
+
+
+/**
+ * Make a recursive function that will only run to a given depth
+ * and switches to an alternative function at that depth. \
+ * No limitation if `n` is `undefined` (Just wraps `f` in that case).
+ *
+ * @param   { number | undefined } n   Allowed depth of recursion. `undefined` for no limitation.
+ * @param   { Function }           f   Function that accepts recursive callback as the first argument.
+ * @param   { Function }           [g] Function to run instead, when maximum depth was reached. Do nothing by default.
+ * @returns { Function }
+ */
+function limitedDepthRecursive (n, f, g = () => undefined) {
+  if (n === undefined) {
+    const f1 = function (...args) { return f(f1, ...args); };
+    return f1;
+  }
+  if (n >= 0) {
+    return function (...args) { return f(limitedDepthRecursive(n - 1, f, g), ...args); };
+  }
+  return g;
+}
+
+/**
+ * Return the same string or a substring with
+ * the given character occurrences removed from each side.
+ *
+ * @param   { string } str  A string to trim.
+ * @param   { string } char A character to be trimmed.
+ * @returns { string }
+ */
+function trimCharacter (str, char) {
+  let start = 0;
+  let end = str.length;
+  while (start < end && str[start] === char) { ++start; }
+  while (end > start && str[end - 1] === char) { --end; }
+  return (start > 0 || end < str.length)
+    ? str.substring(start, end)
+    : str;
+}
+
+/**
+ * Return the same string or a substring with
+ * the given character occurrences removed from the end only.
+ *
+ * @param   { string } str  A string to trim.
+ * @param   { string } char A character to be trimmed.
+ * @returns { string }
+ */
+function trimCharacterEnd (str, char) {
+  let end = str.length;
+  while (end > 0 && str[end - 1] === char) { --end; }
+  return (end < str.length)
+    ? str.substring(0, end)
+    : str;
+}
+
+/**
+ * Return a new string will all characters replaced with unicode escape sequences.
+ * This extreme kind of escaping can used to be safely compose regular expressions.
+ *
+ * @param { string } str A string to escape.
+ * @returns { string } A string of unicode escape sequences.
+ */
+function unicodeEscape (str) {
+  return str.replace(/[\s\S]/g, c => '\\u' + c.charCodeAt().toString(16).padStart(4, '0'));
+}
+
+/**
+ * Deduplicate an array by a given key callback.
+ * Item properties are merged recursively and with the preference for last defined values.
+ * Of items with the same key, merged item takes the place of the last item,
+ * others are omitted.
+ *
+ * @param { any[] } items An array to deduplicate.
+ * @param { (x: any) => string } getKey Callback to get a value that distinguishes unique items.
+ * @returns { any[] }
+ */
+function mergeDuplicatesPreferLast (items, getKey) {
+  const map = new Map();
+  for (let i = items.length; i-- > 0;) {
+    const item = items[i];
+    const key = getKey(item);
+    map.set(
+      key,
+      (map.has(key))
+        ? { ...item, ...map.get(key), options: { ...(item.options ?? {}), ...(map.get(key).options ?? {}) } }
+        : item
+    );
+  }
+  return [...map.values()].reverse();
+}
+
+
+/**
+ * Get a nested property from an object.
+ *
+ * @param   { object }   obj  The object to query for the value.
+ * @param   { string[] } path The path to the property.
+ * @returns { any }
+ */
+function get (obj, path) {
+  for (const key of path) {
+    if (!obj) { return undefined; }
+    obj = obj[key];
+  }
+  return obj;
+}
+
+/**
+ * Convert a number into alphabetic sequence representation (Sequence without zeroes).
+ *
+ * For example: `a, ..., z, aa, ..., zz, aaa, ...`.
+ *
+ * @param   { number } num              Number to convert. Must be >= 1.
+ * @param   { string } [baseChar = 'a'] Character for 1 in the sequence.
+ * @param   { number } [base = 26]      Number of characters in the sequence.
+ * @returns { string }
+ */
+function numberToLetterSequence (num, baseChar = 'a', base = 26) {
+  const digits = [];
+  do {
+    num -= 1;
+    digits.push(num % base);
+    num = (num / base) >> 0; // quick `floor`
+  } while (num > 0);
+  const baseCode = baseChar.charCodeAt(0);
+  return digits
+    .reverse()
+    .map(n => String.fromCharCode(baseCode + n))
+    .join('');
+}
+
+const I = ['I', 'X', 'C', 'M'];
+const V = ['V', 'L', 'D'];
+
+/**
+ * Convert a number to it's Roman representation. No large numbers extension.
+ *
+ * @param   { number } num Number to convert. `0 < num <= 3999`.
+ * @returns { string }
+ */
+function numberToRoman (num) {
+  return [...(num) + '']
+    .map(n => +n)
+    .reverse()
+    .map((v, i) => ((v % 5 < 4)
+      ? (v < 5 ? '' : V[i]) + I[i].repeat(v % 5)
+      : I[i] + (v < 5 ? V[i] : I[i + 1])))
+    .reverse()
+    .join('');
+}
+
+/**
+ * Helps to build text from words.
+ */
+class InlineTextBuilder {
+  /**
+   * Creates an instance of InlineTextBuilder.
+   *
+   * If `maxLineLength` is not provided then it is either `options.wordwrap` or unlimited.
+   *
+   * @param { Options } options           HtmlToText options.
+   * @param { number }  [ maxLineLength ] This builder will try to wrap text to fit this line length.
+   */
+  constructor (options, maxLineLength = undefined) {
+    /** @type { string[][] } */
+    this.lines = [];
+    /** @type { string[] }   */
+    this.nextLineWords = [];
+    this.maxLineLength = maxLineLength || options.wordwrap || Number.MAX_VALUE;
+    this.nextLineAvailableChars = this.maxLineLength;
+    this.wrapCharacters = get(options, ['longWordSplit', 'wrapCharacters']) || [];
+    this.forceWrapOnLimit = get(options, ['longWordSplit', 'forceWrapOnLimit']) || false;
+
+    this.stashedSpace = false;
+    this.wordBreakOpportunity = false;
+  }
+
+  /**
+   * Add a new word.
+   *
+   * @param { string } word A word to add.
+   * @param { boolean } [noWrap] Don't wrap text even if the line is too long.
+   */
+  pushWord (word, noWrap = false) {
+    if (this.nextLineAvailableChars <= 0 && !noWrap) {
+      this.startNewLine();
+    }
+    const isLineStart = this.nextLineWords.length === 0;
+    const cost = word.length + (isLineStart ? 0 : 1);
+    if ((cost <= this.nextLineAvailableChars) || noWrap) { // Fits into available budget
+
+      this.nextLineWords.push(word);
+      this.nextLineAvailableChars -= cost;
+
+    } else { // Does not fit - try to split the word
+
+      // The word is moved to a new line - prefer to wrap between words.
+      const [first, ...rest] = this.splitLongWord(word);
+      if (!isLineStart) { this.startNewLine(); }
+      this.nextLineWords.push(first);
+      this.nextLineAvailableChars -= first.length;
+      for (const part of rest) {
+        this.startNewLine();
+        this.nextLineWords.push(part);
+        this.nextLineAvailableChars -= part.length;
+      }
+
+    }
+  }
+
+  /**
+   * Pop a word from the currently built line.
+   * This doesn't affect completed lines.
+   *
+   * @returns { string }
+   */
+  popWord () {
+    const lastWord = this.nextLineWords.pop();
+    if (lastWord !== undefined) {
+      const isLineStart = this.nextLineWords.length === 0;
+      const cost = lastWord.length + (isLineStart ? 0 : 1);
+      this.nextLineAvailableChars += cost;
+    }
+    return lastWord;
+  }
+
+  /**
+   * Concat a word to the last word already in the builder.
+   * Adds a new word in case there are no words yet in the last line.
+   *
+   * @param { string } word A word to be concatenated.
+   * @param { boolean } [noWrap] Don't wrap text even if the line is too long.
+   */
+  concatWord (word, noWrap = false) {
+    if (this.wordBreakOpportunity && word.length > this.nextLineAvailableChars) {
+      this.pushWord(word, noWrap);
+      this.wordBreakOpportunity = false;
+    } else {
+      const lastWord = this.popWord();
+      this.pushWord((lastWord) ? lastWord.concat(word) : word, noWrap);
+    }
+  }
+
+  /**
+   * Add current line (and more empty lines if provided argument > 1) to the list of complete lines and start a new one.
+   *
+   * @param { number } n Number of line breaks that will be added to the resulting string.
+   */
+  startNewLine (n = 1) {
+    this.lines.push(this.nextLineWords);
+    if (n > 1) {
+      this.lines.push(...Array.from({ length: n - 1 }, () => []));
+    }
+    this.nextLineWords = [];
+    this.nextLineAvailableChars = this.maxLineLength;
+  }
+
+  /**
+   * No words in this builder.
+   *
+   * @returns { boolean }
+   */
+  isEmpty () {
+    return this.lines.length === 0
+        && this.nextLineWords.length === 0;
+  }
+
+  clear () {
+    this.lines.length = 0;
+    this.nextLineWords.length = 0;
+    this.nextLineAvailableChars = this.maxLineLength;
+  }
+
+  /**
+   * Join all lines of words inside the InlineTextBuilder into a complete string.
+   *
+   * @returns { string }
+   */
+  toString () {
+    return [...this.lines, this.nextLineWords]
+      .map(words => words.join(' '))
+      .join('\n');
+  }
+
+  /**
+   * Split a long word up to fit within the word wrap limit.
+   * Use either a character to split looking back from the word wrap limit,
+   * or truncate to the word wrap limit.
+   *
+   * @param   { string }   word Input word.
+   * @returns { string[] }      Parts of the word.
+   */
+  splitLongWord (word) {
+    const parts = [];
+    let idx = 0;
+    while (word.length > this.maxLineLength) {
+
+      const firstLine = word.substring(0, this.maxLineLength);
+      const remainingChars = word.substring(this.maxLineLength);
+
+      const splitIndex = firstLine.lastIndexOf(this.wrapCharacters[idx]);
+
+      if (splitIndex > -1) { // Found a character to split on
+
+        word = firstLine.substring(splitIndex + 1) + remainingChars;
+        parts.push(firstLine.substring(0, splitIndex + 1));
+
+      } else { // Not found a character to split on
+
+        idx++;
+        if (idx < this.wrapCharacters.length) { // There is next character to try
+
+          word = firstLine + remainingChars;
+
+        } else { // No more characters to try
+
+          if (this.forceWrapOnLimit) {
+            parts.push(firstLine);
+            word = remainingChars;
+            if (word.length > this.maxLineLength) {
+              continue;
+            }
+          } else {
+            word = firstLine + remainingChars;
+          }
+          break;
+
+        }
+
+      }
+
+    }
+    parts.push(word); // Add remaining part to array
+    return parts;
+  }
+}
+
+/* eslint-disable max-classes-per-file */
+
+
+class StackItem {
+  constructor (next = null) { this.next = next; }
+
+  getRoot () { return (this.next) ? this.next : this; }
+}
+
+class BlockStackItem extends StackItem {
+  constructor (options, next = null, leadingLineBreaks = 1, maxLineLength = undefined) {
+    super(next);
+    this.leadingLineBreaks = leadingLineBreaks;
+    this.inlineTextBuilder = new InlineTextBuilder(options, maxLineLength);
+    this.rawText = '';
+    this.stashedLineBreaks = 0;
+    this.isPre = next && next.isPre;
+    this.isNoWrap = next && next.isNoWrap;
+  }
+}
+
+class ListStackItem extends BlockStackItem {
+  constructor (
+    options,
+    next = null,
+    {
+      interRowLineBreaks = 1,
+      leadingLineBreaks = 2,
+      maxLineLength = undefined,
+      maxPrefixLength = 0,
+      prefixAlign = 'left',
+    } = {}
+  ) {
+    super(options, next, leadingLineBreaks, maxLineLength);
+    this.maxPrefixLength = maxPrefixLength;
+    this.prefixAlign = prefixAlign;
+    this.interRowLineBreaks = interRowLineBreaks;
+  }
+}
+
+class ListItemStackItem extends BlockStackItem {
+  constructor (
+    options,
+    next = null,
+    {
+      leadingLineBreaks = 1,
+      maxLineLength = undefined,
+      prefix = '',
+    } = {}
+  ) {
+    super(options, next, leadingLineBreaks, maxLineLength);
+    this.prefix = prefix;
+  }
+}
+
+class TableStackItem extends StackItem {
+  constructor (next = null) {
+    super(next);
+    this.rows = [];
+    this.isPre = next && next.isPre;
+    this.isNoWrap = next && next.isNoWrap;
+  }
+}
+
+class TableRowStackItem extends StackItem {
+  constructor (next = null) {
+    super(next);
+    this.cells = [];
+    this.isPre = next && next.isPre;
+    this.isNoWrap = next && next.isNoWrap;
+  }
+}
+
+class TableCellStackItem extends StackItem {
+  constructor (options, next = null, maxColumnWidth = undefined) {
+    super(next);
+    this.inlineTextBuilder = new InlineTextBuilder(options, maxColumnWidth);
+    this.rawText = '';
+    this.stashedLineBreaks = 0;
+    this.isPre = next && next.isPre;
+    this.isNoWrap = next && next.isNoWrap;
+  }
+}
+
+class TransformerStackItem extends StackItem {
+  constructor (next = null, transform) {
+    super(next);
+    this.transform = transform;
+  }
+}
+
+function charactersToCodes (str) {
+  return [...str]
+    .map(c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'))
+    .join('');
+}
+
+/**
+ * Helps to handle HTML whitespaces.
+ *
+ * @class WhitespaceProcessor
+ */
+class WhitespaceProcessor {
+
+  /**
+   * Creates an instance of WhitespaceProcessor.
+   *
+   * @param { Options } options    HtmlToText options.
+   * @memberof WhitespaceProcessor
+   */
+  constructor (options) {
+    this.whitespaceChars = (options.preserveNewlines)
+      ? options.whitespaceCharacters.replace(/\n/g, '')
+      : options.whitespaceCharacters;
+    const whitespaceCodes = charactersToCodes(this.whitespaceChars);
+    this.leadingWhitespaceRe = new RegExp(`^[${whitespaceCodes}]`);
+    this.trailingWhitespaceRe = new RegExp(`[${whitespaceCodes}]$`);
+    this.allWhitespaceOrEmptyRe = new RegExp(`^[${whitespaceCodes}]*$`);
+    this.newlineOrNonWhitespaceRe = new RegExp(`(\\n|[^\\n${whitespaceCodes}])`, 'g');
+    this.newlineOrNonNewlineStringRe = new RegExp(`(\\n|[^\\n]+)`, 'g');
+
+    if (options.preserveNewlines) {
+
+      const wordOrNewlineRe = new RegExp(`\\n|[^\\n${whitespaceCodes}]+`, 'gm');
+
+      /**
+       * Shrink whitespaces and wrap text, add to the builder.
+       *
+       * @param { string }                  text              Input text.
+       * @param { InlineTextBuilder }       inlineTextBuilder A builder to receive processed text.
+       * @param { (str: string) => string } [ transform ]     A transform to be applied to words.
+       * @param { boolean }                 [noWrap] Don't wrap text even if the line is too long.
+       */
+      this.shrinkWrapAdd = function (text, inlineTextBuilder, transform = (str => str), noWrap = false) {
+        if (!text) { return; }
+        const previouslyStashedSpace = inlineTextBuilder.stashedSpace;
+        let anyMatch = false;
+        let m = wordOrNewlineRe.exec(text);
+        if (m) {
+          anyMatch = true;
+          if (m[0] === '\n') {
+            inlineTextBuilder.startNewLine();
+          } else if (previouslyStashedSpace || this.testLeadingWhitespace(text)) {
+            inlineTextBuilder.pushWord(transform(m[0]), noWrap);
+          } else {
+            inlineTextBuilder.concatWord(transform(m[0]), noWrap);
+          }
+          while ((m = wordOrNewlineRe.exec(text)) !== null) {
+            if (m[0] === '\n') {
+              inlineTextBuilder.startNewLine();
+            } else {
+              inlineTextBuilder.pushWord(transform(m[0]), noWrap);
+            }
+          }
+        }
+        inlineTextBuilder.stashedSpace = (previouslyStashedSpace && !anyMatch) || (this.testTrailingWhitespace(text));
+        // No need to stash a space in case last added item was a new line,
+        // but that won't affect anything later anyway.
+      };
+
+    } else {
+
+      const wordRe = new RegExp(`[^${whitespaceCodes}]+`, 'g');
+
+      this.shrinkWrapAdd = function (text, inlineTextBuilder, transform = (str => str), noWrap = false) {
+        if (!text) { return; }
+        const previouslyStashedSpace = inlineTextBuilder.stashedSpace;
+        let anyMatch = false;
+        let m = wordRe.exec(text);
+        if (m) {
+          anyMatch = true;
+          if (previouslyStashedSpace || this.testLeadingWhitespace(text)) {
+            inlineTextBuilder.pushWord(transform(m[0]), noWrap);
+          } else {
+            inlineTextBuilder.concatWord(transform(m[0]), noWrap);
+          }
+          while ((m = wordRe.exec(text)) !== null) {
+            inlineTextBuilder.pushWord(transform(m[0]), noWrap);
+          }
+        }
+        inlineTextBuilder.stashedSpace = (previouslyStashedSpace && !anyMatch) || this.testTrailingWhitespace(text);
+      };
+
+    }
+  }
+
+  /**
+   * Add text with only minimal processing.
+   * Everything between newlines considered a single word.
+   * No whitespace is trimmed.
+   * Not affected by preserveNewlines option - `\n` always starts a new line.
+   *
+   * `noWrap` argument is `true` by default - this won't start a new line
+   * even if there is not enough space left in the current line.
+   *
+   * @param { string }            text              Input text.
+   * @param { InlineTextBuilder } inlineTextBuilder A builder to receive processed text.
+   * @param { boolean }           [noWrap] Don't wrap text even if the line is too long.
+   */
+  addLiteral (text, inlineTextBuilder, noWrap = true) {
+    if (!text) { return; }
+    const previouslyStashedSpace = inlineTextBuilder.stashedSpace;
+    let anyMatch = false;
+    let m = this.newlineOrNonNewlineStringRe.exec(text);
+    if (m) {
+      anyMatch = true;
+      if (m[0] === '\n') {
+        inlineTextBuilder.startNewLine();
+      } else if (previouslyStashedSpace) {
+        inlineTextBuilder.pushWord(m[0], noWrap);
+      } else {
+        inlineTextBuilder.concatWord(m[0], noWrap);
+      }
+      while ((m = this.newlineOrNonNewlineStringRe.exec(text)) !== null) {
+        if (m[0] === '\n') {
+          inlineTextBuilder.startNewLine();
+        } else {
+          inlineTextBuilder.pushWord(m[0], noWrap);
+        }
+      }
+    }
+    inlineTextBuilder.stashedSpace = (previouslyStashedSpace && !anyMatch);
+  }
+
+  /**
+   * Test whether the given text starts with HTML whitespace character.
+   *
+   * @param   { string }  text  The string to test.
+   * @returns { boolean }
+   */
+  testLeadingWhitespace (text) {
+    return this.leadingWhitespaceRe.test(text);
+  }
+
+  /**
+   * Test whether the given text ends with HTML whitespace character.
+   *
+   * @param   { string }  text  The string to test.
+   * @returns { boolean }
+   */
+  testTrailingWhitespace (text) {
+    return this.trailingWhitespaceRe.test(text);
+  }
+
+  /**
+   * Test whether the given text contains any non-whitespace characters.
+   *
+   * @param   { string }  text  The string to test.
+   * @returns { boolean }
+   */
+  testContainsWords (text) {
+    return !this.allWhitespaceOrEmptyRe.test(text);
+  }
+
+  /**
+   * Return the number of newlines if there are no words.
+   *
+   * If any word is found then return zero regardless of the actual number of newlines.
+   *
+   * @param   { string }  text  Input string.
+   * @returns { number }
+   */
+  countNewlinesNoWords (text) {
+    this.newlineOrNonWhitespaceRe.lastIndex = 0;
+    let counter = 0;
+    let match;
+    while ((match = this.newlineOrNonWhitespaceRe.exec(text)) !== null) {
+      if (match[0] === '\n') {
+        counter++;
+      } else {
+        return 0;
+      }
+    }
+    return counter;
+  }
+
+}
+
+/**
+ * Helps to build text from inline and block elements.
+ *
+ * @class BlockTextBuilder
+ */
+class BlockTextBuilder {
+
+  /**
+   * Creates an instance of BlockTextBuilder.
+   *
+   * @param { Options } options HtmlToText options.
+   * @param { import('selderee').Picker<DomNode, TagDefinition> } picker Selectors decision tree picker.
+   * @param { any} [metadata] Optional metadata for HTML document, for use in formatters.
+   */
+  constructor (options, picker, metadata = undefined) {
+    this.options = options;
+    this.picker = picker;
+    this.metadata = metadata;
+    this.whitespaceProcessor = new WhitespaceProcessor(options);
+    /** @type { StackItem } */
+    this._stackItem = new BlockStackItem(options);
+    /** @type { TransformerStackItem } */
+    this._wordTransformer = undefined;
+  }
+
+  /**
+   * Put a word-by-word transform function onto the transformations stack.
+   *
+   * Mainly used for uppercasing. Can be bypassed to add unformatted text such as URLs.
+   *
+   * Word transformations applied before wrapping.
+   *
+   * @param { (str: string) => string } wordTransform Word transformation function.
+   */
+  pushWordTransform (wordTransform) {
+    this._wordTransformer = new TransformerStackItem(this._wordTransformer, wordTransform);
+  }
+
+  /**
+   * Remove a function from the word transformations stack.
+   *
+   * @returns { (str: string) => string } A function that was removed.
+   */
+  popWordTransform () {
+    if (!this._wordTransformer) { return undefined; }
+    const transform = this._wordTransformer.transform;
+    this._wordTransformer = this._wordTransformer.next;
+    return transform;
+  }
+
+  /**
+   * Ignore wordwrap option in followup inline additions and disable automatic wrapping.
+   */
+  startNoWrap () {
+    this._stackItem.isNoWrap = true;
+  }
+
+  /**
+   * Return automatic wrapping to behavior defined by options.
+   */
+  stopNoWrap () {
+    this._stackItem.isNoWrap = false;
+  }
+
+  /** @returns { (str: string) => string } */
+  _getCombinedWordTransformer () {
+    const wt = (this._wordTransformer)
+      ? ((str) => applyTransformer(str, this._wordTransformer))
+      : undefined;
+    const ce = this.options.encodeCharacters;
+    return (wt)
+      ? ((ce) ? (str) => ce(wt(str)) : wt)
+      : ce;
+  }
+
+  _popStackItem () {
+    const item = this._stackItem;
+    this._stackItem = item.next;
+    return item;
+  }
+
+  /**
+   * Add a line break into currently built block.
+   */
+  addLineBreak () {
+    if (!(
+      this._stackItem instanceof BlockStackItem
+      || this._stackItem instanceof ListItemStackItem
+      || this._stackItem instanceof TableCellStackItem
+    )) { return; }
+    if (this._stackItem.isPre) {
+      this._stackItem.rawText += '\n';
+    } else {
+      this._stackItem.inlineTextBuilder.startNewLine();
+    }
+  }
+
+  /**
+   * Allow to break line in case directly following text will not fit.
+   */
+  addWordBreakOpportunity () {
+    if (
+      this._stackItem instanceof BlockStackItem
+      || this._stackItem instanceof ListItemStackItem
+      || this._stackItem instanceof TableCellStackItem
+    ) {
+      this._stackItem.inlineTextBuilder.wordBreakOpportunity = true;
+    }
+  }
+
+  /**
+   * Add a node inline into the currently built block.
+   *
+   * @param { string } str
+   * Text content of a node to add.
+   *
+   * @param { object } [param1]
+   * Object holding the parameters of the operation.
+   *
+   * @param { boolean } [param1.noWordTransform]
+   * Ignore word transformers if there are any.
+   * Don't encode characters as well.
+   * (Use this for things like URL addresses).
+   */
+  addInline (str, { noWordTransform = false } = {}) {
+    if (!(
+      this._stackItem instanceof BlockStackItem
+      || this._stackItem instanceof ListItemStackItem
+      || this._stackItem instanceof TableCellStackItem
+    )) { return; }
+
+    if (this._stackItem.isPre) {
+      this._stackItem.rawText += str;
+      return;
+    }
+
+    if (
+      str.length === 0 || // empty string
+      (
+        this._stackItem.stashedLineBreaks && // stashed linebreaks make whitespace irrelevant
+        !this.whitespaceProcessor.testContainsWords(str) // no words to add
+      )
+    ) { return; }
+
+    if (this.options.preserveNewlines) {
+      const newlinesNumber = this.whitespaceProcessor.countNewlinesNoWords(str);
+      if (newlinesNumber > 0) {
+        this._stackItem.inlineTextBuilder.startNewLine(newlinesNumber);
+        // keep stashedLineBreaks unchanged
+        return;
+      }
+    }
+
+    if (this._stackItem.stashedLineBreaks) {
+      this._stackItem.inlineTextBuilder.startNewLine(this._stackItem.stashedLineBreaks);
+    }
+    this.whitespaceProcessor.shrinkWrapAdd(
+      str,
+      this._stackItem.inlineTextBuilder,
+      (noWordTransform) ? undefined : this._getCombinedWordTransformer(),
+      this._stackItem.isNoWrap
+    );
+    this._stackItem.stashedLineBreaks = 0; // inline text doesn't introduce line breaks
+  }
+
+  /**
+   * Add a string inline into the currently built block.
+   *
+   * Use this for markup elements that don't have to adhere
+   * to text layout rules.
+   *
+   * @param { string } str Text to add.
+   */
+  addLiteral (str) {
+    if (!(
+      this._stackItem instanceof BlockStackItem
+      || this._stackItem instanceof ListItemStackItem
+      || this._stackItem instanceof TableCellStackItem
+    )) { return; }
+
+    if (str.length === 0) { return; }
+
+    if (this._stackItem.isPre) {
+      this._stackItem.rawText += str;
+      return;
+    }
+
+    if (this._stackItem.stashedLineBreaks) {
+      this._stackItem.inlineTextBuilder.startNewLine(this._stackItem.stashedLineBreaks);
+    }
+    this.whitespaceProcessor.addLiteral(
+      str,
+      this._stackItem.inlineTextBuilder,
+      this._stackItem.isNoWrap
+    );
+    this._stackItem.stashedLineBreaks = 0;
+  }
+
+  /**
+   * Start building a new block.
+   *
+   * @param { object } [param0]
+   * Object holding the parameters of the block.
+   *
+   * @param { number } [param0.leadingLineBreaks]
+   * This block should have at least this number of line breaks to separate it from any preceding block.
+   *
+   * @param { number }  [param0.reservedLineLength]
+   * Reserve this number of characters on each line for block markup.
+   *
+   * @param { boolean } [param0.isPre]
+   * Should HTML whitespace be preserved inside this block.
+   */
+  openBlock ({ leadingLineBreaks = 1, reservedLineLength = 0, isPre = false } = {}) {
+    const maxLineLength = Math.max(20, this._stackItem.inlineTextBuilder.maxLineLength - reservedLineLength);
+    this._stackItem = new BlockStackItem(
+      this.options,
+      this._stackItem,
+      leadingLineBreaks,
+      maxLineLength
+    );
+    if (isPre) { this._stackItem.isPre = true; }
+  }
+
+  /**
+   * Finalize currently built block, add it's content to the parent block.
+   *
+   * @param { object } [param0]
+   * Object holding the parameters of the block.
+   *
+   * @param { number } [param0.trailingLineBreaks]
+   * This block should have at least this number of line breaks to separate it from any following block.
+   *
+   * @param { (str: string) => string } [param0.blockTransform]
+   * A function to transform the block text before adding to the parent block.
+   * This happens after word wrap and should be used in combination with reserved line length
+   * in order to keep line lengths correct.
+   * Used for whole block markup.
+   */
+  closeBlock ({ trailingLineBreaks = 1, blockTransform = undefined } = {}) {
+    const block = this._popStackItem();
+    const blockText = (blockTransform) ? blockTransform(getText(block)) : getText(block);
+    addText(this._stackItem, blockText, block.leadingLineBreaks, Math.max(block.stashedLineBreaks, trailingLineBreaks));
+  }
+
+  /**
+   * Start building a new list.
+   *
+   * @param { object } [param0]
+   * Object holding the parameters of the list.
+   *
+   * @param { number } [param0.maxPrefixLength]
+   * Length of the longest list item prefix.
+   * If not supplied or too small then list items won't be aligned properly.
+   *
+   * @param { 'left' | 'right' } [param0.prefixAlign]
+   * Specify how prefixes of different lengths have to be aligned
+   * within a column.
+   *
+   * @param { number } [param0.interRowLineBreaks]
+   * Minimum number of line breaks between list items.
+   *
+   * @param { number } [param0.leadingLineBreaks]
+   * This list should have at least this number of line breaks to separate it from any preceding block.
+   */
+  openList ({ maxPrefixLength = 0, prefixAlign = 'left', interRowLineBreaks = 1, leadingLineBreaks = 2 } = {}) {
+    this._stackItem = new ListStackItem(this.options, this._stackItem, {
+      interRowLineBreaks: interRowLineBreaks,
+      leadingLineBreaks: leadingLineBreaks,
+      maxLineLength: this._stackItem.inlineTextBuilder.maxLineLength,
+      maxPrefixLength: maxPrefixLength,
+      prefixAlign: prefixAlign
+    });
+  }
+
+  /**
+   * Start building a new list item.
+   *
+   * @param {object} param0
+   * Object holding the parameters of the list item.
+   *
+   * @param { string } [param0.prefix]
+   * Prefix for this list item (item number, bullet point, etc).
+   */
+  openListItem ({ prefix = '' } = {}) {
+    if (!(this._stackItem instanceof ListStackItem)) {
+      throw new Error('Can\'t add a list item to something that is not a list! Check the formatter.');
+    }
+    const list = this._stackItem;
+    const prefixLength = Math.max(prefix.length, list.maxPrefixLength);
+    const maxLineLength = Math.max(20, list.inlineTextBuilder.maxLineLength - prefixLength);
+    this._stackItem = new ListItemStackItem(this.options, list, {
+      prefix: prefix,
+      maxLineLength: maxLineLength,
+      leadingLineBreaks: list.interRowLineBreaks
+    });
+  }
+
+  /**
+   * Finalize currently built list item, add it's content to the parent list.
+   */
+  closeListItem () {
+    const listItem = this._popStackItem();
+    const list = listItem.next;
+
+    const prefixLength = Math.max(listItem.prefix.length, list.maxPrefixLength);
+    const spacing = '\n' + ' '.repeat(prefixLength);
+    const prefix = (list.prefixAlign === 'right')
+      ? listItem.prefix.padStart(prefixLength)
+      : listItem.prefix.padEnd(prefixLength);
+    const text = prefix + getText(listItem).replace(/\n/g, spacing);
+
+    addText(
+      list,
+      text,
+      listItem.leadingLineBreaks,
+      Math.max(listItem.stashedLineBreaks, list.interRowLineBreaks)
+    );
+  }
+
+  /**
+   * Finalize currently built list, add it's content to the parent block.
+   *
+   * @param { object } param0
+   * Object holding the parameters of the list.
+   *
+   * @param { number } [param0.trailingLineBreaks]
+   * This list should have at least this number of line breaks to separate it from any following block.
+   */
+  closeList ({ trailingLineBreaks = 2 } = {}) {
+    const list = this._popStackItem();
+    const text = getText(list);
+    if (text) {
+      addText(this._stackItem, text, list.leadingLineBreaks, trailingLineBreaks);
+    }
+  }
+
+  /**
+   * Start building a table.
+   */
+  openTable () {
+    this._stackItem = new TableStackItem(this._stackItem);
+  }
+
+  /**
+   * Start building a table row.
+   */
+  openTableRow () {
+    if (!(this._stackItem instanceof TableStackItem)) {
+      throw new Error('Can\'t add a table row to something that is not a table! Check the formatter.');
+    }
+    this._stackItem = new TableRowStackItem(this._stackItem);
+  }
+
+  /**
+   * Start building a table cell.
+   *
+   * @param { object } [param0]
+   * Object holding the parameters of the cell.
+   *
+   * @param { number } [param0.maxColumnWidth]
+   * Wrap cell content to this width. Fall back to global wordwrap value if undefined.
+   */
+  openTableCell ({ maxColumnWidth = undefined } = {}) {
+    if (!(this._stackItem instanceof TableRowStackItem)) {
+      throw new Error('Can\'t add a table cell to something that is not a table row! Check the formatter.');
+    }
+    this._stackItem = new TableCellStackItem(this.options, this._stackItem, maxColumnWidth);
+  }
+
+  /**
+   * Finalize currently built table cell and add it to parent table row's cells.
+   *
+   * @param { object } [param0]
+   * Object holding the parameters of the cell.
+   *
+   * @param { number } [param0.colspan] How many columns this cell should occupy.
+   * @param { number } [param0.rowspan] How many rows this cell should occupy.
+   */
+  closeTableCell ({ colspan = 1, rowspan = 1 } = {}) {
+    const cell = this._popStackItem();
+    const text = trimCharacter(getText(cell), '\n');
+    cell.next.cells.push({ colspan: colspan, rowspan: rowspan, text: text });
+  }
+
+  /**
+   * Finalize currently built table row and add it to parent table's rows.
+   */
+  closeTableRow () {
+    const row = this._popStackItem();
+    row.next.rows.push(row.cells);
+  }
+
+  /**
+   * Finalize currently built table and add the rendered text to the parent block.
+   *
+   * @param { object } param0
+   * Object holding the parameters of the table.
+   *
+   * @param { TablePrinter } param0.tableToString
+   * A function to convert a table of stringified cells into a complete table.
+   *
+   * @param { number } [param0.leadingLineBreaks]
+   * This table should have at least this number of line breaks to separate if from any preceding block.
+   *
+   * @param { number } [param0.trailingLineBreaks]
+   * This table should have at least this number of line breaks to separate it from any following block.
+   */
+  closeTable ({ tableToString, leadingLineBreaks = 2, trailingLineBreaks = 2 }) {
+    const table = this._popStackItem();
+    const output = tableToString(table.rows);
+    if (output) {
+      addText(this._stackItem, output, leadingLineBreaks, trailingLineBreaks);
+    }
+  }
+
+  /**
+   * Return the rendered text content of this builder.
+   *
+   * @returns { string }
+   */
+  toString () {
+    return getText(this._stackItem.getRoot());
+    // There should only be the root item if everything is closed properly.
+  }
+
+}
+
+function getText (stackItem) {
+  if (!(
+    stackItem instanceof BlockStackItem
+    || stackItem instanceof ListItemStackItem
+    || stackItem instanceof TableCellStackItem
+  )) {
+    throw new Error('Only blocks, list items and table cells can be requested for text contents.');
+  }
+  return (stackItem.inlineTextBuilder.isEmpty())
+    ? stackItem.rawText
+    : stackItem.rawText + stackItem.inlineTextBuilder.toString();
+}
+
+function addText (stackItem, text, leadingLineBreaks, trailingLineBreaks) {
+  if (!(
+    stackItem instanceof BlockStackItem
+    || stackItem instanceof ListItemStackItem
+    || stackItem instanceof TableCellStackItem
+  )) {
+    throw new Error('Only blocks, list items and table cells can contain text.');
+  }
+  const parentText = getText(stackItem);
+  const lineBreaks = Math.max(stackItem.stashedLineBreaks, leadingLineBreaks);
+  stackItem.inlineTextBuilder.clear();
+  if (parentText) {
+    stackItem.rawText = parentText + '\n'.repeat(lineBreaks) + text;
+  } else {
+    stackItem.rawText = text;
+    stackItem.leadingLineBreaks = lineBreaks;
+  }
+  stackItem.stashedLineBreaks = trailingLineBreaks;
+}
+
+/**
+ * @param { string } str A string to transform.
+ * @param { TransformerStackItem } transformer A transformer item (with possible continuation).
+ * @returns { string }
+ */
+function applyTransformer (str, transformer) {
+  return ((transformer) ? applyTransformer(transformer.transform(str), transformer.next) : str);
+}
+
+/**
+ * Compile selectors into a decision tree,
+ * return a function intended for batch processing.
+ *
+ * @param   { Options } [options = {}]   HtmlToText options (defaults, formatters, user options merged, deduplicated).
+ * @returns { (html: string, metadata?: any) => string } Pre-configured converter function.
+ * @static
+ */
+function compile$1 (options = {}) {
+  const selectorsWithoutFormat = options.selectors.filter(s => !s.format);
+  if (selectorsWithoutFormat.length) {
+    throw new Error(
+      'Following selectors have no specified format: ' +
+      selectorsWithoutFormat.map(s => `\`${s.selector}\``).join(', ')
+    );
+  }
+  const picker = makePicker(options.selectors.map(s => [s.selector, s]));
+
+  if (typeof options.encodeCharacters !== 'function') {
+    options.encodeCharacters = makeReplacerFromDict(options.encodeCharacters);
+  }
+
+  const baseSelectorsPicker = makePicker(options.baseElements.selectors.map((s, i) => [s, i + 1]));
+  function findBaseElements (dom) {
+    return findBases(dom, options, baseSelectorsPicker);
+  }
+
+  const limitedWalk = limitedDepthRecursive(
+    options.limits.maxDepth,
+    recursiveWalk,
+    function (dom, builder) {
+      builder.addInline(options.limits.ellipsis || '');
+    }
+  );
+
+  return function (html, metadata = undefined) {
+    return process(html, metadata, options, picker, findBaseElements, limitedWalk);
+  };
+}
+
+
+/**
+ * Convert given HTML according to preprocessed options.
+ *
+ * @param { string } html HTML content to convert.
+ * @param { any } metadata Optional metadata for HTML document, for use in formatters.
+ * @param { Options } options HtmlToText options (preprocessed).
+ * @param { import('selderee').Picker<DomNode, TagDefinition> } picker
+ * Tag definition picker for DOM nodes processing.
+ * @param { (dom: DomNode[]) => DomNode[] } findBaseElements
+ * Function to extract elements from HTML DOM
+ * that will only be present in the output text.
+ * @param { RecursiveCallback } walk Recursive callback.
+ * @returns { string }
+ */
+function process (html, metadata, options, picker, findBaseElements, walk) {
+  const maxInputLength = options.limits.maxInputLength;
+  if (maxInputLength && html && html.length > maxInputLength) {
+    html = html.substring(0, maxInputLength);
+  }
+
+  const document = parseHtmlLoose(html);
+  const bases = findBaseElements(document.children);
+  const builder = new BlockTextBuilder(options, picker, metadata);
+  walk(bases, builder);
+  return builder.toString();
+}
+
+
+function findBases (dom, options, baseSelectorsPicker) {
+  const results = [];
+
+  function recursiveWalk (walk, /** @type { DomNode[] } */ dom) {
+    dom = dom.slice(0, options.limits.maxChildNodes);
+    for (const elem of dom) {
+      if (elem.type !== 'tag') {
+        continue;
+      }
+      const pickedSelectorIndex = baseSelectorsPicker.pick1(elem);
+      if (pickedSelectorIndex > 0) {
+        results.push({ selectorIndex: pickedSelectorIndex, element: elem });
+      } else if (elem.children) {
+        walk(elem.children);
+      }
+      if (results.length >= options.limits.maxBaseElements) {
+        return;
+      }
+    }
+  }
+
+  const limitedWalk = limitedDepthRecursive(
+    options.limits.maxDepth,
+    recursiveWalk
+  );
+  limitedWalk(dom);
+
+  if (options.baseElements.orderBy !== 'occurrence') { // 'selectors'
+    results.sort((a, b) => a.selectorIndex - b.selectorIndex);
+  }
+  return (options.baseElements.returnDomByDefault && results.length === 0)
+    ? dom
+    : results.map(x => x.element);
+}
+
+/**
+ * Function to walk through DOM nodes and accumulate their string representations.
+ *
+ * @param   { RecursiveCallback } walk    Recursive callback.
+ * @param   { DomNode[] }         [dom]   Nodes array to process.
+ * @param   { BlockTextBuilder }  builder Passed around to accumulate output text.
+ * @private
+ */
+function recursiveWalk (walk, dom, builder) {
+  if (!dom) { return; }
+
+  const options = builder.options;
+
+  const tooManyChildNodes = dom.length > options.limits.maxChildNodes;
+  if (tooManyChildNodes) {
+    dom = dom.slice(0, options.limits.maxChildNodes);
+    dom.push({
+      data: options.limits.ellipsis,
+      type: 'text'
+    });
+  }
+
+  for (const elem of dom) {
+    switch (elem.type) {
+      case 'text': {
+        builder.addInline(elem.data);
+        break;
+      }
+      case 'tag': {
+        const tagDefinition = builder.picker.pick1(elem);
+        const format = options.formatters[tagDefinition.format];
+        format(elem, walk, builder, tagDefinition.options || {});
+        break;
+      }
+    }
+  }
+
+  return;
+}
+
+/**
+ * @param { Object<string,string | false> } dict
+ * A dictionary where keys are characters to replace
+ * and values are replacement strings.
+ *
+ * First code point from dict keys is used.
+ * Compound emojis with ZWJ are not supported (not until Node 16).
+ *
+ * @returns { ((str: string) => string) | undefined }
+ */
+function makeReplacerFromDict (dict) {
+  if (!dict || Object.keys(dict).length === 0) {
+    return undefined;
+  }
+  /** @type { [string, string][] } */
+  const entries = Object.entries(dict).filter(([, v]) => v !== false);
+  const regex = new RegExp(
+    entries
+      .map(([c]) => `(${unicodeEscape([...c][0])})`)
+      .join('|'),
+    'g'
+  );
+  const values = entries.map(([, v]) => v);
+  const replacer = (m, ...cgs) => values[cgs.findIndex(cg => cg)];
+  return (str) => str.replace(regex, replacer);
+}
+
+/**
+ * Dummy formatter that discards the input and does nothing.
+ *
+ * @type { FormatCallback }
+ */
+function formatSkip (elem, walk, builder, formatOptions) {
+  /* do nothing */
+}
+
+/**
+ * Insert the given string literal inline instead of a tag.
+ *
+ * @type { FormatCallback }
+ */
+function formatInlineString (elem, walk, builder, formatOptions) {
+  builder.addLiteral(formatOptions.string || '');
+}
+
+/**
+ * Insert a block with the given string literal instead of a tag.
+ *
+ * @type { FormatCallback }
+ */
+function formatBlockString (elem, walk, builder, formatOptions) {
+  builder.openBlock({ leadingLineBreaks: formatOptions.leadingLineBreaks || 2 });
+  builder.addLiteral(formatOptions.string || '');
+  builder.closeBlock({ trailingLineBreaks: formatOptions.trailingLineBreaks || 2 });
+}
+
+/**
+ * Process an inline-level element.
+ *
+ * @type { FormatCallback }
+ */
+function formatInline (elem, walk, builder, formatOptions) {
+  walk(elem.children, builder);
+}
+
+/**
+ * Process a block-level container.
+ *
+ * @type { FormatCallback }
+ */
+function formatBlock$1 (elem, walk, builder, formatOptions) {
+  builder.openBlock({ leadingLineBreaks: formatOptions.leadingLineBreaks || 2 });
+  walk(elem.children, builder);
+  builder.closeBlock({ trailingLineBreaks: formatOptions.trailingLineBreaks || 2 });
+}
+
+function renderOpenTag (elem) {
+  const attrs = (elem.attribs && elem.attribs.length)
+    ? ' ' + Object.entries(elem.attribs)
+      .map(([k, v]) => ((v === '') ? k : `${k}=${v.replace(/"/g, '&quot;')}`))
+      .join(' ')
+    : '';
+  return `<${elem.name}${attrs}>`;
+}
+
+function renderCloseTag (elem) {
+  return `</${elem.name}>`;
+}
+
+/**
+ * Render an element as inline HTML tag, walk through it's children.
+ *
+ * @type { FormatCallback }
+ */
+function formatInlineTag (elem, walk, builder, formatOptions) {
+  builder.startNoWrap();
+  builder.addLiteral(renderOpenTag(elem));
+  builder.stopNoWrap();
+  walk(elem.children, builder);
+  builder.startNoWrap();
+  builder.addLiteral(renderCloseTag(elem));
+  builder.stopNoWrap();
+}
+
+/**
+ * Render an element as HTML block bag, walk through it's children.
+ *
+ * @type { FormatCallback }
+ */
+function formatBlockTag (elem, walk, builder, formatOptions) {
+  builder.openBlock({ leadingLineBreaks: formatOptions.leadingLineBreaks || 2 });
+  builder.startNoWrap();
+  builder.addLiteral(renderOpenTag(elem));
+  builder.stopNoWrap();
+  walk(elem.children, builder);
+  builder.startNoWrap();
+  builder.addLiteral(renderCloseTag(elem));
+  builder.stopNoWrap();
+  builder.closeBlock({ trailingLineBreaks: formatOptions.trailingLineBreaks || 2 });
+}
+
+/**
+ * Render an element with all it's children as inline HTML.
+ *
+ * @type { FormatCallback }
+ */
+function formatInlineHtml (elem, walk, builder, formatOptions) {
+  builder.startNoWrap();
+  builder.addLiteral(
+    outerHtml(elem)
+  );
+  builder.stopNoWrap();
+}
+
+/**
+ * Render an element with all it's children as HTML block.
+ *
+ * @type { FormatCallback }
+ */
+function formatBlockHtml (elem, walk, builder, formatOptions) {
+  builder.openBlock({ leadingLineBreaks: formatOptions.leadingLineBreaks || 2 });
+  builder.startNoWrap();
+  builder.addLiteral(
+    outerHtml(elem)
+  );
+  builder.stopNoWrap();
+  builder.closeBlock({ trailingLineBreaks: formatOptions.trailingLineBreaks || 2 });
+}
+
+/**
+ * Render inline element wrapped with given strings.
+ *
+ * @type { FormatCallback }
+ */
+function formatInlineSurround (elem, walk, builder, formatOptions) {
+  builder.addLiteral(formatOptions.prefix || '');
+  walk(elem.children, builder);
+  builder.addLiteral(formatOptions.suffix || '');
+}
+
+var genericFormatters = /*#__PURE__*/Object.freeze({
+  __proto__: null,
+  block: formatBlock$1,
+  blockHtml: formatBlockHtml,
+  blockString: formatBlockString,
+  blockTag: formatBlockTag,
+  inline: formatInline,
+  inlineHtml: formatInlineHtml,
+  inlineString: formatInlineString,
+  inlineSurround: formatInlineSurround,
+  inlineTag: formatInlineTag,
+  skip: formatSkip
+});
+
+function getRow (matrix, j) {
+  if (!matrix[j]) { matrix[j] = []; }
+  return matrix[j];
+}
+
+function findFirstVacantIndex (row, x = 0) {
+  while (row[x]) { x++; }
+  return x;
+}
+
+function transposeInPlace (matrix, maxSize) {
+  for (let i = 0; i < maxSize; i++) {
+    const rowI = getRow(matrix, i);
+    for (let j = 0; j < i; j++) {
+      const rowJ = getRow(matrix, j);
+      if (rowI[j] || rowJ[i]) {
+        const temp = rowI[j];
+        rowI[j] = rowJ[i];
+        rowJ[i] = temp;
+      }
+    }
+  }
+}
+
+function putCellIntoLayout (cell, layout, baseRow, baseCol) {
+  for (let r = 0; r < cell.rowspan; r++) {
+    const layoutRow = getRow(layout, baseRow + r);
+    for (let c = 0; c < cell.colspan; c++) {
+      layoutRow[baseCol + c] = cell;
+    }
+  }
+}
+
+function getOrInitOffset (offsets, index) {
+  if (offsets[index] === undefined) {
+    offsets[index] = (index === 0) ? 0 : 1 + getOrInitOffset(offsets, index - 1);
+  }
+  return offsets[index];
+}
+
+function updateOffset (offsets, base, span, value) {
+  offsets[base + span] = Math.max(
+    getOrInitOffset(offsets, base + span),
+    getOrInitOffset(offsets, base) + value
+  );
+}
+
+/**
+ * Render a table into a string.
+ * Cells can contain multiline text and span across multiple rows and columns.
+ *
+ * Modifies cells to add lines array.
+ *
+ * @param { TablePrinterCell[][] } tableRows Table to render.
+ * @param { number } rowSpacing Number of spaces between columns.
+ * @param { number } colSpacing Number of empty lines between rows.
+ * @returns { string }
+ */
+function tableToString (tableRows, rowSpacing, colSpacing) {
+  const layout = [];
+  let colNumber = 0;
+  const rowNumber = tableRows.length;
+  const rowOffsets = [0];
+  // Fill the layout table and row offsets row-by-row.
+  for (let j = 0; j < rowNumber; j++) {
+    const layoutRow = getRow(layout, j);
+    const cells = tableRows[j];
+    let x = 0;
+    for (let i = 0; i < cells.length; i++) {
+      const cell = cells[i];
+      x = findFirstVacantIndex(layoutRow, x);
+      putCellIntoLayout(cell, layout, j, x);
+      x += cell.colspan;
+      cell.lines = cell.text.split('\n');
+      const cellHeight = cell.lines.length;
+      updateOffset(rowOffsets, j, cell.rowspan, cellHeight + rowSpacing);
+    }
+    colNumber = (layoutRow.length > colNumber) ? layoutRow.length : colNumber;
+  }
+
+  transposeInPlace(layout, (rowNumber > colNumber) ? rowNumber : colNumber);
+
+  const outputLines = [];
+  const colOffsets = [0];
+  // Fill column offsets and output lines column-by-column.
+  for (let x = 0; x < colNumber; x++) {
+    let y = 0;
+    let cell;
+    const rowsInThisColumn = Math.min(rowNumber, layout[x].length);
+    while (y < rowsInThisColumn) {
+      cell = layout[x][y];
+      if (cell) {
+        if (!cell.rendered) {
+          let cellWidth = 0;
+          for (let j = 0; j < cell.lines.length; j++) {
+            const line = cell.lines[j];
+            const lineOffset = rowOffsets[y] + j;
+            outputLines[lineOffset] = (outputLines[lineOffset] || '').padEnd(colOffsets[x]) + line;
+            cellWidth = (line.length > cellWidth) ? line.length : cellWidth;
+          }
+          updateOffset(colOffsets, x, cell.colspan, cellWidth + colSpacing);
+          cell.rendered = true;
+        }
+        y += cell.rowspan;
+      } else {
+        const lineOffset = rowOffsets[y];
+        outputLines[lineOffset] = (outputLines[lineOffset] || '');
+        y++;
+      }
+    }
+  }
+
+  return outputLines.join('\n');
+}
+
+/**
+ * Process a line-break.
+ *
+ * @type { FormatCallback }
+ */
+function formatLineBreak (elem, walk, builder, formatOptions) {
+  builder.addLineBreak();
+}
+
+/**
+ * Process a `wbr` tag (word break opportunity).
+ *
+ * @type { FormatCallback }
+ */
+function formatWbr (elem, walk, builder, formatOptions) {
+  builder.addWordBreakOpportunity();
+}
+
+/**
+ * Process a horizontal line.
+ *
+ * @type { FormatCallback }
+ */
+function formatHorizontalLine (elem, walk, builder, formatOptions) {
+  builder.openBlock({ leadingLineBreaks: formatOptions.leadingLineBreaks || 2 });
+  builder.addInline('-'.repeat(formatOptions.length || builder.options.wordwrap || 40));
+  builder.closeBlock({ trailingLineBreaks: formatOptions.trailingLineBreaks || 2 });
+}
+
+/**
+ * Process a paragraph.
+ *
+ * @type { FormatCallback }
+ */
+function formatParagraph (elem, walk, builder, formatOptions) {
+  builder.openBlock({ leadingLineBreaks: formatOptions.leadingLineBreaks || 2 });
+  walk(elem.children, builder);
+  builder.closeBlock({ trailingLineBreaks: formatOptions.trailingLineBreaks || 2 });
+}
+
+/**
+ * Process a preformatted content.
+ *
+ * @type { FormatCallback }
+ */
+function formatPre (elem, walk, builder, formatOptions) {
+  builder.openBlock({
+    isPre: true,
+    leadingLineBreaks: formatOptions.leadingLineBreaks || 2
+  });
+  walk(elem.children, builder);
+  builder.closeBlock({ trailingLineBreaks: formatOptions.trailingLineBreaks || 2 });
+}
+
+/**
+ * Process a heading.
+ *
+ * @type { FormatCallback }
+ */
+function formatHeading (elem, walk, builder, formatOptions) {
+  builder.openBlock({ leadingLineBreaks: formatOptions.leadingLineBreaks || 2 });
+  if (formatOptions.uppercase !== false) {
+    builder.pushWordTransform(str => str.toUpperCase());
+    walk(elem.children, builder);
+    builder.popWordTransform();
+  } else {
+    walk(elem.children, builder);
+  }
+  builder.closeBlock({ trailingLineBreaks: formatOptions.trailingLineBreaks || 2 });
+}
+
+/**
+ * Process a blockquote.
+ *
+ * @type { FormatCallback }
+ */
+function formatBlockquote (elem, walk, builder, formatOptions) {
+  builder.openBlock({
+    leadingLineBreaks: formatOptions.leadingLineBreaks || 2,
+    reservedLineLength: 2
+  });
+  walk(elem.children, builder);
+  builder.closeBlock({
+    trailingLineBreaks: formatOptions.trailingLineBreaks || 2,
+    blockTransform: str => ((formatOptions.trimEmptyLines !== false) ? trimCharacter(str, '\n') : str)
+      .split('\n')
+      .map(line => '> ' + line)
+      .join('\n')
+  });
+}
+
+function withBrackets (str, brackets) {
+  if (!brackets) { return str; }
+
+  const lbr = (typeof brackets[0] === 'string')
+    ? brackets[0]
+    : '[';
+  const rbr = (typeof brackets[1] === 'string')
+    ? brackets[1]
+    : ']';
+  return lbr + str + rbr;
+}
+
+function pathRewrite (path, rewriter, baseUrl, metadata, elem) {
+  const modifiedPath = (typeof rewriter === 'function')
+    ? rewriter(path, metadata, elem)
+    : path;
+  return (modifiedPath[0] === '/' && baseUrl)
+    ? trimCharacterEnd(baseUrl, '/') + modifiedPath
+    : modifiedPath;
+}
+
+/**
+ * Process an image.
+ *
+ * @type { FormatCallback }
+ */
+function formatImage (elem, walk, builder, formatOptions) {
+  const attribs = elem.attribs || {};
+  const alt = (attribs.alt)
+    ? attribs.alt
+    : '';
+  const src = (!attribs.src)
+    ? ''
+    : pathRewrite(attribs.src, formatOptions.pathRewrite, formatOptions.baseUrl, builder.metadata, elem);
+  const text = (!src)
+    ? alt
+    : (!alt)
+      ? withBrackets(src, formatOptions.linkBrackets)
+      : alt + ' ' + withBrackets(src, formatOptions.linkBrackets);
+
+  builder.addInline(text, { noWordTransform: true });
+}
+
+// a img baseUrl
+// a img pathRewrite
+// a img linkBrackets
+
+// a     ignoreHref: false
+//            ignoreText ?
+// a     noAnchorUrl: true
+//            can be replaced with selector
+// a     hideLinkHrefIfSameAsText: false
+//            how to compare, what to show (text, href, normalized) ?
+// a     mailto protocol removed without options
+
+// a     protocols: mailto, tel, ...
+//            can be matched with selector?
+
+// anchors, protocols - only if no pathRewrite fn is provided
+
+// normalize-url ?
+
+// a
+// a[href^="#"] - format:skip by default
+// a[href^="mailto:"] - ?
+
+/**
+ * Process an anchor.
+ *
+ * @type { FormatCallback }
+ */
+function formatAnchor (elem, walk, builder, formatOptions) {
+  function getHref () {
+    if (formatOptions.ignoreHref) { return ''; }
+    if (!elem.attribs || !elem.attribs.href) { return ''; }
+    let href = elem.attribs.href.replace(/^mailto:/, '');
+    if (formatOptions.noAnchorUrl && href[0] === '#') { return ''; }
+    href = pathRewrite(href, formatOptions.pathRewrite, formatOptions.baseUrl, builder.metadata, elem);
+    return href;
+  }
+  const href = getHref();
+  if (!href) {
+    walk(elem.children, builder);
+  } else {
+    let text = '';
+    builder.pushWordTransform(
+      str => {
+        if (str) { text += str; }
+        return str;
+      }
+    );
+    walk(elem.children, builder);
+    builder.popWordTransform();
+
+    const hideSameLink = formatOptions.hideLinkHrefIfSameAsText && href === text;
+    if (!hideSameLink) {
+      builder.addInline(
+        (!text)
+          ? href
+          : ' ' + withBrackets(href, formatOptions.linkBrackets),
+        { noWordTransform: true }
+      );
+    }
+  }
+}
+
+/**
+ * @param { DomNode }           elem               List items with their prefixes.
+ * @param { RecursiveCallback } walk               Recursive callback to process child nodes.
+ * @param { BlockTextBuilder }  builder            Passed around to accumulate output text.
+ * @param { FormatOptions }     formatOptions      Options specific to a formatter.
+ * @param { () => string }      nextPrefixCallback Function that returns increasing index each time it is called.
+ */
+function formatList (elem, walk, builder, formatOptions, nextPrefixCallback) {
+  const isNestedList = get(elem, ['parent', 'name']) === 'li';
+
+  // With Roman numbers, index length is not as straightforward as with Arabic numbers or letters,
+  // so the dumb length comparison is the most robust way to get the correct value.
+  let maxPrefixLength = 0;
+  const listItems = (elem.children || [])
+    // it might be more accurate to check only for html spaces here, but no significant benefit
+    .filter(child => child.type !== 'text' || !/^\s*$/.test(child.data))
+    .map(function (child) {
+      if (child.name !== 'li') {
+        return { node: child, prefix: '' };
+      }
+      const prefix = (isNestedList)
+        ? nextPrefixCallback().trimStart()
+        : nextPrefixCallback();
+      if (prefix.length > maxPrefixLength) { maxPrefixLength = prefix.length; }
+      return { node: child, prefix: prefix };
+    });
+  if (!listItems.length) { return; }
+
+  builder.openList({
+    interRowLineBreaks: 1,
+    leadingLineBreaks: isNestedList ? 1 : (formatOptions.leadingLineBreaks || 2),
+    maxPrefixLength: maxPrefixLength,
+    prefixAlign: 'left'
+  });
+
+  for (const { node, prefix } of listItems) {
+    builder.openListItem({ prefix: prefix });
+    walk([node], builder);
+    builder.closeListItem();
+  }
+
+  builder.closeList({ trailingLineBreaks: isNestedList ? 1 : (formatOptions.trailingLineBreaks || 2) });
+}
+
+/**
+ * Process an unordered list.
+ *
+ * @type { FormatCallback }
+ */
+function formatUnorderedList (elem, walk, builder, formatOptions) {
+  const prefix = formatOptions.itemPrefix || ' * ';
+  return formatList(elem, walk, builder, formatOptions, () => prefix);
+}
+
+/**
+ * Process an ordered list.
+ *
+ * @type { FormatCallback }
+ */
+function formatOrderedList (elem, walk, builder, formatOptions) {
+  let nextIndex = Number(elem.attribs.start || '1');
+  const indexFunction = getOrderedListIndexFunction(elem.attribs.type);
+  const nextPrefixCallback = () => ' ' + indexFunction(nextIndex++) + '. ';
+  return formatList(elem, walk, builder, formatOptions, nextPrefixCallback);
+}
+
+/**
+ * Return a function that can be used to generate index markers of a specified format.
+ *
+ * @param   { string } [olType='1'] Marker type.
+ * @returns { (i: number) => string }
+ */
+function getOrderedListIndexFunction (olType = '1') {
+  switch (olType) {
+    case 'a': return (i) => numberToLetterSequence(i, 'a');
+    case 'A': return (i) => numberToLetterSequence(i, 'A');
+    case 'i': return (i) => numberToRoman(i).toLowerCase();
+    case 'I': return (i) => numberToRoman(i);
+    case '1':
+    default: return (i) => (i).toString();
+  }
+}
+
+/**
+ * Given a list of class and ID selectors (prefixed with '.' and '#'),
+ * return them as separate lists of names without prefixes.
+ *
+ * @param { string[] } selectors Class and ID selectors (`[".class", "#id"]` etc).
+ * @returns { { classes: string[], ids: string[] } }
+ */
+function splitClassesAndIds (selectors) {
+  const classes = [];
+  const ids = [];
+  for (const selector of selectors) {
+    if (selector.startsWith('.')) {
+      classes.push(selector.substring(1));
+    } else if (selector.startsWith('#')) {
+      ids.push(selector.substring(1));
+    }
+  }
+  return { classes: classes, ids: ids };
+}
+
+function isDataTable (attr, tables) {
+  if (tables === true) { return true; }
+  if (!attr) { return false; }
+
+  const { classes, ids } = splitClassesAndIds(tables);
+  const attrClasses = (attr['class'] || '').split(' ');
+  const attrIds = (attr['id'] || '').split(' ');
+
+  return attrClasses.some(x => classes.includes(x)) || attrIds.some(x => ids.includes(x));
+}
+
+/**
+ * Process a table (either as a container or as a data table, depending on options).
+ *
+ * @type { FormatCallback }
+ */
+function formatTable (elem, walk, builder, formatOptions) {
+  return isDataTable(elem.attribs, builder.options.tables)
+    ? formatDataTable(elem, walk, builder, formatOptions)
+    : formatBlock(elem, walk, builder, formatOptions);
+}
+
+function formatBlock (elem, walk, builder, formatOptions) {
+  builder.openBlock({ leadingLineBreaks: formatOptions.leadingLineBreaks });
+  walk(elem.children, builder);
+  builder.closeBlock({ trailingLineBreaks: formatOptions.trailingLineBreaks });
+}
+
+/**
+ * Process a data table.
+ *
+ * @type { FormatCallback }
+ */
+function formatDataTable (elem, walk, builder, formatOptions) {
+  builder.openTable();
+  elem.children.forEach(walkTable);
+  builder.closeTable({
+    tableToString: (rows) => tableToString(rows, formatOptions.rowSpacing ?? 0, formatOptions.colSpacing ?? 3),
+    leadingLineBreaks: formatOptions.leadingLineBreaks,
+    trailingLineBreaks: formatOptions.trailingLineBreaks
+  });
+
+  function formatCell (cellNode) {
+    const colspan = +get(cellNode, ['attribs', 'colspan']) || 1;
+    const rowspan = +get(cellNode, ['attribs', 'rowspan']) || 1;
+    builder.openTableCell({ maxColumnWidth: formatOptions.maxColumnWidth });
+    walk(cellNode.children, builder);
+    builder.closeTableCell({ colspan: colspan, rowspan: rowspan });
+  }
+
+  function walkTable (elem) {
+    if (elem.type !== 'tag') { return; }
+
+    const formatHeaderCell = (formatOptions.uppercaseHeaderCells !== false)
+      ? (cellNode) => {
+        builder.pushWordTransform(str => str.toUpperCase());
+        formatCell(cellNode);
+        builder.popWordTransform();
+      }
+      : formatCell;
+
+    switch (elem.name) {
+      case 'thead':
+      case 'tbody':
+      case 'tfoot':
+      case 'center':
+        elem.children.forEach(walkTable);
+        return;
+
+      case 'tr': {
+        builder.openTableRow();
+        for (const childOfTr of elem.children) {
+          if (childOfTr.type !== 'tag') { continue; }
+          switch (childOfTr.name) {
+            case 'th': {
+              formatHeaderCell(childOfTr);
+              break;
+            }
+            case 'td': {
+              formatCell(childOfTr);
+              break;
+            }
+              // do nothing
+          }
+        }
+        builder.closeTableRow();
+        break;
+      }
+        // do nothing
+    }
+  }
+}
+
+var textFormatters = /*#__PURE__*/Object.freeze({
+  __proto__: null,
+  anchor: formatAnchor,
+  blockquote: formatBlockquote,
+  dataTable: formatDataTable,
+  heading: formatHeading,
+  horizontalLine: formatHorizontalLine,
+  image: formatImage,
+  lineBreak: formatLineBreak,
+  orderedList: formatOrderedList,
+  paragraph: formatParagraph,
+  pre: formatPre,
+  table: formatTable,
+  unorderedList: formatUnorderedList,
+  wbr: formatWbr
+});
+
+/**
+ * Default options.
+ *
+ * @constant
+ * @type { Options }
+ * @default
+ * @private
+ */
+const DEFAULT_OPTIONS = {
+  baseElements: {
+    selectors: [ 'body' ],
+    orderBy: 'selectors', // 'selectors' | 'occurrence'
+    returnDomByDefault: true
+  },
+  decodeEntities: true,
+  encodeCharacters: {},
+  formatters: {},
+  limits: {
+    ellipsis: '...',
+    maxBaseElements: undefined,
+    maxChildNodes: undefined,
+    maxDepth: undefined,
+    maxInputLength: (1 << 24) // 16_777_216
+  },
+  longWordSplit: {
+    forceWrapOnLimit: false,
+    wrapCharacters: []
+  },
+  preserveNewlines: false,
+  selectors: [
+    { selector: '*', format: 'inline' },
+    {
+      selector: 'a',
+      format: 'anchor',
+      options: {
+        baseUrl: null,
+        hideLinkHrefIfSameAsText: false,
+        ignoreHref: false,
+        linkBrackets: ['[', ']'],
+        noAnchorUrl: true
+      }
+    },
+    { selector: 'article', format: 'block', options: { leadingLineBreaks: 1, trailingLineBreaks: 1 } },
+    { selector: 'aside', format: 'block', options: { leadingLineBreaks: 1, trailingLineBreaks: 1 } },
+    {
+      selector: 'blockquote',
+      format: 'blockquote',
+      options: { leadingLineBreaks: 2, trailingLineBreaks: 2, trimEmptyLines: true }
+    },
+    { selector: 'br', format: 'lineBreak' },
+    { selector: 'div', format: 'block', options: { leadingLineBreaks: 1, trailingLineBreaks: 1 } },
+    { selector: 'footer', format: 'block', options: { leadingLineBreaks: 1, trailingLineBreaks: 1 } },
+    { selector: 'form', format: 'block', options: { leadingLineBreaks: 1, trailingLineBreaks: 1 } },
+    { selector: 'h1', format: 'heading', options: { leadingLineBreaks: 3, trailingLineBreaks: 2, uppercase: true } },
+    { selector: 'h2', format: 'heading', options: { leadingLineBreaks: 3, trailingLineBreaks: 2, uppercase: true } },
+    { selector: 'h3', format: 'heading', options: { leadingLineBreaks: 3, trailingLineBreaks: 2, uppercase: true } },
+    { selector: 'h4', format: 'heading', options: { leadingLineBreaks: 2, trailingLineBreaks: 2, uppercase: true } },
+    { selector: 'h5', format: 'heading', options: { leadingLineBreaks: 2, trailingLineBreaks: 2, uppercase: true } },
+    { selector: 'h6', format: 'heading', options: { leadingLineBreaks: 2, trailingLineBreaks: 2, uppercase: true } },
+    { selector: 'header', format: 'block', options: { leadingLineBreaks: 1, trailingLineBreaks: 1 } },
+    {
+      selector: 'hr',
+      format: 'horizontalLine',
+      options: { leadingLineBreaks: 2, length: undefined, trailingLineBreaks: 2 }
+    },
+    {
+      selector: 'img',
+      format: 'image',
+      options: { baseUrl: null, linkBrackets: ['[', ']'] }
+    },
+    { selector: 'main', format: 'block', options: { leadingLineBreaks: 1, trailingLineBreaks: 1 } },
+    { selector: 'nav', format: 'block', options: { leadingLineBreaks: 1, trailingLineBreaks: 1 } },
+    {
+      selector: 'ol',
+      format: 'orderedList',
+      options: { leadingLineBreaks: 2, trailingLineBreaks: 2 }
+    },
+    { selector: 'p', format: 'paragraph', options: { leadingLineBreaks: 2, trailingLineBreaks: 2 } },
+    { selector: 'pre', format: 'pre', options: { leadingLineBreaks: 2, trailingLineBreaks: 2 } },
+    { selector: 'section', format: 'block', options: { leadingLineBreaks: 1, trailingLineBreaks: 1 } },
+    {
+      selector: 'table',
+      format: 'table',
+      options: {
+        colSpacing: 3,
+        leadingLineBreaks: 2,
+        maxColumnWidth: 60,
+        rowSpacing: 0,
+        trailingLineBreaks: 2,
+        uppercaseHeaderCells: true
+      }
+    },
+    {
+      selector: 'ul',
+      format: 'unorderedList',
+      options: { itemPrefix: ' * ', leadingLineBreaks: 2, trailingLineBreaks: 2 }
+    },
+    { selector: 'wbr', format: 'wbr' },
+  ],
+  tables: [], // deprecated
+  whitespaceCharacters: ' \t\r\n\f\u200b',
+  wordwrap: 80
+};
+
+
+// The text n8n's HTML node v1.2 extracts from `html` (the selected element's inner HTML), with
+// the step's comma-separated skip selectors.
+function htmlToText (html, skipSelectors) {
+  const extra = skipSelectors
+    ? String(skipSelectors).split(',').map(s => ({ selector: s.trim(), format: 'skip' }))
+    : [];
+  const options = {
+    ...DEFAULT_OPTIONS,
+    baseElements: { ...DEFAULT_OPTIONS.baseElements },
+    limits: { ...DEFAULT_OPTIONS.limits },
+    longWordSplit: { ...DEFAULT_OPTIONS.longWordSplit },
+    selectors: mergeDuplicatesPreferLast([...DEFAULT_OPTIONS.selectors, ...extra], s => s.selector),
+    formatters: Object.assign({}, genericFormatters, textFormatters),
+    encodeCharacters: {}
+  };
+  return compile$1(options)(html);
+}
+
+return { htmlToText };
+})();
+
 // ---- src/summarize.mjs ----
 const __m_summarize_mjs = (() => {
 // The Summarization Chain v2 as n8n 2.47.7 runs it (@n8n/n8n-nodes-langchain ChainSummarization
@@ -13612,7 +16977,9 @@ const { tryToParseDateTime } = __m_extensions_mjs;
 const { adaptResult, coerceArgs, applyCursorArg, advanceCursor, getAt } = __m_adapt_mjs;
 const { resolveParameter, compileCode } = __m_expression_mjs;
 const { createLookup } = __m_proxy_mjs;
-const { binaryFromTool } = __m_files_mjs;
+const { binaryFromTool, binaryOf } = __m_files_mjs;
+const { parseHtml, selectAll, innerHtml, textContent, isTag, UnsupportedHtml } = __m_htmldom_mjs;
+const { htmlToText } = __m_htmltext_mjs;
 const { summarizeItem } = __m_summarize_mjs;
 // Node implementations, group 2 (Sort, Remove Duplicates, Summarize, Date & Time, Crypto,
 // Respond to Webhook, Item Lists, Html template/table, Execution Data) and the steps that
@@ -14119,7 +17486,7 @@ const itemLists = {
   },
 };
 
-// ---------- Html (template / table only) ----------
+// ---------- Html (template, table, extraction) ----------
 
 const html = {
   versions: inRange(1, 1.2),
@@ -14147,7 +17514,123 @@ const html = {
       t += `<tbody>${items.map((it) => `<tr>${keys.map((k) => `<td>${typeof it.json[k] === "object" && it.json[k] !== null ? esc(JSON.stringify(it.json[k])) : esc(it.json[k])}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
       return [[{ json: { table: t }, pairedItem: items.map((_, item) => ({ item })) }]];
     }
-    throw unsupported(exec, `Html operation "${op}" (needs an HTML parser)`);
+    if (op === "extractHtmlContent") return [extractHtml(exec, exec.typeVersion, { v1Key: true })];
+    throw unsupported(exec, `Html operation "${op}"`);
+  },
+};
+
+// ---------- HTML extraction (Html extractHtmlContent v1-1.2, HTML Extract v1) ----------
+
+// n8n's Html node and HTML Extract node: per item, the HTML from a json field (or a binary
+// property, as UTF-8), one string or a list of them; each is loaded with cheerio and every
+// extraction value is the selector's attribute, inner HTML, text or form value, one value or a
+// list (returnArray), then trimmed and cleaned as the options say. Text is cheerio's .text() up
+// to Html 1.1 and in HTML Extract; Html 1.2 converts the first match's inner HTML with
+// html-to-text (htmltext.mjs), skipping the step's skip selectors. htmldom.mjs builds the trees
+// as cheerio (parse5) and html-to-text (htmlparser2) do.
+const BOOLEAN_ATTRS = /^(?:autofocus|autoplay|async|checked|controls|defer|disabled|hidden|loop|multiple|open|readonly|required|scoped|selected)$/i;
+// cheerio's attr(name) on the first element: the whole attribs object without a name, a boolean
+// attribute as its name, an option's text as its value, "on" for a radio or checkbox.
+function cheerioAttr(el, name) {
+  if (!isTag(el)) return undefined;
+  if (!name) return { ...el.attribs };
+  if (Object.prototype.hasOwnProperty.call(el.attribs, name)) return BOOLEAN_ATTRS.test(name) ? name : el.attribs[name];
+  if (el.name === "option" && name === "value") return textContent(el.children);
+  if (el.name === "input" && (el.attribs.type === "radio" || el.attribs.type === "checkbox") && name === "value") return "on";
+  return undefined;
+}
+function cheerioVal(els) {
+  const el = els[0];
+  if (!isTag(el)) return undefined;
+  if (el.name === "textarea") return els.map(textContent).join("");
+  if (el.name === "select") {
+    const opts = selectAll("option:selected", el).filter((o) => o !== el);
+    return el.attribs.multiple !== undefined ? opts.map((o) => textContent(o.children)) : cheerioAttr(opts[0], "value");
+  }
+  if (el.name === "input" || el.name === "option") return cheerioAttr(el, "value");
+  return undefined;
+}
+function extractValue(exec, els, v, options, version, textMode) {
+  let value;
+  const rv = v.returnValue ?? "text";
+  if (rv === "attribute") value = cheerioAttr(els[0], v.attribute ?? "");
+  else if (rv === "html") value = (isTag(els[0]) ? innerHtml(els[0]) : null) || undefined;
+  else if (rv === "text") {
+    if (textMode === "cheerio") value = els.map(textContent).join("");
+    else if (version <= 1.1) value = els.map(textContent).join("") || undefined;
+    else value = htmlToText(isTag(els[0]) ? innerHtml(els[0]) : "", v.skipSelectors);
+  } else if (rv === "value") {
+    value = cheerioVal(els);
+    if (Array.isArray(value)) value = value.join(",");
+  } else throw new TypeError("extractFunctions[valueData.returnValue] is not a function");
+  if (value === undefined) return value;
+  if (options.trimValues) {
+    if (typeof value !== "string") throw new TypeError("value.trim is not a function");
+    value = value.trim();
+  }
+  if (options.cleanUpText) {
+    if (typeof value !== "string") throw new TypeError("value.replace is not a function");
+    value = value.replace(/^\s+|\s+$/g, "").replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/g, " ");
+  }
+  return value;
+}
+// v1Key: Html v1 reads a top-level key (sanitizeDataPathKey: also its ['key'] form) where later
+// versions and HTML Extract read a path. textMode "cheerio": HTML Extract's text, never undefined.
+function extractHtml(exec, version, { v1Key = false, textMode = null } = {}) {
+  const items = exec.getInputData();
+  const out = [];
+  for (let i = 0; i < items.length; i++) {
+    try {
+      const prop = exec.param("dataPropertyName", i, "data");
+      const values = exec.param("extractionValues", i, {})?.values;
+      const options = exec.param("options", i, {}) ?? {};
+      const source = exec.param("sourceData", i, "json");
+      const item = items[i];
+      let htmlArray;
+      if (source === "json") {
+        let data;
+        if (v1Key && version === 1) {
+          let key = prop;
+          if (item.json[key] === undefined && /^\[(['"]).*\1\]$/.test(key) && item.json[key.slice(2, -2)] !== undefined) key = key.slice(2, -2);
+          data = item.json[key];
+        } else data = getPath(item.json, prop);
+        if (data === undefined) throw err(exec, `No property named "${prop}" exists!`, { itemIndex: i });
+        htmlArray = data;
+      } else {
+        const { bytes } = binaryOf(exec, i, prop);
+        htmlArray = new TextDecoder("utf-8", { ignoreBOM: true }).decode(bytes);
+      }
+      if (!Array.isArray(htmlArray)) htmlArray = [htmlArray];
+      if (values == null || typeof values[Symbol.iterator] !== "function") throw new TypeError("extractionValues.values is not iterable");
+      for (const html of htmlArray) {
+        if (typeof html !== "string") throw unsupported(exec, "HTML extraction from a value that is not text");
+        const doc = parseHtml(html);
+        const json = {};
+        for (const v of values) {
+          const sel = String(v.cssSelector ?? "");
+          const els = sel.trim() ? selectAll(sel, doc) : [];
+          json[v.key ?? ""] = v.returnArray ? els.map((el) => extractValue(exec, [el], v, options, version, textMode)) : extractValue(exec, els, v, options, version, textMode);
+        }
+        out.push({ json, pairedItem: { item: i } });
+      }
+    } catch (e) {
+      if (e instanceof UnsupportedHtml) throw unsupported(exec, `HTML extraction: ${e.message}`);
+      if (e instanceof UnsupportedNode) throw e;
+      if (exec.continueOnFail()) {
+        out.push({ json: { error: e.message }, pairedItem: { item: i } });
+        continue;
+      }
+      throw e instanceof NodeError ? e : err(exec, e.message, { itemIndex: i });
+    }
+  }
+  return out;
+}
+
+const htmlExtract = {
+  versions: (v) => v === 1,
+  defaults: () => ({ sourceData: "json", dataPropertyName: "data", extractionValues: {}, options: {} }),
+  execute(exec) {
+    return [extractHtml(exec, 1, { textMode: "cheerio" })];
   },
 };
 
@@ -14172,6 +17655,7 @@ const GROUP2 = {
   [BASE + "respondToWebhook"]: respondToWebhook,
   [BASE + "itemLists"]: itemLists,
   [BASE + "html"]: html,
+  [BASE + "htmlExtract"]: htmlExtract,
   [BASE + "executionData"]: executionData,
 };
 

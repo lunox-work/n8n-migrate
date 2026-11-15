@@ -6,8 +6,8 @@ Classes: **full** (no review flag, no blocked step), **review** (some step is fl
 
 | Mode | full | review | blocked | refused | crash | schema-invalid | preflight clean |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| default | 17 | 30 | 53 | 0 | 0 | 1 | 38 |
-| forced | 17 | 30 | 53 | 0 | 0 | 1 | 38 |
+| default | 17 | 30 | 53 | 0 | 0 | 1 | 39 |
+| forced | 17 | 30 | 53 | 0 | 0 | 1 | 39 |
 
 ## Default (refusals honoured)
 
