@@ -74,3 +74,10 @@ test("container configuration hash: env, image and the runners sidecar each chan
   assert.notEqual(configHash({ extraEnv: { A: "1", B: "2" }, runners: true }), base);
   assert.notEqual(configHash({ extraEnv: { A: "1", B: "2" }, image: "other:1" }), base);
 });
+
+test("P93: only a template with an enabled Execute Command node runs with NODES_EXCLUDE=[]", async () => {
+  const { templateEnv } = await import("../evals/bench/n8n-side.mjs");
+  const wf = (disabled) => ({ nodes: [{ name: "Cmd", type: "n8n-nodes-base.executeCommand", disabled }] });
+  assert.equal(templateEnv({ routes: [], wf: wf(false) }).extraEnv.NODES_EXCLUDE, "[]");
+  assert.equal(templateEnv({ routes: [], wf: wf(true) }).extraEnv.NODES_EXCLUDE, undefined, "a disabled node needs nothing");
+});

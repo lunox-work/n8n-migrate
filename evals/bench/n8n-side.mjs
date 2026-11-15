@@ -197,6 +197,13 @@ export function templateEnv(prep) {
     env.NO_PROXY = "127.0.0.1,::1,mock";
     needs.push("P52: routes on localhost go to the mock");
   }
+  // PROPOSALS P93: n8n 2.x excludes Execute Command (and Local File Trigger) by default
+  // (NODES_EXCLUDE). A template with an enabled Execute Command node runs with nothing excluded;
+  // its shell runs inside the n8n container (1 GiB cap, no host mount, no route out).
+  if ((prep.wf?.nodes ?? []).some((n) => !n.disabled && n.type === "n8n-nodes-base.executeCommand")) {
+    env.NODES_EXCLUDE = "[]";
+    needs.push("P93: Execute Command allowed (NODES_EXCLUDE=[])");
+  }
   return { extraEnv: env, runners: false, needs };
 }
 export function loopbackRouteHosts(routes) {

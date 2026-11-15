@@ -98,6 +98,10 @@
       "no country reaches SplitInBatches; no IF runs"
     ],
     "offline": "Read Binary File fails on a missing file (n8n 2.47.7 ReadBinaryFile throws ENOENT; alwaysOutputData does not catch errors), so a first run on an empty cache stops there whatever the site answers. The fixture therefore places every page the run asks for in the scraper's cache (/home/node/.cache/scrapper/, `file` sources), File exists? holds and HTTP Request1, Wait and Write Binary File stay off the path; their routes are given anyway. Set Page to Scrape and Set More Pages keep the next page in workflow static data, which starts empty. MongoDB inserts cannot be answered offline (no MongoDB sidecar); createdAt and updatedAt are run-time dates",
-    "n8nCannotRun": "Create Directory is an Execute Command node, which n8n 2.47.7 leaves out by default (NODES_EXCLUDE holds executeCommand and localFileTrigger), so the run stops at its first node; MongoDB1 also has no bench sidecar (only postgres and mysql are seeded)"
+    "n8nCannotRun": "MongoDB1 has no bench sidecar yet (PROPOSALS P66; Execute Command runs since P93)",
+    "n8nFails": {
+      "node": "uProc",
+      "why": "n8n 2.47.7 refuses to start the run: uProc (tool getCountryNormalized) requires the parameter Language, which the template leaves empty (canned check, R4e)"
+    }
   }
 }
