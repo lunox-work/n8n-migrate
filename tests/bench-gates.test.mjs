@@ -1375,3 +1375,10 @@ test("P78: the overlay's placeholder fills reach the export the Claude side conv
   const wf = raw.workflow?.workflow ?? raw;
   assert.equal(wf.nodes.find((n) => n.name === "Get Ideas").parameters.documentId.value, "sheet-1");
 });
+
+test("results rows lose the home path, also a start of it a sliced text cut off", async () => {
+  const { scrubHome } = await import("../evals/bench/run.mjs");
+  const home = "/Users/someone";
+  assert.equal(scrubHome(JSON.stringify({ a: `${home}/x`, b: "file_path exactly /Users/some" }), home), JSON.stringify({ a: "~/x", b: "file_path exactly ~" }));
+  assert.equal(scrubHome('"/Users/"', home), '"/Users/"');
+});

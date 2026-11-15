@@ -253,6 +253,15 @@ function claudeEffects(run, fx, n8nList = []) {
   return list;
 }
 
+// Rows are committed: the home path goes, and so does a start of it that a sliced text cut off
+// at the end of a JSON string ("…exactly /Users/na" as a detail's last characters).
+export function scrubHome(text, home = homedir()) {
+  let out = String(text).split(home).join("~");
+  const top = home.split("/").slice(0, 2).join("/") + "/";
+  for (let k = home.length - 1; k > top.length; k--) out = out.split(home.slice(0, k) + '"').join('~"');
+  return out;
+}
+
 // ---------- one template ----------
 
 async function benchTemplate(id, args, L) {
@@ -669,7 +678,7 @@ async function main() {
         httpAttempt: t.steps["n8n:normal"]?.httpAttempt ?? t.steps.n8nCheck?.httpAttempt ?? null,
         metrics: { benchWallMs: Date.now() - t0, ...r.metrics, claudeRuns: runs.length, claudeCostUsd: Math.round(runs.reduce((s, x) => s + (x.costUsd ?? 0), 0) * 10000) / 10000 },
       };
-      appendFileSync(RESULTS, JSON.stringify(row).split(homedir()).join("~") + "\n"); // rows are committed: no home path
+      appendFileSync(RESULTS, scrubHome(JSON.stringify(row)) + "\n"); // rows are committed: no home path
       t.done = true;
       t.row = row;
       writeJson(file, L.data);
