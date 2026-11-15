@@ -136,3 +136,13 @@ test("P86: an expression-mode LLM API URL with nothing to evaluate is the litera
   assert.equal(literalUrl("https://x.example/a"), "https://x.example/a");
   assert.equal(literalUrl("={{ $json.u }}"), null);
 });
+
+test("P88: a response answered as if authorised is reported when the run used it", async () => {
+  const { routesOf, logVsFixture } = await import("../evals/bench/n8n-side.mjs");
+  const fx = { reads: [], writeReplies: [{ node: "Post", http: { responses: [{ method: "POST", url: "https://sheets.googleapis.com/v4/x", status: 200, body: {}, assumedAuthorised: true }] } }] };
+  const prep = { routes: routesOf(fx).routes };
+  assert.equal(prep.routes[0].assumedAuthorised, true);
+  const used = [{ method: "POST", proxied: "https://sheets.googleapis.com", path: "/v4/x", fixture: "route POST https://sheets.googleapis.com/v4/x" }];
+  assert.deepEqual(logVsFixture(prep, used).assumedAuthorised, [{ node: "Post", method: "POST", url: "https://sheets.googleapis.com/v4/x" }]);
+  assert.equal(logVsFixture(prep, []).assumedAuthorised, undefined);
+});

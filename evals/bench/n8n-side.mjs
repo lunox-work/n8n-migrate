@@ -647,7 +647,7 @@ export function routesOf(fixture) {
         bad.push({ node: r.node, method: x.method, url: x.url, error: String(e.message) });
         continue;
       }
-      routes.push({ node: r.node, method: x.method, url: x.url, ...(x.any ? { any: true } : {}), ...(x.query ? { query: x.query } : {}), ...(x.bodyMatch !== undefined ? { bodyMatch: x.bodyMatch } : {}), status: x.status, ...(x.headers ? { headers: x.headers } : {}), ...(x.body !== undefined ? { body: x.body } : {}), ...(x.bodyBase64 !== undefined ? { bodyBase64: x.bodyBase64 } : {}) });
+      routes.push({ node: r.node, method: x.method, url: x.url, ...(x.assumedAuthorised ? { assumedAuthorised: true } : {}), ...(x.any ? { any: true } : {}), ...(x.query ? { query: x.query } : {}), ...(x.bodyMatch !== undefined ? { bodyMatch: x.bodyMatch } : {}), status: x.status, ...(x.headers ? { headers: x.headers } : {}), ...(x.body !== undefined ? { body: x.body } : {}), ...(x.bodyBase64 !== undefined ? { bodyBase64: x.bodyBase64 } : {}) });
       if (u.protocol === "https:") hosts.add(u.hostname);
     }
   }
@@ -864,7 +864,10 @@ export function logVsFixture(prep, effects) {
     seen.add(key);
     if (!used.has(key)) unused.push({ node: r.node, method: r.method, url: r.url, ...(r.any ? { any: true } : {}), ...(r.query ? { query: r.query } : {}), ...(r.bodyMatch !== undefined ? { bodyMatch: r.bodyMatch } : {}) });
   }
-  return { unanswered, unused, writeDefaults, ...(noFixtureHosts.length ? { noFixtureHosts } : {}) };
+  // PROPOSALS P88: routes answered as if a credential were attached, that this run used.
+  const assumed = [];
+  for (const r of prep.routes) if (r.assumedAuthorised && used.has(`route ${routeKey(r)}`) && !assumed.some((a) => a.url === r.url && a.method === r.method)) assumed.push({ node: r.node, method: r.method, url: r.url });
+  return { unanswered, unused, writeDefaults, ...(noFixtureHosts.length ? { noFixtureHosts } : {}), ...(assumed.length ? { assumedAuthorised: assumed } : {}) };
 }
 
 // PROPOSALS P12: did a run with live model calls fail because the shim did not answer? A shim

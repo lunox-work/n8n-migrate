@@ -274,6 +274,10 @@
             "string"
           ]
         },
+        "assumedAuthorised": {
+          "description": "PROPOSALS P88: the request reaches a service that refuses unauthenticated calls (401/403) although the node sends no credential at all (no authentication, no auth header or key); the response answers it as if the person's credential were attached, as P61's dummies do for a stripped credential. Reported per run (logVsFixture.assumedAuthorised), never a self-fail",
+          "type": "boolean"
+        },
         "status": {
           "type": "integer"
         },
