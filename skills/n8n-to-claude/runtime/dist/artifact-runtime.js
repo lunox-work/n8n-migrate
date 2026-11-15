@@ -12627,7 +12627,69 @@ const facebookGraph = {
   },
 };
 
-const restPrograms = { googleSheets, googleCalendar, rssFeedRead, openAiImage, facebookGraph };
+// ---------- Discord webhook message (n8n-nodes-base.discord v1) ----------
+// n8n-nodes-base 2.47.7 Discord/v1/DiscordV1.node.js, per item: POST to the node's webhookUri
+// (the webhook's own URL, which carries its token, as the node parameter holds it) with JSON
+// {content: text, embeds (options.embeds, a JSON list), username, components (JSON),
+// avatar_url (options.avatarUrl), flags, tts, payload_json (JSON), attachments (JSON)}, each
+// sent only when truthy; neither content nor embeds is n8n's error. allowedMentions is never
+// sent (n8n reads options.allowed_mentions, which the form never sets). A payload_json switches
+// n8n to a multipart body, not carried over. The item is {success: true}. n8n's waits on
+// Discord's rate-limit headers are not repeated, and the body goes as application/json without
+// n8n's charset parameter.
+function jsonOption(exec, i, v, what) {
+  try {
+    return JSON.parse(v);
+  } catch {
+    throw new NodeError(`${what} must be valid JSON.`, { node: exec.name, itemIndex: i });
+  }
+}
+const discordWebhookV1 = {
+  versions: () => true,
+  async execute(exec) {
+    const out = [];
+    const items = exec.getInputData();
+    if (!exec.param("webhookUri", 0, "")) throw new NodeError("Webhook uri is required.", { node: exec.name });
+    for (let i = 0; i < items.length; i++) {
+      try {
+        const url = String(exec.param("webhookUri", i, ""));
+        const o = exec.param("options", i, {}) ?? {};
+        const body = { content: exec.param("text", i, "") };
+        if (!body.content && !o.embeds) throw new NodeError("Either content or embeds must be set.", { node: exec.name, itemIndex: i });
+        if (o.embeds) {
+          body.embeds = jsonOption(exec, i, o.embeds, "Embeds");
+          if (!Array.isArray(body.embeds)) throw new NodeError("Embeds must be valid JSON.", { node: exec.name, itemIndex: i });
+        }
+        if (o.username) body.username = o.username;
+        if (o.components) body.components = jsonOption(exec, i, o.components, "Components");
+        if (o.avatarUrl) body.avatar_url = o.avatarUrl;
+        if (o.flags) body.flags = o.flags;
+        if (o.tts) body.tts = o.tts;
+        if (o.payloadJson) throw new NodeError("a Discord payload JSON (a multipart message) is not carried over", { node: exec.name, itemIndex: i });
+        if (o.attachments) body.attachments = jsonOption(exec, i, o.attachments, "Attachments");
+        for (const k of ["content", "username", "avatar_url", "embeds", "flags", "components", "attachments"]) if (!body[k]) delete body[k];
+        const [r] = await exec.request([{ kind: "http", itemIndex: i, method: "POST", url, query: {}, headers: {}, body, contentType: "json" }]);
+        if (!r.ok) throw new NodeError(r.error?.message ?? "request failed", { node: exec.name, itemIndex: i });
+        const status = Number(r.value?.status ?? 200);
+        if (status >= 400) {
+          const b = r.value?.body;
+          throw new NodeError(`${status} - ${typeof b === "string" ? b : JSON.stringify(b)}`, { node: exec.name, itemIndex: i, httpCode: String(status) });
+        }
+        out.push({ json: { success: true }, pairedItem: { item: i } });
+      } catch (e) {
+        if (e?.name === "Suspend" || e?.name === "ContainmentViolation") throw e;
+        if (exec.continueOnFail()) {
+          out.push({ json: { error: e.message }, pairedItem: { item: i } });
+          continue;
+        }
+        throw e;
+      }
+    }
+    return [out];
+  },
+};
+
+const restPrograms = { googleSheets, googleCalendar, rssFeedRead, openAiImage, facebookGraph, discordWebhookV1 };
 
 return { restPrograms };
 })();

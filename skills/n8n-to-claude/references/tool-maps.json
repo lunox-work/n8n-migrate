@@ -986,6 +986,21 @@
         }
       }
     },
+    "n8n-nodes-base.discord": {
+      ">=1,<2": {
+        "_": {
+          "_": {
+            "rest": "discordWebhookV1",
+            "hosts": [{ "method": "POST", "host": "discord.com", "pathPrefix": "/api/webhooks/" }, { "method": "POST", "host": "discordapp.com", "pathPrefix": "/api/webhooks/" }],
+            "effect": "write",
+            "fidelity": "exact",
+            "caveats": ["The webhook's own URL carries its token, as in the n8n node's Webhook URL parameter; it stays in the folder's definition like any parameter. Discord's rate-limit waits are not repeated."],
+            "understood": ["webhookUri", "text", "options.embeds", "options.username", "options.components", "options.avatarUrl", "options.flags", "options.tts", "options.attachments", "options.allowedMentions"],
+            "review": [{ "param": "options.payloadJson", "reason": "a payload JSON makes n8n send a multipart message, which is not carried over: the step fails at run time" }]
+          }
+        }
+      }
+    },
     "n8n-nodes-base.facebookGraphApi": {
       ">=1": {
         "_": {

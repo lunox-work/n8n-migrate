@@ -927,13 +927,15 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       const effect = entry.effect === "byMethod" ? (stepMethod === "GET" ? "read" : "write") : entry.effect === "read" ? "read" : "write";
       if (entry.effect === "byMethod" && stepMethod === "*") review(step, "the HTTP method is set by an expression, so the step counts as a write");
       step.rest = { program: entry.rest, effect, fidelity: entry.fidelity ?? "exact", ...(cav.length ? { caveats: cav } : {}), map: key };
-      const cred = Object.entries(step.credentials ?? {}).find(([t]) => t === entry.credentialType) ?? Object.entries(step.credentials ?? {})[0];
+      // A program without a credential type (a Discord webhook URL carries its own token) sends none.
+      const cred = entry.credentialType ? Object.entries(step.credentials ?? {}).find(([t]) => t === entry.credentialType) ?? Object.entries(step.credentials ?? {})[0] : null;
       const credType = cred?.[0] ?? entry.credentialType;
-      const secretName = cred?.[1] ?? `${entry.credentialType} (no credential named in the export)`;
-      step.auth = { credentialType: credType, secret: secretName };
+      const secretName = entry.credentialType ? cred?.[1] ?? `${entry.credentialType} (no credential named in the export)` : null;
+      if (secretName) step.auth = { credentialType: credType, secret: secretName };
+      else delete step.auth;
       for (const h of entry.hosts ?? []) {
         addHttp(String(h.method).startsWith("@") ? stepMethod ?? "*" : h.method, h.host, h.pathPrefix);
-        addSecret(secretName, credType, h.host);
+        if (secretName) addSecret(secretName, credType, h.host);
       }
     } else {
       const args = {};
@@ -1194,8 +1196,10 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       } else {
         // A node without resource and operation parameters (one generic request: Facebook Graph
         // API) is mapped under "_" "_".
-        const op = info.operation ?? (params.operation === undefined && params.resource === undefined ? "_" : null);
-        const found = op != null ? findMap(refs.toolMaps, baseType, v, info.resource ?? "_", op) : null;
+        // (Discord v1 has neither, though the catalogue's defaults name one.)
+        const bare = params.operation === undefined && params.resource === undefined;
+        const op = info.operation ?? (bare ? "_" : null);
+        const found = (op != null ? findMap(refs.toolMaps, baseType, v, info.resource ?? "_", op) : null) ?? (bare ? findMap(refs.toolMaps, baseType, v, "_", "_") : null);
         if (baseType === BASE + "rssFeedRead") applyRss(name, step, params);
         else if (found) applyMap(name, step, found, params);
         else if (type === LC + "toolHttpRequest" || type === BASE + "httpRequestTool") {

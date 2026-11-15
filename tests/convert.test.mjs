@@ -584,3 +584,28 @@ test("Facebook Graph API requests as n8n builds them: token first in the query, 
   assert.equal(seen.at(-1).url, "https://graph.facebook.com/me?access_token={{secret}}");
   assert.match(t.error.message, /Response body is not valid JSON/);
 });
+
+test("Discord v1 posts its webhook message as n8n builds it, with no credential", async () => {
+  const flow = (params) => ({
+    id: "dc01",
+    name: "Discord",
+    nodes: [manual, { parameters: params, name: "Notify", type: "n8n-nodes-base.discord", typeVersion: 1, position: [200, 0] }],
+    connections: link("Start", "Notify"),
+    settings: { executionOrder: "v1" },
+  });
+  const def = convertJson(flow({ text: "={{ $json.msg }}", webhookUri: "https://discord.com/api/webhooks/1/tok", options: { username: "Bot", tts: false, embeds: "" } })).definition;
+  assert.equal(def.steps.Notify.rest.program, "discordWebhookV1");
+  assert.equal(def.steps.Notify.auth, undefined);
+  assert.deepEqual(def.secrets, []);
+  assert.equal(preflight(def).ok, true, JSON.stringify(preflight(def).issues));
+  const seen = [];
+  const r = await run(def, { clock: CLOCK, virtualTime: true, trigger: [{ msg: "hi" }, { msg: "" }], host: { http: async (q) => (seen.push(q), { status: 204, headers: {}, body: "" }) } });
+  assert.equal(r.status, "failed", "an empty content with no embeds is n8n's error");
+  assert.match(r.error.message, /Either content or embeds must be set/);
+  assert.deepEqual([seen[0].method, seen[0].url, seen[0].body], ["POST", "https://discord.com/api/webhooks/1/tok", { content: "hi", username: "Bot" }]);
+  const ok = await run(def, { clock: CLOCK, virtualTime: true, trigger: [{ msg: "x" }], host: { http: async () => ({ status: 204, headers: {}, body: "" }) } });
+  assert.deepEqual(ok.runData.Notify[0].data.main[0].map((i) => i.json), [{ success: true }]);
+  // Another host is refused: the webhook URL may only reach Discord.
+  const off = await run(convertJson(flow({ text: "x", webhookUri: "={{ $json.hook }}", options: {} })).definition, { clock: CLOCK, virtualTime: true, trigger: [{ hook: "https://evil.example/api/webhooks/1" }], host: { http: async () => ({ status: 204, headers: {}, body: "" }) } });
+  assert.match(off.error.message, /not in the definition's allowlist/);
+});
