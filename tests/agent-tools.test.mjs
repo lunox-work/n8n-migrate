@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { convertItems, loadReferences, nodeNameToToolName, fromAiSchema } from "../skills/n8n-to-claude/scripts/convert.mjs";
+import { convertItems, loadReferences, nodeNameToToolName, toolNameFor, fromAiSchema } from "../skills/n8n-to-claude/scripts/convert.mjs";
 import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
 import { preflight, run } from "../skills/n8n-to-claude/runtime/src/api.mjs";
 import { parseXml, parseFeed } from "../skills/n8n-to-claude/runtime/src/feed.mjs";
@@ -208,4 +208,17 @@ test("tool and placeholder descriptions written as expressions are evaluated on 
   assert.equal(offered.description, 'Search the "" database.');
   assert.equal(offered.inputSchema.properties.tag.description, "Options: HR,IT");
   assert.equal(def.steps.Agent.agent.tools[0].inputSchema.properties.tag.description, "=Options: {{ $json.tags }}", "the definition is not changed by a run");
+});
+
+test("tool names: older Code, Workflow and Vector Store tools keep the name typed in the tool, as n8n offers them", () => {
+  assert.equal(toolNameFor("Code Tool", LC + "toolCode", 1.1, { name: "my_color_selector" }), "my_color_selector");
+  assert.equal(toolNameFor("Code Tool", LC + "toolCode", 1.2, { name: "my_color_selector" }), "Code_Tool", "from 1.2 n8n names the tool after the node");
+  assert.equal(toolNameFor("List columns tool", LC + "toolWorkflow", 2, { name: "list_columns" }), "list_columns");
+  assert.equal(toolNameFor("List columns tool", LC + "toolWorkflow", 2.2, { name: "list_columns" }), "List_columns_tool");
+  assert.equal(toolNameFor("Docs", LC + "toolVectorStore", 1, { name: "users_info" }), "users_info");
+  assert.equal(toolNameFor("Code Tool", LC + "toolCode", 1, {}), "Code_Tool", "no typed name: the node's name");
+  assert.equal(toolNameFor("Search", LC + "toolHttpRequest", 1.1, { name: "x" }), "Search", "other tools: always the node's name");
+  const wf = agentWf([{ parameters: { name: "my_color_selector", description: "Pick a colour", jsCode: "return 'blue';" }, name: "Code Tool", type: LC + "toolCode", typeVersion: 1.1, position: [0, 200] }]);
+  const def = convertJson(wf);
+  assert.deepEqual(def.steps.Agent.agent.tools.map((t) => [t.name, t.node, t.kind]), [["my_color_selector", "Code Tool", "code"]]);
 });

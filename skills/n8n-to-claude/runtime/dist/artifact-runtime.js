@@ -14423,12 +14423,25 @@ const toolName = (name) => {
   if (t.length > 64) t = t.slice(0, 64).replace(/[_-]+$/, "");
   return t;
 };
+// The tool's name as n8n gives it (as the converter's toolNameFor): Think v1 "thinking_tool";
+// the typed `name` for the Code Tool <= 1.1, the Call n8n Workflow Tool <= 2.1 and the Vector
+// Store Question Answer Tool 1; otherwise the node's name.
+const TYPED_TOOL_NAME_UNTIL = { toolCode: 1.1, toolWorkflow: 2.1, toolVectorStore: 1 };
+function n8nToolName(name, step) {
+  const short = String(step.n8n.type).replace(LC, "");
+  const v = step.n8n.typeVersion ?? 1;
+  if (short === "toolThink" && v === 1) return "thinking_tool";
+  const typed = step.params?.name;
+  const until = TYPED_TOOL_NAME_UNTIL[short];
+  if (until !== undefined && v <= until && typeof typed === "string" && typed.trim() !== "" && !typed.startsWith("=")) return typed;
+  return toolName(name);
+}
 const THINK_DESCRIPTION = "Use the tool to think about something. It will not obtain new information or change the database, but just append the thought to the log. Use it when complex reasoning or some cache memory is needed.";
 function agentTools(exec) {
   return subnodesOf(exec, "ai_tool").map(({ name, step }) => {
     const p = step.params ?? {};
     const think = step.n8n.type === LC + "toolThink";
-    const tool = { name: think && (step.n8n.typeVersion ?? 1) === 1 ? "thinking_tool" : toolName(name), node: name, n8nType: step.n8n.type, description: p.toolDescription ?? p.description ?? (think ? THINK_DESCRIPTION : "") };
+    const tool = { name: n8nToolName(name, step), node: name, n8nType: step.n8n.type, description: p.toolDescription ?? p.description ?? (think ? THINK_DESCRIPTION : "") };
     if (think) Object.assign(tool, { kind: "think", effect: "none", inputSchema: { type: "object", properties: { input: { type: "string" } } } });
     else if (step.tool?.connector) Object.assign(tool, { kind: "connector", connector: step.tool.connector, tool: step.tool.name, effect: step.tool.effect ?? "write" });
     else if (step.n8n.type === LC + "toolCode") Object.assign(tool, { kind: "code", effect: "none" });

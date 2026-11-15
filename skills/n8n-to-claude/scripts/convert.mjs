@@ -77,6 +77,20 @@ export function nodeNameToToolName(name) {
   if (t.length > 64) t = t.slice(0, 64).replace(/[_-]+$/, "");
   return t;
 }
+// The name n8n gives an agent tool (@n8n/n8n-nodes-langchain 2.47): the Think tool v1 is
+// "thinking_tool"; older versions of the Code Tool (<= 1.1), the Call n8n Workflow Tool (<= 2.1)
+// and the Vector Store Question Answer Tool (1) use the name typed in the tool's `name` field;
+// every other tool and later versions are named after the node (nodeNameToToolName).
+const TYPED_TOOL_NAME_UNTIL = { toolCode: 1.1, toolWorkflow: 2.1, toolVectorStore: 1 };
+export function toolNameFor(nodeName, type, typeVersion, params = {}) {
+  const short = String(type).replace(/^@n8n\/n8n-nodes-langchain\./, "");
+  const v = typeVersion ?? 1;
+  if (short === "toolThink" && v === 1) return "thinking_tool";
+  const until = TYPED_TOOL_NAME_UNTIL[short];
+  const typed = params?.name;
+  if (until !== undefined && v <= until && typeof typed === "string" && typed.trim() !== "" && !typed.startsWith("=")) return typed;
+  return nodeNameToToolName(nodeName);
+}
 // The Think tool's default description (@n8n/n8n-nodes-langchain 2.47 ToolThink).
 const THINK_DESCRIPTION = "Use the tool to think about something. It will not obtain new information or change the database, but just append the thought to the log. Use it when complex reasoning or some cache memory is needed.";
 
@@ -1287,9 +1301,8 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       const ts = steps[tn];
       if (ts.settings?.disabled) continue;
       const tp = ts.params ?? {};
-      // n8n's Think tool v1 is named "thinking_tool" whatever the node is called.
       const isThink = ts.n8n.type === LC + "toolThink";
-      const toolName = isThink && (ts.n8n.typeVersion ?? 1) === 1 ? "thinking_tool" : nodeNameToToolName(tn);
+      const toolName = toolNameFor(tn, ts.n8n.type, ts.n8n.typeVersion, tp);
       const description = String(tp.toolDescription ?? tp.description ?? (isThink ? THINK_DESCRIPTION : `${shortType(ts.n8n.type).replace(/Tool$/, "")} ${[tp.resource, tp.operation].filter(Boolean).join(" ")}`.trim()));
       const t = { name: toolName, description, node: tn, n8nType: ts.n8n.type };
       if (isThink) {

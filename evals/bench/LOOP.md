@@ -456,3 +456,12 @@ Gate 3 (66; preflight unless marked):
   - P70: **585 4 → 9**, **1747 4 → 9** (both `noEffect: result`); 890 4 → 5 (`malformed`: n8n reads the malformed CSV's first header as `der_id`, the runtime as `order_id`); 2473 9 → 9 (class `model inputs` → `result`); 1962 4 → 4 (fails earlier at its model input).
   - P69: the first start removed 1 leftover `bench:` workflow.
 - **Baseline for loop round 3 iterations (`r3-base` + these rows): 21 of 100 pass, gate sum 440** (was 18, 424). Passes that compared no effect: 9 (reply 6: 2777, 2413, 6270, 2729, 2703, 2384; result 3: 585, 1747, 2473). Nothing compared: 0.
+
+## Iteration 21: agent tools under the name typed in the tool (accepted)
+
+- Bucket: field map (gate 4, `different tools offered`): 1963's Code Tool and 2085's three workflow tools were offered under names made from the node names (`Code_Tool`, `List_columns_tool`), where n8n offers `my_color_selector`, `list_columns`.
+- Hypothesis: n8n 2.47.7's own rule (read from the image: `ToolCode` `typeVersion <= 1.1`, `ToolWorkflowV2` `typeVersion <= 2.1`, `ToolWorkflowV1` always, `ToolVectorStore` `typeVersion <= 1` read the typed `name` parameter; later versions and every other tool use `nodeNameToToolName`) removes the name difference.
+- Change: `convert.mjs` `toolNameFor()` (Think v1 kept as `thinking_tool`), and the same rule in the runtime's derived agent tools (`nodes2.mjs` `n8nToolName()`); an empty or expression `name` falls back to the node's name. Test in `tests/agent-tools.test.mjs`.
+- Bench `r3-i21` (the 7 dev templates whose definitions changed: 1963, 2085, 2315, 3025, 2328, 2324, 2026; 0 `claude -p` runs): 1963 4 → 4 and 2085 4 → 4 with a later blocker: names now equal, the input schemas differ (n8n offers a LangChain `DynamicTool`'s `{input?: string}` for a Code Tool without a schema and for a workflow tool without inputs; the Claude side `{query: string}` required); the other 5 stay at gate 3 with the same cause. **21 of 100, gate sum 440** (unchanged).
+- `convert-coverage --split dev`: full 15, review 30, blocked 55, preflight clean 38 (unchanged); `--compare`: no regression, nothing moved earlier.
+- Verdict: accepted (rule c: later blocking cause on 1963 and 2085, no gate fell, no pass lost). `node --test` 385 pass, lint ok.
