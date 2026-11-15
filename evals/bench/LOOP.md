@@ -634,3 +634,12 @@ Gate 3 (63; preflight unless marked): request URL built at run time with an open
 - Bench `r3g-i32` (the 1 dev template whose definition changed; 6 `claude -p` runs, ledger 893 → 899: live recordings of its four variants and the claude driver): **1938 3 → 9** (all passed). **28 of 100, gate sum 490** (was 27, 484).
 - `convert-coverage --split dev`: review 31 → 32, blocked 54 → 53, preflight clean 40 → 41, `--compare`: no regression. `node --test` 414 pass, lint ok.
 - Verdict: accepted (+1 pass, below the +2 bar that 1 flip sets, but the gate-sum rule holds: +6, no gate fell, no pass lost).
+
+## Iteration 33: a sub-workflow started without waiting fails on its own (accepted)
+
+- Bucket: runner bug (gate 5, exposed by iteration 30): 2567 runs its scraper once per query through Execute Workflow with `waitForSubWorkflow: false`. In n8n each child is its own execution: two of the malformed fixture's children fail (`Scrape URLs from results` on a result page without links) while the parent carries on; the runtime ran the child in line and failed the parent (`Error executing workflow with item at index 0`), so the malformed variant read `n8n succeeds, Claude fails`.
+- Hypothesis: when the step does not wait, a child's failure is the child's, as in n8n; the parent hands the item on. A containment refusal, bad input or a suspension still stops the run.
+- Change: `runtime/src/nodes.mjs` Execute Workflow (`runDetached()`, both modes). Test in `tests/runtime-nodes.test.mjs`. No definition changes; dev templates whose runs use a no-wait sub-workflow: 2567, 2878.
+- Bench `r3g-i33` (2567, 2878; 0 `claude -p` runs): 2567 5 → 6, gate 6 `calls outside the definition's allow lists`: a P80 bench defect (in process, a sub-workflow request's step was read from its id, which starts with the calling step), fixed in its own commit; 2878 3 → 3 (forms that wait, Notion arguments). `r3g-i33b` after the fix (2567, and 3100 to re-check its gate 6; 2 `claude -p` runs, ledger 899 → 901): **2567 5 → 9** (all passed: under the claude driver the session visits the result sites through the public scope, and the hostile run stays inside it); 3100 8 → 8. **29 of 100, gate sum 494** (was 28, 490). The `r3g-i33` row of 2567 is superseded.
+- `convert-coverage --split dev`: unchanged (no definition changes), no regression. `node --test` 415 pass, lint ok.
+- Verdict: accepted (+1 pass with gate sum +4; the gate-sum rule holds, no gate fell, no pass lost).

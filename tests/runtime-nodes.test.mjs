@@ -288,6 +288,27 @@ test("Execute Workflow runs a self-referencing sub-workflow and maps items back"
   assert.deepEqual(r.runData.Call[0].data.main[0].map((i) => i.pairedItem), [{ item: 0 }, { item: 1 }]);
 });
 
+test("Execute Workflow without waiting hands each item on even when its child execution fails", async () => {
+  const def = (wait, mode) =>
+    wf(
+      [
+        start(),
+        node("Call", "executeWorkflow", { workflowId: { __rl: true, value: "={{ $workflow.id }}", mode: "id" }, mode, options: { waitForSubWorkflow: wait } }, { v: 1.2, subflow: { self: true }, pos: [200, 0] }),
+        node("Sub start", "executeWorkflowTrigger", { inputSource: "passthrough" }, { v: 1.1, kind: "trigger", pos: [0, 400] }),
+        node("Boom", "code", { jsCode: "if ($input.all().some((i) => i.json.n === 4)) throw new Error('bad item'); return $input.all();" }, { v: 2, pos: [200, 400] }),
+      ],
+      [["Start", "Call"], ["Sub start", "Boom"]],
+    );
+  for (const mode of ["each", "once"]) {
+    const r = await run(def(false, mode), { trigger: [{ n: 1 }, { n: 4 }] });
+    assert.equal(r.status, "done", `${mode}: ${JSON.stringify(r.error)}`);
+    assert.deepEqual(out(r, "Call"), [{ n: 1 }, { n: 4 }]);
+  }
+  const waited = await run(def(true, "each"), { trigger: [{ n: 1 }, { n: 4 }] });
+  assert.equal(waited.status, "failed");
+  assert.match(waited.error.message, /Error executing workflow with item at index 1/);
+});
+
 test("Schedule Trigger emits n8n's timestamp item from the run clock", async () => {
   const def = wf([node("Every day", "scheduleTrigger", { rule: { interval: [{}] } }, { v: 1.2, kind: "trigger" })]);
   const r = await run(def, { clock: { startedAt: "2026-11-14T13:05:09Z" } });

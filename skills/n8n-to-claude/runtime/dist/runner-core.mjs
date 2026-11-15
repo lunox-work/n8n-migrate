@@ -8539,6 +8539,17 @@ const functionItemNode = {
 
 // ---------- Execute Workflow (inline / self-reference sub-workflows) ----------
 
+// A sub-workflow started without waiting (waitForSubWorkflow false): its failure stays its own,
+// as in n8n, where the child is a separate execution; a containment refusal, bad input or a
+// suspension still propagates.
+async function runDetached(fn) {
+  try {
+    await fn();
+  } catch (e) {
+    if (e?.name === "Suspend" || e?.name === "ContainmentViolation" || e?.name === "BadInput") throw e;
+  }
+}
+
 const executeWorkflow = {
   versions: inRange(1, 1.3),
   defaults: () => ({ source: "database", mode: "once", options: {} }),
@@ -8558,11 +8569,14 @@ const executeWorkflow = {
       for (let i = 0; i < items.length; i++) {
         try {
           const wait = exec.param("options.waitForSubWorkflow", i, true);
-          const res = await runSubflow(exec, sub, [items[i]], `${exec.name}#${exec.runIndex}#${i}`);
           if (!wait) {
+            // n8n starts the child and hands the item on without waiting: the child's own failure
+            // is its execution's, not this step's (a refusal of the runtime still stops the run).
+            await runDetached(() => runSubflow(exec, sub, [items[i]], `${exec.name}#${exec.runIndex}#${i}`));
             (ret[0] ??= []).push({ ...exec.getInputData()[i] });
             continue;
           }
+          const res = await runSubflow(exec, sub, [items[i]], `${exec.name}#${exec.runIndex}#${i}`);
           res.output.forEach((data, oi) => {
             for (const it of data) it.pairedItem = { item: i };
             (ret[oi] ??= []).push(...data);
@@ -8582,8 +8596,11 @@ const executeWorkflow = {
     }
     try {
       const wait = exec.param("options.waitForSubWorkflow", 0, true);
+      if (!wait) {
+        await runDetached(() => runSubflow(exec, sub, items, `${exec.name}#${exec.runIndex}`));
+        return [exec.getInputData()];
+      }
       const res = await runSubflow(exec, sub, items, `${exec.name}#${exec.runIndex}`);
-      if (!wait) return [exec.getInputData()];
       const fallback = generatePaired(items.length);
       for (const output of res.output) {
         const same = output.length === items.length;
