@@ -47,12 +47,13 @@ export async function judgePairs(pairs, { purpose = "judge", log = console.error
 }
 
 async function calibrate(ids, variant) {
-  const { prepare, runN8n, splitLog } = await import("./n8n-side.mjs");
+  const { prepare, runN8n, splitLog, loadCredentialSpecs } = await import("./n8n-side.mjs");
   const { startShim, answerOf } = await import("./model-shim.mjs");
   const { fromHttp, reply, replyText, compare, modelTextsOf } = await import("./compare.mjs");
   const container = await import("../n8n/container.mjs");
   const { runWorkflow } = await import("../n8n/run-workflow.mjs");
   await container.up();
+  const credentialSpecs = await loadCredentialSpecs({ cacheFile: join(container.WORK, `node-credentials.${container.imageTag()}.json`), fetchTypes: container.nodeTypes });
   const shim = await startShim({ port: container.MODEL_SHIM_PORT });
   const file = join(HERE, "judge-calibration.json");
   const report = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : { about: "judge false-fail rate: n8n judged against n8n (two live recordings of the same template and fixture, no cache). Every 'worse' is a false fail.", templates: {} };
@@ -69,7 +70,7 @@ async function calibrate(ids, variant) {
         runs.push({ status: rec.status, error: rec.error ?? null, effects, calls: rec.modelCalls, from: `recordings/${id}/${variant}.json (${rec.recorded.at})` });
       }
       for (const k of [runs.length, 1].slice(0, 2 - runs.length)) {
-        const prep = prepare(id, variant);
+        const prep = prepare(id, variant, { credentialSpecs });
         const r = await runN8n(prep, { shim, modelSession: { mode: "live", noCache: true }, runWorkflow, copyIn: container.copyIn, timeoutS: 900 });
         const lastItems = r.result.nodes?.[r.result.lastNode]?.at(-1)?.items?.main?.[0] ?? [];
         const fx = prep.fixture;

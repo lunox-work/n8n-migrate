@@ -37,7 +37,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync, cpS
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState, siteAnswers, hostsAnswers } from "./n8n-side.mjs";
+import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState, siteAnswers, hostsAnswers, loadCredentialSpecs } from "./n8n-side.mjs";
 import { convertPlain, convertSkill, filledSource, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, withSynthetic, syntheticOutcome, nondeterministicTools } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
 import { fromHttp, fromTool, fromFile, replyOf, resultOf, isResult, lastOutputs, terminalNodes, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads } from "./compare.mjs";
@@ -104,7 +104,9 @@ async function n8n() {
   const removed = await cleanupBenchWorkflows();
   if (removed) log(`removed ${removed} leftover bench workflow(s) from n8n (P69)`);
   const shim = await startShim({ port: container.MODEL_SHIM_PORT, log });
-  n8nEnv = { container, runWorkflow, shim, cleanupBenchWorkflows };
+  // PROPOSALS P61: each node type's declared credentials, from this image's node descriptions.
+  const credentialSpecs = await loadCredentialSpecs({ cacheFile: join(container.WORK, `node-credentials.${container.imageTag()}.json`), fetchTypes: container.nodeTypes });
+  n8nEnv = { container, runWorkflow, shim, cleanupBenchWorkflows, credentialSpecs };
   return n8nEnv;
 }
 
@@ -119,7 +121,7 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
   const recFile = join(RECORDINGS, String(id), `${variant}.json`);
   const existing = readJson(recFile);
   const env = await n8n();
-  let prep = prepare(id, variant);
+  let prep = prepare(id, variant, { credentialSpecs: env.credentialSpecs });
   // PROPOSALS P48: a fixture route n8n's side cannot build is this variant's fixture error; n8n
   // is not run and nothing is saved, so the template's other variants and verdict still stand.
   if (prep.badRoutes?.length) return fixtureErrorRun(prep);
@@ -149,7 +151,7 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
   if (r.fallbackable) {
     log(`${id}/${variant}: ${r.failedNode} failed on its http source, retrying with its n8n pin`);
     httpAttempt = { failedNode: r.failedNode, error: r.result.error ?? null, logVsFixture: logVsFixture(prep, r.result.effects) };
-    prep = prepare(id, variant, { pinFallback: [r.failedNode] });
+    prep = prepare(id, variant, { pinFallback: [r.failedNode], credentialSpecs: env.credentialSpecs });
     r = await runN8n(prep, { shim: env.shim, modelSession: session, runWorkflow: env.runWorkflow, copyIn: env.container.copyIn, containerState: env.container.state, timeoutS: 900 });
   }
   if (env.shim.lastError && /budget|usage limit/i.test(env.shim.lastError.message)) throw env.shim.lastError;

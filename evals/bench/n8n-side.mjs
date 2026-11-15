@@ -418,9 +418,82 @@ const NODE_CREDENTIAL = {
   facebookGraphApi: () => "facebookGraphApi",
   httpRequest: (n) => (n.parameters?.authentication === "genericCredentialType" ? n.parameters.genericAuthType : n.parameters?.authentication === "predefinedCredentialType" ? n.parameters.nodeCredentialType : null) ?? null,
 };
-export function credentialTypeFor(node) {
+// PROPOSALS P61 (extended): any other node type that ships without a credential gets the first
+// credential its n8n node description declares for its parameters (`specs`: credentialSpecs()
+// of the bench n8n's own /types/nodes.json, so community packages in the image count too). The
+// fixed list above keeps the types whose choice depends on more than displayOptions (Google's
+// service account, the HTTP Request node's generic or predefined type).
+export function credentialTypeFor(node, specs = null) {
   const f = NODE_CREDENTIAL[node.type.replace(LC, "").replace("n8n-nodes-base.", "").replace(/Tool$/, "")];
-  return f ? f(node) : null;
+  if (f) return f(node);
+  return specs ? declaredCredential(node, specs) : null;
+}
+
+// The compact form of n8n's node descriptions (GET /types/nodes.json) the bench keeps: per type,
+// per version set, the declared credentials ({name, required, show, hide}) and the defaults of
+// the parameters their displayOptions name.
+export function credentialSpecs(descriptions = []) {
+  const out = {};
+  for (const d of descriptions) {
+    if (!d?.name || !Array.isArray(d.credentials) || !d.credentials.length) continue;
+    const params = new Set(d.credentials.flatMap((c) => Object.keys({ ...(c.displayOptions?.show ?? {}), ...(c.displayOptions?.hide ?? {}) })).map((k) => k.replace(/^\//, "")).filter((k) => !k.startsWith("@")));
+    const defaults = {};
+    for (const k of params) {
+      const p = (d.properties ?? []).find((x) => x.name === k);
+      if (p && "default" in p) defaults[k] = p.default;
+    }
+    (out[d.name] ??= []).push({ versions: [].concat(d.version ?? 1).map(Number), creds: d.credentials.map((c) => ({ name: c.name, ...(c.required ? { required: true } : {}), ...(c.displayOptions?.show ? { show: c.displayOptions.show } : {}), ...(c.displayOptions?.hide ? { hide: c.displayOptions.hide } : {}) })), defaults });
+  }
+  return out;
+}
+
+// n8n's displayOptions conditions: a list of allowed values, each a value or {_cnd: {op: arg}}.
+const cnd = (c, v) => {
+  const [op, a] = Object.entries(c ?? {})[0] ?? [];
+  if (op === "eq") return v === a;
+  if (op === "not") return v !== a;
+  if (op === "gte") return v >= a;
+  if (op === "lte") return v <= a;
+  if (op === "gt") return v > a;
+  if (op === "lt") return v < a;
+  if (op === "between") return v >= a?.from && v <= a?.to;
+  if (op === "includes") return typeof v === "string" && v.includes(a);
+  if (op === "startsWith") return typeof v === "string" && v.startsWith(a);
+  if (op === "endsWith") return typeof v === "string" && v.endsWith(a);
+  if (op === "regex") return new RegExp(a).test(String(v ?? ""));
+  if (op === "exists") return v !== undefined && v !== null && v !== "";
+  return false;
+};
+const allows = (list, v) => [].concat(list).some((x) => (x && typeof x === "object" && x._cnd ? cnd(x._cnd, v) : x === v));
+
+// The credential type n8n asks of this node: the first declared credential whose displayOptions
+// the node's parameters (or their defaults) show; one without displayOptions only when required.
+export function declaredCredential(node, specs) {
+  const list = specs?.[node.type] ?? specs?.[node.type.replace(/Tool$/, "")];
+  if (!list) return null;
+  const v = Number(node.typeVersion ?? 1);
+  const spec = list.find((x) => x.versions.includes(v)) ?? list.find((x) => x.versions.some((y) => y <= v)) ?? list[0];
+  const get = (k) => (k === "@version" ? v : node.parameters?.[k.replace(/^\//, "")] ?? spec.defaults[k.replace(/^\//, "")]);
+  for (const c of spec.creds) {
+    if (!c.show && !c.hide) {
+      if (c.required) return c.name;
+      continue;
+    }
+    if (Object.entries(c.show ?? {}).every(([k, vals]) => allows(vals, get(k))) && !Object.entries(c.hide ?? {}).some(([k, vals]) => allows(vals, get(k)))) return c.name;
+  }
+  return null;
+}
+
+// The bench n8n's credential specs, read once per image from its /types/nodes.json (18 MB) and
+// kept compact under the work dir. `fetchTypes` returns the parsed descriptions.
+export async function loadCredentialSpecs({ cacheFile, fetchTypes }) {
+  try {
+    return JSON.parse(readFileSync(cacheFile, "utf8"));
+  } catch {}
+  const specs = credentialSpecs(await fetchTypes());
+  mkdirSync(dirname(cacheFile), { recursive: true });
+  writeFileSync(cacheFile, JSON.stringify(specs));
+  return specs;
 }
 
 const shortType = (t) => t.replace(LC, "").replace("n8n-nodes-base.", "");
@@ -483,7 +556,7 @@ export function routesOf(fixture) {
 }
 
 // Builds everything runWorkflow needs. `pinFallback`: node names to pin from their `n8n` source.
-export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = [] } = {}) {
+export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = [], credentialSpecs: specs = null } = {}) {
   const { wf, name } = loadTemplate(id);
   const fx = loadFixture(id, variant);
   const applied = [];
@@ -500,10 +573,11 @@ export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = 
   const credentialsAttached = [];
   for (const n of wf.nodes) {
     if (n.disabled || Object.keys(n.credentials ?? {}).length) continue;
-    const type = credentialTypeFor(n);
+    const fixed = credentialTypeFor(n);
+    const type = fixed ?? credentialTypeFor(n, specs);
     if (!type) continue;
     n.credentials = { [type]: { id: null, name: `${type} (bench)` } };
-    credentialsAttached.push({ node: n.name, type });
+    credentialsAttached.push({ node: n.name, type, ...(fixed ? {} : { from: "node description" }) });
   }
   const models = modelNodes(wf, fx);
   const credentials = {};

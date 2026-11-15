@@ -36,3 +36,22 @@ test("P84: the in-process host adds the transport headers the mock's Node server
   assert.deepEqual(transportHeaders({ "content-type": "text/html" }, d), { date: "Sun, 15 Nov 2026 14:27:03 GMT", connection: "close", "transfer-encoding": "chunked" });
   assert.deepEqual(transportHeaders({ "Content-Length": "3", Date: "x" }, d), { connection: "close" }, "a fixture's own length or date wins, as in Node");
 });
+
+test("P61: a node that ships no credential gets the first one its n8n description declares for its parameters", async () => {
+  const { credentialSpecs, credentialTypeFor, declaredCredential } = await import("../evals/bench/n8n-side.mjs");
+  const specs = credentialSpecs([
+    { name: "n8n-nodes-base.dropbox", version: 1, credentials: [{ name: "dropboxApi", required: true, displayOptions: { show: { authentication: ["accessToken"] } } }, { name: "dropboxOAuth2Api", required: true, displayOptions: { show: { authentication: ["oAuth2"] } } }], properties: [{ name: "authentication", default: "accessToken" }] },
+    { name: "n8n-nodes-base.emailSend", version: [2, 2.1], credentials: [{ name: "smtp", required: true }] },
+    { name: "n8n-nodes-base.wait", version: 1.1, credentials: [{ name: "httpBasicAuth", required: true, displayOptions: { show: { incomingAuthentication: ["basicAuth"] } } }], properties: [{ name: "incomingAuthentication", default: "none" }] },
+    { name: "n8n-nodes-base.x", version: [1, 2], credentials: [{ name: "xOld", displayOptions: { show: { "@version": [{ _cnd: { lt: 2 } }] } } }, { name: "xNew", displayOptions: { show: { "@version": [{ _cnd: { gte: 2 } }] } } }] },
+  ]);
+  const node = (type, parameters = {}, typeVersion = 1) => ({ type, parameters, typeVersion, name: "n" });
+  assert.equal(declaredCredential(node("n8n-nodes-base.dropbox"), specs), "dropboxApi", "the parameter's default picks the credential");
+  assert.equal(declaredCredential(node("n8n-nodes-base.dropbox", { authentication: "oAuth2" }), specs), "dropboxOAuth2Api");
+  assert.equal(declaredCredential(node("n8n-nodes-base.emailSend", {}, 2.1), specs), "smtp");
+  assert.equal(declaredCredential(node("n8n-nodes-base.wait", {}, 1.1), specs), null, "a credential the parameters hide is never attached");
+  assert.equal(declaredCredential(node("n8n-nodes-base.x", {}, 2), specs), "xNew");
+  assert.equal(declaredCredential(node("n8n-nodes-base.x", {}, 1), specs), "xOld");
+  assert.equal(credentialTypeFor(node("n8n-nodes-base.googleSheets", { authentication: "serviceAccount" }), specs), "googleApi", "the fixed list wins");
+  assert.equal(credentialTypeFor(node("n8n-nodes-base.emailSend", {}, 2.1)), null, "without specs only the fixed list");
+});

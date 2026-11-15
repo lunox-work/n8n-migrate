@@ -22,7 +22,8 @@
 // owner password protect nothing and are not the author's.
 
 import { spawnSync } from "node:child_process";
-import { mkdirSync, existsSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { mkdirSync, existsSync, writeFileSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -30,6 +31,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 
 export const IMAGE = "n8nio/n8n:2.47.7";
 export const SIDECAR_IMAGE = "node:22-alpine";
+// A file-name-safe name of the n8n image in use (caches keyed by image: node descriptions).
+export const imageTag = () => IMAGE.replace(/[^\w.-]+/g, "_");
 export const NAME = "n8n2claude-bench";
 export const MOCK_NAME = "n8n2claude-mock";
 export const NET = "n8n2claude-net"; // internal
@@ -148,6 +151,12 @@ export async function up({ fresh = false, extraEnv = {}, log = console.error } =
       docker(["rm", "-f", NAME], { allowFail: true });
     }
   }
+  // The mock runs the checkout's mock-server.mjs as it was when the sidecar started: a sidecar
+  // started from other code (label n8n2claude.code) is recreated, so a mock change reaches it.
+  if (running(MOCK_NAME) && docker(["inspect", "-f", '{{index .Config.Labels "n8n2claude.code"}}', MOCK_NAME], { allowFail: true }).stdout?.trim() !== mockCodeHash()) {
+    log("mock sidecar runs other mock code: recreating it");
+    docker(["rm", "-f", MOCK_NAME], { allowFail: true });
+  }
   if (running(NAME) && running(MOCK_NAME) && !fresh) {
     await waitHealthy();
     return;
@@ -168,7 +177,7 @@ export async function up({ fresh = false, extraEnv = {}, log = console.error } =
   if (!running(MOCK_NAME)) {
     docker(["rm", "-f", MOCK_NAME], { allowFail: true });
     docker([
-      "run", "-d", "--name", MOCK_NAME,
+      "run", "-d", "--name", MOCK_NAME, "--label", `n8n2claude.code=${mockCodeHash()}`,
       "--memory=128m", "--memory-swap=128m",
       "--network", EDGE, "-p", `127.0.0.1:${HOST_PORT}:${HOST_PORT}`,
       "-v", `${HERE}:/bench:ro`, "-v", `${WORK}:/work`, "-v", `${TLS_DIR}:/tls:ro`,
@@ -192,6 +201,13 @@ export async function up({ fresh = false, extraEnv = {}, log = console.error } =
   }
   await waitHealthy();
   log(`n8n up at ${BASE} (${IMAGE}); mock at ${MOCK_URL} inside, work dir ${WORK}`);
+}
+
+// The code the mock sidecar runs (every module mock-server.mjs loads from this folder).
+export function mockCodeHash() {
+  const h = createHash("sha256");
+  for (const f of ["mock-server.mjs", "mint-leaf.mjs"]) h.update(readFileSync(join(HERE, f)));
+  return h.digest("hex").slice(0, 16);
 }
 
 export async function waitHealthy(timeoutMs = 180_000) {
@@ -347,6 +363,20 @@ export async function rest(method, path, body) {
     throw err;
   }
   return json && typeof json === "object" && "data" in json ? json.data : json;
+}
+
+// n8n's node descriptions as the editor loads them (GET /types/nodes.json, signed in): the bench
+// reads each node type's declared credentials from them (PROPOSALS P61).
+export async function nodeTypes() {
+  if (!cookie) await login();
+  const call = () => fetch(`${BASE}/types/nodes.json`, { headers: { cookie, "browser-id": BROWSER_ID } });
+  let r = await call();
+  if (r.status === 401) {
+    await login();
+    r = await call();
+  }
+  if (!r.ok) throw new Error(`GET /types/nodes.json: HTTP ${r.status}`);
+  return r.json();
 }
 
 // ---------- CLI ----------
