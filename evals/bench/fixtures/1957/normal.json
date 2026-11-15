@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "template": 1957,
+  "sha256": "043367d47b0aaca0381620c30306c463dd51e8f1aa1f011b16c049037de6973f",
+  "variant": "normal",
+  "now": "2026-11-16T15:45:00.000Z",
+  "about": "the fixed question (the five largest US states by area with their three largest cities and populations) is answered in the parser's format",
+  "trigger": {
+    "node": "When clicking \"Execute Workflow\"",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [],
+  "models": [
+    "Basic LLM Chain",
+    "OpenAI Chat Model",
+    "OpenAI Chat Model1"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch; Auto-fixing Output Parser retries through OpenAI Chat Model1 only when the first answer fails the schema (model-driven)"
+    ],
+    "offline": "The workflow has no outside input: Prompt sets a fixed question and the chain answers it, with the auto-fixing parser asking OpenAI Chat Model1 again when the answer does not fit the schema. Variants differ only in the manual trigger's item, which Prompt (Set v3.4, no other fields kept) drops. The parser's schema gives the city fields as bare strings (\"name\": \"string\"), not schema objects"
+  }
+}

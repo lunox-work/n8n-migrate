@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "template": 2416,
+  "sha256": "98a5c2cf190a9f27d2b07f580d33a7c03b60a501c08487c3dbb4a95ba76bb96c",
+  "variant": "empty",
+  "now": "2026-11-16T14:30:00.000Z",
+  "about": "the resume PDF is a blank page, so the converted image is blank",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Download Resume",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1MORAdeev6cMcTJBV2EYALAwll8gCDRav",
+            "query": {
+              "alt": "media"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "application/pdf"
+            },
+            "bodyBase64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgODQyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCAwID4+CnN0cmVhbQoKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBlMSAvQmFzZUZvbnQgL0hlbHZldGljYSA+PgplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjQxIDAwMDAwIG4gCjAwMDAwMDAyOTAgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgozNjAKJSVFT0YK"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1MORAdeev6cMcTJBV2EYALAwll8gCDRav",
+            "status": 200,
+            "body": {
+              "id": "1MORAdeev6cMcTJBV2EYALAwll8gCDRav",
+              "name": "scan_0001.pdf",
+              "mimeType": "application/pdf",
+              "size": "543"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1MORAdeev6cMcTJBV2EYALAwll8gCDRav"
+            },
+            "result": {
+              "fileId": "1MORAdeev6cMcTJBV2EYALAwll8gCDRav",
+              "title": "scan_0001.pdf",
+              "mimeType": "application/pdf",
+              "content": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgODQyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCAwID4+CnN0cmVhbQoKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBlMSAvQmFzZUZvbnQgL0hlbHZldGljYSA+PgplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjQxIDAwMDAwIG4gCjAwMDAwMDAyOTAgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgozNjAKJSVFT0YK"
+            }
+          }
+        ]
+      },
+      "note": "Drive v3 download by id: file metadata, then ?alt=media"
+    },
+    {
+      "node": "PDF-to-Image API",
+      "service": "stirling-pdf",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://stirlingpdf.io/api/v1/convert/pdf/img",
+            "status": 200,
+            "headers": {
+              "content-type": "image/jpeg",
+              "content-disposition": "attachment; filename=\"resume.jpg\""
+            },
+            "bodyBase64": "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDABIMDRANCxIQDhAUExIVGywdGxgYGzYnKSAsQDlEQz85Pj1HUGZXR0thTT0+WXlaYWltcnNyRVV9hnxvhWZwcm7/2wBDARMUFBsXGzQdHTRuST5Jbm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm7/wAARCABSAmwDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/ALgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH/2Q=="
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no connector; a public conversion API"
+      },
+      "note": "Stirling-PDF convert/pdf/img (multipart fileInput, imageFormat jpg, singleOrMultiple single, dpi 300): the page as one JPEG. The JPEG here is a rendered stand-in at 620 px wide, not 300 dpi"
+    }
+  ],
+  "models": [
+    "Candidate Resume Analyser",
+    "Google Gemini Chat Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "Should Proceed To Stage 2?: decided by the model (expected false: nothing to assess)"
+    ],
+    "offline": "The model reads the resized page image; the analyser's verdict decides the IF, and nothing follows either branch, so the result is the IF's output. Resize Converted Image runs GraphicsMagick in n8n's image"
+  }
+}

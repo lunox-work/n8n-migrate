@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "template": 2782,
+  "sha256": "6be5450c8edd124b4c3ace33883b8e318748d548e3aca0958eaa5b3e49623607",
+  "variant": "empty",
+  "now": "2026-11-16T10:20:00.000Z",
+  "about": "an empty chat message; OpenAI refuses a thread message with empty content",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "2782-chat-empty-4f1b",
+          "action": "sendMessage",
+          "chatInput": ""
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "OpenAI Assistent",
+      "service": "openai-assistants",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/threads/runs",
+            "status": 400,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "error": {
+                "message": "Invalid 'thread.messages[0].content': empty string. Expected a string with minimum length 1, but got an empty string instead.",
+                "type": "invalid_request_error",
+                "param": "thread.messages[0].content",
+                "code": "empty_string"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured OpenAI Assistants connector"
+      },
+      "connectorGaps": [
+        "assistant answer: the Assistants API's run and thread are the service's own, with no connector counterpart"
+      ],
+      "note": "OpenAI node v1.8, assistant message with the memory connector (empty on the first turn): LangChain's OpenAIAssistantRunnable POSTs /v1/threads/runs (createAndRun: thread with the user message, assistant_id), GETs /v1/threads/{thread}/runs/{run} until the status is not queued or in_progress (again after the memory is saved, for usage), then GETs /v1/threads/{thread}/messages?order=desc and keeps the run's assistant messages. The assistant's answer is the service's reply here, not a model the shim answers (the node's assistant resource is not a text model call)"
+    }
+  ],
+  "models": [],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: the run is refused (400), so OpenAI Assistent is expected to fail in n8n"
+    ],
+    "offline": "The assistant (asst_vvkn…) and its attached travel document live at OpenAI; its answers are fixed here. Window Buffer Memory is empty at the start of every run (README: process memory restarts), so no thread is pre-created. The manual branch (Drive download, file upload, assistant create and update) has its own trigger and is not run"
+  }
+}

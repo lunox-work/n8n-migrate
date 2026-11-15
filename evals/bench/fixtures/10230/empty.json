@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "template": 10230,
+  "sha256": "6014f39a4d59033bf6075738de2a668cdce890684b0478e4fca2f6f49d75b045",
+  "variant": "empty",
+  "now": "2026-11-16T11:05:00.000Z",
+  "about": "an empty chat message, over an empty task sheet (header only)",
+  "trigger": {
+    "node": "Chat Trigger",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "10230-empty-b2c5",
+          "action": "sendMessage",
+          "chatInput": ""
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [
+    "Project Manager Agent",
+    "OpenAI Chat Model",
+    "OpenAI Chat Model1",
+    "Write Json",
+    "OpenAI Chat Model2"
+  ],
+  "writes": [
+    "Add Task",
+    "Respond Complete",
+    "Get More Info"
+  ],
+  "writeReplies": [
+    {
+      "node": "Add Task",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1pbK-B-Q9p8fVjxJIsjEVrAfRgqEPCeYw8rZojZPAb84",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Tasks",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1pbK-B-Q9p8fVjxJIsjEVrAfRgqEPCeYw8rZojZPAb84/values/'Tasks'",
+            "status": 200,
+            "body": {
+              "range": "Tasks!A1:C1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Task",
+                  "Description",
+                  "Status"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1pbK-B-Q9p8fVjxJIsjEVrAfRgqEPCeYw8rZojZPAb84:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1pbK-B-Q9p8fVjxJIsjEVrAfRgqEPCeYw8rZojZPAb84",
+              "replies": [
+                {}
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Sheets connector that writes cells"
+      },
+      "note": "Sheets v4.7 appendOrUpdate on Task (tab Tasks, gid=0): sheet properties, the tab's values to find a matching Task, then an update or an appended row (PUT values, write-default)"
+    }
+  ],
+  "pinData": {
+    "Add Task": [
+      {
+        "json": {
+          "Task": "Open PR for feature enhancement",
+          "Status": "New",
+          "Description": "add more details here"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Write Json": [
+      {
+        "json": {
+          "output": {
+            "task": "Open PR for feature enhancement",
+            "status": "New",
+            "description": "add more details here"
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Chat Trigger": [
+      {
+        "json": {
+          "action": "sendMessage",
+          "chatInput": "create a new task with name \"Open PR for feature enhancement\" with description \"add more details here\" and status \"New\"",
+          "sessionId": "c92f7646db5b4d6098130b52a49741aa"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Respond Complete": [
+      {
+        "json": {
+          "Task": "Open PR for feature enhancement",
+          "Status": "New",
+          "Description": "add more details here"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Project Manager Agent": [
+      {
+        "json": {
+          "output": {
+            "all Info": "Yes",
+            "response": "Your new task \"Open PR for feature enhancement\" with description \"add more details here\" and status \"New\" has been noted. If you need anything else, feel free to ask!",
+            "info gathered": "{\"type\":\"create\",\"Task\":\"Open PR for feature enhancement\",\"Description\":\"add more details here\",\"Status\":\"New\"}"
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "expect": {
+    "branches": [
+      "Have All Info?: true from the pinned agent output ('all Info': 'Yes'), so Write Json, Add Task and Respond Complete (all pinned in n8n)"
+    ],
+    "offline": "The template ships pinData for Chat Trigger, Project Manager Agent, Write Json, Add Task and Respond Complete (kept verbatim, PROPOSALS P60). In n8n's run every pinned node returns its pin instead of running, so the agent, the JSON writer and the sheet write never run there and every variant ends the same way: Have All Info? takes the pinned 'Yes', and Respond Complete answers with its pinned item. The trigger is pinned by the fixture's own item. Chat Memory holds one turn per run. Respond Complete and Get More Info are Chat nodes (send, no wait for a reply): their message is the chat reply"
+  }
+}

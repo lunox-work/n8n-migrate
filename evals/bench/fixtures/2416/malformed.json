@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "template": 2416,
+  "sha256": "98a5c2cf190a9f27d2b07f580d33a7c03b60a501c08487c3dbb4a95ba76bb96c",
+  "variant": "malformed",
+  "now": "2026-11-16T14:30:00.000Z",
+  "about": "the Drive file is a Word document, not a PDF; the conversion API answers 400",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Download Resume",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1MORAdeev6cMcTJBV2EYALAwll8gCDRav",
+            "query": {
+              "alt": "media"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            },
+            "bodyBase64": "UEsDBBQABgBiZW5jaC1kb2N4LW5vdC1hLXBkZiB3b3JkL2RvY3VtZW50LnhtbA=="
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1MORAdeev6cMcTJBV2EYALAwll8gCDRav",
+            "status": 200,
+            "body": {
+              "id": "1MORAdeev6cMcTJBV2EYALAwll8gCDRav",
+              "name": "resume_final_v3.docx",
+              "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "size": "46"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1MORAdeev6cMcTJBV2EYALAwll8gCDRav"
+            },
+            "result": {
+              "fileId": "1MORAdeev6cMcTJBV2EYALAwll8gCDRav",
+              "title": "resume_final_v3.docx",
+              "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "content": "UEsDBBQABgBiZW5jaC1kb2N4LW5vdC1hLXBkZiB3b3JkL2RvY3VtZW50LnhtbA=="
+            }
+          }
+        ]
+      },
+      "note": "Drive v3 download by id: file metadata, then ?alt=media"
+    },
+    {
+      "node": "PDF-to-Image API",
+      "service": "stirling-pdf",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://stirlingpdf.io/api/v1/convert/pdf/img",
+            "status": 400,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "timestamp": "2026-11-16T14:30:02.114+00:00",
+              "status": 400,
+              "error": "Bad Request",
+              "message": "File must be a PDF",
+              "path": "/api/v1/convert/pdf/img"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no connector; a public conversion API"
+      },
+      "note": "Stirling-PDF convert/pdf/img (multipart fileInput, imageFormat jpg, singleOrMultiple single, dpi 300): the page as one JPEG. The JPEG here is a rendered stand-in at 620 px wide, not 300 dpi"
+    }
+  ],
+  "models": [
+    "Candidate Resume Analyser",
+    "Google Gemini Chat Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "PDF-to-Image API is expected to fail in n8n on the 400; the IF is not reached"
+    ],
+    "offline": "The model reads the resized page image; the analyser's verdict decides the IF, and nothing follows either branch, so the result is the IF's output. Resize Converted Image runs GraphicsMagick in n8n's image"
+  }
+}

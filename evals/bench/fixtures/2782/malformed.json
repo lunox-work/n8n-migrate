@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "template": 2782,
+  "sha256": "6be5450c8edd124b4c3ace33883b8e318748d548e3aca0958eaa5b3e49623607",
+  "variant": "malformed",
+  "now": "2026-11-16T10:20:00.000Z",
+  "about": "a long, garbled question; the run ends with status failed (server_error) instead of completed",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "2782-chat-malformed-4f1c",
+          "action": "sendMessage",
+          "chatInput": "price for 2 ppl rome→tokyo 12/04?? please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please please"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "OpenAI Assistent",
+      "service": "openai-assistants",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/threads/runs",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "id": "run_bench2782M1",
+              "object": "thread.run",
+              "created_at": 1794824400,
+              "assistant_id": "asst_vvknJkVMQ5OvksPsRyh9ZAOx",
+              "thread_id": "thread_bench2782M1",
+              "status": "queued",
+              "started_at": null,
+              "completed_at": null,
+              "model": "gpt-4o-mini",
+              "instructions": "You are an assistant created to help visitors of the Travel Agency \"Travel with us\"…",
+              "tools": [
+                {
+                  "type": "file_search"
+                }
+              ],
+              "usage": null
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.openai.com/v1/threads/thread_bench2782M1/runs/run_bench2782M1",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "id": "run_bench2782M1",
+              "object": "thread.run",
+              "created_at": 1794824400,
+              "assistant_id": "asst_vvknJkVMQ5OvksPsRyh9ZAOx",
+              "thread_id": "thread_bench2782M1",
+              "status": "failed",
+              "started_at": 1794824401,
+              "completed_at": null,
+              "model": "gpt-4o-mini",
+              "instructions": "You are an assistant created to help visitors of the Travel Agency \"Travel with us\"…",
+              "tools": [
+                {
+                  "type": "file_search"
+                }
+              ],
+              "usage": null,
+              "last_error": {
+                "code": "server_error",
+                "message": "Sorry, something went wrong."
+              },
+              "failed_at": 1794824403
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured OpenAI Assistants connector"
+      },
+      "connectorGaps": [
+        "assistant answer: the Assistants API's run and thread are the service's own, with no connector counterpart"
+      ],
+      "note": "OpenAI node v1.8, assistant message with the memory connector (empty on the first turn): LangChain's OpenAIAssistantRunnable POSTs /v1/threads/runs (createAndRun: thread with the user message, assistant_id), GETs /v1/threads/{thread}/runs/{run} until the status is not queued or in_progress (again after the memory is saved, for usage), then GETs /v1/threads/{thread}/messages?order=desc and keeps the run's assistant messages. The assistant's answer is the service's reply here, not a model the shim answers (the node's assistant resource is not a text model call)"
+    }
+  ],
+  "models": [],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: LangChain throws 'Unexpected run status failed', so OpenAI Assistent is expected to fail in n8n"
+    ],
+    "offline": "The assistant (asst_vvkn…) and its attached travel document live at OpenAI; its answers are fixed here. Window Buffer Memory is empty at the start of every run (README: process memory restarts), so no thread is pre-created. The manual branch (Drive download, file upload, assistant create and update) has its own trigger and is not run"
+  }
+}
