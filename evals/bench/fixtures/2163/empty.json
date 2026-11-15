@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "template": 2163,
+  "sha256": "1b6f91671652be77edc67c58a321bdfc0b8f3fdb1e7a855797d5c1936f870736",
+  "variant": "empty",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "one new row from a blank submission: only the timestamp is filled",
+  "trigger": {
+    "node": "Check for new entries",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {
+          "Timestamp": "11/16/2026 08:41:09",
+          "Email Address": "",
+          "Your name": "",
+          "Your business area": "",
+          "Your team size": ""
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Check for new entries",
+      "service": "google-sheets",
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1jk8ZbfOMObvHGGImc0sBJTZB_hracO4jRqfbryMgzEs",
+              "exportMimeType": "text/csv"
+            },
+            "result": {
+              "fileId": "1jk8ZbfOMObvHGGImc0sBJTZB_hracO4jRqfbryMgzEs",
+              "title": "Join Community (Responses)",
+              "mimeType": "text/csv",
+              "content": "VGltZXN0YW1wLEVtYWlsIEFkZHJlc3MsWW91ciBuYW1lLFlvdXIgYnVzaW5lc3MgYXJlYSxZb3VyIHRlYW0gc2l6ZSxSYXRpbmcKMTEvMTQvMjAyNiAxODowMjoxMSxtYXJpYS5sb3BlekBmaW52aXN0YS5leGFtcGxlLE1hcmlhIExvcGV6LCJGaW50ZWNoLCBIZWFkIG9mIE9wZXJhdGlvbnMiLDI1LTUwLHF1YWxpZmllZAoxMS8xNi8yMDI2IDA4OjQxOjA5LCwsLA=="
+            }
+          }
+        ]
+      },
+      "connectorGaps": [
+        "rowAdded: the trigger keeps the last row it saw in static data and emits only newer rows; a CSV export has every row and no revision",
+        "tabs: the Drive export holds the first tab only (Form Responses 1 is the form's only tab here)"
+      ],
+      "note": "Google Sheets Trigger v1, rowAdded on gid 72739218: trigger.items are the rows a scheduled poll would emit (the two rows after the last one seen). In manual mode n8n 2.47.7 emits every data row instead, so the n8n side pins trigger.items rather than polling"
+    }
+  ],
+  "models": [
+    "Qualify leads with GPT"
+  ],
+  "writes": [
+    "Update lead status"
+  ],
+  "writeReplies": [
+    {
+      "node": "Update lead status",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1jk8ZbfOMObvHGGImc0sBJTZB_hracO4jRqfbryMgzEs",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 72739218,
+                    "title": "Form Responses 1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1jk8ZbfOMObvHGGImc0sBJTZB_hracO4jRqfbryMgzEs/values/'Form Responses 1'",
+            "status": 200,
+            "body": {
+              "range": "Form Responses 1!A1:Z3",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Timestamp",
+                  "Email Address",
+                  "Your name",
+                  "Your business area",
+                  "Your team size",
+                  "Rating"
+                ],
+                [
+                  "11/14/2026 18:02:11",
+                  "maria.lopez@finvista.example",
+                  "Maria Lopez",
+                  "Fintech, Head of Operations",
+                  "25-50",
+                  "qualified"
+                ],
+                [
+                  "11/16/2026 08:41:09",
+                  "",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1jk8ZbfOMObvHGGImc0sBJTZB_hracO4jRqfbryMgzEs/values:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1jk8ZbfOMObvHGGImc0sBJTZB_hracO4jRqfbryMgzEs",
+              "totalUpdatedRows": 1,
+              "totalUpdatedCells": 1,
+              "totalUpdatedSheets": 1
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.2 update matching Timestamp (Rating from the model's JSON): sheets.properties, the whole tab, then POST values:batchUpdate (n8n-nodes-base 2.47.7 update.operation)"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch; Merge pairs each row with its rating by position"
+    ],
+    "offline": "Extract JSON reply runs JSON.parse on the model's text; a reply that is not bare JSON fails there on both sides. The legacy OpenAI node (chat, gpt-4-turbo-preview) is answered by the shim"
+  }
+}

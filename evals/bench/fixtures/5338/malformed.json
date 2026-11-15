@@ -1,0 +1,822 @@
+{
+  "schemaVersion": 1,
+  "template": 5338,
+  "sha256": "5a0ee73fb26ecd8b48a00fd65954a7d47c209ff786f3a12e65c4a1e076880d76",
+  "variant": "malformed",
+  "now": "2026-11-16T05:00:00.000Z",
+  "about": "Wavespeed fails one clip (status failed, no outputs) and fal answers a validation error instead of the sound results, so List Clip URLs finds no video.url",
+  "trigger": {
+    "node": "Trigger: Start Daily Content Generation",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T00:00:00.000-05:00",
+          "Readable date": "November 16th 2026, 12:00:00 am",
+          "Readable time": "12:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "00",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Retrieve Video Clips",
+      "service": "wavespeed",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.wavespeed.ai/api/v3/predictions/ws-7f3a9c2e-0001/result",
+            "status": 200,
+            "body": {
+              "code": 200,
+              "message": "success",
+              "data": {
+                "id": "ws-7f3a9c2e-0001",
+                "model": "bytedance/seedance-v1-pro-t2v-480p",
+                "outputs": [
+                  "https://d1q70pf5vjeyhc.cloudfront.net/predictions/ws-7f3a9c2e-0001/1.mp4"
+                ],
+                "status": "completed",
+                "error": "",
+                "has_nsfw_contents": [
+                  false
+                ],
+                "created_at": "2026-11-16T05:00:10.000Z",
+                "timings": {
+                  "inference": 61234
+                }
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.wavespeed.ai/api/v3/predictions/ws-7f3a9c2e-0002/result",
+            "status": 200,
+            "body": {
+              "code": 200,
+              "message": "success",
+              "data": {
+                "id": "ws-7f3a9c2e-0002",
+                "model": "bytedance/seedance-v1-pro-t2v-480p",
+                "outputs": [],
+                "status": "failed",
+                "error": "content policy violation",
+                "has_nsfw_contents": [
+                  false
+                ],
+                "created_at": "2026-11-16T05:00:10.000Z",
+                "timings": {
+                  "inference": 61234
+                }
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.wavespeed.ai/api/v3/predictions/ws-7f3a9c2e-0003/result",
+            "status": 200,
+            "body": {
+              "code": 200,
+              "message": "success",
+              "data": {
+                "id": "ws-7f3a9c2e-0003",
+                "model": "bytedance/seedance-v1-pro-t2v-480p",
+                "outputs": [
+                  "https://d1q70pf5vjeyhc.cloudfront.net/predictions/ws-7f3a9c2e-0003/1.mp4"
+                ],
+                "status": "completed",
+                "error": "",
+                "has_nsfw_contents": [
+                  false
+                ],
+                "created_at": "2026-11-16T05:00:10.000Z",
+                "timings": {
+                  "inference": 61234
+                }
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Wavespeed connector"
+      },
+      "note": "HTTP Request v4.2 GET /api/v3/predictions/<id>/result after the 4-minute wait (header auth)"
+    },
+    {
+      "node": "Retrieve Final Sound Output",
+      "service": "fal",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://queue.fal.run/fal-ai/mmaudio-v2/requests/fal-snd-0001",
+            "status": 200,
+            "body": {
+              "detail": [
+                {
+                  "loc": [
+                    "body",
+                    "video_url"
+                  ],
+                  "msg": "field required",
+                  "type": "value_error.missing"
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://queue.fal.run/fal-ai/mmaudio-v2/requests/fal-snd-0002",
+            "status": 200,
+            "body": {
+              "detail": [
+                {
+                  "loc": [
+                    "body",
+                    "video_url"
+                  ],
+                  "msg": "field required",
+                  "type": "value_error.missing"
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://queue.fal.run/fal-ai/mmaudio-v2/requests/fal-snd-0003",
+            "status": 200,
+            "body": {
+              "detail": [
+                {
+                  "loc": [
+                    "body",
+                    "video_url"
+                  ],
+                  "msg": "field required",
+                  "type": "value_error.missing"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured fal connector"
+      },
+      "note": "GET https://queue.fal.run/fal-ai/mmaudio-v2/requests/<request_id>: the finished job's result, the clip with its generated audio"
+    },
+    {
+      "node": "Retrieve Final Merged Video",
+      "service": "fal",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://queue.fal.run/fal-ai/ffmpeg-api/requests/fal-cmp-0001",
+            "status": 200,
+            "body": {
+              "video_url": "https://v3.fal.media/files/penguin/bench-final-asmr.mp4",
+              "thumbnail_url": "https://v3.fal.media/files/penguin/bench-final-asmr.jpg"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured fal connector"
+      },
+      "note": "GET https://queue.fal.run/fal-ai/ffmpeg-api/requests/<request_id>: the composed video"
+    }
+  ],
+  "models": [
+    "Generate Creative Video Idea",
+    "LLM: Generate Raw Idea (GPT-5)",
+    "Generate Detailed Video Prompts",
+    "LLM: Draft Video Prompt Details (GPT-4.1)"
+  ],
+  "writes": [
+    "Save Idea & Metadata to Google Sheets",
+    "Generate Video Clips (seedance)",
+    "Generate ASMR Sound (Fal AI)",
+    "Merge Clips into Final Video (Fal AI)",
+    "URL Final Video",
+    "Upload Video to BLOTATO",
+    "Youtube",
+    "Tiktok",
+    "Linkedin",
+    "Facebook",
+    "Instagram",
+    "Threads",
+    "Bluesky",
+    "Pinterest",
+    "Twitter (X)",
+    "Update Status to \"DONE\""
+  ],
+  "writeReplies": [
+    {
+      "node": "Save Idea & Metadata to Google Sheets",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a/values/'Sheet1'",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:Z2",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "id",
+                  "idea",
+                  "caption",
+                  "production",
+                  "environment_prompt",
+                  "sound_prompt",
+                  "final_output"
+                ],
+                [
+                  "1",
+                  "Emerald glass shaped like a pinecone",
+                  "",
+                  "done",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a",
+              "replies": [
+                {}
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.5 append: sheets.properties, the whole tab (header check), POST :batchUpdate, PUT values/Sheet1!<row>:<row>"
+    },
+    {
+      "node": "Generate Video Clips (seedance)",
+      "service": "wavespeed",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.wavespeed.ai/api/v3/bytedance/seedance-v1-pro-t2v-480p",
+            "status": 200,
+            "body": {
+              "code": 200,
+              "message": "success",
+              "data": {
+                "id": "ws-7f3a9c2e-0001",
+                "model": "bytedance/seedance-v1-pro-t2v-480p",
+                "outputs": [],
+                "urls": {
+                  "get": "https://api.wavespeed.ai/api/v3/predictions/ws-7f3a9c2e-0001/result"
+                },
+                "status": "created",
+                "created_at": "2026-11-16T05:00:10.000Z"
+              }
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://api.wavespeed.ai/api/v3/bytedance/seedance-v1-pro-t2v-480p",
+            "status": 200,
+            "body": {
+              "code": 200,
+              "message": "success",
+              "data": {
+                "id": "ws-7f3a9c2e-0002",
+                "model": "bytedance/seedance-v1-pro-t2v-480p",
+                "outputs": [],
+                "urls": {
+                  "get": "https://api.wavespeed.ai/api/v3/predictions/ws-7f3a9c2e-0002/result"
+                },
+                "status": "created",
+                "created_at": "2026-11-16T05:00:10.000Z"
+              }
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://api.wavespeed.ai/api/v3/bytedance/seedance-v1-pro-t2v-480p",
+            "status": 200,
+            "body": {
+              "code": 200,
+              "message": "success",
+              "data": {
+                "id": "ws-7f3a9c2e-0003",
+                "model": "bytedance/seedance-v1-pro-t2v-480p",
+                "outputs": [],
+                "urls": {
+                  "get": "https://api.wavespeed.ai/api/v3/predictions/ws-7f3a9c2e-0003/result"
+                },
+                "status": "created",
+                "created_at": "2026-11-16T05:00:10.000Z"
+              }
+            }
+          }
+        ]
+      },
+      "note": "POST /api/v3/bytedance/seedance-v1-pro-t2v-480p per scene (batching 1 item per 3 s); answers the prediction id. Response shape from Wavespeed's public docs, unverified"
+    },
+    {
+      "node": "Generate ASMR Sound (Fal AI)",
+      "service": "fal",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://queue.fal.run/fal-ai/mmaudio-v2",
+            "status": 200,
+            "body": {
+              "request_id": "fal-snd-0001",
+              "status": "IN_QUEUE",
+              "response_url": "https://queue.fal.run/fal-ai/mmaudio-v2/requests/fal-snd-0001",
+              "status_url": "https://queue.fal.run/fal-ai/mmaudio-v2/requests/fal-snd-0001/status",
+              "queue_position": 0
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://queue.fal.run/fal-ai/mmaudio-v2",
+            "status": 200,
+            "body": {
+              "request_id": "fal-snd-0002",
+              "status": "IN_QUEUE",
+              "response_url": "https://queue.fal.run/fal-ai/mmaudio-v2/requests/fal-snd-0002",
+              "status_url": "https://queue.fal.run/fal-ai/mmaudio-v2/requests/fal-snd-0002/status",
+              "queue_position": 0
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://queue.fal.run/fal-ai/mmaudio-v2",
+            "status": 200,
+            "body": {
+              "request_id": "fal-snd-0003",
+              "status": "IN_QUEUE",
+              "response_url": "https://queue.fal.run/fal-ai/mmaudio-v2/requests/fal-snd-0003",
+              "status_url": "https://queue.fal.run/fal-ai/mmaudio-v2/requests/fal-snd-0003/status",
+              "queue_position": 0
+            }
+          }
+        ]
+      },
+      "note": "POST https://queue.fal.run/fal-ai/mmaudio-v2 (the template's URL has a trailing space, which URL parsing drops) per clip; answers the queue request id"
+    },
+    {
+      "node": "Merge Clips into Final Video (Fal AI)",
+      "service": "fal",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://queue.fal.run/fal-ai/ffmpeg-api/compose",
+            "status": 200,
+            "body": {
+              "request_id": "fal-cmp-0001",
+              "status": "IN_QUEUE",
+              "response_url": "https://queue.fal.run/fal-ai/ffmpeg-api/requests/fal-cmp-0001",
+              "status_url": "https://queue.fal.run/fal-ai/ffmpeg-api/requests/fal-cmp-0001/status",
+              "queue_position": 0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "node": "URL Final Video",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a/values/'Sheet1'",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:Z2",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "id",
+                  "idea",
+                  "caption",
+                  "production",
+                  "environment_prompt",
+                  "sound_prompt",
+                  "final_output"
+                ],
+                [
+                  "1",
+                  "Emerald glass shaped like a pinecone",
+                  "",
+                  "done",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a/values:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a",
+              "totalUpdatedRows": 1,
+              "totalUpdatedCells": 1,
+              "totalUpdatedSheets": 1
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.5 update matching idea"
+    },
+    {
+      "node": "Upload Video to BLOTATO",
+      "service": "blotato",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://backend.blotato.com/v2/media",
+            "status": 200,
+            "body": {
+              "url": "https://database.blotato.com/storage/v1/object/public/public_media/bench/asmr-final.mp4"
+            }
+          }
+        ]
+      },
+      "note": "Blotato community node (not in the bench image): POST /v2/media {url}; shape from Blotato's public API docs, assumed"
+    },
+    {
+      "node": "Youtube",
+      "service": "blotato",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://backend.blotato.com/v2/posts",
+            "status": 200,
+            "bodyMatch": {
+              "post": {
+                "accountId": "8047"
+              }
+            },
+            "body": {
+              "postSubmissionId": "bench-sub-8047"
+            }
+          }
+        ]
+      },
+      "note": "Blotato post to account 8047: POST /v2/posts {post: {accountId, content: {text, mediaUrls, platform}, target}} (assumed)"
+    },
+    {
+      "node": "Tiktok",
+      "service": "blotato",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://backend.blotato.com/v2/posts",
+            "status": 200,
+            "bodyMatch": {
+              "post": {
+                "accountId": "2079"
+              }
+            },
+            "body": {
+              "postSubmissionId": "bench-sub-2079"
+            }
+          }
+        ]
+      },
+      "note": "Blotato post to account 2079: POST /v2/posts {post: {accountId, content: {text, mediaUrls, platform}, target}} (assumed)"
+    },
+    {
+      "node": "Linkedin",
+      "service": "blotato",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://backend.blotato.com/v2/posts",
+            "status": 200,
+            "bodyMatch": {
+              "post": {
+                "accountId": "1446"
+              }
+            },
+            "body": {
+              "postSubmissionId": "bench-sub-1446"
+            }
+          }
+        ]
+      },
+      "note": "Blotato post to account 1446: POST /v2/posts {post: {accountId, content: {text, mediaUrls, platform}, target}} (assumed)"
+    },
+    {
+      "node": "Facebook",
+      "service": "blotato",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://backend.blotato.com/v2/posts",
+            "status": 200,
+            "bodyMatch": {
+              "post": {
+                "accountId": "1759"
+              }
+            },
+            "body": {
+              "postSubmissionId": "bench-sub-1759"
+            }
+          }
+        ]
+      },
+      "note": "Blotato post to account 1759: POST /v2/posts {post: {accountId, content: {text, mediaUrls, platform}, target}} (assumed)"
+    },
+    {
+      "node": "Instagram",
+      "service": "blotato",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://backend.blotato.com/v2/posts",
+            "status": 200,
+            "bodyMatch": {
+              "post": {
+                "accountId": "11892"
+              }
+            },
+            "body": {
+              "postSubmissionId": "bench-sub-11892"
+            }
+          }
+        ]
+      },
+      "note": "Blotato post to account 11892: POST /v2/posts {post: {accountId, content: {text, mediaUrls, platform}, target}} (assumed)"
+    },
+    {
+      "node": "Threads",
+      "service": "blotato",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://backend.blotato.com/v2/posts",
+            "status": 200,
+            "bodyMatch": {
+              "post": {
+                "accountId": "2280"
+              }
+            },
+            "body": {
+              "postSubmissionId": "bench-sub-2280"
+            }
+          }
+        ]
+      },
+      "note": "Blotato post to account 2280: POST /v2/posts {post: {accountId, content: {text, mediaUrls, platform}, target}} (assumed)"
+    },
+    {
+      "node": "Bluesky",
+      "service": "blotato",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://backend.blotato.com/v2/posts",
+            "status": 200,
+            "bodyMatch": {
+              "post": {
+                "accountId": "6012"
+              }
+            },
+            "body": {
+              "postSubmissionId": "bench-sub-6012"
+            }
+          }
+        ]
+      },
+      "note": "Blotato post to account 6012: POST /v2/posts {post: {accountId, content: {text, mediaUrls, platform}, target}} (assumed)"
+    },
+    {
+      "node": "Pinterest",
+      "service": "blotato",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://backend.blotato.com/v2/posts",
+            "status": 200,
+            "bodyMatch": {
+              "post": {
+                "accountId": "363"
+              }
+            },
+            "body": {
+              "postSubmissionId": "bench-sub-363"
+            }
+          }
+        ]
+      },
+      "note": "Blotato post to account 363: POST /v2/posts {post: {accountId, content: {text, mediaUrls, platform}, target}} (assumed)"
+    },
+    {
+      "node": "Twitter (X)",
+      "service": "blotato",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://backend.blotato.com/v2/posts",
+            "status": 200,
+            "bodyMatch": {
+              "post": {
+                "accountId": "1289"
+              }
+            },
+            "body": {
+              "postSubmissionId": "bench-sub-1289"
+            }
+          }
+        ]
+      },
+      "note": "Blotato post to account 1289: POST /v2/posts {post: {accountId, content: {text, mediaUrls, platform}, target}} (assumed)"
+    },
+    {
+      "node": "Update Status to \"DONE\"",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a/values/'Sheet1'",
+            "status": 200,
+            "body": {
+              "range": "Sheet1!A1:Z2",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "id",
+                  "idea",
+                  "caption",
+                  "production",
+                  "environment_prompt",
+                  "sound_prompt",
+                  "final_output"
+                ],
+                [
+                  "1",
+                  "Emerald glass shaped like a pinecone",
+                  "",
+                  "done",
+                  "",
+                  "",
+                  ""
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a/values:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a",
+              "totalUpdatedRows": 1,
+              "totalUpdatedCells": 1,
+              "totalUpdatedSheets": 1
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a",
+              "replies": [
+                {}
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.5 appendOrUpdate matching idea"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch; Merge (choose branch, 9 inputs) waits for every platform"
+    ],
+    "offline": "No outside data reaches the models: the idea comes from the model itself; Wavespeed and fal replies are stand-ins (URLs, no media). The three 4-minute waits are shortened by config time compression; the Sheets nodes' empty spreadsheet and tab ('=') are filled by config/5338.json. Blotato's request and reply shapes are from its public docs (assumed)",
+    "n8nCannotRun": "The ten Blotato nodes are the community package @blotato/n8n-nodes-blotato, which the bench image does not install: n8n 2.47.7 refuses their credential (POST /rest/credentials: Unrecognized credential type: blotatoApi, seen in a canned run), so the run cannot start"
+  }
+}

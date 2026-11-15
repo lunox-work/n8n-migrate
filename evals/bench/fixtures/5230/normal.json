@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "template": 5230,
+  "sha256": "01df0943e26230def64e16761e34038ff939b2da4af9104a9db70586045af9e5",
+  "variant": "normal",
+  "now": "2026-11-16T17:00:00.000Z",
+  "about": "seven feeds with ten items: seven AI stories from the last day, two non-AI stories and one older story",
+  "trigger": {
+    "node": "Get Articles Daily",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T12:00:00.000-05:00",
+          "Readable date": "November 16th 2026, 12:00:00 pm",
+          "Readable time": "12:00:00 pm",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "12",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Read RSS News Feeds",
+      "service": "rss",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://feeds.bbci.co.uk/news/technology/rss.xml",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=utf-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><channel><title>feeds.bbci.co.uk</title><link>https://feeds.bbci.co.uk/news/technology/rss.xml</link><description>feeds.bbci.co.uk</description><item><title>OpenAI and Microsoft sign new compute deal for 2027 models</title><link>https://www.bbc.co.uk/news/articles/c-ai-compute-1</link><pubDate>Mon, 16 Nov 2026 09:12:00 GMT</pubDate><description>The agreement covers data centres in three countries and new AI chips.</description></item><item><title>UK broadband prices to rise in April</title><link>https://www.bbc.co.uk/news/articles/c-broadband-2</link><pubDate>Mon, 16 Nov 2026 07:40:00 GMT</pubDate><description>Providers blame energy costs.</description></item></channel></rss>"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.wired.com/feed/rss",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=utf-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><channel><title>www.wired.com</title><link>https://www.wired.com/feed/rss</link><description>www.wired.com</description><item><title>The Robot Vacuum That Finally Understands Socks</title><link>https://www.wired.com/story/robot-vacuum-vision-model/</link><pubDate>Sun, 15 Nov 2026 22:05:00 +0000</pubDate><category>Gear</category><category>Artificial Intelligence</category><description>A small on-device vision model changes how cleaning robots map clutter.</description></item></channel></rss>"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.technologyreview.com/topnews.rss",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=utf-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><channel><title>www.technologyreview.com</title><link>https://www.technologyreview.com/topnews.rss</link><description>www.technologyreview.com</description><item><title>Why small language models are winning in hospitals</title><link>https://www.technologyreview.com/2026/11/16/small-models-hospitals/</link><pubDate>Mon, 16 Nov 2026 10:00:00 -0500</pubDate><category>Artificial intelligence</category><description>On-premise models keep patient data local.</description></item><item><title>Fusion startup hits new plasma record</title><link>https://www.technologyreview.com/2026/11/10/fusion-record/</link><pubDate>Tue, 10 Nov 2026 10:00:00 -0500</pubDate><category>Climate</category><description>An older story outside the one-day window.</description></item></channel></rss>"
+          },
+          {
+            "method": "GET",
+            "url": "https://techcrunch.com/feed/",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=utf-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><channel><title>techcrunch.com</title><link>https://techcrunch.com/feed/</link><description>techcrunch.com</description><item><title>Mistral raises $1.2B to build European AI agents</title><link>https://techcrunch.com/2026/11/16/mistral-raises/</link><pubDate>Mon, 16 Nov 2026 13:30:00 +0000</pubDate><category>AI</category><category>Fundraising</category><description></description><content:encoded><![CDATA[<p>Paris-based Mistral AI raised $1.2 billion led by a consortium of European funds.</p>]]></content:encoded></item></channel></rss>"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.marktechpost.com/feed/",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=utf-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><channel><title>www.marktechpost.com</title><link>https://www.marktechpost.com/feed/</link><description>www.marktechpost.com</description><item><title>Google DeepMind releases open weights for its 4B reasoning model</title><link>https://www.marktechpost.com/2026/11/16/deepmind-open-weights-4b/</link><pubDate>Mon, 16 Nov 2026 05:20:00 +0000</pubDate><category>Machine Learning</category><description></description><content:encoded><![CDATA[<p>The model scores 71% on GPQA and runs on a laptop GPU.</p>]]></content:encoded></item></channel></rss>"
+          },
+          {
+            "method": "GET",
+            "url": "https://hackernoon.com/feed",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=utf-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><channel><title>hackernoon.com</title><link>https://hackernoon.com/feed</link><description>hackernoon.com</description><item><title>How I cut my Postgres bill by 40%</title><link>https://hackernoon.com/how-i-cut-my-postgres-bill</link><pubDate>Mon, 16 Nov 2026 03:00:00 GMT</pubDate><category>databases</category><description>Indexes, vacuum and a smaller instance.</description></item></channel></rss>"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.artificialintelligence-news.com/feed/",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=utf-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><channel><title>www.artificialintelligence-news.com</title><link>https://www.artificialintelligence-news.com/feed/</link><description>www.artificialintelligence-news.com</description><item><title>EU AI Act: first fines expected in 2027</title><link>https://www.artificialintelligence-news.com/news/eu-ai-act-first-fines/</link><pubDate>Mon, 16 Nov 2026 11:45:00 +0000</pubDate><category>Legislation &amp; Government</category><category>AI</category><description></description><content:encoded><![CDATA[<p>Regulators say enforcement of the general-purpose AI rules starts next year.</p>]]></content:encoded></item></channel></rss>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured RSS connector"
+      },
+      "note": "RSS Feed Read v1.1 GET of each feed URL Set Tech News RSS Feeds lists (seven, one item per URL after Split Out); Filter keeps items whose isoDate is after $now minus one day"
+    }
+  ],
+  "models": [
+    "Text Classifier",
+    "OpenAI Chat Model",
+    "AI Agent",
+    "OpenAI Chat Model1"
+  ],
+  "writes": [
+    "MongoDB"
+  ],
+  "expect": {
+    "branches": [
+      "Filter: items older than one day dropped",
+      "Text Classifier: AI articles kept, others discarded (fallback discard)"
+    ],
+    "offline": "Only the Get Articles Daily branch runs from this trigger (the template has three more schedule triggers for later steps, each starting from a MongoDB query). The articles' dates are relative to the run's $now (Filter compares with $now minus one day), so the fixture's `now` must be the run clock for the window to hold. MongoDB inserts cannot be answered offline",
+    "n8nCannotRun": "MongoDB, the main path's last step, has no bench sidecar (only postgres and mysql are seeded), so n8n's MongoDB node cannot connect"
+  }
+}

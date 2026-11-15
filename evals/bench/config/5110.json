@@ -1,0 +1,158 @@
+{
+  "why": "The three Google Sheets nodes name YOUR_GOOGLE_SHEET_ID and YOUR_SHEET_NAME, and Telegram Notification sends to YOUR_CHAT_ID (template placeholders). Filled with a placeholder spreadsheet (its first tab, gid=0) and a placeholder chat id on both sides. Placeholder fills only: no logic changes. See timeCompression.",
+  "n8n": {
+    "3. Log New Idea to Sheet": {
+      "parameters.documentId": {
+        "__rl": true,
+        "mode": "id",
+        "value": "1KineticSandBenchSheet9xY7wV5uT3sR1qPzN8kL"
+      },
+      "parameters.sheetName": {
+        "__rl": true,
+        "mode": "list",
+        "value": "gid=0",
+        "cachedResultName": "Sheet1"
+      }
+    },
+    "Update Final Video to Sheet": {
+      "parameters.documentId": {
+        "__rl": true,
+        "mode": "id",
+        "value": "1KineticSandBenchSheet9xY7wV5uT3sR1qPzN8kL"
+      },
+      "parameters.sheetName": {
+        "__rl": true,
+        "mode": "list",
+        "value": "gid=0",
+        "cachedResultName": "Sheet1"
+      }
+    },
+    "Update Sheet with Youtube Link": {
+      "parameters.documentId": {
+        "__rl": true,
+        "mode": "id",
+        "value": "1KineticSandBenchSheet9xY7wV5uT3sR1qPzN8kL"
+      },
+      "parameters.sheetName": {
+        "__rl": true,
+        "mode": "list",
+        "value": "gid=0",
+        "cachedResultName": "Sheet1"
+      }
+    },
+    "Telegram Notification": {
+      "parameters.chatId": "100200300"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "3. Log New Idea to Sheet": {
+          "patch": {
+            "params": {
+              "documentId": {
+                "__rl": true,
+                "mode": "id",
+                "value": "1KineticSandBenchSheet9xY7wV5uT3sR1qPzN8kL"
+              },
+              "sheetName": {
+                "__rl": true,
+                "mode": "list",
+                "value": "gid=0",
+                "cachedResultName": "Sheet1"
+              }
+            }
+          }
+        },
+        "Update Final Video to Sheet": {
+          "patch": {
+            "params": {
+              "documentId": {
+                "__rl": true,
+                "mode": "id",
+                "value": "1KineticSandBenchSheet9xY7wV5uT3sR1qPzN8kL"
+              },
+              "sheetName": {
+                "__rl": true,
+                "mode": "list",
+                "value": "gid=0",
+                "cachedResultName": "Sheet1"
+              }
+            }
+          }
+        },
+        "Update Sheet with Youtube Link": {
+          "patch": {
+            "params": {
+              "documentId": {
+                "__rl": true,
+                "mode": "id",
+                "value": "1KineticSandBenchSheet9xY7wV5uT3sR1qPzN8kL"
+              },
+              "sheetName": {
+                "__rl": true,
+                "mode": "list",
+                "value": "gid=0",
+                "cachedResultName": "Sheet1"
+              }
+            }
+          }
+        },
+        "Telegram Notification": {
+          "patch": {
+            "params": {
+              "chatId": "100200300"
+            }
+          }
+        }
+      }
+    }
+  },
+  "timeCompression": {
+    "why": "Wait for Clips waits 120 seconds (over 65 s n8n parks the execution as waiting, past the bench's timeout) and the other two 60 seconds each. Shortened to 1 second on both sides. This changes when the run resumes, not what it does: the Wavespeed and fal replies do not depend on elapsed time. Not a placeholder fill, so results flag it as time compression (config.nonPlaceholder).",
+    "n8n": {
+      "Wait for Clips": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      },
+      "Wait for Sounds": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      },
+      "Wait for Final Video": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      }
+    },
+    "claude": {
+      "overrides": {
+        "steps": {
+          "Wait for Clips": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          },
+          "Wait for Sounds": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          },
+          "Wait for Final Video": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

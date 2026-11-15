@@ -1,0 +1,148 @@
+{
+  "why": "The three Google Sheets nodes leave spreadsheet and tab as '=' (empty id mode) for the user to fill in. Filled with a placeholder spreadsheet id and its first tab (gid=0) on both sides; the fixture's routes answer it. Placeholder fills only: no logic changes. See timeCompression.",
+  "n8n": {
+    "Save Idea & Metadata to Google Sheets": {
+      "parameters.documentId": {
+        "__rl": true,
+        "mode": "id",
+        "value": "1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a"
+      },
+      "parameters.sheetName": {
+        "__rl": true,
+        "mode": "list",
+        "value": "gid=0",
+        "cachedResultName": "Sheet1"
+      }
+    },
+    "URL Final Video": {
+      "parameters.documentId": {
+        "__rl": true,
+        "mode": "id",
+        "value": "1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a"
+      },
+      "parameters.sheetName": {
+        "__rl": true,
+        "mode": "list",
+        "value": "gid=0",
+        "cachedResultName": "Sheet1"
+      }
+    },
+    "Update Status to \"DONE\"": {
+      "parameters.documentId": {
+        "__rl": true,
+        "mode": "id",
+        "value": "1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a"
+      },
+      "parameters.sheetName": {
+        "__rl": true,
+        "mode": "list",
+        "value": "gid=0",
+        "cachedResultName": "Sheet1"
+      }
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Save Idea & Metadata to Google Sheets": {
+          "patch": {
+            "params": {
+              "documentId": {
+                "__rl": true,
+                "mode": "id",
+                "value": "1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a"
+              },
+              "sheetName": {
+                "__rl": true,
+                "mode": "list",
+                "value": "gid=0",
+                "cachedResultName": "Sheet1"
+              }
+            }
+          }
+        },
+        "URL Final Video": {
+          "patch": {
+            "params": {
+              "documentId": {
+                "__rl": true,
+                "mode": "id",
+                "value": "1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a"
+              },
+              "sheetName": {
+                "__rl": true,
+                "mode": "list",
+                "value": "gid=0",
+                "cachedResultName": "Sheet1"
+              }
+            }
+          }
+        },
+        "Update Status to \"DONE\"": {
+          "patch": {
+            "params": {
+              "documentId": {
+                "__rl": true,
+                "mode": "id",
+                "value": "1AsmrBenchIdeasSheet7kLmN3pQ7rS2tU5vW8xZ1a"
+              },
+              "sheetName": {
+                "__rl": true,
+                "mode": "list",
+                "value": "gid=0",
+                "cachedResultName": "Sheet1"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "timeCompression": {
+    "why": "The three waits are 4 minutes each; waits over 65 seconds park n8n's execution as waiting, past the bench's timeout. Shortened to 1 second on both sides. This changes when the run resumes, not what it does: the Wavespeed and fal replies do not depend on elapsed time. Not a placeholder fill, so results flag it as time compression (config.nonPlaceholder).",
+    "n8n": {
+      "Wait for Clip Generation (Wavespeed AI)": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      },
+      "Wait for Sound Generation (Fal AI)": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      },
+      "Wait for Video Rendering (Fal AI)": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      }
+    },
+    "claude": {
+      "overrides": {
+        "steps": {
+          "Wait for Clip Generation (Wavespeed AI)": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          },
+          "Wait for Sound Generation (Fal AI)": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          },
+          "Wait for Video Rendering (Fal AI)": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
