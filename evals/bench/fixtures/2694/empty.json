@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 1,
+  "template": 2694,
+  "sha256": "f88ebd268c30391a58b0266d255cb9892de499224cf8492833a3ba15b371983b",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "the monitoring sheet has its header row and no URLs",
+  "trigger": {
+    "node": "Weekly Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T08:00:00.000-05:00",
+          "Readable date": "November 16th 2026, 8:00:00 am",
+          "Readable time": "8:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "08",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Fetch URLs",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "URLs to Check",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s/values/'URLs to Check'",
+            "status": 200,
+            "body": {
+              "range": "'URLs to Check'!A1:Z1",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "URL",
+                  "KnownExpiryDate"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s",
+              "exportMimeType": "text/csv"
+            },
+            "result": {
+              "fileId": "1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s",
+              "title": "URLs to Check",
+              "mimeType": "text/csv",
+              "content": "VVJMLEtub3duRXhwaXJ5RGF0ZQo="
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.5 read of every row (no filter): sheet mode url gid=0, so sheets.properties to find the tab's title, then values/'URLs to Check' (header row + data rows; n8n emits one item per data row with row_number)"
+    },
+    {
+      "node": "Check SSL",
+      "service": "ssl-checker",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured connector; the Claude side gets the same responses through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2 GET https://ssl-checker.io/api/v1/check/<URL without scheme and trailing slash>, once per sheet row, no credential (the public API needs none). Response shape from the service's public API page as remembered (result.host, valid_till, days_left …); the host no longer resolves on 2026-11-16, so it is unverified"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "URLs to Monitor",
+    "Send Alert Email"
+  ],
+  "writeReplies": [
+    {
+      "node": "URLs to Monitor",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "URLs to Check",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s/values/'URLs to Check'",
+            "status": 200,
+            "body": {
+              "range": "'URLs to Check'!A1:Z1",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "URL",
+                  "KnownExpiryDate"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s/values:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s",
+              "totalUpdatedRows": 0,
+              "totalUpdatedColumns": 2,
+              "totalUpdatedCells": 0,
+              "totalUpdatedSheets": 1,
+              "responses": []
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Sheets connector for writes"
+      },
+      "note": "Sheets v4.5 update matching column URL against result.host, defineBelow URL + KnownExpiryDate, once per Check SSL item: sheet properties, GET values/'URLs to Check' (to find the matching row), then values:batchUpdate. A row whose URL cell carries a scheme never equals result.host, so n8n updates nothing for it. Same spreadsheet as Fetch URLs (config/2694.json fills this node's scrubbed document URL)"
+    },
+    {
+      "node": "Send Alert Email",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/send",
+            "status": 200,
+            "body": {
+              "id": "19a8e3c1b2000001",
+              "threadId": "19a8e3c1b2000001",
+              "labelIds": [
+                "SENT"
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "send_message",
+            "args": {
+              "to": [
+                "user@example.com"
+              ],
+              "subject": "SSL Expiry"
+            },
+            "result": {
+              "id": "19a8e3c1b2000001",
+              "threadId": "19a8e3c1b2000001",
+              "labelIds": [
+                "SENT"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Gmail v2.1 send, text body: POST /users/me/messages/send, To user@example.com, subject and body 'SSL Expiry - <days_left> Days Left - <host>'"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Fetch URLs emits no item: Check SSL, URLs to Monitor, Expiry Alert and Send Alert Email never run"
+    ],
+    "offline": "No model. The ssl-checker.io host no longer resolves (2026-11-16): the fixture answers as the service did when the template was written. Check SSL fans out to URLs to Monitor and Expiry Alert; both run per item."
+  }
+}

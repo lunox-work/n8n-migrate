@@ -1,0 +1,353 @@
+{
+  "schemaVersion": 1,
+  "template": 2694,
+  "sha256": "f88ebd268c30391a58b0266d255cb9892de499224cf8492833a3ba15b371983b",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "about": "an unresolvable host (status error, no result), a certificate whose dates and days_left are null, and a 145-character host",
+  "trigger": {
+    "node": "Weekly Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T08:00:00.000-05:00",
+          "Readable date": "November 16th 2026, 8:00:00 am",
+          "Readable time": "8:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "08",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Fetch URLs",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "URLs to Check",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s/values/'URLs to Check'",
+            "status": 200,
+            "body": {
+              "range": "'URLs to Check'!A1:Z4",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "URL",
+                  "KnownExpiryDate"
+                ],
+                [
+                  "legacy-intranet.northwind.example",
+                  "n/a"
+                ],
+                [
+                  "mail.northwind.example",
+                  ""
+                ],
+                [
+                  "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.northwind.example",
+                  ""
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s",
+              "exportMimeType": "text/csv"
+            },
+            "result": {
+              "fileId": "1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s",
+              "title": "URLs to Check",
+              "mimeType": "text/csv",
+              "content": "VVJMLEtub3duRXhwaXJ5RGF0ZQpsZWdhY3ktaW50cmFuZXQubm9ydGh3aW5kLmV4YW1wbGUsbi9hCm1haWwubm9ydGh3aW5kLmV4YW1wbGUsCmFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYS5iYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmIubm9ydGh3aW5kLmV4YW1wbGUsCg=="
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4.5 read of every row (no filter): sheet mode url gid=0, so sheets.properties to find the tab's title, then values/'URLs to Check' (header row + data rows; n8n emits one item per data row with row_number)"
+    },
+    {
+      "node": "Check SSL",
+      "service": "ssl-checker",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://ssl-checker.io/api/v1/check/legacy-intranet.northwind.example",
+            "status": 200,
+            "body": {
+              "version": "1.0",
+              "app": "ssl-checker.io",
+              "host": "legacy-intranet.northwind.example",
+              "response_time_sec": "5.02",
+              "status": "error",
+              "error": "Unable to resolve host"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://ssl-checker.io/api/v1/check/mail.northwind.example",
+            "status": 200,
+            "body": {
+              "version": "1.0",
+              "app": "ssl-checker.io",
+              "host": "mail.northwind.example",
+              "response_time_sec": "0.41",
+              "status": "ok",
+              "result": {
+                "host": "mail.northwind.example",
+                "resolved_ip": "203.0.113.32",
+                "issued_to": "mail.northwind.example",
+                "issued_o": null,
+                "issuer_c": "US",
+                "issuer_o": "Let's Encrypt",
+                "issuer_ou": null,
+                "issuer_cn": "R11",
+                "cert_sn": "40229F2A0C11D3E5B7",
+                "cert_sha1": "3BA1C4A1C4A1C4A1C4A1C4A1C4A1C4A1C4A1C47E",
+                "cert_alg": "SHA256WITHRSA",
+                "cert_ver": 3,
+                "cert_sans": "DNS:mail.northwind.example",
+                "cert_exp": false,
+                "cert_valid": false,
+                "valid_from": null,
+                "valid_till": null,
+                "validity_days": null,
+                "days_left": null,
+                "valid_days_to_expire": null,
+                "hsts_header_enabled": false
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://ssl-checker.io/api/v1/check/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.northwind.example",
+            "status": 200,
+            "body": {
+              "version": "1.0",
+              "app": "ssl-checker.io",
+              "host": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.northwind.example",
+              "response_time_sec": "0.41",
+              "status": "ok",
+              "result": {
+                "host": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.northwind.example",
+                "resolved_ip": "203.0.113.155",
+                "issued_to": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.northwind.example",
+                "issued_o": null,
+                "issuer_c": "US",
+                "issuer_o": "Let's Encrypt",
+                "issuer_ou": null,
+                "issuer_cn": "R11",
+                "cert_sn": "41459F2A0C11D3E5B7",
+                "cert_sha1": "3BA1C4A1C4A1C4A1C4A1C4A1C4A1C4A1C4A1C47E",
+                "cert_alg": "SHA256WITHRSA",
+                "cert_ver": 3,
+                "cert_sans": "DNS:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.northwind.example",
+                "cert_exp": false,
+                "cert_valid": true,
+                "valid_from": "2026-09-30",
+                "valid_till": "2026-12-29",
+                "validity_days": 90,
+                "days_left": 43,
+                "valid_days_to_expire": 43,
+                "hsts_header_enabled": false
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured connector; the Claude side gets the same responses through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2 GET https://ssl-checker.io/api/v1/check/<URL without scheme and trailing slash>, once per sheet row, no credential (the public API needs none). Response shape from the service's public API page as remembered (result.host, valid_till, days_left …); the host no longer resolves on 2026-11-16, so it is unverified; an unresolvable host is answered 200 with status error and no result (assumed; the error shape is unverified)"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "URLs to Monitor",
+    "Send Alert Email"
+  ],
+  "writeReplies": [
+    {
+      "node": "URLs to Monitor",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "URLs to Check",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s/values/'URLs to Check'",
+            "status": 200,
+            "body": {
+              "range": "'URLs to Check'!A1:Z4",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "URL",
+                  "KnownExpiryDate"
+                ],
+                [
+                  "legacy-intranet.northwind.example",
+                  "n/a"
+                ],
+                [
+                  "mail.northwind.example",
+                  ""
+                ],
+                [
+                  "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.northwind.example",
+                  ""
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s/values:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s",
+              "totalUpdatedRows": 2,
+              "totalUpdatedColumns": 2,
+              "totalUpdatedCells": 4,
+              "totalUpdatedSheets": 1,
+              "responses": [
+                {
+                  "spreadsheetId": "1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s",
+                  "updatedRange": "'URLs to Check'!A2:B2",
+                  "updatedRows": 1,
+                  "updatedColumns": 2,
+                  "updatedCells": 2
+                },
+                {
+                  "spreadsheetId": "1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s",
+                  "updatedRange": "'URLs to Check'!A2:B2",
+                  "updatedRows": 1,
+                  "updatedColumns": 2,
+                  "updatedCells": 2
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Sheets connector for writes"
+      },
+      "note": "Sheets v4.5 update matching column URL against result.host, defineBelow URL + KnownExpiryDate, once per Check SSL item: sheet properties, GET values/'URLs to Check' (to find the matching row), then values:batchUpdate. A row whose URL cell carries a scheme never equals result.host, so n8n updates nothing for it. Same spreadsheet as Fetch URLs (config/2694.json fills this node's scrubbed document URL)"
+    },
+    {
+      "node": "Send Alert Email",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/send",
+            "status": 200,
+            "body": {
+              "id": "19a8e3c1b2000001",
+              "threadId": "19a8e3c1b2000001",
+              "labelIds": [
+                "SENT"
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "send_message",
+            "args": {
+              "to": [
+                "user@example.com"
+              ],
+              "subject": "SSL Expiry"
+            },
+            "result": {
+              "id": "19a8e3c1b2000001",
+              "threadId": "19a8e3c1b2000001",
+              "labelIds": [
+                "SENT"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Gmail v2.1 send, text body: POST /users/me/messages/send, To user@example.com, subject and body 'SSL Expiry - <days_left> Days Left - <host>'"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Expiry Alert true for mail.northwind.example: its days_left is null and n8n's lte compares null as 0 (canned run), so an alert goes out with an empty day count; false for the error answer (no result) and the long host (43)",
+      "URLs to Monitor: the error item has no result.host and matches nothing; mail (KnownExpiryDate empty) and the long host are updated"
+    ],
+    "offline": "No model. The ssl-checker.io host no longer resolves (2026-11-16): the fixture answers as the service did when the template was written. Check SSL fans out to URLs to Monitor and Expiry Alert; both run per item."
+  }
+}

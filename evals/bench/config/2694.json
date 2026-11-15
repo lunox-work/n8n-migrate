@@ -1,0 +1,23 @@
+{
+  "why": "Placeholder fill only: URLs to Monitor's documentId is a scrubbed URL (docs.google.YOUR_AWS_SECRET_KEY_HERE…), the person's own spreadsheet. It is filled with the spreadsheet Fetch URLs reads (its cached sheet name, URLs to Check, is the tab the fixture serves), so the update writes back to the rows the run read. No logic changes.",
+  "n8n": {
+    "URLs to Monitor": {
+      "parameters.documentId.value": "https://docs.google.com/spreadsheets/d/1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s/edit?gid=0#gid=0"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "URLs to Monitor": {
+          "patch": {
+            "params": {
+              "documentId": {
+                "value": "https://docs.google.com/spreadsheets/d/1pnUfIkD90MUG99Fp0vRoAB-w-GPSAwRZw0-JsNl-h3s/edit?gid=0#gid=0"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
