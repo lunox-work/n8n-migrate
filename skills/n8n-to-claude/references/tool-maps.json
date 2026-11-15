@@ -2,7 +2,7 @@
   "$doc": [
     "n8n node operation -> connector tool (or an app REST request), read by scripts/convert.mjs. Keyed by n8n type -> typeVersion range -> resource -> operation ('_' when the node has no resource; triggers use operation 'poll'). Tool variants (gmailTool, ...) use the entry of the node they vary (nodes.json toolVariantOf).",
     "Entry: connector, tool (the real tool name in references/connectors/<connector>.json), effect, args, result, fidelity, missingFields, caveats, understood, review. Or http (a request template for an app REST API without a tool) with credentialType and placement. Or blocked {kind, reason, alternative}.",
-    "args: tool input field -> spec. Specs are resolved at conversion time against the node's parameters; n8n expressions stay expressions and the runner evaluates them per item. Spec forms: \"param.path\" (a resource locator gives its value); {param, default}; {param, map: {n8nValue: toolValue}} (values not in the map are left out); {param, prefix}; {const}; {concat: [spec...], sep}; {if: {param, equals, default}, then, else}; {param, extract: \"googleId\"}; {binary: param, default, field}; {param, json: true} (a JSON text parameter becomes an object).",
+    "args: tool input field -> spec. Specs are resolved at conversion time against the node's parameters; n8n expressions stay expressions and the runner evaluates them per item. Spec forms: \"param.path\" (a resource locator gives its value); {param, default}; {param, map: {n8nValue: toolValue}} (values not in the map are left out); {param, prefix}; {const}; {concat: [spec...], sep}; {if: {param, equals, default}, then, else}; {param, extract: \"googleId\"}; {binary: param, default, field}; {param, json: true} (a JSON text parameter becomes an object); {param, default, when: param} (only when that parameter is set). http.site {path, id?} instead of http.url: the request goes to the person's site (the answer to the report's site question for the step's credential) plus path, then /<id parameter>. coerce \"ifTruthy\": the field is sent only when its value is truthy.",
     "caveats: plain-words differences from n8n; an object {text, unless: {param, equals}} is left out when the parameter has that value. result: the declarative result adapter evaluated by the runtime (runtime/src/adapt.mjs), so downstream expressions see n8n's field names. fidelity: exact | adapted | partial | none | unverified. The tool schemas captured on 2026-11-14 carry input schemas only, so no tool output shape is known: every adapter that depends on one is unverified until the bench's emulation check runs it against real output. missingFields: n8n output fields (from n8n's own output schemas, n8n-nodes-base 2.47.5) that the adapter cannot supply.",
     "understood: parameters this entry reads or accepts; any other parameter set on the node makes the step `review` (it has no counterpart in the tool). review: [{param, equals?, reason}] flags the step when a parameter has that value (any value when equals is absent).",
     "The converter checks every args field against the tool's input JSON schema: required fields present, no unknown fields.",
@@ -1003,6 +1003,74 @@
               { "param": "additionalFields.inQuoteToStatusId", "reason": "the quoted tweet (quote_tweet_id) is not mapped into the request body" },
               { "param": "additionalFields.inReplyToStatusId", "reason": "the replied-to tweet (reply.in_reply_to_tweet_id) is not mapped into the request body" }
             ]
+          }
+        }
+      }
+    },
+    "n8n-nodes-base.wordpress": {
+      ">=1": {
+        "post": {
+          "create": {
+            "http": { "method": "POST", "site": { "path": "/wp-json/wp/v2/posts" }, "body": { "title": "title", "author": "additionalFields.authorId", "content": "additionalFields.content", "slug": "additionalFields.slug", "password": "additionalFields.password", "status": "additionalFields.status", "comment_status": "additionalFields.commentStatus", "ping_status": "additionalFields.pingStatus", "sticky": "additionalFields.sticky", "template": { "param": "additionalFields.postTemplate.values.template", "default": "", "when": "additionalFields.postTemplate" }, "categories": "additionalFields.categories", "tags": "additionalFields.tags", "format": "additionalFields.format", "date": "additionalFields.date" }, "coerce": { "author": "ifTruthy", "content": "ifTruthy", "slug": "ifTruthy", "password": "ifTruthy", "status": "ifTruthy", "comment_status": "ifTruthy", "ping_status": "ifTruthy", "sticky": "ifTruthy", "categories": "ifTruthy", "tags": "ifTruthy", "format": "ifTruthy", "date": "ifTruthy" } },
+            "credentialType": "wordpressApi",
+            "effect": "write",
+            "result": {},
+            "fidelity": "exact",
+            "caveats": ["Basic authentication: store the secret as JSON { \"user\": \"<username>\", \"password\": \"<application password>\" }, the n8n credential's username and password.", "The site is the person's answer to the report's site question; the credential is sent only to its host."],
+            "understood": ["operation", "resource", "authType", "title", "additionalFields"],
+            "review": [{ "param": "authType", "equals": "oAuth2", "reason": "WordPress.com OAuth2 (public-api.wordpress.com) is not mapped; the request goes to the site with basic authentication" }]
+          },
+          "update": {
+            "http": { "method": "POST", "site": { "path": "/wp-json/wp/v2/posts", "id": "postId" }, "body": { "title": "updateFields.title", "author": "updateFields.authorId", "content": "updateFields.content", "slug": "updateFields.slug", "password": "updateFields.password", "status": "updateFields.status", "comment_status": "updateFields.commentStatus", "ping_status": "updateFields.pingStatus", "sticky": "updateFields.sticky", "template": { "param": "updateFields.postTemplate.values.template", "default": "", "when": "updateFields.postTemplate" }, "categories": "updateFields.categories", "tags": "updateFields.tags", "format": "updateFields.format", "date": "updateFields.date" }, "coerce": { "title": "ifTruthy", "author": "ifTruthy", "content": "ifTruthy", "slug": "ifTruthy", "password": "ifTruthy", "status": "ifTruthy", "comment_status": "ifTruthy", "ping_status": "ifTruthy", "sticky": "ifTruthy", "categories": "ifTruthy", "tags": "ifTruthy", "format": "ifTruthy", "date": "ifTruthy" } },
+            "credentialType": "wordpressApi",
+            "effect": "write",
+            "result": {},
+            "fidelity": "exact",
+            "caveats": ["Basic authentication: store the secret as JSON { \"user\": \"<username>\", \"password\": \"<application password>\" }, the n8n credential's username and password.", "The site is the person's answer to the report's site question; the credential is sent only to its host."],
+            "understood": ["operation", "resource", "authType", "postId", "updateFields"],
+            "review": [{ "param": "authType", "equals": "oAuth2", "reason": "WordPress.com OAuth2 (public-api.wordpress.com) is not mapped; the request goes to the site with basic authentication" }]
+          },
+          "get": {
+            "http": { "method": "GET", "site": { "path": "/wp-json/wp/v2/posts", "id": "postId" }, "query": { "password": "options.password", "context": "options.context" }, "coerce": { "password": "ifTruthy", "context": "ifTruthy" } },
+            "credentialType": "wordpressApi",
+            "effect": "read",
+            "result": {},
+            "fidelity": "exact",
+            "caveats": ["Basic authentication: store the secret as JSON { \"user\": \"<username>\", \"password\": \"<application password>\" }, the n8n credential's username and password.", "The site is the person's answer to the report's site question; the credential is sent only to its host."],
+            "understood": ["operation", "resource", "authType", "postId", "options"],
+            "review": [{ "param": "authType", "equals": "oAuth2", "reason": "WordPress.com OAuth2 (public-api.wordpress.com) is not mapped; the request goes to the site with basic authentication" }]
+          }
+        },
+        "page": {
+          "create": {
+            "http": { "method": "POST", "site": { "path": "/wp-json/wp/v2/pages" }, "body": { "title": "title", "author": "additionalFields.authorId", "content": "additionalFields.content", "slug": "additionalFields.slug", "password": "additionalFields.password", "status": "additionalFields.status", "comment_status": "additionalFields.commentStatus", "ping_status": "additionalFields.pingStatus", "template": { "param": "additionalFields.pageTemplate.values.template", "default": "", "when": "additionalFields.pageTemplate" }, "menu_order": "additionalFields.menuOrder", "parent": "additionalFields.parent", "featured_media": "additionalFields.featuredMediaId" }, "coerce": { "author": "ifTruthy", "content": "ifTruthy", "slug": "ifTruthy", "password": "ifTruthy", "status": "ifTruthy", "comment_status": "ifTruthy", "ping_status": "ifTruthy", "menu_order": "ifTruthy", "parent": "ifTruthy", "featured_media": "ifTruthy" } },
+            "credentialType": "wordpressApi",
+            "effect": "write",
+            "result": {},
+            "fidelity": "exact",
+            "caveats": ["Basic authentication: store the secret as JSON { \"user\": \"<username>\", \"password\": \"<application password>\" }, the n8n credential's username and password.", "The site is the person's answer to the report's site question; the credential is sent only to its host."],
+            "understood": ["operation", "resource", "authType", "title", "additionalFields"],
+            "review": [{ "param": "authType", "equals": "oAuth2", "reason": "WordPress.com OAuth2 (public-api.wordpress.com) is not mapped; the request goes to the site with basic authentication" }]
+          },
+          "update": {
+            "http": { "method": "POST", "site": { "path": "/wp-json/wp/v2/pages", "id": "pageId" }, "body": { "title": "updateFields.title", "author": "updateFields.authorId", "content": "updateFields.content", "slug": "updateFields.slug", "password": "updateFields.password", "status": "updateFields.status", "comment_status": "updateFields.commentStatus", "ping_status": "updateFields.pingStatus", "template": { "param": "updateFields.pageTemplate.values.template", "default": "", "when": "updateFields.pageTemplate" }, "menu_order": "updateFields.menuOrder", "parent": "updateFields.parent", "featured_media": "updateFields.featuredMediaId" }, "coerce": { "title": "ifTruthy", "author": "ifTruthy", "content": "ifTruthy", "slug": "ifTruthy", "password": "ifTruthy", "status": "ifTruthy", "comment_status": "ifTruthy", "ping_status": "ifTruthy", "menu_order": "ifTruthy", "parent": "ifTruthy", "featured_media": "ifTruthy" } },
+            "credentialType": "wordpressApi",
+            "effect": "write",
+            "result": {},
+            "fidelity": "exact",
+            "caveats": ["Basic authentication: store the secret as JSON { \"user\": \"<username>\", \"password\": \"<application password>\" }, the n8n credential's username and password.", "The site is the person's answer to the report's site question; the credential is sent only to its host."],
+            "understood": ["operation", "resource", "authType", "pageId", "updateFields"],
+            "review": [{ "param": "authType", "equals": "oAuth2", "reason": "WordPress.com OAuth2 (public-api.wordpress.com) is not mapped; the request goes to the site with basic authentication" }]
+          },
+          "get": {
+            "http": { "method": "GET", "site": { "path": "/wp-json/wp/v2/pages", "id": "pageId" }, "query": { "password": "options.password", "context": "options.context" }, "coerce": { "password": "ifTruthy", "context": "ifTruthy" } },
+            "credentialType": "wordpressApi",
+            "effect": "read",
+            "result": {},
+            "fidelity": "exact",
+            "caveats": ["Basic authentication: store the secret as JSON { \"user\": \"<username>\", \"password\": \"<application password>\" }, the n8n credential's username and password.", "The site is the person's answer to the report's site question; the credential is sent only to its host."],
+            "understood": ["operation", "resource", "authType", "pageId", "options"],
+            "review": [{ "param": "authType", "equals": "oAuth2", "reason": "WordPress.com OAuth2 (public-api.wordpress.com) is not mapped; the request goes to the site with basic authentication" }]
           }
         }
       }

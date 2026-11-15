@@ -39,7 +39,7 @@
 // parsed as JSON when it is JSON, else kept as {text}.
 //
 // Coercion (step.tool.coerce): {field: "string" | "string[]" | "integer" | "number" |
-// "boolean" | "json"}, applied after the n8n expressions in the args are evaluated, so a
+// "boolean" | "json" | "ifTruthy"}, applied after the n8n expressions in the args are evaluated, so a
 // comma-separated n8n "To" field reaches a tool that wants a list of addresses as a list.
 // Fields that evaluate to undefined are dropped.
 //
@@ -269,6 +269,12 @@ export function coerceArgs(coerce, args) {
   for (const [k, v] of Object.entries(args)) {
     if (v === undefined) continue;
     const want = coerce?.[k];
+    // "ifTruthy": the field is sent only when its value is truthy, as a node that writes
+    // `if (additionalFields.x) body.x = additionalFields.x` sends it (WordPress).
+    if (want === "ifTruthy") {
+      if (v) out[k] = v;
+      continue;
+    }
     out[k] = want ? coerceValue(want, v) : v;
   }
   return out;

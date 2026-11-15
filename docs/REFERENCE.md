@@ -35,6 +35,7 @@ Schema: `SKILL/references/report.schema.json`. Per workflow:
 | `requires[].kind` | `connector`, `model`, `http`, `secret`, `db`, `vector`, `state`, `poll`, `relay`, `task-handoff`, `substitution`, `missing-export`, `frequency`, `bundled-server`, ... |
 | `blockers[].kind` | `input-incomplete`, `unsupported`, `unmapped`, `substitution`, `dropped-branch`, `not-an-automation`                                                                   |
 | `questions[]`     | `id`, `text`, `options`, `assumed`; answer with `--answers {"<id>": <answer>}`                                                                                         |
+| site question     | `<workflow id>/site/<credential name>`: the address of the person's own site for a credential that names one (WordPress `url`); requests go to it and the secret only to its host; unanswered, the step is blocked |
 
 ## Outcomes
 

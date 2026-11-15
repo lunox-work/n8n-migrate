@@ -1077,6 +1077,27 @@ function normalizeAnswer(raw, q) {
   return { ok: true, value: txt(raw).trim() };
 }
 
+// Credential types whose requests go to the person's own site (the base URL lives in the n8n
+// credential, which an export never carries). n8n-nodes-base 2.47.7: WordpressApi.credentials
+// `url`, GenericFunctions wordpressApiRequest `${credentials.url}/wp-json/wp/v2${resource}`.
+// One question per such credential: the site's address, as in the credential; the converter
+// builds the requests on it and sends the secret only to its host (convert.mjs siteBase()).
+export const SITE_CREDENTIALS = { wordpressApi: { field: "url", label: "WordPress", example: "https://example.com" } };
+function askSites(W, ctx) {
+  for (const c of W.credentials ?? []) {
+    const site = SITE_CREDENTIALS[c.type];
+    if (!site) continue;
+    ask(W, ctx, "site", c.name, {
+      text: `Which ${site.label} site does the credential "${c.name}" point to? Give its address as in the n8n credential (its URL field, for example ${site.example}). Requests and the credential go only to that site.`,
+      nodes: c.nodes.map((n) => `${W.prefix}${n}`),
+      affects: "allow.http",
+      answerType: "text",
+      options: { "<site address>": "the site the steps' requests and the credential go to" },
+      assumed: null,
+    });
+  }
+}
+
 // Effect questions and parsing that need the workflow (answers live there).
 function settleEffect(W, d, ctx) {
   if (d.effect !== undefined || d.status !== "mapped") return;
@@ -2154,6 +2175,7 @@ export function analyze(items, { nodes, capabilities, hosts = { model: [], read:
   }
   for (const W of Ws) resolveCalls(W, ctx);
   for (const W of Ws) askWrites(W, ctx);
+  for (const W of Ws) askSites(W, ctx);
   const all = [...Ws, ...ctx.pseudo];
   all.forEach(snapshotOwn);
   all.forEach((W) => propagate(W));

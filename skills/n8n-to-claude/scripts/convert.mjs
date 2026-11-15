@@ -253,6 +253,9 @@ function resolveSpec(spec, params, issues) {
     return `={{ $binary[${JSON.stringify(prop)}]?.${spec.field ?? "data"} }}`;
   }
   if (spec.param !== undefined) {
+    // when: the field exists only when that parameter is set (n8n's `if (additionalFields.x)`
+    // around a nested read with a default, e.g. WordPress's post template).
+    if (spec.when !== undefined && !getParam(params, spec.when)) return undefined;
     let v = unwrapParam(getParam(params, spec.param), spec.param, issues);
     if (v === undefined || v === "") v = spec.default;
     if (v === undefined) return undefined;
@@ -871,8 +874,21 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
     if (entry.http) {
       const h = entry.http;
       const urlIssues = [];
+      // A site request (h.site): the base URL is the person's answer to the analyzer's site
+      // question for this step's credential; without it the step cannot be built.
+      let siteUrl;
+      if (h.site) {
+        const credName = Object.entries(step.credentials ?? {}).find(([t]) => t === entry.credentialType)?.[1];
+        const base = credName !== undefined ? siteBase(report, credName) : null;
+        if (!base) {
+          const q = credName !== undefined ? siteQuestion(report, credName) : null;
+          block(step, "input-incomplete", `${q ? `the site the credential "${credName}" points to is not known yet: answer question ${q.id} (its address, as in the n8n credential)` : `the step names no ${entry.credentialType} credential, so its site is unknown`}, then regenerate`);
+          return;
+        }
+        siteUrl = siteRequestUrl(base, h.site, params, urlIssues);
+      }
       // A literal URL (it may hold the {{secret}} placeholder) or a spec.
-      const url = typeof h.url === "string" && /^https?:\/\//.test(h.url) ? h.url : resolveSpec(h.url, params, urlIssues);
+      const url = siteUrl ?? (typeof h.url === "string" && /^https?:\/\//.test(h.url) ? h.url : resolveSpec(h.url, params, urlIssues));
       const body = h.body ? resolveSpec(h.body, params, issues) : undefined;
       const query = h.query ? resolveSpec(h.query, params, issues) : undefined;
       step.kind = "http";
@@ -1654,6 +1670,38 @@ function summarizeSpec(name, p, v, subnodesTo, steps) {
   return { method, prompts, docs, outputKey: batched ? "output" : "response" };
 }
 
+// The answered site question for a credential (analyze.mjs askSites), normalized to an
+// origin plus path without a trailing "/" ("https://example.com/blog"), or null.
+function siteQuestion(report, credName) {
+  for (const w of report?.workflows ?? []) for (const q of w.questions ?? []) if (/\/site\//.test(q.id) && q.id.endsWith(`/site/${credName}`)) return q;
+  return null;
+}
+function siteBase(report, credName) {
+  const a = siteQuestion(report, credName)?.answer;
+  if (typeof a !== "string") return null;
+  let u;
+  try {
+    u = new URL(a.trim());
+  } catch {
+    return null;
+  }
+  if (!/^https?:$/.test(u.protocol) || u.search || u.hash || u.username || u.password) return null;
+  return `${u.protocol}//${u.host}${u.pathname.replace(/\/+$/, "")}`;
+}
+// h.site = {path, id?}: path after the site ("/wp-json/wp/v2/posts"); id names the parameter
+// whose value ends the path ("/posts/<id>"), literal or an expression after the literal URL.
+function siteRequestUrl(base, site, params, issues) {
+  const lit = `${base}${site.path}`;
+  if (!site.id) return lit;
+  const v = unwrapParam(getParam(params, site.id), site.id, issues);
+  if (v === undefined || v === "") {
+    issues.push(`parameter "${site.id}" is empty`);
+    return lit;
+  }
+  if (!isExpr(v)) return `${lit}/${encodeURIComponent(String(v))}`;
+  return `=${lit}/{{ encodeURIComponent(String(${toJs(v)} ?? "")) }}`;
+}
+
 function staticTarget(url) {
   if (typeof url !== "string") return null;
   const lit = url.startsWith("=") ? url : url.replace(/\{\{secret\}\}.*$/, "");
@@ -2270,7 +2318,12 @@ export function regenerate(folder, opts = {}) {
   if (!items.length) throw new Error(`${folder}/source.n8n.json holds no n8n workflow`);
   const prev = existsSync(join(folder, "definition.json")) ? readJson(join(folder, "definition.json")) : null;
   const force = opts.forceConvert ?? (prev ? !!prev.notes?.some((n) => n.startsWith("converted with --force-convert")) : false);
-  const [res] = convertItems(items.map((it) => ({ ...it, file: "source.n8n.json" })), { refs, answers: ov.answers ?? {}, approve: ov.approve ?? [], workflow: items[0].id, slug: basename(folder), forceConvert: force, now: opts.now });
+  // A folder holds one workflow, so every answer in its overrides.json is that workflow's.
+  // Question ids start with the workflow id of the conversion's report, which can differ from
+  // the stored workflow's own id (an export wrapped with another id, as a template site serves
+  // it): answers keyed by the first report's id keep applying after a regenerate.
+  const answers = Object.fromEntries(Object.entries(ov.answers ?? {}).map(([k, v]) => [k.includes("/") ? `${items[0].id}/${k.slice(k.indexOf("/") + 1)}` : k, v]));
+  const [res] = convertItems(items.map((it) => ({ ...it, file: "source.n8n.json" })), { refs, answers, approve: ov.approve ?? [], workflow: items[0].id, slug: basename(folder), forceConvert: force, now: opts.now });
   // The stored source is the source of truth: keep its bytes (and hash) as they are.
   res.source = text;
   if (res.definition) res.definition.source.sha256 = sha256(text);

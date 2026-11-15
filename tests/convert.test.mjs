@@ -449,3 +449,55 @@ test("an HTTP step whose credential the export stripped gets a secret named afte
   assert.deepEqual(def.steps.Repo.auth, { credentialType: "githubApi", secret: "githubApi (no credential named in the export)" });
   assert.deepEqual(def.secrets.find((s) => s.name === "githubApi (no credential named in the export)").hosts, ["api.github.com"]);
 });
+
+test("WordPress posts go to the site the person names at setup, with n8n's request body", async () => {
+  const flow = {
+    id: "wp01",
+    name: "WordPress post",
+    nodes: [
+      manual,
+      { parameters: { title: "={{ $json.t }}", additionalFields: { status: "draft", content: "={{ $json.c }}", sticky: false, authorId: 2, postTemplate: { values: {} } } }, name: "Post", type: "n8n-nodes-base.wordpress", typeVersion: 1, position: [200, 0], credentials: { wordpressApi: { id: "1", name: "My blog" } } },
+      { parameters: { operation: "update", postId: "={{ $json.id }}", updateFields: { status: "publish" } }, name: "Publish", type: "n8n-nodes-base.wordpress", typeVersion: 1, position: [400, 0], credentials: { wordpressApi: { id: "1", name: "My blog" } } },
+    ],
+    connections: { ...link("Start", "Post"), ...link("Post", "Publish") },
+    settings: { executionOrder: "v1" },
+  };
+  // Unanswered: blocked with the question named.
+  const unanswered = convertJson(flow).definition.steps.Post;
+  assert.equal(unanswered.kind, "blocked");
+  assert.match(unanswered.blocked.reason, /answer question wp01\/site\/My blog/);
+  // Answered: requests on that site, the secret only to its host.
+  const def = convertJson(flow, { answers: { "wp01/site/My blog": "https://blog.example.com/" } }).definition;
+  assert.equal(def.steps.Post.http.url, "https://blog.example.com/wp-json/wp/v2/posts");
+  assert.equal(def.steps.Publish.http.url, '=https://blog.example.com/wp-json/wp/v2/posts/{{ encodeURIComponent(String(($json.id) ?? "")) }}');
+  assert.deepEqual(def.secrets.find((s) => s.name === "My blog").hosts, ["blog.example.com"]);
+  const sent = [];
+  const r = await run(def, { clock: CLOCK, virtualTime: true, trigger: [{ t: "Hello", c: "" }], host: { http: async (q) => (sent.push(q), { status: 201, headers: { "content-type": "application/json" }, body: JSON.stringify({ id: 41, status: q.body.status ?? "draft" }) }) } });
+  assert.equal(r.status, "done", JSON.stringify(r.error));
+  // n8n sends title always and an additional field only when it is truthy; a template object present sends template "".
+  assert.deepEqual(sent[0].body, { title: "Hello", author: 2, status: "draft", template: "" });
+  assert.deepEqual([sent[1].method, sent[1].url, sent[1].body], ["POST", "https://blog.example.com/wp-json/wp/v2/posts/41", { status: "publish" }]);
+});
+
+test("answers keyed by the first report's workflow id still apply after a regenerate of a wrapped export", () => {
+  const inner = {
+    id: "innerId01",
+    name: "Wrapped WordPress",
+    nodes: [manual, { parameters: { title: "Hi", additionalFields: {} }, name: "Post", type: "n8n-nodes-base.wordpress", typeVersion: 1, position: [200, 0], credentials: { wordpressApi: { id: "1", name: "Blog" } } }],
+    connections: link("Start", "Post"),
+    settings: { executionOrder: "v1" },
+  };
+  const src = mkdtempSync(join(tmpdir(), "n2c-wrap-"));
+  const file = join(src, "wrapped.json");
+  writeFileSync(file, JSON.stringify({ workflow: { id: "outer9", name: "Wrapped WordPress", workflow: inner } }));
+  const { dir, results, folders } = toFolder(file);
+  const qid = results[0].report.workflows[0].questions.find((q) => /\/site\//.test(q.id)).id;
+  const ovPath = join(folders[0], "overrides.json");
+  writeFileSync(ovPath, JSON.stringify({ ...readJson(ovPath), answers: { [qid]: "https://blog.example.com" } }, null, 2) + "\n");
+  regenerate(folders[0], { refs, now: NOW });
+  regenerate(folders[0], { refs, now: NOW });
+  const def = readJson(join(folders[0], "definition.json"));
+  assert.equal(def.steps.Post.http.url, "https://blog.example.com/wp-json/wp/v2/posts");
+  rmSync(dir, { recursive: true, force: true });
+  rmSync(src, { recursive: true, force: true });
+});
