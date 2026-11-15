@@ -606,6 +606,16 @@ export function unsupportedResult(e) {
   return { status: "unsupported", error: { node: null, message: `the n8n image does not know credential type ${type} (a node it lacks, e.g. a community node), so the run cannot start` }, nodes: {}, effects: [] };
 }
 
+// PROPOSALS P67: n8n never served the form or a form page the fixture submits (run-workflow.mjs
+// `submitForm`): a failed baseline with that reason (status `form`), not a bench error or a wait
+// for the bench's timeout.
+export const FORM_RE = /^form (?:page )?not served: /;
+export function formResult(e) {
+  const msg = String(e.message);
+  const node = /\(([^)]+)\) after/.exec(msg)?.[1] ?? null;
+  return { status: "form", error: { node, message: msg.slice(0, 300) }, nodes: {}, effects: [] };
+}
+
 // Splits the mock log into service calls and model calls.
 export function splitLog(effects) {
   const service = [];
@@ -680,6 +690,7 @@ export async function runN8n(prep, { shim, modelSession, runWorkflow, copyIn, ti
     if (TIMEOUT_RE.test(String(e.message))) r = timeoutResult(e, timeoutS);
     else if (REFUSED_RE.test(String(e.message))) r = refusedResult(e);
     else if (UNKNOWN_CREDENTIAL_RE.test(String(e.message))) r = unsupportedResult(e);
+    else if (FORM_RE.test(String(e.message))) r = formResult(e);
     else throw e;
   }
   const calls = shim.session.calls.map((c) => ({ ...c, node: tagToNode[c.tag] ?? c.tag }));

@@ -326,6 +326,36 @@ export function reply(text, side) {
   return { side, service: r.service, action: r.action, effect: r.effect, target: "", fields: { text }, cmp: { text: "text" }, raw: { text } };
 }
 
+// PROPOSALS P70: a run with no effect and no reply (a manual workflow whose result stays in its
+// last nodes) is compared on what it computed: each terminal node's output items (n8n's
+// terminal nodes: the ones that ran with no connection to a node that ran), json only, keyed by node, so
+// the same node's items are paired. A pass compared this way is reported apart (`noEffect`
+// "result"), like a reply-only pass. `outputs` is the node's last run: a list of outputs, each
+// a list of item json.
+export function resultOf(node, outputs, side) {
+  const r = table().result;
+  return { side, service: r.service, action: r.action, effect: r.effect, target: String(node), fields: { items: outputs ?? null }, cmp: { items: "exact" }, raw: { node } };
+}
+export const isResult = (e) => e?.service === table().result.service && e?.action === table().result.action;
+
+// The last run's outputs of `node` as lists of item json, from n8n's summarised run data
+// ({items: {main: [[json]]}}) or the runtime's ({data: {main: [[{json}]]}}).
+export function lastOutputs(runs) {
+  const last = [].concat(runs ?? []).at(-1);
+  if (!last) return null;
+  if (last.items?.main) return last.items.main.map((o) => (Array.isArray(o) ? o : []));
+  return (last.data?.main ?? []).map((o) => (o ?? []).map((i) => i?.json ?? i));
+}
+
+// n8n's terminal nodes: enabled nodes that ran and whose connections (of any kind) lead to no
+// node that ran: the last executed node of each path (a model, memory or tool sub-node runs too,
+// but hands its output to its root node over an ai_* link; a node whose next node never ran,
+// e.g. after an empty output, is where that path ended).
+export function terminalNodes(wf, ran) {
+  const outs = (name) => Object.values(wf?.connections?.[name] ?? {}).some((byOutput) => (byOutput ?? []).some((list) => (list ?? []).some((c) => c?.node && ran(c.node))));
+  return (wf?.nodes ?? []).filter((n) => !n.disabled && ran(n.name) && !outs(n.name)).map((n) => n.name);
+}
+
 // A file on local disk after the run (PROPOSALS P44, effects.json `file`): {path, sha256, size},
 // the path already resolved as n8n resolves it (n8n-side.mjs containerPath), the bytes the
 // file holds at the end of the run. Keyed by path, so a write to another path never pairs.

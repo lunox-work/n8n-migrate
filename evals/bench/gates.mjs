@@ -103,20 +103,25 @@ export function gate4({ cmp, modelInputs = [], n8nStatus, judged = [] }) {
 }
 
 // PROPOSALS P50: what gate 4 compared on the normal fixture. `effects`: matched writes, media
-// calls and disk writes other than the chat or form reply; `reply`: the reply was compared;
+// calls and disk writes other than the chat or form reply and the P70 result; `reply`: the reply
+// was compared; `result`: terminal nodes whose output items were compared (P70, class "result");
 // `modelInputs`: replayed model requests checked against n8n's. `class`: null when an effect
 // was compared; "reply" (the workflow's only output is its answer, compared as text and value
 // type) or "model inputs" (no output compared, only what the model was asked): a pass that
 // compares no effect, counted, reported apart; "nothing": not a pass.
 export const REPLY_KEY = "chat.reply:";
+// PROPOSALS P70: the terminal nodes' output items of a run with no effect (compare.mjs resultOf).
+export const RESULT_PREFIX = "run.result:";
 export function comparedOf({ cmp, modelInputs = [] }) {
   const matched = cmp?.writes?.matched ?? [];
-  const effects = matched.filter((k) => k !== REPLY_KEY).length;
+  const effects = matched.filter((k) => k !== REPLY_KEY && !k.startsWith(RESULT_PREFIX)).length;
   const reply = matched.includes(REPLY_KEY);
+  const result = matched.filter((k) => k.startsWith(RESULT_PREFIX)).length;
   const inputs = modelInputs.filter((m) => m.input).length;
-  return { effects, reply, modelInputs: inputs, class: noEffectClass({ effects, reply, modelInputs: inputs }) };
+  return { effects, reply, ...(result ? { result } : {}), modelInputs: inputs, class: noEffectClass({ effects, reply, result, modelInputs: inputs }) };
 }
-export const noEffectClass = ({ effects, reply, modelInputs }) => (effects ? null : reply ? "reply" : modelInputs ? "model inputs" : "nothing");
+export const noEffectClass = ({ effects, reply, result = 0, modelInputs }) => (effects ? null : reply ? "reply" : result ? "result" : modelInputs ? "model inputs" : "nothing");
+export const NO_EFFECT_CLASSES = ["reply", "result", "model inputs"];
 
 // 5. Robust, per variant: n8n succeeding and Claude failing is a fail; both failing is equal;
 // n8n failing and Claude handling it is better; both succeeding needs the same writes.

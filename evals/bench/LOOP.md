@@ -446,3 +446,13 @@ Gate 3 (66; preflight unless marked):
 10. **Model step not converted**: 2 [2] — 2098 (OpenAI Assistants), 2395 (Question and Answer Chain).
 11. **Edit Image** (GraphicsMagick): 2420 (sole). **SMTP** Send Email: 1978 (sole; `n8nCannotRun`).
 12. **Baseline failed** (`fixture`): 1826 (`n8nFails`), 2271 (the stand-in draw omits a level of the structured-output wrapper), 2320 (`n8nCannotRun`); their Claude side passes gate 3 in process except 1826 (HTTP Request binary download unsupported).
+
+## R3e part A: bench P67–P70 (outside the loop)
+
+- Decided for the maintainer (PROPOSALS.md): P67, P68, P69 applied; P70 applied with the terminal set widened from n8n's `lastNode` to the last node of every path (parallel branches, and a sub-node that finishes last, would otherwise be compared wrongly or missed).
+- Re-measured only the templates the change touches (tags `r3e-a`, `r3e-a2`, `r3e-a3`; plain `convert.mjs` of commit b8fc19c, replayed models; 14 `claude -p` runs, ledger 717 → 731, all claude-driver gate-8 runs): the form templates (2878), the templates with an uncovered comparer key (2605, 1900), and every template whose n8n run makes no write and gives no reply (585, 890, 1747, 1962, 2473). `r3e-a2` and `r3e-a3` re-ran after the terminal set was corrected (`r3e-a` counted 2473's model sub-node as terminal).
+  - P67: 2878 3 → 3 (Claude side stops at preflight); the canned check now runs in about 4 s per variant instead of hanging.
+  - P68: **1900 4 → 9**; 2605 4 → 4, cause `bench defect: effects the comparer table does not cover` → `field map: different writes` (the Claude side makes none of n8n's Sheets writes).
+  - P70: **585 4 → 9**, **1747 4 → 9** (both `noEffect: result`); 890 4 → 5 (`malformed`: n8n reads the malformed CSV's first header as `der_id`, the runtime as `order_id`); 2473 9 → 9 (class `model inputs` → `result`); 1962 4 → 4 (fails earlier at its model input).
+  - P69: the first start removed 1 leftover `bench:` workflow.
+- **Baseline for loop round 3 iterations (`r3-base` + these rows): 21 of 100 pass, gate sum 440** (was 18, 424). Passes that compared no effect: 9 (reply 6: 2777, 2413, 6270, 2729, 2703, 2384; result 3: 585, 1747, 2473). Nothing compared: 0.

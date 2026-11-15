@@ -6,6 +6,9 @@
     "https://developers.google.com/gmail/api/guides/threads (a reply joins the thread by threadId, References/In-Reply-To and a matching Subject) and RFC 5322 3.6.3 (a reply goes to Reply-To, else From; reply-all adds To and Cc)",
     "https://developers.google.com/drive/api/reference/rest/v3/files (get with alt=media, list, create via /upload with uploadType multipart|resumable, update with addParents/removeParents, copy, delete)",
     "https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/append and spreadsheets.get",
+    "https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/batchUpdate and spreadsheets.values/batchUpdate (PROPOSALS P68)",
+    "https://developers.google.com/maps/documentation/places/web-service/text-search (POST places.googleapis.com/v1/places:searchText; searchNearby the same way; PROPOSALS P68)",
+    "https://platform.openai.com/docs/api-reference/edits (retired: POST /v1/edits, input + instruction -> text; PROPOSALS P68)",
     "https://developers.notion.com/reference (retrieve a database GET /v1/databases/{id}, query POST /v1/databases/{id}/query, create a page POST /v1/pages, update PATCH /v1/pages/{id}, append children PATCH /v1/blocks/{id}/children)",
     "https://api.slack.com/methods/chat.postMessage",
     "https://core.telegram.org/bots/api#sendmessage and #sendphoto",
@@ -416,6 +419,49 @@
       }
     },
     {
+      "service": "sheets",
+      "action": "batch_update",
+      "effect": "write",
+      "method": "POST",
+      "host": "sheets.googleapis.com",
+      "path": "^/v4/spreadsheets/(?<id>[^/:]+):batchUpdate$",
+      "target": "path.id",
+      "fields": {
+        "requests": {
+          "from": "body.requests",
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "service": "sheets",
+      "action": "batch_update_values",
+      "effect": "write",
+      "method": "POST",
+      "host": "sheets.googleapis.com",
+      "path": "^/v4/spreadsheets/(?<id>[^/]+)/values:batchUpdate$",
+      "target": "path.id",
+      "fields": {
+        "data": {
+          "from": "body.data",
+          "cmp": "exact"
+        },
+        "valueInputOption": {
+          "from": "body.valueInputOption",
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "service": "places",
+      "action": "search",
+      "effect": "read",
+      "method": "POST",
+      "host": "places.googleapis.com",
+      "path": "^/v1/places:(searchText|searchNearby)$",
+      "target": ""
+    },
+    {
       "service": "notion",
       "action": "fetch",
       "effect": "read",
@@ -665,6 +711,16 @@
           "cmp": "text"
         }
       }
+    },
+    {
+      "service": "openai",
+      "action": "edit",
+      "effect": "read",
+      "method": "POST",
+      "host": "api.openai.com",
+      "path": "^/v1/edits$",
+      "target": "",
+      "about": "PROPOSALS P68: the retired Edits endpoint (the legacy OpenAI node's text edit) is a model call: it returns text and changes nothing, so it is reported like a read, never a write; the Claude side answers the same step with a model step"
     },
     {
       "service": "openai",
@@ -1162,6 +1218,12 @@
     "about": "a chat or form workflow's answer to the person: the last node's item (chat: output, else text, else the item) on both sides; compared as text",
     "service": "chat",
     "action": "reply",
+    "effect": "write"
+  },
+  "result": {
+    "about": "PROPOSALS P70: a run with no write, media call, disk write or reply on n8n's side is compared on what it computed: the output items (json) of each of n8n's terminal nodes (ran, and no connection of any kind leads to a node that ran: the last node of each path; a model or tool sub-node never counts), keyed by node name, on both sides; compared exactly (run-time timestamps masked). Never an outgoing effect: not used for bait (gate 6). A pass compared only this way is reported apart (noEffect result)",
+    "service": "run",
+    "action": "result",
     "effect": "write"
   },
   "file": {

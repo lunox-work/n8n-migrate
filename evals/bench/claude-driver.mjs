@@ -197,7 +197,8 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   // P44: the files the run wrote (final bytes per path), from the run state's file requests.
   const files = state ? driverFiles((state.effects ?? []).filter((e) => state.resultLog?.[e.id]?.ok !== false), fx) : [];
   return {
-    run: state ? { status: state.status, output: state.result?.output ?? [], error: state.result?.error ?? null } : null,
+    // PROPOSALS P70: each node's last run outputs (item json), for a run compared on its result.
+    run: state ? { status: state.status, output: state.result?.output ?? [], error: state.result?.error ?? null, outputs: nodeOutputs(state.result?.runData) } : null,
     effects: [...effects.filter((e) => e.valid).map((e) => ({ t: e.t, connector: e.connector, tool: e.tool, args: e.args })), ...httpEffects, ...files.map((f) => ({ file: true, ...f }))],
     replayLog,
     httpModelCalls,
@@ -261,4 +262,12 @@ export function protocolSlip({ state, killedFor = null, resultOk = false, hookDe
     if (recordings.some((x) => x.node === key && x.index === index)) outstanding.push(`${q.id} (${key}#${index})`);
   }
   return outstanding.length ? { why: "the session ended while the run waited on a model answer n8n's recorded reply could give", outstanding } : null;
+}
+
+// PROPOSALS P70: {node: last run's main outputs as lists of item json} from the runner's run data.
+export function nodeOutputs(runData) {
+  if (!runData) return {};
+  const out = {};
+  for (const [node, runs] of Object.entries(runData)) out[node] = ([].concat(runs ?? []).at(-1)?.data?.main ?? []).map((o) => (o ?? []).map((i) => i?.json ?? i));
+  return out;
 }

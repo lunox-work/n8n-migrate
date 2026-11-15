@@ -1215,3 +1215,47 @@ test("P54: an unknown credential type is an unsupported baseline; node issues na
   const fx = { expect: { n8nFails: { node: "Facebook Graph API1", why: "x" } } };
   assert.equal(n8nFailsOf(fx, { n8nCheck: { status: "error", error: { node: null, message: "2 nodes have issues:\n- 'Facebook Graph API1': Parameter \"Node\" is required." } } }).confirmed, true);
 });
+
+test("P67: a form or form page n8n never serves is a failed baseline with that reason", async () => {
+  const { FORM_RE, formResult } = await import("../evals/bench/n8n-side.mjs");
+  const { BROWSER_UA } = await import("../evals/n8n/run-workflow.mjs");
+  assert.match(BROWSER_UA, /^Mozilla\/5\.0 .*Chrome\//);
+  const page = new Error("form page not served: page 2 (Pick a plan) after 60 s, execution running");
+  assert.equal(FORM_RE.test(page.message), true);
+  assert.deepEqual([formResult(page).status, formResult(page).error.node], ["form", "Pick a plan"]);
+  const refused = new Error("form not served: POST /form/abc answered HTTP 401");
+  assert.deepEqual([FORM_RE.test(refused.message), formResult(refused).error.node], [true, null]);
+  assert.equal(FORM_RE.test("execution 5 still running after 900s (stopped)"), false);
+});
+
+test("P68: Places search is a read, Sheets batchUpdate calls are writes by spreadsheet, the Edits endpoint is a model call", async () => {
+  const { fromHttp } = await import("../evals/bench/compare.mjs");
+  const g = (host, path, body) => fromHttp({ seq: 1, method: "POST", proxied: `https://${host}`, path, body, bodyEncoding: "json" }, "n8n");
+  const places = g("places.googleapis.com", "/v1/places:searchText", { textQuery: "Plumber 85003" });
+  assert.deepEqual([places.service, places.effect, !!places.unmapped], ["places", "read", false]);
+  const dim = g("sheets.googleapis.com", "/v4/spreadsheets/S1:batchUpdate", { requests: [{ appendDimension: { sheetId: "1", dimension: "ROWS", length: 1 } }] });
+  assert.deepEqual([dim.action, dim.effect, dim.target, dim.fields.requests[0].appendDimension.length], ["batch_update", "write", "S1", 1]);
+  const vals = g("sheets.googleapis.com", "/v4/spreadsheets/S1/values:batchUpdate", { data: [{ range: "A!B3", values: [["x"]] }], valueInputOption: "USER_ENTERED" });
+  assert.deepEqual([vals.action, vals.target, vals.fields.valueInputOption], ["batch_update_values", "S1", "USER_ENTERED"]);
+  const edit = g("api.openai.com", "/v1/edits", { model: "text-davinci-edit-001", input: "a", instruction: "b" });
+  assert.deepEqual([edit.service, edit.action, edit.effect], ["openai", "edit", "read"]);
+});
+
+test("P70: a run with no effect is compared on its terminal nodes' items, a pass reported apart as `result`", async () => {
+  const { resultOf, lastOutputs, terminalNodes, isResult } = await import("../evals/bench/compare.mjs");
+  const { comparedOf, noEffectClass } = await import("../evals/bench/gates.mjs");
+  const wf = { nodes: [{ name: "T" }, { name: "A" }, { name: "B" }, { name: "Off", disabled: true }, { name: "Model" }, { name: "Never" }], connections: { T: { main: [[{ node: "A" }, { node: "B" }]] }, A: { main: [[{ node: "Never" }]] }, Model: { ai_languageModel: [[{ node: "B" }]] } } };
+  assert.deepEqual(terminalNodes(wf, (n) => !["Off", "Never"].includes(n)), ["A", "B"], "a sub-node that ran is not terminal; a node whose next node never ran is");
+  // n8n's summarised run data and the runtime's run data give the same outputs.
+  assert.deepEqual(lastOutputs([{ items: { main: [[{ x: 1 }]] } }]), [[{ x: 1 }]]);
+  assert.deepEqual(lastOutputs([{ data: { main: [[{ json: { x: 1 }, pairedItem: { item: 0 } }]] } }]), [[{ x: 1 }]]);
+  const same = compare([resultOf("A", [[{ x: 1 }]], "n8n")], [resultOf("A", [[{ x: 1 }]], "claude")]);
+  assert.equal(isResult(resultOf("A", [], "n8n")), true);
+  const g = gate4({ cmp: same, n8nStatus: "success" });
+  assert.deepEqual([g.pass, g.detail.compared.class, g.detail.compared.result], [true, "result", 1]);
+  const differs = gate4({ cmp: compare([resultOf("A", [[{ x: 1 }]], "n8n")], [resultOf("A", [[{ x: 2 }]], "claude")]), n8nStatus: "success" });
+  assert.deepEqual([differs.pass, differs.cause], [false, "different fields"]);
+  // A reply wins over a result; a result over model inputs.
+  assert.deepEqual([noEffectClass({ effects: 0, reply: true, result: 1, modelInputs: 1 }), noEffectClass({ effects: 0, reply: false, result: 1, modelInputs: 1 })], ["reply", "result"]);
+  assert.equal(comparedOf({ cmp: compare([], []) }).class, "nothing");
+});

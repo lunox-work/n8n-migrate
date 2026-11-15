@@ -40,7 +40,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState } from "./n8n-side.mjs";
 import { convertPlain, convertSkill, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, withSynthetic, syntheticOutcome } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
-import { fromHttp, fromTool, fromFile, replyOf, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads } from "./compare.mjs";
+import { fromHttp, fromTool, fromFile, replyOf, resultOf, isResult, lastOutputs, terminalNodes, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads } from "./compare.mjs";
 import { n8nCheckVariants, n8nCheckKey, n8nCheckSummary, gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited, n8nFailsOf } from "./gates.mjs";
 import { BudgetExceeded, UsageLimit, ledger as claudeLedger, memoryGate } from "./claude.mjs";
 import { readSplits, devWithFixtures } from "./rounds.mjs";
@@ -98,8 +98,11 @@ let n8nEnv = null;
 async function n8n() {
   if (n8nEnv) return n8nEnv;
   const container = await import("../n8n/container.mjs");
-  const { runWorkflow } = await import("../n8n/run-workflow.mjs");
+  const { runWorkflow, cleanupBenchWorkflows } = await import("../n8n/run-workflow.mjs");
   await container.up({ extraEnv: benchEnv(), log });
+  // PROPOSALS P69: workflows an interrupted run left behind.
+  const removed = await cleanupBenchWorkflows();
+  if (removed) log(`removed ${removed} leftover bench workflow(s) from n8n (P69)`);
   const shim = await startShim({ port: container.MODEL_SHIM_PORT, log });
   n8nEnv = { container, runWorkflow, shim };
   return n8nEnv;
@@ -177,6 +180,8 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
     wallMs: res.wallMs,
     lastNode: res.lastNode,
     lastItems: res.nodes?.[res.lastNode]?.at(-1)?.items?.main?.[0] ?? [],
+    // PROPOSALS P70: the output items of every terminal node that ran (no main connection out).
+    terminal: Object.fromEntries(terminalNodes(prep.wf, (n) => res.nodes?.[n]?.length).map((n) => [n, lastOutputs(res.nodes[n])])),
     nodes: Object.fromEntries(Object.entries(res.nodes ?? {}).map(([k, v]) => [k, v.map((x) => ({ status: x.status, ...(x.error ? { error: x.error.slice(0, 300) } : {}), items: x.items?.main?.map((o) => o.length) }))])),
     // PROPOSALS P20: executions the run started (their requests are in `effects`).
     ...(res.children?.length ? { children: res.children.map((c) => ({ id: c.id, status: c.status, mode: c.mode, error: c.error ?? null, nodes: Object.fromEntries(Object.entries(c.nodes ?? {}).map(([k, v]) => [k, v.map((x) => ({ status: x.status, ...(x.error ? { error: x.error.slice(0, 300) } : {}) }))])) })) } : {}),
@@ -219,21 +224,32 @@ const byTag = (calls) => {
 
 // ---------- effects of each side ----------
 
-function n8nEffects(rec, fx) {
+// `result` (PROPOSALS P70, gates 4 and 5 only, never bait): when n8n's run made no write, media
+// call or disk write and gives no reply, its terminal nodes' output items are its effects.
+function n8nEffects(rec, fx, { result = false } = {}) {
   // PROPOSALS P46: n8n's resumable Drive upload (POST, PUT of the bytes, PATCH of the metadata)
   // is one create_file, as the connector's is.
   const list = [...foldResumableUploads(rec.effects).map((e) => fromHttp(e, "n8n")).filter(Boolean), ...(rec.files ?? []).filter((f) => !f.error).map((f) => fromFile(f, "n8n"))];
   if (["chat", "form"].includes(fx.trigger.kind)) list.push(replyOf(rec.lastItems?.map((j) => ({ json: j })), "n8n"));
+  else if (result && !list.some((e) => e.effect === "write" || e.effect === "media")) {
+    // A recording made before P70 has only the last node's first output.
+    const terminal = rec.terminal ?? (rec.lastNode ? { [rec.lastNode]: [rec.lastItems ?? []] } : {});
+    for (const [node, outputs] of Object.entries(terminal)) list.push(resultOf(node, outputs, "n8n"));
+  }
   return list;
 }
+
+// PROPOSALS P70: the Claude side's output items of the nodes n8n's result effects name.
+const claudeResults = (n8nList, outputsOf) => n8nList.filter(isResult).map((e) => resultOf(e.target, outputsOf(e.target), "claude"));
 
 // A Claude-side call as an effect; a connector call may name a message the fixture serves
 // (PROPOSALS P10: a reply tool call resolves its thread, recipients and subject from it).
 const claudeEffect = (e, fx) => (e.connector ? fromTool(e, "claude", refsOf(fx)) : e.file ? fromFile(e, "claude") : fromHttp(e, "claude"));
 
-function claudeEffects(run, fx) {
+function claudeEffects(run, fx, n8nList = []) {
   const list = [...run.seen.tools.filter((t) => !t.invalid).map((t) => fromTool(t, "claude", refsOf(fx))), ...run.seen.http.map((h) => fromHttp(h, "claude")).filter(Boolean), ...(run.files ?? []).map((f) => fromFile(f, "claude"))];
   if (["chat", "form"].includes(fx.trigger.kind) && run.res.status === "done") list.push(replyOf(run.res.output, "claude"));
+  list.push(...claudeResults(n8nList, (node) => lastOutputs(run.res.runData?.[node])));
   return list;
 }
 
@@ -376,7 +392,8 @@ async function benchTemplate(id, args, L) {
     if (recs.normal?.status !== "success") g[3] = { pass: false, bucket: "fixture", cause: `${fxN.expect?.n8nFails ? "n8n baseline fails on the template itself (expect.n8nFails, P54)" : "n8n baseline failed on the normal fixture"}: ${recs.normal?.error?.node ?? "?"}: ${recs.normal?.error?.message ?? recs.normal?.status}${recs.normal?.modelCallCap ? ` (${recs.normal.modelCallCap[0].message})` : ""}`, detail: { claudeSide: g[3] }, driver: "inprocess" };
     if (!g[3].pass) return out;
     const modelTexts = modelTextsOf(recs.normal?.modelCalls, answerOf);
-    const cmp = compare(n8nEffects(recs.normal, fxN), claudeEffects(N, fxN), { modelTexts, mode: args.modelMode, runTime: runTime(recs.normal) });
+    const n8nN = n8nEffects(recs.normal, fxN, { result: true });
+    const cmp = compare(n8nN, claudeEffects(N, fxN, n8nN), { modelTexts, mode: args.modelMode, runTime: runTime(recs.normal) });
     out.cmp = cmp;
     let judged = [];
     if (args.modelMode === "live" && cmp.judge.length) {
@@ -392,7 +409,8 @@ async function benchTemplate(id, args, L) {
       const run = await runV(v);
       const n8nOk = recs[v]?.status === "success";
       const claudeOk = run.res.status === "done";
-      const c = n8nOk && claudeOk ? compare(n8nEffects(recs[v], fx), claudeEffects(run, fx), { modelTexts: modelTextsOf(recs[v]?.modelCalls, answerOf), mode: args.modelMode, runTime: runTime(recs[v]) }) : null;
+      const n8nV = n8nOk ? n8nEffects(recs[v], fx, { result: true }) : [];
+      const c = n8nOk && claudeOk ? compare(n8nV, claudeEffects(run, fx, n8nV), { modelTexts: modelTextsOf(recs[v]?.modelCalls, answerOf), mode: args.modelMode, runTime: runTime(recs[v]) }) : null;
       vr[v] = { n8nOk, claudeOk, relation: robustness(n8nOk, claudeOk, c), claudeRun: { status: run.res.status, error: run.res.error }, n8nError: recs[v]?.error ?? null, ...(recs[v]?.status === FIXTURE_ERROR ? { fixtureError: recs[v].error.message } : {}), ...(c && !c.ok ? { writes: c.writes } : {}) };
     }
     g[5] = { ...gate5(vr), driver: "inprocess" };
@@ -487,7 +505,8 @@ async function benchTemplate(id, args, L) {
     drivers.claude = { normal: cn.summary, hostile: ch.summary, ...(Object.keys(slips).length ? { slips } : {}) };
     metrics.claudeDriver = cn.metrics;
     if (!cn.summary?.notRun) {
-    const cNormal = cn.run && compare(n8nEffects(recs.normal, fxN), cn.effects.map((e) => claudeEffect(e, fxN)).filter(Boolean).concat(["chat", "form"].includes(fxN.trigger.kind) && cn.run.status === "done" ? [replyOf(cn.run.output, "claude")] : []), { modelTexts: modelTextsOf(recs.normal?.modelCalls, answerOf), mode: args.modelMode, runTime: runTime(recs.normal) });
+    const n8nCN = n8nEffects(recs.normal, fxN, { result: true });
+    const cNormal = cn.run && compare(n8nCN, cn.effects.map((e) => claudeEffect(e, fxN)).filter(Boolean).concat(["chat", "form"].includes(fxN.trigger.kind) && cn.run.status === "done" ? [replyOf(cn.run.output, "claude")] : [], claudeResults(n8nCN, (node) => cn.run.outputs?.[node] ?? null)), { modelTexts: modelTextsOf(recs.normal?.modelCalls, answerOf), mode: args.modelMode, runTime: runTime(recs.normal) });
     const g3c = cn.run?.status === "done" ? { pass: true } : { ...runFailureCause({ error: cn.run?.error ?? { message: cn.summary?.problem ?? "no run" } }) };
     if (!g3c.pass) gates[3] = { ...g3c, driver: "claude", inprocess: gates[3] };
     else {
@@ -624,7 +643,7 @@ async function main() {
           }
         })(),
         // PROPOSALS P50: what gate 4 compared (comparedOf); `noEffect` names a pass that
-        // compared no effect ("reply" or "model inputs"), reported apart by summary.mjs.
+        // compared no effect ("reply", "result" (P70) or "model inputs"), reported apart by summary.mjs.
         compared: r.gates?.[4]?.detail?.compared ?? (r.gates?.[4]?.bucket === "bench defect" && /^nothing compared/.test(r.gates[4].cause ?? "") ? r.gates[4].detail : null),
         noEffect: g === 9 ? r.gates?.[4]?.detail?.compared?.class ?? null : null,
         detail: failed?.detail ?? null,

@@ -27,7 +27,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readSplits, roundOf, devWithFixtures, overfittingBound } from "./rounds.mjs";
-import { slipStats, flipsBetween, noEffectClass } from "./gates.mjs";
+import { slipStats, flipsBetween, noEffectClass, NO_EFFECT_CLASSES } from "./gates.mjs";
 import { fromHttp, fromFile, foldResumableUploads } from "./compare.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -92,7 +92,7 @@ function comparedClassOf(r, { recordings = join(HERE, "recordings") } = {}) {
   return noEffectClass({ effects: writes, reply, modelInputs: (rec.modelCalls ?? []).length });
 }
 const counts = (r) => r.passedAll && comparedClassOf(r) !== "nothing";
-const noEffectOf = (rows) => rows.filter((r) => ["reply", "model inputs"].includes(comparedClassOf(r))).map((r) => ({ template: r.template, compared: comparedClassOf(r) }));
+const noEffectOf = (rows) => rows.filter((r) => NO_EFFECT_CLASSES.includes(comparedClassOf(r))).map((r) => ({ template: r.template, compared: comparedClassOf(r) }));
 const nothingOf = (rows) => rows.filter((r) => comparedClassOf(r) === "nothing").map((r) => r.template);
 
 if (args.includes("--release")) {
@@ -171,7 +171,7 @@ const out = {
   outcomeSharesTop100: shares,
   coverageTop100: corpus.coverageTop100,
   oneShot: { passed: passed.length, of: mine.length, share: share(passed.length, mine.length) },
-  passNoEffectCompared: { templates: noEffectOf(mine), note: "counted in one-shot success: the workflow's only compared output is its reply, or only the replayed model inputs were compared (PROPOSALS P50)" },
+  passNoEffectCompared: { templates: noEffectOf(mine), note: "counted in one-shot success: the workflow's only compared output is its reply or its terminal nodes' items (P70), or only the replayed model inputs were compared (PROPOSALS P50)" },
   passNothingCompared: { templates: nothingOf(mine), note: "not counted: passed every gate with no effect, reply or model input compared (rows from before P50, classed from the recording; from P50 on gate 4 fails them)" },
   oneShotExcludingConnectorLimited: { passed: passed.length, of: rest.length, share: share(passed.length, rest.length), connectorLimited: limited.map((r) => r.template), note: "connector-limited: the failure traces to a fixture connectorGaps field; the real connector shapes behind those gaps are unverified (shape: assumed)" },
   oneShotExcludingN8nCannotRun: { passed: passed.length, of: runnable.length, share: share(passed.length, runnable.length), n8nCannotRun: cannotRun.map((r) => ({ template: r.template, why: cannotRunOf(r) })), note: "the fixture's expect.n8nCannotRun: the bench's n8n image cannot run the template's main path, so its baseline stops early" },
@@ -229,5 +229,5 @@ else {
   if (out.flipsAgainst) console.log(`verdict flips against ${out.flipsAgainst.tag}: ${out.flipsAgainst.flips.length}${out.flipsAgainst.flips.length ? " (" + out.flipsAgainst.flips.map((f) => `${f.template}: ${f.from} -> ${f.to}${f.slip ? " [slip]" : ""}`).join("; ") + ")" : ""}`);
   if (refusal) console.log(`refusal accuracy (labels.json vs analyzer): outcome+target ${refusal.outcomeAndTarget}/${refusal.templates}, blockers ${refusal.blockers}/${refusal.templates}, questions ${refusal.questions}/${refusal.templates}, everything ${refusal.all}/${refusal.templates}`);
   console.log("\ntemplate  gate  convert  bucket: cause [CL = connector-limited, NR = n8n cannot run, NF = n8n fails on the template itself, TC = time compression, NE = pass, no effect compared, N0 = pass, nothing compared (not counted)]  | bench s, n8n ms, claude-driver s/$/turns, claude -p runs/$");
-  for (const p of out.perTemplate) console.log(`${String(p.template).padEnd(9)} ${String(p.reached === 9 ? "all" : p.reached).padEnd(5)} ${p.convert.padEnd(8)} ${p.connectorLimited ? "CL " : ""}${p.n8nCannotRun ? "NR " : ""}${p.n8nFails ? "NF " : ""}${p.nonPlaceholder.includes("time-compression") ? "TC " : ""}${["reply", "model inputs"].includes(p.compared) ? `NE (${p.compared}) ` : p.compared === "nothing" ? "N0 " : ""}${p.bucket ?? "-"}: ${(p.cause ?? "").slice(0, 90)} | ${p.benchWallS}, ${p.n8nExecMs ?? "-"}, ${p.claudeDriverS ?? "-"}/${p.claudeDriverUsd ?? "-"}/${p.claudeDriverTurns ?? "-"}, ${p.claudeRuns}/${p.claudeUsd}`);
+  for (const p of out.perTemplate) console.log(`${String(p.template).padEnd(9)} ${String(p.reached === 9 ? "all" : p.reached).padEnd(5)} ${p.convert.padEnd(8)} ${p.connectorLimited ? "CL " : ""}${p.n8nCannotRun ? "NR " : ""}${p.n8nFails ? "NF " : ""}${p.nonPlaceholder.includes("time-compression") ? "TC " : ""}${NO_EFFECT_CLASSES.includes(p.compared) ? `NE (${p.compared}) ` : p.compared === "nothing" ? "N0 " : ""}${p.bucket ?? "-"}: ${(p.cause ?? "").slice(0, 90)} | ${p.benchWallS}, ${p.n8nExecMs ?? "-"}, ${p.claudeDriverS ?? "-"}/${p.claudeDriverUsd ?? "-"}/${p.claudeDriverTurns ?? "-"}, ${p.claudeRuns}/${p.claudeUsd}`);
 }

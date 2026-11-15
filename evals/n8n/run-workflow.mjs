@@ -203,6 +203,26 @@ async function stopRunning() {
   for (const e of list.results ?? []) await rest("POST", `/executions/${e.id}/stop`, {}).catch(() => {});
 }
 
+// PROPOSALS P69: a killed bench process never reaches runWorkflow's `finally`, so its workflow
+// stays in n8n (active, for a form, webhook or self-calling run) and can fire during later runs,
+// its requests landing in their mock logs. At start the bench removes every workflow named
+// `bench: …` (deactivated, archived, deleted) and stops running executions. Returns how many.
+export async function cleanupBenchWorkflows() {
+  const seen = new Map();
+  for (const archived of [false, true]) {
+    const q = `filter=${encodeURIComponent(JSON.stringify({ name: "bench: " }))}&take=500${archived ? "&showArchived=true" : ""}`;
+    const list = await rest("GET", `/workflows?${q}`).catch(() => []);
+    for (const w of Array.isArray(list) ? list : list?.data ?? []) if (String(w.name ?? "").startsWith("bench: ")) seen.set(w.id, w);
+  }
+  for (const w of seen.values()) {
+    if (w.active) await rest("POST", `/workflows/${w.id}/deactivate`, {}).catch(() => {});
+    if (!w.isArchived) await rest("POST", `/workflows/${w.id}/archive`, {}).catch(() => {});
+    await rest("DELETE", `/workflows/${w.id}`).catch(() => {});
+  }
+  await stopRunning().catch(() => {});
+  return seen.size;
+}
+
 // Streams `docker stats` while a run is in flight; returns the peak MiB.
 export function statsSampler() {
   let peak = 0;
@@ -395,13 +415,22 @@ export function formPageBody(node, fields) {
 // The execution id in n8n's form-waiting URL (<base>/form-waiting/<id>?signature=...).
 export const waitingExecutionId = (url) => /\/form-waiting\/([^/?#]+)/.exec(String(url ?? ""))?.[1] ?? null;
 
+// PROPOSALS P67: a form is submitted as a browser submits it. n8n's Form Trigger with
+// `ignoreBots` answers 401 to a user agent `isbot` matches (Node's fetch sends one), and the run
+// never starts. Each form page is awaited at most FORM_PAGE_WAIT_S; a form or a page n8n never
+// serves fails the run with a named reason ("form not served", "form page not served") instead
+// of waiting out the bench's timeout.
+export const BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
+export const FORM_PAGE_WAIT_S = Number(process.env.N2C_BENCH_FORM_PAGE_WAIT_S || 60);
+const browserHeaders = { "user-agent": BROWSER_UA, accept: "text/html,application/json;q=0.9,*/*;q=0.8" };
+
 async function submitForm(t, item, timeoutS, { pages = [], wf = null } = {}) {
   // Form Trigger v2.2 keeps a custom path in options.path (earlier versions in path).
   const path = t.parameters?.path || t.parameters?.options?.path || t.webhookId;
   const t0 = Date.now();
   let first;
   for (;;) {
-    const r = await fetch(`${BASE}/form/${path}`, { method: "POST", body: formBody(t, item), signal: AbortSignal.timeout(timeoutS * 1000) });
+    const r = await fetch(`${BASE}/form/${path}`, { method: "POST", headers: browserHeaders, body: formBody(t, item), signal: AbortSignal.timeout(timeoutS * 1000) });
     const text = await r.text();
     // Activation registers the form asynchronously; until then n8n answers 404.
     if (r.status === 404) {
@@ -412,6 +441,7 @@ async function submitForm(t, item, timeoutS, { pages = [], wf = null } = {}) {
     first = { status: r.status, headers: Object.fromEntries(r.headers), body: text.slice(0, 4000) };
     break;
   }
+  if (first.status >= 400) throw new Error(`form not served: POST /form/${path} answered HTTP ${first.status} ${first.body.slice(0, 200)}`.trim());
   // A trigger followed by Form nodes answers {formWaitingUrl} (n8n's formPage response mode);
   // the browser then waits until the execution waits for a form and submits each page there.
   let waitingUrl = null;
@@ -428,9 +458,15 @@ async function submitForm(t, item, timeoutS, { pages = [], wf = null } = {}) {
     const u = new URL(waitingUrl);
     const statusUrl = `${u.origin}${u.pathname.replace(/\/$/, "")}/n8n-execution-status${u.search}`;
     let status = "";
-    for (const t1 = Date.now(); Date.now() - t1 < timeoutS * 1000; await sleep(250)) {
-      status = await fetch(statusUrl).then((x) => x.text()).catch((e) => `error: ${e.message}`);
+    const waitS = Math.min(timeoutS, FORM_PAGE_WAIT_S);
+    for (const t1 = Date.now(); Date.now() - t1 < waitS * 1000; await sleep(250)) {
+      status = await fetch(statusUrl, { headers: browserHeaders }).then((x) => x.text()).catch((e) => `error: ${e.message}`);
       if (status === "form-waiting" || ["success", "error", "canceled", "crashed"].includes(status)) break;
+    }
+    // The execution still runs (or waits on something else) and never asks for this page.
+    if (status !== "form-waiting" && !["success", "error", "canceled", "crashed"].includes(status)) {
+      if (executionId) await rest("POST", `/executions/${executionId}/stop`, {}).catch(() => {});
+      throw new Error(`form page not served: page ${k + 1}${page.node ? ` (${page.node})` : ""} after ${waitS} s, execution ${status || "not waiting"}`);
     }
     if (status !== "form-waiting") {
       submitted.push({ page: k, node: page.node ?? null, skipped: `execution ${status || "not waiting"}` });
@@ -438,7 +474,7 @@ async function submitForm(t, item, timeoutS, { pages = [], wf = null } = {}) {
       continue;
     }
     const node = page.node ? wf?.nodes?.find((n) => n.name === page.node) : null;
-    const r = await fetch(waitingUrl, { method: "POST", body: formPageBody(node, page.fields), signal: AbortSignal.timeout(timeoutS * 1000) });
+    const r = await fetch(waitingUrl, { method: "POST", headers: browserHeaders, body: formPageBody(node, page.fields), signal: AbortSignal.timeout(timeoutS * 1000) });
     const text = await r.text();
     submitted.push({ page: k, node: page.node ?? null, status: r.status });
     try {
