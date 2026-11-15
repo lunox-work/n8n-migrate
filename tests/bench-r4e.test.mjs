@@ -20,3 +20,12 @@ test("P83: an OOM-killed n8n run is a failed baseline with status oom, never a b
   await assert.rejects(runN8n(prep, { shim, modelSession: {}, runWorkflow: crash, copyIn() {} }), /fetch failed/);
   assert.equal(oomResult(new Error("x")).status, "oom");
 });
+
+test("P85: a route URL without a path answers a request for /, on the mock, the in-process host and the driver's host mock alike", async () => {
+  const { pickRoute } = await import("../evals/n8n/mock-server.mjs");
+  const R = [{ method: "GET", url: "https://site.example", status: 200, body: "home" }];
+  const sp = new URLSearchParams("");
+  assert.equal(pickRoute(R, "GET", "https://site.example", "/", sp, new Map())?.f.body, "home");
+  assert.equal(pickRoute(R, "GET", "https://site.example", "/other", sp, new Map()), null);
+  assert.equal(pickRoute(R, "GET", null, "/", sp, new Map())?.f.body, "home", "a request to the mock directly matched by path, as before");
+});

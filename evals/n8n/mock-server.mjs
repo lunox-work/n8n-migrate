@@ -244,7 +244,9 @@ export function pickRoute(routes, method, origin, path, searchParams, counters, 
     // `any` (PROPOSALS P19): the response answers every path on its origin (a page tool or an
     // image fetch whose URL the model writes). Only for requests that name an origin.
     if (r.any) hit = !!origin && safeDecode(origin).toLowerCase() === new URL(r.url).origin.toLowerCase();
-    else hit = origin ? routeRegex(r.url).test(full) : routeRegex(u ? u[1] || "/" : r.url).test(bare);
+    // PROPOSALS P85: a route URL with no path (`https://host`) is the origin's `/`, as every
+    // client requests it (new URL(...).pathname).
+    else hit = origin ? routeRegex(u && !u[1] ? `${r.url}/` : r.url).test(full) : routeRegex(u ? u[1] || "/" : r.url).test(bare);
     if (!hit) continue;
     const q = r.query ?? {};
     if (!Object.entries(q).every(([k, v]) => searchParams.get(k) === String(v))) continue;

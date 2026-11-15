@@ -592,6 +592,7 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Evidence.** Release point 3, one held-out template: its first read is listed at `https://<host>` (no trailing slash); n8n requests `https://<host>/`, the mock logs it `read-default` (`logVsFixture.unanswered`) and the route as unused, so every variant's canned check fails at that first read. The template stops at preflight on its own blocker, so no verdict moved. `validate.mjs` passes the route. Template id in RELEASE-3.md.
 - **Proposed change.** Routes compare the parsed pathname (`new URL(url).pathname`, which is `/` for a bare origin) on the mock, the in-process host and the claude driver's host mock alike, or `validate.mjs` warns on a route URL with an empty path.
 - **Why not in the loop.** It changes route matching or the validator.
+- **Status: applied** (R4e, 2026-11-16). `mock-server.mjs` `pickRoute()` matches a route URL with no path as the origin's `/` (the parsed pathname); the in-process host and the claude driver's host mock use the same function. Dev fixtures with such routes: 2324 and 2648. Test: `tests/bench-r4e.test.mjs`.
 
 ## P86. An LLM API URL written as an expression with nothing to evaluate cannot be listed as a model
 
