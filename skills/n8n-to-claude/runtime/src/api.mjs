@@ -106,7 +106,7 @@ export function preflight(definition, { availableTools, sourceText, pinned, surf
     if (s.kind === "blocked") err(`$.steps.${name}`, `blocked: ${s.blocked?.reason ?? "no reason given"}`, { step: name });
     else if (!nodeImplFor(s)) err(`$.steps.${name}`, `not implemented: ${s.n8n.type} v${s.n8n.typeVersion ?? 1} (kind ${s.kind})`, { step: name });
     if (s.kind === "model" && !s.model && canDeriveRequest(s) && !(definition.subnodes ?? []).some((x) => x.to === name && x.type === "ai_languageModel")) err(`$.steps.${name}`, "model step without a connected chat model", { step: name });
-    else if (s.kind === "model" && !canDeriveRequest(s) && s.model?.prompt === undefined && !s.model?.messages) err(`$.steps.${name}`, "model step without model.prompt (not converted yet)", { step: name });
+    else if (s.kind === "model" && !canDeriveRequest(s) && s.model?.prompt === undefined && !s.model?.messages && !s.model?.summarize) err(`$.steps.${name}`, "model step without model.prompt (not converted yet)", { step: name });
     if (s.kind === "agent" && !s.agent && !canDeriveRequest(s)) err(`$.steps.${name}`, "agent step without agent.prompt (not converted yet)", { step: name });
     if (s.kind === "tool" && (!s.tool?.connector || !s.tool?.name)) err(`$.steps.${name}`, "tool step without tool.connector and tool.name (not converted yet)", { step: name });
     else if (s.kind === "tool") {

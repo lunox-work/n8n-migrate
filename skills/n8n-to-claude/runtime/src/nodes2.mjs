@@ -16,6 +16,7 @@ import { adaptResult, coerceArgs, applyCursorArg, advanceCursor, getAt } from ".
 import { resolveParameter, compileCode } from "./expression.mjs";
 import { createLookup } from "./proxy.mjs";
 import { binaryFromTool } from "./files.mjs";
+import { summarizeItem } from "./summarize.mjs";
 
 const BASE = "n8n-nodes-base.";
 const inRange = (lo, hi) => (v) => v >= lo && v <= hi;
@@ -1309,6 +1310,7 @@ const modelStep = {
   async execute(exec) {
     const items = exec.getInputData();
     let m = exec.step.model;
+    if (m?.summarize) return summarizeItems(exec, items, m.summarize);
     let derived = false;
     if (!m) {
       if (!canDeriveRequest(exec.step)) throw unsupported(exec, "A model step without model.prompt");
@@ -1386,6 +1388,32 @@ const modelStep = {
     ];
   },
 };
+
+// The Summarization Chain v2 (summarize.mjs): items one after another, each call of the chain
+// one model request (the prompt as the user's message).
+async function summarizeItems(exec, items, spec) {
+  const out = [];
+  for (let i = 0; i < items.length; i++) {
+    try {
+      const result = await summarizeItem(spec, items[i], {
+        evaluate: (raw) => exec.evaluate(raw, i),
+        call: async (prompt) => {
+          const [r] = await exec.request([{ kind: "model", itemIndex: i, prompt }]);
+          if (!r.ok) throw err(exec, r.error?.message ?? "model call failed", { itemIndex: i });
+          return typeof r.value === "string" ? r.value : JSON.stringify(r.value);
+        },
+        refuse: (what) => unsupported(exec, `The Summarization Chain's ${what}`),
+      });
+      out.push({ json: { [spec.outputKey ?? "response"]: result }, pairedItem: { item: i } });
+    } catch (e) {
+      if (["Suspend", "ContainmentViolation", "BadInput"].includes(e?.name) || e instanceof UnsupportedNode) throw e;
+      const ne = e instanceof NodeError ? e : err(exec, e?.message ?? String(e), { itemIndex: i });
+      if (!exec.continueOnFail()) throw ne;
+      out.push({ json: { error: ne.message }, pairedItem: { item: i } });
+    }
+  }
+  return [out];
+}
 
 function failedItem(exec, r, i, what) {
   const e = err(exec, r.error?.message ?? `${what} call failed`, { itemIndex: i });

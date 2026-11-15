@@ -165,6 +165,27 @@
               "trim": { "type": "boolean" },
               "parseJson": { "type": "boolean", "description": "The reply is read as JSON when it is valid JSON and kept as text otherwise (n8n's OpenAI node with JSON output: JSON.parse inside a try)." },
               "passInput": { "type": "boolean", "description": "Merge the shaped result into the input item (Sentiment Analysis)." },
+              "summarize": {
+                "type": "object",
+                "required": ["method", "docs", "outputKey"],
+                "additionalProperties": false,
+                "description": "The Summarization Chain v2 as n8n runs it (runtime/src/summarize.mjs): its documents from the item's JSON or a JSON data loader, split by the text splitter, then one call (stuff, map-reduce within the chain's limit) or one per document (refine). Each call sends only the formatted prompt.",
+                "properties": {
+                  "method": { "enum": ["map_reduce", "stuff", "refine"] },
+                  "prompts": { "type": "object", "additionalProperties": false, "properties": { "prompt": { "type": "string" }, "combineMapPrompt": { "type": "string" }, "refinePrompt": { "type": "string" }, "refineQuestionPrompt": { "type": "string" } } },
+                  "docs": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "jsonMode": { "enum": ["allInputData", "expressionData"] },
+                      "jsonData": {},
+                      "pointers": { "type": "string" },
+                      "splitter": { "type": ["object", "null"] }
+                    }
+                  },
+                  "outputKey": { "enum": ["response", "output"] }
+                }
+              },
               "route": {
                 "type": "object",
                 "required": ["mode", "outputs"],

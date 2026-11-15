@@ -538,3 +538,10 @@ Gate 3 (66): the same templates and kinds as `r3-base` (R3d list above): request
 - Bench `r3f-i24` (2 `claude -p` runs, ledger 798 → 800, claude-driver gate 8): **2614 4 → 9** (all passed: both uploads equal n8n's in process; under the claude driver the session now reads the screenshot from `.n2c/images/` with the Read tool, answers the transcription step, and the run finishes with its 3 writes); 2722 4 → 4, same cause. **24 of 100, gate sum 455** (was 23, 450).
 - `convert-coverage --split dev`: unchanged (definitions unchanged). `node --test` 393 pass, lint ok.
 - Verdict: accepted (+1 pass with 0 flips, no gate fell, no pass lost).
+
+## Iteration 25 re-measured: the Summarization Chain v2 as n8n runs it (accepted)
+
+- Same bucket, hypothesis and change as iteration 25 (field map, gate 4: n8n 2.47.7's Summarization Chain v2 path ported for the cases it can reproduce exactly; `convert.mjs` `summarizeSpec()`, `runtime/src/summarize.mjs`, `nodes2.mjs` `summarizeItems()`, schema `model.summarize`), re-applied from the kept patch after P74. Affected dev templates (definitions changed): 2860, 1962, 1951.
+- Bench `r3f-i25` (0 `claude -p` runs: the recordings of 2860's other variants were made in `r3-i25`, and its claude driver is `notRun`): **2860 4 → 8** (gates 3–7 pass in process, its summarization request equal to n8n's; gate 8 fails `bench defect: no claude-driver measurement for this template: form submissions reach the task through ArtifactData, which the bench cannot stand in for`, P74); 1962 4 → 4 (binary PDF loader, unchanged path); 1951 3 → 3 (HTML extraction). **24 of 100, gate sum 459** (was 24, 455).
+- `convert-coverage --split dev`: full 15, review 30, blocked 55, preflight clean 38 (unchanged); `--compare`: no regression. `node --test` 399 pass, lint ok.
+- Verdict: accepted (gate sum +4, no gate fell, no pass lost, 0 flips).

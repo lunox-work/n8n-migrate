@@ -1573,8 +1573,14 @@ function convertModel(name, step, { params, type, v, review, translate, subnodes
       passInput: true,
       route: { mode: "value", field: "sentiment", outputs: cats },
     };
+  } else if (type === LC + "chainSummarization" && summarizeSpec(name, p, v, subnodesTo, steps)) {
+    const spec = summarizeSpec(name, p, v, subnodesTo, steps);
+    model = { summarize: spec };
+    if (spec.method === "map_reduce") reasons.push("n8n summarises text over the chain's 3000-token limit chunk by chunk, counting tokens with the model's tokenizer; the runtime runs the single call and refuses text over 3000 bytes at run time");
   } else if (type === LC + "chainSummarization") {
-    model = { prompt: '=Write a concise summary of the following:\n\n"{{ JSON.stringify($json) }}"\n\nCONCISE SUMMARY:', outputTemplate: v >= 2 ? { output: { text: "$output" } } : { response: { text: "$output" } } };
+    // v2.1 with batches (n8n's default batch size 5) answers {output}, v2 and unbatched {response}.
+    const batched = v >= 2.1 && (p.options?.batching?.batchSize ?? 5) > 1;
+    model = { prompt: '=Write a concise summary of the following:\n\n"{{ JSON.stringify($json) }}"\n\nCONCISE SUMMARY:', outputTemplate: batched ? { output: { text: "$output" } } : { response: { text: "$output" } } };
     translate(step, "node", clone(p), "the summarisation chain splits long input into chunks (map-reduce) and has its own prompts; the model step summarises in one call with n8n's default prompt");
   } else {
     translate(step, "node", { type, typeVersion: v }, `${shortType(type)} has no model mapping yet`);
@@ -1583,6 +1589,51 @@ function convertModel(name, step, { params, type, v, review, translate, subnodes
   if (hint && !model.hint) model.hint = hint;
   step.model = model;
   for (const r of reasons) review(step, r);
+}
+
+// The Summarization Chain v2 as the runtime runs it (runtime/src/summarize.mjs), or null where
+// it cannot reproduce n8n's documents exactly (binary input or loaders, code-aware or unknown
+// splitters, a method set by an expression): those keep the one-call approximation, flagged.
+function summarizeSpec(name, p, v, subnodesTo, steps) {
+  if (v < 2) return null;
+  const vals = p.options?.summarizationMethodAndPrompts?.values ?? {};
+  const method = vals.summarizationMethod ?? "map_reduce";
+  if (!["map_reduce", "stuff", "refine"].includes(method)) return null;
+  const splitterOf = (owner) => {
+    const [sn] = subnodesTo(owner, "ai_textSplitter");
+    if (!sn) return undefined;
+    const st = steps[sn];
+    const sp = st.params ?? {};
+    const t = st.n8n.type;
+    if (st.settings?.disabled) return undefined;
+    if (t === LC + "textSplitterRecursiveCharacterTextSplitter") return sp.options?.splitCode ? null : { kind: "recursive", chunkSize: sp.chunkSize ?? 1000, chunkOverlap: sp.chunkOverlap ?? 0, keepSeparator: false };
+    if (t === LC + "textSplitterCharacterTextSplitter") return { kind: "character", separator: sp.separator ?? "", chunkSize: sp.chunkSize ?? 1000, chunkOverlap: sp.chunkOverlap ?? 0 };
+    if (t === LC + "textSplitterTokenSplitter") return { kind: "token", chunkSize: sp.chunkSize ?? 1000, chunkOverlap: sp.chunkOverlap ?? 0 };
+    return null;
+  };
+  // LangChain's own RecursiveCharacterTextSplitter defaults keep the separators.
+  const simple = (size, overlap) => ({ kind: "recursive", chunkSize: size, chunkOverlap: overlap, keepSeparator: true });
+  let docs;
+  const mode = p.operationMode ?? "nodeInputJson";
+  if (mode === "nodeInputJson") {
+    const splitter = (p.chunkingMode ?? "simple") === "simple" ? simple(p.chunkSize ?? 1000, p.chunkOverlap ?? 200) : splitterOf(name);
+    if (splitter === null) return null;
+    docs = { jsonMode: "allInputData", pointers: p.options?.pointers ?? "", splitter };
+  } else if (mode === "documentLoader") {
+    const [ln] = subnodesTo(name, "ai_document");
+    const ls = ln && steps[ln];
+    if (!ls || ls.settings?.disabled || ls.n8n.type !== LC + "documentDefaultDataLoader") return null;
+    const lp = ls.params ?? {};
+    if ((lp.dataType ?? "json") !== "json") return null;
+    let splitter;
+    if ((ls.n8n.typeVersion ?? 1) === 1.1 && (lp.textSplittingMode ?? "simple") === "simple") splitter = simple(1000, 200);
+    else splitter = splitterOf(ln);
+    if (splitter === null) return null;
+    docs = { jsonMode: lp.jsonMode ?? "allInputData", ...(lp.jsonData !== undefined ? { jsonData: lp.jsonData } : {}), pointers: lp.options?.pointers ?? "", splitter };
+  } else return null;
+  const prompts = Object.fromEntries(["prompt", "combineMapPrompt", "refinePrompt", "refineQuestionPrompt"].filter((k) => vals[k] !== undefined).map((k) => [k, vals[k]]));
+  const batched = v >= 2.1 && (p.options?.batching?.batchSize ?? 5) > 1;
+  return { method, prompts, docs, outputKey: batched ? "output" : "response" };
 }
 
 function staticTarget(url) {
