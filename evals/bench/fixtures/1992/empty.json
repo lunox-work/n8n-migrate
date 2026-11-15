@@ -91,6 +91,7 @@
     "branches": [
       "Get all unread messages returns no items, so nothing downstream runs"
     ],
-    "offline": "Find indicators of compromise is a Python Code node (micropip install of ioc-finder at run time); the bench n8n image has no Python runner, so the n8n side stops there with an error after Mark as read, and nothing past it runs on the n8n side. Wait 1 Minute (60 s) needs a time-compression overlay. The Slack text references a node named urlscan.io that does not exist in the template"
+    "offline": "Find indicators of compromise is a Python Code node (micropip install of ioc-finder at run time); the bench n8n image has no Python runner, so the n8n side stops there with an error after Mark as read, and nothing past it runs on the n8n side. Wait 1 Minute (60 s) needs a time-compression overlay. The Slack text references a node named urlscan.io that does not exist in the template",
+    "n8nCannotRun": "Find indicators of compromise is a Python Code node and the bench's n8n image has no Python runner (evals/n8n/container.mjs), so n8n's main path stops there."
   }
 }
