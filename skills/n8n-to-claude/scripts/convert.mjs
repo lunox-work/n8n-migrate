@@ -91,6 +91,10 @@ export function toolNameFor(nodeName, type, typeVersion, params = {}) {
   if (until !== undefined && v <= until && typeof typed === "string" && typed.trim() !== "" && !typed.startsWith("=")) return typed;
   return nodeNameToToolName(nodeName);
 }
+// A tool n8n builds as LangChain's DynamicTool (a Code Tool without an input schema, a workflow
+// tool whose inputs have no $fromAI()) takes one optional string, `input`; the tool's code sees
+// it as `query`, the sub-workflow gets it as {query}.
+const DYNAMIC_TOOL_SCHEMA = { type: "object", properties: { input: { type: "string" } } };
 // The Think tool's default description (@n8n/n8n-nodes-langchain 2.47 ToolThink).
 const THINK_DESCRIPTION = "Use the tool to think about something. It will not obtain new information or change the database, but just append the thought to the log. Use it when complex reasoning or some cache memory is needed.";
 
@@ -1325,7 +1329,7 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
           translate(ts, "python", tp.pythonCode ?? "", "a Python code tool runs only after translation to JavaScript");
           reasons.push(`tool "${tn}" needs translation`);
         }
-        let schema = { type: "object", properties: { query: { type: "string" } }, required: ["query"] };
+        let schema = clone(DYNAMIC_TOOL_SCHEMA);
         if (tp.specifyInputSchema) schema = parserSchema({ ...ts, name: tn, params: { schemaType: tp.schemaType, jsonSchemaExample: tp.jsonSchemaExample, inputSchema: tp.inputSchema } }, reasons);
         Object.assign(t, { kind: "code", effect: "none", inputSchema: schema });
       } else if (ts.n8n.type === LC + "toolHttpRequest" || ts.n8n.type === BASE + "httpRequestTool") {
@@ -1615,17 +1619,21 @@ function buildToolWorkflow(ctx, items, report, wr, tn, ts, stack, rootId, allow,
       mergeAllow(allow, secrets, ts.subflow.definition);
     } else return { blocked: "the sub-workflow id is set by an expression" };
   }
-  // Inputs: v2 workflowInputs (values may hold $fromAI); v1 fields + the model's query.
-  let inputSchema = fromAiSchema(tp.workflowInputs?.value ?? {});
-  if (isObj(tp.workflowInputs?.value)) ts.subflow.inputs = clone(tp.workflowInputs.value);
+  // Inputs: v2 workflowInputs (values may hold $fromAI); v1 fields + the model's query. n8n's v2
+  // uses the mapped values only when the sub-workflow's input schema is listed
+  // (workflowInputs.schema); otherwise it offers a DynamicTool and sends {query: input}.
+  const mapped = isObj(tp.workflowInputs?.value) && (tp.workflowInputs?.schema ?? []).length > 0;
+  let inputSchema = mapped ? fromAiSchema(tp.workflowInputs.value) : null;
+  if (mapped) ts.subflow.inputs = clone(tp.workflowInputs.value);
   else if (Array.isArray(tp.fields?.values) && tp.fields.values.length) {
     ts.subflow.inputs = Object.fromEntries(tp.fields.values.map((f) => [f.name, f.stringValue ?? f.numberValue ?? f.booleanValue ?? f.objectValue ?? f.arrayValue ?? ""]));
-    ts.subflow.inputs.query = "={{ $fromAI('query') }}";
-    inputSchema = { type: "object", properties: { query: { type: "string" } }, required: ["query"] };
+    ts.subflow.inputs.query = "={{ $fromAI('input') }}";
+    inputSchema = clone(DYNAMIC_TOOL_SCHEMA);
   }
+  // No $fromAI(): n8n offers a DynamicTool and hands the sub-workflow {query: input}.
   if (!inputSchema) {
-    inputSchema = { type: "object", properties: { query: { type: "string" } }, required: ["query"] };
-    ts.subflow.inputs ??= { query: "={{ $fromAI('query') }}" };
+    inputSchema = clone(DYNAMIC_TOOL_SCHEMA);
+    ts.subflow.inputs ??= { query: "={{ $fromAI('input') }}" };
   }
   ts.kind = "subflow";
   return { inputSchema };

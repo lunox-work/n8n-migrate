@@ -222,3 +222,21 @@ test("tool names: older Code, Workflow and Vector Store tools keep the name type
   const def = convertJson(wf);
   assert.deepEqual(def.steps.Agent.agent.tools.map((t) => [t.name, t.node, t.kind]), [["my_color_selector", "Code Tool", "code"]]);
 });
+
+test("a workflow tool without $fromAI() is n8n's DynamicTool: one optional `input`, handed to the sub-workflow as {query}", () => {
+  const wf = agentWf([
+    { parameters: { name: "list_columns", description: "List the columns", workflowId: { __rl: true, value: "={{ $workflow.id }}", mode: "id" }, workflowInputs: { mappingMode: "defineBelow", value: {}, matchingColumns: [], schema: [] } }, name: "List columns tool", type: LC + "toolWorkflow", typeVersion: 2, position: [0, 200] },
+    { parameters: { inputSource: "passthrough" }, name: "When called", type: "n8n-nodes-base.executeWorkflowTrigger", typeVersion: 1.1, position: [0, 400] },
+  ]);
+  const def = convertJson(wf);
+  const t = def.steps.Agent.agent.tools[0];
+  assert.deepEqual([t.name, t.kind, t.inputSchema], ["list_columns", "subflow", { type: "object", properties: { input: { type: "string" } } }]);
+  assert.deepEqual(def.steps["List columns tool"].subflow.inputs, { query: "={{ $fromAI('input') }}" }, "no input schema listed: n8n sends {query: input}");
+  // Mapped values without $fromAI() (the sub-workflow's schema is listed): still a DynamicTool, the values go as written.
+  const wf2 = agentWf([
+    { parameters: { name: "list_columns", description: "List the columns", workflowId: { __rl: true, value: "={{ $workflow.id }}", mode: "id" }, workflowInputs: { mappingMode: "defineBelow", value: { query: "none", operation: "column_names" }, matchingColumns: [], schema: [{ id: "query" }, { id: "operation" }] } }, name: "List columns tool", type: LC + "toolWorkflow", typeVersion: 2, position: [0, 200] },
+    { parameters: { inputSource: "passthrough" }, name: "When called", type: "n8n-nodes-base.executeWorkflowTrigger", typeVersion: 1.1, position: [0, 400] },
+  ]);
+  const def2 = convertJson(wf2);
+  assert.deepEqual([def2.steps.Agent.agent.tools[0].inputSchema, def2.steps["List columns tool"].subflow.inputs], [{ type: "object", properties: { input: { type: "string" } } }, { query: "none", operation: "column_names" }]);
+});

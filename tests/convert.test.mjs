@@ -296,7 +296,7 @@ test("agent tools from a sub-workflow (self), a Code tool and an HTTP Request to
       { parameters: { model: { __rl: true, mode: "list", value: "claude-sonnet-4-5-20250929" }, options: {} }, name: "Claude", type: "@n8n/n8n-nodes-langchain.lmChatAnthropic", typeVersion: 1.3, position: [100, 200] },
       { parameters: { description: "Doubles a number. Input: the number.", jsCode: "return String(Number(query) * 2);" }, name: "Double", type: "@n8n/n8n-nodes-langchain.toolCode", typeVersion: 1.1, position: [200, 200] },
       {
-        parameters: { description: "Stock for a SKU", workflowId: { __rl: true, value: "={{ $workflow.id }}", mode: "id" }, workflowInputs: { mappingMode: "defineBelow", value: { sku: "={{ $fromAI('sku', 'The SKU', 'string') }}" }, matchingColumns: [], schema: [] } },
+        parameters: { description: "Stock for a SKU", workflowId: { __rl: true, value: "={{ $workflow.id }}", mode: "id" }, workflowInputs: { mappingMode: "defineBelow", value: { sku: "={{ $fromAI('sku', 'The SKU', 'string') }}" }, matchingColumns: [], schema: [{ id: "sku", displayName: "sku", type: "string", display: true, required: false, defaultMatch: false, canBeUsedToMatch: true, removed: false }] } },
         name: "Stock lookup",
         type: "@n8n/n8n-nodes-langchain.toolWorkflow",
         typeVersion: 2.1,
@@ -318,7 +318,9 @@ test("agent tools from a sub-workflow (self), a Code tool and an HTTP Request to
   };
   const def = convertJson(wf).definition;
   assert.deepEqual(validate(def, defSchema), []);
-  assert.deepEqual(def.steps.Agent.agent.tools.map((t) => [t.name, t.kind, t.inputSchema.required]), [["Double", "code", ["query"]], ["Stock_lookup", "subflow", ["sku"]], ["Weather", "http", ["city"]]]);
+  assert.deepEqual(def.steps.Agent.agent.tools.map((t) => [t.name, t.kind, t.inputSchema.required]), [["Double", "code", undefined], ["Stock_lookup", "subflow", ["sku"]], ["Weather", "http", ["city"]]]);
+  // A Code tool without an input schema is n8n's DynamicTool: one optional string `input`, seen by the code as `query`.
+  assert.deepEqual(def.steps.Agent.agent.tools[0].inputSchema, { type: "object", properties: { input: { type: "string" } } });
   assert.deepEqual(def.steps["Stock lookup"].subflow, { self: true, inputs: { sku: "={{ $fromAI('sku', 'The SKU', 'string') }}" } });
   assert.deepEqual(def.allow.http, [{ method: "GET", host: "api.weather.example.com", pathPrefix: "/v1/" }]);
   assert.equal(preflight(def).ok, true, JSON.stringify(preflight(def).issues));
@@ -327,7 +329,7 @@ test("agent tools from a sub-workflow (self), a Code tool and an HTTP Request to
     http: async (q) => (http.push(q.url), { status: 200, headers: { "content-type": "application/json" }, body: '{"temp":12}' }),
     agent: async (p) =>
       p.turn === 0
-        ? { intent: "tool-calls", calls: [{ name: "Double", args: { query: "21" } }, { name: "Stock_lookup", args: { sku: "SKU-1" } }, { name: "Weather", args: { city: "Paris" } }] }
+        ? { intent: "tool-calls", calls: [{ name: "Double", args: { input: "21" } }, { name: "Stock_lookup", args: { sku: "SKU-1" } }, { name: "Weather", args: { city: "Paris" } }] }
         : p.transcript[0].results.map((r) => JSON.stringify(r.value)).join(" | "),
   };
   const r = await run(def, { clock: CLOCK, virtualTime: true, trigger: { node: "Start", items: [{ json: { q: "go" } }] }, host });
