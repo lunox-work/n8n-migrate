@@ -4,6 +4,7 @@
 // template, and pins the corpus.
 //
 //   node evals/bench/fetch.mjs [--out evals/bench/corpus.json] [--max 200] [--offline]
+//   node evals/bench/fetch.mjs --top-up [--max-entries 400] [--offline]   (fresh held-out, round 3)
 //
 // Stops when every wake-up quota of the 100 eligible (outcome `subscription`) is full and
 // at least REFUSALS non-subscription templates are in the pool, or at --max listing
@@ -250,6 +251,10 @@ async function main() {
   // An --offline rebuild keeps the request counts of the run that downloaded the data.
   let requests = stats;
   if (offline && existsSync(out)) requests = JSON.parse(readFileSync(out, "utf8")).counts?.requests ?? stats;
+  // The round-3 top-up (topUp() below) is its own fetch on a later day: a rebuild of the
+  // Phase 5 corpus keeps its section and entries as they are.
+  const prev = existsSync(out) ? JSON.parse(readFileSync(out, "utf8")) : null;
+  const kept = (prev?.templates ?? []).filter((e) => e.topUp);
   const doc = {
     source: `${API}/search?rows=${ROWS}&page=<n>&sort=views:desc, then ${API}/workflows/<id>`,
     fetched: new Date().toLocaleDateString("sv"),
@@ -275,7 +280,8 @@ async function main() {
       afterExclusions: { subscription: sub(topIncluded), of: topIncluded.length },
       excludedInTop100: top.filter((e) => e.excluded).map((e) => ({ id: e.id, rule: e.excluded })),
     },
-    templates: entries,
+    ...(prev?.topUp ? { topUp: prev.topUp } : {}),
+    templates: [...entries, ...kept],
   };
   const text = JSON.stringify(doc, null, 2).replace(/\{\n\s+("rank": \d+,[^{}]*?)\n\s+\}/g, (_, body) => `{ ${body.replace(/\n\s+/g, " ")} }`);
   await writeFile(out, text + "\n");
@@ -286,7 +292,180 @@ async function main() {
   );
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// ---------- round-3 top-up (PLAN Phase 6, rolling held-out) ----------
+//
+// The seeded split's held-out is used up after release point 2, so release point 3 draws fresh
+// held-out templates from outside it: the Phase 5 `overflow` entries (eligible, outcome
+// `subscription` by the analyzer at that fetch, over their stratum's quota, never in a split)
+// plus the next listing entries. FRESH_QUOTAS are the seeded held-out's strata halved (40 ->
+// 20: chat 12, manual 10, schedule 8, poll 4, form 4, other 2). The walk reads today's listing
+// (same sort) from the page after the Phase 5 walk, skips ids already in corpus.json (any pool)
+// and templates in the survey folder (evals/survey/data/wf: a fixing session may have read it,
+// PROPOSALS P51), applies the same exclusion rules and analyzer as main(), and stops when every
+// stratum has at least its quota of candidates (overflow + top-up). New entries carry
+// `topUp: 3` and pool `fresh` (outcome `subscription`) or `fresh-other`; the draw itself is
+// split.mjs drawFresh(). Only ids, hashes and verdicts are written.
+export const FRESH_QUOTAS = { chat: 6, manual: 5, schedule: 4, poll: 2, form: 2, other: 1 };
+export const FRESH_ROUND = 3;
+
+export function freshCandidates(templates) {
+  return templates.filter((e) => !e.excluded && (e.pool === "overflow" || e.pool === "fresh"));
+}
+
+export function freshShortfall(templates, quotas = FRESH_QUOTAS) {
+  const have = {};
+  for (const e of freshCandidates(templates)) have[stratum(e.wakeup)] = (have[stratum(e.wakeup)] ?? 0) + 1;
+  return Object.fromEntries(Object.entries(quotas).filter(([k, n]) => (have[k] ?? 0) < n).map(([k, n]) => [k, n - (have[k] ?? 0)]));
+}
+
+async function topUp() {
+  const a = process.argv.slice(2);
+  const opt = (k, d) => (a.includes(k) ? a[a.indexOf(k) + 1] : d);
+  const out = opt("--out", join(HERE, "corpus.json"));
+  const maxEntries = Number(opt("--max-entries", "400"));
+  const offline = a.includes("--offline");
+  await mkdir(join(DATA, "wf"), { recursive: true });
+  const corpus = JSON.parse(readFileSync(out, "utf8"));
+  const refs = (f) => JSON.parse(readFileSync(join(REFS, f), "utf8"));
+  const opts = { nodes: refs("nodes.json"), capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), now: Date.parse(NOW) };
+  const known = new Set(corpus.templates.map((e) => e.id));
+  const seenHash = new Map(corpus.templates.filter((e) => e.sha256).map((e) => [e.sha256, e.id]));
+  const overflowInSurvey = corpus.templates.filter((e) => e.pool === "overflow" && existsSync(join(SURVEY_CACHE, `${e.id}.json`))).map((e) => e.id);
+  if (overflowInSurvey.length) throw new Error(`overflow templates in the survey folder (P51): ${overflowInSurvey.join(", ")}`);
+  const startPage = Math.floor(corpus.counts.listingEntries / ROWS) + 1;
+  const fetchedOn = new Date().toLocaleDateString("sv");
+  const entries = corpus.templates.filter((e) => e.topUp === FRESH_ROUND);
+  const skipped = { inCorpus: 0, inSurvey: 0 };
+  let stopReason = null;
+  outer: for (let page = startPage; ; page++) {
+    if (!Object.keys(freshShortfall([...corpus.templates, ...entries.filter((e) => !corpus.templates.includes(e))])).length) {
+      stopReason = "every stratum has its quota of candidates";
+      break;
+    }
+    const file = join(DATA, `listing-r${FRESH_ROUND}-p${page}.json`);
+    let listing;
+    if (offline || existsSync(file)) listing = JSON.parse(await readFile(file, "utf8"));
+    else {
+      const text = await politeGet(`${API}/search?rows=${ROWS}&page=${page}&sort=views:desc`);
+      stats.listingRequests++;
+      await writeFile(file, text);
+      listing = JSON.parse(text);
+    }
+    if (!listing.workflows?.length) {
+      stopReason = "listing exhausted";
+      break;
+    }
+    for (const [i, w] of listing.workflows.entries()) {
+      if (!Object.keys(freshShortfall([...corpus.templates, ...entries.filter((e) => !corpus.templates.includes(e))])).length) {
+        stopReason = "every stratum has its quota of candidates";
+        break outer;
+      }
+      if (known.has(w.id) || entries.some((e) => e.id === w.id)) {
+        skipped.inCorpus++;
+        continue;
+      }
+      if (existsSync(join(SURVEY_CACHE, `${w.id}.json`))) {
+        skipped.inSurvey++;
+        continue;
+      }
+      if (entries.length >= maxEntries) {
+        stopReason = `--max-entries ${maxEntries}`;
+        break outer;
+      }
+      // The rank is the entry's place in the fetch day's listing (page and row), not a count.
+      const e = { rank: (page - 1) * ROWS + i + 1, id: w.id, topUp: FRESH_ROUND };
+      entries.push(e);
+      let wf = null;
+      if (!((w.price ?? 0) > 0 || w.purchaseUrl)) {
+        try {
+          const f = join(DATA, "wf", `${w.id}.json`);
+          let text;
+          if (existsSync(f)) text = await readFile(f, "utf8");
+          else if (offline) throw new Error(`offline and ${w.id} not downloaded`);
+          else {
+            text = await politeGet(`${API}/workflows/${w.id}`);
+            stats.templateRequests++;
+            await writeFile(f, text);
+          }
+          wf = JSON.parse(text)?.workflow?.workflow ?? null;
+        } catch (err) {
+          e.error = String(err.message).slice(0, 200);
+        }
+      }
+      if (wf) e.sha256 = createHash("sha256").update(canonical(wf)).digest("hex");
+      const structural = structuralExclusion(w, wf);
+      if (structural) {
+        e.excluded = structural;
+        continue;
+      }
+      if (seenHash.has(e.sha256)) {
+        e.excluded = "duplicate";
+        e.duplicateOf = seenHash.get(e.sha256);
+        continue;
+      }
+      seenHash.set(e.sha256, w.id);
+      const report = analyze(unwrap({ workflow: { id: String(w.id), name: w.name, workflow: wf } }, String(w.id)), opts).workflows[0];
+      e.outcome = report.outcome.kind;
+      e.target = report.outcome.target;
+      e.wakeup = report.wakeup.kind;
+      if (report.setupOnly) e.setupOnly = true;
+      if (tutorialExclusion(w.name, wf, report)) {
+        e.excluded = "tutorial";
+        continue;
+      }
+      if (HAND[w.id]) {
+        e.excluded = "hand";
+        e.reason = HAND[w.id];
+        continue;
+      }
+      if (DEMO_FLAG.test(w.name ?? "")) e.flag = "name-demo";
+      e.pool = e.outcome === "subscription" ? "fresh" : "fresh-other";
+      if (process.stderr.isTTY) process.stderr.write(`\r${entries.length} new entries, shortfall ${JSON.stringify(freshShortfall([...corpus.templates, ...entries.filter((x) => !corpus.templates.includes(x))]))}   `);
+    }
+  }
+  if (process.stderr.isTTY) process.stderr.write("\n");
+  const all = [...corpus.templates.filter((e) => e.topUp !== FRESH_ROUND), ...entries];
+  const excluded = {};
+  for (const e of entries) if (e.excluded) excluded[e.excluded] = (excluded[e.excluded] ?? 0) + 1;
+  const strata = (xs) => {
+    const o = {};
+    for (const e of xs) o[stratum(e.wakeup)] = (o[stratum(e.wakeup)] ?? 0) + 1;
+    return o;
+  };
+  const prevRequests = corpus.topUp?.counts?.requests;
+  corpus.topUp = {
+    round: FRESH_ROUND,
+    why: "fresh held-out for release point 3 (PLAN Phase 6): the seeded split's 40 held-out templates are all scored",
+    fetched: corpus.topUp?.fetched ?? fetchedOn,
+    source: `${API}/search?rows=${ROWS}&page=<n>&sort=views:desc from page ${startPage} (the listing on the fetch day; ranks continue after the Phase 5 walk's ${corpus.counts.listingEntries}), then ${API}/workflows/<id>`,
+    rules: "evals/bench/EXCLUSIONS.md (same rules and analyzer as the Phase 5 fetch); ids already in corpus.json and templates in evals/survey/data/wf are skipped, not entered",
+    eligibility: "overflow entries keep their Phase 5 verdict (analyzer of 2026-11-14); top-up entries are analyzed on the fetch day with the analyzer of that day's checkout",
+    quotas: FRESH_QUOTAS,
+    stopReason,
+    counts: {
+      newEntries: entries.length,
+      requests: offline && prevRequests ? prevRequests : { listingRequests: stats.listingRequests, templateRequests: stats.templateRequests },
+      skipped,
+      excluded,
+      fresh: entries.filter((e) => e.pool === "fresh").length,
+      freshOther: entries.filter((e) => e.pool === "fresh-other").length,
+      candidates: strata(freshCandidates(all)),
+      shortfall: freshShortfall(all),
+    },
+  };
+  const { templates: _old, topUp: section, ...head } = corpus;
+  const text = JSON.stringify({ ...head, topUp: section, templates: all }, null, 2).replace(/\{\n\s+("rank": \d+,[^{}]*?)\n\s+\}/g, (_, body) => `{ ${body.replace(/\n\s+/g, " ")} }`);
+  await writeFile(out, text + "\n");
+  // Counts only: the labeller reads no verdict per template from this output.
+  console.log(`top-up: ${entries.length} new entries (${stats.listingRequests} listing + ${stats.templateRequests} template requests); fresh ${corpus.topUp.counts.fresh}, other outcomes ${corpus.topUp.counts.freshOther}, excluded ${JSON.stringify(excluded)}; skipped ${JSON.stringify(skipped)}; candidates by stratum ${JSON.stringify(corpus.topUp.counts.candidates)}; shortfall ${JSON.stringify(corpus.topUp.counts.shortfall)}; stop: ${stopReason}`);
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes("--top-up")) {
+  topUp().catch((e) => {
+    console.error(e.message);
+    process.exit(1);
+  });
+} else if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((e) => {
     console.error(e.message);
     process.exit(1);

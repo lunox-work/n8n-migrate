@@ -5,6 +5,9 @@
 //
 //   splits.rounds = [{round, promoted: [ids that join dev at this round], heldOut: [ids]}],
 //   splits.currentRound = n. A round's dev = splits.dev + every id promoted up to that round.
+//   splits.heldOutFresh.templates = [{id, sha256, wakeup, source}]: held-out templates drawn
+//   from outside the seeded split (round 3 on, split.mjs drawFresh); a round's ids resolve
+//   from the seeded lists and from these alike.
 
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -19,15 +22,20 @@ export function readSplits(file = join(HERE, "splits.json")) {
 // {round, dev: [{id, sha256, wakeup}], heldOut: [...], promoted: [...]} for round `n`
 // (default: splits.currentRound; a splits file without rounds is round 1 = the seeded split).
 export function roundOf(splits, n = splits.currentRound) {
-  const rows = new Map([...splits.dev, ...splits.heldOut].map((r) => [r.id, r]));
+  const rows = new Map([...splits.dev, ...splits.heldOut, ...(splits.heldOutFresh?.templates ?? [])].map((r) => [r.id, r]));
   const rounds = splits.rounds ?? [{ round: 1, promoted: [], heldOut: splits.heldOut.map((r) => r.id) }];
   const k = n ?? rounds.at(-1).round;
   const upTo = rounds.filter((r) => r.round <= k);
   const cur = rounds.find((r) => r.round === k);
   if (!cur) throw new Error(`splits.json has no round ${k}`);
   const promoted = upTo.flatMap((r) => r.promoted ?? []);
-  const row = (id) => rows.get(id) ?? (() => { throw new Error(`round ${k}: id ${id} is not in the seeded split`); })();
+  const row = (id) => rows.get(id) ?? (() => { throw new Error(`round ${k}: id ${id} is in neither the seeded split nor heldOutFresh`); })();
   return { round: k, dev: [...splits.dev, ...promoted.map(row)], heldOut: cur.heldOut.map(row), promoted: (cur.promoted ?? []).map(row) };
+}
+
+// Held-out ids of the current round (what a fixing session must never read; PROPOSALS P51).
+export function heldOutIds(splits, n) {
+  return roundOf(splits, n).heldOut.map((r) => r.id);
 }
 
 // Dev ids of the current round that have fixtures (what `run.mjs --split dev` runs).

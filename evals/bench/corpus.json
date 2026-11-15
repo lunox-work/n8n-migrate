@@ -88,6 +88,48 @@
       }
     ]
   },
+  "topUp": {
+    "round": 3,
+    "why": "fresh held-out for release point 3 (PLAN Phase 6): the seeded split's 40 held-out templates are all scored",
+    "fetched": "2026-11-15",
+    "source": "https://api.n8n.io/api/templates/search?rows=50&page=<n>&sort=views:desc from page 5 (the listing on the fetch day; ranks continue after the Phase 5 walk's 200), then https://api.n8n.io/api/templates/workflows/<id>",
+    "rules": "evals/bench/EXCLUSIONS.md (same rules and analyzer as the Phase 5 fetch); ids already in corpus.json and templates in evals/survey/data/wf are skipped, not entered",
+    "eligibility": "overflow entries keep their Phase 5 verdict (analyzer of 2026-11-14); top-up entries are analyzed on the fetch day with the analyzer of that day's checkout",
+    "quotas": {
+      "chat": 6,
+      "manual": 5,
+      "schedule": 4,
+      "poll": 2,
+      "form": 2,
+      "other": 1
+    },
+    "stopReason": "every stratum has its quota of candidates",
+    "counts": {
+      "newEntries": 24,
+      "requests": {
+        "listingRequests": 1,
+        "templateRequests": 21
+      },
+      "skipped": {
+        "inCorpus": 0,
+        "inSurvey": 0
+      },
+      "excluded": {
+        "paid": 3
+      },
+      "fresh": 16,
+      "freshOther": 5,
+      "candidates": {
+        "chat": 8,
+        "schedule": 11,
+        "manual": 9,
+        "poll": 2,
+        "form": 4,
+        "other": 1
+      },
+      "shortfall": {}
+    }
+  },
   "templates": [
     { "rank": 1, "id": 1954, "sha256": "918867c108eb4b4c9fcd39d898e7ef1fe92abe2ed324243771a3a4646ebf4437", "outcome": "subscription", "target": "skill", "wakeup": "chat", "pool": "eligible" },
     { "rank": 2, "id": 1750, "sha256": "306413d3941caa7a8b8803b6c0b4c955ff84eaac806418704b9a2bcc2a174032", "outcome": "hosted", "target": "no-key", "wakeup": "endpoint", "pool": "refusal" },
@@ -288,6 +330,30 @@
     { "rank": 197, "id": 3905, "sha256": "da256cfca5ddc5c13f9fcf5053432179bad0240a8fa72d2fd5db1ecc952df851", "outcome": "replaced", "target": null, "wakeup": "mcp-server", "pool": "refusal" },
     { "rank": 198, "id": 5396, "sha256": "7a456d740af3459b3a1de1cecda942f03167da4bd20dff5ea0de5968942b3482", "outcome": "subscription", "target": "cloud-task", "wakeup": "schedule", "pool": "overflow" },
     { "rank": 199, "id": 5010, "sha256": "fb40421802a11fef4a213b1d1ad9a841480945d6ad35612bf6d3128ffdac97cd", "outcome": "subscription", "target": "skill", "wakeup": "chat", "pool": "overflow" },
-    { "rank": 200, "id": 3188, "sha256": "d2babb3b35896aef6f5454da35578a83e9f414d849286045cf22863ec56f0264", "outcome": "subscription", "target": "skill", "wakeup": "manual", "excluded": "tutorial" }
+    { "rank": 200, "id": 3188, "sha256": "d2babb3b35896aef6f5454da35578a83e9f414d849286045cf22863ec56f0264", "outcome": "subscription", "target": "skill", "wakeup": "manual", "excluded": "tutorial" },
+    { "rank": 201, "id": 4400, "topUp": 3, "sha256": "7c8429b3746e33acf90f54b8b5c420782d67a5804d4e30b2777967c51bc36dcb", "outcome": "keep-in-n8n", "target": null, "wakeup": "chat", "pool": "fresh-other" },
+    { "rank": 202, "id": 2978, "topUp": 3, "sha256": "6d9f8d62f45ceaf195b48001feb11782f98f5830327c090780062f3278b10e71", "outcome": "subscription", "target": "skill", "wakeup": "manual", "pool": "fresh" },
+    { "rank": 203, "id": 2201, "topUp": 3, "sha256": "34684551130cab5fc727aff5ac8444958cc55046d13a69447ed97762579ab731", "outcome": "subscription", "target": "skill", "wakeup": "chat", "pool": "fresh" },
+    { "rank": 204, "id": 1306, "topUp": 3, "sha256": "adef48d7572efc2a472d3526748b3d50faa86b94126a4445009725b56b47397d", "outcome": "hosted", "target": "no-key", "wakeup": "endpoint", "pool": "fresh-other" },
+    { "rank": 205, "id": 3954, "topUp": 3, "sha256": "c035e2a24dc81c75172fb57078cb36efb217fe9e2262dfeee45f8a0229bc2cef", "outcome": "subscription", "target": "artifact-form", "wakeup": "form", "pool": "fresh" },
+    { "rank": 206, "id": 3425, "topUp": 3, "sha256": "800d0efb55796002b9412a25d57e0377ee0d51c771fb5797ba4e04e300239a76", "outcome": "keep-in-n8n", "target": null, "wakeup": "relay", "pool": "fresh-other" },
+    { "rank": 207, "id": 4371, "topUp": 3, "sha256": "b1f74a0ed1c65f2d531b056f425c58ad5c35490d8ae77c00257a3f53d25fd05a", "outcome": "keep-in-n8n", "target": null, "wakeup": "schedule", "pool": "fresh-other" },
+    { "rank": 208, "id": 2325, "topUp": 3, "sha256": "45cca351b9360bf2da6eaec425bb42969f0ecd7e055a39b2d0d3fa3b997d9a42", "outcome": "subscription", "target": "skill", "wakeup": "chat", "pool": "fresh" },
+    { "rank": 209, "id": 3560, "topUp": 3, "excluded": "paid" },
+    { "rank": 210, "id": 3082, "topUp": 3, "sha256": "600ead851d4a10a93a4c3658fdd24a8154dca0c339f13f8f232d6fe961f14904", "outcome": "subscription", "target": "artifact-form", "wakeup": "form", "pool": "fresh" },
+    { "rank": 211, "id": 2110, "topUp": 3, "sha256": "845479831f6f19d30c4a2ca0c4851a966cd6e04326c054bbfd07776b2173c423", "outcome": "subscription", "target": "cloud-task", "wakeup": "schedule", "pool": "fresh" },
+    { "rank": 212, "id": 3076, "topUp": 3, "sha256": "7b3b05699b3791db7ba9478d16ebbd240516d84605262b35fea2a41a73573882", "outcome": "subscription", "target": "skill", "wakeup": "manual", "pool": "fresh" },
+    { "rank": 213, "id": 3314, "topUp": 3, "sha256": "04d7ae3086dd1ec38a0ec1f9436704f8ba9478083ea2921d4ca32781742961fe", "outcome": "subscription", "target": "artifact-form", "wakeup": "form", "pool": "fresh" },
+    { "rank": 214, "id": 2288, "topUp": 3, "sha256": "1ab93b865209436d415e399a4ed6a9feb5cc347ca6ec35f3d441196daa6c9262", "outcome": "subscription", "target": "cloud-task", "wakeup": "schedule", "pool": "fresh" },
+    { "rank": 215, "id": 3055, "topUp": 3, "excluded": "paid" },
+    { "rank": 216, "id": 3791, "topUp": 3, "sha256": "2458e5161a16e5242d8fa6088d1b84679309fc362cacda9c694913d155718391", "outcome": "subscription", "target": "artifact-form", "wakeup": "form", "pool": "fresh" },
+    { "rank": 217, "id": 5924, "topUp": 3, "sha256": "8ef4786132b5dbabe279812b037ad2f7607006a85dd13bb6a6a9f8e686daa13d", "outcome": "hosted", "target": "key", "wakeup": "relay", "pool": "fresh-other" },
+    { "rank": 218, "id": 5614, "topUp": 3, "excluded": "paid" },
+    { "rank": 219, "id": 2799, "topUp": 3, "sha256": "d9dd693b776f74ab52a954e1b28cd21db91d2ab903f40748a822b94c9f57f755", "outcome": "subscription", "target": "local-task", "wakeup": "schedule", "pool": "fresh" },
+    { "rank": 220, "id": 3900, "topUp": 3, "sha256": "419979504f199984509399f943a45dd4aae23e59ddaca57e23cab6e3c2bd7dc1", "outcome": "subscription", "target": "skill", "wakeup": "manual", "pool": "fresh" },
+    { "rank": 221, "id": 1897, "topUp": 3, "sha256": "c89e432111c87eaeb971c87a234672a244b28e023dce1c788025c88aac9e5187", "outcome": "subscription", "target": "local-task", "wakeup": "poll", "pool": "fresh" },
+    { "rank": 222, "id": 4028, "topUp": 3, "sha256": "9e2d4ec754c242f39e94993621bd01529b7eccf46fd2cf7261104f2227e08048", "outcome": "subscription", "target": "skill", "wakeup": "manual", "pool": "fresh" },
+    { "rank": 223, "id": 4723, "topUp": 3, "sha256": "e72d5697776f465d5ccdc1780aaf1ea53897a454fae465e4f2e07a23f98410e6", "outcome": "subscription", "target": "cloud-task", "wakeup": "schedule", "pool": "fresh" },
+    { "rank": 224, "id": 2374, "topUp": 3, "sha256": "0e3ae55db5c6cdca557d8af4f341159706c351daf25e1188a15469d9da1b93b3", "outcome": "subscription", "target": "skill", "wakeup": "subworkflow", "pool": "fresh" }
   ]
 }

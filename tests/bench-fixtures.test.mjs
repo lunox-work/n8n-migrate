@@ -78,11 +78,12 @@ test("rolling held-out: round 2 promotes held-out 1-20 and holds out 21-40, roun
   assert.deepEqual(ids(r2.heldOut), ids(splits.heldOut.slice(20, 40)));
   assert.equal(new Set([...ids(r2.dev), ...ids(r2.heldOut)]).size, 100, "dev and held-out stay disjoint");
   // Round 3 (after release point 2): held-out 21-40 join dev; the seeded held-out is used up,
-  // so round 3 has no held-out until fresh templates are fixtured blind (PLAN Phase 6).
+  // so round 3's held-out is 20 fresh templates from outside the seeded split (PLAN Phase 6).
   const r3 = roundOf(splits);
   assert.equal(r3.round, 3);
   assert.deepEqual(ids(r3.dev), [...ids(splits.dev), ...ids(splits.heldOut)]);
-  assert.deepEqual(ids(r3.heldOut), []);
+  assert.deepEqual(ids(r3.heldOut), ids(splits.heldOutFresh.templates));
+  assert.equal(r3.heldOut.length, 20);
   assert.equal(devWithFixtures(splits).length, 70);
   assert.equal(devWithFixtures(splits, undefined, 2).length, 50);
   assert.equal(devWithFixtures(splits, undefined, 1).length, 30);
@@ -94,4 +95,41 @@ test("rolling held-out: round 2 promotes held-out 1-20 and holds out 21-40, roun
   assert.equal(overfittingBound({ passDev: 9, nDev: 30, passHeld: 2, nHeld: 20, flips: 1 }).bound, 33.4);
   // Release point 2 restated: 16/50 against 3/20, bound 23.1.
   assert.deepEqual(overfittingBound({ passDev: 16, nDev: 50, passHeld: 3, nHeld: 20 }), { pooled: 27.1, gap: 17, bound: 23.1, flipsPoints: 0, inside: true });
+});
+
+// Round 3's fresh held-out (PLAN Phase 6; split.mjs drawFresh, fetch.mjs --top-up): drawn by
+// seed per wake-up stratum from corpus.json's eligible templates outside the seeded split, with
+// the seeded held-out's strata halved; reproducible from corpus.json; never in the survey folder.
+test("round 3's fresh held-out: outside the seeded split, reproducible from the seed, strata as planned", async () => {
+  const { drawFresh, FRESH_SEED } = await import("../evals/bench/split.mjs");
+  const { FRESH_QUOTAS, freshCandidates, stratum } = await import("../evals/bench/fetch.mjs");
+  const splits = JSON.parse(readFileSync(join(BENCH, "splits.json"), "utf8"));
+  const corpus = JSON.parse(readFileSync(join(BENCH, "corpus.json"), "utf8"));
+  const fresh = splits.heldOutFresh;
+  assert.equal(fresh.seed, FRESH_SEED);
+  const seeded = new Set([...splits.dev, ...splits.heldOut].map((r) => r.id));
+  for (const t of fresh.templates) assert.ok(!seeded.has(t.id), `${t.id} is in the seeded split`);
+  // Every fresh id is in corpus.json with the same hash (so the lint and validate.mjs cover it).
+  const byId = new Map(corpus.templates.map((e) => [e.id, e]));
+  for (const t of fresh.templates) {
+    const e = byId.get(t.id);
+    assert.ok(e && !e.excluded && ["overflow", "fresh"].includes(e.pool), String(t.id));
+    assert.equal(e.sha256, t.sha256, String(t.id));
+    assert.equal(e.wakeup, t.wakeup, String(t.id));
+  }
+  // The seeded held-out (40) halved, per stratum.
+  const held40 = {};
+  for (const r of splits.heldOut) held40[stratum(r.wakeup)] = (held40[stratum(r.wakeup)] ?? 0) + 1;
+  assert.deepEqual(FRESH_QUOTAS, Object.fromEntries(Object.entries(held40).map(([k, n]) => [k, n / 2])));
+  const got = {};
+  for (const t of fresh.templates) got[stratum(t.wakeup)] = (got[stratum(t.wakeup)] ?? 0) + 1;
+  assert.deepEqual(got, Object.fromEntries(Object.entries(FRESH_QUOTAS).filter(([, n]) => n)));
+  // Reproducible: the same draw from corpus.json gives the same list, in the same order.
+  const { drawn } = drawFresh(freshCandidates(corpus.templates).filter((e) => !seeded.has(e.id)));
+  assert.deepEqual(drawn.map((e) => e.id), fresh.templates.map((t) => t.id));
+  // Every overflow template of the Phase 5 walk is a candidate; the top-up adds entries only.
+  assert.equal(freshCandidates(corpus.templates).filter((e) => e.pool === "overflow").length, corpus.counts.overflow);
+  // PROPOSALS P51: a current held-out template is never in the survey folder.
+  const survey = join(BENCH, "..", "survey", "data", "wf");
+  for (const t of fresh.templates) assert.ok(!existsSync(join(survey, `${t.id}.json`)), `${t.id} is in evals/survey/data/wf`);
 });
