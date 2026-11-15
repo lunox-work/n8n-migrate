@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "template": 4968,
+  "sha256": "79835d82429c1101db291fa5eb95afec1f5bc373d27f352007834cc238290c42",
+  "variant": "normal",
+  "now": "2026-11-16T17:00:00.000Z",
+  "trigger": {
+    "node": "Schedule Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T12:00:00.000-05:00",
+          "Readable date": "November 16th 2026, 12:00:00 pm",
+          "Readable time": "12:00:00 pm",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "12",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "models": [
+    "Content topic generator2",
+    "OpenAI Chat Model",
+    "Content creator",
+    "OpenAI Chat Model1",
+    "Hashtag generator /SEO",
+    "OpenAI Chat Model2"
+  ],
+  "writes": [
+    "LinkedIn"
+  ],
+  "writeReplies": [
+    {
+      "node": "LinkedIn",
+      "service": "linkedin",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.linkedin.com/rest/images",
+            "query": {
+              "action": "initializeUpload"
+            },
+            "status": 200,
+            "body": {
+              "value": {
+                "uploadUrlExpiresAt": 1794909600000,
+                "uploadUrl": "https://www.linkedin.com/dms-uploads/sp/v2/D4E10AQBench4968/uploaded-image/0?ca=vector_feedshare&cn=uploads&iri=B01-77&sync=0&v=beta&ut=bench",
+                "image": "urn:li:image:D4E10AQBench4968"
+              }
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://www.linkedin.com/dms-uploads/sp/v2/D4E10AQBench4968/uploaded-image/0",
+            "status": 201,
+            "body": ""
+          },
+          {
+            "method": "POST",
+            "url": "https://api.linkedin.com/rest/posts",
+            "status": 201,
+            "headers": {
+              "x-restli-id": "urn:li:share:7400000000000004968"
+            },
+            "body": ""
+          }
+        ]
+      },
+      "note": "LinkedIn v1 post create, shareMediaCategory IMAGE (n8n 2.47.7 LinkedIn.node.js): POST /rest/images?action=initializeUpload {initializeUploadRequest: {owner}}, POST of the image bytes to the uploadUrl it returns, then POST /rest/posts {author, commentary, visibility, distribution, lifecycleState, content.media.id}; LinkedIn answers the post 201 with the share urn in x-restli-id and an empty body. Listed for a side that gets that far: the node has no text and no organization, so n8n 2.47.7 refuses the empty text before calling LinkedIn"
+    }
+  ],
+  "about": "a 6-hourly tick generates topics, a post with an image description, a DALL-E image and hashtags, merged into the LinkedIn step",
+  "reads": [
+    {
+      "node": "OpenAI",
+      "service": "openai-images",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/images/generations",
+            "status": 200,
+            "body": {
+              "created": 1794848400,
+              "data": [
+                {
+                  "b64_json": "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAAEUlEQVR4nGPQiFqAFTEMpAQA2Rc2YTScmLUAAAAASUVORK5CYII=",
+                  "revised_prompt": "A realistic photo of a solo founder at a standing desk reviewing an AI content calendar on a large monitor, warm office light."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media); the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "OpenAI node v1.8 (LangChain vendor node), resource image, operation generate (default), model left at its default dall-e-3: POST https://api.openai.com/v1/images/generations {prompt, model: dall-e-3, response_format: b64_json}; each entry becomes a binary item (property data). Image generation is not a model the shim answers, so it is fixed here; the image is a small PNG stand-in"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: topic agent → content chain → (image, hashtag agent) → Merge → LinkedIn, which n8n refuses on its empty text"
+    ],
+    "offline": "Topics, post text, image description and hashtags are model-driven (n8n's replies are recorded). The LinkedIn node has no text parameter and postAs organization with no organization id: n8n 2.47.7 throws 'The Text field is empty' on its first item before any LinkedIn request, so n8n's run ends failed at LinkedIn in every variant (the template's own configuration, not the bench). Merge (v3.2, append) hands LinkedIn two items, the image item and the hashtag item"
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "template": 2292,
+  "sha256": "9e6cf46d1493efb2fd67e0c9efb810424c130a08a489a2c39014ff7652023091",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model"
+  ],
+  "writes": [
+    "Save chinook.db locally"
+  ],
+  "about": "chinook.db on disk is an HTML error page saved under the database name, so sqlite cannot open it",
+  "trigger": {
+    "node": "Chat Trigger",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "6b1f0c9e2d4a4c7b9e3f5a7c1d2e4f60",
+          "action": "sendMessage",
+          "chatInput": "How many customers do we have per country?"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get chinook.zip example",
+      "service": "sqlitetutorial",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.sqlitetutorial.net/wp-content/uploads/2018/03/chinook.zip",
+            "status": 200,
+            "headers": {
+              "content-type": "application/zip"
+            },
+            "bodyBase64": "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"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a plain file download; the Claude side serves the same bytes through its HTTP mock"
+      },
+      "note": "manual path only (When clicking \"Test workflow\" → Get chinook.zip example → Extract zip file → Save chinook.db locally), not run by the chat trigger; listed so both paths have their sources. The zip holds the normal variant's stand-in chinook.db"
+    },
+    {
+      "node": "Load local chinook.db",
+      "service": "local-disk",
+      "file": {
+        "path": "./chinook.db",
+        "text": "<!DOCTYPE html>\n<html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL /wp-content/uploads/2018/03/chinook.zip was not found on this server.</p></body></html>\n"
+      },
+      "note": "Read/Write Files from Disk v1 (read): fileSelector ./chinook.db, a relative path that n8n resolves against /home/node (FIXTURES.md file); the file lands in binary property data, which the Set node keeps (includeBinary) and the SQL agent (AI Agent v1.6, agent sqlAgent, dataSource sqlite) writes to a temporary file and opens with sqlite3. The database is a small Chinook-shaped stand-in (artists, albums, genres, tracks, customers, invoices, invoice_items), not the 1 MB Chinook download, which the separate manual path (Get chinook.zip example → Extract zip file → Save chinook.db locally) would have saved. The file holds an HTML 404 page (what a failed download leaves behind), not a SQLite database"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: opening the database fails (file is not a database), before or during the agent's first query"
+    ],
+    "offline": "The SQL the agent writes is model-driven (n8n's replies are recorded and replayed); the database is local, so the only effect is the chat reply. Window Buffer Memory holds one turn per run. The manual download path (sqlitetutorial.net zip) is a separate trigger and is not run"
+  }
+}

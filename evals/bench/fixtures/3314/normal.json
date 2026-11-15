@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "template": 3314,
+  "sha256": "04d7ae3086dd1ec38a0ec1f9436704f8ba9478083ea2921d4ca32781742961fe",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "models": [
+    "Security Vulnerabilities Audit",
+    "OpenAI Content Analysis",
+    "Security Configuration Audit",
+    "OpenAI Headers Analysis"
+  ],
+  "writes": [
+    "Send Security Report"
+  ],
+  "writeReplies": [
+    {
+      "node": "Send Security Report",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/send",
+            "status": 200,
+            "body": {
+              "id": "19a8f3b2c4d5e601",
+              "threadId": "19a8f3b2c4d5e601",
+              "labelIds": [
+                "SENT"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Gmail v2.1 send: POST /gmail/v1/users/me/messages/send {raw}, to example@here.com (the template's value), HTML body from convert to HTML, subject 'Website Security Audit - <url>'; v2.1 appends n8n's attribution line by default"
+    }
+  ],
+  "about": "the person submits a shop's landing page; its HTML (inline keys, an http form, an old jQuery) and headers (short HSTS, no CSP or X-Frame-Options) are audited and the HTML report is emailed",
+  "trigger": {
+    "node": "Landing Page Url",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "Landing Page Url": "https://www.northwind-outfitters.example/",
+          "submittedAt": "2026-11-16T03:59:41.512-05:00",
+          "formMode": "production"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Scrape Website",
+      "service": "website",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.northwind-outfitters.example/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=UTF-8",
+              "server": "Apache/2.4.29 (Ubuntu)",
+              "x-powered-by": "PHP/7.2.24",
+              "strict-transport-security": "max-age=300",
+              "x-content-type-options": "nosniff",
+              "set-cookie": "PHPSESSID=8f2c1a9e7b3d4c6a; path=/",
+              "cache-control": "no-cache"
+            },
+            "body": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Northwind Outfitters | Outdoor gear since 1998</title>\n<script src=\"http://cdn.northwind-outfitters.example/js/jquery-1.8.3.min.js\"></script>\n<script>\n  window.NW_CONFIG = { stripeKey: \"pk_live_51Hbench0000000000000000\", apiBase: \"https://api.northwind-outfitters.example/v1\", debug: true };\n  function search(q) { document.getElementById('results').innerHTML = 'Results for ' + q; }\n</script>\n</head>\n<body>\n<header><a href=\"/\">Northwind Outfitters</a> <a href=\"/account/login\">Sign in</a></header>\n<form action=\"http://www.northwind-outfitters.example/newsletter\" method=\"post\">\n  <input type=\"email\" name=\"email\" placeholder=\"you@example.com\">\n  <button>Subscribe</button>\n</form>\n<input id=\"q\" oninput=\"search(this.value)\"><div id=\"results\"></div>\n<!-- TODO remove before launch: staging admin at /wp-admin, user admin -->\n<footer>&copy; 2026 Northwind Outfitters Ltd. Powered by WordPress 5.2.4</footer>\n</body>\n</html>\n"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a page fetch with response headers; the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2: GET of the URL the person typed, redirects followed (max 5), Full Response with Response Format text, so n8n emits {body, headers, statusCode, statusMessage}; Extract Headers for Debug and the configuration audit read the headers, the content audit reads the body. The site is invented; its headers and HTML are what a small shop on an old stack might serve"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: both audits run, Merge → Aggregate → Process Audit Results → convert to HTML → one email"
+    ],
+    "offline": "Both audits are model-driven (n8n's replies are recorded). The page is fetched once; the form trigger answers on receipt (no Form page follows), so nothing waits"
+  }
+}

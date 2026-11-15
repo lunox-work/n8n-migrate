@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "template": 2824,
+  "sha256": "1e6d1c8874d71acb1312c297cfd8ba53f2f3750fc189c5a4198f0335515d3d4d",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "models": [],
+  "writes": [],
+  "about": "Perplexity returns a completion whose message content is null and whose citations field is missing",
+  "reads": [
+    {
+      "node": "Perplexity Request",
+      "service": "perplexity",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.perplexity.ai/chat/completions",
+            "status": 200,
+            "body": {
+              "id": "3f1e8c52-6b0d-4c2a-9a51-bench2824",
+              "model": "sonar",
+              "created": 1794819600,
+              "object": "chat.completion",
+              "choices": [
+                {
+                  "index": 0,
+                  "finish_reason": "length",
+                  "message": {
+                    "role": "assistant",
+                    "content": null
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no Claude connector for Perplexity; the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2, generic Header Auth credential: POST https://api.perplexity.ai/chat/completions with the JSON body the node builds from Set Params (model sonar, the system and user prompts, search_domain_filter [\"n8n.io\",\" make.com\"] from split(','), search_recency_filter month, stream false). Perplexity is not a model host the shim forwards, so its answer is fixed here; the request is the same in every variant (Set Params is static). Response shape from Perplexity's chat completions docs (citations and search_results beside OpenAI's choices), marked assumed"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: Clean Output reads choices[0].message.content (null) and citations (absent) into a string field and an array field"
+    ],
+    "offline": "Nothing leaves the workflow: the answer ends in Clean Output's item (output, citations), with no write, reply or model call to compare (README P50, 'nothing compared'). Perplexity's search is not reproduced offline; its answer is a fixed text"
+  }
+}

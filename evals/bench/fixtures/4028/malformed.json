@@ -1,0 +1,280 @@
+{
+  "schemaVersion": 1,
+  "template": 4028,
+  "sha256": "9e2d4ec754c242f39e94993621bd01529b7eccf46fd2cf7261104f2227e08048",
+  "variant": "malformed",
+  "now": "2026-11-16T09:00:00.000Z",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "models": [
+    "Generate Description for Tiktok and Instagram"
+  ],
+  "writes": [
+    "POST TO INSTAGRAM",
+    "POST TO TIKTOK"
+  ],
+  "writeReplies": [
+    {
+      "node": "POST TO INSTAGRAM",
+      "service": "upload-post",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.upload-post.com/api/upload_photos",
+            "bodyMatch": {
+              "platform[]": "instagram"
+            },
+            "status": 200,
+            "body": {
+              "success": true,
+              "results": {
+                "instagram": {
+                  "success": true,
+                  "url": "https://www.instagram.com/p/DBench4028a/"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "note": "upload-post photo upload (multipart: title, user upload_post, platform[] instagram, five photos[] parts); the reply is not read by any later node. The Authorization header carries the template's 'Apikey api_key_here' placeholder, which the mock does not check"
+    },
+    {
+      "node": "POST TO TIKTOK",
+      "service": "upload-post",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.upload-post.com/api/upload_photos",
+            "bodyMatch": {
+              "platform[]": "tiktok"
+            },
+            "status": 200,
+            "body": {
+              "success": true,
+              "results": {
+                "tiktok": {
+                  "success": true,
+                  "url": "https://www.tiktok.com/@upload_post/photo/7400000000000004028"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "note": "as for Instagram, platform[] tiktok, title cut to 90 code points, plus auto_add_music true"
+    }
+  ],
+  "about": "the first generation answers a url with a null b64_json, so Convert to File has no base64 to read",
+  "reads": [
+    {
+      "node": "OpenAI - Generate Image 1",
+      "service": "openai-images",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/images/generations",
+            "status": 200,
+            "body": {
+              "created": 1794819600,
+              "data": [
+                {
+                  "b64_json": null,
+                  "url": "https://oaidalleapiprodscus.blob.core.windows.net/private/org-bench/img-1.png"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image generation stays with the provider (media); the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2 with the openAiApi credential: POST /v1/images/generations, JSON {model: gpt-image-1, prompt: prompt1, n: 1, size: 1024x1536, output_format: webp}; gpt-image-1 always answers b64_json. Split Out data → Convert to File (toBinary from b64_json) → photo1. The images are tiny solid-colour PNG stand-ins (one colour per step, so the order of the five photos in the uploads is checkable), not 1024x1536 webp; image generation is not a model the shim answers, so it is fixed here"
+    },
+    {
+      "node": "OpenAI - Generate Image 2",
+      "service": "openai-images",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/images/edits",
+            "bodyMatch": "cozy kitchen",
+            "status": 200,
+            "body": {
+              "created": 1794819630,
+              "background": "opaque",
+              "data": [
+                {
+                  "b64_json": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAGCAIAAABrW6giAAAAEUlEQVR4nGOIWnAHjhgo5QAAqugsEXFcXl8AAAAASUVORK5CYII="
+                }
+              ],
+              "output_format": "webp",
+              "quality": "high",
+              "size": "1024x1536",
+              "usage": {
+                "total_tokens": 4300,
+                "input_tokens": 110,
+                "output_tokens": 4190,
+                "input_tokens_details": {
+                  "text_tokens": 110,
+                  "image_tokens": 0
+                }
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image editing stays with the provider (media); the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2 multipart/form-data: POST /v1/images/edits with model, prompt (prompt2), n, size, image[] (photo1 from the previous step) and output_format; the node also sets a Content-Type: application/json header parameter, which n8n's multipart body is assumed to override (unverified). Answered by a distinctive phrase of prompt2 in the raw body (\"cozy kitchen\"), so each edit gets its own colour; stand-in PNG bytes as for step 1"
+    },
+    {
+      "node": "OpenAI - Generate Image 3",
+      "service": "openai-images",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/images/edits",
+            "bodyMatch": "empty street crossing",
+            "status": 200,
+            "body": {
+              "created": 1794819660,
+              "background": "opaque",
+              "data": [
+                {
+                  "b64_json": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAGCAIAAABrW6giAAAAEElEQVR4nGOoOJEHRwyUcgAlyChRQc9wFgAAAABJRU5ErkJggg=="
+                }
+              ],
+              "output_format": "webp",
+              "quality": "high",
+              "size": "1024x1536",
+              "usage": {
+                "total_tokens": 4300,
+                "input_tokens": 110,
+                "output_tokens": 4190,
+                "input_tokens_details": {
+                  "text_tokens": 110,
+                  "image_tokens": 0
+                }
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image editing stays with the provider (media); the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2 multipart/form-data: POST /v1/images/edits with model, prompt (prompt3), n, size, image[] (photo2 from the previous step) and output_format; the node also sets a Content-Type: application/json header parameter, which n8n's multipart body is assumed to override (unverified). Answered by a distinctive phrase of prompt3 in the raw body (\"empty street crossing\"), so each edit gets its own colour; stand-in PNG bytes as for step 1"
+    },
+    {
+      "node": "OpenAI - Generate Image 4",
+      "service": "openai-images",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/images/edits",
+            "bodyMatch": "staring blankly",
+            "status": 200,
+            "body": {
+              "created": 1794819690,
+              "background": "opaque",
+              "data": [
+                {
+                  "b64_json": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAGCAIAAABrW6giAAAAEUlEQVR4nGN4diIAjhgo5QAAV3cv0fr1gSIAAAAASUVORK5CYII="
+                }
+              ],
+              "output_format": "webp",
+              "quality": "high",
+              "size": "1024x1536",
+              "usage": {
+                "total_tokens": 4300,
+                "input_tokens": 110,
+                "output_tokens": 4190,
+                "input_tokens_details": {
+                  "text_tokens": 110,
+                  "image_tokens": 0
+                }
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image editing stays with the provider (media); the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2 multipart/form-data: POST /v1/images/edits with model, prompt (prompt4), n, size, image[] (photo3 from the previous step) and output_format; the node also sets a Content-Type: application/json header parameter, which n8n's multipart body is assumed to override (unverified). Answered by a distinctive phrase of prompt4 in the raw body (\"staring blankly\"), so each edit gets its own colour; stand-in PNG bytes as for step 1"
+    },
+    {
+      "node": "OpenAI - Generate Image 5",
+      "service": "openai-images",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/images/edits",
+            "bodyMatch": "grassy hill",
+            "status": 200,
+            "body": {
+              "created": 1794819720,
+              "background": "opaque",
+              "data": [
+                {
+                  "b64_json": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAGCAIAAABrW6giAAAAEUlEQVR4nGNYlXcCjhgo5QAA2NgtAQuN8sYAAAAASUVORK5CYII="
+                }
+              ],
+              "output_format": "webp",
+              "quality": "high",
+              "size": "1024x1536",
+              "usage": {
+                "total_tokens": 4300,
+                "input_tokens": 110,
+                "output_tokens": 4190,
+                "input_tokens_details": {
+                  "text_tokens": 110,
+                  "image_tokens": 0
+                }
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "image editing stays with the provider (media); the Claude side serves the same response through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2 multipart/form-data: POST /v1/images/edits with model, prompt (prompt5), n, size, image[] (photo4 from the previous step) and output_format; the node also sets a Content-Type: application/json header parameter, which n8n's multipart body is assumed to override (unverified). Answered by a distinctive phrase of prompt5 in the raw body (\"grassy hill\"), so each edit gets its own colour; stand-in PNG bytes as for step 1"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Convert to File 1 fails on the null b64_json (or emits no binary); nothing is uploaded"
+    ],
+    "offline": "The caption is model-driven (n8n's reply is recorded); the five images are small PNG stand-ins in place of 1024x1536 webp files. Merge has six inputs with five connected; it is assumed to run once the five connected inputs have data (execution order v1)"
+  }
+}
