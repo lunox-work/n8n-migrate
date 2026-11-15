@@ -19,7 +19,8 @@
 //   - fixture strings: string values of 12+ characters in evals/bench/fixtures that look
 //     invented (contain a space, an @, or both letters and digits), are not URLs or paths, and
 //     are not n8n's or a connector's own vocabulary (strings that also occur in the generated
-//     node catalogue references/nodes.json or the captured connector schemas).
+//     node catalogue references/nodes.json or the captured connector schemas); a fixture's
+//     `pinData` (the template's own pins, copied verbatim) is not collected.
 // Exit 1 with file:line and the match on any hit.
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -81,11 +82,14 @@ for (const id of ids) {
 
 const fixtureStrings = new Set();
 const FIXTURES = join(BENCH, "fixtures");
-const SKIP_KEYS = new Set(["sha256", "now", "schemaVersion", "variant", "template"]);
+// pinData is the template's own pinned data, copied verbatim (validate.mjs requires it), not a
+// string the fixture writer invented; like the template's other parameters it is not scanned.
+const SKIP_KEYS = new Set(["sha256", "now", "schemaVersion", "variant", "template", "pinData"]);
 const collect = (v, key) => {
+  if (SKIP_KEYS.has(key)) return;
   if (typeof v === "string") {
     const s = v.trim();
-    if (s.length < MIN || SKIP_KEYS.has(key)) return;
+    if (s.length < MIN) return;
     if (/^(https?:)?\/\//i.test(s) || /^\/[\w./{}:-]*$/.test(s)) return; // URLs and paths are the API's
     if (!(/\s/.test(s) || s.includes("@") || (/[a-z]/i.test(s) && /\d/.test(s)))) return;
     if (vendorText.includes(s)) return;

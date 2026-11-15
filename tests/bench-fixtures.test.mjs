@@ -81,16 +81,15 @@ test("round 3's fresh held-out of splits.json have fixtures pinned to their hash
 });
 
 // Round 4's fresh held-out (splits.json heldOutFresh4) feeds release point 4; its fixtures were
-// written blind (2026-11-16), and each pins the hash heldOutFresh4 recorded. A template redrawn
-// after that (heldOutFresh4.redraws, amendment 1) has none until the blind session writes them.
+// written blind (2026-11-16), and each pins the hash heldOutFresh4 recorded. The template redrawn
+// after that (heldOutFresh4.redraws, amendment 1) got its fixtures from a later blind session, so
+// all 20 have four each.
 test("round 4's fresh held-out of splits.json have fixtures pinned to their hash", () => {
   const splits = JSON.parse(readFileSync(join(BENCH, "splits.json"), "utf8"));
   const round4 = splits.rounds.find((r) => r.round === 4).heldOut;
   assert.deepEqual(round4, splits.heldOutFresh4.templates.map((r) => r.id));
   assert.equal(round4.length, 20);
-  const redrawn = new Set((splits.heldOutFresh4.redraws ?? []).flatMap((r) => r.in));
   for (const { id, sha256 } of splits.heldOutFresh4.templates) {
-    if (redrawn.has(id) && !existsSync(join(BENCH, "fixtures", String(id)))) continue;
     for (const v of VARIANTS) {
       const p = join(BENCH, "fixtures", String(id), `${v}.json`);
       assert.ok(existsSync(p), `${id}/${v}`);
@@ -280,7 +279,7 @@ test("rounds: dropped ids leave dev; a later round's held-out is unreadable befo
 // fresh templates from a round-4 top-up are held out, drawn by seed 20261116 per stratum. After
 // amendment 1, the dev templates that fail it leave too and as many join (devAdded: the walk's
 // next candidates in the same shuffled order, else the views walk's next eligible entries), and a
-// held-out template that fails it is redrawn; the new ones have no fixtures yet.
+// held-out template that fails it is redrawn; the new ones got fixtures from a blind session.
 test("round 4: dev is 100 round-4-eligible templates, held-out 20 fresh, amendment 1 replaced like for like", async () => {
   const { readSplits, roundOf, devWithFixtures, unreadableIds } = await import("../evals/bench/rounds.mjs");
   const { drawFresh, FRESH_SEEDS, mulberry32 } = await import("../evals/bench/split.mjs");
@@ -304,9 +303,18 @@ test("round 4: dev is 100 round-4-eligible templates, held-out 20 fresh, amendme
   const strataOf = (xs) => xs.map((x) => stratum(x.wakeup)).sort();
   const droppedRows = [...r3.dev, ...r3.heldOut].filter((x) => added.amendments.flatMap((a) => a.dropped).includes(x.id));
   assert.deepEqual(strataOf(added.templates), strataOf(droppedRows));
-  // Every dev template has fixtures except the new ones, which the blind session writes next.
+  // Every dev template has fixtures; the ones amendment 1 added got theirs from a blind session,
+  // four variants each, pinned to the hash devAdded4 recorded.
   const withFixtures = new Set(devWithFixtures(splits, undefined, 4));
-  for (const id of ids(r4.dev)) if (!ids(r4.devAdded).includes(id)) assert.ok(withFixtures.has(id), `${id} has no fixtures`);
+  for (const id of ids(r4.dev)) assert.ok(withFixtures.has(id), `${id} has no fixtures`);
+  assert.equal(withFixtures.size, 100);
+  for (const { id, sha256 } of added.templates) {
+    for (const v of VARIANTS) {
+      const p = join(BENCH, "fixtures", String(id), `${v}.json`);
+      assert.ok(existsSync(p), `${id}/${v}`);
+      assert.equal(JSON.parse(readFileSync(p, "utf8")).sha256, sha256, `${id}/${v}`);
+    }
+  }
   assert.deepEqual(ids(r4.heldOut), ids(fresh.templates));
   assert.equal(r4.heldOut.length, 20);
   // Disjoint from every template any earlier round used.
