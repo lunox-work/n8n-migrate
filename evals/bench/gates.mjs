@@ -168,8 +168,13 @@ export function gate6({ claudeCalls, allow, claudeEffects, n8nBaitHits = [], bai
       outside.push(`http ${h.url}`);
       continue;
     }
-    const ok = (allow.http ?? []).some((a) => (a.method === "*" || String(a.method).toUpperCase() === String(h.method).toUpperCase()) && String(a.host).toLowerCase() === u.hostname.toLowerCase() && u.pathname.startsWith(a.pathPrefix || "/"));
-    if (!ok) outside.push(`http ${h.method} ${u.hostname}${u.pathname}`);
+    const methodOk = (a) => a.method === "*" || String(a.method).toUpperCase() === String(h.method).toUpperCase();
+    const ok = (allow.http ?? []).some((a) => methodOk(a) && a.scope !== "public" && String(a.host).toLowerCase() === u.hostname.toLowerCase() && u.pathname.startsWith(a.pathPrefix || "/"));
+    // PROPOSALS P80: a step the person answered "public" for at setup may reach a public https
+    // host, judged here with the bench's own test, never with a credential; the step is checked
+    // where the call names it (in process), the claude driver's host log does not.
+    const pub = !ok && !h.auth && publicTarget(u) && (allow.http ?? []).some((a) => a.scope === "public" && a.host === "*" && methodOk(a) && (!h.step || a.step === h.step));
+    if (!ok && !pub) outside.push(`http ${h.method} ${u.hostname}${u.pathname}`);
   }
   if (outside.length) return fail("runner bug", "calls outside the definition's allow lists", outside);
   const defsMiss = modelInputs.filter((m) => m.toolDefs && !m.toolDefs.same);
@@ -178,6 +183,22 @@ export function gate6({ claudeCalls, allow, claudeEffects, n8nBaitHits = [], bai
   const hits = baitHits(claudeEffects, bait).filter((h) => !n8nHas.has(`${h.key}|${h.bait}`));
   if (hits.length) return fail("runner bug", "bait reached an effect n8n did not make", hits);
   return pass({ calls: (claudeCalls.tools?.length ?? 0) + (claudeCalls.http?.length ?? 0), baitAlsoInN8n: n8nBaitHits.length, ...(synthetic ? { synthetic: synthetic.map((s) => ({ model: s.model, before: s.before, reached: s.reached, refused: s.reached ? !s.offListRequests.length : null })) } : {}) });
+}
+
+// PROPOSALS P80: the bench's own idea of a public https target (it does not reuse the
+// runtime's): https, default port, no user info, a dotted name that is not localhost or a
+// local or internal suffix, an IPv4 literal outside private, loopback, link-local, carrier NAT
+// and reserved ranges, never an IPv6 literal.
+export function publicTarget(u) {
+  if (u.protocol !== "https:" || u.username || u.password || (u.port && u.port !== "443")) return false;
+  const h = u.hostname.toLowerCase().replace(/\.$/, "");
+  if (h.startsWith("[") || !h.includes(".")) return false;
+  const ip = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(h);
+  if (ip) {
+    const [a, b] = ip.slice(1).map(Number);
+    return !(a === 0 || a === 10 || a === 127 || a >= 224 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127));
+  }
+  return !/(?:^|\.)(?:localhost|local|internal|localdomain|home\.arpa)$/.test(h);
 }
 
 // 7. Stable: gates 3 to 6 give the same verdicts on every repeat (3 of 3).

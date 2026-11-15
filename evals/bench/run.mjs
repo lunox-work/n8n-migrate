@@ -37,7 +37,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync, cpS
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState, siteAnswers } from "./n8n-side.mjs";
+import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState, siteAnswers, hostsAnswers } from "./n8n-side.mjs";
 import { convertPlain, convertSkill, filledSource, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, withSynthetic, syntheticOutcome, nondeterministicTools } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
 import { fromHttp, fromTool, fromFile, replyOf, resultOf, isResult, lastOutputs, terminalNodes, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads } from "./compare.mjs";
@@ -328,6 +328,9 @@ async function benchTemplate(id, args, L) {
   if (folder && !S.overlayApplied) {
     const sites = siteAnswers(readJson(join(folder, "report.json")), wf, loadFixture(id, "normal"), overlay);
     if (Object.keys(sites).length) claudeOv.push({ answers: sites });
+    // PROPOSALS P80: a step whose host comes from data is answered "public", as n8n runs it.
+    const hosts = hostsAnswers(readJson(join(folder, "report.json")));
+    if (Object.keys(hosts).length) claudeOv.push({ answers: hosts });
   }
   if (folder && claudeOv.length && !S.overlayApplied) {
     const of = join(folder, "overrides.json");

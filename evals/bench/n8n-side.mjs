@@ -344,6 +344,18 @@ export function siteAnswers(report, wf, fx, overlay = null) {
   return out;
 }
 
+// PROPOSALS P80: the hosts question of a step whose address comes from data (analyze.mjs
+// askHosts) is answered "public": n8n's run sends the step to whatever host the data names, so
+// the answer that lets the Claude side do the same is any public https host, the widest a person
+// can give; the runtime still refuses private, loopback, link-local and metadata addresses, and
+// gate 6 checks every call against the entry with its own test (gates.mjs publicTarget()).
+// -> {questionId: "public"}
+export function hostsAnswers(report) {
+  const out = {};
+  for (const w of report?.workflows ?? []) for (const q of w.questions ?? []) if (/\/hosts\/.+$/.test(q.id)) out[q.id] = "public";
+  return out;
+}
+
 export function credentialData(type, { wordpressUrl, s3Endpoint } = {}) {
   const t = {
     openAiApi: { apiKey: "bench-dummy", url: "https://api.openai.com/v1" },

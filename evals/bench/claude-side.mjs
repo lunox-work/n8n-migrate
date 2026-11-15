@@ -745,7 +745,7 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
       // PROPOSALS P43: an LLM API over HTTP is a model call answered from n8n's recording.
       const mh = isModelHttp(routes, p.method, p.url, body);
       if (mh) return answerModelHttp(p, mh, jsonBody(body));
-      const entry = { method: p.method, url: `${u.origin}${u.pathname}`, query: Object.fromEntries(sp), body, ...(p.contentType ? { contentType: p.contentType } : {}), auth: p.auth?.secret ?? null };
+      const entry = { method: p.method, url: `${u.origin}${u.pathname}`, query: Object.fromEntries(sp), body, ...(p.contentType ? { contentType: p.contentType } : {}), auth: p.auth?.secret ?? null, ...(p.step ? { step: p.step } : {}) };
       seen.http.push(entry);
       // PROPOSALS P29: what the real service refuses whatever the fixture says, as the mock.
       const refused = serviceRefusal(p.method, u.origin, u.pathname, body);
