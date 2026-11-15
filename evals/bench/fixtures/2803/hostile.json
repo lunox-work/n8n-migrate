@@ -364,16 +364,27 @@
           {
             "method": "POST",
             "url": "https://api.telegram.org/bot{token}/sendMessage",
-            "status": 400,
+            "status": 200,
             "body": {
-              "ok": false,
-              "error_code": 400,
-              "description": "Bad Request: chat not found"
+              "ok": true,
+              "result": {
+                "message_id": 501,
+                "from": {
+                  "id": 7000000001,
+                  "is_bot": true,
+                  "first_name": "Bench bot"
+                },
+                "chat": {
+                  "id": 100200300,
+                  "type": "private"
+                },
+                "date": 1763283600
+              }
             }
           }
         ]
       },
-      "note": "Telegram Params leaves telegram_chat_id empty in the template, so the real API refuses; the request is still the effect compared"
+      "note": "config/2803.json fills the chat id Telegram Params leaves empty (placeholder, P91), so the API accepts the message; one reply for every Telegram node (the route is shared, P57), so it carries no text"
     },
     {
       "node": "Telegram1",
@@ -384,16 +395,27 @@
           {
             "method": "POST",
             "url": "https://api.telegram.org/bot{token}/sendMessage",
-            "status": 400,
+            "status": 200,
             "body": {
-              "ok": false,
-              "error_code": 400,
-              "description": "Bad Request: chat not found"
+              "ok": true,
+              "result": {
+                "message_id": 501,
+                "from": {
+                  "id": 7000000001,
+                  "is_bot": true,
+                  "first_name": "Bench bot"
+                },
+                "chat": {
+                  "id": 100200300,
+                  "type": "private"
+                },
+                "date": 1763283600
+              }
             }
           }
         ]
       },
-      "note": "Telegram Params leaves telegram_chat_id empty in the template, so the real API refuses; the request is still the effect compared"
+      "note": "config/2803.json fills the chat id Telegram Params leaves empty (placeholder, P91), so the API accepts the message; one reply for every Telegram node (the route is shared, P57), so it carries no text"
     },
     {
       "node": "Telegram2",
@@ -404,16 +426,27 @@
           {
             "method": "POST",
             "url": "https://api.telegram.org/bot{token}/sendMessage",
-            "status": 400,
+            "status": 200,
             "body": {
-              "ok": false,
-              "error_code": 400,
-              "description": "Bad Request: chat not found"
+              "ok": true,
+              "result": {
+                "message_id": 501,
+                "from": {
+                  "id": 7000000001,
+                  "is_bot": true,
+                  "first_name": "Bench bot"
+                },
+                "chat": {
+                  "id": 100200300,
+                  "type": "private"
+                },
+                "date": 1763283600
+              }
             }
           }
         ]
       },
-      "note": "Telegram Params leaves telegram_chat_id empty in the template, so the real API refuses; the request is still the effect compared"
+      "note": "config/2803.json fills the chat id Telegram Params leaves empty (placeholder, P91), so the API accepts the message; one reply for every Telegram node (the route is shared, P57), so it carries no text"
     },
     {
       "node": "send error message to telegram",
@@ -424,16 +457,27 @@
           {
             "method": "POST",
             "url": "https://api.telegram.org/bot{token}/sendMessage",
-            "status": 400,
+            "status": 200,
             "body": {
-              "ok": false,
-              "error_code": 400,
-              "description": "Bad Request: chat not found"
+              "ok": true,
+              "result": {
+                "message_id": 501,
+                "from": {
+                  "id": 7000000001,
+                  "is_bot": true,
+                  "first_name": "Bench bot"
+                },
+                "chat": {
+                  "id": 100200300,
+                  "type": "private"
+                },
+                "date": 1763283600
+              }
             }
           }
         ]
       },
-      "note": "Telegram Params leaves telegram_chat_id empty in the template, so the real API refuses; the request is still the effect compared"
+      "note": "config/2803.json fills the chat id Telegram Params leaves empty (placeholder, P91), so the API accepts the message; one reply for every Telegram node (the route is shared, P57), so it carries no text"
     }
   ],
   "db": {
