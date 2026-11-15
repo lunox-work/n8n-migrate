@@ -98,7 +98,7 @@ test("rolling held-out: round 2 promotes held-out 1-20 and holds out 21-40, roun
   assert.equal(new Set([...ids(r2.dev), ...ids(r2.heldOut)]).size, 100, "dev and held-out stay disjoint");
   // Round 3 (after release point 2): held-out 21-40 join dev; the seeded held-out is used up,
   // so round 3's held-out is 20 fresh templates from outside the seeded split (PLAN Phase 6).
-  const r3 = roundOf(splits);
+  const r3 = roundOf(splits, 3);
   assert.equal(r3.round, 3);
   assert.deepEqual(ids(r3.dev), [...ids(splits.dev), ...ids(splits.heldOut)]);
   assert.deepEqual(ids(r3.heldOut), ids(splits.heldOutFresh.templates));
@@ -293,9 +293,11 @@ test("round 4: dev is the 100 round-4-eligible templates (all with fixtures), he
   // Reproducible from corpus.json and the committed seed.
   assert.equal(fresh.seed, FRESH_SEEDS[4]);
   assert.deepEqual(drawFresh(freshPool(corpus.templates, 4), FRESH_QUOTAS, FRESH_SEEDS[4]).drawn.map((e) => e.id), ids(fresh.templates));
-  // Round 3 is still current; its resolution is unchanged, and the P51 guards already skip round 4's held-out.
-  assert.equal(roundOf(splits).round, 3);
-  assert.deepEqual(new Set(unreadableIds(splits)), new Set([...ids(r3.heldOut), ...ids(r4.heldOut)]));
+  // While round 3 is current the P51 guards already skip round 4's held-out; once round 4 is
+  // current (after release point 3), round 3's held-out is dev and only round 4's is skipped.
+  assert.ok([3, 4].includes(roundOf(splits).round));
+  const expected = roundOf(splits).round === 3 ? [...ids(r3.heldOut), ...ids(r4.heldOut)] : ids(r4.heldOut);
+  assert.deepEqual(new Set(unreadableIds(splits)), new Set(expected));
   // PROPOSALS P51: never in the survey folder.
   const survey = join(BENCH, "..", "survey", "data", "wf");
   for (const t of fresh.templates) assert.ok(!existsSync(join(survey, `${t.id}.json`)), `${t.id} is in evals/survey/data/wf`);
