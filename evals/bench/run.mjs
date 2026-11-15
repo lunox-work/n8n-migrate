@@ -210,6 +210,8 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
     via: prep.via,
     credentialsAttached: prep.credentialsAttached,
     ...(env.needs?.length ? { container: env.needs } : {}),
+    // PROPOSALS P89: template-pinned nodes this run passed through (n8n returned the pin).
+    ...(prep.templatePinned?.some((n) => res.nodes?.[n]?.length) ? { pinnedPath: prep.templatePinned.filter((n) => res.nodes?.[n]?.length) } : {}),
     logVsFixture: logVsFixture(prep, res.effects),
     ...(httpAttempt ? { httpAttempt } : {}),
     credentialsMissing: res.credentials?.missing?.map((m) => `${m.node}: ${m.type}`) ?? [],
@@ -409,7 +411,7 @@ async function benchTemplate(id, args, L) {
     if (!S[`n8n:${v}`]) {
       log(`${id}/${v}: n8n`);
       const r = await n8nRun(id, v, { record: args.record });
-      S[`n8n:${v}`] = { status: r.status, error: r.error, ...(r.modelCallCap ? { modelCallCap: r.modelCallCap } : {}), modelModes: r.modelModes, executionMs: r.executionMs, wallMs: r.wallMs, startedAt: r.startedAt, logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [], ...(r.container ? { container: r.container } : {}) };
+      S[`n8n:${v}`] = { status: r.status, error: r.error, ...(r.modelCallCap ? { modelCallCap: r.modelCallCap } : {}), modelModes: r.modelModes, executionMs: r.executionMs, wallMs: r.wallMs, startedAt: r.startedAt, logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [], ...(r.container ? { container: r.container } : {}), ...(r.pinnedPath ? { pinnedPath: r.pinnedPath } : {}) };
       save();
     }
     // PROPOSALS P48: a fixture error has no recording (and must not read an older one).
@@ -606,7 +608,7 @@ function toolDefsSummary(models) {
 }
 
 function summarizeCheck(r) {
-  return { status: r.status, error: r.error, ...(r.modelCallCap ? { modelCallCap: r.modelCallCap } : {}), modelModes: r.modelModes, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [], ...(r.container ? { container: r.container } : {}), logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, executionMs: r.executionMs, credentialsMissing: r.credentialsMissing };
+  return { status: r.status, error: r.error, ...(r.modelCallCap ? { modelCallCap: r.modelCallCap } : {}), modelModes: r.modelModes, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [], ...(r.container ? { container: r.container } : {}), ...(r.pinnedPath ? { pinnedPath: r.pinnedPath } : {}), logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, executionMs: r.executionMs, credentialsMissing: r.credentialsMissing };
 }
 
 // PROPOSALS P1: a failure that traces to a field the fixture marks as a connector gap.
@@ -697,6 +699,8 @@ async function main() {
         n8nContainer: t.steps["n8n:normal"]?.container ?? t.steps.n8nCheck?.container ?? null,
         // PROPOSALS P53: substitutions the bench approved as the person would (not placeholder fills).
         substitutionsApproved: t.steps.overlayApplied?.approved ?? null,
+        // PROPOSALS P89: nodes n8n served from the template's own pinData on the normal run.
+        pinnedPath: t.steps["n8n:normal"]?.pinnedPath ?? t.steps.n8nCheck?.pinnedPath ?? null,
         stubs: t.steps["n8n:normal"]?.sources ?? t.steps.n8nCheck?.sources ?? null,
         n8nModelModes: t.steps["n8n:normal"]?.modelModes ?? t.steps.n8nCheck?.modelModes ?? null,
         logVsFixture: t.steps["n8n:normal"]?.logVsFixture ?? t.steps.n8nCheck?.logVsFixture ?? null,

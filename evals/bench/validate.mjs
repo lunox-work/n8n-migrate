@@ -109,6 +109,7 @@ export async function checkFixture(fx, raw) {
   for (const k of Object.keys(fx.pinData ?? {})) if (!wf.pinData?.[k]) errors.push(`pinData.${k} is not in the template's pinData`);
   if (wf.pinData && Object.keys(wf.pinData).length && !fx.pinData) errors.push("the template has pinData; copy it into pinData");
   for (const e of modelErrors(fx, wf)) errors.push(e);
+  for (const w of pinnedWarnings(fx, wf)) warnings.push(w);
   for (const w of pollWarnings(fx, wf)) warnings.push(w);
   const report = await analyzerReport(raw, fx.template);
   const listed = new Set([fx.trigger.node, ...fx.reads.map((r) => r.node), ...fx.models, ...fx.writes, ...(fx.unfed ?? []).map((u) => u.node)]);
@@ -163,6 +164,14 @@ export function ownInstanceWarnings(fx) {
     }
   }
   return out;
+}
+
+// PROPOSALS P89: n8n's manual run returns the template's own pins instead of running the node,
+// so a model or write the template pins makes no call on the n8n side (the Claude side does not
+// pin). Such an entry is listed knowingly, or the step is measured on nothing.
+export function pinnedWarnings(fx, wf) {
+  const pinned = new Set(Object.keys(wf?.pinData ?? {}).filter((n) => n !== fx.trigger?.node));
+  return [...fx.models.filter((m) => pinned.has(m)).map((m) => `models: "${m}" is pinned by the template's pinData, so n8n's manual run never calls it (PROPOSALS P89)`), ...fx.writes.filter((w) => pinned.has(w)).map((w) => `writes: "${w}" is pinned by the template's pinData, so n8n's manual run sends no request for it (PROPOSALS P89)`)];
 }
 
 // PROPOSALS P57: responses for one method + URL (+ query, bodyMatch) given under several nodes

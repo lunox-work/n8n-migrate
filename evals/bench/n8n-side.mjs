@@ -730,6 +730,7 @@ export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = 
   // PROPOSALS P60: the template's pinData as n8n items (evals/bench/data/wf stores some as bare
   // objects; the n8n editor wraps them as {json} on import, so the run sees the same items).
   const pinData = pinItemsOf(wf.pinData);
+  const templatePins = Object.keys(pinData);
   const sources = {};
   for (const r of fx.reads) {
     if (r.node === fx.trigger.node) continue;
@@ -759,7 +760,10 @@ export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = 
   if (via !== "pin") sources[fx.trigger.node] = via === "form" ? `form (multipart submission: ${[binary && "binary trigger items", formPages.length && `${formPages.length} form page(s)`].filter(Boolean).join(", ")})` : "cli (Code-node swap: binary trigger items)";
   // A workflow that calls itself must be active for its sub-workflow calls to run (n8n 2.x).
   const selfCall = wf.nodes.some((n) => !n.disabled && /\.(executeWorkflow|toolWorkflow)$/.test(n.type) && /\$workflow\.id/.test(JSON.stringify(n.parameters?.workflowId ?? "")));
-  return { pinTrigger, via, formPages, activate: selfCall || formPages.length > 0, id, variant, name, wf: { ...wf, name: `${id} ${name}` }, fixture: fx, credentials, credentialsAttached, routes, badRoutes, models, overlayApplied: applied, sources, files };
+  // PROPOSALS P89: nodes the template itself pins (other than the trigger): n8n's manual run
+  // returns the pin instead of running them; the row reports those on the run (`pinnedPath`).
+  const templatePinned = templatePins.filter((n) => n !== fx.trigger.node && !sources[n]?.startsWith("pin"));
+  return { pinTrigger, via, formPages, activate: selfCall || formPages.length > 0, id, variant, name, wf: { ...wf, name: `${id} ${name}` }, fixture: fx, credentials, credentialsAttached, routes, badRoutes, models, overlayApplied: applied, sources, files, templatePinned };
 }
 
 // PROPOSALS P60: pinData entries as n8n execution items. An entry that is already an item

@@ -146,3 +146,12 @@ test("P88: a response answered as if authorised is reported when the run used it
   assert.deepEqual(logVsFixture(prep, used).assumedAuthorised, [{ node: "Post", method: "POST", url: "https://sheets.googleapis.com/v4/x" }]);
   assert.equal(logVsFixture(prep, []).assumedAuthorised, undefined);
 });
+
+test("P89: a models or writes entry the template pins is warned about; the pins stay", async () => {
+  const { pinnedWarnings } = await import("../evals/bench/validate.mjs");
+  const wf = { pinData: { Trigger: [{}], Post: [{ json: { id: 1 } }] } };
+  const fx = { trigger: { node: "Trigger" }, models: ["Agent"], writes: ["Post"] };
+  assert.deepEqual(pinnedWarnings(fx, wf).length, 1);
+  assert.match(pinnedWarnings(fx, wf)[0], /writes: "Post" is pinned/);
+  assert.deepEqual(pinnedWarnings({ ...fx, writes: ["Trigger"] }, wf), [], "the trigger's own pin is the fixture's business");
+});
