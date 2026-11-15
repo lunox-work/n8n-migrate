@@ -4,7 +4,7 @@
 // template, and pins the corpus.
 //
 //   node evals/bench/fetch.mjs [--out evals/bench/corpus.json] [--max 200] [--offline]
-//   node evals/bench/fetch.mjs --top-up [--max-entries 400] [--offline]   (fresh held-out, round 3)
+//   node evals/bench/fetch.mjs --top-up [--round 3|4] [--max-entries 400] [--offline]   (fresh held-out, round 3 on)
 //
 // Stops when every wake-up quota of the 100 eligible (outcome `subscription`) is full and
 // at least REFUSALS non-subscription templates are in the pool, or at --max listing
@@ -24,6 +24,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { canonical, get } from "../fetch-survey.mjs";
 import { analyze, unwrap } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
+import { checkEligibility } from "./eligible.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
@@ -31,7 +32,7 @@ const DATA = join(HERE, "data");
 const SURVEY_CACHE = join(ROOT, "evals", "survey", "data", "wf");
 const REFS = join(ROOT, "skills", "n8n-to-claude", "references");
 const API = "https://api.n8n.io/api/templates";
-const DELAY_MS = 350;
+const DELAY_MS = 1000; // at least 1 s between requests (350 ms for the Phase 5 and round-3 walks)
 const ROWS = 50;
 const NOW = "2026-11-16T00:00:00Z"; // same cron-simulation start as evals/survey/RECONCILE.md
 
@@ -256,6 +257,7 @@ async function main() {
   // Phase 5 corpus keeps its section and entries as they are.
   const prev = existsSync(out) ? JSON.parse(readFileSync(out, "utf8")) : null;
   const kept = (prev?.templates ?? []).filter((e) => e.topUp);
+  const topUpSections = Object.fromEntries(Object.entries(prev ?? {}).filter(([k]) => k === "topUp" || /^topUp\d+$/.test(k)));
   const doc = {
     source: `${API}/search?rows=${ROWS}&page=<n>&sort=views:desc, then ${API}/workflows/<id>`,
     fetched: new Date().toLocaleDateString("sv"),
@@ -281,7 +283,7 @@ async function main() {
       afterExclusions: { subscription: sub(topIncluded), of: topIncluded.length },
       excludedInTop100: top.filter((e) => e.excluded).map((e) => ({ id: e.id, rule: e.excluded })),
     },
-    ...(prev?.topUp ? { topUp: prev.topUp } : {}),
+    ...topUpSections,
     templates: [...entries, ...kept],
   };
   const text = JSON.stringify(doc, null, 2).replace(/\{\n\s+("rank": \d+,[^{}]*?)\n\s+\}/g, (_, body) => `{ ${body.replace(/\n\s+/g, " ")} }`);
@@ -293,63 +295,102 @@ async function main() {
   );
 }
 
-// ---------- round-3 top-up (PLAN Phase 6, rolling held-out) ----------
+// ---------- top-ups: fresh held-out from round 3 on (PLAN Phase 6, rolling held-out) ----------
 //
-// The seeded split's held-out is used up after release point 2, so release point 3 draws fresh
-// held-out templates from outside it: the Phase 5 `overflow` entries (eligible, outcome
-// `subscription` by the analyzer at that fetch, over their stratum's quota, never in a split)
-// plus the next listing entries. FRESH_QUOTAS are the seeded held-out's strata halved (40 ->
-// 20: chat 12, manual 10, schedule 8, poll 4, form 4, other 2). The walk reads today's listing
-// (same sort) from the page after the Phase 5 walk, skips ids already in corpus.json (any pool)
-// and templates in the survey folder (evals/survey/data/wf: a fixing session may have read it,
-// PROPOSALS P51), applies the same exclusion rules and analyzer as main(), and stops when every
-// stratum has at least its quota of candidates (overflow + top-up). New entries carry
-// `topUp: 3` and pool `fresh` (outcome `subscription`) or `fresh-other`; the draw itself is
-// split.mjs drawFresh(). Only ids, hashes and verdicts are written.
+// The seeded split's held-out is used up after release point 2, so each later release point draws
+// fresh held-out templates from outside it: a top-up walk of today's listing (same sort) from the
+// page holding the highest rank an earlier walk read. It skips ids already in corpus.json (any
+// pool) and templates in the survey folder (evals/survey/data/wf: a fixing session may have read
+// it, PROPOSALS P51), applies the same exclusion rules and analyzer as main(), and stops when every
+// stratum has at least its quota of candidates. FRESH_QUOTAS are the seeded held-out's strata
+// halved (40 -> 20: chat 12, manual 10, schedule 8, poll 4, form 4, other 2). New entries carry
+// `topUp: <round>`; the draw itself is split.mjs drawFresh(). Only ids, hashes and verdicts are
+// written. Per round (TOP_UPS):
+//   3: the pool also holds the Phase 5 `overflow` entries; a candidate is outcome `subscription`
+//      (pool `fresh`, else `fresh-other`); the walk stops at the entry that fills the last quota.
+//   4: the pool is the round's own entries only; every entry no rule excludes gets the round-4
+//      eligibility verdict (eligible.mjs checkEligibility(), `r4` and `r4Reasons`), a candidate is
+//      `r4: "eligible"` (pool `fresh`), and the walk finishes the listing page on which the last
+//      quota fills, so the common strata hold more candidates than slots (EXCLUSIONS.md).
 export const FRESH_QUOTAS = { chat: 6, manual: 5, schedule: 4, poll: 2, form: 2, other: 1 };
 export const FRESH_ROUND = 3;
+export const TOP_UPS = {
+  3: { quotas: FRESH_QUOTAS, overflow: true, eligibility: false, finishPage: false, why: "fresh held-out for release point 3 (PLAN Phase 6): the seeded split's 40 held-out templates are all scored" },
+  4: { quotas: FRESH_QUOTAS, overflow: false, eligibility: true, finishPage: true, why: "fresh held-out for release point 4 (PLAN Phase 6; EXCLUSIONS.md, Round 4 held-out): 20 templates nobody has read, each eligible by the round-4 rule" },
+};
+export const topUpKey = (round) => (round === FRESH_ROUND ? "topUp" : `topUp${round}`);
 
-// The fresh pool: Phase 5 overflow and top-up `fresh` entries. An entry excluded by a rule after
-// the draw (`hand` while labelling) keeps its pool and gets `excluded`: it stays in the pool's
-// shuffle, so the draw of every other template is unchanged, and is skipped when drawn.
-export function freshPool(templates) {
-  return templates.filter((e) => e.pool === "overflow" || e.pool === "fresh");
+// A round's fresh pool. Round 3: Phase 5 overflow and round-3 top-up `fresh` entries; later
+// rounds: that round's top-up `fresh` entries. An entry excluded by a rule after the draw
+// (`hand` while labelling) keeps its pool and gets `excluded`: it stays in the pool's shuffle, so
+// the draw of every other template is unchanged, and is skipped when drawn.
+export function freshPool(templates, round = FRESH_ROUND) {
+  const cfg = TOP_UPS[round];
+  if (!cfg) throw new Error(`no top-up for round ${round}`);
+  return templates.filter((e) => (cfg.overflow && e.pool === "overflow") || (e.pool === "fresh" && (e.topUp ?? FRESH_ROUND) === round));
 }
-export function freshCandidates(templates) {
-  return freshPool(templates).filter((e) => !e.excluded);
+export function freshCandidates(templates, round = FRESH_ROUND) {
+  return freshPool(templates, round).filter((e) => !e.excluded && !e.r4Hand);
 }
 
-export function freshShortfall(templates, quotas = FRESH_QUOTAS) {
+export function freshShortfall(templates, quotas = FRESH_QUOTAS, round = FRESH_ROUND) {
   const have = {};
-  for (const e of freshCandidates(templates)) have[stratum(e.wakeup)] = (have[stratum(e.wakeup)] ?? 0) + 1;
+  for (const e of freshCandidates(templates, round)) have[stratum(e.wakeup)] = (have[stratum(e.wakeup)] ?? 0) + 1;
   return Object.fromEntries(Object.entries(quotas).filter(([k, n]) => (have[k] ?? 0) < n).map(([k, n]) => [k, n - (have[k] ?? 0)]));
+}
+
+// The listing page a round's walk starts on: the page holding the highest rank read by the Phase 5
+// walk or an earlier round's top-up (its already-read entries are skipped as `inCorpus`).
+export function startPageOf(corpus, round) {
+  const ranks = corpus.templates.filter((e) => !e.topUp || e.topUp < round).map((e) => e.rank ?? 0);
+  return Math.floor(Math.max(corpus.counts.listingEntries, ...ranks) / ROWS) + 1;
+}
+
+// Round-4 eligibility of a new entry: {r4, r4Reasons?}, from the template file and the analyzer
+// report already made (EXCLUSIONS.md "Round 4 eligibility").
+export function r4Verdict(wf, report, entry, { lists, nodes }) {
+  const v = checkEligibility({ wf, report, lists, nodes, corpusEntry: entry });
+  if (v.eligible) return { r4: "eligible" };
+  const reasons = [...new Set(v.reasons.map((x) => `${x.clause}${x.id ? `/${x.id}` : ""}: ${x.detail}`.slice(0, 160)))];
+  return { r4: "ineligible", r4Reasons: reasons };
 }
 
 async function topUp() {
   const a = process.argv.slice(2);
   const opt = (k, d) => (a.includes(k) ? a[a.indexOf(k) + 1] : d);
   const out = opt("--out", join(HERE, "corpus.json"));
+  const round = Number(opt("--round", String(FRESH_ROUND)));
+  const cfg = TOP_UPS[round];
+  if (!cfg) throw new Error(`--round ${round}: no top-up defined (TOP_UPS)`);
   const maxEntries = Number(opt("--max-entries", "400"));
   const offline = a.includes("--offline");
   await mkdir(join(DATA, "wf"), { recursive: true });
   const corpus = JSON.parse(readFileSync(out, "utf8"));
   const refs = (f) => JSON.parse(readFileSync(join(REFS, f), "utf8"));
   const opts = { nodes: refs("nodes.json"), capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), now: Date.parse(NOW) };
-  const known = new Set(corpus.templates.map((e) => e.id));
-  const seenHash = new Map(corpus.templates.filter((e) => e.sha256).map((e) => [e.sha256, e.id]));
-  const overflowInSurvey = corpus.templates.filter((e) => e.pool === "overflow" && existsSync(join(SURVEY_CACHE, `${e.id}.json`))).map((e) => e.id);
-  if (overflowInSurvey.length) throw new Error(`overflow templates in the survey folder (P51): ${overflowInSurvey.join(", ")}`);
-  const startPage = Math.floor(corpus.counts.listingEntries / ROWS) + 1;
+  const elig = cfg.eligibility ? { lists: JSON.parse(readFileSync(join(HERE, "eligibility.json"), "utf8")), nodes: opts.nodes.nodes } : null;
+  const others = corpus.templates.filter((e) => e.topUp !== round);
+  // A hand call made after the walk (`r4Hand`, read from the template alone) survives a rebuild.
+  const handOf = new Map(corpus.templates.filter((e) => e.topUp === round && e.r4Hand).map((e) => [e.id, e.r4Hand]));
+  const known = new Set(others.map((e) => e.id));
+  const seenHash = new Map(others.filter((e) => e.sha256).map((e) => [e.sha256, e.id]));
+  if (cfg.overflow) {
+    const overflowInSurvey = corpus.templates.filter((e) => e.pool === "overflow" && existsSync(join(SURVEY_CACHE, `${e.id}.json`))).map((e) => e.id);
+    if (overflowInSurvey.length) throw new Error(`overflow templates in the survey folder (P51): ${overflowInSurvey.join(", ")}`);
+  }
+  const startPage = startPageOf(corpus, round);
   const fetchedOn = new Date().toLocaleDateString("sv");
-  const entries = corpus.templates.filter((e) => e.topUp === FRESH_ROUND);
+  // An --offline rebuild re-reads the round's cached pages and templates from scratch.
+  const entries = [];
+  const shortfall = () => freshShortfall([...others, ...entries], cfg.quotas, round);
   const skipped = { inCorpus: 0, inSurvey: 0 };
   let stopReason = null;
   outer: for (let page = startPage; ; page++) {
-    if (!Object.keys(freshShortfall([...corpus.templates, ...entries.filter((e) => !corpus.templates.includes(e))])).length) {
-      stopReason = "every stratum has its quota of candidates";
+    if (!Object.keys(shortfall()).length) {
+      stopReason = cfg.finishPage ? "every stratum has its quota of candidates; the listing page it filled on was finished" : "every stratum has its quota of candidates";
       break;
     }
-    const file = join(DATA, `listing-r${FRESH_ROUND}-p${page}.json`);
+    const file = join(DATA, `listing-r${round}-p${page}.json`);
     let listing;
     if (offline || existsSync(file)) listing = JSON.parse(await readFile(file, "utf8"));
     else {
@@ -363,7 +404,7 @@ async function topUp() {
       break;
     }
     for (const [i, w] of listing.workflows.entries()) {
-      if (!Object.keys(freshShortfall([...corpus.templates, ...entries.filter((e) => !corpus.templates.includes(e))])).length) {
+      if (!cfg.finishPage && !Object.keys(shortfall()).length) {
         stopReason = "every stratum has its quota of candidates";
         break outer;
       }
@@ -380,7 +421,7 @@ async function topUp() {
         break outer;
       }
       // The rank is the entry's place in the fetch day's listing (page and row), not a count.
-      const e = { rank: (page - 1) * ROWS + i + 1, id: w.id, topUp: FRESH_ROUND };
+      const e = { rank: (page - 1) * ROWS + i + 1, id: w.id, topUp: round };
       entries.push(e);
       let wf = null;
       if (!((w.price ?? 0) > 0 || w.purchaseUrl)) {
@@ -426,12 +467,17 @@ async function topUp() {
         continue;
       }
       if (DEMO_FLAG.test(w.name ?? "")) e.flag = "name-demo";
-      e.pool = e.outcome === "subscription" ? "fresh" : "fresh-other";
-      if (process.stderr.isTTY) process.stderr.write(`\r${entries.length} new entries, shortfall ${JSON.stringify(freshShortfall([...corpus.templates, ...entries.filter((x) => !corpus.templates.includes(x))]))}   `);
+      if (elig) {
+        if (handOf.has(w.id)) e.r4Hand = handOf.get(w.id);
+        Object.assign(e, r4Verdict(wf, report, e, elig));
+        e.pool = e.r4 === "eligible" ? "fresh" : "fresh-other";
+      } else e.pool = e.outcome === "subscription" ? "fresh" : "fresh-other";
+      if (process.stderr.isTTY) process.stderr.write(`\r${entries.length} new entries, shortfall ${JSON.stringify(shortfall())}   `);
     }
   }
   if (process.stderr.isTTY) process.stderr.write("\n");
-  const all = [...corpus.templates.filter((e) => e.topUp !== FRESH_ROUND), ...entries];
+  // Walk order: Phase 5 entries, then each round's top-up in round order.
+  const all = [...others.filter((e) => !e.topUp || e.topUp < round), ...entries, ...others.filter((e) => e.topUp > round)];
   const excluded = {};
   for (const e of entries) if (e.excluded) excluded[e.excluded] = (excluded[e.excluded] ?? 0) + 1;
   const strata = (xs) => {
@@ -439,32 +485,45 @@ async function topUp() {
     for (const e of xs) o[stratum(e.wakeup)] = (o[stratum(e.wakeup)] ?? 0) + 1;
     return o;
   };
-  const prevRequests = corpus.topUp?.counts?.requests;
-  corpus.topUp = {
-    round: FRESH_ROUND,
-    why: "fresh held-out for release point 3 (PLAN Phase 6): the seeded split's 40 held-out templates are all scored",
-    fetched: corpus.topUp?.fetched ?? fetchedOn,
-    source: `${API}/search?rows=${ROWS}&page=<n>&sort=views:desc from page ${startPage} (the listing on the fetch day; ranks continue after the Phase 5 walk's ${corpus.counts.listingEntries}), then ${API}/workflows/<id>`,
+  const key = topUpKey(round);
+  const prevSection = corpus[key];
+  const prevRequests = prevSection?.counts?.requests;
+  const ineligible = {};
+  for (const e of entries) if (e.r4 === "ineligible") for (const c of new Set(e.r4Reasons.map((r) => r.split(":")[0]))) ineligible[c] = (ineligible[c] ?? 0) + 1;
+  const priorWalk = round === FRESH_ROUND ? `the Phase 5 walk's ${corpus.counts.listingEntries}` : `the earlier walks' highest rank`;
+  const section = {
+    round,
+    why: cfg.why,
+    fetched: prevSection?.fetched ?? fetchedOn,
+    source: `${API}/search?rows=${ROWS}&page=<n>&sort=views:desc from page ${startPage} (the listing on the fetch day; ranks continue after ${priorWalk}), then ${API}/workflows/<id>`,
     rules: "evals/bench/EXCLUSIONS.md (same rules and analyzer as the Phase 5 fetch); ids already in corpus.json and templates in evals/survey/data/wf are skipped, not entered",
-    eligibility: "overflow entries keep their Phase 5 verdict (analyzer of 2026-11-14); top-up entries are analyzed on the fetch day with the analyzer of that day's checkout",
-    quotas: FRESH_QUOTAS,
+    eligibility: cfg.eligibility
+      ? "round-4 eligibility (EXCLUSIONS.md, eligible.mjs checkEligibility(), eligibility.json) on every entry no rule excludes, with the fetch day's analyzer and default answers; pool `fresh` = r4 eligible"
+      : "overflow entries keep their Phase 5 verdict (analyzer of 2026-11-14); top-up entries are analyzed on the fetch day with the analyzer of that day's checkout",
+    quotas: cfg.quotas,
     stopReason,
     counts: {
       newEntries: entries.length,
       requests: offline && prevRequests ? prevRequests : { listingRequests: stats.listingRequests, templateRequests: stats.templateRequests },
       skipped,
       excluded,
+      ...(cfg.eligibility ? { ineligibleByClause: ineligible } : {}),
       fresh: entries.filter((e) => e.pool === "fresh").length,
       freshOther: entries.filter((e) => e.pool === "fresh-other").length,
-      candidates: strata(freshCandidates(all)),
-      shortfall: freshShortfall(all),
+      candidates: strata(freshCandidates(all, round)),
+      shortfall: freshShortfall(all, cfg.quotas, round),
     },
   };
-  const { templates: _old, topUp: section, ...head } = corpus;
-  const text = JSON.stringify({ ...head, topUp: section, templates: all }, null, 2).replace(/\{\n\s+("rank": \d+,[^{}]*?)\n\s+\}/g, (_, body) => `{ ${body.replace(/\n\s+/g, " ")} }`);
+  const { templates: _old, ...rest } = corpus;
+  const head = Object.fromEntries(Object.entries(rest).filter(([k]) => k !== "topUp" && !/^topUp\d+$/.test(k)));
+  const sections = Object.fromEntries(Object.entries({ ...rest, [key]: section }).filter(([k]) => k === "topUp" || /^topUp\d+$/.test(k)).sort(([x], [y]) => x.length - y.length || x.localeCompare(y)));
+  const text = JSON.stringify({ ...head, ...sections, templates: all }, null, 2).replace(/\{\n\s+("rank": \d+,[^{}]*?)\n\s+\}/g, (_, body) => `{ ${body.replace(/\n\s+/g, " ")} }`);
   await writeFile(out, text + "\n");
   // Counts only: the labeller reads no verdict per template from this output.
-  console.log(`top-up: ${entries.length} new entries (${stats.listingRequests} listing + ${stats.templateRequests} template requests); fresh ${corpus.topUp.counts.fresh}, other outcomes ${corpus.topUp.counts.freshOther}, excluded ${JSON.stringify(excluded)}; skipped ${JSON.stringify(skipped)}; candidates by stratum ${JSON.stringify(corpus.topUp.counts.candidates)}; shortfall ${JSON.stringify(corpus.topUp.counts.shortfall)}; stop: ${stopReason}`);
+  console.log(
+    `top-up round ${round}: ${entries.length} new entries (${stats.listingRequests} listing + ${stats.templateRequests} template requests); fresh ${section.counts.fresh}, other ${section.counts.freshOther}, excluded ${JSON.stringify(excluded)}` +
+      `${cfg.eligibility ? `, ineligible by clause ${JSON.stringify(ineligible)}` : ""}; skipped ${JSON.stringify(skipped)}; candidates by stratum ${JSON.stringify(section.counts.candidates)}; shortfall ${JSON.stringify(section.counts.shortfall)}; stop: ${stopReason}`,
+  );
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes("--top-up")) {

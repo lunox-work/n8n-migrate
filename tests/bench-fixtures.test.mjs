@@ -184,3 +184,72 @@ test("P51: convert-coverage without --ids skips the current round's held-out", a
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// Top-ups by round (fetch.mjs TOP_UPS): round 3's pool is the Phase 5 overflow plus its own
+// `fresh` entries; round 4's is its own `fresh` entries only (each round-4 eligible), and a hand
+// call after the draw (`r4Hand`) leaves the candidates but not the shuffle. A later walk starts on
+// the page holding the highest rank an earlier walk read.
+test("top-ups: each round's pool, candidates and start page", async () => {
+  const { freshPool, freshCandidates, freshShortfall, startPageOf, r4Verdict, TOP_UPS } = await import("../evals/bench/fetch.mjs");
+  const { drawFresh } = await import("../evals/bench/split.mjs");
+  const t = [
+    { id: 1, rank: 150, pool: "overflow", wakeup: "chat" },
+    { id: 2, rank: 210, topUp: 3, pool: "fresh", wakeup: "manual" },
+    { id: 3, rank: 224, topUp: 3, pool: "fresh-other", wakeup: "chat" },
+    { id: 4, rank: 260, topUp: 4, pool: "fresh", r4: "eligible", wakeup: "chat" },
+    { id: 5, rank: 261, topUp: 4, pool: "fresh-other", r4: "ineligible", wakeup: "chat" },
+    { id: 6, rank: 262, topUp: 4, pool: "fresh", r4: "eligible", wakeup: "chat", r4Hand: "wiring" },
+  ];
+  assert.deepEqual(freshPool(t).map((e) => e.id), [1, 2]);
+  assert.deepEqual(freshPool(t, 4).map((e) => e.id), [4, 6]);
+  assert.deepEqual(freshCandidates(t, 4).map((e) => e.id), [4]);
+  assert.deepEqual(freshShortfall(t, { chat: 2 }, 4), { chat: 1 });
+  assert.deepEqual(drawFresh(freshPool(t, 4), { chat: 2 }, 1).drawn.map((e) => e.id), [4]);
+  assert.throws(() => freshPool(t, 9));
+  assert.equal(startPageOf({ counts: { listingEntries: 200 }, templates: t }, 3), 5);
+  assert.equal(startPageOf({ counts: { listingEntries: 200 }, templates: t }, 4), 5);
+  assert.equal(startPageOf({ counts: { listingEntries: 200 }, templates: [{ rank: 250, topUp: 3 }] }, 4), 6);
+  assert.equal(TOP_UPS[3].finishPage, false);
+  assert.equal(TOP_UPS[4].eligibility && TOP_UPS[4].finishPage, true);
+  // r4Verdict: the round-4 rule on a workflow the analyzer has read.
+  const { analyze, unwrap } = await import("../skills/n8n-to-claude/scripts/analyze.mjs");
+  const ROOT = join(BENCH, "..", "..");
+  const refs = (f) => JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references", f), "utf8"));
+  const opts = { nodes: refs("nodes.json"), capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), now: Date.parse("2026-11-16T00:00:00Z") };
+  const elig = { lists: JSON.parse(readFileSync(join(BENCH, "eligibility.json"), "utf8")), nodes: opts.nodes.nodes };
+  const verdict = (wf) => r4Verdict(wf, analyze(unwrap({ workflow: { id: "t", name: "t", workflow: wf } }, "t"), opts).workflows[0], {}, elig);
+  const sheet = { name: "Sheet", type: "n8n-nodes-base.googleSheets", typeVersion: 4.5, position: [0, 0], credentials: { googleSheetsOAuth2Api: { id: "1", name: "g" } }, parameters: { resource: "sheet", operation: "append", documentId: { __rl: true, mode: "id", value: "doc" }, sheetName: { __rl: true, mode: "name", value: "S" }, columns: { mappingMode: "autoMapInputData", value: {} } } };
+  const start = { name: "Start", type: "n8n-nodes-base.manualTrigger", typeVersion: 1, position: [0, 0], parameters: {} };
+  assert.deepEqual(verdict({ nodes: [start, sheet], connections: { Start: { main: [[{ node: "Sheet", type: "main", index: 0 }]] } } }), { r4: "eligible" });
+  const hook = { name: "Hook", type: "n8n-nodes-base.webhook", typeVersion: 2, position: [0, 0], parameters: { httpMethod: "POST", path: "x" } };
+  const relay = verdict({ nodes: [hook, sheet], connections: { Hook: { main: [[{ node: "Sheet", type: "main", index: 0 }]] } } });
+  assert.equal(relay.r4, "ineligible");
+  assert.ok(relay.r4Reasons.some((r) => r.startsWith("outcome/relay-or-hosted")), JSON.stringify(relay));
+});
+
+// Rounds written ahead of their release point: `dropped` leaves dev, and the P51 guards treat a
+// later round's held-out as unreadable while an earlier round is current.
+test("rounds: dropped ids leave dev; a later round's held-out is unreadable before it is current", async () => {
+  const { roundOf, heldOutIds, unreadableIds, withoutHeldOut } = await import("../evals/bench/rounds.mjs");
+  const row = (id) => ({ id, sha256: "x", wakeup: "manual" });
+  const s = {
+    dev: [row(1), row(2)],
+    heldOut: [row(3), row(4)],
+    currentRound: 2,
+    rounds: [
+      { round: 1, promoted: [], heldOut: [3, 4] },
+      { round: 2, promoted: [3, 4], heldOut: [5] },
+      { round: 3, promoted: [5], dropped: [2, 4], heldOut: [6] },
+    ],
+    heldOutFresh: { templates: [row(5)] },
+    heldOutFresh3: { templates: [row(6)] },
+  };
+  const ids = (rows) => rows.map((r) => r.id);
+  assert.deepEqual(ids(roundOf(s).dev), [1, 2, 3, 4]);
+  assert.deepEqual(ids(roundOf(s, 3).dev), [1, 3, 5]);
+  assert.deepEqual(ids(roundOf(s, 3).dropped), [2, 4]);
+  assert.deepEqual(heldOutIds(s), [5]);
+  assert.deepEqual(unreadableIds(s), [5, 6]);
+  assert.deepEqual(unreadableIds(s, 3), [6]);
+  assert.deepEqual(withoutHeldOut(["6", 1, 5], s), { kept: [1], skipped: ["6", 5] });
+});

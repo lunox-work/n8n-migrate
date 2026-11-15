@@ -25,7 +25,7 @@ import { validate } from "../../tests/schema-check.mjs";
 import { canonical } from "../fetch-survey.mjs";
 import { createHash } from "node:crypto";
 import { modelRoute, modelNodes, modelConsumers } from "./n8n-side.mjs";
-import { readSplits, heldOutIds } from "./rounds.mjs";
+import { readSplits, unreadableIds } from "./rounds.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
@@ -258,12 +258,13 @@ async function main() {
   const dir = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--ids") ?? join(HERE, "fixtures");
   let bad = 0;
   let files = 0;
-  // PROPOSALS P51: without ids, the current round's held-out templates are not checked here (a
-  // fixing session must not read their warnings); they are counted only.
+  // PROPOSALS P51: without ids, the current round's held-out templates (and any later round's
+  // already drawn) are not checked here (a fixing session must not read their warnings); they
+  // are counted only.
   let all = readdirSync(dir).filter((d) => statSync(join(dir, d)).isDirectory()).sort();
   if (idsArg) all = all.filter((d) => idsArg.includes(d));
   else {
-    const held = new Set(heldOutIds(readSplits()).map(String));
+    const held = new Set(unreadableIds(readSplits()).map(String));
     const skipped = all.filter((d) => held.has(d)).length;
     all = all.filter((d) => !held.has(d));
     if (skipped) console.log(`${skipped} current held-out templates skipped (pass --ids to check them at a release point)`);

@@ -14,6 +14,7 @@
 // exclusion, outcome, out-of-scope, self-fail, bench, feature, comparable, hand.
 
 import { readFileSync } from "node:fs";
+import { analyze, unwrap } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -188,27 +189,31 @@ export function checkEligibility({ wf, report, lists, nodes = {}, corpusEntry = 
   return { eligible: reasons.length === 0, stratum: stratumOf(report.wakeup.kind), reasons, pending: [...pending].sort() };
 }
 
-// ---------- CLI ----------
-
-async function main() {
-  const a = process.argv.slice(2);
-  const opt = (k) => (a.includes(k) ? a[a.indexOf(k) + 1] : null);
-  const { analyze, unwrap } = await import("../../skills/n8n-to-claude/scripts/analyze.mjs");
-  const { roundOf, readSplits } = await import("./rounds.mjs");
+// Eligibility of corpus templates by id, from the git-ignored template cache (evals/bench/data/wf),
+// corpus.json and eligibility.json, with the analyzer's default answers and the fetch's --now.
+export function eligibilityOf(ids) {
   const refs = (f) => JSON.parse(readFileSync(join(ROOT, "skills", "n8n-to-claude", "references", f), "utf8"));
   const nodesRef = refs("nodes.json");
   const opts = { nodes: nodesRef, capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), now: Date.parse("2026-11-16T00:00:00Z") };
   const lists = JSON.parse(readFileSync(join(HERE, "eligibility.json"), "utf8"));
   const corpus = JSON.parse(readFileSync(join(HERE, "corpus.json"), "utf8"));
-  const ids = opt("--ids") ? opt("--ids").split(",").map(Number) : roundOf(readSplits()).dev.map((r) => r.id);
-  const rows = [];
-  for (const id of ids) {
+  return ids.map((id) => {
     const raw = JSON.parse(readFileSync(join(HERE, "data", "wf", `${id}.json`), "utf8"));
     const report = analyze(unwrap(raw, String(id)), opts).workflows[0];
     const wf = raw.workflow?.workflow ?? raw;
     const corpusEntry = corpus.templates.find((e) => e.id === id) ?? null;
-    rows.push({ id, ...checkEligibility({ wf, report, lists, nodes: nodesRef.nodes, corpusEntry }) });
-  }
+    return { id, ...checkEligibility({ wf, report, lists, nodes: nodesRef.nodes, corpusEntry }) };
+  });
+}
+
+// ---------- CLI ----------
+
+async function main() {
+  const a = process.argv.slice(2);
+  const opt = (k) => (a.includes(k) ? a[a.indexOf(k) + 1] : null);
+  const { roundOf, readSplits } = await import("./rounds.mjs");
+  const ids = opt("--ids") ? opt("--ids").split(",").map(Number) : roundOf(readSplits()).dev.map((r) => r.id);
+  const rows = eligibilityOf(ids);
   if (a.includes("--json")) return console.log(JSON.stringify(rows, null, 1));
   for (const r of rows) console.log(`${r.id}\t${r.eligible ? "eligible" : "ineligible"}\t${r.stratum}\t${r.pending.join(",") || "-"}\t${r.reasons.map((x) => `${x.clause}${x.id ? `/${x.id}` : ""}${x.node ? ` [${x.node}]` : ""}: ${x.detail}`).join(" | ")}`);
   const ok = rows.filter((r) => r.eligible);
