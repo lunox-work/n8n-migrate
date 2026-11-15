@@ -1,0 +1,354 @@
+{
+  "schemaVersion": 1,
+  "template": 2695,
+  "sha256": "7b7118be97bcd5fd60ab54e57c49afee65b306457df54a6b0ca0bac46e79cf96",
+  "variant": "normal",
+  "now": "2026-11-16T09:00:00.000Z",
+  "models": [],
+  "writes": [
+    "Upsert"
+  ],
+  "pinData": {
+    "Trigger": [
+      {
+        "json": {
+          "query": {
+            "Keyword": [
+              "workflow automation software",
+              "enterprise workflow automation",
+              "finance automation software",
+              "saas automation platform",
+              "automation roi calculator",
+              "hr process automation",
+              "data synchronization software",
+              "n8n workflow automation",
+              "scalable business operations",
+              "n8n vs zapier",
+              "lead generation automation",
+              "automation consulting services",
+              "n8n automation",
+              "marketing automation tools",
+              "custom automation solutions",
+              "ecommerce automation solutions",
+              "business process automation",
+              "small business automation",
+              "no code automation",
+              "crm automation integration"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "about": "eight seed keywords from the caller; Google Ads returns two ideas with full metrics",
+  "trigger": {
+    "node": "Trigger",
+    "kind": "subworkflow",
+    "items": [
+      {
+        "json": {
+          "query": {
+            "Keyword": [
+              "workflow automation software",
+              "business process automation",
+              "invoice approval workflow",
+              "no code automation platform",
+              "crm data sync",
+              "automated lead routing",
+              "hr onboarding automation",
+              "zapier alternative"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Generate new keywords",
+      "service": "google-ads",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://googleads.googleapis.com/v18/customers/1234567890:generateKeywordIdeas",
+            "status": 200,
+            "body": {
+              "results": [
+                {
+                  "text": "workflow automation tools",
+                  "keywordIdeaMetrics": {
+                    "competition": "HIGH",
+                    "monthlySearchVolumes": [
+                      {
+                        "month": "NOVEMBER",
+                        "year": "2025",
+                        "monthlySearches": "5280"
+                      },
+                      {
+                        "month": "DECEMBER",
+                        "year": "2025",
+                        "monthlySearches": "6600"
+                      },
+                      {
+                        "month": "JANUARY",
+                        "year": "2026",
+                        "monthlySearches": "7920"
+                      },
+                      {
+                        "month": "FEBRUARY",
+                        "year": "2026",
+                        "monthlySearches": "5940"
+                      },
+                      {
+                        "month": "MARCH",
+                        "year": "2026",
+                        "monthlySearches": "7260"
+                      },
+                      {
+                        "month": "APRIL",
+                        "year": "2026",
+                        "monthlySearches": "5280"
+                      },
+                      {
+                        "month": "MAY",
+                        "year": "2026",
+                        "monthlySearches": "6600"
+                      },
+                      {
+                        "month": "JUNE",
+                        "year": "2026",
+                        "monthlySearches": "7920"
+                      },
+                      {
+                        "month": "JULY",
+                        "year": "2026",
+                        "monthlySearches": "5940"
+                      },
+                      {
+                        "month": "AUGUST",
+                        "year": "2026",
+                        "monthlySearches": "7260"
+                      },
+                      {
+                        "month": "SEPTEMBER",
+                        "year": "2026",
+                        "monthlySearches": "5280"
+                      },
+                      {
+                        "month": "OCTOBER",
+                        "year": "2026",
+                        "monthlySearches": "6600"
+                      }
+                    ],
+                    "avgMonthlySearches": "6600",
+                    "competitionIndex": "78",
+                    "lowTopOfPageBidMicros": "4210500",
+                    "highTopOfPageBidMicros": "18930000"
+                  },
+                  "keywordAnnotations": {}
+                },
+                {
+                  "text": "business process automation software",
+                  "keywordIdeaMetrics": {
+                    "competition": "MEDIUM",
+                    "monthlySearchVolumes": [
+                      {
+                        "month": "NOVEMBER",
+                        "year": "2025",
+                        "monthlySearches": "1920"
+                      },
+                      {
+                        "month": "DECEMBER",
+                        "year": "2025",
+                        "monthlySearches": "2400"
+                      },
+                      {
+                        "month": "JANUARY",
+                        "year": "2026",
+                        "monthlySearches": "2880"
+                      },
+                      {
+                        "month": "FEBRUARY",
+                        "year": "2026",
+                        "monthlySearches": "2160"
+                      },
+                      {
+                        "month": "MARCH",
+                        "year": "2026",
+                        "monthlySearches": "2640"
+                      },
+                      {
+                        "month": "APRIL",
+                        "year": "2026",
+                        "monthlySearches": "1920"
+                      },
+                      {
+                        "month": "MAY",
+                        "year": "2026",
+                        "monthlySearches": "2400"
+                      },
+                      {
+                        "month": "JUNE",
+                        "year": "2026",
+                        "monthlySearches": "2880"
+                      },
+                      {
+                        "month": "JULY",
+                        "year": "2026",
+                        "monthlySearches": "2160"
+                      },
+                      {
+                        "month": "AUGUST",
+                        "year": "2026",
+                        "monthlySearches": "2640"
+                      },
+                      {
+                        "month": "SEPTEMBER",
+                        "year": "2026",
+                        "monthlySearches": "1920"
+                      },
+                      {
+                        "month": "OCTOBER",
+                        "year": "2026",
+                        "monthlySearches": "2400"
+                      }
+                    ],
+                    "avgMonthlySearches": "2400",
+                    "competitionIndex": "52",
+                    "lowTopOfPageBidMicros": "6120000",
+                    "highTopOfPageBidMicros": "27450000"
+                  },
+                  "keywordAnnotations": {}
+                }
+              ],
+              "nextPageToken": "CAESBggCEAEYAg",
+              "totalSize": "2347"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Ads connector; the Claude side gets the same response through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2 POST /v18/customers/{customer-id}:generateKeywordIdeas with the googleAdsOAuth2Api credential and the developer-token and login-customer-id headers (placeholders filled by config/2695.json), JSON body with keywordSeed.keywords = the Keyword string the Set node made from the caller's list, pageSize 2. Shape: Google Ads REST GenerateKeywordIdeaResponse (results[].text, keywordIdeaMetrics with int64 fields as strings, nextPageToken, totalSize). Google retired API v18 in 2025; the fixture answers as the API did when the template was written"
+    }
+  ],
+  "writeReplies": [
+    {
+      "node": "Upsert",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/10mXXLB987b7UySHtS9F4EilxeqbQjTkLOfMabnR2i5s",
+            "status": 200,
+            "body": {
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Domains",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1475484115,
+                    "title": "Keyword",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/10mXXLB987b7UySHtS9F4EilxeqbQjTkLOfMabnR2i5s/values/'Keyword'",
+            "status": 200,
+            "body": {
+              "range": "Keyword!A1:Z2",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "keyword",
+                  "domain",
+                  "uuid",
+                  "keywordAnnotations",
+                  "closeVariants",
+                  "competition",
+                  "monthlySearchVolumes",
+                  "avgMonthlySearches",
+                  "competitionIndex",
+                  "lowTopOfPageBidMicros",
+                  "highTopOfPageBidMicros"
+                ],
+                [
+                  "zapier alternatives",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "MEDIUM",
+                  "",
+                  "6600",
+                  "41",
+                  "2.15",
+                  "9.80"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/10mXXLB987b7UySHtS9F4EilxeqbQjTkLOfMabnR2i5s:batchUpdate",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "10mXXLB987b7UySHtS9F4EilxeqbQjTkLOfMabnR2i5s",
+              "replies": [
+                {}
+              ]
+            }
+          },
+          {
+            "method": "PUT",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/10mXXLB987b7UySHtS9F4EilxeqbQjTkLOfMabnR2i5s/values/Keyword!3:4",
+            "status": 200,
+            "body": {
+              "spreadsheetId": "10mXXLB987b7UySHtS9F4EilxeqbQjTkLOfMabnR2i5s",
+              "updatedRange": "Keyword!A3:K4",
+              "updatedRows": 2,
+              "updatedColumns": 11,
+              "updatedCells": 22
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Google Sheets connector for writes"
+      },
+      "note": "Sheets v4.5 append, autoMapInputData, sheet by id 1475484115 (tab Keyword), as the canned run sent it: sheet properties, GET values/'Keyword' (header and the rows already there), batchUpdate appendDimension, then PUT of the new rows after the last one (Keyword!3:4)"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: two ideas → Split Out → Edit Fields (bids in units, two decimals) → two rows appended"
+    ],
+    "offline": "Called as a sub-workflow; the template pins the Trigger with its own caller data (kept verbatim as pinData; trigger.items is what this fixture's caller sends). Set Keywords stores the list as a string (JSON text), which the JSON body splices in as an array. pageSize 2 caps the ideas at two"
+  }
+}

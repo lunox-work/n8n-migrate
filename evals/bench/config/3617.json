@@ -1,0 +1,26 @@
+{
+  "why": "No placeholder fills (Microsoft Outlook2's recipient user@example.com stays as written; the MySQL, Gemini and Outlook credentials are the bench's dummies). See timeCompression.",
+  "timeCompression": {
+    "why": "Wait (v1.1, unit minutes, amount left at its default of 1) waits a minute after each cost center's email before the loop moves on. It is shortened to 1 second on both sides. This changes when the run resumes, not what it does: the wait comes after the only write, the loop's next turn reads nothing that depends on elapsed time, and no expression reads the time after it. Not a placeholder fill, so results flag it as time compression (config.nonPlaceholder).",
+    "n8n": {
+      "Wait": {
+        "parameters.amount": 1,
+        "parameters.unit": "seconds"
+      }
+    },
+    "claude": {
+      "overrides": {
+        "steps": {
+          "Wait": {
+            "patch": {
+              "params": {
+                "amount": 1,
+                "unit": "seconds"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

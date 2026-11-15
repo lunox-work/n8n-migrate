@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "template": 2421,
+  "sha256": "1048205ebeb6afc64811f828512457a75cdb6e1c2cdf985d2809107554d91d67",
+  "variant": "empty",
+  "now": "2026-11-16T09:00:00.000Z",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "models": [
+    "Transcribe to Markdown",
+    "Google Gemini Chat Model",
+    "Extract All Deposit Table Rows",
+    "Google Gemini Chat Model1"
+  ],
+  "writes": [],
+  "about": "the statement file is a single blank page (a scan with nothing on it); Stirling returns one white image",
+  "reads": [
+    {
+      "node": "Get Bank Statement",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1wS9U7MQDthj57CvEcqG_Llkr-ek6RqGA",
+            "query": {
+              "fields": "mimeType,name"
+            },
+            "status": 200,
+            "body": {
+              "mimeType": "application/pdf",
+              "name": "example_bank_statement.pdf"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1wS9U7MQDthj57CvEcqG_Llkr-ek6RqGA",
+            "query": {
+              "alt": "media"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "application/pdf"
+            },
+            "bodyBase64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFs1IDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago0IDAgb2JqCjw8IC9MZW5ndGggMzIgPj4Kc3RyZWFtCkJUIC9GMSAxMCBUZiA1MCA3NjAgVGQgMTQgVEwgIEVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDYxMiA3OTJdIC9SZXNvdXJjZXMgPDwgL0ZvbnQgPDwgL0YxIDMgMCBSID4+ID4+IC9Db250ZW50cyA0IDAgUiA+PgplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMTg1IDAwMDAwIG4gCjAwMDAwMDAyNjcgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgozOTMKJSVFT0YK"
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "1wS9U7MQDthj57CvEcqG_Llkr-ek6RqGA"
+            },
+            "result": {
+              "fileId": "1wS9U7MQDthj57CvEcqG_Llkr-ek6RqGA",
+              "title": "example_bank_statement.pdf",
+              "mimeType": "application/pdf",
+              "content": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFs1IDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago0IDAgb2JqCjw8IC9MZW5ndGggMzIgPj4Kc3RyZWFtCkJUIC9GMSAxMCBUZiA1MCA3NjAgVGQgMTQgVEwgIEVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDYxMiA3OTJdIC9SZXNvdXJjZXMgPDwgL0ZvbnQgPDwgL0YxIDMgMCBSID4+ID4+IC9Db250ZW50cyA0IDAgUiA+PgplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMTg1IDAwMDAwIG4gCjAwMDAwMDAyNjcgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgozOTMKJSVFT0YK"
+            }
+          }
+        ]
+      },
+      "note": "Google Drive v3 file download: GET /drive/v3/files/<id>?fields=mimeType,name (supportsAllDrives), then ?alt=media for the bytes (binary, so tls-intercept). The PDF is a small text stand-in for the scanned statement"
+    },
+    {
+      "node": "Split PDF into Images",
+      "service": "stirling-pdf",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "http://stirling-pdf:8080/api/v1/convert/pdf/img",
+            "status": 200,
+            "headers": {
+              "content-type": "application/octet-stream",
+              "content-disposition": "form-data; name=\"attachment\"; filename=\"example_bank_statement_convertedToImages.zip\""
+            },
+            "bodyBase64": "UEsDBBQAAAAIAABIcF1b2V1joAAAAAwPAAAcAAAAZXhhbXBsZV9iYW5rX3N0YXRlbWVudF8xLmpwZ/t/4/8DBgEvN083BkZGRgYPIGT4f5vBmYGPi5uXm5OPl4dXgJ9PUExFXExERExHQVFKxUTP3MxYz8jIyjHYzcrWz87IyCPJ0y8sIjYu1sI1LTc1Kic4Ojby/wEGbg4WH+YgRkZBhv9HGESB5jOgAnagsIgAuijD/1sMHCC19gxLGtDlRsEoGAWjYBSMglEwCkbBKBgFo2AUjALKAP//mwBQSwECHgMUAAAACAAASHBdW9ldY6AAAAAMDwAAHAAAAAAAAAAAAAAApIEAAAAAZXhhbXBsZV9iYW5rX3N0YXRlbWVudF8xLmpwZ1BLBQYAAAAAAQABAEoAAADaAAAAAAA="
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no connector: a self-hosted Stirling PDF service; the Claude side gets the same response through its HTTP mock"
+      },
+      "note": "HTTP Request v4.2 POST multipart/form-data to the person's self-hosted Stirling PDF (fileInput = the PDF, imageFormat jpg, singleOrMultiple multiple, dpi 300). Stirling answers a zip of one JPEG per page, named <file>_<page>.jpg, as an attachment (content type and disposition as Stirling's web response helper sets them, unverified). The page images here are 850x1100 stand-ins, not 300 dpi"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: one blank page is transcribed and extracted; the extraction should find no deposits"
+    ],
+    "offline": "No write: the run's output is Extract All Deposit Table Rows' items (README P70 result effect), and both chains are model replies (Gemini 1.5 Pro, recorded on the n8n side; one transcription call per page image). Resize Images For AI runs GraphicsMagick in the n8n image. The Stirling PDF host is the person's own container (http://stirling-pdf:8080), reached through the mock",
+    "n8nCannotRun": "The bench's plain-HTTP proxy path: Split PDF into Images sends the downloaded statement (a disk-stored binary) as multipart to the person's own http:// Stirling host, and through the mock's forward proxy that body arrives malformed (the mock parses a cut-off file part and answers 400); the same request straight to a server, or to an https host through the mock's CONNECT tunnel, is well-formed (PROPOSALS P100). Probed with the Stirling route moved to https, every variant runs to its expected end"
+  }
+}

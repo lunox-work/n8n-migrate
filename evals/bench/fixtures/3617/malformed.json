@@ -1,0 +1,249 @@
+{
+  "schemaVersion": 1,
+  "template": 3617,
+  "sha256": "647991eb4fc53c316d30c72faac88542e5da50118e96b74b7e41e5f81e247a75",
+  "variant": "malformed",
+  "now": "2026-11-05T05:00:00.000Z",
+  "trigger": {
+    "node": "Schedule Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-05T00:00:00.000-05:00",
+          "Readable date": "November 5th 2026, 12:00:00 am",
+          "Readable time": "12:00:00 am",
+          "Day of week": "Thursday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "5",
+          "Hour": "00",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "models": [
+    "Business Performance AI Agent (Analyst)",
+    "Google Gemini Chat Model"
+  ],
+  "writes": [
+    "Microsoft Outlook2"
+  ],
+  "writeReplies": [
+    {
+      "node": "Microsoft Outlook2",
+      "service": "outlook",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://graph.microsoft.com/v1.0/me/sendMail",
+            "status": 202,
+            "body": ""
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Outlook mail connector; the Claude side serves the same Graph response through its HTTP mock"
+      },
+      "note": "Outlook v2 message send (the node's defaults): POST /v1.0/me/sendMail {message: {subject 'Business Performance Syncbricks', body html = the agent's cleaned HTML, toRecipients user@example.com}, saveToSentItems}; Graph answers 202 with no body"
+    }
+  ],
+  "about": "a null cost center beside AI DEPARTMENT; budget rows with a null group and null actuals; a vertical with null profit; a project row whose percentages are NULL (no contract value); employee counts as strings",
+  "reads": [
+    {
+      "node": "Get Cost Centers with Budgets",
+      "service": "mysql",
+      "n8n": {
+        "why": "MySQL wire protocol: no sidecar yet (P99), so the rows are a node pin; types as mysql2 returns them through n8n's MySQL v2 (DECIMAL and FORMAT() as strings, COUNT() as numbers)",
+        "items": [
+          {
+            "json": {
+              "Cost Center": null
+            }
+          },
+          {
+            "json": {
+              "Cost Center": "AI DEPARTMENT"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured MySQL connector"
+      },
+      "note": "the cost centers with both a budget and posted GL entries up to the previous month (ERPNext tables); Filter keeps AI DEPARTMENT only"
+    },
+    {
+      "node": "YTD vs Prevoius Month1",
+      "service": "mysql",
+      "n8n": {
+        "why": "MySQL wire protocol: no sidecar yet (P99), so the rows are a node pin; types as mysql2 returns them through n8n's MySQL v2 (DECIMAL and FORMAT() as strings, COUNT() as numbers)",
+        "items": [
+          {
+            "json": {
+              "Budget Group": "Projects - Revenue",
+              "Budget YTD": "1500000.000000",
+              "Actual YTD": "1265000.000000000",
+              "Variance YTD": "-235000.000000000",
+              "Budget PM": "150000.000000",
+              "Actual PM": "172400.000000000",
+              "Variance PM": "22400.000000000"
+            }
+          },
+          {
+            "json": {
+              "Budget Group": "Trading - Revenue",
+              "Budget YTD": "400000.000000",
+              "Actual YTD": "318750.000000000",
+              "Variance YTD": "-81250.000000000",
+              "Budget PM": "40000.000000",
+              "Actual PM": "29900.000000000",
+              "Variance PM": "-10100.000000000"
+            }
+          },
+          {
+            "json": {
+              "Budget Group": "Service - Revenue",
+              "Budget YTD": "600000.000000",
+              "Actual YTD": "642300.000000000",
+              "Variance YTD": "42300.000000000",
+              "Budget PM": "60000.000000",
+              "Actual PM": "66150.000000000",
+              "Variance PM": "6150.000000000"
+            }
+          },
+          {
+            "json": {
+              "Budget Group": "Other Income",
+              "Budget YTD": "20000.000000",
+              "Actual YTD": "14200.000000000",
+              "Variance YTD": "-5800.000000000",
+              "Budget PM": "2000.000000",
+              "Actual PM": "1150.000000000",
+              "Variance PM": "-850.000000000"
+            }
+          },
+          {
+            "json": {
+              "Budget Group": null,
+              "Budget YTD": "12000.000000",
+              "Actual YTD": null,
+              "Variance YTD": null,
+              "Budget PM": "1200.000000",
+              "Actual PM": null,
+              "Variance PM": null
+            }
+          },
+          {
+            "json": {
+              "Budget Group": "Consultancy Fees (reclassified from Professional Services, see journal JV-2026-00841) (reclassified from Professional Services, see journal JV-2026-00841) (reclassified from Professional Services, see journal JV-2026-00841) (reclassified from Professional Services, see journal JV-2026-00841) (reclassified from Professional Services, see journal JV-2026-00841) (reclassified from Professional Services, see journal JV-2026-00841) ",
+              "Budget YTD": "0.000000",
+              "Actual YTD": "15400.000000000",
+              "Variance YTD": "15400.000000000",
+              "Budget PM": "0.000000",
+              "Actual PM": "0.000000000",
+              "Variance PM": "0.000000000"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured MySQL connector"
+      },
+      "note": "budget vs actual per budget group for the selected cost center, YTD and previous month; a pin returns the same rows whatever the query (onError continueRegularOutput)"
+    },
+    {
+      "node": "Departments ",
+      "service": "mysql",
+      "n8n": {
+        "why": "MySQL wire protocol: no sidecar yet (P99), so the rows are a node pin; types as mysql2 returns them through n8n's MySQL v2 (DECIMAL and FORMAT() as strings, COUNT() as numbers)",
+        "items": [
+          {
+            "json": {
+              "Total Income": "168200",
+              "Total Expenses": "121640",
+              "Profit or Loss": null
+            }
+          },
+          {
+            "json": {
+              "Total Income": null,
+              "Total Expenses": "4120",
+              "Profit or Loss": "-4120"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured MySQL connector"
+      },
+      "note": "income, expense and profit per vertical for the previous month (the vertical column is commented out in the query, so rows carry figures only)"
+    },
+    {
+      "node": "Projects",
+      "service": "mysql",
+      "n8n": {
+        "why": "MySQL wire protocol: no sidecar yet (P99), so the rows are a node pin; types as mysql2 returns them through n8n's MySQL v2 (DECIMAL and FORMAT() as strings, COUNT() as numbers)",
+        "items": [
+          {
+            "json": {
+              "Projects": 2,
+              "Contract Value": null,
+              "Opening Revenue": null,
+              "Opening Cost": null,
+              "New Revenue": "0.000000000",
+              "New Cost": "18200.000000000",
+              "Actual Revenue": null,
+              "Actual Cost": null,
+              "Invoice %": null,
+              "Cost %": null,
+              "WIP": "0"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured MySQL connector"
+      },
+      "note": "open-project summary: counts, FORMAT()ed contract figures, IFNULL(SUM) GL figures, percentages and WIP"
+    },
+    {
+      "node": "Employees",
+      "service": "mysql",
+      "n8n": {
+        "why": "MySQL wire protocol: no sidecar yet (P99), so the rows are a node pin; types as mysql2 returns them through n8n's MySQL v2 (DECIMAL and FORMAT() as strings, COUNT() as numbers)",
+        "items": [
+          {
+            "json": {
+              "Total Employees": "14",
+              "Joined This Year": "3",
+              "Joined This Month": null
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured MySQL connector"
+      },
+      "note": "active employees on the cost center's payroll: total, joined this year, joined this month"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Filter: the null cost center is discarded (canned run: one kept, one dropped, no error), AI DEPARTMENT passes → one loop turn",
+      "the code nodes write null cells as the text null into the HTML tables; the report and email are the agent's"
+    ],
+    "offline": "The five MySQL nodes are pins (no MySQL sidecar, P99), so each returns its rows whatever the SQL says. Date & Time reads the run's own clock, so previousMonth and year in the agent's prompt come from when the bench runs, not from the trigger item. The agent's report is a model reply (Gemini 2.5 Pro exp, with Calculator and Think tools in process); the email body is that reply. After the email the Wait (1 minute, the v1.1 default amount) is shortened to 1 second by config/3617.json (time compression)"
+  }
+}

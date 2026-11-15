@@ -1,0 +1,30 @@
+{
+  "why": "Placeholder fills only, as the template's setup note asks: Generate new keywords' URL carries {customer-id}, and its developer-token and login-customer-id headers carry {developer-token} and {login-customer-id}. They are filled with a bench customer id (1234567890), a dummy developer token and a bench manager id (9876543210). The URL's API version (v18) and the body stay as written. No logic changes.",
+  "n8n": {
+    "Generate new keywords": {
+      "parameters.url": "https://googleads.googleapis.com/v18/customers/1234567890:generateKeywordIdeas",
+      "parameters.headerParameters.parameters.1.value": "bench-developer-token",
+      "parameters.headerParameters.parameters.2.value": "9876543210"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Generate new keywords": {
+          "patch": {
+            "params": {
+              "url": "https://googleads.googleapis.com/v18/customers/1234567890:generateKeywordIdeas",
+              "headerParameters": {
+                "parameters": [
+                  { "name": "content-type", "value": "application/json" },
+                  { "name": "developer-token", "value": "bench-developer-token" },
+                  { "name": "login-customer-id", "value": "9876543210" }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
