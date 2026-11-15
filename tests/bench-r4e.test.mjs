@@ -155,3 +155,19 @@ test("P89: a models or writes entry the template pins is warned about; the pins 
   assert.match(pinnedWarnings(fx, wf)[0], /writes: "Post" is pinned/);
   assert.deepEqual(pinnedWarnings({ ...fx, writes: ["Trigger"] }, wf), [], "the trigger's own pin is the fixture's business");
 });
+
+test("P87: modules a template's Code nodes require are named, builtins told apart", async () => {
+  const { codeModules } = await import("../evals/bench/n8n-side.mjs");
+  const wf = { nodes: [
+    { name: "A", type: "n8n-nodes-base.code", parameters: { jsCode: "const yt = require('youtube-transcript');\nconst c = require(\"crypto\");\nconst x = require('@scope/pkg/sub');" } },
+    { name: "Py", type: "n8n-nodes-base.code", parameters: { language: "python", pythonCode: "require('x')" } },
+    { name: "Off", type: "n8n-nodes-base.code", disabled: true, parameters: { jsCode: "require('lodash')" } },
+    { name: "T", type: "@n8n/n8n-nodes-langchain.toolCode", parameters: { jsCode: "return require('node:fs')" } },
+  ] };
+  assert.deepEqual(codeModules(wf), [
+    { node: "A", module: "youtube-transcript", builtin: false },
+    { node: "A", module: "crypto", builtin: true },
+    { node: "A", module: "@scope/pkg", builtin: false },
+    { node: "T", module: "node:fs", builtin: true },
+  ]);
+});

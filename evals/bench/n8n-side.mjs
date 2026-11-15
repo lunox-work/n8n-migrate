@@ -26,6 +26,7 @@
 // Everything else (node parameters, connections, settings) is the template as downloaded.
 
 import { readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
+import { builtinModules } from "node:module";
 import { dirname, join, posix } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ensureLeaf, ensureServiceAccountKey } from "./tls.mjs";
@@ -774,6 +775,27 @@ export const isItem = (x) => !!x && typeof x === "object" && !Array.isArray(x) &
 export function pinItemsOf(pinData) {
   const out = {};
   for (const [node, list] of Object.entries(pinData ?? {})) out[node] = [].concat(list ?? []).map((x) => (isItem(x) ? x : { json: x }));
+  return out;
+}
+
+// PROPOSALS P87: modules a template's JavaScript Code nodes (Code, Function, Function Item, the
+// LangChain Code tool) require(). The bench keeps n8n 2.47.7's default: it sets no
+// NODE_FUNCTION_ALLOW_EXTERNAL or _BUILTIN and installs no package, so such a node fails in n8n
+// with "Module '<name>' is disallowed" in every variant. The row lists them (`codeModules`), and a
+// fixture marks the failure as `expect.n8nFails` when the node is on the main path.
+const CODE_FIELDS = { "n8n-nodes-base.code": ["jsCode"], "n8n-nodes-base.function": ["functionCode"], "n8n-nodes-base.functionItem": ["functionCode"], "@n8n/n8n-nodes-langchain.toolCode": ["jsCode"], "@n8n/n8n-nodes-langchain.code": ["code.execute.code", "code.supplyData.code"] };
+export function codeModules(wf) {
+  const out = [];
+  const builtin = new Set(builtinModules.flatMap((m) => [m, `node:${m}`]));
+  for (const n of wf?.nodes ?? []) {
+    if (n.disabled || !CODE_FIELDS[n.type]) continue;
+    if (n.type === "n8n-nodes-base.code" && /python/i.test(n.parameters?.language ?? "")) continue;
+    const code = CODE_FIELDS[n.type].map((f) => f.split(".").reduce((o, k) => o?.[k], n.parameters)).filter((x) => typeof x === "string").join("\n");
+    for (const m of code.matchAll(/require\(\s*['"`]([^'"`]+)['"`]\s*\)/g)) {
+      const name = m[1].startsWith("@") ? m[1].split("/").slice(0, 2).join("/") : m[1].split("/")[0];
+      if (!out.some((x) => x.node === n.name && x.module === name)) out.push({ node: n.name, module: name, builtin: builtin.has(name) });
+    }
+  }
   return out;
 }
 
