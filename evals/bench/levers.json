@@ -147,57 +147,73 @@
    "out-of-scope/under-a-minute": 2
   },
   "inScope": 475,
-  "supportedToday": 206,
-  "fullClass": 89,
-  "answersOnly": 7,
-  "blocked": 262,
+  "supportedToday": 144,
+  "fullClass": 83,
+  "answersOnly": 22,
+  "blocked": 309,
   "crashes": 0
  },
  "dev": {
   "templates": 100,
   "unnamed": 0,
-  "supportedToday": 47,
-  "answersOnly": 5,
-  "blocked": 48,
+  "supportedToday": 37,
+  "answersOnly": 7,
+  "blocked": 56,
   "missing": 0
  },
  "byPlanned": [
   {
-   "group": "rest-template",
-   "keys": 40,
-   "galleryUnlock": 48,
-   "galleryTotal": 76,
-   "devUnlock": 8,
-   "devTotal": 13
-  },
-  {
    "group": "unplanned",
-   "keys": 91,
-   "galleryUnlock": 39,
-   "galleryTotal": 71,
+   "keys": 92,
+   "galleryUnlock": 34,
+   "galleryTotal": 73,
    "devUnlock": 0,
    "devTotal": 0
   },
   {
+   "group": "rest-template",
+   "keys": 40,
+   "galleryUnlock": 32,
+   "galleryTotal": 76,
+   "devUnlock": 5,
+   "devTotal": 13
+  },
+  {
    "group": "connector",
-   "keys": 51,
-   "galleryUnlock": 38,
-   "galleryTotal": 69,
+   "keys": 56,
+   "galleryUnlock": 31,
+   "galleryTotal": 74,
+   "devUnlock": 6,
+   "devTotal": 14
+  },
+  {
+   "group": "http",
+   "keys": 8,
+   "galleryUnlock": 28,
+   "galleryTotal": 77,
    "devUnlock": 8,
-   "devTotal": 12
+   "devTotal": 15
+  },
+  {
+   "group": "core",
+   "keys": 9,
+   "galleryUnlock": 23,
+   "galleryTotal": 67,
+   "devUnlock": 4,
+   "devTotal": 13
   },
   {
    "group": "db",
    "keys": 13,
-   "galleryUnlock": 18,
+   "galleryUnlock": 14,
    "galleryTotal": 25,
-   "devUnlock": 5,
+   "devUnlock": 4,
    "devTotal": 6
   },
   {
    "group": "files",
    "keys": 10,
-   "galleryUnlock": 17,
+   "galleryUnlock": 10,
    "galleryTotal": 24,
    "devUnlock": 3,
    "devTotal": 4
@@ -211,35 +227,27 @@
    "devTotal": 9
   },
   {
-   "group": "substitution",
-   "keys": 2,
-   "galleryUnlock": 9,
-   "galleryTotal": 18,
-   "devUnlock": 2,
-   "devTotal": 2
-  },
-  {
-   "group": "http",
-   "keys": 2,
-   "galleryUnlock": 7,
-   "galleryTotal": 13,
-   "devUnlock": 4,
-   "devTotal": 5
-  },
-  {
    "group": "form-ending",
    "keys": 1,
-   "galleryUnlock": 3,
+   "galleryUnlock": 1,
    "galleryTotal": 6,
    "devUnlock": 1,
    "devTotal": 3
   },
   {
+   "group": "substitution",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 0
+  },
+  {
    "group": "media",
    "keys": 2,
-   "galleryUnlock": 2,
+   "galleryUnlock": 1,
    "galleryTotal": 4,
-   "devUnlock": 1,
+   "devUnlock": 0,
    "devTotal": 2
   },
   {
@@ -269,45 +277,63 @@
  ],
  "byType": [
   {
-   "group": "n8n-nodes-base.airtable",
-   "keys": 10,
-   "galleryUnlock": 13,
-   "galleryTotal": 25,
-   "devUnlock": 1,
-   "devTotal": 1,
-   "planned": "rest-template"
+   "group": "n8n-nodes-base.httpRequest",
+   "keys": 5,
+   "galleryUnlock": 17,
+   "galleryTotal": 60,
+   "devUnlock": 3,
+   "devTotal": 9,
+   "planned": "http"
   },
   {
    "group": "n8n-nodes-base.postgres",
    "keys": 5,
-   "galleryUnlock": 10,
+   "galleryUnlock": 9,
    "galleryTotal": 13,
    "devUnlock": 3,
    "devTotal": 3,
    "planned": "db"
   },
   {
-   "group": "n8n-nodes-base.googleSheets",
-   "keys": 7,
-   "galleryUnlock": 9,
+   "group": "n8n-nodes-base.airtable",
+   "keys": 10,
+   "galleryUnlock": 8,
+   "galleryTotal": 25,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "planned": "rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.html",
+   "keys": 1,
+   "galleryUnlock": 8,
    "galleryTotal": 18,
    "devUnlock": 1,
+   "devTotal": 6,
+   "planned": "core"
+  },
+  {
+   "group": "n8n-nodes-base.googleSheets",
+   "keys": 8,
+   "galleryUnlock": 7,
+   "galleryTotal": 19,
+   "devUnlock": 0,
    "devTotal": 1,
    "planned": "connector"
   },
   {
-   "group": "n8n-nodes-base.emailSend",
+   "group": "n8n-nodes-base.markdown",
    "keys": 1,
-   "galleryUnlock": 7,
-   "galleryTotal": 14,
+   "galleryUnlock": 6,
+   "galleryTotal": 18,
    "devUnlock": 2,
-   "devTotal": 2,
-   "planned": "substitution (some operations)"
+   "devTotal": 5,
+   "planned": "core"
   },
   {
    "group": "n8n-nodes-base.youTube",
    "keys": 5,
-   "galleryUnlock": 7,
+   "galleryUnlock": 6,
    "galleryTotal": 14,
    "devUnlock": 0,
    "devTotal": 1,
@@ -316,38 +342,11 @@
   {
    "group": "@n8n/n8n-nodes-langchain.openAi",
    "keys": 5,
-   "galleryUnlock": 7,
+   "galleryUnlock": 5,
    "galleryTotal": 10,
-   "devUnlock": 2,
+   "devUnlock": 1,
    "devTotal": 4,
    "planned": "model/media/rest-template"
-  },
-  {
-   "group": "n8n-nodes-base.editImage",
-   "keys": 5,
-   "galleryUnlock": 6,
-   "galleryTotal": 9,
-   "devUnlock": 1,
-   "devTotal": 2,
-   "planned": "files"
-  },
-  {
-   "group": "n8n-nodes-base.googleDrive",
-   "keys": 5,
-   "galleryUnlock": 5,
-   "galleryTotal": 9,
-   "devUnlock": 1,
-   "devTotal": 2,
-   "planned": "connector"
-  },
-  {
-   "group": "n8n-nodes-base.mySql",
-   "keys": 5,
-   "galleryUnlock": 5,
-   "galleryTotal": 9,
-   "devUnlock": 1,
-   "devTotal": 2,
-   "planned": "db"
   },
   {
    "group": "@n8n/n8n-nodes-langchain.toolWikipedia",
@@ -359,67 +358,58 @@
    "planned": "http"
   },
   {
-   "group": "n8n-nodes-base.linkedIn",
+   "group": "n8n-nodes-base.editImage",
+   "keys": 5,
+   "galleryUnlock": 4,
+   "galleryTotal": 9,
+   "devUnlock": 1,
+   "devTotal": 2,
+   "planned": "files"
+  },
+  {
+   "group": "n8n-nodes-base.googleDrive",
+   "keys": 5,
+   "galleryUnlock": 4,
+   "galleryTotal": 9,
+   "devUnlock": 1,
+   "devTotal": 2,
+   "planned": "connector"
+  },
+  {
+   "group": "n8n-nodes-base.mySql",
+   "keys": 5,
+   "galleryUnlock": 4,
+   "galleryTotal": 9,
+   "devUnlock": 1,
+   "devTotal": 2,
+   "planned": "db"
+  },
+  {
+   "group": "n8n-nodes-base.xml",
    "keys": 1,
    "galleryUnlock": 4,
+   "galleryTotal": 7,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "core"
+  },
+  {
+   "group": "n8n-nodes-base.rssFeedRead",
+   "keys": 1,
+   "galleryUnlock": 4,
+   "galleryTotal": 6,
+   "devUnlock": 1,
+   "devTotal": 3,
+   "planned": "http"
+  },
+  {
+   "group": "n8n-nodes-base.linkedIn",
+   "keys": 1,
+   "galleryUnlock": 3,
    "galleryTotal": 8,
    "devUnlock": 1,
    "devTotal": 4,
    "planned": "rest-template"
-  },
-  {
-   "group": "n8n-nodes-base.moveBinaryData",
-   "keys": 1,
-   "galleryUnlock": 4,
-   "galleryTotal": 8,
-   "devUnlock": 0,
-   "devTotal": 1,
-   "planned": "files"
-  },
-  {
-   "group": "n8n-nodes-base.jira",
-   "keys": 7,
-   "galleryUnlock": 4,
-   "galleryTotal": 5,
-   "devUnlock": 1,
-   "devTotal": 1,
-   "planned": "connector"
-  },
-  {
-   "group": "n8n-nodes-base.microsoftOutlook",
-   "keys": 12,
-   "galleryUnlock": 3,
-   "galleryTotal": 9,
-   "devUnlock": 2,
-   "devTotal": 3,
-   "planned": "connector"
-  },
-  {
-   "group": "n8n-nodes-base.slack",
-   "keys": 4,
-   "galleryUnlock": 3,
-   "galleryTotal": 9,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "connector"
-  },
-  {
-   "group": "n8n-nodes-base.form",
-   "keys": 1,
-   "galleryUnlock": 3,
-   "galleryTotal": 6,
-   "devUnlock": 1,
-   "devTotal": 3,
-   "planned": "form-ending (some operations)"
-  },
-  {
-   "group": "n8n-nodes-base.github",
-   "keys": 5,
-   "galleryUnlock": 3,
-   "galleryTotal": 6,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "unplanned"
   },
   {
    "group": "n8n-nodes-base.googleDocs",
@@ -440,13 +430,13 @@
    "planned": "connector"
   },
   {
-   "group": "n8n-nodes-base.mongoDb",
-   "keys": 3,
+   "group": "n8n-nodes-base.jira",
+   "keys": 7,
    "galleryUnlock": 3,
-   "galleryTotal": 4,
-   "devUnlock": 1,
+   "galleryTotal": 5,
+   "devUnlock": 0,
    "devTotal": 1,
-   "planned": "db"
+   "planned": "connector"
   },
   {
    "group": "n8n-nodes-base.reddit",
@@ -458,12 +448,21 @@
    "planned": "unplanned"
   },
   {
-   "group": "n8n-nodes-base.spreadsheetFile",
+   "group": "n8n-nodes-base.notion",
+   "keys": 4,
+   "galleryUnlock": 2,
+   "galleryTotal": 8,
+   "devUnlock": 1,
+   "devTotal": 3,
+   "planned": "connector"
+  },
+  {
+   "group": "n8n-nodes-base.moveBinaryData",
    "keys": 1,
-   "galleryUnlock": 3,
-   "galleryTotal": 3,
+   "galleryUnlock": 2,
+   "galleryTotal": 8,
    "devUnlock": 0,
-   "devTotal": 0,
+   "devTotal": 1,
    "planned": "files"
   },
   {
@@ -485,31 +484,22 @@
    "planned": "http"
   },
   {
-   "group": "n8n-nodes-base.executeCommand",
-   "keys": 1,
+   "group": "n8n-nodes-base.compareDatasets",
+   "keys": 2,
    "galleryUnlock": 2,
    "galleryTotal": 5,
    "devUnlock": 0,
    "devTotal": 0,
-   "planned": "substitution"
+   "planned": "core"
   },
   {
-   "group": "n8n-nodes-base.microsoftExcel",
+   "group": "n8n-nodes-base.hubspot",
    "keys": 3,
    "galleryUnlock": 2,
-   "galleryTotal": 4,
-   "devUnlock": 1,
-   "devTotal": 1,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 0,
    "planned": "connector"
-  },
-  {
-   "group": "n8n-nodes-base.compression",
-   "keys": 1,
-   "galleryUnlock": 2,
-   "galleryTotal": 3,
-   "devUnlock": 1,
-   "devTotal": 2,
-   "planned": "files"
   },
   {
    "group": "n8n-nodes-base.hackerNews",
@@ -519,6 +509,15 @@
    "devUnlock": 1,
    "devTotal": 2,
    "planned": "rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.googleAnalytics",
+   "keys": 1,
+   "galleryUnlock": 2,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
   },
   {
    "group": "n8n-nodes-base.shopify",
@@ -548,6 +547,15 @@
    "planned": "rest-template"
   },
   {
+   "group": "@n8n/n8n-nodes-langchain.code",
+   "keys": 1,
+   "galleryUnlock": 2,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
    "group": "@n8n/n8n-nodes-langchain.googleGemini",
    "keys": 2,
    "galleryUnlock": 2,
@@ -575,24 +583,6 @@
    "planned": "unplanned"
   },
   {
-   "group": "n8n-nodes-base.microsoftTeams",
-   "keys": 4,
-   "galleryUnlock": 2,
-   "galleryTotal": 2,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "unplanned"
-  },
-  {
-   "group": "n8n-nodes-base.mistralAi",
-   "keys": 1,
-   "galleryUnlock": 2,
-   "galleryTotal": 2,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "unplanned"
-  },
-  {
    "group": "n8n-nodes-base.trello",
    "keys": 2,
    "galleryUnlock": 2,
@@ -611,31 +601,76 @@
    "planned": "rest-template"
   },
   {
-   "group": "n8n-nodes-base.discord",
-   "keys": 2,
+   "group": "n8n-nodes-base.slack",
+   "keys": 5,
    "galleryUnlock": 1,
-   "galleryTotal": 5,
-   "devUnlock": 1,
-   "devTotal": 2,
-   "planned": "rest-template"
+   "galleryTotal": 10,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "connector"
   },
   {
-   "group": "n8n-nodes-base.hubspot",
-   "keys": 3,
+   "group": "n8n-nodes-base.microsoftOutlook",
+   "keys": 12,
+   "galleryUnlock": 1,
+   "galleryTotal": 9,
+   "devUnlock": 1,
+   "devTotal": 3,
+   "planned": "connector"
+  },
+  {
+   "group": "n8n-nodes-base.htmlExtract",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 7,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "planned": "core"
+  },
+  {
+   "group": "n8n-nodes-base.form",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 6,
+   "devUnlock": 1,
+   "devTotal": 3,
+   "planned": "form-ending (some operations)"
+  },
+  {
+   "group": "n8n-nodes-base.executeCommand",
+   "keys": 1,
    "galleryUnlock": 1,
    "galleryTotal": 5,
    "devUnlock": 0,
    "devTotal": 0,
+   "planned": "substitution"
+  },
+  {
+   "group": "n8n-nodes-base.microsoftExcel",
+   "keys": 3,
+   "galleryUnlock": 1,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 1,
    "planned": "connector"
   },
   {
-   "group": "n8n-nodes-base.nocoDb",
-   "keys": 2,
+   "group": "n8n-nodes-base.mongoDb",
+   "keys": 3,
+   "galleryUnlock": 1,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "db"
+  },
+  {
+   "group": "n8n-nodes-base.compression",
+   "keys": 1,
    "galleryUnlock": 1,
    "galleryTotal": 3,
    "devUnlock": 1,
-   "devTotal": 1,
-   "planned": "rest-template"
+   "devTotal": 2,
+   "planned": "files"
   },
   {
    "group": "@n8n/n8n-nodes-langchain.toolCalculator",
@@ -647,24 +682,6 @@
    "planned": "agent"
   },
   {
-   "group": "n8n-nodes-base.googleAnalytics",
-   "keys": 1,
-   "galleryUnlock": 1,
-   "galleryTotal": 3,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "unplanned"
-  },
-  {
-   "group": "n8n-nodes-base.notionTrigger",
-   "keys": 1,
-   "galleryUnlock": 1,
-   "galleryTotal": 3,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "unplanned"
-  },
-  {
    "group": "n8n-nodes-base.rssFeedReadTrigger",
    "keys": 1,
    "galleryUnlock": 1,
@@ -674,13 +691,13 @@
    "planned": "trigger-poll"
   },
   {
-   "group": "n8n-nodes-base.supabase",
-   "keys": 2,
+   "group": "n8n-nodes-base.spreadsheetFile",
+   "keys": 1,
    "galleryUnlock": 1,
-   "galleryTotal": 2,
-   "devUnlock": 1,
-   "devTotal": 2,
-   "planned": "rest-template"
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "files"
   },
   {
    "group": "n8n-nodes-base.airtop",
@@ -701,31 +718,13 @@
    "planned": "unplanned"
   },
   {
-   "group": "n8n-nodes-base.dropbox",
-   "keys": 2,
-   "galleryUnlock": 1,
-   "galleryTotal": 2,
-   "devUnlock": 0,
-   "devTotal": 1,
-   "planned": "rest-template"
-  },
-  {
-   "group": "n8n-nodes-base.googleCalendarTrigger",
+   "group": "n8n-nodes-base.googleCalendar",
    "keys": 1,
    "galleryUnlock": 1,
    "galleryTotal": 2,
    "devUnlock": 0,
    "devTotal": 0,
-   "planned": "unplanned"
-  },
-  {
-   "group": "n8n-nodes-base.linear",
-   "keys": 2,
-   "galleryUnlock": 1,
-   "galleryTotal": 2,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "unplanned"
+   "planned": "connector"
   },
   {
    "group": "n8n-nodes-base.microsoftOneDrive",
@@ -737,13 +736,22 @@
    "planned": "connector"
   },
   {
-   "group": "n8n-nodes-base.s3",
-   "keys": 2,
+   "group": "n8n-nodes-base.microsoftTeams",
+   "keys": 4,
    "galleryUnlock": 1,
    "galleryTotal": 2,
    "devUnlock": 0,
-   "devTotal": 1,
-   "planned": "rest-template"
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.mistralAi",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
   },
   {
    "group": "n8n-nodes-base.salesforce",
@@ -809,6 +817,15 @@
    "planned": "unplanned"
   },
   {
+   "group": "n8n-nodes-base.iCal",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
    "group": "n8n-nodes-base.microsoftToDo",
    "keys": 3,
    "galleryUnlock": 1,
@@ -827,7 +844,7 @@
    "planned": "unplanned"
   },
   {
-   "group": "n8n-nodes-base.quickChart",
+   "group": "n8n-nodes-base.sendInBlue",
    "keys": 1,
    "galleryUnlock": 1,
    "galleryTotal": 1,
@@ -863,6 +880,15 @@
    "planned": "vector"
   },
   {
+   "group": "n8n-nodes-base.merge",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 11,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "core"
+  },
+  {
    "group": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
    "keys": 4,
    "galleryUnlock": 0,
@@ -870,6 +896,24 @@
    "devUnlock": 0,
    "devTotal": 4,
    "planned": "vector"
+  },
+  {
+   "group": "n8n-nodes-base.dateTime",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 7,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "core"
+  },
+  {
+   "group": "n8n-nodes-base.github",
+   "keys": 5,
+   "galleryUnlock": 0,
+   "galleryTotal": 6,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
   },
   {
    "group": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
@@ -888,6 +932,15 @@
    "devUnlock": 0,
    "devTotal": 3,
    "planned": "vector"
+  },
+  {
+   "group": "n8n-nodes-base.discord",
+   "keys": 2,
+   "galleryUnlock": 0,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "planned": "rest-template"
   },
   {
    "group": "n8n-nodes-base.removeDuplicates",
@@ -917,15 +970,6 @@
    "planned": "vector"
   },
   {
-   "group": "n8n-nodes-base.notion",
-   "keys": 1,
-   "galleryUnlock": 0,
-   "galleryTotal": 4,
-   "devUnlock": 0,
-   "devTotal": 1,
-   "planned": "connector"
-  },
-  {
    "group": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
    "keys": 3,
    "galleryUnlock": 0,
@@ -933,6 +977,24 @@
    "devUnlock": 0,
    "devTotal": 1,
    "planned": "vector"
+  },
+  {
+   "group": "n8n-nodes-base.nocoDb",
+   "keys": 2,
+   "galleryUnlock": 0,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.notionTrigger",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
   },
   {
    "group": "n8n-nodes-base.baserow",
@@ -944,13 +1006,22 @@
    "planned": "unplanned"
   },
   {
-   "group": "n8n-nodes-base.googleCalendar",
+   "group": "n8n-nodes-base.dropbox",
+   "keys": 2,
+   "galleryUnlock": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.googleCalendarTrigger",
    "keys": 1,
    "galleryUnlock": 0,
    "galleryTotal": 2,
    "devUnlock": 0,
    "devTotal": 0,
-   "planned": "connector"
+   "planned": "unplanned"
   },
   {
    "group": "n8n-nodes-base.hunter",
@@ -960,6 +1031,33 @@
    "devUnlock": 0,
    "devTotal": 0,
    "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.linear",
+   "keys": 2,
+   "galleryUnlock": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.s3",
+   "keys": 2,
+   "galleryUnlock": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.supabase",
+   "keys": 2,
+   "galleryUnlock": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "planned": "rest-template"
   },
   {
    "group": "n8n-nodes-base.twilio",
@@ -1070,15 +1168,6 @@
    "planned": "unplanned"
   },
   {
-   "group": "n8n-nodes-base.iCal",
-   "keys": 1,
-   "galleryUnlock": 0,
-   "galleryTotal": 1,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "unplanned"
-  },
-  {
    "group": "n8n-nodes-base.lemlist",
    "keys": 1,
    "galleryUnlock": 0,
@@ -1160,6 +1249,15 @@
    "planned": "unplanned"
   },
   {
+   "group": "n8n-nodes-base.quickChart",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
    "group": "n8n-nodes-base.raindrop",
    "keys": 1,
    "galleryUnlock": 0,
@@ -1169,16 +1267,16 @@
    "planned": "unplanned"
   },
   {
-   "group": "n8n-nodes-base.sendGrid",
+   "group": "n8n-nodes-base.renameKeys",
    "keys": 1,
    "galleryUnlock": 0,
    "galleryTotal": 1,
    "devUnlock": 0,
    "devTotal": 0,
-   "planned": "unplanned"
+   "planned": "core"
   },
   {
-   "group": "n8n-nodes-base.sendInBlue",
+   "group": "n8n-nodes-base.sendGrid",
    "keys": 1,
    "galleryUnlock": 0,
    "galleryTotal": 1,
@@ -1207,23 +1305,83 @@
  ],
  "features": [
   {
-   "key": "n8n-nodes-base.emailSend send",
-   "type": "n8n-nodes-base.emailSend",
-   "op": "send",
-   "planned": "substitution",
+   "key": "n8n-nodes-base.html (extractHtmlContent)",
+   "type": "n8n-nodes-base.html",
+   "op": "",
+   "planned": "core",
    "kinds": [
-    "substitution"
+    "run-time"
    ],
-   "reason": "substitution: emailSend cannot run on Claude as it is: send through the Gmail connector (send_message) instead of SMTP",
-   "galleryAlone": 7,
-   "galleryTotal": 14,
-   "devUnlock": 2,
-   "devTotal": 2,
+   "reason": "run-time: refused by the runtime when the step runs: extractHtmlContent",
+   "galleryAlone": 8,
+   "galleryTotal": 18,
+   "devUnlock": 1,
+   "devTotal": 6,
    "ids": {
-    "galleryAlone": [584, 1465, 1514, 1978, 2537, 2851, 2964],
-    "galleryTotal": [584, 837, 1083, 1465, 1514, 1978, 2537, 2673, 2851, 2964, 3277, 3666, 4807, 5817],
-    "devUnlock": [1978, 2537],
-    "devTotal": [1978, 2537]
+    "galleryAlone": [1951, 2582, 2688, 2792, 2832, 2866, 3150, 3684],
+    "galleryTotal": [1951, 2180, 2267, 2275, 2315, 2393, 2491, 2582, 2648, 2688, 2792, 2825, 2832, 2866, 2972, 3150, 3684, 5230],
+    "devUnlock": [1951],
+    "devTotal": [1951, 2180, 2275, 2315, 2648, 5230]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.httpRequest (file response)",
+   "type": "n8n-nodes-base.httpRequest",
+   "op": "",
+   "planned": "http",
+   "kinds": [
+    "run-time"
+   ],
+   "reason": "run-time: refused by the runtime when the step runs: file response",
+   "galleryAlone": 7,
+   "galleryTotal": 17,
+   "devUnlock": 0,
+   "devTotal": 3,
+   "ids": {
+    "galleryAlone": [2083, 2294, 2314, 3146, 3460, 4056, 4987],
+    "galleryTotal": [1748, 1969, 2041, 2083, 2294, 2314, 2419, 3121, 3146, 3442, 3460, 4056, 4767, 4987, 7990, 8404, 16419],
+    "devUnlock": [],
+    "devTotal": [1748, 3121, 3442]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.markdown v1",
+   "type": "n8n-nodes-base.markdown",
+   "op": "",
+   "planned": "core",
+   "kinds": [
+    "runtime"
+   ],
+   "reason": "runtime: not implemented in the runtime: n8n-nodes-base.markdown vN",
+   "galleryAlone": 6,
+   "galleryTotal": 18,
+   "devUnlock": 2,
+   "devTotal": 5,
+   "ids": {
+    "galleryAlone": [2006, 2164, 2942, 2965, 3012, 3224],
+    "galleryTotal": [1690, 2006, 2164, 2281, 2454, 2648, 2809, 2942, 2965, 2981, 3012, 3224, 3289, 3396, 3796, 3971, 3986, 5817],
+    "devUnlock": [2006, 3224],
+    "devTotal": [2006, 2454, 2648, 3224, 3986]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.httpRequest v1",
+   "type": "n8n-nodes-base.httpRequest",
+   "op": "",
+   "planned": "http",
+   "kinds": [
+    "runtime"
+   ],
+   "reason": "runtime: not implemented in the runtime: n8n-nodes-base.httpRequest vN",
+   "galleryAlone": 4,
+   "galleryTotal": 24,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [437, 1169, 1471, 2043],
+    "galleryTotal": [159, 175, 434, 437, 576, 591, 652, 674, 681, 693, 817, 837, 867, 1150, 1169, 1222, 1471, 1520, 1621, 1785, 2043, 2972, 3796, 4671],
+    "devUnlock": [],
+    "devTotal": [1150]
    }
   },
   {
@@ -1247,23 +1405,63 @@
    }
   },
   {
-   "key": "n8n-nodes-base.airtable record:create",
-   "type": "n8n-nodes-base.airtable",
-   "op": "record:create",
-   "planned": "rest-template",
+   "key": "n8n-nodes-base.xml v1",
+   "type": "n8n-nodes-base.xml",
+   "op": "",
+   "planned": "core",
    "kinds": [
-    "no-tool"
+    "runtime"
    ],
-   "reason": "no-tool: no request template for airtable record:create yet (it needs the app's REST API with a stored secret)",
+   "reason": "runtime: not implemented in the runtime: n8n-nodes-base.xml vN",
    "galleryAlone": 4,
-   "galleryTotal": 9,
+   "galleryTotal": 7,
    "devUnlock": 0,
    "devTotal": 0,
    "ids": {
-    "galleryAlone": [2087, 2924, 3435, 5743],
-    "galleryTotal": [2087, 2619, 2662, 2924, 3435, 3717, 4481, 4887, 5743],
+    "galleryAlone": [160, 2123, 2210, 2957],
+    "galleryTotal": [160, 1810, 2123, 2210, 2957, 4671, 5817],
     "devUnlock": [],
     "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.rssFeedRead (URL built at run time)",
+   "type": "n8n-nodes-base.rssFeedRead",
+   "op": "",
+   "planned": "http",
+   "kinds": [
+    "runtime"
+   ],
+   "reason": "runtime: a URL built at run time in a step the analyzer asks no hosts question about",
+   "galleryAlone": 4,
+   "galleryTotal": 6,
+   "devUnlock": 1,
+   "devTotal": 3,
+   "ids": {
+    "galleryAlone": [1160, 2144, 2799, 4678],
+    "galleryTotal": [1160, 2144, 2799, 3986, 4678, 5230],
+    "devUnlock": [2799],
+    "devTotal": [2799, 3986, 5230]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.httpRequest (binary body)",
+   "type": "n8n-nodes-base.httpRequest",
+   "op": "",
+   "planned": "http",
+   "kinds": [
+    "run-time"
+   ],
+   "reason": "run-time: refused by the runtime when the step runs: binary body",
+   "galleryAlone": 3,
+   "galleryTotal": 10,
+   "devUnlock": 3,
+   "devTotal": 5,
+   "ids": {
+    "galleryAlone": [2813, 3085, 3291],
+    "galleryTotal": [2187, 2281, 2393, 2424, 2813, 2981, 3085, 3291, 3328, 5230],
+    "devUnlock": [2813, 3085, 3291],
+    "devTotal": [2187, 2813, 3085, 3291, 5230]
    }
   },
   {
@@ -1275,35 +1473,15 @@
     "no-tool"
    ],
    "reason": "no-tool: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret)",
-   "galleryAlone": 4,
+   "galleryAlone": 3,
    "galleryTotal": 8,
    "devUnlock": 1,
    "devTotal": 4,
    "ids": {
-    "galleryAlone": [681, 3086, 5002, 5840],
+    "galleryAlone": [3086, 5002, 5840],
     "galleryTotal": [681, 2273, 2288, 2557, 3082, 3086, 5002, 5840],
     "devUnlock": [3086],
     "devTotal": [2288, 2557, 3082, 3086]
-   }
-  },
-  {
-   "key": "n8n-nodes-base.moveBinaryData",
-   "type": "n8n-nodes-base.moveBinaryData",
-   "op": "",
-   "planned": "files",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: moveBinaryData is not implemented yet",
-   "galleryAlone": 4,
-   "galleryTotal": 8,
-   "devUnlock": 0,
-   "devTotal": 1,
-   "ids": {
-    "galleryAlone": [652, 1690, 1731, 1967],
-    "galleryTotal": [175, 652, 837, 1150, 1690, 1731, 1791, 1967],
-    "devUnlock": [],
-    "devTotal": [1150]
    }
   },
   {
@@ -1327,63 +1505,43 @@
    }
   },
   {
-   "key": "n8n-nodes-base.form completion",
-   "type": "n8n-nodes-base.form",
-   "op": "completion",
-   "planned": "form-ending",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: form waits for a person (out of scope v1)",
-   "galleryAlone": 3,
-   "galleryTotal": 6,
-   "devUnlock": 1,
-   "devTotal": 3,
-   "ids": {
-    "galleryAlone": [3289, 3669, 4767],
-    "galleryTotal": [2187, 2976, 3082, 3289, 3669, 4767],
-    "devUnlock": [3669],
-    "devTotal": [2187, 3082, 3669]
-   }
-  },
-  {
-   "key": "@n8n/n8n-nodes-langchain.openAi assistant:message",
-   "type": "@n8n/n8n-nodes-langchain.openAi",
-   "op": "assistant:message",
+   "key": "n8n-nodes-base.airtable record:create",
+   "type": "n8n-nodes-base.airtable",
+   "op": "record:create",
    "planned": "rest-template",
    "kinds": [
-    "unsupported"
+    "no-tool"
    ],
-   "reason": "unsupported: OpenAI assistant:message is not a text model call",
-   "galleryAlone": 3,
-   "galleryTotal": 5,
+   "reason": "no-tool: no request template for airtable record:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 2,
+   "galleryTotal": 9,
    "devUnlock": 0,
-   "devTotal": 2,
+   "devTotal": 0,
    "ids": {
-    "galleryAlone": [2025, 2693, 4709],
-    "galleryTotal": [2025, 2201, 2288, 2693, 4709],
+    "galleryAlone": [2087, 2924],
+    "galleryTotal": [2087, 2619, 2662, 2924, 3435, 3717, 4481, 4887, 5743],
     "devUnlock": [],
-    "devTotal": [2201, 2288]
+    "devTotal": []
    }
   },
   {
-   "key": "n8n-nodes-base.spreadsheetFile fromFile",
-   "type": "n8n-nodes-base.spreadsheetFile",
-   "op": "fromFile",
+   "key": "n8n-nodes-base.moveBinaryData",
+   "type": "n8n-nodes-base.moveBinaryData",
+   "op": "",
    "planned": "files",
    "kinds": [
     "unsupported"
    ],
-   "reason": "unsupported: Spreadsheet File v2 reads CSV with csv-parse, which the runtime does not carry yet",
-   "galleryAlone": 3,
-   "galleryTotal": 3,
+   "reason": "unsupported: moveBinaryData is not implemented yet",
+   "galleryAlone": 2,
+   "galleryTotal": 8,
    "devUnlock": 0,
-   "devTotal": 0,
+   "devTotal": 1,
    "ids": {
-    "galleryAlone": [1968, 1969, 2041],
-    "galleryTotal": [1968, 1969, 2041],
+    "galleryAlone": [1731, 1967],
+    "galleryTotal": [175, 652, 837, 1150, 1690, 1731, 1791, 1967],
     "devUnlock": [],
-    "devTotal": []
+    "devTotal": [1150]
    }
   },
   {
@@ -1404,26 +1562,6 @@
     "galleryTotal": [598, 1753, 1822, 1872, 2508, 3617],
     "devUnlock": [2508],
     "devTotal": [2508, 3617]
-   }
-  },
-  {
-   "key": "n8n-nodes-base.slack message:post",
-   "type": "n8n-nodes-base.slack",
-   "op": "message:post",
-   "planned": "connector",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no tool map for slack message:post yet",
-   "galleryAlone": 2,
-   "galleryTotal": 6,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [1277, 1469],
-    "galleryTotal": [1045, 1207, 1277, 1464, 1469, 1590],
-    "devUnlock": [],
-    "devTotal": []
    }
   },
   {
@@ -1467,42 +1605,41 @@
    }
   },
   {
-   "key": "n8n-nodes-base.editImage information",
-   "type": "n8n-nodes-base.editImage",
-   "op": "information",
-   "planned": "files",
+   "key": "@n8n/n8n-nodes-langchain.openAi assistant:message",
+   "type": "@n8n/n8n-nodes-langchain.openAi",
+   "op": "assistant:message",
+   "planned": "rest-template",
    "kinds": [
     "unsupported"
    ],
-   "reason": "unsupported: Edit Image runs GraphicsMagick inside n8n; the runtime has no image library, so resized or edited images would differ",
+   "reason": "unsupported: OpenAI assistant:message is not a text model call",
    "galleryAlone": 2,
    "galleryTotal": 5,
    "devUnlock": 0,
-   "devTotal": 0,
+   "devTotal": 2,
    "ids": {
-    "galleryAlone": [576, 2529],
-    "galleryTotal": [576, 2344, 2418, 2459, 2529],
+    "galleryAlone": [2025, 2693],
+    "galleryTotal": [2025, 2201, 2288, 2693, 4709],
     "devUnlock": [],
-    "devTotal": []
+    "devTotal": [2201, 2288]
    }
   },
   {
-   "key": "n8n-nodes-base.executeCommand",
-   "type": "n8n-nodes-base.executeCommand",
+   "key": "n8n-nodes-base.httpRequest v2",
+   "type": "n8n-nodes-base.httpRequest",
    "op": "",
-   "planned": "substitution",
+   "planned": "http",
    "kinds": [
-    "unsupported",
-    "dropped"
+    "runtime"
    ],
-   "reason": "unsupported: runs a shell command on the n8n host",
+   "reason": "runtime: not implemented in the runtime: n8n-nodes-base.httpRequest vN",
    "galleryAlone": 2,
    "galleryTotal": 5,
    "devUnlock": 0,
    "devTotal": 0,
    "ids": {
-    "galleryAlone": [1053, 3328],
-    "galleryTotal": [837, 1053, 1942, 2307, 3328],
+    "galleryAlone": [1933, 2527],
+    "galleryTotal": [1690, 1737, 1933, 2281, 2527],
     "devUnlock": [],
     "devTotal": []
    }
@@ -1549,43 +1686,23 @@
    }
   },
   {
-   "key": "@n8n/n8n-nodes-langchain.openAi audio:transcribe",
-   "type": "@n8n/n8n-nodes-langchain.openAi",
-   "op": "audio:transcribe",
-   "planned": "media",
+   "key": "n8n-nodes-base.compareDatasets v2.3",
+   "type": "n8n-nodes-base.compareDatasets",
+   "op": "",
+   "planned": "core",
    "kinds": [
-    "unsupported"
+    "runtime"
    ],
-   "reason": "unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet)",
+   "reason": "runtime: not implemented in the runtime: n8n-nodes-base.compareDatasets vN",
    "galleryAlone": 2,
-   "galleryTotal": 3,
-   "devUnlock": 1,
-   "devTotal": 2,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 0,
    "ids": {
-    "galleryAlone": [2178, 3076],
-    "galleryTotal": [2178, 3076, 3442],
-    "devUnlock": [2178],
-    "devTotal": [2178, 3442]
-   }
-  },
-  {
-   "key": "n8n-nodes-base.compression decompress",
-   "type": "n8n-nodes-base.compression",
-   "op": "decompress",
-   "planned": "files",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: Compression (zip, gzip) is not implemented yet",
-   "galleryAlone": 2,
-   "galleryTotal": 3,
-   "devUnlock": 1,
-   "devTotal": 2,
-   "ids": {
-    "galleryAlone": [1621, 2292],
-    "galleryTotal": [1621, 2292, 2421],
-    "devUnlock": [2292],
-    "devTotal": [2292, 2421]
+    "galleryAlone": [1943, 4557],
+    "galleryTotal": [1943, 1964, 2081, 4557],
+    "devUnlock": [],
+    "devTotal": []
    }
   },
   {
@@ -1609,21 +1726,41 @@
    }
   },
   {
-   "key": "n8n-nodes-base.googleDrive file:move",
-   "type": "n8n-nodes-base.googleDrive",
-   "op": "file:move",
+   "key": "n8n-nodes-base.notion databasePage:create (required arguments)",
+   "type": "n8n-nodes-base.notion",
+   "op": "databasePage:create",
    "planned": "connector",
+   "kinds": [
+    "arguments"
+   ],
+   "reason": "arguments: lacks required arguments: pages",
+   "galleryAlone": 2,
+   "galleryTotal": 3,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [1819, 2354],
+    "galleryTotal": [1819, 1939, 2354],
+    "devUnlock": [2354],
+    "devTotal": [2354]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleAnalytics report:get",
+   "type": "n8n-nodes-base.googleAnalytics",
+   "op": "report:get",
+   "planned": "unplanned",
    "kinds": [
     "no-tool"
    ],
-   "reason": "no-tool: no tool map for googleDrive file:move yet",
+   "reason": "no-tool: no request template for googleAnalytics report:get yet (it needs the app's REST API with a stored secret)",
    "galleryAlone": 2,
    "galleryTotal": 3,
    "devUnlock": 0,
    "devTotal": 0,
    "ids": {
-    "galleryAlone": [2393, 4376],
-    "galleryTotal": [2393, 3647, 4376],
+    "galleryAlone": [2549, 2673],
+    "galleryTotal": [2517, 2549, 2673],
     "devUnlock": [],
     "devTotal": []
    }
@@ -1689,6 +1826,26 @@
    }
   },
   {
+   "key": "@n8n/n8n-nodes-langchain.code v1",
+   "type": "@n8n/n8n-nodes-langchain.code",
+   "op": "",
+   "planned": "unplanned",
+   "kinds": [
+    "runtime"
+   ],
+   "reason": "runtime: not implemented in the runtime: @n8n/n8n-nodes-langchain.code vN",
+   "galleryAlone": 2,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [1955, 2082],
+    "galleryTotal": [1955, 2082],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
    "key": "n8n-nodes-base.googleTranslate language:translate",
    "type": "n8n-nodes-base.googleTranslate",
    "op": "language:translate",
@@ -1704,26 +1861,6 @@
    "ids": {
     "galleryAlone": [743, 3195],
     "galleryTotal": [743, 3195],
-    "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
-   "key": "n8n-nodes-base.mistralAi document:extractText",
-   "type": "n8n-nodes-base.mistralAi",
-   "op": "document:extractText",
-   "planned": "unplanned",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet)",
-   "galleryAlone": 2,
-   "galleryTotal": 2,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [7456, 7990],
-    "galleryTotal": [7456, 7990],
     "devUnlock": [],
     "devTotal": []
    }
@@ -1789,43 +1926,63 @@
    }
   },
   {
-   "key": "n8n-nodes-base.googleSheets sheet:append",
-   "type": "n8n-nodes-base.googleSheets",
-   "op": "sheet:append",
-   "planned": "connector",
+   "key": "n8n-nodes-base.htmlExtract v1",
+   "type": "n8n-nodes-base.htmlExtract",
+   "op": "",
+   "planned": "core",
    "kinds": [
-    "no-tool"
+    "runtime"
    ],
-   "reason": "no-tool: no Sheets API tool: rows cannot be appended through the Drive connector",
+   "reason": "runtime: not implemented in the runtime: n8n-nodes-base.htmlExtract vN",
    "galleryAlone": 1,
    "galleryTotal": 7,
    "devUnlock": 0,
-   "devTotal": 0,
+   "devTotal": 2,
    "ids": {
-    "galleryAlone": [1737],
-    "galleryTotal": [600, 694, 1207, 1737, 1753, 1791, 1810],
+    "galleryAlone": [1309],
+    "galleryTotal": [434, 837, 1309, 1748, 1785, 1862, 4403],
     "devUnlock": [],
-    "devTotal": []
+    "devTotal": [1748, 1862]
    }
   },
   {
-   "key": "n8n-nodes-base.googleSheets sheet:update",
-   "type": "n8n-nodes-base.googleSheets",
-   "op": "sheet:update",
-   "planned": "connector",
+   "key": "n8n-nodes-base.form completion",
+   "type": "n8n-nodes-base.form",
+   "op": "completion",
+   "planned": "form-ending",
    "kinds": [
-    "no-tool"
+    "unsupported"
    ],
-   "reason": "no-tool: no Sheets API tool",
+   "reason": "unsupported: form waits for a person (out of scope v1)",
    "galleryAlone": 1,
    "galleryTotal": 6,
    "devUnlock": 1,
-   "devTotal": 1,
+   "devTotal": 3,
    "ids": {
-    "galleryAlone": [1862],
-    "galleryTotal": [6, 694, 1754, 1810, 1862, 4403],
-    "devUnlock": [1862],
-    "devTotal": [1862]
+    "galleryAlone": [3669],
+    "galleryTotal": [2187, 2976, 3082, 3289, 3669, 4767],
+    "devUnlock": [3669],
+    "devTotal": [2187, 3082, 3669]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.httpRequest (URL built at run time)",
+   "type": "n8n-nodes-base.httpRequest",
+   "op": "",
+   "planned": "http",
+   "kinds": [
+    "runtime"
+   ],
+   "reason": "runtime: a URL built at run time in a step the analyzer asks no hosts question about",
+   "galleryAlone": 1,
+   "galleryTotal": 6,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [3791],
+    "galleryTotal": [2784, 2981, 3435, 3791, 4709, 5743],
+    "devUnlock": [],
+    "devTotal": []
    }
   },
   {
@@ -1869,23 +2026,44 @@
    }
   },
   {
-   "key": "n8n-nodes-base.discord channel:create",
-   "type": "n8n-nodes-base.discord",
-   "op": "channel:create",
-   "planned": "rest-template",
+   "key": "n8n-nodes-base.editImage information",
+   "type": "n8n-nodes-base.editImage",
+   "op": "information",
+   "planned": "files",
    "kinds": [
-    "no-tool"
+    "unsupported"
    ],
-   "reason": "no-tool: no request template for discord channel:create yet (it needs the app's REST API with a stored secret)",
+   "reason": "unsupported: Edit Image runs GraphicsMagick inside n8n; the runtime has no image library, so resized or edited images would differ",
    "galleryAlone": 1,
-   "galleryTotal": 4,
-   "devUnlock": 1,
-   "devTotal": 2,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 0,
    "ids": {
-    "galleryAlone": [3121],
-    "galleryTotal": [2249, 2564, 3121, 3442],
-    "devUnlock": [3121],
-    "devTotal": [3121, 3442]
+    "galleryAlone": [2529],
+    "galleryTotal": [576, 2344, 2418, 2459, 2529],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.executeCommand",
+   "type": "n8n-nodes-base.executeCommand",
+   "op": "",
+   "planned": "substitution",
+   "kinds": [
+    "unsupported",
+    "dropped"
+   ],
+   "reason": "unsupported: runs a shell command on the n8n host",
+   "galleryAlone": 1,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [1053],
+    "galleryTotal": [837, 1053, 1942, 2307, 3328],
+    "devUnlock": [],
+    "devTotal": []
    }
   },
   {
@@ -1929,21 +2107,21 @@
    }
   },
   {
-   "key": "n8n-nodes-base.airtable append",
-   "type": "n8n-nodes-base.airtable",
-   "op": "append",
-   "planned": "rest-template",
+   "key": "n8n-nodes-base.hubspot contact:upsert",
+   "type": "n8n-nodes-base.hubspot",
+   "op": "contact:upsert",
+   "planned": "connector",
    "kinds": [
     "no-tool"
    ],
-   "reason": "no-tool: no request template for airtable append yet (it needs the app's REST API with a stored secret)",
+   "reason": "no-tool: no tool map for hubspot contact:upsert yet",
    "galleryAlone": 1,
    "galleryTotal": 4,
    "devUnlock": 0,
    "devTotal": 0,
    "ids": {
-    "galleryAlone": [1520],
-    "galleryTotal": [859, 1323, 1403, 1520],
+    "galleryAlone": [3666],
+    "galleryTotal": [1323, 2116, 2122, 3666],
     "devUnlock": [],
     "devTotal": []
    }
@@ -1969,43 +2147,43 @@
    }
   },
   {
-   "key": "n8n-nodes-base.youTube video:upload",
-   "type": "n8n-nodes-base.youTube",
-   "op": "video:upload",
-   "planned": "rest-template",
+   "key": "n8n-nodes-base.compression decompress",
+   "type": "n8n-nodes-base.compression",
+   "op": "decompress",
+   "planned": "files",
    "kinds": [
-    "no-tool"
+    "unsupported"
    ],
-   "reason": "no-tool: no request template for youTube video:upload yet (it needs the app's REST API with a stored secret)",
-   "galleryAlone": 1,
-   "galleryTotal": 4,
-   "devUnlock": 0,
-   "devTotal": 1,
-   "ids": {
-    "galleryAlone": [16419],
-    "galleryTotal": [2557, 3906, 8404, 16419],
-    "devUnlock": [],
-    "devTotal": [2557]
-   }
-  },
-  {
-   "key": "n8n-nodes-base.nocoDb row:create",
-   "type": "n8n-nodes-base.nocoDb",
-   "op": "row:create",
-   "planned": "rest-template",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no request template for nocoDb row:create yet (it needs the app's REST API with a stored secret)",
+   "reason": "unsupported: Compression (zip, gzip) is not implemented yet",
    "galleryAlone": 1,
    "galleryTotal": 3,
    "devUnlock": 1,
-   "devTotal": 1,
+   "devTotal": 2,
    "ids": {
-    "galleryAlone": [2180],
-    "galleryTotal": [1074, 2180, 2491],
-    "devUnlock": [2180],
-    "devTotal": [2180]
+    "galleryAlone": [2292],
+    "galleryTotal": [1621, 2292, 2421],
+    "devUnlock": [2292],
+    "devTotal": [2292, 2421]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.openAi audio:transcribe",
+   "type": "@n8n/n8n-nodes-langchain.openAi",
+   "op": "audio:transcribe",
+   "planned": "media",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet)",
+   "galleryAlone": 1,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [3076],
+    "galleryTotal": [2178, 3076, 3442],
+    "devUnlock": [],
+    "devTotal": [2178, 3442]
    }
   },
   {
@@ -2029,21 +2207,21 @@
    }
   },
   {
-   "key": "n8n-nodes-base.googleAnalytics report:get",
-   "type": "n8n-nodes-base.googleAnalytics",
-   "op": "report:get",
-   "planned": "unplanned",
+   "key": "n8n-nodes-base.googleDrive file:move",
+   "type": "n8n-nodes-base.googleDrive",
+   "op": "file:move",
+   "planned": "connector",
    "kinds": [
     "no-tool"
    ],
-   "reason": "no-tool: no request template for googleAnalytics report:get yet (it needs the app's REST API with a stored secret)",
+   "reason": "no-tool: no tool map for googleDrive file:move yet",
    "galleryAlone": 1,
    "galleryTotal": 3,
    "devUnlock": 0,
    "devTotal": 0,
    "ids": {
-    "galleryAlone": [2549],
-    "galleryTotal": [2517, 2549, 2673],
+    "galleryAlone": [4376],
+    "galleryTotal": [2393, 3647, 4376],
     "devUnlock": [],
     "devTotal": []
    }
@@ -2069,26 +2247,6 @@
    }
   },
   {
-   "key": "n8n-nodes-base.notionTrigger",
-   "type": "n8n-nodes-base.notionTrigger",
-   "op": "",
-   "planned": "unplanned",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no tool map for polling notionTrigger",
-   "galleryAlone": 1,
-   "galleryTotal": 3,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [1939],
-    "galleryTotal": [1939, 2290, 2797],
-    "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
    "key": "n8n-nodes-base.rssFeedReadTrigger",
    "type": "n8n-nodes-base.rssFeedReadTrigger",
    "op": "",
@@ -2104,6 +2262,26 @@
    "ids": {
     "galleryAlone": [4478],
     "galleryTotal": [2249, 4478, 4887],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.spreadsheetFile fromFile",
+   "type": "n8n-nodes-base.spreadsheetFile",
+   "op": "fromFile",
+   "planned": "files",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: Spreadsheet File v2 reads CSV with csv-parse, which the runtime does not carry yet",
+   "galleryAlone": 1,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [1968],
+    "galleryTotal": [1968, 1969, 2041],
     "devUnlock": [],
     "devTotal": []
    }
@@ -2126,26 +2304,6 @@
     "galleryTotal": [3450, 3900, 4459],
     "devUnlock": [],
     "devTotal": []
-   }
-  },
-  {
-   "key": "n8n-nodes-base.microsoftExcel worksheet:append",
-   "type": "n8n-nodes-base.microsoftExcel",
-   "op": "worksheet:append",
-   "planned": "connector",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no tool map for microsoftExcel worksheet:append yet",
-   "galleryAlone": 1,
-   "galleryTotal": 2,
-   "devUnlock": 1,
-   "devTotal": 1,
-   "ids": {
-    "galleryAlone": [2275],
-    "galleryTotal": [2275, 3396],
-    "devUnlock": [2275],
-    "devTotal": [2275]
    }
   },
   {
@@ -2229,41 +2387,41 @@
    }
   },
   {
-   "key": "n8n-nodes-base.googleCalendarTrigger",
-   "type": "n8n-nodes-base.googleCalendarTrigger",
-   "op": "",
-   "planned": "unplanned",
+   "key": "n8n-nodes-base.googleCalendar event:update",
+   "type": "n8n-nodes-base.googleCalendar",
+   "op": "event:update",
+   "planned": "connector",
    "kinds": [
     "not-captured"
    ],
-   "reason": "not-captured: the app's tools are not captured yet, so its poll cannot be mapped",
+   "reason": "not-captured: connector needs sign-in on this account; schemas not captured; map event:update once they are",
    "galleryAlone": 1,
    "galleryTotal": 2,
    "devUnlock": 0,
    "devTotal": 0,
    "ids": {
-    "galleryAlone": [3796],
-    "galleryTotal": [2528, 3796],
+    "galleryAlone": [4807],
+    "galleryTotal": [2326, 4807],
     "devUnlock": [],
     "devTotal": []
    }
   },
   {
-   "key": "n8n-nodes-base.linear issue:create",
-   "type": "n8n-nodes-base.linear",
-   "op": "issue:create",
+   "key": "n8n-nodes-base.mistralAi document:extractText",
+   "type": "n8n-nodes-base.mistralAi",
+   "op": "document:extractText",
    "planned": "unplanned",
    "kinds": [
-    "no-tool"
+    "unsupported"
    ],
-   "reason": "no-tool: no request template for linear issue:create yet (it needs the app's REST API with a stored secret)",
+   "reason": "unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet)",
    "galleryAlone": 1,
    "galleryTotal": 2,
    "devUnlock": 0,
    "devTotal": 0,
    "ids": {
-    "galleryAlone": [2419],
-    "galleryTotal": [2323, 2419],
+    "galleryAlone": [7456],
+    "galleryTotal": [7456, 7990],
     "devUnlock": [],
     "devTotal": []
    }
@@ -2409,46 +2567,6 @@
    }
   },
   {
-   "key": "n8n-nodes-base.dropbox file:download",
-   "type": "n8n-nodes-base.dropbox",
-   "op": "file:download",
-   "planned": "rest-template",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no request template for dropbox file:download yet (it needs the app's REST API with a stored secret)",
-   "galleryAlone": 1,
-   "galleryTotal": 1,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [2424],
-    "galleryTotal": [2424],
-    "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
-   "key": "n8n-nodes-base.editImage text",
-   "type": "n8n-nodes-base.editImage",
-   "op": "text",
-   "planned": "files",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: Edit Image runs GraphicsMagick inside n8n; the runtime has no image library, so resized or edited images would differ",
-   "galleryAlone": 1,
-   "galleryTotal": 1,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [591],
-    "galleryTotal": [591],
-    "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
    "key": "n8n-nodes-base.ghost post:create",
    "type": "n8n-nodes-base.ghost",
    "op": "post:create",
@@ -2484,26 +2602,6 @@
    "ids": {
     "galleryAlone": [3500],
     "galleryTotal": [3500],
-    "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
-   "key": "n8n-nodes-base.github repository:get",
-   "type": "n8n-nodes-base.github",
-   "op": "repository:get",
-   "planned": "unplanned",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no tool map for github repository:get yet",
-   "galleryAlone": 1,
-   "galleryTotal": 1,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [693],
-    "galleryTotal": [693],
     "devUnlock": [],
     "devTotal": []
    }
@@ -2569,6 +2667,26 @@
    }
   },
   {
+   "key": "n8n-nodes-base.googleSheets sheet:read (required arguments)",
+   "type": "n8n-nodes-base.googleSheets",
+   "op": "sheet:read",
+   "planned": "connector",
+   "kinds": [
+    "arguments"
+   ],
+   "reason": "arguments: lacks required arguments: fileId",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [4031],
+    "galleryTotal": [4031],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
    "key": "n8n-nodes-base.graphql",
    "type": "n8n-nodes-base.graphql",
    "op": "",
@@ -2584,6 +2702,26 @@
    "ids": {
     "galleryAlone": [1298],
     "galleryTotal": [1298],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.iCal createEventFile",
+   "type": "n8n-nodes-base.iCal",
+   "op": "createEventFile",
+   "planned": "unplanned",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: iCalendar files are not implemented yet",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [1083],
+    "galleryTotal": [1083],
     "devUnlock": [],
     "devTotal": []
    }
@@ -2649,21 +2787,21 @@
    }
   },
   {
-   "key": "n8n-nodes-base.quickChart",
-   "type": "n8n-nodes-base.quickChart",
-   "op": "",
+   "key": "n8n-nodes-base.sendInBlue contact:upsert",
+   "type": "n8n-nodes-base.sendInBlue",
+   "op": "contact:upsert",
    "planned": "unplanned",
    "kinds": [
     "no-tool"
    ],
-   "reason": "no-tool: no request template for quickChart yet (it needs the app's REST API with a stored secret)",
+   "reason": "no-tool: no request template for sendInBlue contact:upsert yet (it needs the app's REST API with a stored secret)",
    "galleryAlone": 1,
    "galleryTotal": 1,
    "devUnlock": 0,
    "devTotal": 0,
    "ids": {
-    "galleryAlone": [2825],
-    "galleryTotal": [2825],
+    "galleryAlone": [3277],
+    "galleryTotal": [3277],
     "devUnlock": [],
     "devTotal": []
    }
@@ -2770,6 +2908,26 @@
    }
   },
   {
+   "key": "n8n-nodes-base.merge v1",
+   "type": "n8n-nodes-base.merge",
+   "op": "",
+   "planned": "core",
+   "kinds": [
+    "runtime"
+   ],
+   "reason": "runtime: not implemented in the runtime: n8n-nodes-base.merge vN",
+   "galleryAlone": 0,
+   "galleryTotal": 11,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [159, 175, 817, 1150, 1222, 1277, 1403, 1465, 1590, 1690, 1792],
+    "devUnlock": [],
+    "devTotal": [1150]
+   }
+  },
+  {
    "key": "@n8n/n8n-nodes-langchain.vectorStorePinecone insert",
    "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
    "op": "insert",
@@ -2810,6 +2968,46 @@
    }
   },
   {
+   "key": "n8n-nodes-base.dateTime v1",
+   "type": "n8n-nodes-base.dateTime",
+   "op": "",
+   "planned": "core",
+   "kinds": [
+    "runtime"
+   ],
+   "reason": "runtime: not implemented in the runtime: n8n-nodes-base.dateTime vN",
+   "galleryAlone": 0,
+   "galleryTotal": 7,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [812, 1207, 1277, 1464, 1465, 1469, 1822],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleSheets sheet:append",
+   "type": "n8n-nodes-base.googleSheets",
+   "op": "sheet:append",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no Sheets API tool: rows cannot be appended through the Drive connector",
+   "galleryAlone": 0,
+   "galleryTotal": 7,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [600, 694, 1207, 1737, 1753, 1791, 1810],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
    "key": "n8n-nodes-base.airtable record:update",
    "type": "n8n-nodes-base.airtable",
    "op": "record:update",
@@ -2825,6 +3023,46 @@
    "ids": {
     "galleryAlone": [],
     "galleryTotal": [2267, 2281, 2330, 2377, 2618, 2817],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleSheets sheet:update",
+   "type": "n8n-nodes-base.googleSheets",
+   "op": "sheet:update",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no Sheets API tool",
+   "galleryAlone": 0,
+   "galleryTotal": 6,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [6, 694, 1754, 1810, 1862, 4403],
+    "devUnlock": [],
+    "devTotal": [1862]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.slack message:post",
+   "type": "n8n-nodes-base.slack",
+   "op": "message:post",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for slack message:post yet",
+   "galleryAlone": 0,
+   "galleryTotal": 6,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1045, 1207, 1277, 1464, 1469, 1590],
     "devUnlock": [],
     "devTotal": []
    }
@@ -2950,6 +3188,26 @@
    }
   },
   {
+   "key": "n8n-nodes-base.airtable append",
+   "type": "n8n-nodes-base.airtable",
+   "op": "append",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for airtable append yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [859, 1323, 1403, 1520],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
    "key": "n8n-nodes-base.airtable list",
    "type": "n8n-nodes-base.airtable",
    "op": "list",
@@ -2967,6 +3225,26 @@
     "galleryTotal": [596, 859, 1323, 1403],
     "devUnlock": [],
     "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.discord channel:create",
+   "type": "n8n-nodes-base.discord",
+   "op": "channel:create",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for discord channel:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2249, 2564, 3121, 3442],
+    "devUnlock": [],
+    "devTotal": [3121, 3442]
    }
   },
   {
@@ -3030,26 +3308,6 @@
    }
   },
   {
-   "key": "n8n-nodes-base.hubspot contact:upsert",
-   "type": "n8n-nodes-base.hubspot",
-   "op": "contact:upsert",
-   "planned": "connector",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no tool map for hubspot contact:upsert yet",
-   "galleryAlone": 0,
-   "galleryTotal": 4,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [1323, 2116, 2122, 3666],
-    "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
    "key": "n8n-nodes-base.mongoDb document:insert",
    "type": "n8n-nodes-base.mongoDb",
    "op": "document:insert",
@@ -3087,6 +3345,26 @@
     "galleryTotal": [2273, 2288, 2290, 2797],
     "devUnlock": [],
     "devTotal": [2288]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.youTube video:upload",
+   "type": "n8n-nodes-base.youTube",
+   "op": "video:upload",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for youTube video:upload yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2557, 3906, 8404, 16419],
+    "devUnlock": [],
+    "devTotal": [2557]
    }
   },
   {
@@ -3207,6 +3485,66 @@
     "galleryTotal": [159, 2834, 5230],
     "devUnlock": [],
     "devTotal": [5230]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.nocoDb row:create",
+   "type": "n8n-nodes-base.nocoDb",
+   "op": "row:create",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for nocoDb row:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1074, 2180, 2491],
+    "devUnlock": [],
+    "devTotal": [2180]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.notion databasePage:getAll (required arguments)",
+   "type": "n8n-nodes-base.notion",
+   "op": "databasePage:getAll",
+   "planned": "connector",
+   "kinds": [
+    "arguments"
+   ],
+   "reason": "arguments: lacks required arguments: data",
+   "galleryAlone": 0,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1939, 2273, 2288],
+    "devUnlock": [],
+    "devTotal": [2288]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.notionTrigger",
+   "type": "n8n-nodes-base.notionTrigger",
+   "op": "",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for polling notionTrigger",
+   "galleryAlone": 0,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1939, 2290, 2797],
+    "devUnlock": [],
+    "devTotal": []
    }
   },
   {
@@ -3391,21 +3729,21 @@
    }
   },
   {
-   "key": "n8n-nodes-base.googleCalendar event:update",
-   "type": "n8n-nodes-base.googleCalendar",
-   "op": "event:update",
-   "planned": "connector",
+   "key": "n8n-nodes-base.googleCalendarTrigger",
+   "type": "n8n-nodes-base.googleCalendarTrigger",
+   "op": "",
+   "planned": "unplanned",
    "kinds": [
     "not-captured"
    ],
-   "reason": "not-captured: connector needs sign-in on this account; schemas not captured; map event:update once they are",
+   "reason": "not-captured: the app's tools are not captured yet, so its poll cannot be mapped",
    "galleryAlone": 0,
    "galleryTotal": 2,
    "devUnlock": 0,
    "devTotal": 0,
    "ids": {
     "galleryAlone": [],
-    "galleryTotal": [2326, 4807],
+    "galleryTotal": [2528, 3796],
     "devUnlock": [],
     "devTotal": []
    }
@@ -3568,6 +3906,46 @@
     "galleryTotal": [2468, 3868],
     "devUnlock": [],
     "devTotal": [2468]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.linear issue:create",
+   "type": "n8n-nodes-base.linear",
+   "op": "issue:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for linear issue:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2323, 2419],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftExcel worksheet:append",
+   "type": "n8n-nodes-base.microsoftExcel",
+   "op": "worksheet:append",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftExcel worksheet:append yet",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2275, 3396],
+    "devUnlock": [],
+    "devTotal": [2275]
    }
   },
   {
@@ -4231,6 +4609,26 @@
    }
   },
   {
+   "key": "n8n-nodes-base.compareDatasets v1",
+   "type": "n8n-nodes-base.compareDatasets",
+   "op": "",
+   "planned": "core",
+   "kinds": [
+    "runtime"
+   ],
+   "reason": "runtime: not implemented in the runtime: n8n-nodes-base.compareDatasets vN",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1822],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
    "key": "n8n-nodes-base.discord message:send",
    "type": "n8n-nodes-base.discord",
    "op": "message:send",
@@ -4246,6 +4644,26 @@
    "ids": {
     "galleryAlone": [],
     "galleryTotal": [2322],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.dropbox file:download",
+   "type": "n8n-nodes-base.dropbox",
+   "op": "file:download",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for dropbox file:download yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2424],
     "devUnlock": [],
     "devTotal": []
    }
@@ -4326,6 +4744,26 @@
    "ids": {
     "galleryAlone": [],
     "galleryTotal": [2418],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.editImage text",
+   "type": "n8n-nodes-base.editImage",
+   "op": "text",
+   "planned": "files",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: Edit Image runs GraphicsMagick inside n8n; the runtime has no image library, so resized or edited images would differ",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [591],
     "devUnlock": [],
     "devTotal": []
    }
@@ -4426,6 +4864,26 @@
    "ids": {
     "galleryAlone": [],
     "galleryTotal": [1942],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.github repository:get",
+   "type": "n8n-nodes-base.github",
+   "op": "repository:get",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for github repository:get yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [693],
     "devUnlock": [],
     "devTotal": []
    }
@@ -4646,26 +5104,6 @@
    "ids": {
     "galleryAlone": [],
     "galleryTotal": [2112],
-    "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
-   "key": "n8n-nodes-base.iCal createEventFile",
-   "type": "n8n-nodes-base.iCal",
-   "op": "createEventFile",
-   "planned": "unplanned",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: iCalendar files are not implemented yet",
-   "galleryAlone": 0,
-   "galleryTotal": 1,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [1083],
     "devUnlock": [],
     "devTotal": []
    }
@@ -5251,6 +5689,26 @@
    }
   },
   {
+   "key": "n8n-nodes-base.notion page:create (required arguments)",
+   "type": "n8n-nodes-base.notion",
+   "op": "page:create",
+   "planned": "connector",
+   "kinds": [
+    "arguments"
+   ],
+   "reason": "arguments: lacks required arguments: pages",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2178],
+    "devUnlock": [],
+    "devTotal": [2178]
+   }
+  },
+  {
    "key": "n8n-nodes-base.openWeatherMap currentWeather",
    "type": "n8n-nodes-base.openWeatherMap",
    "op": "currentWeather",
@@ -5371,6 +5829,26 @@
    }
   },
   {
+   "key": "n8n-nodes-base.quickChart",
+   "type": "n8n-nodes-base.quickChart",
+   "op": "",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for quickChart yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2825],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
    "key": "n8n-nodes-base.raindrop bookmark:create",
    "type": "n8n-nodes-base.raindrop",
    "op": "bookmark:create",
@@ -5446,6 +5924,26 @@
    "ids": {
     "galleryAlone": [],
     "galleryTotal": [928],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.renameKeys v1",
+   "type": "n8n-nodes-base.renameKeys",
+   "op": "",
+   "planned": "core",
+   "kinds": [
+    "runtime"
+   ],
+   "reason": "runtime: not implemented in the runtime: n8n-nodes-base.renameKeys vN",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1792],
     "devUnlock": [],
     "devTotal": []
    }
@@ -5611,23 +6109,23 @@
    }
   },
   {
-   "key": "n8n-nodes-base.sendInBlue contact:upsert",
-   "type": "n8n-nodes-base.sendInBlue",
-   "op": "contact:upsert",
-   "planned": "unplanned",
+   "key": "n8n-nodes-base.slack message:post (required arguments)",
+   "type": "n8n-nodes-base.slack",
+   "op": "message:post",
+   "planned": "connector",
    "kinds": [
-    "no-tool"
+    "arguments"
    ],
-   "reason": "no-tool: no request template for sendInBlue contact:upsert yet (it needs the app's REST API with a stored secret)",
+   "reason": "arguments: lacks required arguments: message",
    "galleryAlone": 0,
    "galleryTotal": 1,
    "devUnlock": 0,
-   "devTotal": 0,
+   "devTotal": 1,
    "ids": {
     "galleryAlone": [],
-    "galleryTotal": [3277],
+    "galleryTotal": [2468],
     "devUnlock": [],
-    "devTotal": []
+    "devTotal": [2468]
    }
   },
   {

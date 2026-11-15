@@ -25,8 +25,19 @@
 //
 // A blocker is a converter step of kind `blocked` (not disabled), as convert-coverage.mjs
 // classifies them, keyed by node type and the analyzer's `resource:operation`. Blocks of kind
-// `input-incomplete` (a question the person answers, such as a credential's site) are not a
-// missing feature: they are counted apart.
+// `input-incomplete` (a question the person answers, such as a credential's site) and of kind
+// `substitution` (the converter offers a substitute the person approves, PROPOSALS P105) are
+// not a missing feature: they are counted apart, as "blocked only by a question".
+//
+// PROPOSALS P105: steps the converter does not block can still stop a run. The runtime's
+// preflight (as convert-coverage.mjs runs it) refuses a node version it does not implement
+// (kind `runtime`, key `<type> v<version>`), a URL built at run time in a step the analyzer asks
+// no hosts question about (kind `runtime`, key `<type> (URL built at run time)`; with a hosts
+// question it is the person's answer) and a connector call missing required arguments (kind
+// `arguments`). Options the runtime refuses when the step runs, decidable from the step's own
+// parameters (kind `run-time`, `runTimeRefusals()`), count too. Refusals that depend on the
+// response (an HTTP Request answered with a binary body) cannot be seen without a run and are
+// named in LOOP.md instead.
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -36,6 +47,7 @@ import { fileURLToPath } from "node:url";
 import { canonical } from "../fetch-survey.mjs";
 import { analyze, unwrap } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
 import { convertItems, loadReferences } from "../../skills/n8n-to-claude/scripts/convert.mjs";
+import { preflight } from "../../skills/n8n-to-claude/runtime/src/api.mjs";
 import { checkEligibility, lookupType, resolveEntry } from "./eligible.mjs";
 import { structuralExclusion, tutorialExclusion, HAND } from "./fetch.mjs";
 import { readSplits, roundOf, unreadableIds } from "./rounds.mjs";
@@ -77,6 +89,65 @@ export function blockersOf(def, report, wf) {
     out.push({ key: op ? `${type} ${op}` : type, type, op, kind: s.blocked?.kind ?? "unsupported", reason: norm(s.blocked?.reason ?? "") });
   }
   return out;
+}
+
+// Block kinds that are a question the person answers, not a missing feature.
+export const ANSWER_KINDS = new Set(["input-incomplete", "substitution"]);
+
+// Options the runtime refuses when the step runs, read from the step's own parameters. Mirrors
+// the run-time refusals in runtime/src/nodes2.mjs (HTTP Request file responses and binary
+// bodies; the HTML node's operations other than the two it implements). Returns [{what}].
+const METHODS_WITHOUT_BODY = ["GET", "HEAD", "OPTIONS"];
+export function runTimeRefusals(step) {
+  const t = step?.n8n?.type ?? "";
+  const p = step?.params ?? {};
+  const out = [];
+  if (t === "n8n-nodes-base.httpRequest" && (step.n8n.typeVersion ?? 1) >= 3) {
+    if (p.options?.response?.response?.responseFormat === "file") out.push({ what: "file response" });
+    if (p.sendBody && p.contentType === "binaryData" && !METHODS_WITHOUT_BODY.includes(String(p.method ?? "GET").toUpperCase())) out.push({ what: "binary body" });
+  }
+  if (t === "n8n-nodes-base.html") {
+    const op = p.operation ?? "generateHtmlTemplate";
+    if (typeof op === "string" && !["generateHtmlTemplate", "convertToHtmlTable"].includes(op)) out.push({ what: op });
+  }
+  return out;
+}
+
+// P105: blockers a converted definition has beyond its blocked steps: preflight's refusals of
+// steps the converter did not block, and run-time refusals read from parameters. `questions`
+// are the analyzer's question ids (a hosts question is `<id>/hosts/<step>`). Returns the same
+// shape as blockersOf, plus `answer: true` for a refusal a question settles.
+export function runtimeBlockersOf(def, report, wf, issues = preflight(def).issues) {
+  const info = new Map((report?.steps ?? []).map((s) => [s.node, s]));
+  const nodes = new Map((wf?.nodes ?? []).filter((n) => n && typeof n.name === "string").map((n) => [n.name, n]));
+  const hostsAsked = new Set((report?.questions ?? []).map((q) => String(q.id ?? "")).filter((id) => /\/hosts\//.test(id)).map((id) => id.slice(id.indexOf("/hosts/") + 7)));
+  const out = [];
+  const seen = new Set();
+  const push = (b) => {
+    const k = `${b.step}\0${b.key}`;
+    if (!seen.has(k)) seen.add(k), out.push(b);
+  };
+  for (const i of issues) {
+    if (i.level !== "error" || !i.step) continue;
+    const s = def.steps?.[i.step];
+    if (!s || s.kind === "blocked" || s.settings?.disabled) continue;
+    const type = s.n8n?.type ?? nodes.get(i.step)?.type ?? "unknown";
+    let m;
+    if ((m = /^not implemented: (\S+) v(\S+)/.exec(i.message))) push({ step: i.step, key: `${m[1]} v${m[2]}`, type: m[1], op: "", kind: "runtime", reason: `not implemented in the runtime: ${m[1]} vN` });
+    else if (/URL built at run time is allowed to any host/.test(i.message)) {
+      if (hostsAsked.has(i.step)) push({ step: i.step, key: `${type} (URL built at run time)`, type, op: "", kind: "input-incomplete", reason: "a URL built at run time: the person names its hosts", answer: true });
+      else push({ step: i.step, key: `${type} (URL built at run time)`, type, op: "", kind: "runtime", reason: "a URL built at run time in a step the analyzer asks no hosts question about" });
+    } else if (/lacks required arguments/.test(i.message)) {
+      const r = info.get(i.step);
+      const op = r ? opStr(r.resource, r.operation) : "";
+      push({ step: i.step, key: `${type}${op ? ` ${op}` : ""} (required arguments)`, type, op, kind: "arguments", reason: norm(i.message.replace(/^tool \S+ /, "")) });
+    }
+  }
+  for (const [name, s] of Object.entries(def.steps ?? {})) {
+    if (s.kind === "blocked" || s.settings?.disabled) continue;
+    for (const r of runTimeRefusals(s)) push({ step: name, key: `${s.n8n.type} (${r.what})`, type: s.n8n.type, op: "", kind: "run-time", reason: `refused by the runtime when the step runs: ${r.what}` });
+  }
+  return out.map(({ step, ...b }) => b);
 }
 
 // The planned feature (eligibility.json `features`) a step kind falls under, or "unplanned".
@@ -274,8 +345,9 @@ async function main() {
       return { crash: String(e.message).slice(0, 120) };
     }
     if (res.refused) return { refused: true };
-    const bs = blockersOf(res.definition, res.report.workflows[0] ?? report, wf);
-    const feat = bs.filter((b) => b.kind !== "input-incomplete");
+    const rep = res.report.workflows[0] ?? report;
+    const bs = [...blockersOf(res.definition, rep, wf), ...runtimeBlockersOf(res.definition, rep, wf)];
+    const feat = bs.filter((b) => !ANSWER_KINDS.has(b.kind));
     feat.forEach(note);
     const steps = Object.values(res.definition.steps).filter((s) => !s.settings?.disabled);
     return { keys: feat.map((b) => b.key), answers: bs.length - feat.length, full: !bs.length && !steps.some((s) => s.review) };
@@ -403,8 +475,8 @@ export function markdown(doc) {
   L.push(`| Excluded by a rule | ${excluded} (${Object.entries(p.excluded).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(", ")}) |`);
   L.push(`| Out of scope (round-4 clauses 1-3, 5, 6) | ${p.outOfScope} |`);
   L.push(`| **In scope** if every planned feature were built | **${p.inScope}** |`);
-  L.push(`| Fully supported today (no blocked step) | ${p.supportedToday} (of them ${p.fullClass} with no review flag either) |`);
-  L.push(`| Blocked only by a question the person answers (\`input-incomplete\`) | ${p.answersOnly} |`);
+  L.push(`| Fully supported today (no blocked step, no runtime refusal) | ${p.supportedToday} (of them ${p.fullClass} with no review flag either) |`);
+  L.push(`| Blocked only by a question the person answers (\`input-incomplete\`, an offered substitution, a hosts question) | ${p.answersOnly} |`);
   L.push(`| Blocked by at least one missing feature | ${p.blocked}${p.crashes ? ` (${p.crashes} converter crash or refusal)` : ""} |`);
   L.push("");
   L.push(`Out of scope, by clause (a template counts once per clause it breaks): ${Object.entries(p.outOfScopeByClause).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([k, v]) => `${k} ${v}`).join(", ")}.`, "");
@@ -424,7 +496,7 @@ export function markdown(doc) {
   for (const g of doc.byType.slice(0, 25)) L.push(`| \`${esc(g.group)}\` | ${g.planned} | ${g.keys} | ${g.galleryUnlock} | ${g.galleryTotal} | ${g.devUnlock} | ${g.devTotal} |`);
   L.push("");
   L.push("## Missing features", "");
-  L.push("Gallery counts are over the in-scope templates; *alone* = the only missing feature of that template; dev counts are over round-" + doc.round + " dev (*unlock* = the only missing feature left). Sorted by alone, then total. Ids per row are in `levers.json`.", "");
+  L.push("Gallery counts are over the in-scope templates; *alone* = the only missing feature of that template; dev counts are over round-" + doc.round + " dev (*unlock* = the only missing feature left). Sorted by alone, then total. Ids per row are in `levers.json`. Block kinds: the converter's (\`no-tool\`, \`unsupported\`, \`dropped\`), and since PROPOSALS P105 the runtime's on steps the converter does not block: \`runtime\` (preflight: a node version the runtime does not implement, a URL built at run time with no hosts question), \`arguments\` (a connector call missing required arguments), \`run-time\` (an option the runtime refuses when the step runs, read from its parameters). A refusal that depends on a response (an HTTP Request answered with a binary body) is not visible without a run; LOOP.md names those.", "");
   L.push("| # | Node type + operation | Planned | Block kind | Alone | Total | Dev unlock | Dev total | Converter reason (most frequent) |", "| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
   doc.features.forEach((f, i) => L.push(`| ${i + 1} | \`${esc(f.key)}\` | ${f.planned} | ${f.kinds.join(", ")} | ${f.galleryAlone} | ${f.galleryTotal} | ${f.devUnlock} | ${f.devTotal} | ${esc(f.reason.replace(/^[\w-]+: /, ""))} |`));
   return L.join("\n") + "\n";

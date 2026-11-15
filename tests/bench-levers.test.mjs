@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { blockersOf, rankLevers, byPlanned, plannedOf, ROUND } from "../evals/bench/levers.mjs";
+import { blockersOf, rankLevers, byPlanned, plannedOf, ROUND, runtimeBlockersOf, runTimeRefusals, ANSWER_KINDS } from "../evals/bench/levers.mjs";
 import { readSplits, roundOf, unreadableIds } from "../evals/bench/rounds.mjs";
 
 const BENCH = join(dirname(fileURLToPath(import.meta.url)), "..", "evals", "bench");
@@ -83,4 +83,40 @@ test("levers: no current or round-4 held-out id in LEVERS.md or levers.json", ()
   const dev = new Set(roundOf(splits, ROUND).dev.map((r) => String(r.id)));
   for (const f of doc.features) for (const id of [...f.ids.devUnlock, ...f.ids.devTotal]) assert.ok(dev.has(String(id)), `${id} is not round-${ROUND} dev`);
   assert.equal(typeof doc.population.heldOutSkipped, "number");
+});
+
+test("levers P105: preflight refusals of unblocked steps and run-time refusals are blockers; substitutions and hosts questions are answers", () => {
+  assert.ok(ANSWER_KINDS.has("substitution") && ANSWER_KINDS.has("input-incomplete"));
+  const def = {
+    steps: {
+      Md: { kind: "logic", n8n: { type: "n8n-nodes-base.markdown", typeVersion: 1 } },
+      Rss: { kind: "http", n8n: { type: "n8n-nodes-base.rssFeedRead", typeVersion: 1 } },
+      Fetch: { kind: "http", n8n: { type: "n8n-nodes-base.httpRequest", typeVersion: 4.2 }, params: { url: "={{ $json.u }}" } },
+      Up: { kind: "http", n8n: { type: "n8n-nodes-base.httpRequest", typeVersion: 4.2 }, params: { method: "POST", sendBody: true, contentType: "binaryData" } },
+      Dl: { kind: "http", n8n: { type: "n8n-nodes-base.httpRequest", typeVersion: 4.2 }, params: { options: { response: { response: { responseFormat: "file" } } } } },
+      Ex: { kind: "logic", n8n: { type: "n8n-nodes-base.html", typeVersion: 1.2 }, params: { operation: "extractHtmlContent" } },
+      Tpl: { kind: "logic", n8n: { type: "n8n-nodes-base.html", typeVersion: 1.2 }, params: {} },
+      Page: { kind: "tool", n8n: { type: "n8n-nodes-base.notion", typeVersion: 2.2 } },
+      Mail: { kind: "blocked", n8n: { type: "n8n-nodes-base.emailSend" }, blocked: { kind: "substitution", reason: "send through Gmail" } },
+    },
+  };
+  const issues = [
+    { level: "error", step: "Md", message: "not implemented: n8n-nodes-base.markdown v1 (kind logic)" },
+    { level: "error", step: "Rss", message: 'step "Rss": a request with a URL built at run time is allowed to any host (GET *); its host cannot be known' },
+    { level: "error", step: "Fetch", message: 'step "Fetch": a request with a URL built at run time is allowed to any host (GET *); its host cannot be known' },
+    { level: "error", step: "Page", message: "tool notion.notion-create-pages lacks required arguments: pages" },
+    { level: "error", step: "Mail", message: "blocked: emailSend cannot run on Claude as it is" },
+  ];
+  const report = { steps: [{ node: "Page", resource: "databasePage", operation: "create" }], questions: [{ id: "1/hosts/Fetch" }] };
+  const got = runtimeBlockersOf(def, report, null, issues).map((b) => [b.key, b.kind]);
+  assert.deepEqual(got, [
+    ["n8n-nodes-base.markdown v1", "runtime"],
+    ["n8n-nodes-base.rssFeedRead (URL built at run time)", "runtime"],
+    ["n8n-nodes-base.httpRequest (URL built at run time)", "input-incomplete"],
+    ["n8n-nodes-base.notion databasePage:create (required arguments)", "arguments"],
+    ["n8n-nodes-base.httpRequest (binary body)", "run-time"],
+    ["n8n-nodes-base.httpRequest (file response)", "run-time"],
+    ["n8n-nodes-base.html (extractHtmlContent)", "run-time"],
+  ]);
+  assert.deepEqual(runTimeRefusals({ n8n: { type: "n8n-nodes-base.httpRequest", typeVersion: 4.2 }, params: { method: "GET", sendBody: true, contentType: "binaryData" } }), []);
 });
