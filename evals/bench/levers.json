@@ -1,0 +1,6284 @@
+{
+ "$doc": "Missing converter features ranked over n8n's template gallery (evals/bench/levers.mjs; LEVERS.md explains every field). Ids only, no template content.",
+ "generated": "2026-11-16",
+ "source": "https://api.n8n.io/api/templates/search?rows=50&page=<n>&sort=views:desc (pages 1-20), then https://api.n8n.io/api/templates/workflows/<id>",
+ "listingTotal": 14216,
+ "listingPages": [
+  {
+   "page": 1,
+   "file": "evals/bench/data/listing-p1.json",
+   "date": "2026-11-14"
+  },
+  {
+   "page": 2,
+   "file": "evals/bench/data/listing-p2.json",
+   "date": "2026-11-14"
+  },
+  {
+   "page": 3,
+   "file": "evals/bench/data/listing-p3.json",
+   "date": "2026-11-14"
+  },
+  {
+   "page": 4,
+   "file": "evals/bench/data/listing-p4.json",
+   "date": "2026-11-14"
+  },
+  {
+   "page": 5,
+   "file": "evals/bench/data/listing-r4-p5.json",
+   "date": "2026-11-15"
+  },
+  {
+   "page": 6,
+   "file": "evals/bench/data/listing-r4-p6.json",
+   "date": "2026-11-15"
+  },
+  {
+   "page": 7,
+   "file": "evals/bench/data/listing-levers-p7.json",
+   "date": "2026-11-15"
+  },
+  {
+   "page": 8,
+   "file": "evals/bench/data/listing-levers-p8.json",
+   "date": "2026-11-15"
+  },
+  {
+   "page": 9,
+   "file": "evals/bench/data/listing-levers-p9.json",
+   "date": "2026-11-15"
+  },
+  {
+   "page": 10,
+   "file": "evals/bench/data/listing-levers-p10.json",
+   "date": "2026-11-15"
+  },
+  {
+   "page": 11,
+   "file": "evals/bench/data/listing-levers-p11.json",
+   "date": "2026-11-15"
+  },
+  {
+   "page": 12,
+   "file": "evals/bench/data/listing-levers-p12.json",
+   "date": "2026-11-15"
+  },
+  {
+   "page": 13,
+   "file": "evals/bench/data/listing-levers-p13.json",
+   "date": "2026-11-15"
+  },
+  {
+   "page": 14,
+   "file": "evals/bench/data/listing-levers-p14.json",
+   "date": "2026-11-15"
+  },
+  {
+   "page": 15,
+   "file": "evals/bench/data/listing-levers-p15.json",
+   "date": "2026-11-15"
+  },
+  {
+   "page": 16,
+   "file": "evals/bench/data/listing-levers-p16.json",
+   "date": "2026-11-15"
+  },
+  {
+   "page": 17,
+   "file": "evals/bench/data/listing-levers-p17.json",
+   "date": "2026-11-15"
+  },
+  {
+   "page": 18,
+   "file": "evals/bench/data/listing-levers-p18.json",
+   "date": "2026-11-15"
+  },
+  {
+   "page": 19,
+   "file": "evals/bench/data/listing-levers-p19.json",
+   "date": "2026-11-15"
+  },
+  {
+   "page": 20,
+   "file": "evals/bench/data/listing-levers-p20.json",
+   "date": "2026-11-15"
+  }
+ ],
+ "analyzer": "analyze.mjs and convert.mjs of the checkout, default answers, --now 2026-11-16T00:00:00Z, no model",
+ "rules": "EXCLUSIONS.md exclusion rules (fetch.mjs, same order) and round-4 eligibility clauses 1-3, 5, 6 (eligible.mjs); clause 4 (planned features) is not applied",
+ "round": 4,
+ "requests": {
+  "listing": 14,
+  "template": 640,
+  "failed": 0
+ },
+ "population": {
+  "listingEntries": 997,
+  "heldOutSkipped": 20,
+  "read": 977,
+  "excluded": {
+   "tutorial": 22,
+   "paid": 67,
+   "hand": 2,
+   "no-edges": 2,
+   "duplicate": 1
+  },
+  "outOfScope": 384,
+  "outOfScopeByClause": {
+   "outcome": 262,
+   "outcome/relay-or-hosted": 245,
+   "out-of-scope/sync-webhook-reply": 89,
+   "comparable": 41,
+   "out-of-scope/send-and-wait": 15,
+   "bench": 48,
+   "out-of-scope/sub-workflow-missing": 46,
+   "out-of-scope/public-chat-page": 27,
+   "out-of-scope/wait-on-webhook": 11,
+   "outcome/error-workflow": 5,
+   "out-of-scope/error-workflow": 5,
+   "self-fail/required-empty": 6,
+   "self-fail/chat-model-in-completion-class": 3,
+   "hand": 2,
+   "out-of-scope/persistent-connection": 20,
+   "out-of-scope/community-node": 18,
+   "out-of-scope/under-a-minute": 2
+  },
+  "inScope": 499,
+  "supportedToday": 211,
+  "fullClass": 89,
+  "answersOnly": 7,
+  "blocked": 281,
+  "crashes": 0
+ },
+ "dev": {
+  "templates": 100,
+  "unnamed": 0,
+  "supportedToday": 45,
+  "answersOnly": 5,
+  "blocked": 50,
+  "missing": 0
+ },
+ "byPlanned": [
+  {
+   "group": "rest-template",
+   "keys": 47,
+   "galleryUnlock": 54,
+   "galleryTotal": 85,
+   "devUnlock": 9,
+   "devTotal": 17
+  },
+  {
+   "group": "unplanned",
+   "keys": 97,
+   "galleryUnlock": 43,
+   "galleryTotal": 75,
+   "devUnlock": 0,
+   "devTotal": 0
+  },
+  {
+   "group": "connector",
+   "keys": 52,
+   "galleryUnlock": 39,
+   "galleryTotal": 72,
+   "devUnlock": 8,
+   "devTotal": 12
+  },
+  {
+   "group": "db",
+   "keys": 13,
+   "galleryUnlock": 19,
+   "galleryTotal": 27,
+   "devUnlock": 5,
+   "devTotal": 6
+  },
+  {
+   "group": "files",
+   "keys": 10,
+   "galleryUnlock": 17,
+   "galleryTotal": 25,
+   "devUnlock": 2,
+   "devTotal": 3
+  },
+  {
+   "group": "vector",
+   "keys": 17,
+   "galleryUnlock": 11,
+   "galleryTotal": 27,
+   "devUnlock": 6,
+   "devTotal": 10
+  },
+  {
+   "group": "substitution",
+   "keys": 2,
+   "galleryUnlock": 9,
+   "galleryTotal": 19,
+   "devUnlock": 2,
+   "devTotal": 3
+  },
+  {
+   "group": "http",
+   "keys": 2,
+   "galleryUnlock": 7,
+   "galleryTotal": 13,
+   "devUnlock": 4,
+   "devTotal": 5
+  },
+  {
+   "group": "form-ending",
+   "keys": 1,
+   "galleryUnlock": 3,
+   "galleryTotal": 6,
+   "devUnlock": 1,
+   "devTotal": 3
+  },
+  {
+   "group": "media",
+   "keys": 2,
+   "galleryUnlock": 2,
+   "galleryTotal": 5,
+   "devUnlock": 1,
+   "devTotal": 2
+  },
+  {
+   "group": "agent",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0
+  },
+  {
+   "group": "trigger-poll",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0
+  },
+  {
+   "group": "state",
+   "keys": 5,
+   "galleryUnlock": 0,
+   "galleryTotal": 9,
+   "devUnlock": 0,
+   "devTotal": 2
+  }
+ ],
+ "byType": [
+  {
+   "group": "n8n-nodes-base.airtable",
+   "keys": 10,
+   "galleryUnlock": 13,
+   "galleryTotal": 26,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "planned": "rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.postgres",
+   "keys": 5,
+   "galleryUnlock": 11,
+   "galleryTotal": 14,
+   "devUnlock": 3,
+   "devTotal": 3,
+   "planned": "db"
+  },
+  {
+   "group": "n8n-nodes-base.googleSheets",
+   "keys": 7,
+   "galleryUnlock": 9,
+   "galleryTotal": 19,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "planned": "connector"
+  },
+  {
+   "group": "n8n-nodes-base.youTube",
+   "keys": 8,
+   "galleryUnlock": 9,
+   "galleryTotal": 16,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "rest-template"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.openAi",
+   "keys": 5,
+   "galleryUnlock": 8,
+   "galleryTotal": 12,
+   "devUnlock": 2,
+   "devTotal": 4,
+   "planned": "model/media/rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.emailSend",
+   "keys": 1,
+   "galleryUnlock": 7,
+   "galleryTotal": 14,
+   "devUnlock": 2,
+   "devTotal": 2,
+   "planned": "substitution (some operations)"
+  },
+  {
+   "group": "n8n-nodes-base.editImage",
+   "keys": 5,
+   "galleryUnlock": 6,
+   "galleryTotal": 10,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "planned": "files"
+  },
+  {
+   "group": "n8n-nodes-base.linkedIn",
+   "keys": 1,
+   "galleryUnlock": 5,
+   "galleryTotal": 10,
+   "devUnlock": 2,
+   "devTotal": 5,
+   "planned": "rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.googleDrive",
+   "keys": 5,
+   "galleryUnlock": 5,
+   "galleryTotal": 9,
+   "devUnlock": 1,
+   "devTotal": 2,
+   "planned": "connector"
+  },
+  {
+   "group": "n8n-nodes-base.mySql",
+   "keys": 5,
+   "galleryUnlock": 5,
+   "galleryTotal": 9,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "planned": "db"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.toolWikipedia",
+   "keys": 1,
+   "galleryUnlock": 4,
+   "galleryTotal": 10,
+   "devUnlock": 1,
+   "devTotal": 3,
+   "planned": "http"
+  },
+  {
+   "group": "n8n-nodes-base.moveBinaryData",
+   "keys": 1,
+   "galleryUnlock": 4,
+   "galleryTotal": 8,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "files"
+  },
+  {
+   "group": "n8n-nodes-base.jira",
+   "keys": 7,
+   "galleryUnlock": 4,
+   "galleryTotal": 5,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "planned": "connector"
+  },
+  {
+   "group": "n8n-nodes-base.microsoftOutlook",
+   "keys": 12,
+   "galleryUnlock": 3,
+   "galleryTotal": 10,
+   "devUnlock": 2,
+   "devTotal": 3,
+   "planned": "connector"
+  },
+  {
+   "group": "n8n-nodes-base.slack",
+   "keys": 4,
+   "galleryUnlock": 3,
+   "galleryTotal": 9,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "connector"
+  },
+  {
+   "group": "n8n-nodes-base.form",
+   "keys": 1,
+   "galleryUnlock": 3,
+   "galleryTotal": 6,
+   "devUnlock": 1,
+   "devTotal": 3,
+   "planned": "form-ending (some operations)"
+  },
+  {
+   "group": "n8n-nodes-base.github",
+   "keys": 5,
+   "galleryUnlock": 3,
+   "galleryTotal": 6,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.googleDocs",
+   "keys": 2,
+   "galleryUnlock": 3,
+   "galleryTotal": 5,
+   "devUnlock": 2,
+   "devTotal": 2,
+   "planned": "connector"
+  },
+  {
+   "group": "n8n-nodes-base.mongoDb",
+   "keys": 3,
+   "galleryUnlock": 3,
+   "galleryTotal": 5,
+   "devUnlock": 1,
+   "devTotal": 2,
+   "planned": "db"
+  },
+  {
+   "group": "n8n-nodes-base.gmail",
+   "keys": 4,
+   "galleryUnlock": 3,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "connector"
+  },
+  {
+   "group": "n8n-nodes-base.reddit",
+   "keys": 4,
+   "galleryUnlock": 3,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.spreadsheetFile",
+   "keys": 1,
+   "galleryUnlock": 3,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "files"
+  },
+  {
+   "group": "n8n-nodes-base.executeCommand",
+   "keys": 1,
+   "galleryUnlock": 2,
+   "galleryTotal": 6,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "substitution"
+  },
+  {
+   "group": "n8n-nodes-base.twitter",
+   "keys": 2,
+   "galleryUnlock": 2,
+   "galleryTotal": 6,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "rest-template"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.toolSerpApi",
+   "keys": 1,
+   "galleryUnlock": 2,
+   "galleryTotal": 5,
+   "devUnlock": 2,
+   "devTotal": 3,
+   "planned": "http"
+  },
+  {
+   "group": "n8n-nodes-base.hackerNews",
+   "keys": 2,
+   "galleryUnlock": 2,
+   "galleryTotal": 4,
+   "devUnlock": 1,
+   "devTotal": 3,
+   "planned": "rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.microsoftExcel",
+   "keys": 3,
+   "galleryUnlock": 2,
+   "galleryTotal": 4,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "planned": "connector"
+  },
+  {
+   "group": "n8n-nodes-base.compression",
+   "keys": 1,
+   "galleryUnlock": 2,
+   "galleryTotal": 3,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "planned": "files"
+  },
+  {
+   "group": "n8n-nodes-base.shopify",
+   "keys": 1,
+   "galleryUnlock": 2,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.telegram",
+   "keys": 2,
+   "galleryUnlock": 2,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.wooCommerce",
+   "keys": 4,
+   "galleryUnlock": 2,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "rest-template"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.googleGemini",
+   "keys": 2,
+   "galleryUnlock": 2,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.ghost",
+   "keys": 2,
+   "galleryUnlock": 2,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.googleTranslate",
+   "keys": 1,
+   "galleryUnlock": 2,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.microsoftTeams",
+   "keys": 4,
+   "galleryUnlock": 2,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.mistralAi",
+   "keys": 1,
+   "galleryUnlock": 2,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.trello",
+   "keys": 2,
+   "galleryUnlock": 2,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.wordpress",
+   "keys": 1,
+   "galleryUnlock": 2,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.discord",
+   "keys": 2,
+   "galleryUnlock": 1,
+   "galleryTotal": 5,
+   "devUnlock": 1,
+   "devTotal": 2,
+   "planned": "rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.hubspot",
+   "keys": 3,
+   "galleryUnlock": 1,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "connector"
+  },
+  {
+   "group": "n8n-nodes-base.nocoDb",
+   "keys": 2,
+   "galleryUnlock": 1,
+   "galleryTotal": 3,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "planned": "rest-template"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.toolCalculator",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "agent"
+  },
+  {
+   "group": "n8n-nodes-base.googleAnalytics",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.notionTrigger",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.rssFeedReadTrigger",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "trigger-poll"
+  },
+  {
+   "group": "n8n-nodes-base.twilio",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.supabase",
+   "keys": 2,
+   "galleryUnlock": 1,
+   "galleryTotal": 2,
+   "devUnlock": 1,
+   "devTotal": 2,
+   "planned": "rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.airtop",
+   "keys": 2,
+   "galleryUnlock": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.clearbit",
+   "keys": 2,
+   "galleryUnlock": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.dropbox",
+   "keys": 2,
+   "galleryUnlock": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.googleCalendarTrigger",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.linear",
+   "keys": 2,
+   "galleryUnlock": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.microsoftOneDrive",
+   "keys": 2,
+   "galleryUnlock": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "connector"
+  },
+  {
+   "group": "n8n-nodes-base.s3",
+   "keys": 2,
+   "galleryUnlock": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.salesforce",
+   "keys": 6,
+   "galleryUnlock": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.uproc",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "rest-template"
+  },
+  {
+   "group": "@blotato/n8n-nodes-blotato.blotato",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 1,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "planned": "rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.asana",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.clickUp",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "connector"
+  },
+  {
+   "group": "n8n-nodes-base.convertToFile",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "files"
+  },
+  {
+   "group": "n8n-nodes-base.gitlab",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.googleCloudStorage",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.googleContacts",
+   "keys": 3,
+   "galleryUnlock": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.graphql",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.microsoftToDo",
+   "keys": 3,
+   "galleryUnlock": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.odoo",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.quickbooks",
+   "keys": 3,
+   "galleryUnlock": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.quickChart",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.todoist",
+   "keys": 2,
+   "galleryUnlock": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.zohoCrm",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 20,
+   "devUnlock": 0,
+   "devTotal": 7,
+   "planned": "vector"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+   "keys": 4,
+   "galleryUnlock": 0,
+   "galleryTotal": 9,
+   "devUnlock": 0,
+   "devTotal": 4,
+   "planned": "vector"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+   "keys": 4,
+   "galleryUnlock": 0,
+   "galleryTotal": 8,
+   "devUnlock": 0,
+   "devTotal": 3,
+   "planned": "vector"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "planned": "vector"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.toolVectorStore",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 3,
+   "planned": "vector"
+  },
+  {
+   "group": "n8n-nodes-base.removeDuplicates",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "core/state (some operations)"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+   "keys": 4,
+   "galleryUnlock": 0,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "planned": "state"
+  },
+  {
+   "group": "n8n-nodes-base.notion",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "connector"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+   "keys": 3,
+   "galleryUnlock": 0,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "vector"
+  },
+  {
+   "group": "n8n-nodes-base.baserow",
+   "keys": 2,
+   "galleryUnlock": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.googleCalendar",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "connector"
+  },
+  {
+   "group": "n8n-nodes-base.hunter",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.embeddingsMistralCloud",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "vector"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "vector"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.vectorStoreMongoDBAtlas",
+   "keys": 2,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "vector"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.vectorStoreWeaviate",
+   "keys": 2,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.airtableTrigger",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.bannerbear",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.coinGecko",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.dropcontact",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.extractFromFile",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "files"
+  },
+  {
+   "group": "n8n-nodes-base.git",
+   "keys": 4,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.googleCloudNaturalLanguage",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.iCal",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.lemlist",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.line",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.mattermost",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.microsoftOutlookTrigger",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.mondayCom",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.nextCloud",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.openWeatherMap",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.phantombuster",
+   "keys": 2,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.pipedrive",
+   "keys": 3,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.raindrop",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.sendGrid",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.sendInBlue",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.spotify",
+   "keys": 5,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.strapi",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.urlScanIo",
+   "keys": 2,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.webflow",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  },
+  {
+   "group": "n8n-nodes-base.zendesk",
+   "keys": 2,
+   "galleryUnlock": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "unplanned"
+  }
+ ],
+ "features": [
+  {
+   "key": "n8n-nodes-base.emailSend send",
+   "type": "n8n-nodes-base.emailSend",
+   "op": "send",
+   "planned": "substitution",
+   "kinds": [
+    "substitution"
+   ],
+   "reason": "substitution: emailSend cannot run on Claude as it is: send through the Gmail connector (send_message) instead of SMTP",
+   "galleryAlone": 7,
+   "galleryTotal": 14,
+   "devUnlock": 2,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [584, 1465, 1514, 1978, 2537, 2851, 2964],
+    "galleryTotal": [584, 837, 1083, 1465, 1514, 1978, 2537, 2673, 2851, 2964, 3277, 3666, 4807, 5817],
+    "devUnlock": [1978, 2537],
+    "devTotal": [1978, 2537]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.linkedIn post:create",
+   "type": "n8n-nodes-base.linkedIn",
+   "op": "post:create",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 5,
+   "galleryTotal": 10,
+   "devUnlock": 2,
+   "devTotal": 5,
+   "ids": {
+    "galleryAlone": [681, 3086, 4968, 5002, 5840],
+    "galleryTotal": [681, 2273, 2288, 2557, 2681, 3082, 3086, 4968, 5002, 5840],
+    "devUnlock": [3086, 4968],
+    "devTotal": [2288, 2557, 3082, 3086, 4968]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.toolWikipedia",
+   "type": "@n8n/n8n-nodes-langchain.toolWikipedia",
+   "op": "",
+   "planned": "http",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for toolWikipedia yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 4,
+   "galleryTotal": 10,
+   "devUnlock": 1,
+   "devTotal": 3,
+   "ids": {
+    "galleryAlone": [1956, 2754, 2883, 2931],
+    "galleryTotal": [1956, 1959, 2187, 2326, 2564, 2618, 2662, 2754, 2883, 2931],
+    "devUnlock": [2883],
+    "devTotal": [1959, 2187, 2883]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.airtable record:create",
+   "type": "n8n-nodes-base.airtable",
+   "op": "record:create",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for airtable record:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 4,
+   "galleryTotal": 10,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2087, 2924, 3435, 5743],
+    "galleryTotal": [2087, 2619, 2662, 2681, 2924, 3435, 3717, 4481, 4887, 5743],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.moveBinaryData",
+   "type": "n8n-nodes-base.moveBinaryData",
+   "op": "",
+   "planned": "files",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: moveBinaryData is not implemented yet",
+   "galleryAlone": 4,
+   "galleryTotal": 8,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [652, 1690, 1731, 1967],
+    "galleryTotal": [175, 652, 837, 1150, 1690, 1731, 1791, 1967],
+    "devUnlock": [],
+    "devTotal": [1150]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.openAi assistant:message",
+   "type": "@n8n/n8n-nodes-langchain.openAi",
+   "op": "assistant:message",
+   "planned": "rest-template",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: OpenAI assistant:message is not a text model call",
+   "galleryAlone": 4,
+   "galleryTotal": 6,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [2025, 2693, 4709, 4867],
+    "galleryTotal": [2025, 2201, 2288, 2693, 4709, 4867],
+    "devUnlock": [],
+    "devTotal": [2201, 2288]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.postgres insert",
+   "type": "n8n-nodes-base.postgres",
+   "op": "insert",
+   "planned": "db",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "galleryAlone": 3,
+   "galleryTotal": 7,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [1, 356, 2926],
+    "galleryTotal": [1, 356, 599, 1045, 2081, 2803, 2926],
+    "devUnlock": [],
+    "devTotal": [2803]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.form completion",
+   "type": "n8n-nodes-base.form",
+   "op": "completion",
+   "planned": "form-ending",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: form waits for a person (out of scope v1)",
+   "galleryAlone": 3,
+   "galleryTotal": 6,
+   "devUnlock": 1,
+   "devTotal": 3,
+   "ids": {
+    "galleryAlone": [3289, 3669, 4767],
+    "galleryTotal": [2187, 2976, 3082, 3289, 3669, 4767],
+    "devUnlock": [3669],
+    "devTotal": [2187, 3082, 3669]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.spreadsheetFile fromFile",
+   "type": "n8n-nodes-base.spreadsheetFile",
+   "op": "fromFile",
+   "planned": "files",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: Spreadsheet File v2 reads CSV with csv-parse, which the runtime does not carry yet",
+   "galleryAlone": 3,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [1968, 1969, 2041],
+    "galleryTotal": [1968, 1969, 2041],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.mySql executeQuery",
+   "type": "n8n-nodes-base.mySql",
+   "op": "executeQuery",
+   "planned": "db",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "galleryAlone": 2,
+   "galleryTotal": 6,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [1872, 2508],
+    "galleryTotal": [598, 1753, 1822, 1872, 2508, 3617],
+    "devUnlock": [2508],
+    "devTotal": [2508]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.executeCommand",
+   "type": "n8n-nodes-base.executeCommand",
+   "op": "",
+   "planned": "substitution",
+   "kinds": [
+    "unsupported",
+    "dropped"
+   ],
+   "reason": "unsupported: runs a shell command on the n8n host",
+   "galleryAlone": 2,
+   "galleryTotal": 6,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [1053, 3328],
+    "galleryTotal": [837, 1053, 1073, 1942, 2307, 3328],
+    "devUnlock": [],
+    "devTotal": [1073]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.postgres executeQuery",
+   "type": "n8n-nodes-base.postgres",
+   "op": "executeQuery",
+   "planned": "db",
+   "kinds": [
+    "unsupported",
+    "dropped"
+   ],
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "galleryAlone": 2,
+   "galleryTotal": 6,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2, 458],
+    "galleryTotal": [2, 357, 458, 599, 2272, 2903],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.slack message:post",
+   "type": "n8n-nodes-base.slack",
+   "op": "message:post",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for slack message:post yet",
+   "galleryAlone": 2,
+   "galleryTotal": 6,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [1277, 1469],
+    "galleryTotal": [1045, 1207, 1277, 1464, 1469, 1590],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.youTube video:getAll",
+   "type": "n8n-nodes-base.youTube",
+   "op": "video:getAll",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for youTube video:getAll yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 2,
+   "galleryTotal": 6,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [1599, 2242],
+    "galleryTotal": [1599, 2211, 2242, 2564, 2903, 3900],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.toolSerpApi",
+   "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
+   "op": "",
+   "planned": "http",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for toolSerpApi yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 2,
+   "galleryTotal": 5,
+   "devUnlock": 2,
+   "devTotal": 3,
+   "ids": {
+    "galleryAlone": [1954, 2324],
+    "galleryTotal": [1954, 1959, 2324, 2326, 5024],
+    "devUnlock": [1954, 2324],
+    "devTotal": [1954, 1959, 2324]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.editImage information",
+   "type": "n8n-nodes-base.editImage",
+   "op": "information",
+   "planned": "files",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: Edit Image runs GraphicsMagick inside n8n; the runtime has no image library, so resized or edited images would differ",
+   "galleryAlone": 2,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [576, 2529],
+    "galleryTotal": [576, 2344, 2418, 2459, 2529],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleDocs document:update",
+   "type": "n8n-nodes-base.googleDocs",
+   "op": "document:update",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool edits a document in place (update_file changes metadata only)",
+   "galleryAlone": 2,
+   "galleryTotal": 4,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [3025, 3185],
+    "galleryTotal": [3025, 3185, 4252, 4403],
+    "devUnlock": [3025],
+    "devTotal": [3025]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.openAi audio:transcribe",
+   "type": "@n8n/n8n-nodes-langchain.openAi",
+   "op": "audio:transcribe",
+   "planned": "media",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet)",
+   "galleryAlone": 2,
+   "galleryTotal": 3,
+   "devUnlock": 1,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [2178, 3076],
+    "galleryTotal": [2178, 3076, 3442],
+    "devUnlock": [2178],
+    "devTotal": [2178, 3442]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.compression decompress",
+   "type": "n8n-nodes-base.compression",
+   "op": "decompress",
+   "planned": "files",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: Compression (zip, gzip) is not implemented yet",
+   "galleryAlone": 2,
+   "galleryTotal": 3,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [1621, 2292],
+    "galleryTotal": [1621, 2292, 2421],
+    "devUnlock": [2292],
+    "devTotal": [2292]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.hackerNews all:getAll",
+   "type": "n8n-nodes-base.hackerNews",
+   "op": "all:getAll",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for hackerNews all:getAll yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 2,
+   "galleryTotal": 3,
+   "devUnlock": 1,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [525, 2026],
+    "galleryTotal": [525, 2026, 2557],
+    "devUnlock": [2026],
+    "devTotal": [2026, 2557]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleDrive file:move",
+   "type": "n8n-nodes-base.googleDrive",
+   "op": "file:move",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for googleDrive file:move yet",
+   "galleryAlone": 2,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2393, 4376],
+    "galleryTotal": [2393, 3647, 4376],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.shopify order:getAll",
+   "type": "n8n-nodes-base.shopify",
+   "op": "order:getAll",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for shopify order:getAll yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 2,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [548, 2079],
+    "galleryTotal": [548, 1207, 2079],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.twitter tweet:create",
+   "type": "n8n-nodes-base.twitter",
+   "op": "tweet:create",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for twitter tweet:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 2,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [445, 1130],
+    "galleryTotal": [445, 1130, 3161],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.postgresTool executeQuery",
+   "type": "n8n-nodes-base.postgresTool",
+   "op": "executeQuery",
+   "planned": "db",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "galleryAlone": 2,
+   "galleryTotal": 2,
+   "devUnlock": 2,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [2090, 2859],
+    "galleryTotal": [2090, 2859],
+    "devUnlock": [2090, 2859],
+    "devTotal": [2090, 2859]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleTranslate language:translate",
+   "type": "n8n-nodes-base.googleTranslate",
+   "op": "language:translate",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for googleTranslate language:translate yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 2,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [743, 3195],
+    "galleryTotal": [743, 3195],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.mistralAi document:extractText",
+   "type": "n8n-nodes-base.mistralAi",
+   "op": "document:extractText",
+   "planned": "unplanned",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet)",
+   "galleryAlone": 2,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [7456, 7990],
+    "galleryTotal": [7456, 7990],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.reddit post:search",
+   "type": "n8n-nodes-base.reddit",
+   "op": "post:search",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for reddit post:search yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 2,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [1895, 2978],
+    "galleryTotal": [1895, 2978],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.wordpress post:getAll",
+   "type": "n8n-nodes-base.wordpress",
+   "op": "post:getAll",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for wordpress post:getAll yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 2,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [546, 2706],
+    "galleryTotal": [546, 2706],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleSheets sheet:read",
+   "type": "n8n-nodes-base.googleSheets",
+   "op": "sheet:read",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for googleSheets sheet:read yet",
+   "galleryAlone": 1,
+   "galleryTotal": 9,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [772],
+    "galleryTotal": [6, 600, 694, 772, 812, 1752, 1754, 1792, 3161],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleSheets sheet:append",
+   "type": "n8n-nodes-base.googleSheets",
+   "op": "sheet:append",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no Sheets API tool: rows cannot be appended through the Drive connector",
+   "galleryAlone": 1,
+   "galleryTotal": 7,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [1737],
+    "galleryTotal": [600, 694, 1207, 1737, 1753, 1791, 1810],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.editImage resize",
+   "type": "n8n-nodes-base.editImage",
+   "op": "resize",
+   "planned": "files",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: Edit Image runs GraphicsMagick inside n8n; the runtime has no image library, so resized or edited images would differ",
+   "galleryAlone": 1,
+   "galleryTotal": 6,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [2420],
+    "galleryTotal": [2344, 2418, 2420, 2421, 2467, 2618],
+    "devUnlock": [2420],
+    "devTotal": [2420]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleSheets sheet:update",
+   "type": "n8n-nodes-base.googleSheets",
+   "op": "sheet:update",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no Sheets API tool",
+   "galleryAlone": 1,
+   "galleryTotal": 6,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [1862],
+    "galleryTotal": [6, 694, 1754, 1810, 1862, 4403],
+    "devUnlock": [1862],
+    "devTotal": [1862]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.airtable record:upsert",
+   "type": "n8n-nodes-base.airtable",
+   "op": "record:upsert",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for airtable record:upsert yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 5,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [5657],
+    "galleryTotal": [2618, 2809, 2865, 5657, 8404],
+    "devUnlock": [5657],
+    "devTotal": [5657]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.youTube video:upload",
+   "type": "n8n-nodes-base.youTube",
+   "op": "video:upload",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for youTube video:upload yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [16419],
+    "galleryTotal": [638, 2557, 3906, 8404, 16419],
+    "devUnlock": [],
+    "devTotal": [2557]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.discord channel:create",
+   "type": "n8n-nodes-base.discord",
+   "op": "channel:create",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for discord channel:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 4,
+   "devUnlock": 1,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [3121],
+    "galleryTotal": [2249, 2564, 3121, 3442],
+    "devUnlock": [3121],
+    "devTotal": [3121, 3442]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleDrive file:upload",
+   "type": "n8n-nodes-base.googleDrive",
+   "op": "file:upload",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for googleDrive file:upload yet",
+   "galleryAlone": 1,
+   "galleryTotal": 4,
+   "devUnlock": 1,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [1897],
+    "galleryTotal": [1078, 1150, 1590, 1897],
+    "devUnlock": [1897],
+    "devTotal": [1150, 1897]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftOutlook message:send",
+   "type": "n8n-nodes-base.microsoftOutlook",
+   "op": "message:send",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftOutlook message:send yet",
+   "galleryAlone": 1,
+   "galleryTotal": 4,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [2786],
+    "galleryTotal": [2528, 2786, 3446, 3617],
+    "devUnlock": [2786],
+    "devTotal": [2786]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.airtable append",
+   "type": "n8n-nodes-base.airtable",
+   "op": "append",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for airtable append yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [1520],
+    "galleryTotal": [859, 1323, 1403, 1520],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.mySql insert",
+   "type": "n8n-nodes-base.mySql",
+   "op": "insert",
+   "planned": "db",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "galleryAlone": 1,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [1839],
+    "galleryTotal": [598, 1752, 1822, 1839],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.nocoDb row:create",
+   "type": "n8n-nodes-base.nocoDb",
+   "op": "row:create",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for nocoDb row:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 3,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [2180],
+    "galleryTotal": [1074, 2180, 2491],
+    "devUnlock": [2180],
+    "devTotal": [2180]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.toolCalculator",
+   "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+   "op": "",
+   "planned": "agent",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: toolCalculator cannot run in the runtime",
+   "galleryAlone": 1,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [4399],
+    "galleryTotal": [2784, 3617, 4399],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleAnalytics report:get",
+   "type": "n8n-nodes-base.googleAnalytics",
+   "op": "report:get",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for googleAnalytics report:get yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2549],
+    "galleryTotal": [2517, 2549, 2673],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.jira issue:create",
+   "type": "n8n-nodes-base.jira",
+   "op": "issue:create",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for jira issue:create yet",
+   "galleryAlone": 1,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [459],
+    "galleryTotal": [459, 2665, 2666],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.notionTrigger",
+   "type": "n8n-nodes-base.notionTrigger",
+   "op": "",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for polling notionTrigger",
+   "galleryAlone": 1,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [1939],
+    "galleryTotal": [1939, 2290, 2797],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.rssFeedReadTrigger",
+   "type": "n8n-nodes-base.rssFeedReadTrigger",
+   "op": "",
+   "planned": "trigger-poll",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for polling rssFeedReadTrigger",
+   "galleryAlone": 1,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [4478],
+    "galleryTotal": [2249, 4478, 4887],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.twilio sms:send",
+   "type": "n8n-nodes-base.twilio",
+   "op": "sms:send",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for twilio sms:send yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [401],
+    "galleryTotal": [357, 401, 596],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.youTube video:get",
+   "type": "n8n-nodes-base.youTube",
+   "op": "video:get",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for youTube video:get yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [4459],
+    "galleryTotal": [3450, 3900, 4459],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftExcel worksheet:append",
+   "type": "n8n-nodes-base.microsoftExcel",
+   "op": "worksheet:append",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftExcel worksheet:append yet",
+   "galleryAlone": 1,
+   "galleryTotal": 2,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [2275],
+    "galleryTotal": [2275, 3396],
+    "devUnlock": [2275],
+    "devTotal": [2275]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.openAi file:upload",
+   "type": "@n8n/n8n-nodes-langchain.openAi",
+   "op": "file:upload",
+   "planned": "rest-template",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: OpenAI file:message is not a text model call",
+   "galleryAlone": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [2781],
+    "galleryTotal": [2201, 2781],
+    "devUnlock": [],
+    "devTotal": [2201]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.airtop extraction:query",
+   "type": "n8n-nodes-base.airtop",
+   "op": "extraction:query",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for airtop extraction:query yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [3477],
+    "galleryTotal": [3477, 4252],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.clearbit company:enrich",
+   "type": "n8n-nodes-base.clearbit",
+   "op": "company:enrich",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for clearbit company:enrich yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2125],
+    "galleryTotal": [2116, 2125],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.gmail message:delete",
+   "type": "n8n-nodes-base.gmail",
+   "op": "message:delete",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool deletes a message permanently (trash_message only moves it to Trash)",
+   "galleryAlone": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [4358],
+    "galleryTotal": [1153, 4358],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleCalendarTrigger",
+   "type": "n8n-nodes-base.googleCalendarTrigger",
+   "op": "",
+   "planned": "unplanned",
+   "kinds": [
+    "not-captured"
+   ],
+   "reason": "not-captured: the app's tools are not captured yet, so its poll cannot be mapped",
+   "galleryAlone": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [3796],
+    "galleryTotal": [2528, 3796],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.linear issue:create",
+   "type": "n8n-nodes-base.linear",
+   "op": "issue:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for linear issue:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2419],
+    "galleryTotal": [2323, 2419],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.telegram message:sendAudio",
+   "type": "n8n-nodes-base.telegram",
+   "op": "message:sendAudio",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for telegram message:sendAudio yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2219],
+    "galleryTotal": [2219, 2233],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.uproc",
+   "type": "n8n-nodes-base.uproc",
+   "op": "",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for uproc yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [858],
+    "galleryTotal": [858, 1073],
+    "devUnlock": [],
+    "devTotal": [1073]
+   }
+  },
+  {
+   "key": "@blotato/n8n-nodes-blotato.blotato",
+   "type": "@blotato/n8n-nodes-blotato.blotato",
+   "op": "",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for blotato yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [5338],
+    "galleryTotal": [5338],
+    "devUnlock": [5338],
+    "devTotal": [5338]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleDocsTool document:update",
+   "type": "n8n-nodes-base.googleDocsTool",
+   "op": "document:update",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool edits a document in place (update_file changes metadata only)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [2872],
+    "galleryTotal": [2872],
+    "devUnlock": [2872],
+    "devTotal": [2872]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.googleGemini video:analyze",
+   "type": "@n8n/n8n-nodes-langchain.googleGemini",
+   "op": "video:analyze",
+   "planned": "unplanned",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [6555],
+    "galleryTotal": [6555],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.googleGemini video:generate",
+   "type": "@n8n/n8n-nodes-langchain.googleGemini",
+   "op": "video:generate",
+   "planned": "unplanned",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [6557],
+    "galleryTotal": [6557],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.asana task:create",
+   "type": "n8n-nodes-base.asana",
+   "op": "task:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for asana task:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2237],
+    "galleryTotal": [2237],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.clickUp task:create",
+   "type": "n8n-nodes-base.clickUp",
+   "op": "task:create",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for clickUp task:create yet",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [485],
+    "galleryTotal": [485],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.convertToFile toBinary",
+   "type": "n8n-nodes-base.convertToFile",
+   "op": "toBinary",
+   "planned": "files",
+   "kinds": [
+    "dropped"
+   ],
+   "reason": "dropped: file steps need the files lever (not built yet)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [3700],
+    "galleryTotal": [3700],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.dropbox file:download",
+   "type": "n8n-nodes-base.dropbox",
+   "op": "file:download",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for dropbox file:download yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2424],
+    "galleryTotal": [2424],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.editImage text",
+   "type": "n8n-nodes-base.editImage",
+   "op": "text",
+   "planned": "files",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: Edit Image runs GraphicsMagick inside n8n; the runtime has no image library, so resized or edited images would differ",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [591],
+    "galleryTotal": [591],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.ghost post:create",
+   "type": "n8n-nodes-base.ghost",
+   "op": "post:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for ghost post:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2522],
+    "galleryTotal": [2522],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.ghost post:getAll",
+   "type": "n8n-nodes-base.ghost",
+   "op": "post:getAll",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for ghost post:getAll yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [3500],
+    "galleryTotal": [3500],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.github repository:get",
+   "type": "n8n-nodes-base.github",
+   "op": "repository:get",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for github repository:get yet",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [693],
+    "galleryTotal": [693],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.gitlab repository:get",
+   "type": "n8n-nodes-base.gitlab",
+   "op": "repository:get",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for gitlab repository:get yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [465],
+    "galleryTotal": [465],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleCloudStorage object:getAll",
+   "type": "n8n-nodes-base.googleCloudStorage",
+   "op": "object:getAll",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for googleCloudStorage object:getAll yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2654],
+    "galleryTotal": [2654],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleDrive file:download",
+   "type": "n8n-nodes-base.googleDrive",
+   "op": "file:download",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for googleDrive file:download yet",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [515],
+    "galleryTotal": [515],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleSheets sheet:delete",
+   "type": "n8n-nodes-base.googleSheets",
+   "op": "sheet:delete",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no Sheets tool: rows cannot be deleted through the Drive connector",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2199],
+    "galleryTotal": [2199],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.graphql",
+   "type": "n8n-nodes-base.graphql",
+   "op": "",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for graphql yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [1298],
+    "galleryTotal": [1298],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftExcel workbook:getAll",
+   "type": "n8n-nodes-base.microsoftExcel",
+   "op": "workbook:getAll",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftExcel workbook:getAll yet",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [566],
+    "galleryTotal": [566],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftOneDrive folder:create",
+   "type": "n8n-nodes-base.microsoftOneDrive",
+   "op": "folder:create",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftOneDrive folder:create yet",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [565],
+    "galleryTotal": [565],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.odoo opportunity:create",
+   "type": "n8n-nodes-base.odoo",
+   "op": "opportunity:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for odoo opportunity:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2336],
+    "galleryTotal": [2336],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.quickChart",
+   "type": "n8n-nodes-base.quickChart",
+   "op": "",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for quickChart yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2825],
+    "galleryTotal": [2825],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.telegram message:sendDocument",
+   "type": "n8n-nodes-base.telegram",
+   "op": "message:sendDocument",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for telegram message:sendDocument yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [3579],
+    "galleryTotal": [3579],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.trello card:create",
+   "type": "n8n-nodes-base.trello",
+   "op": "card:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for trello card:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [1118],
+    "galleryTotal": [1118],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.trello cardComment:create",
+   "type": "n8n-nodes-base.trello",
+   "op": "cardComment:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for trello cardComment:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [2785],
+    "galleryTotal": [2785],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.youTube channel:getAll",
+   "type": "n8n-nodes-base.youTube",
+   "op": "channel:getAll",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for youTube channel:getAll yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [3416],
+    "galleryTotal": [3416],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.zohoCrm account:getAll",
+   "type": "n8n-nodes-base.zohoCrm",
+   "op": "account:getAll",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for zohoCrm account:getAll yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [552],
+    "galleryTotal": [552],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+   "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+   "op": "",
+   "planned": "vector",
+   "kinds": [
+    "unsupported",
+    "dropped"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 20,
+   "devUnlock": 0,
+   "devTotal": 7,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1960, 2165, 2290, 2344, 2372, 2373, 2374, 2621, 2705, 2784, 2840, 3647, 3986, 4501, 4526, 4551, 5010, 5011, 5024, 5817],
+    "devUnlock": [],
+    "devTotal": [1960, 2165, 2374, 2621, 2705, 3986, 5010]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.airtable record:search",
+   "type": "n8n-nodes-base.airtable",
+   "op": "record:search",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for airtable record:search yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 10,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2267, 2281, 2330, 2618, 2619, 2662, 2681, 2809, 3717, 4481],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStorePinecone insert",
+   "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+   "op": "insert",
+   "planned": "vector",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 9,
+   "devUnlock": 0,
+   "devTotal": 4,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1960, 2165, 2705, 2753, 2797, 2871, 3192, 4501, 5024],
+    "devUnlock": [],
+    "devTotal": [1960, 2165, 2705, 2753]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreQdrant insert",
+   "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+   "op": "insert",
+   "planned": "vector",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 8,
+   "devUnlock": 0,
+   "devTotal": 3,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2333, 2372, 2373, 2374, 2658, 2784, 2840, 5148],
+    "devUnlock": [],
+    "devTotal": [2374, 2658, 5148]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.airtable record:update",
+   "type": "n8n-nodes-base.airtable",
+   "op": "record:update",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for airtable record:update yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 7,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2267, 2281, 2330, 2377, 2618, 2681, 2817],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+   "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+   "op": "",
+   "planned": "vector",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2658, 2753, 2797, 2871, 3192],
+    "devUnlock": [],
+    "devTotal": [2658, 2753]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.toolVectorStore",
+   "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+   "op": "",
+   "planned": "vector",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 3,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2621, 2705, 2753, 2784, 5011],
+    "devUnlock": [],
+    "devTotal": [2621, 2705, 2753]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.mongoDb document:insert",
+   "type": "n8n-nodes-base.mongoDb",
+   "op": "document:insert",
+   "planned": "db",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "galleryAlone": 0,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [159, 1045, 1073, 2834, 5230],
+    "devUnlock": [],
+    "devTotal": [1073, 5230]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.removeDuplicates removeItemsSeenInPreviousExecutions",
+   "type": "n8n-nodes-base.removeDuplicates",
+   "op": "removeItemsSeenInPreviousExecutions",
+   "planned": "state",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "galleryAlone": 0,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2564, 2619, 3446, 3868, 3900],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.youTube video:update",
+   "type": "n8n-nodes-base.youTube",
+   "op": "video:update",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for youTube video:update yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2211, 2976, 3450, 3900, 3906],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreInMemory insert",
+   "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+   "op": "insert",
+   "planned": "state",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2344, 3986, 5010, 5011],
+    "devUnlock": [],
+    "devTotal": [3986, 5010]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.airtable list",
+   "type": "n8n-nodes-base.airtable",
+   "op": "list",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for airtable list yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [596, 859, 1323, 1403],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.github file:edit",
+   "type": "n8n-nodes-base.github",
+   "op": "file:edit",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for github file:edit yet",
+   "galleryAlone": 0,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [817, 1222, 1942, 2307],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.github file:get",
+   "type": "n8n-nodes-base.github",
+   "op": "file:get",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for github file:get yet",
+   "galleryAlone": 0,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [817, 1222, 1942, 2307],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.gmail message:getAll",
+   "type": "n8n-nodes-base.gmail",
+   "op": "message:getAll",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for gmail message:getAll yet",
+   "galleryAlone": 0,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [621, 1078, 1153, 1590],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.hubspot contact:upsert",
+   "type": "n8n-nodes-base.hubspot",
+   "op": "contact:upsert",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for hubspot contact:upsert yet",
+   "galleryAlone": 0,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1323, 2116, 2122, 3666],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftOutlook message:getAll",
+   "type": "n8n-nodes-base.microsoftOutlook",
+   "op": "message:getAll",
+   "planned": "connector",
+   "kinds": [
+    "not-captured"
+   ],
+   "reason": "not-captured: connector not attached on this account; map message:getAll once they are",
+   "galleryAlone": 0,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1992, 2454, 2809, 3396],
+    "devUnlock": [],
+    "devTotal": [1992, 2454]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.notion block:getAll",
+   "type": "n8n-nodes-base.notion",
+   "op": "block:getAll",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for notion block:getAll yet",
+   "galleryAlone": 0,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2273, 2288, 2290, 2797],
+    "devUnlock": [],
+    "devTotal": [2288]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStorePinecone retrieve-as-tool",
+   "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+   "op": "retrieve-as-tool",
+   "planned": "vector",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1960, 4501, 5024],
+    "devUnlock": [],
+    "devTotal": [1960]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreSupabase insert",
+   "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+   "op": "insert",
+   "planned": "vector",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2290, 2621, 4551],
+    "devUnlock": [],
+    "devTotal": [2621]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.airtable record:get",
+   "type": "n8n-nodes-base.airtable",
+   "op": "record:get",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for airtable record:get yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2377, 2662, 2817],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.github file:create",
+   "type": "n8n-nodes-base.github",
+   "op": "file:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for github file:create yet",
+   "galleryAlone": 0,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [817, 1222, 2307],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftOutlook message:update",
+   "type": "n8n-nodes-base.microsoftOutlook",
+   "op": "message:update",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftOutlook message:update yet",
+   "galleryAlone": 0,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1992, 2454, 2809],
+    "devUnlock": [],
+    "devTotal": [1992, 2454]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.mongoDb document:find",
+   "type": "n8n-nodes-base.mongoDb",
+   "op": "document:find",
+   "planned": "db",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "galleryAlone": 0,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [159, 2834, 5230],
+    "devUnlock": [],
+    "devTotal": [5230]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.postgres update",
+   "type": "n8n-nodes-base.postgres",
+   "op": "update",
+   "planned": "db",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "galleryAlone": 0,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [357, 2081, 2272],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.slack message:search",
+   "type": "n8n-nodes-base.slack",
+   "op": "message:search",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for slack message:search yet",
+   "galleryAlone": 0,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2323, 2326, 4723],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.twitter tweet:search",
+   "type": "n8n-nodes-base.twitter",
+   "op": "tweet:search",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for twitter tweet:search yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1045, 1403, 1464],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.openAi audio:generate",
+   "type": "@n8n/n8n-nodes-langchain.openAi",
+   "op": "audio:generate",
+   "planned": "media",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2233, 2467],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreInMemory retrieve-as-tool",
+   "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+   "op": "retrieve-as-tool",
+   "planned": "state",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [3986, 5010],
+    "devUnlock": [],
+    "devTotal": [3986, 5010]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStorePinecone load",
+   "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+   "op": "load",
+   "planned": "vector",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2165, 3192],
+    "devUnlock": [],
+    "devTotal": [2165]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStorePinecone retrieve",
+   "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+   "op": "retrieve",
+   "planned": "vector",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2705, 2753],
+    "devUnlock": [],
+    "devTotal": [2705, 2753]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreQdrant retrieve-as-tool",
+   "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+   "op": "retrieve-as-tool",
+   "planned": "vector",
+   "kinds": [
+    "unsupported",
+    "dropped"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2840, 5148],
+    "devUnlock": [],
+    "devTotal": [5148]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.airtable update",
+   "type": "n8n-nodes-base.airtable",
+   "op": "update",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for airtable update yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [859, 1323],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.airtableTool record:get",
+   "type": "n8n-nodes-base.airtableTool",
+   "op": "record:get",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for airtable record:get yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2817, 2865],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.gmail messageLabel:remove",
+   "type": "n8n-nodes-base.gmail",
+   "op": "messageLabel:remove",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for gmail messageLabel:remove yet",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [621, 1590],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleCalendar event:update",
+   "type": "n8n-nodes-base.googleCalendar",
+   "op": "event:update",
+   "planned": "connector",
+   "kinds": [
+    "not-captured"
+   ],
+   "reason": "not-captured: connector needs sign-in on this account; schemas not captured; map event:update once they are",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2326, 4807],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleDrive file:list",
+   "type": "n8n-nodes-base.googleDrive",
+   "op": "file:list",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for googleDrive file:list yet",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1590, 2042],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleSheets sheet:create",
+   "type": "n8n-nodes-base.googleSheets",
+   "op": "sheet:create",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for googleSheets sheet:create yet",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2372, 5396],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.hubspot engagement:create",
+   "type": "n8n-nodes-base.hubspot",
+   "op": "engagement:create",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for hubspot engagement:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2112, 2122],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.hunter emailVerifier",
+   "type": "n8n-nodes-base.hunter",
+   "op": "emailVerifier",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for hunter emailVerifier yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2116, 2122],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.jira issue:getAll",
+   "type": "n8n-nodes-base.jira",
+   "op": "issue:getAll",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for jira issue:getAll yet",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2468, 3868],
+    "devUnlock": [],
+    "devTotal": [2468]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.jira issue:update",
+   "type": "n8n-nodes-base.jira",
+   "op": "issue:update",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for jira issue:update yet",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2468, 3868],
+    "devUnlock": [],
+    "devTotal": [2468]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.jira issueAttachment:add",
+   "type": "n8n-nodes-base.jira",
+   "op": "issueAttachment:add",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for jira issueAttachment:add yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2665, 2666],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.jira issueComment:add",
+   "type": "n8n-nodes-base.jira",
+   "op": "issueComment:add",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for jira issueComment:add yet",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2468, 3868],
+    "devUnlock": [],
+    "devTotal": [2468]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.jira issueComment:getAll",
+   "type": "n8n-nodes-base.jira",
+   "op": "issueComment:getAll",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for jira issueComment:getAll yet",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2468, 3868],
+    "devUnlock": [],
+    "devTotal": [2468]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftTeams channelMessage:create",
+   "type": "n8n-nodes-base.microsoftTeams",
+   "op": "channelMessage:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftTeams channelMessage:create yet",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [680, 3971],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.nocoDb row:getAll",
+   "type": "n8n-nodes-base.nocoDb",
+   "op": "row:getAll",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for nocoDb row:getAll yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1074, 2491],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.postgres select",
+   "type": "n8n-nodes-base.postgres",
+   "op": "select",
+   "planned": "db",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2081, 2803],
+    "devUnlock": [],
+    "devTotal": [2803]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.s3 file:upload",
+   "type": "n8n-nodes-base.s3",
+   "op": "file:upload",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for s3 file:upload yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [674, 2557],
+    "devUnlock": [],
+    "devTotal": [2557]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.supabase row:create",
+   "type": "n8n-nodes-base.supabase",
+   "op": "row:create",
+   "planned": "rest-template",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2315, 2621],
+    "devUnlock": [],
+    "devTotal": [2315, 2621]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.supabase row:getAll",
+   "type": "n8n-nodes-base.supabase",
+   "op": "row:getAll",
+   "planned": "rest-template",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2315, 2621],
+    "devUnlock": [],
+    "devTotal": [2315, 2621]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.wooCommerce product:get",
+   "type": "n8n-nodes-base.wooCommerce",
+   "op": "product:get",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for wooCommerce product:get yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [847, 2963],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.wooCommerce product:update",
+   "type": "n8n-nodes-base.wooCommerce",
+   "op": "product:update",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for wooCommerce product:update yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [847, 2963],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.embeddingsMistralCloud",
+   "type": "@n8n/n8n-nodes-langchain.embeddingsMistralCloud",
+   "op": "",
+   "planned": "vector",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2333],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+   "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+   "op": "",
+   "planned": "vector",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [5148],
+    "devUnlock": [],
+    "devTotal": [5148]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.openAi assistant:create",
+   "type": "@n8n/n8n-nodes-langchain.openAi",
+   "op": "assistant:create",
+   "planned": "rest-template",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: OpenAI assistant:create is not a text model call",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2201],
+    "devUnlock": [],
+    "devTotal": [2201]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreInMemory load",
+   "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+   "op": "load",
+   "planned": "state",
+   "kinds": [
+    "dropped"
+   ],
+   "reason": "dropped: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2344],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreInMemory retrieve",
+   "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+   "op": "retrieve",
+   "planned": "state",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [5011],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreMongoDBAtlas insert",
+   "type": "@n8n/n8n-nodes-langchain.vectorStoreMongoDBAtlas",
+   "op": "insert",
+   "planned": "unplanned",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [4526],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreMongoDBAtlas retrieve-as-tool",
+   "type": "@n8n/n8n-nodes-langchain.vectorStoreMongoDBAtlas",
+   "op": "retrieve-as-tool",
+   "planned": "unplanned",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [4526],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStorePGVector insert",
+   "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+   "op": "insert",
+   "planned": "vector",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [3647],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreQdrant load",
+   "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+   "op": "load",
+   "planned": "vector",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2658],
+    "devUnlock": [],
+    "devTotal": [2658]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreQdrant retrieve",
+   "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+   "op": "retrieve",
+   "planned": "vector",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2784],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreSupabase retrieve",
+   "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+   "op": "retrieve",
+   "planned": "vector",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2621],
+    "devUnlock": [],
+    "devTotal": [2621]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreSupabase retrieve-as-tool",
+   "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+   "op": "retrieve-as-tool",
+   "planned": "vector",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [4551],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreWeaviate insert",
+   "type": "@n8n/n8n-nodes-langchain.vectorStoreWeaviate",
+   "op": "insert",
+   "planned": "unplanned",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [5817],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreWeaviate retrieve-as-tool",
+   "type": "@n8n/n8n-nodes-langchain.vectorStoreWeaviate",
+   "op": "retrieve-as-tool",
+   "planned": "unplanned",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [5817],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.airtable base:getMany",
+   "type": "n8n-nodes-base.airtable",
+   "op": "base:getMany",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for airtable base:getMany yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2491],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.airtableTrigger",
+   "type": "n8n-nodes-base.airtableTrigger",
+   "op": "",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for polling airtableTrigger",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2817],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.airtop extraction:scrape",
+   "type": "n8n-nodes-base.airtop",
+   "op": "extraction:scrape",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for airtop extraction:scrape yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [4252],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.bannerbear image:create",
+   "type": "n8n-nodes-base.bannerbear",
+   "op": "image:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for bannerbear image:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2322],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.baserow row:create",
+   "type": "n8n-nodes-base.baserow",
+   "op": "row:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for baserow row:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2517],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.baserow row:getAll",
+   "type": "n8n-nodes-base.baserow",
+   "op": "row:getAll",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for baserow row:getAll yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1785],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.clearbit person:enrich",
+   "type": "n8n-nodes-base.clearbit",
+   "op": "person:enrich",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for clearbit person:enrich yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2116],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.coinGecko coin:get",
+   "type": "n8n-nodes-base.coinGecko",
+   "op": "coin:get",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for coinGecko coin:get yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [859],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.discord message:send",
+   "type": "n8n-nodes-base.discord",
+   "op": "message:send",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for discord message:send yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2322],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.dropbox file:upload",
+   "type": "n8n-nodes-base.dropbox",
+   "op": "file:upload",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for dropbox file:upload yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2557],
+    "devUnlock": [],
+    "devTotal": [2557]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.dropcontact contact:enrich",
+   "type": "n8n-nodes-base.dropcontact",
+   "op": "contact:enrich",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for dropcontact contact:enrich yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1323],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.editImage composite",
+   "type": "n8n-nodes-base.editImage",
+   "op": "composite",
+   "planned": "files",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: Edit Image runs GraphicsMagick inside n8n; the runtime has no image library, so resized or edited images would differ",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2459],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.editImage multiStep",
+   "type": "n8n-nodes-base.editImage",
+   "op": "multiStep",
+   "planned": "files",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: Edit Image runs GraphicsMagick inside n8n; the runtime has no image library, so resized or edited images would differ",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2418],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.extractFromFile csv",
+   "type": "n8n-nodes-base.extractFromFile",
+   "op": "csv",
+   "planned": "files",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: Extract From File csv: n8n parses CSV with csv-parse, which the runtime does not carry yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [4551],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.git add",
+   "type": "n8n-nodes-base.git",
+   "op": "add",
+   "planned": "unplanned",
+   "kinds": [
+    "dropped"
+   ],
+   "reason": "dropped: runs git against a folder on the n8n host",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1942],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.git commit",
+   "type": "n8n-nodes-base.git",
+   "op": "commit",
+   "planned": "unplanned",
+   "kinds": [
+    "dropped"
+   ],
+   "reason": "dropped: runs git against a folder on the n8n host",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1942],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.git pull",
+   "type": "n8n-nodes-base.git",
+   "op": "pull",
+   "planned": "unplanned",
+   "kinds": [
+    "dropped"
+   ],
+   "reason": "dropped: runs git against a folder on the n8n host",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1942],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.git push",
+   "type": "n8n-nodes-base.git",
+   "op": "push",
+   "planned": "unplanned",
+   "kinds": [
+    "dropped"
+   ],
+   "reason": "dropped: runs git against a folder on the n8n host",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1942],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.github repository:getPullRequests",
+   "type": "n8n-nodes-base.github",
+   "op": "repository:getPullRequests",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for github repository:getPullRequests yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [5396],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.gmail messageLabel:add",
+   "type": "n8n-nodes-base.gmail",
+   "op": "messageLabel:add",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for gmail messageLabel:add yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [621],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleCloudNaturalLanguage document:analyzeSentiment",
+   "type": "n8n-nodes-base.googleCloudNaturalLanguage",
+   "op": "document:analyzeSentiment",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for googleCloudNaturalLanguage document:analyzeSentiment yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1045],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleContacts contact:create",
+   "type": "n8n-nodes-base.googleContacts",
+   "op": "contact:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for googleContacts contact:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [637],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleContacts contact:get",
+   "type": "n8n-nodes-base.googleContacts",
+   "op": "contact:get",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for googleContacts contact:get yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [637],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleContacts contact:update",
+   "type": "n8n-nodes-base.googleContacts",
+   "op": "contact:update",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for googleContacts contact:update yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [637],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleDrive file:share",
+   "type": "n8n-nodes-base.googleDrive",
+   "op": "file:share",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for googleDrive file:share yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2042],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleSheets sheet:lookup",
+   "type": "n8n-nodes-base.googleSheets",
+   "op": "sheet:lookup",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for googleSheets sheet:lookup yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [694],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleSheets spreadsheet:create",
+   "type": "n8n-nodes-base.googleSheets",
+   "op": "spreadsheet:create",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for googleSheets spreadsheet:create yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1810],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.hackerNews article:get",
+   "type": "n8n-nodes-base.hackerNews",
+   "op": "article:get",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for hackerNews article:get yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2374],
+    "devUnlock": [],
+    "devTotal": [2374]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.hubspot contact:search",
+   "type": "n8n-nodes-base.hubspot",
+   "op": "contact:search",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for hubspot contact:search yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2112],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.iCal createEventFile",
+   "type": "n8n-nodes-base.iCal",
+   "op": "createEventFile",
+   "planned": "unplanned",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: iCalendar files are not implemented yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1083],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.jiraTool issue:getAll",
+   "type": "n8n-nodes-base.jiraTool",
+   "op": "issue:getAll",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for jira issue:getAll yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2468],
+    "devUnlock": [],
+    "devTotal": [2468]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.lemlist lead:create",
+   "type": "n8n-nodes-base.lemlist",
+   "op": "lead:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for lemlist lead:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1323],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.line notification:send",
+   "type": "n8n-nodes-base.line",
+   "op": "notification:send",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for line notification:send yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [773],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.linear issue:getAll",
+   "type": "n8n-nodes-base.linear",
+   "op": "issue:getAll",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for linear issue:getAll yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2323],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.mattermost message:post",
+   "type": "n8n-nodes-base.mattermost",
+   "op": "message:post",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for mattermost message:post yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [812],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftExcel worksheet:readRows",
+   "type": "n8n-nodes-base.microsoftExcel",
+   "op": "worksheet:readRows",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftExcel worksheet:readRows yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [3446],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftOneDrive file:upload",
+   "type": "n8n-nodes-base.microsoftOneDrive",
+   "op": "file:upload",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftOneDrive file:upload yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2557],
+    "devUnlock": [],
+    "devTotal": [2557]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftOutlook draft:create",
+   "type": "n8n-nodes-base.microsoftOutlook",
+   "op": "draft:create",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftOutlook draft:create yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [867],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftOutlook draft:send",
+   "type": "n8n-nodes-base.microsoftOutlook",
+   "op": "draft:send",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftOutlook draft:send yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [867],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftOutlook event:create",
+   "type": "n8n-nodes-base.microsoftOutlook",
+   "op": "event:create",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftOutlook event:create yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2528],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftOutlook event:delete",
+   "type": "n8n-nodes-base.microsoftOutlook",
+   "op": "event:delete",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftOutlook event:delete yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2528],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftOutlook event:getAll",
+   "type": "n8n-nodes-base.microsoftOutlook",
+   "op": "event:getAll",
+   "planned": "connector",
+   "kinds": [
+    "not-captured"
+   ],
+   "reason": "not-captured: connector not attached on this account; map event:getAll once they are",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2528],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftOutlook message:get",
+   "type": "n8n-nodes-base.microsoftOutlook",
+   "op": "message:get",
+   "planned": "connector",
+   "kinds": [
+    "not-captured"
+   ],
+   "reason": "not-captured: connector not attached on this account; map message:get once they are",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [3396],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftOutlook message:move",
+   "type": "n8n-nodes-base.microsoftOutlook",
+   "op": "message:move",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftOutlook message:move yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2454],
+    "devUnlock": [],
+    "devTotal": [2454]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftOutlook messageAttachment:add",
+   "type": "n8n-nodes-base.microsoftOutlook",
+   "op": "messageAttachment:add",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftOutlook messageAttachment:add yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [867],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftOutlookTool message:reply",
+   "type": "n8n-nodes-base.microsoftOutlookTool",
+   "op": "message:reply",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftOutlook message:reply yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [3089],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftOutlookTrigger",
+   "type": "n8n-nodes-base.microsoftOutlookTrigger",
+   "op": "",
+   "planned": "unplanned",
+   "kinds": [
+    "not-captured"
+   ],
+   "reason": "not-captured: the app's tools are not captured yet, so its poll cannot be mapped",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [3089],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftTeams channel:create",
+   "type": "n8n-nodes-base.microsoftTeams",
+   "op": "channel:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftTeams channel:create yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [680],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftTeams channel:update",
+   "type": "n8n-nodes-base.microsoftTeams",
+   "op": "channel:update",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for microsoftTeams channel:update yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [680],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftTeams channelMessage:getAll",
+   "type": "n8n-nodes-base.microsoftTeams",
+   "op": "channelMessage:getAll",
+   "planned": "unplanned",
+   "kinds": [
+    "not-captured"
+   ],
+   "reason": "not-captured: connector not attached on this account; map channelMessage:getAll once they are",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [3971],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftToDo task:create",
+   "type": "n8n-nodes-base.microsoftToDo",
+   "op": "task:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for microsoftToDo task:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1114],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftToDo task:get",
+   "type": "n8n-nodes-base.microsoftToDo",
+   "op": "task:get",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for microsoftToDo task:get yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1114],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.microsoftToDo task:update",
+   "type": "n8n-nodes-base.microsoftToDo",
+   "op": "task:update",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for microsoftToDo task:update yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1114],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.mondayCom boardItem:getAll",
+   "type": "n8n-nodes-base.mondayCom",
+   "op": "boardItem:getAll",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for mondayCom boardItem:getAll yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2809],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.mongoDb document:update",
+   "type": "n8n-nodes-base.mongoDb",
+   "op": "document:update",
+   "planned": "db",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [5230],
+    "devUnlock": [],
+    "devTotal": [5230]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.mySql select",
+   "type": "n8n-nodes-base.mySql",
+   "op": "select",
+   "planned": "db",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1964],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.mySql update",
+   "type": "n8n-nodes-base.mySql",
+   "op": "update",
+   "planned": "db",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1964],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.mySql upsert",
+   "type": "n8n-nodes-base.mySql",
+   "op": "upsert",
+   "planned": "db",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1964],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.nextCloud file:upload",
+   "type": "n8n-nodes-base.nextCloud",
+   "op": "file:upload",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for nextCloud file:upload yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [175],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.openWeatherMap currentWeather",
+   "type": "n8n-nodes-base.openWeatherMap",
+   "op": "currentWeather",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for openWeatherMap currentWeather yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [773],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.phantombuster agent:getOutput",
+   "type": "n8n-nodes-base.phantombuster",
+   "op": "agent:getOutput",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for phantombuster agent:getOutput yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1323],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.phantombuster agent:launch",
+   "type": "n8n-nodes-base.phantombuster",
+   "op": "agent:launch",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for phantombuster agent:launch yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1323],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.pipedrive person:create",
+   "type": "n8n-nodes-base.pipedrive",
+   "op": "person:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for pipedrive person:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1822],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.pipedrive person:getAll",
+   "type": "n8n-nodes-base.pipedrive",
+   "op": "person:getAll",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for pipedrive person:getAll yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1822],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.pipedrive person:update",
+   "type": "n8n-nodes-base.pipedrive",
+   "op": "person:update",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for pipedrive person:update yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1822],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.quickbooks customer:create",
+   "type": "n8n-nodes-base.quickbooks",
+   "op": "customer:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for quickbooks customer:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [949],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.quickbooks invoice:create",
+   "type": "n8n-nodes-base.quickbooks",
+   "op": "invoice:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for quickbooks invoice:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [949],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.quickbooks invoice:send",
+   "type": "n8n-nodes-base.quickbooks",
+   "op": "invoice:send",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for quickbooks invoice:send yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [949],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.raindrop bookmark:create",
+   "type": "n8n-nodes-base.raindrop",
+   "op": "bookmark:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for raindrop bookmark:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1217],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.reddit post:create",
+   "type": "n8n-nodes-base.reddit",
+   "op": "post:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for reddit post:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [928],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.reddit post:get",
+   "type": "n8n-nodes-base.reddit",
+   "op": "post:get",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for reddit post:get yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [928],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.reddit postComment:create",
+   "type": "n8n-nodes-base.reddit",
+   "op": "postComment:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for reddit postComment:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [928],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.s3 file:getAll",
+   "type": "n8n-nodes-base.s3",
+   "op": "file:getAll",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for s3 file:getAll yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [674],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.salesforce account:create",
+   "type": "n8n-nodes-base.salesforce",
+   "op": "account:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for salesforce account:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1792],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.salesforce contact:upsert",
+   "type": "n8n-nodes-base.salesforce",
+   "op": "contact:upsert",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for salesforce contact:upsert yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1792],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.salesforce lead:addNote",
+   "type": "n8n-nodes-base.salesforce",
+   "op": "lead:addNote",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for salesforce lead:addNote yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [664],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.salesforce lead:create",
+   "type": "n8n-nodes-base.salesforce",
+   "op": "lead:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for salesforce lead:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [664],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.salesforce lead:update",
+   "type": "n8n-nodes-base.salesforce",
+   "op": "lead:update",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for salesforce lead:update yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [664],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.salesforce search:query",
+   "type": "n8n-nodes-base.salesforce",
+   "op": "search:query",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for salesforce search:query yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1792],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.sendGrid mail:send",
+   "type": "n8n-nodes-base.sendGrid",
+   "op": "mail:send",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for sendGrid mail:send yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1785],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.sendInBlue contact:upsert",
+   "type": "n8n-nodes-base.sendInBlue",
+   "op": "contact:upsert",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for sendInBlue contact:upsert yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [3277],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.slack reaction:get",
+   "type": "n8n-nodes-base.slack",
+   "op": "reaction:get",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for slack reaction:get yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2326],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.slackTool message:search",
+   "type": "n8n-nodes-base.slackTool",
+   "op": "message:search",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for slack message:search yet",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [4723],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.spotify library:getLikedTracks",
+   "type": "n8n-nodes-base.spotify",
+   "op": "library:getLikedTracks",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for spotify library:getLikedTracks yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1074],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.spotify playlist:add",
+   "type": "n8n-nodes-base.spotify",
+   "op": "playlist:add",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for spotify playlist:add yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1074],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.spotify playlist:create",
+   "type": "n8n-nodes-base.spotify",
+   "op": "playlist:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for spotify playlist:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1074],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.spotify playlist:getTracks",
+   "type": "n8n-nodes-base.spotify",
+   "op": "playlist:getTracks",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for spotify playlist:getTracks yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1074],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.spotify playlist:getUserPlaylists",
+   "type": "n8n-nodes-base.spotify",
+   "op": "playlist:getUserPlaylists",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for spotify playlist:getUserPlaylists yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1074],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.strapi entry:create",
+   "type": "n8n-nodes-base.strapi",
+   "op": "entry:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for strapi entry:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2434],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.todoist task:getAll",
+   "type": "n8n-nodes-base.todoist",
+   "op": "task:getAll",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for todoist task:getAll yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2394],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.todoist task:update",
+   "type": "n8n-nodes-base.todoist",
+   "op": "task:update",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for todoist task:update yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2394],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.urlScanIo scan:get",
+   "type": "n8n-nodes-base.urlScanIo",
+   "op": "scan:get",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for urlScanIo scan:get yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1992],
+    "devUnlock": [],
+    "devTotal": [1992]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.urlScanIo scan:perform",
+   "type": "n8n-nodes-base.urlScanIo",
+   "op": "scan:perform",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for urlScanIo scan:perform yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1992],
+    "devUnlock": [],
+    "devTotal": [1992]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.webflow item:create",
+   "type": "n8n-nodes-base.webflow",
+   "op": "item:create",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for webflow item:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2434],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.wooCommerce product:create",
+   "type": "n8n-nodes-base.wooCommerce",
+   "op": "product:create",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for wooCommerce product:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [847],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.wooCommerceTool product:getAll",
+   "type": "n8n-nodes-base.wooCommerceTool",
+   "op": "product:getAll",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for wooCommerce product:getAll yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2784],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.youTube playlist:create",
+   "type": "n8n-nodes-base.youTube",
+   "op": "playlist:create",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for youTube playlist:create yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [638],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.youTube playlistItem:add",
+   "type": "n8n-nodes-base.youTube",
+   "op": "playlistItem:add",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for youTube playlistItem:add yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [638],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.youTube playlistItem:getAll",
+   "type": "n8n-nodes-base.youTube",
+   "op": "playlistItem:getAll",
+   "planned": "rest-template",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for youTube playlistItem:getAll yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [1217],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.zendesk ticket:getAll",
+   "type": "n8n-nodes-base.zendesk",
+   "op": "ticket:getAll",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for zendesk ticket:getAll yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2840],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.zendesk ticket:update",
+   "type": "n8n-nodes-base.zendesk",
+   "op": "ticket:update",
+   "planned": "unplanned",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no request template for zendesk ticket:update yet (it needs the app's REST API with a stored secret)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2840],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  }
+ ]
+}
