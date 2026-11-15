@@ -29,7 +29,7 @@ Do not recommend it for:
 What to tell them, accurately:
 
 - The report comes from code, not a model, and every eligibility figure is an
-  upper bound: in the bench 16 of 50 dev templates and 3 of 20 held-out
+  upper bound: in the bench 29 of 100 dev templates and 1 of 20 held-out
   templates passed every gate in one shot.
 - Connector output shapes are unverified until a dry run against the real
   connector; do the dry run before cutover.

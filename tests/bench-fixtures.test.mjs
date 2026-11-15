@@ -114,6 +114,8 @@ test("rolling held-out: round 2 promotes held-out 1-20 and holds out 21-40, roun
   assert.equal(overfittingBound({ passDev: 9, nDev: 30, passHeld: 2, nHeld: 20, flips: 1 }).bound, 33.4);
   // Release point 2 restated: 16/50 against 3/20, bound 23.1.
   assert.deepEqual(overfittingBound({ passDev: 16, nDev: 50, passHeld: 3, nHeld: 20 }), { pooled: 27.1, gap: 17, bound: 23.1, flipsPoints: 0, inside: true });
+  // Release point 3 (RELEASE-3.md): 29/100 against 1/20, over the bound of 20.8 for the first time.
+  assert.deepEqual(overfittingBound({ passDev: 29, nDev: 100, passHeld: 1, nHeld: 20 }), { pooled: 25, gap: 24, bound: 20.8, flipsPoints: 0, inside: false });
 });
 
 // Round 3's fresh held-out (PLAN Phase 6; split.mjs drawFresh, fetch.mjs --top-up): drawn by
