@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "template": 3100,
+  "sha256": "7340d2f4e80a29ebde6103684ddad8e003e9035b25c023c6e19fb627725c266b",
+  "variant": "empty",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "the landing page answers 200 with an empty body, so the agent is asked about no content",
+  "trigger": {
+    "node": "Landing Page Url",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "Landing Page Url": "https://lumenbrew-coffee.example/",
+          "submittedAt": "2026-11-16T08:59:47.215-05:00",
+          "formMode": "production"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Scrape Website",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://lumenbrew-coffee.example/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": ""
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured connector fetches web pages"
+      },
+      "note": "HTTP Request v4.2 GET of the submitted URL; response format autodetect: text/html becomes $json.data as a string"
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: page → agent"
+    ],
+    "offline": "Only the landing page is outside data; the agent's answer is the stand-in model's (o1 with reasoningEffort high in the template). The form answers on submission (responseMode onReceived), so no reply carries the roast: the only compared output is the agent's model input"
+  }
+}

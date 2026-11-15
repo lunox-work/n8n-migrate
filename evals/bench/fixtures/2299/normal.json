@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "template": 2299,
+  "sha256": "0e20336fda44ca7062e5edb6e374359db311218059429f69a360df2da5ef98f6",
+  "variant": "normal",
+  "now": "2026-11-16T05:00:00.000Z",
+  "about": "Scrappey fetches n8n.io and returns the page HTML, inner text and a Cloudflare cookie",
+  "trigger": {
+    "node": "Schedule Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T00:00:00.000-05:00",
+          "Readable date": "November 16th 2026, 12:00:00 am",
+          "Readable time": "12:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "00",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Scrape website with Scrappey",
+      "service": "scrappey",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://publisher.scrappey.com/api/v1",
+            "status": 200,
+            "query": {
+              "key": "bench-scrappey-key"
+            },
+            "body": {
+              "solution": {
+                "verified": true,
+                "currentUrl": "https://n8n.io/",
+                "statusCode": 200,
+                "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+                "innerText": "n8n.io - a powerful workflow automation tool Flexible AI workflow automation for technical teams Build with the precision of code or the speed of drag-n-drop. Host with on-prem control or in-the-cloud convenience. Get started for free",
+                "cookies": [
+                  {
+                    "name": "__cf_bm",
+                    "value": "bench-cookie",
+                    "domain": ".n8n.io",
+                    "path": "/",
+                    "expires": 1794817800,
+                    "httpOnly": true,
+                    "secure": true
+                  }
+                ],
+                "cookieString": "__cf_bm=bench-cookie",
+                "response": "<!DOCTYPE html><html lang=\"en\"><head><title>n8n.io - a powerful workflow automation tool</title></head><body><h1>Flexible AI workflow automation for technical teams</h1><p>Build with the precision of code or the speed of drag-n-drop. Host with on-prem control or in-the-cloud convenience.</p><a href=\"/get-started/\">Get started for free</a></body></html>",
+                "type": "browser"
+              },
+              "timeElapsed": 3412,
+              "data": "success",
+              "session": "bench-session-7f3a"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Scrappey connector"
+      },
+      "note": "HTTP Request v4.2 POST https://publisher.scrappey.com/api/v1?key=<key> with a JSON body {cmd: 'request.get', url} (Test Data's url, https://n8n.io/)"
+    }
+  ],
+  "models": [],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch"
+    ],
+    "offline": "Scrappey's reply is the workflow's only output: nothing is written and no model is called, so there is no effect to compare (README P50: gate 4 reports `nothing compared` for such a run). The response shape is from Scrappey's public docs (solution.response, data, session), unverified. The API key is the template's placeholder, filled by config/2299.json"
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "template": 1962,
+  "sha256": "742483cd414c5cb820f4ccf515ae92b781efac02bcf731dd2af9dac7c57cb8b5",
+  "variant": "normal",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "a two-page PDF (the abstract, introduction and transactions sections of the bitcoin paper) to summarise",
+  "trigger": {
+    "node": "When clicking \"Execute Workflow\"",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Google Drive",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/11Koq9q53nkk0F5Y8eZgaWJUVR03I4-MM",
+            "status": 200,
+            "body": {
+              "id": "11Koq9q53nkk0F5Y8eZgaWJUVR03I4-MM",
+              "name": "bitcoin.pdf",
+              "mimeType": "application/pdf"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/11Koq9q53nkk0F5Y8eZgaWJUVR03I4-MM",
+            "status": 200,
+            "query": {
+              "alt": "media"
+            },
+            "headers": {
+              "content-type": "application/pdf"
+            },
+            "bodyBase64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFs2IDAgUiA4IDAgUl0gL0NvdW50IDIgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago0IDAgb2JqCjw8IC9UaXRsZSAoYml0Y29pbikgL1Byb2R1Y2VyIChiZW5jaCkgPj4KZW5kb2JqCjUgMCBvYmoKPDwgL0xlbmd0aCA5MjMgPj4Kc3RyZWFtCkJUIC9GMSAxMSBUZiAxNCBUTCA1MCA3OTAgVGQgKEJpdGNvaW46IEEgUGVlci10by1QZWVyIEVsZWN0cm9uaWMgQ2FzaCBTeXN0ZW0pIFRqIFQqIChTYXRvc2hpIE5ha2Ftb3RvKSBUaiBUKiAoKSBUaiBUKiAoQWJzdHJhY3QuIEEgcHVyZWx5IHBlZXItdG8tcGVlciB2ZXJzaW9uIG9mIGVsZWN0cm9uaWMgY2FzaCB3b3VsZCBhbGxvdyBvbmxpbmUpIFRqIFQqIChwYXltZW50cyB0byBiZSBzZW50IGRpcmVjdGx5IGZyb20gb25lIHBhcnR5IHRvIGFub3RoZXIgd2l0aG91dCBnb2luZyB0aHJvdWdoIGEpIFRqIFQqIChmaW5hbmNpYWwgaW5zdGl0dXRpb24uIERpZ2l0YWwgc2lnbmF0dXJlcyBwcm92aWRlIHBhcnQgb2YgdGhlIHNvbHV0aW9uLCBidXQgdGhlIG1haW4pIFRqIFQqIChiZW5lZml0cyBhcmUgbG9zdCBpZiBhIHRydXN0ZWQgdGhpcmQgcGFydHkgaXMgc3RpbGwgcmVxdWlyZWQgdG8gcHJldmVudCBkb3VibGUtc3BlbmRpbmcuKSBUaiBUKiAoV2UgcHJvcG9zZSBhIHNvbHV0aW9uIHRvIHRoZSBkb3VibGUtc3BlbmRpbmcgcHJvYmxlbSB1c2luZyBhIHBlZXItdG8tcGVlciBuZXR3b3JrLikgVGogVCogKFRoZSBuZXR3b3JrIHRpbWVzdGFtcHMgdHJhbnNhY3Rpb25zIGJ5IGhhc2hpbmcgdGhlbSBpbnRvIGFuIG9uZ29pbmcgY2hhaW4gb2YpIFRqIFQqIChoYXNoLWJhc2VkIHByb29mLW9mLXdvcmssIGZvcm1pbmcgYSByZWNvcmQgdGhhdCBjYW5ub3QgYmUgY2hhbmdlZCB3aXRob3V0IHJlZG9pbmcpIFRqIFQqICh0aGUgcHJvb2Ytb2Ytd29yay4gVGhlIGxvbmdlc3QgY2hhaW4gbm90IG9ubHkgc2VydmVzIGFzIHByb29mIG9mIHRoZSBzZXF1ZW5jZSBvZikgVGogVCogKGV2ZW50cyB3aXRuZXNzZWQsIGJ1dCBwcm9vZiB0aGF0IGl0IGNhbWUgZnJvbSB0aGUgbGFyZ2VzdCBwb29sIG9mIENQVSBwb3dlci4pIFRqIFQqIEVUCmVuZHN0cmVhbQplbmRvYmoKNiAwIG9iago8PCAvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDU5NSA4NDJdIC9SZXNvdXJjZXMgPDwgL0ZvbnQgPDwgL0YxIDMgMCBSID4+ID4+IC9Db250ZW50cyA1IDAgUiA+PgplbmRvYmoKNyAwIG9iago8PCAvTGVuZ3RoIDcyOSA+PgpzdHJlYW0KQlQgL0YxIDExIFRmIDE0IFRMIDUwIDc5MCBUZCAoMS4gSW50cm9kdWN0aW9uKSBUaiBUKiAoQ29tbWVyY2Ugb24gdGhlIEludGVybmV0IGhhcyBjb21lIHRvIHJlbHkgYWxtb3N0IGV4Y2x1c2l2ZWx5IG9uIGZpbmFuY2lhbCBpbnN0aXR1dGlvbnMpIFRqIFQqIChzZXJ2aW5nIGFzIHRydXN0ZWQgdGhpcmQgcGFydGllcyB0byBwcm9jZXNzIGVsZWN0cm9uaWMgcGF5bWVudHMuIFdoaWxlIHRoZSBzeXN0ZW0gd29ya3MpIFRqIFQqICh3ZWxsIGVub3VnaCBmb3IgbW9zdCB0cmFuc2FjdGlvbnMsIGl0IHN0aWxsIHN1ZmZlcnMgZnJvbSB0aGUgaW5oZXJlbnQgd2Vha25lc3NlcyBvZiB0aGUpIFRqIFQqICh0cnVzdCBiYXNlZCBtb2RlbC4gQ29tcGxldGVseSBub24tcmV2ZXJzaWJsZSB0cmFuc2FjdGlvbnMgYXJlIG5vdCByZWFsbHkgcG9zc2libGUuKSBUaiBUKiAoKSBUaiBUKiAoMi4gVHJhbnNhY3Rpb25zKSBUaiBUKiAoV2UgZGVmaW5lIGFuIGVsZWN0cm9uaWMgY29pbiBhcyBhIGNoYWluIG9mIGRpZ2l0YWwgc2lnbmF0dXJlcy4gRWFjaCBvd25lciB0cmFuc2ZlcnMgdGhlKSBUaiBUKiAoY29pbiB0byB0aGUgbmV4dCBieSBkaWdpdGFsbHkgc2lnbmluZyBhIGhhc2ggb2YgdGhlIHByZXZpb3VzIHRyYW5zYWN0aW9uIGFuZCB0aGUgcHVibGljKSBUaiBUKiAoa2V5IG9mIHRoZSBuZXh0IG93bmVyIGFuZCBhZGRpbmcgdGhlc2UgdG8gdGhlIGVuZCBvZiB0aGUgY29pbi4pIFRqIFQqIEVUCmVuZHN0cmVhbQplbmRvYmoKOCAwIG9iago8PCAvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDU5NSA4NDJdIC9SZXNvdXJjZXMgPDwgL0ZvbnQgPDwgL0YxIDMgMCBSID4+ID4+IC9Db250ZW50cyA3IDAgUiA+PgplbmRvYmoKeHJlZgowIDkKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDEyMSAwMDAwMCBuIAowMDAwMDAwMTkxIDAwMDAwIG4gCjAwMDAwMDAyNDcgMDAwMDAgbiAKMDAwMDAwMTIyMSAwMDAwMCBuIAowMDAwMDAxMzQ3IDAwMDAwIG4gCjAwMDAwMDIxMjcgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA5IC9Sb290IDEgMCBSIC9JbmZvIDQgMCBSID4+CnN0YXJ0eHJlZgoyMjUzCiUlRU9GCg=="
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "11Koq9q53nkk0F5Y8eZgaWJUVR03I4-MM"
+            },
+            "result": {
+              "fileId": "11Koq9q53nkk0F5Y8eZgaWJUVR03I4-MM",
+              "title": "bitcoin.pdf",
+              "mimeType": "application/pdf",
+              "content": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFs2IDAgUiA4IDAgUl0gL0NvdW50IDIgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago0IDAgb2JqCjw8IC9UaXRsZSAoYml0Y29pbikgL1Byb2R1Y2VyIChiZW5jaCkgPj4KZW5kb2JqCjUgMCBvYmoKPDwgL0xlbmd0aCA5MjMgPj4Kc3RyZWFtCkJUIC9GMSAxMSBUZiAxNCBUTCA1MCA3OTAgVGQgKEJpdGNvaW46IEEgUGVlci10by1QZWVyIEVsZWN0cm9uaWMgQ2FzaCBTeXN0ZW0pIFRqIFQqIChTYXRvc2hpIE5ha2Ftb3RvKSBUaiBUKiAoKSBUaiBUKiAoQWJzdHJhY3QuIEEgcHVyZWx5IHBlZXItdG8tcGVlciB2ZXJzaW9uIG9mIGVsZWN0cm9uaWMgY2FzaCB3b3VsZCBhbGxvdyBvbmxpbmUpIFRqIFQqIChwYXltZW50cyB0byBiZSBzZW50IGRpcmVjdGx5IGZyb20gb25lIHBhcnR5IHRvIGFub3RoZXIgd2l0aG91dCBnb2luZyB0aHJvdWdoIGEpIFRqIFQqIChmaW5hbmNpYWwgaW5zdGl0dXRpb24uIERpZ2l0YWwgc2lnbmF0dXJlcyBwcm92aWRlIHBhcnQgb2YgdGhlIHNvbHV0aW9uLCBidXQgdGhlIG1haW4pIFRqIFQqIChiZW5lZml0cyBhcmUgbG9zdCBpZiBhIHRydXN0ZWQgdGhpcmQgcGFydHkgaXMgc3RpbGwgcmVxdWlyZWQgdG8gcHJldmVudCBkb3VibGUtc3BlbmRpbmcuKSBUaiBUKiAoV2UgcHJvcG9zZSBhIHNvbHV0aW9uIHRvIHRoZSBkb3VibGUtc3BlbmRpbmcgcHJvYmxlbSB1c2luZyBhIHBlZXItdG8tcGVlciBuZXR3b3JrLikgVGogVCogKFRoZSBuZXR3b3JrIHRpbWVzdGFtcHMgdHJhbnNhY3Rpb25zIGJ5IGhhc2hpbmcgdGhlbSBpbnRvIGFuIG9uZ29pbmcgY2hhaW4gb2YpIFRqIFQqIChoYXNoLWJhc2VkIHByb29mLW9mLXdvcmssIGZvcm1pbmcgYSByZWNvcmQgdGhhdCBjYW5ub3QgYmUgY2hhbmdlZCB3aXRob3V0IHJlZG9pbmcpIFRqIFQqICh0aGUgcHJvb2Ytb2Ytd29yay4gVGhlIGxvbmdlc3QgY2hhaW4gbm90IG9ubHkgc2VydmVzIGFzIHByb29mIG9mIHRoZSBzZXF1ZW5jZSBvZikgVGogVCogKGV2ZW50cyB3aXRuZXNzZWQsIGJ1dCBwcm9vZiB0aGF0IGl0IGNhbWUgZnJvbSB0aGUgbGFyZ2VzdCBwb29sIG9mIENQVSBwb3dlci4pIFRqIFQqIEVUCmVuZHN0cmVhbQplbmRvYmoKNiAwIG9iago8PCAvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDU5NSA4NDJdIC9SZXNvdXJjZXMgPDwgL0ZvbnQgPDwgL0YxIDMgMCBSID4+ID4+IC9Db250ZW50cyA1IDAgUiA+PgplbmRvYmoKNyAwIG9iago8PCAvTGVuZ3RoIDcyOSA+PgpzdHJlYW0KQlQgL0YxIDExIFRmIDE0IFRMIDUwIDc5MCBUZCAoMS4gSW50cm9kdWN0aW9uKSBUaiBUKiAoQ29tbWVyY2Ugb24gdGhlIEludGVybmV0IGhhcyBjb21lIHRvIHJlbHkgYWxtb3N0IGV4Y2x1c2l2ZWx5IG9uIGZpbmFuY2lhbCBpbnN0aXR1dGlvbnMpIFRqIFQqIChzZXJ2aW5nIGFzIHRydXN0ZWQgdGhpcmQgcGFydGllcyB0byBwcm9jZXNzIGVsZWN0cm9uaWMgcGF5bWVudHMuIFdoaWxlIHRoZSBzeXN0ZW0gd29ya3MpIFRqIFQqICh3ZWxsIGVub3VnaCBmb3IgbW9zdCB0cmFuc2FjdGlvbnMsIGl0IHN0aWxsIHN1ZmZlcnMgZnJvbSB0aGUgaW5oZXJlbnQgd2Vha25lc3NlcyBvZiB0aGUpIFRqIFQqICh0cnVzdCBiYXNlZCBtb2RlbC4gQ29tcGxldGVseSBub24tcmV2ZXJzaWJsZSB0cmFuc2FjdGlvbnMgYXJlIG5vdCByZWFsbHkgcG9zc2libGUuKSBUaiBUKiAoKSBUaiBUKiAoMi4gVHJhbnNhY3Rpb25zKSBUaiBUKiAoV2UgZGVmaW5lIGFuIGVsZWN0cm9uaWMgY29pbiBhcyBhIGNoYWluIG9mIGRpZ2l0YWwgc2lnbmF0dXJlcy4gRWFjaCBvd25lciB0cmFuc2ZlcnMgdGhlKSBUaiBUKiAoY29pbiB0byB0aGUgbmV4dCBieSBkaWdpdGFsbHkgc2lnbmluZyBhIGhhc2ggb2YgdGhlIHByZXZpb3VzIHRyYW5zYWN0aW9uIGFuZCB0aGUgcHVibGljKSBUaiBUKiAoa2V5IG9mIHRoZSBuZXh0IG93bmVyIGFuZCBhZGRpbmcgdGhlc2UgdG8gdGhlIGVuZCBvZiB0aGUgY29pbi4pIFRqIFQqIEVUCmVuZHN0cmVhbQplbmRvYmoKOCAwIG9iago8PCAvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDU5NSA4NDJdIC9SZXNvdXJjZXMgPDwgL0ZvbnQgPDwgL0YxIDMgMCBSID4+ID4+IC9Db250ZW50cyA3IDAgUiA+PgplbmRvYmoKeHJlZgowIDkKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDEyMSAwMDAwMCBuIAowMDAwMDAwMTkxIDAwMDAwIG4gCjAwMDAwMDAyNDcgMDAwMDAgbiAKMDAwMDAwMTIyMSAwMDAwMCBuIAowMDAwMDAxMzQ3IDAwMDAwIG4gCjAwMDAwMDIxMjcgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA5IC9Sb290IDEgMCBSIC9JbmZvIDQgMCBSID4+CnN0YXJ0eHJlZgoyMjUzCiUlRU9GCg=="
+            }
+          }
+        ]
+      },
+      "connectorGaps": [
+        "binary PDF: download_file_content returns the file as base64 content; n8n's loader parses the binary with pdf.js"
+      ],
+      "note": "Google Drive v3 file download (n8n-nodes-base 2.47.7 download.operation): GET /drive/v3/files/<id>?fields=mimeType,name, then GET ?alt=media; the bytes become binary `data`"
+    }
+  ],
+  "models": [
+    "Summarization Chain",
+    "OpenAI Chat Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: download → summarisation chain (map-reduce over 3000-token chunks)"
+    ],
+    "offline": "The PDFs are small stand-ins whose text pdf.js extracts (the binary Default Data Loader reads application/pdf through pdf.js); the summary is the stand-in model's. The file id is hard-coded in the Google Drive node's URL. The Token Splitter asks https://tiktoken.pages.dev/js/gpt2.json for its encoding (seven tries, read-default 404 on the bench, PROPOSALS P26) and LangChain falls back to its approximate count, on n8n's side as checked in a canned run"
+  }
+}

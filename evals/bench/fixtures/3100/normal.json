@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "template": 3100,
+  "sha256": "7340d2f4e80a29ebde6103684ddad8e003e9035b25c023c6e19fb627725c266b",
+  "variant": "normal",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "a coffee-subscription landing page with a vague headline, a shop CTA and a newsletter form",
+  "trigger": {
+    "node": "Landing Page Url",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "Landing Page Url": "https://lumenbrew-coffee.example/",
+          "submittedAt": "2026-11-16T08:59:47.215-05:00",
+          "formMode": "production"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Scrape Website",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://lumenbrew-coffee.example/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Lumen Brew | Specialty coffee subscriptions</title><meta name=\"description\" content=\"Fresh-roasted single origin coffee delivered every two weeks.\"></head><body><header><nav><a href=\"/\">Lumen Brew</a><a href=\"/shop\">Shop</a><a href=\"/about\">About</a><a href=\"/login\">Log in</a></nav></header><main><section class=\"hero\"><h1>Coffee, but better</h1><p>We roast small batches every Monday and ship them the same week.</p><a class=\"btn\" href=\"/shop\">Browse our 14 coffees</a></section><section><h2>Why subscribe?</h2><ul><li>Roasted to order</li><li>Free shipping over $40</li><li>Pause any time</li></ul></section><section><h2>What people say</h2><blockquote>“Best beans I have had in years.” – Sam, Portland</blockquote></section><section><h2>Plans</h2><p>Starter: 1 bag every 2 weeks, $18. Office: 5 bags every week, $79.</p><form action=\"/newsletter\"><input type=\"email\" placeholder=\"Your email\"><button>Sign up</button></form></section></main><footer><p>© 2026 Lumen Brew Roasters LLC · 1200 SE Water Ave, Portland OR</p></footer></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured connector fetches web pages"
+      },
+      "note": "HTTP Request v4.2 GET of the submitted URL; response format autodetect: text/html becomes $json.data as a string"
+    }
+  ],
+  "models": [
+    "AI Agent",
+    "OpenAI Chat Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: page → agent"
+    ],
+    "offline": "Only the landing page is outside data; the agent's answer is the stand-in model's (o1 with reasoningEffort high in the template). The form answers on submission (responseMode onReceived), so no reply carries the roast: the only compared output is the agent's model input"
+  }
+}

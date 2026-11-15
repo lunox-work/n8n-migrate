@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "template": 1962,
+  "sha256": "742483cd414c5cb820f4ccf515ae92b781efac02bcf731dd2af9dac7c57cb8b5",
+  "variant": "empty",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "a one-page PDF with no text layer (a blank scan), so the loader yields an empty document",
+  "trigger": {
+    "node": "When clicking \"Execute Workflow\"",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Google Drive",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/11Koq9q53nkk0F5Y8eZgaWJUVR03I4-MM",
+            "status": 200,
+            "body": {
+              "id": "11Koq9q53nkk0F5Y8eZgaWJUVR03I4-MM",
+              "name": "scan.pdf",
+              "mimeType": "application/pdf"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/11Koq9q53nkk0F5Y8eZgaWJUVR03I4-MM",
+            "status": 200,
+            "query": {
+              "alt": "media"
+            },
+            "headers": {
+              "content-type": "application/pdf"
+            },
+            "bodyBase64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFs2IDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago0IDAgb2JqCjw8IC9UaXRsZSAoc2NhbikgL1Byb2R1Y2VyIChiZW5jaCkgPj4KZW5kb2JqCjUgMCBvYmoKPDwgL0xlbmd0aCAzMiA+PgpzdHJlYW0KQlQgL0YxIDExIFRmIDE0IFRMIDUwIDc5MCBUZCAgRVQKZW5kc3RyZWFtCmVuZG9iago2IDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgNTk1IDg0Ml0gL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgMyAwIFIgPj4gPj4gL0NvbnRlbnRzIDUgMCBSID4+CmVuZG9iagp4cmVmCjAgNwowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAxODUgMDAwMDAgbiAKMDAwMDAwMDIzOCAwMDAwMCBuIAowMDAwMDAwMzIwIDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNyAvUm9vdCAxIDAgUiAvSW5mbyA0IDAgUiA+PgpzdGFydHhyZWYKNDQ2CiUlRU9GCg=="
+          }
+        ]
+      },
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "download_file_content",
+            "args": {
+              "fileId": "11Koq9q53nkk0F5Y8eZgaWJUVR03I4-MM"
+            },
+            "result": {
+              "fileId": "11Koq9q53nkk0F5Y8eZgaWJUVR03I4-MM",
+              "title": "scan.pdf",
+              "mimeType": "application/pdf",
+              "content": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFs2IDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago0IDAgb2JqCjw8IC9UaXRsZSAoc2NhbikgL1Byb2R1Y2VyIChiZW5jaCkgPj4KZW5kb2JqCjUgMCBvYmoKPDwgL0xlbmd0aCAzMiA+PgpzdHJlYW0KQlQgL0YxIDExIFRmIDE0IFRMIDUwIDc5MCBUZCAgRVQKZW5kc3RyZWFtCmVuZG9iago2IDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgNTk1IDg0Ml0gL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgMyAwIFIgPj4gPj4gL0NvbnRlbnRzIDUgMCBSID4+CmVuZG9iagp4cmVmCjAgNwowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAxODUgMDAwMDAgbiAKMDAwMDAwMDIzOCAwMDAwMCBuIAowMDAwMDAwMzIwIDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNyAvUm9vdCAxIDAgUiAvSW5mbyA0IDAgUiA+PgpzdGFydHhyZWYKNDQ2CiUlRU9GCg=="
+            }
+          }
+        ]
+      },
+      "connectorGaps": [
+        "binary PDF: download_file_content returns the file as base64 content; n8n's loader parses the binary with pdf.js"
+      ],
+      "note": "Google Drive v3 file download (n8n-nodes-base 2.47.7 download.operation): GET /drive/v3/files/<id>?fields=mimeType,name, then GET ?alt=media; the bytes become binary `data`"
+    }
+  ],
+  "models": [
+    "Summarization Chain",
+    "OpenAI Chat Model"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: download → summarisation chain (map-reduce over 3000-token chunks)"
+    ],
+    "offline": "The PDFs are small stand-ins whose text pdf.js extracts (the binary Default Data Loader reads application/pdf through pdf.js); the summary is the stand-in model's. The file id is hard-coded in the Google Drive node's URL. The Token Splitter asks https://tiktoken.pages.dev/js/gpt2.json for its encoding (seven tries, read-default 404 on the bench, PROPOSALS P26) and LangChain falls back to its approximate count, on n8n's side as checked in a canned run"
+  }
+}

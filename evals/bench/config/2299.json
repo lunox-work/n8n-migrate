@@ -1,0 +1,23 @@
+{
+  "why": "Scrape website with Scrappey sends the API key as the query parameter key=YOUR_API_KEY, the template's placeholder. Filled with a placeholder key on both sides; the fixture's route asks for it. Placeholder fill only: no logic changes.",
+  "n8n": {
+    "Scrape website with Scrappey": {
+      "parameters.queryParameters.parameters.0.value": "bench-scrappey-key"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Scrape website with Scrappey": {
+          "patch": {
+            "params": {
+              "queryParameters": {
+                "parameters": [{ "name": "key", "value": "bench-scrappey-key" }]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

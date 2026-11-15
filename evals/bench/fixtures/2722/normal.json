@@ -1,0 +1,388 @@
+{
+  "schemaVersion": 1,
+  "template": 2722,
+  "sha256": "51284996a65448ac586ea8f03cdd806c96e9d9d0e873efcc6196c3d2061583a6",
+  "variant": "normal",
+  "now": "2026-11-16T01:30:00.000Z",
+  "about": "four mails in the past day: an invoice due, an LMS downtime notice, a participant's access problem and a faculty sync reminder",
+  "trigger": {
+    "node": "Daily 7AM Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T07:00:00.000+05:30",
+          "Readable date": "November 16th 2026, 7:00:00 am",
+          "Readable time": "7:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "07",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "Asia/Kolkata (UTC+05:30)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Fetch Emails - Past 24 Hours",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages",
+            "status": 200,
+            "body": {
+              "messages": [
+                {
+                  "id": "19a8c1a000000a01",
+                  "threadId": "19a8c1a000000a01"
+                },
+                {
+                  "id": "19a8c1a000000a02",
+                  "threadId": "19a8c1a000000a02"
+                },
+                {
+                  "id": "19a8c1a000000a03",
+                  "threadId": "19a8c1a000000a03"
+                },
+                {
+                  "id": "19a8c1a000000a04",
+                  "threadId": "19a8c1a000000a04"
+                }
+              ],
+              "resultSizeEstimate": 4
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8c1a000000a01",
+            "status": 200,
+            "query": {
+              "format": "metadata"
+            },
+            "body": {
+              "id": "19a8c1a000000a01",
+              "threadId": "19a8c1a000000a01",
+              "labelIds": [
+                "INBOX",
+                "UNREAD"
+              ],
+              "snippet": "Hi, the October invoice for the ISB cohort is attached. Please process the payment of INR 4,20,000 by 20 Nov. Regards, Accounts",
+              "payload": {
+                "partId": "",
+                "mimeType": "multipart/alternative",
+                "filename": "",
+                "headers": [
+                  {
+                    "name": "From",
+                    "value": "Priya Raman <accounts@sharda-printers.example>"
+                  },
+                  {
+                    "name": "To",
+                    "value": "isb.quantana@quantana.in"
+                  },
+                  {
+                    "name": "Subject",
+                    "value": "Invoice INV-2026-1043 due 20 Nov"
+                  }
+                ]
+              },
+              "sizeEstimate": 4327,
+              "historyId": "5524600",
+              "internalDate": "1794800000000"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8c1a000000a02",
+            "status": 200,
+            "query": {
+              "format": "metadata"
+            },
+            "body": {
+              "id": "19a8c1a000000a02",
+              "threadId": "19a8c1a000000a02",
+              "labelIds": [
+                "INBOX",
+                "UNREAD"
+              ],
+              "snippet": "Team, the LMS will be down for maintenance on Saturday 22 Nov from 10pm to 2am IST. Please inform the participants.",
+              "payload": {
+                "partId": "",
+                "mimeType": "multipart/alternative",
+                "filename": "",
+                "headers": [
+                  {
+                    "name": "From",
+                    "value": "IT Helpdesk <helpdesk@quantana.in>"
+                  },
+                  {
+                    "name": "To",
+                    "value": "isb.quantana@quantana.in"
+                  },
+                  {
+                    "name": "Cc",
+                    "value": "ops@quantana.in"
+                  },
+                  {
+                    "name": "Subject",
+                    "value": "Planned LMS downtime this Saturday"
+                  }
+                ]
+              },
+              "sizeEstimate": 4315,
+              "historyId": "5524600",
+              "internalDate": "1794810000000"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8c1a000000a03",
+            "status": 200,
+            "query": {
+              "format": "metadata"
+            },
+            "body": {
+              "id": "19a8c1a000000a03",
+              "threadId": "19a8c1a000000a03",
+              "labelIds": [
+                "INBOX",
+                "UNREAD"
+              ],
+              "snippet": "Hello, I could not access module 4 recordings. The link shows 403. Could you check? Thanks, Arjun Mehta (Batch 12)",
+              "payload": {
+                "partId": "",
+                "mimeType": "multipart/alternative",
+                "filename": "",
+                "headers": [
+                  {
+                    "name": "From",
+                    "value": "Arjun Mehta <arjun.mehta@gmail.example>"
+                  },
+                  {
+                    "name": "To",
+                    "value": "isb.quantana@quantana.in"
+                  },
+                  {
+                    "name": "Subject",
+                    "value": "Module 4 recordings not opening"
+                  }
+                ]
+              },
+              "sizeEstimate": 4314,
+              "historyId": "5524600",
+              "internalDate": "1794820000000"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a8c1a000000a04",
+            "status": 200,
+            "query": {
+              "format": "metadata"
+            },
+            "body": {
+              "id": "19a8c1a000000a04",
+              "threadId": "19a8c1a000000a04",
+              "labelIds": [
+                "INBOX",
+                "UNREAD"
+              ],
+              "snippet": "Reminder: faculty sync tomorrow 11am. Agenda: capstone grading rubric, guest speaker for week 9. — Dr. Kavita Rao",
+              "payload": {
+                "partId": "",
+                "mimeType": "multipart/alternative",
+                "filename": "",
+                "headers": [
+                  {
+                    "name": "From",
+                    "value": "Kavita Rao <kavita.rao@isb.example>"
+                  },
+                  {
+                    "name": "To",
+                    "value": "isb.quantana@quantana.in"
+                  },
+                  {
+                    "name": "Cc",
+                    "value": "programs@quantana.in"
+                  },
+                  {
+                    "name": "Subject",
+                    "value": "Faculty sync tomorrow 11am"
+                  }
+                ]
+              },
+              "sizeEstimate": 4313,
+              "historyId": "5524600",
+              "internalDate": "1794830000000"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/labels",
+            "status": 200,
+            "body": {
+              "labels": [
+                {
+                  "id": "INBOX",
+                  "name": "INBOX",
+                  "type": "system"
+                },
+                {
+                  "id": "UNREAD",
+                  "name": "UNREAD",
+                  "type": "system"
+                },
+                {
+                  "id": "IMPORTANT",
+                  "name": "IMPORTANT",
+                  "type": "system"
+                },
+                {
+                  "id": "SENT",
+                  "name": "SENT",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_PERSONAL",
+                  "name": "CATEGORY_PERSONAL",
+                  "type": "system"
+                },
+                {
+                  "id": "CATEGORY_UPDATES",
+                  "name": "CATEGORY_UPDATES",
+                  "type": "system"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "connector": "gmail",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_threads",
+            "args": {
+              "query": "isb.quantana@quantana.in after:2026/11/15"
+            },
+            "result": {
+              "threads": [
+                {
+                  "id": "19a8c1a000000a01",
+                  "messageCount": 1,
+                  "messages": [
+                    {
+                      "id": "19a8c1a000000a01",
+                      "snippet": "Hi, the October invoice for the ISB cohort is attached. Please process the payment of INR 4,20,000 by 20 Nov. Regards, Accounts",
+                      "subject": "Invoice INV-2026-1043 due 20 Nov",
+                      "sender": "accounts@sharda-printers.example",
+                      "toRecipients": [
+                        "isb.quantana@quantana.in"
+                      ],
+                      "date": "2026-11-16T03:33:20.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "UNREAD"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "19a8c1a000000a02",
+                  "messageCount": 1,
+                  "messages": [
+                    {
+                      "id": "19a8c1a000000a02",
+                      "snippet": "Team, the LMS will be down for maintenance on Saturday 22 Nov from 10pm to 2am IST. Please inform the participants.",
+                      "subject": "Planned LMS downtime this Saturday",
+                      "sender": "helpdesk@quantana.in",
+                      "toRecipients": [
+                        "isb.quantana@quantana.in"
+                      ],
+                      "ccRecipients": [
+                        "ops@quantana.in"
+                      ],
+                      "date": "2026-11-16T06:20:00.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "UNREAD"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "19a8c1a000000a03",
+                  "messageCount": 1,
+                  "messages": [
+                    {
+                      "id": "19a8c1a000000a03",
+                      "snippet": "Hello, I could not access module 4 recordings. The link shows 403. Could you check? Thanks, Arjun Mehta (Batch 12)",
+                      "subject": "Module 4 recordings not opening",
+                      "sender": "arjun.mehta@gmail.example",
+                      "toRecipients": [
+                        "isb.quantana@quantana.in"
+                      ],
+                      "date": "2026-11-16T09:06:40.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "UNREAD"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "19a8c1a000000a04",
+                  "messageCount": 1,
+                  "messages": [
+                    {
+                      "id": "19a8c1a000000a04",
+                      "snippet": "Reminder: faculty sync tomorrow 11am. Agenda: capstone grading rubric, guest speaker for week 9. — Dr. Kavita Rao",
+                      "subject": "Faculty sync tomorrow 11am",
+                      "sender": "kavita.rao@isb.example",
+                      "toRecipients": [
+                        "isb.quantana@quantana.in"
+                      ],
+                      "ccRecipients": [
+                        "programs@quantana.in"
+                      ],
+                      "date": "2026-11-16T11:53:20.000Z",
+                      "labelIds": [
+                        "INBOX",
+                        "UNREAD"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connectorGaps": [
+        "labels as {id, name}: n8n's simple output maps labelIds through GET /labels; search_threads gives labelIds only",
+        "From, To, Cc as raw header strings with display names: the connector gives sender and recipient addresses"
+      ],
+      "note": "Gmail v2.1 message getAll, returnAll, simple (default): GET /messages?q=<expression> (one page, no nextPageToken), then GET /messages/<id>?format=metadata&metadataHeaders=From,To,Cc,Bcc,Subject per message, then GET /labels for the simplified labels (n8n-nodes-base 2.47.7 GmailV2 and simplifyOutput). The q expression reads new Date() (the wall clock), so the query is not matched"
+    }
+  ],
+  "models": [
+    "Summarize Emails with OpenAI - Morning"
+  ],
+  "writes": [
+    "Send Summary - Morning"
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: fetch → aggregate → summarise → send"
+    ],
+    "offline": "The Gmail query and the summary subject read new Date() (the run's wall clock, in the workflow's Asia/Kolkata zone), so their dates follow the run, not `now`. Send Summary goes to user@example.com with cc user@example.com, as the template ships"
+  }
+}

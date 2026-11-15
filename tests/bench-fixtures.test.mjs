@@ -99,9 +99,11 @@ test("rolling held-out: round 2 promotes held-out 1-20 and holds out 21-40, roun
   assert.deepEqual(ids(r3.dev), [...ids(splits.dev), ...ids(splits.heldOut)]);
   assert.deepEqual(ids(r3.heldOut), ids(splits.heldOutFresh.templates));
   assert.equal(r3.heldOut.length, 20);
-  assert.equal(devWithFixtures(splits).length, 70);
-  assert.equal(devWithFixtures(splits, undefined, 2).length, 50);
-  assert.equal(devWithFixtures(splits, undefined, 1).length, 30);
+  // Seeded dev 31-60 get fixtures in batches; each counts in every round's dev.
+  const late = splits.dev.slice(30, 60).filter(({ id }) => existsSync(join(BENCH, "fixtures", String(id)))).length;
+  assert.equal(devWithFixtures(splits).length, 70 + late);
+  assert.equal(devWithFixtures(splits, undefined, 2).length, 50 + late);
+  assert.equal(devWithFixtures(splits, undefined, 1).length, 30 + late);
   // The lint forbids every corpus id in skill files, promoted ones included.
   const corpusIds = new Set(JSON.parse(readFileSync(join(BENCH, "corpus.json"), "utf8")).templates.map((t) => t.id));
   for (const r of splits.rounds) for (const id of [...r.promoted, ...r.heldOut]) assert.ok(corpusIds.has(id), String(id));

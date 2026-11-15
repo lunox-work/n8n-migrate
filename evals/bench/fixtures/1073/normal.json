@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "template": 1073,
+  "sha256": "86e5ac4e8eba3d0c2ea3272dcfe70ef85b8e2c83d4da30342527419ba95b7ba1",
+  "variant": "normal",
+  "now": "2026-11-16T14:00:00.000Z",
+  "about": "two countries in the index; Albania has one cached page of two banks, Spain two cached pages (three banks, then two): seven documents inserted",
+  "trigger": {
+    "node": "On clicking 'execute'",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "HTTP Request",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.theswiftcodes.com/browse-by-country/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html><html><head><title>Browse SWIFT Codes by Country</title></head><body><h1>Browse by Country</h1><ol><li><a href=\"/albania/\">Albania</a></li><li><a href=\"/spain/\">Spain</a></li></ol></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured connector fetches web pages"
+      },
+      "note": "HTTP Request v1, responseFormat string: GET the country index; HTML Extract takes every `ol > li > a` href"
+    },
+    {
+      "node": "uProc",
+      "service": "uproc",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.uproc.io/api/v2/process",
+            "status": 200,
+            "bodyMatch": {
+              "params": {
+                "country": "albania"
+              }
+            },
+            "body": {
+              "processor": "get-country-normalized",
+              "params": {
+                "country": "albania"
+              },
+              "success": true,
+              "result": "AL",
+              "message": {
+                "code": "AL",
+                "name": "Albania"
+              }
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://api.uproc.io/api/v2/process",
+            "status": 200,
+            "bodyMatch": {
+              "params": {
+                "country": "spain"
+              }
+            },
+            "body": {
+              "processor": "get-country-normalized",
+              "params": {
+                "country": "spain"
+              },
+              "success": true,
+              "result": "ES",
+              "message": {
+                "code": "ES",
+                "name": "Spain"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured uProc connector"
+      },
+      "note": "uProc getCountryNormalized: POST https://api.uproc.io/api/v2/process {processor: 'get-country-normalized', params: {country}} (n8n-nodes-base 2.47.7 UProc.node.js); the template reads message.code. Response shape beyond message.code is assumed (uProc's public docs, unverified)"
+    },
+    {
+      "node": "HTTP Request1",
+      "service": "web-page",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.theswiftcodes.com/albania/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html><html><head><title>SWIFT Codes</title></head><body><table><thead><tr><th>Name</th><th>City</th><th>Branch</th><th>SWIFT Code</th></tr></thead><tbody><tr><td class=\"table-name\">BANKA KOMBETARE TREGTARE SH.A.</td><td class=\"table-city\">TIRANA</td><td class=\"table-branch\">HEAD OFFICE</td><td class=\"table-swift\">NCBAALTXXXX</td></tr><tr><td class=\"table-name\">RAIFFEISEN BANK SH.A.</td><td class=\"table-city\">TIRANA</td><td class=\"table-branch\">HEAD OFFICE</td><td class=\"table-swift\">SGSBALTXXXX</td></tr></tbody></table></body></html>"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.theswiftcodes.com/spain/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html><html><head><title>SWIFT Codes</title></head><body><table><thead><tr><th>Name</th><th>City</th><th>Branch</th><th>SWIFT Code</th></tr></thead><tbody><tr><td class=\"table-name\">BANCO SANTANDER S.A.</td><td class=\"table-city\">MADRID</td><td class=\"table-branch\">HEAD OFFICE</td><td class=\"table-swift\">BSCHESMMXXX</td></tr><tr><td class=\"table-name\">BANCO BILBAO VIZCAYA ARGENTARIA S.A.</td><td class=\"table-city\">BILBAO</td><td class=\"table-branch\">HEAD OFFICE</td><td class=\"table-swift\">BBVAESMMXXX</td></tr><tr><td class=\"table-name\">CAIXABANK S.A.</td><td class=\"table-city\">VALENCIA</td><td class=\"table-branch\">TRADE FINANCE</td><td class=\"table-swift\">CAIXESBBTRF</td></tr></tbody></table><div class=\"pagination\"><span class=\"next\"><a href=\"/spain/page/2/\">Next »</a></span></div></body></html>"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.theswiftcodes.com/spain/page/2/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html><html><head><title>SWIFT Codes</title></head><body><table><thead><tr><th>Name</th><th>City</th><th>Branch</th><th>SWIFT Code</th></tr></thead><tbody><tr><td class=\"table-name\">BANCO DE SABADELL S.A.</td><td class=\"table-city\">SABADELL</td><td class=\"table-branch\">HEAD OFFICE</td><td class=\"table-swift\">BSABESBBXXX</td></tr><tr><td class=\"table-name\">BANKINTER S.A.</td><td class=\"table-city\">MADRID</td><td class=\"table-branch\">HEAD OFFICE</td><td class=\"table-swift\">BKBKESMMXXX</td></tr></tbody></table></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured connector fetches web pages"
+      },
+      "note": "HTTP Request v1, responseFormat file: only runs for a page missing from the cache; the same pages as the cached files"
+    },
+    {
+      "node": "Read Binary File",
+      "service": "local-file",
+      "file": {
+        "path": "/home/node/.cache/scrapper/https___www_theswiftcodes_com_albania_.html",
+        "text": "<!DOCTYPE html><html><head><title>SWIFT Codes</title></head><body><table><thead><tr><th>Name</th><th>City</th><th>Branch</th><th>SWIFT Code</th></tr></thead><tbody><tr><td class=\"table-name\">BANKA KOMBETARE TREGTARE SH.A.</td><td class=\"table-city\">TIRANA</td><td class=\"table-branch\">HEAD OFFICE</td><td class=\"table-swift\">NCBAALTXXXX</td></tr><tr><td class=\"table-name\">RAIFFEISEN BANK SH.A.</td><td class=\"table-city\">TIRANA</td><td class=\"table-branch\">HEAD OFFICE</td><td class=\"table-swift\">SGSBALTXXXX</td></tr></tbody></table></body></html>"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "local disk: no connector"
+      },
+      "note": "cached copy of https://www.theswiftcodes.com/albania/; Read Binary File and Read Binary File1 both read it"
+    },
+    {
+      "node": "Read Binary File1",
+      "service": "local-file",
+      "file": {
+        "path": "/home/node/.cache/scrapper/https___www_theswiftcodes_com_albania_.html",
+        "text": "<!DOCTYPE html><html><head><title>SWIFT Codes</title></head><body><table><thead><tr><th>Name</th><th>City</th><th>Branch</th><th>SWIFT Code</th></tr></thead><tbody><tr><td class=\"table-name\">BANKA KOMBETARE TREGTARE SH.A.</td><td class=\"table-city\">TIRANA</td><td class=\"table-branch\">HEAD OFFICE</td><td class=\"table-swift\">NCBAALTXXXX</td></tr><tr><td class=\"table-name\">RAIFFEISEN BANK SH.A.</td><td class=\"table-city\">TIRANA</td><td class=\"table-branch\">HEAD OFFICE</td><td class=\"table-swift\">SGSBALTXXXX</td></tr></tbody></table></body></html>"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "local disk: no connector"
+      },
+      "note": "cached copy of https://www.theswiftcodes.com/albania/; Read Binary File and Read Binary File1 both read it (the same placed file as Read Binary File's)"
+    },
+    {
+      "node": "Read Binary File",
+      "service": "local-file",
+      "file": {
+        "path": "/home/node/.cache/scrapper/https___www_theswiftcodes_com_spain_.html",
+        "text": "<!DOCTYPE html><html><head><title>SWIFT Codes</title></head><body><table><thead><tr><th>Name</th><th>City</th><th>Branch</th><th>SWIFT Code</th></tr></thead><tbody><tr><td class=\"table-name\">BANCO SANTANDER S.A.</td><td class=\"table-city\">MADRID</td><td class=\"table-branch\">HEAD OFFICE</td><td class=\"table-swift\">BSCHESMMXXX</td></tr><tr><td class=\"table-name\">BANCO BILBAO VIZCAYA ARGENTARIA S.A.</td><td class=\"table-city\">BILBAO</td><td class=\"table-branch\">HEAD OFFICE</td><td class=\"table-swift\">BBVAESMMXXX</td></tr><tr><td class=\"table-name\">CAIXABANK S.A.</td><td class=\"table-city\">VALENCIA</td><td class=\"table-branch\">TRADE FINANCE</td><td class=\"table-swift\">CAIXESBBTRF</td></tr></tbody></table><div class=\"pagination\"><span class=\"next\"><a href=\"/spain/page/2/\">Next »</a></span></div></body></html>"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "local disk: no connector"
+      },
+      "note": "cached copy of https://www.theswiftcodes.com/spain/; Read Binary File and Read Binary File1 both read it"
+    },
+    {
+      "node": "Read Binary File1",
+      "service": "local-file",
+      "file": {
+        "path": "/home/node/.cache/scrapper/https___www_theswiftcodes_com_spain_.html",
+        "text": "<!DOCTYPE html><html><head><title>SWIFT Codes</title></head><body><table><thead><tr><th>Name</th><th>City</th><th>Branch</th><th>SWIFT Code</th></tr></thead><tbody><tr><td class=\"table-name\">BANCO SANTANDER S.A.</td><td class=\"table-city\">MADRID</td><td class=\"table-branch\">HEAD OFFICE</td><td class=\"table-swift\">BSCHESMMXXX</td></tr><tr><td class=\"table-name\">BANCO BILBAO VIZCAYA ARGENTARIA S.A.</td><td class=\"table-city\">BILBAO</td><td class=\"table-branch\">HEAD OFFICE</td><td class=\"table-swift\">BBVAESMMXXX</td></tr><tr><td class=\"table-name\">CAIXABANK S.A.</td><td class=\"table-city\">VALENCIA</td><td class=\"table-branch\">TRADE FINANCE</td><td class=\"table-swift\">CAIXESBBTRF</td></tr></tbody></table><div class=\"pagination\"><span class=\"next\"><a href=\"/spain/page/2/\">Next »</a></span></div></body></html>"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "local disk: no connector"
+      },
+      "note": "cached copy of https://www.theswiftcodes.com/spain/; Read Binary File and Read Binary File1 both read it (the same placed file as Read Binary File's)"
+    },
+    {
+      "node": "Read Binary File",
+      "service": "local-file",
+      "file": {
+        "path": "/home/node/.cache/scrapper/https___www_theswiftcodes_com_spain_page_2_.html",
+        "text": "<!DOCTYPE html><html><head><title>SWIFT Codes</title></head><body><table><thead><tr><th>Name</th><th>City</th><th>Branch</th><th>SWIFT Code</th></tr></thead><tbody><tr><td class=\"table-name\">BANCO DE SABADELL S.A.</td><td class=\"table-city\">SABADELL</td><td class=\"table-branch\">HEAD OFFICE</td><td class=\"table-swift\">BSABESBBXXX</td></tr><tr><td class=\"table-name\">BANKINTER S.A.</td><td class=\"table-city\">MADRID</td><td class=\"table-branch\">HEAD OFFICE</td><td class=\"table-swift\">BKBKESMMXXX</td></tr></tbody></table></body></html>"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "local disk: no connector"
+      },
+      "note": "cached copy of https://www.theswiftcodes.com/spain/page/2/; Read Binary File and Read Binary File1 both read it"
+    },
+    {
+      "node": "Read Binary File1",
+      "service": "local-file",
+      "file": {
+        "path": "/home/node/.cache/scrapper/https___www_theswiftcodes_com_spain_page_2_.html",
+        "text": "<!DOCTYPE html><html><head><title>SWIFT Codes</title></head><body><table><thead><tr><th>Name</th><th>City</th><th>Branch</th><th>SWIFT Code</th></tr></thead><tbody><tr><td class=\"table-name\">BANCO DE SABADELL S.A.</td><td class=\"table-city\">SABADELL</td><td class=\"table-branch\">HEAD OFFICE</td><td class=\"table-swift\">BSABESBBXXX</td></tr><tr><td class=\"table-name\">BANKINTER S.A.</td><td class=\"table-city\">MADRID</td><td class=\"table-branch\">HEAD OFFICE</td><td class=\"table-swift\">BKBKESMMXXX</td></tr></tbody></table></body></html>"
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "local disk: no connector"
+      },
+      "note": "cached copy of https://www.theswiftcodes.com/spain/page/2/; Read Binary File and Read Binary File1 both read it (the same placed file as Read Binary File's)"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "MongoDB1",
+    "Write Binary File"
+  ],
+  "expect": {
+    "branches": [
+      "File exists? true for every page (all cached)",
+      "More Pages: true after Spain page 1 (next button), false after Albania and Spain page 2",
+      "More Countries: false after Albania, true after Spain (noItemsLeft)"
+    ],
+    "offline": "Read Binary File fails on a missing file (n8n 2.47.7 ReadBinaryFile throws ENOENT; alwaysOutputData does not catch errors), so a first run on an empty cache stops there whatever the site answers. The fixture therefore places every page the run asks for in the scraper's cache (/home/node/.cache/scrapper/, `file` sources), File exists? holds and HTTP Request1, Wait and Write Binary File stay off the path; their routes are given anyway. Set Page to Scrape and Set More Pages keep the next page in workflow static data, which starts empty. MongoDB inserts cannot be answered offline (no MongoDB sidecar); createdAt and updatedAt are run-time dates",
+    "n8nCannotRun": "Create Directory is an Execute Command node, which n8n 2.47.7 leaves out by default (NODES_EXCLUDE holds executeCommand and localFileTrigger), so the run stops at its first node; MongoDB1 also has no bench sidecar (only postgres and mysql are seeded)"
+  }
+}
