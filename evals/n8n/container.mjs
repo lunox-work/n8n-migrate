@@ -12,6 +12,9 @@
 // Layout (see HEADLESS.md):
 //   n8n2claude-bench  n8nio/n8n:2.47.7, 1 GB RAM and swap, network n8n2claude-net
 //                     (--internal: no route out), volume n8n2claude-bench-data.
+//   n8n2claude-postgres, n8n2claude-mongo  database sidecars (databases.mjs, PROPOSALS P66) on
+//                     n8n2claude-net as hosts `postgres` and `mongo`, only while a template whose
+//                     fixture seeds that engine runs (ensureDatabases).
 //   n8n2claude-mock   node:22-alpine running mock-server.mjs (HTTP on 8080, an SMTP sink on 2525). On n8n2claude-net as
 //                     host `mock` (port 8080) and on n8n2claude-edge, which publishes
 //                     127.0.0.1:5690 and relays it to n8n:5678. n8n can reach the mock
@@ -26,6 +29,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, existsSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { SIDECARS as DB_SIDECARS, ensureDatabases as ensureDbSidecars, removeDatabases } from "./databases.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -351,8 +355,16 @@ export function state(name = NAME) {
   return { exists: true, running: run === "true", oomKilled: oom === "true", exitCode: Number(code) };
 }
 
+// PROPOSALS P66: starts the database sidecars `engines` names (postgres, mongodb) on the bench
+// network and removes the others; the network exists once up() ran.
+export async function ensureDatabases(engines = [], { log = console.error } = {}) {
+  if (engines.length && !exists("network", NET)) docker(["network", "create", "--internal", NET]);
+  return ensureDbSidecars(engines, { log });
+}
+
 export function down({ purge = false } = {}) {
   docker(["rm", "-f", NAME, MOCK_NAME, RUNNERS_NAME], { allowFail: true });
+  removeDatabases();
   for (const n of [NET, EDGE]) docker(["network", "rm", n], { allowFail: true });
   if (purge) {
     docker(["volume", "rm", VOLUME], { allowFail: true });
@@ -373,7 +385,7 @@ export function memStats(name = NAME) {
 
 export function status() {
   const out = {};
-  for (const n of [NAME, MOCK_NAME, RUNNERS_NAME]) {
+  for (const n of [NAME, MOCK_NAME, RUNNERS_NAME, ...Object.values(DB_SIDECARS).map((s) => s.name)]) {
     const r = docker(["inspect", "-f", "{{.State.Status}}|{{.Config.Image}}|{{.HostConfig.Memory}}", n], { allowFail: true });
     if (r.status !== 0) {
       out[n] = { state: "absent" };

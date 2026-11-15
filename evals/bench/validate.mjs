@@ -26,6 +26,7 @@ import { canonical } from "../fetch-survey.mjs";
 import { createHash } from "node:crypto";
 import { modelRoute, modelNodes, modelConsumers } from "./n8n-side.mjs";
 import { readSplits, unreadableIds } from "./rounds.mjs";
+import { dbPlan, planErrors } from "../n8n/databases.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
@@ -77,6 +78,9 @@ export async function checkFixture(fx, raw) {
     }
   }
   for (const w of ownInstanceWarnings(fx)) warnings.push(w);
+  // PROPOSALS P66: the databases the run seeds.
+  for (const e of dbErrors(fx)) errors.push(e);
+  for (const w of dbWarnings(fx)) warnings.push(w);
   for (const n of sharedRouteNotes(fx)) notes.push(n);
   if (!raw) return { errors, warnings: [...warnings, "template not downloaded: cross-checks skipped"], notes };
   const wf = raw.workflow.workflow;
@@ -109,6 +113,7 @@ export async function checkFixture(fx, raw) {
   for (const k of Object.keys(fx.pinData ?? {})) if (!wf.pinData?.[k]) errors.push(`pinData.${k} is not in the template's pinData`);
   if (wf.pinData && Object.keys(wf.pinData).length && !fx.pinData) errors.push("the template has pinData; copy it into pinData");
   for (const e of modelErrors(fx, wf)) errors.push(e);
+  for (const w of dbNodeWarnings(fx, wf)) warnings.push(w);
   for (const w of pinnedWarnings(fx, wf)) warnings.push(w);
   for (const w of pollWarnings(fx, wf)) warnings.push(w);
   const report = await analyzerReport(raw, fx.template);
@@ -319,3 +324,35 @@ async function main() {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) main();
+
+// PROPOSALS P66: a `db` the sidecar would refuse before any run: a row key that is not a column, a
+// type that could end the statement, a document that is not an object.
+export function dbErrors(fx) {
+  return planErrors(dbPlan(fx, { stamp: 0 }));
+}
+export function dbWarnings(fx) {
+  const out = [];
+  for (const r of fx.reads ?? []) {
+    const e = r.db?.engine;
+    if (!e) continue;
+    if (e === "mysql") out.push(`read ${r.node}: MySQL has no sidecar (P66); n8n's credential stays unreachable`);
+    else if (!fx.db?.[e] && r.db.seed) out.push(`read ${r.node}: legacy db.seed, column types inferred from the values; write the fixture's top-level db.${e} with typed columns`);
+    else if (!fx.db?.[e]) out.push(`read ${r.node}: no db.${e} in the fixture, so the run's ${e} database is empty`);
+  }
+  return out;
+}
+// An enabled Postgres or MongoDB node the fixture gives no database of its engine: n8n's
+// credential then points at an unreachable host.
+function dbNodeEngine(type) {
+  return { "n8n-nodes-base.postgres": "postgres", "n8n-nodes-base.postgresTool": "postgres", "n8n-nodes-base.mongoDb": "mongodb", "n8n-nodes-base.mongoDbTool": "mongodb" }[type];
+}
+export function dbNodeWarnings(fx, wf) {
+  const plan = dbPlan(fx, { stamp: 0 }) ?? {};
+  const reach = reachableFrom(wf, fx.trigger.node);
+  const by = {};
+  for (const n of wf?.nodes ?? []) {
+    const e = !n.disabled && reach.has(n.name) && dbNodeEngine(n.type);
+    if (e && !plan[e] && ![...fx.reads, ...(fx.writeReplies ?? [])].some((r) => r.node === n.name && r.n8n)) (by[e] ??= []).push(n.name);
+  }
+  return Object.entries(by).map(([e, nodes]) => `${nodes.join(", ")} (${e}): the fixture has no db.${e}, so n8n's credential points at an unreachable host`);
+}

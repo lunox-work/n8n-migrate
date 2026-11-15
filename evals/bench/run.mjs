@@ -37,10 +37,10 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync, cpS
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState, siteAnswers, hostsAnswers, substitutionApprovals, loadCredentialSpecs, ensureN8n, codeModules } from "./n8n-side.mjs";
+import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState, siteAnswers, hostsAnswers, substitutionApprovals, loadCredentialSpecs, ensureN8n, codeModules, DbSeedError, dbSummary } from "./n8n-side.mjs";
 import { convertPlain, convertSkill, filledSource, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, withSynthetic, syntheticOutcome, nondeterministicTools } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
-import { fromHttp, fromTool, fromFile, replyOf, resultOf, isResult, lastOutputs, terminalNodes, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads } from "./compare.mjs";
+import { fromHttp, fromTool, fromFile, fromDb, replyOf, resultOf, isResult, lastOutputs, terminalNodes, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads } from "./compare.mjs";
 import { n8nCheckVariants, n8nCheckKey, n8nCheckSummary, gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited, n8nFailsOf } from "./gates.mjs";
 import { BudgetExceeded, UsageLimit, ledger as claudeLedger, memoryGate } from "./claude.mjs";
 import { readSplits, devWithFixtures } from "./rounds.mjs";
@@ -106,7 +106,9 @@ async function n8n() {
   const shim = await startShim({ port: container.MODEL_SHIM_PORT, log });
   // PROPOSALS P61: each node type's declared credentials, from this image's node descriptions.
   const credentialSpecs = await loadCredentialSpecs({ cacheFile: join(container.WORK, `node-credentials.${container.imageTag()}.json`), fetchTypes: container.nodeTypes });
-  n8nEnv = { container, runWorkflow, shim, cleanupBenchWorkflows, credentialSpecs };
+  // PROPOSALS P66: seeding and reading back the run's databases in the sidecars.
+  const databases = await import("../n8n/databases.mjs");
+  n8nEnv = { container, runWorkflow, shim, cleanupBenchWorkflows, credentialSpecs, databases };
   return n8nEnv;
 }
 
@@ -148,13 +150,24 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
     env.dirty = false;
   }
   env.dirty = keepsProcessState(prep.wf);
-  let r = await runN8n(prep, { shim: env.shim, modelSession: session, runWorkflow: env.runWorkflow, copyIn: env.container.copyIn, containerState: env.container.state, timeoutS: 900 });
+  // PROPOSALS P66: a seed the database refuses is this variant's fixture error, like a bad route.
+  const runOnce = async () => {
+    try {
+      return await runN8n(prep, { shim: env.shim, modelSession: session, runWorkflow: env.runWorkflow, copyIn: env.container.copyIn, containerState: env.container.state, timeoutS: 900, databases: env.databases });
+    } catch (e) {
+      if (e instanceof DbSeedError) return { seedError: e.message };
+      throw e;
+    }
+  };
+  let r = await runOnce();
+  if (r.seedError) return fixtureErrorRun(prep, { node: prep.fixture.reads.find((x) => x.db)?.node ?? null, message: `fixture db seed refused: ${r.seedError}` });
   let httpAttempt = null;
   if (r.fallbackable) {
     log(`${id}/${variant}: ${r.failedNode} failed on its http source, retrying with its n8n pin`);
     httpAttempt = { failedNode: r.failedNode, error: r.result.error ?? null, logVsFixture: logVsFixture(prep, r.result.effects) };
     prep = prepare(id, variant, { pinFallback: [r.failedNode], credentialSpecs: env.credentialSpecs });
-    r = await runN8n(prep, { shim: env.shim, modelSession: session, runWorkflow: env.runWorkflow, copyIn: env.container.copyIn, containerState: env.container.state, timeoutS: 900 });
+    r = await runOnce();
+    if (r.seedError) return fixtureErrorRun(prep, { node: null, message: `fixture db seed refused: ${r.seedError}` });
   }
   if (env.shim.lastError && /budget|usage limit/i.test(env.shim.lastError.message)) throw env.shim.lastError;
   const res = r.result;
@@ -200,6 +213,8 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
     ...(res.children?.length ? { children: res.children.map((c) => ({ id: c.id, status: c.status, mode: c.mode, error: c.error ?? null, nodes: Object.fromEntries(Object.entries(c.nodes ?? {}).map(([k, v]) => [k, v.map((x) => ({ status: x.status, ...(x.error ? { error: x.error.slice(0, 300) } : {}) }))])) })) } : {}),
     ...(res.response?.pages ? { formPages: res.response.pages } : {}),
     ...(files.length ? { files } : {}),
+    // PROPOSALS P66: the run's database changes (the diff) and the statements n8n sent.
+    ...(r.db ? { db: r.db } : {}),
     effects: splitLog(res.effects).service.map(({ seq, method, proxied, tls, mintedLeaf, path, query, rawQuery, body, bodyEncoding, fixture }) => ({ seq, method, proxied, tls, mintedLeaf, path, query, rawQuery, body, bodyEncoding, fixture })),
     // PROPOSALS P65: calls over the shim's per-node cap got no answer; kept apart, never replayed.
     modelCalls: r.modelCalls.filter((c) => c.mode !== "capped").map(({ tag, node, index, format, request, response, mode, costUsd }) => ({ tag, node, index, format, request, response, mode, costUsd, seq: modelSeq[tag]?.[index] ?? null })),
@@ -226,10 +241,11 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
 // The n8n run of a variant whose fixture cannot be used (PROPOSALS P48): status
 // `fixture error`, no effects, no model calls, the reason in `error`.
 const FIXTURE_ERROR = "fixture error";
-function fixtureErrorRun(prep) {
-  const b = prep.badRoutes[0];
-  const message = `fixture route url cannot be parsed: ${b.method} ${JSON.stringify(b.url)} (${b.error})${prep.badRoutes.length > 1 ? ` and ${prep.badRoutes.length - 1} more` : ""}`;
-  return { template: prep.id, variant: prep.variant, status: FIXTURE_ERROR, error: { node: b.node, message }, effects: [], modelCalls: [], modelModes: [], sources: prep.sources, overlay: prep.overlayApplied, via: prep.via, credentialsAttached: prep.credentialsAttached, logVsFixture: null, credentialsMissing: [], badRoutes: prep.badRoutes };
+// `error` (PROPOSALS P66: a refused db seed) replaces the bad-route reason.
+function fixtureErrorRun(prep, error = null) {
+  const b = prep.badRoutes?.[0];
+  const message = error?.message ?? `fixture route url cannot be parsed: ${b.method} ${JSON.stringify(b.url)} (${b.error})${prep.badRoutes.length > 1 ? ` and ${prep.badRoutes.length - 1} more` : ""}`;
+  return { template: prep.id, variant: prep.variant, status: FIXTURE_ERROR, error: { node: error ? error.node : b.node, message }, effects: [], modelCalls: [], modelModes: [], sources: prep.sources, overlay: prep.overlayApplied, via: prep.via, credentialsAttached: prep.credentialsAttached, logVsFixture: null, credentialsMissing: [], badRoutes: prep.badRoutes };
 }
 
 const byTag = (calls) => {
@@ -245,7 +261,8 @@ const byTag = (calls) => {
 function n8nEffects(rec, fx, { result = false } = {}) {
   // PROPOSALS P46: n8n's resumable Drive upload (POST, PUT of the bytes, PATCH of the metadata)
   // is one create_file, as the connector's is.
-  const list = [...foldResumableUploads(rec.effects).map((e) => fromHttp(e, "n8n")).filter(Boolean), ...(rec.files ?? []).filter((f) => !f.error).map((f) => fromFile(f, "n8n"))];
+  // PROPOSALS P66: the database changes are writes, n8n's statements reads (bait is searched in both).
+  const list = [...foldResumableUploads(rec.effects).map((e) => fromHttp(e, "n8n")).filter(Boolean), ...(rec.files ?? []).filter((f) => !f.error).map((f) => fromFile(f, "n8n")), ...(rec.db?.changes ?? []).map((c) => fromDb(c, "n8n")), ...(rec.db?.statements ?? []).map((c) => fromDb(c, "n8n"))];
   if (["chat", "form"].includes(fx.trigger.kind)) list.push(replyOf(rec.lastItems?.map((j) => ({ json: j })), "n8n"));
   else if (result && !list.some((e) => e.effect === "write" || e.effect === "media")) {
     // A recording made before P70 has only the last node's first output.
@@ -260,10 +277,12 @@ const claudeResults = (n8nList, outputsOf) => n8nList.filter(isResult).map((e) =
 
 // A Claude-side call as an effect; a connector call may name a message the fixture serves
 // (PROPOSALS P10: a reply tool call resolves its thread, recipients and subject from it).
-const claudeEffect = (e, fx) => (e.connector ? fromTool(e, "claude", refsOf(fx)) : e.file ? fromFile(e, "claude") : fromHttp(e, "claude"));
+// A database change or statement (PROPOSALS P66: the same shape as n8n's `db` entries, for when
+// the runtime's database steps report them) is compared by the same table.
+const claudeEffect = (e, fx) => (e.connector ? fromTool(e, "claude", refsOf(fx)) : e.file ? fromFile(e, "claude") : e.engine && (e.op || e.sql !== undefined || e.command !== undefined) ? fromDb(e, "claude") : fromHttp(e, "claude"));
 
 function claudeEffects(run, fx, n8nList = []) {
-  const list = [...run.seen.tools.filter((t) => !t.invalid).map((t) => fromTool(t, "claude", refsOf(fx))), ...run.seen.http.map((h) => fromHttp(h, "claude")).filter(Boolean), ...(run.files ?? []).map((f) => fromFile(f, "claude"))];
+  const list = [...run.seen.tools.filter((t) => !t.invalid).map((t) => fromTool(t, "claude", refsOf(fx))), ...run.seen.http.map((h) => fromHttp(h, "claude")).filter(Boolean), ...(run.files ?? []).map((f) => fromFile(f, "claude")), ...(run.seen.db ?? []).map((d) => fromDb(d, "claude"))];
   if (["chat", "form"].includes(fx.trigger.kind) && run.res.status === "done") list.push(replyOf(run.res.output, "claude"));
   list.push(...claudeResults(n8nList, (node) => lastOutputs(run.res.runData?.[node])));
   return list;
@@ -411,7 +430,7 @@ async function benchTemplate(id, args, L) {
     if (!S[`n8n:${v}`]) {
       log(`${id}/${v}: n8n`);
       const r = await n8nRun(id, v, { record: args.record });
-      S[`n8n:${v}`] = { status: r.status, error: r.error, ...(r.modelCallCap ? { modelCallCap: r.modelCallCap } : {}), modelModes: r.modelModes, executionMs: r.executionMs, wallMs: r.wallMs, startedAt: r.startedAt, logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [], ...(r.container ? { container: r.container } : {}), ...(r.pinnedPath ? { pinnedPath: r.pinnedPath } : {}) };
+      S[`n8n:${v}`] = { status: r.status, error: r.error, ...(r.db ? { db: dbSummary(r.db) } : {}), ...(r.modelCallCap ? { modelCallCap: r.modelCallCap } : {}), modelModes: r.modelModes, executionMs: r.executionMs, wallMs: r.wallMs, startedAt: r.startedAt, logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [], ...(r.container ? { container: r.container } : {}), ...(r.pinnedPath ? { pinnedPath: r.pinnedPath } : {}) };
       save();
     }
     // PROPOSALS P48: a fixture error has no recording (and must not read an older one).
@@ -608,7 +627,7 @@ function toolDefsSummary(models) {
 }
 
 function summarizeCheck(r) {
-  return { status: r.status, error: r.error, ...(r.modelCallCap ? { modelCallCap: r.modelCallCap } : {}), modelModes: r.modelModes, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [], ...(r.container ? { container: r.container } : {}), ...(r.pinnedPath ? { pinnedPath: r.pinnedPath } : {}), logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, executionMs: r.executionMs, credentialsMissing: r.credentialsMissing };
+  return { status: r.status, error: r.error, ...(r.db ? { db: dbSummary(r.db) } : {}), ...(r.modelCallCap ? { modelCallCap: r.modelCallCap } : {}), modelModes: r.modelModes, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [], ...(r.container ? { container: r.container } : {}), ...(r.pinnedPath ? { pinnedPath: r.pinnedPath } : {}), logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, executionMs: r.executionMs, credentialsMissing: r.credentialsMissing };
 }
 
 // PROPOSALS P1: a failure that traces to a field the fixture marks as a connector gap.
@@ -726,6 +745,8 @@ async function main() {
     const used = claudeLedger().slice(claudeBefore.length);
     log(`claude -p runs this invocation: ${used.length}, $${used.reduce((s, x) => s + (x.costUsd ?? 0), 0).toFixed(4)} at API prices; total in ledger ${claudeLedger().length}`);
     if (n8nEnv) n8nEnv.shim.server.close();
+    // PROPOSALS P66: database sidecars live only while a template that seeds them runs.
+    if (n8nEnv) n8nEnv.databases.removeDatabases();
   }
   process.exit(stopped ? 3 : 0);
 }

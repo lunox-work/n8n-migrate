@@ -97,6 +97,47 @@
         "type": "array"
       }
     },
+    "db": {
+      "description": "PROPOSALS P66: what the run's databases hold before it starts (FIXTURES.md `db`). Postgres: tables by `schema.table` (or `table`, schema public), created in the order given, each with `columns` (name -> SQL type: `integer primary key`, `numeric(10,2)`, `timestamptz default now()`, `integer references sales.customers(id)`), optional `constraints` (table constraints as SQL, added after the rows, so `foreign key (...) references ... not valid` keeps rows that break it) and `rows` (JSON objects; Postgres casts each value to its column's type; a column a row leaves out takes its default). MongoDB: collections by name, each a list of documents in Extended JSON ({\"$oid\": ...}, {\"$date\": ...}). The bench seeds a fresh database per run and compares what the run changed",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "postgres": {
+          "type": "object",
+          "required": ["tables"],
+          "additionalProperties": false,
+          "properties": {
+            "note": { "type": "string" },
+            "tables": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "required": ["columns", "rows"],
+                "additionalProperties": false,
+                "properties": {
+                  "columns": { "type": "object", "additionalProperties": { "type": "string" } },
+                  "constraints": { "type": "array", "items": { "type": "string" } },
+                  "rows": { "type": "array", "items": { "type": "object" } },
+                  "note": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "mongodb": {
+          "type": "object",
+          "required": ["collections"],
+          "additionalProperties": false,
+          "properties": {
+            "note": { "type": "string" },
+            "collections": {
+              "type": "object",
+              "additionalProperties": { "type": "array", "items": { "type": "object" } }
+            }
+          }
+        }
+      }
+    },
     "expect": {
       "$ref": "#/$defs/expect"
     }
@@ -372,19 +413,13 @@
           }
         },
         "db": {
-          "description": "rows to seed into a database sidecar before the run (both sides query the same rows): {\"<schema>.<table>\": [row, ...]}",
+          "description": "the read is answered by the run's database in this engine's sidecar (PROPOSALS P66), seeded from the fixture's top-level `db`; `seed` is the legacy untyped form ({\"<schema>.<table>\": [row, ...]}, column types inferred from the values), used only when the fixture has no `db` for the engine. MySQL has no sidecar",
           "type": "object",
-          "required": [
-            "engine",
-            "seed"
-          ],
+          "required": ["engine"],
           "additionalProperties": false,
           "properties": {
             "engine": {
-              "enum": [
-                "postgres",
-                "mysql"
-              ]
+              "enum": ["postgres", "mysql", "mongodb"]
             },
             "seed": {
               "type": "object",

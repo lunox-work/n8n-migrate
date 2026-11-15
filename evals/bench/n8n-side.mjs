@@ -23,6 +23,9 @@
 //     with the http source and the fixture has a pin: `pin-fallback`).
 //   - files: `file` reads are copied into the container (containerPath: relative paths under
 //     /home/node, n8n's working directory; absolute paths as they are, allowed by benchEnv).
+//   - databases (PROPOSALS P66): the fixture's `db` seeds a fresh database of the run in the
+//     engine's sidecar (evals/n8n/databases.mjs), and the template's postgres or mongoDb
+//     credential points at it; the database's changes after the run are its effects.
 // Everything else (node parameters, connections, settings) is the template as downloaded.
 
 import { readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
@@ -31,6 +34,7 @@ import { dirname, join, posix } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ensureLeaf, ensureServiceAccountKey } from "./tls.mjs";
 import { routeKey, modelHost } from "../n8n/mock-server.mjs";
+import { dbPlan, dbCredentials, DbSeedError } from "../n8n/databases.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
@@ -249,7 +253,10 @@ export function templateEnv(prep) {
     runners = { stdlib: mods, external: mods };
     needs.push(`P92: Python runner sidecar${mods.length ? ` (imports allowed: ${mods.join(", ")})` : ""}`);
   }
-  return { extraEnv: env, runners, needs };
+  // PROPOSALS P66: a database sidecar per engine the fixture's `db` declares (prepare: prep.db).
+  const databases = Object.keys(prep.db ?? {});
+  if (databases.length) needs.push(`P66: database sidecar${databases.length > 1 ? "s" : ""} ${databases.join(", ")}`);
+  return { extraEnv: env, runners, needs, ...(databases.length ? { databases } : {}) };
 }
 
 // The top-level modules a Python Code node imports (`import a.b, c as d`, `from a.b import x`;
@@ -285,10 +292,15 @@ export async function ensureN8n(prep, { container, log = console.error }) {
   const want = container.configHash({ extraEnv, runners: t.runners });
   const st = container.state();
   const have = st.running ? container.configLabel() : null;
-  if (st.running && have === want) return { recreated: false, needs: t.needs };
+  // PROPOSALS P66: the database sidecars this run needs are started, the others removed.
+  if (st.running && have === want) {
+    await container.ensureDatabases?.(t.databases ?? [], { log });
+    return { recreated: false, needs: t.needs };
+  }
   if (!st.running) log(`n8n container is not running (P83): starting it before ${prep.id}/${prep.variant}`);
   else if (t.needs.length) log(`${prep.id}/${prep.variant}: n8n container for ${t.needs.join("; ")}`);
   await container.up({ extraEnv, runners: t.runners, log });
+  await container.ensureDatabases?.(t.databases ?? [], { log });
   return { recreated: true, needs: t.needs };
 }
 
@@ -730,6 +742,10 @@ export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = 
   };
   const s3Endpoint = allResponses.filter((x) => s3Nodes.has(x.node)).map((x) => originOf(x.url)).filter(Boolean).sort((a, b) => a.length - b.length)[0];
   for (const n of wf.nodes) for (const t of Object.keys(n.credentials ?? {})) credentials[t] ??= credentialData(t, { wordpressUrl, s3Endpoint });
+  // PROPOSALS P66: the run's own database in each engine the fixture seeds; a template credential
+  // of that engine points at it (the unreachable dummy stays for an engine the fixture leaves out).
+  const db = dbPlan(fx, { id, variant });
+  for (const [t, data] of Object.entries(dbCredentials(db))) if (credentials[t]) credentials[t] = data;
   // Overlay `credentials` (placeholder fills on a dummy, e.g. a service's domain the fixture
   // assumes): merged over the dummy of that credential type.
   for (const [t, fields] of Object.entries(overlay?.credentials ?? {})) {
@@ -771,6 +787,11 @@ export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = 
   for (const r of fx.reads) {
     if (r.node === fx.trigger.node) continue;
     const usable = r.http?.responses?.length;
+    // PROPOSALS P66: a read the run's database answers queries it; its `n8n` pin is not used.
+    if (r.db?.engine && db?.[r.db.engine] && !pinFallback.includes(r.node)) {
+      sources[r.node] = `db/${r.db.engine}`;
+      continue;
+    }
     if ((!usable || pinFallback.includes(r.node)) && r.n8n) {
       pinData[r.node] = r.n8n.items;
       sources[r.node] = usable ? "pin-fallback" : "pin";
@@ -799,7 +820,7 @@ export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = 
   // PROPOSALS P89: nodes the template itself pins (other than the trigger): n8n's manual run
   // returns the pin instead of running them; the row reports those on the run (`pinnedPath`).
   const templatePinned = templatePins.filter((n) => n !== fx.trigger.node && !sources[n]?.startsWith("pin"));
-  return { pinTrigger, via, formPages, activate: selfCall || formPages.length > 0, id, variant, name, wf: { ...wf, name: `${id} ${name}` }, fixture: fx, credentials, credentialsAttached, routes, badRoutes, models, overlayApplied: applied, sources, files, templatePinned };
+  return { pinTrigger, via, formPages, activate: selfCall || formPages.length > 0, id, variant, name, wf: { ...wf, name: `${id} ${name}` }, fixture: fx, db, credentials, credentialsAttached, routes, badRoutes, models, overlayApplied: applied, sources, files, templatePinned };
 }
 
 // PROPOSALS P60: pinData entries as n8n execution items. An entry that is already an item
@@ -952,7 +973,10 @@ export function recordingInterrupted({ result, modelCalls = [], models = [], con
 // Runs one prepared template in n8n. `shim` is the started model shim; `modelSession` its
 // session for this run. Retries once with pins for nodes that failed on their http source.
 // `containerState` (container.mjs state): read when the run throws, so an OOM kill is named (P83).
-export async function runN8n(prep, { shim, modelSession, runWorkflow, copyIn, containerState = null, timeoutS = 240, allowFallback = true }) {
+// `databases` ({seedRun, collectRun}, evals/n8n/databases.mjs): for a run with a `db` plan, the
+// run's databases are seeded first (a refused seed throws DbSeedError: the variant's fixture
+// error) and their changes and n8n's statements collected after (`db`, PROPOSALS P66).
+export async function runN8n(prep, { shim, modelSession, runWorkflow, copyIn, containerState = null, timeoutS = 240, allowFallback = true, databases = null }) {
   // A host tag shared by two model nodes maps to the first (validate.mjs errors on such a fixture).
   const tagToNode = {};
   for (const m of prep.models) tagToNode[m.tag] ??= m.node;
@@ -962,6 +986,7 @@ export async function runN8n(prep, { shim, modelSession, runWorkflow, copyIn, co
     writeFileSync(local, f.base64 !== undefined ? Buffer.from(f.base64, "base64") : f.text ?? "");
     copyIn(local, containerPath(f.path));
   }
+  const dbState = prep.db && databases ? databases.seedRun(prep.db) : null;
   shim.setSession({ ...modelSession, label: `${prep.id}/${prep.variant}` });
   let r;
   try {
@@ -978,7 +1003,23 @@ export async function runN8n(prep, { shim, modelSession, runWorkflow, copyIn, co
     }
   }
   const calls = shim.session.calls.map((c) => ({ ...c, node: tagToNode[c.tag] ?? c.tag }));
+  let db = null;
+  if (dbState) {
+    try {
+      db = databases.collectRun(prep.db, dbState);
+    } catch (e) {
+      db = { changes: [], statements: [], error: String(e.message).slice(0, 300) };
+    }
+  }
   const failedNode = r.error?.node ?? Object.entries(r.nodes ?? {}).find(([, runs]) => runs.some((x) => x.error))?.[0];
   const fallbackable = allowFallback && !r.oomKilled && failedNode && prep.fixture.reads.some((x) => x.node === failedNode && x.n8n && x.http?.responses?.length) && prep.sources[failedNode]?.startsWith("http");
-  return { result: r, modelCalls: calls, failedNode, fallbackable };
+  return { result: r, modelCalls: calls, failedNode, fallbackable, ...(db ? { db } : {}) };
+}
+export { DbSeedError };
+
+// PROPOSALS P66: a run's database outcome in a line a check row can carry: each change as
+// "<engine> <op> <table>", the number of statements n8n sent and those the server refused.
+export function dbSummary(db) {
+  if (!db) return null;
+  return { changes: db.changes.map((c) => `${c.engine} ${c.op} ${c.table}`), statements: db.statements.length, refused: db.statements.filter((s) => s.error).map((s) => String(s.error).slice(0, 160)), ...(db.error ? { error: db.error } : {}) };
 }

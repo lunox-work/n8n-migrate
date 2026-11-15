@@ -1297,5 +1297,29 @@
         ]
       }
     ]
+  },
+  "db": {
+    "about": "PROPOSALS P66: a database the run used (the bench's Postgres and MongoDB sidecars, evals/n8n/databases.mjs). Writes are the diff of the run's database against its seeded state, not the statements: what the database holds after the run, whatever SQL or command (often model-written) produced it. Rows pair by primary key (documents by _id), else as whole rows. Service is the engine (postgres, mongodb), action the change, target the table (schema.table) or collection; fields are the row's columns (insert), `$key` and the changed columns (update), `$key` or the row (delete), `rows` (drop_table), each compared exactly; an ObjectId the driver generated for an inserted document is left out. The statements the run sent (Postgres log_statement=all for n8n's role in the run's database; the MongoDB profiler) are reads keyed by the tables they name, reported and searched for bait, never failing a comparison",
+    "changes": {
+      "insert": {
+        "effect": "write"
+      },
+      "update": {
+        "effect": "write"
+      },
+      "delete": {
+        "effect": "write"
+      },
+      "create_table": {
+        "effect": "write"
+      },
+      "drop_table": {
+        "effect": "write"
+      }
+    },
+    "statement": {
+      "action": "query",
+      "effect": "read"
+    }
   }
 }

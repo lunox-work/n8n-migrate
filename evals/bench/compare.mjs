@@ -364,6 +364,26 @@ export function fromFile(f, side) {
   return { side, service: r.service, action: r.action, effect: r.effect, target: String(f.path), fields: { sha256: f.sha256, size: f.size }, cmp: Object.fromEntries(Object.entries(r.fields).map(([k, x]) => [k, x.cmp])), raw: { path: f.path, ...(f.node ? { node: f.node } : {}) } };
 }
 
+// A database change or statement (PROPOSALS P66, effects.json `db`): a change from the diff of
+// the run's database ({engine, op, table, key?, row?, set?, rows?}) is a write keyed by
+// engine.op:table, one field per column so a model-written column is judged on its own: an
+// insert's row (an ObjectId the driver generated left out), an update's `$key` and changed
+// columns, a delete's `$key` (or its row, for a table without a key), a dropped table's `rows`.
+// A statement ({engine, sql|command, tables?|collection}) is a read keyed by the tables it names.
+export function fromDb(c, side) {
+  const r = table().db;
+  if (c.sql !== undefined || c.command !== undefined) {
+    const target = (c.tables ?? (c.collection ? [c.collection] : [])).join(",");
+    return { side, service: c.engine, action: r.statement.action, effect: "read", target, fields: { statement: c.sql ?? c.command, ...(c.params ? { params: c.params } : {}) }, cmp: { statement: "exact", params: "exact" }, raw: c };
+  }
+  const fields = {};
+  if (c.op === "insert") Object.assign(fields, c.row ?? {}), c.generatedId && delete fields._id;
+  else if (c.op === "update") Object.assign(fields, { $key: c.key }, c.set ?? {});
+  else if (c.op === "delete") Object.assign(fields, c.key ? { $key: c.key } : c.row ?? {});
+  else if (c.op === "drop_table") fields.rows = c.rows;
+  return { side, service: c.engine, action: c.op, effect: r.changes[c.op]?.effect ?? "write", target: String(c.table), fields, cmp: Object.fromEntries(Object.keys(fields).map((k) => [k, "exact"])), raw: c };
+}
+
 // ---------- comparison ----------
 
 const keyOf = (e) => `${e.service}.${e.action}:${e.target}`;
