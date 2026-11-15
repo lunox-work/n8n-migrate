@@ -471,6 +471,10 @@
       "Get new video: the finished row has a VIDEO, so only row 3 is processed",
       "Completed?: false on the first check (IN_PROGRESS → Wait 60 sec. → Get status again), true on the second → Get Url Video → Generate title → Get File Video → Upload Video + HTTP Request → Update result and Update Youtube URL"
     ],
-    "offline": "The Schedule Trigger is not connected, so the manual trigger is fixtured. Every Wait 60 sec. adds a minute (timeCompression helps). The Sheets, Drive, OpenAI and fal/upload-post header credentials are stripped from the template: the bench attaches them by node type. 'user' is the placeholder YOUR_USERNAME (overlay). The Drive file name and Update result carry $now"
+    "offline": "The Schedule Trigger is not connected, so the manual trigger is fixtured. Every Wait 60 sec. adds a minute (timeCompression helps). The Sheets, Drive, OpenAI and fal/upload-post header credentials are stripped from the template: the bench attaches them by node type. 'user' is the placeholder YOUR_USERNAME (overlay). The Drive file name and Update result carry $now",
+    "n8nFails": {
+      "node": "Create Video",
+      "why": "Set data writes prompt as \"{{ $json.PROMPT }}\\n\\nDuration of the video: …\", so the value always holds line breaks, and Create Video splices it raw into the JSON text {\"prompt\": \"{{$json.prompt}}\"}; n8n refuses the body (`The value in the \"JSON Body\" field is not valid JSON`, a bad control character) whatever the row says. Confirmed by canned checks on normal, malformed and hostile (2026-11-16); empty has no row to process and never reaches the node (PROPOSALS P82, P104)"
+    }
   }
 }

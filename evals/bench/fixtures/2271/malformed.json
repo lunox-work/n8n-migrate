@@ -354,6 +354,7 @@
   "expect": {
     "branches": [
       "If Needs Reply (model-driven): the first mail has no subject, so $json.subject renders empty and the draft subject is 'Re: '; the second likely needs a reply"
-    ]
+    ],
+    "n8nCannotRun": "the bench's stand-in for OpenAI (haiku through the shim) answers the chain's structured-output prompt without the `__structured__output__object` level the wrapped schema asks for, on both live draws (2026-11-14, and 2026-11-16 uncached: `{\"__structured__output\":{\"needsReply\":true}}`), so n8n's JSON Parser refuses the reply (`Model output doesn't fit required format`) and nothing past it runs; n8n's own provider is not reachable from the bench (PROPOSALS P104)"
   }
 }

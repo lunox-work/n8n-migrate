@@ -140,10 +140,69 @@
                 ]
               ]
             }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://graph.microsoft.com/v1.0/me/drive/items/EA8A73F11507ECE9!24392/workbook/worksheets/%7B+1234567890+1234567890%7D/range(address='A2:B6')",
+            "status": 200,
+            "body": {
+              "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#workbookRange",
+              "@odata.type": "#microsoft.graph.workbookRange",
+              "address": "Sheet1!A2:B6",
+              "addressLocal": "Sheet1!A2:B6",
+              "columnCount": 2,
+              "columnIndex": 0,
+              "rowCount": 5,
+              "rowIndex": 1,
+              "values": [
+                [
+                  "The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The ",
+                  "£9.99"
+                ],
+                [
+                  "A Light in the Attic",
+                  "£51.77"
+                ],
+                [
+                  null,
+                  "£12.00"
+                ],
+                [
+                  "Collector's Edition",
+                  "£1,051.77"
+                ],
+                [
+                  "The Price Is Missing",
+                  ""
+                ]
+              ],
+              "text": [
+                [
+                  "The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The The ",
+                  "£9.99"
+                ],
+                [
+                  "A Light in the Attic",
+                  "£51.77"
+                ],
+                [
+                  "",
+                  "£12.00"
+                ],
+                [
+                  "Collector's Edition",
+                  "£1,051.77"
+                ],
+                [
+                  "The Price Is Missing",
+                  ""
+                ]
+              ]
+            }
           }
         ]
       },
-      "note": "Excel v2.1 worksheet append (autoMap): GET …/worksheets/{id}/usedRange for the header, then PATCH …/range(address='A2:B<n>') with the rows (write-default). The worksheet id {+1234567890+1234567890} is sent percent-encoded here; whether n8n encodes the braces and the '!' of the workbook id is unverified. Workbook and worksheet ids are the template's (the worksheet id looks like a placeholder)"
+      "note": "Excel v2.1 worksheet append (autoMap): GET …/worksheets/{id}/usedRange for the header, then PATCH …/range(address='A2:B<n>') with the rows; the PATCH answers the written range as Graph's workbookRange (`values` = the rows written), which n8n's prepareOutput reads (P104). The worksheet id {+1234567890+1234567890} is percent-encoded by n8n (braces and '+'). Workbook and worksheet ids are the template's (the worksheet id looks like a placeholder)"
     },
     {
       "node": "Send CSV via e-mail",

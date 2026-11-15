@@ -76,7 +76,16 @@
                 "code": "NOT_FOUND",
                 "message": "Resource n8n-demo not found"
               },
-              "status": 404
+              "status": 404,
+              "schema": {
+                "fields": {
+                  "_values": {
+                    "type": "dense_vector",
+                    "dimension": 1536,
+                    "metric": "cosine"
+                  }
+                }
+              }
             }
           }
         ]
@@ -85,7 +94,7 @@
         "shape": "assumed",
         "none": "no captured Pinecone connector; the Claude side serves the same responses through its HTTP mock"
       },
-      "note": "Pinecone Vector Store v1 (retrieve mode, under Vector Store Tool): the Pinecone client (5.x) GETs the index description from api.pinecone.io for its data host, then POSTs <host>/query {vector, topK: 4, includeMetadata: true, includeValues: false}; LangChain keeps each chunk in metadata.text. Vector Store Tool runs a QA chain over the matches with OpenAI Chat Model1 and hands its answer to the agent. The index description is 404, so the client has no data host"
+      "note": "Pinecone Vector Store v1 (retrieve mode, under Vector Store Tool): the Pinecone client (5.x) GETs the index description from api.pinecone.io for its data host, then POSTs <host>/query {vector, topK: 4, includeMetadata: true, includeValues: false}; LangChain keeps each chunk in metadata.text. Vector Store Tool runs a QA chain over the matches with OpenAI Chat Model1 and hands its answer to the agent. The index description is 404, so the client has no data host. The index description carries the reserved `_values` dense vector field in `schema.fields`, as Pinecone's 2026-07 API describes a vector index: n8n 2.47.7 reads that schema to tell a vector index from a document index (P104)"
     },
     {
       "node": "HTTP Request",
