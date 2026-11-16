@@ -15,13 +15,14 @@
 // at least DELAY_MS apart, 4 tries with backoff, a generic user agent. Template JSON stays
 // git-ignored; only ids and counts are written.
 //
-// Population (LEVERS.md): every listing entry, less the round-4 held-out (and any later
-// round's), which is never read: it is skipped before its file is opened and only counted
-// (PROPOSALS P51). The rest go through fetch.mjs's exclusion rules (EXCLUSIONS.md, same order)
-// and the round-4 eligibility clauses (eligible.mjs) except clause 4 (planned features): "in
-// scope" = what round 4 would admit if the converter supported every planned feature. Templates
-// that are unreadable in the *current* round but dev in round 4 (round 3's held-out while
-// release point 3 is unfinished) are counted and never named.
+// Population (LEVERS.md): every listing entry, less ROUND's held-out (and any later round's),
+// which is never read: it is skipped before its file is opened and only counted (PROPOSALS
+// P51). The rest go through fetch.mjs's exclusion rules (EXCLUSIONS.md, same order) and the
+// round-4 eligibility clauses (eligible.mjs; round 5 keeps them) except clause 4 (planned
+// features): "in scope" = what the rule would admit if the converter supported every planned
+// feature. Templates that are unreadable in the *current* round but dev in ROUND (a held-out
+// whose release point is unfinished) are counted and never named. Dev unlocks count ROUND's
+// dev (round 5: 120, round 4's held-out promoted).
 //
 // A blocker is a converter step of kind `blocked` (not disabled), as convert-coverage.mjs
 // classifies them, keyed by node type and the analyzer's `resource:operation`. Blocks of kind
@@ -61,7 +62,7 @@ const ROWS = 50;
 const DELAY_MS = 1100;
 const UA = "n8n-template-gallery-survey/0.1 (anonymous, read-only)";
 const NOW = "2026-11-16T00:00:00Z"; // the round-4 walk's analyzer clock (fetch.mjs NOW)
-export const ROUND = 4;
+export const ROUND = 5;
 
 // ---------- pure parts (unit-tested) ----------
 
@@ -281,7 +282,7 @@ async function main() {
 
   const splits = readSplits();
   const r4 = roundOf(splits, ROUND);
-  // Never read: round 4's held-out and any later round's. Read but never named: what the
+  // Never read: ROUND's held-out and any later round's. Read but never named: what the
   // current round still holds out (round 3's held-out until currentRound is 4).
   const hidden = new Set(unreadableIds(splits, ROUND).map(String));
   const unnamed = new Set(unreadableIds(splits).map(String));
@@ -405,7 +406,7 @@ async function main() {
     gallery.push({ id: e.id, keys: c.keys, named: !unnamed.has(String(e.id)) });
   }
 
-  // 4. Round-4 dev, from the bench cache (every dev template, in the walk or not).
+  // 4. ROUND's dev, from the bench cache (every dev template, in the walk or not).
   const dev = [];
   const devPop = { templates: r4.dev.length, unnamed: 0, supportedToday: 0, answersOnly: 0, blocked: 0, missing: 0 };
   for (const t of r4.dev) {
@@ -475,7 +476,7 @@ export function markdown(doc) {
   L.push(`| Blocked by at least one missing feature | ${p.blocked}${p.crashes ? ` (${p.crashes} converter crash or refusal)` : ""} |`);
   L.push("");
   L.push(`Out of scope, by clause (a template counts once per clause it breaks): ${Object.entries(p.outOfScopeByClause).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([k, v]) => `${k} ${v}`).join(", ")}.`, "");
-  L.push(`Round-${doc.round} dev: ${d.templates} templates; ${d.supportedToday} supported today, ${d.answersOnly} blocked only by a question, ${d.blocked} blocked by a missing feature${d.missing ? `, ${d.missing} not in the cache` : ""}. ${d.unnamed ? `${d.unnamed} of them are still held out in the current round (release point 3 unfinished): they are counted, never named; re-run with \`--offline\` once \`currentRound\` is 4.` : ""}`.trim(), "");
+  L.push(`Round-${doc.round} dev: ${d.templates} templates; ${d.supportedToday} supported today, ${d.answersOnly} blocked only by a question, ${d.blocked} blocked by a missing feature${d.missing ? `, ${d.missing} not in the cache` : ""}. ${d.unnamed ? `${d.unnamed} of them are still held out in the current round (its release point unfinished): they are counted, never named; re-run with \`--offline\` once \`currentRound\` is ${doc.round}.` : ""}`.trim(), "");
   if (doc.requests) L.push(`Requests made by the walk that filled the cache: ${doc.requests.listing} listing, ${doc.requests.template} template, ${doc.requests.failed} failed.`, "");
   L.push(`Every template this walk read (listing ranks 1-${doc.listingPages.length * ROWS}) has now been seen by a fixing-side tool, so it is no longer fresh: a later round's held-out walk should start after page ${doc.listingPages.length} of the day's listing, or skip every id in the listing pages this walk used, as round 4's walk skipped \`corpus.json\` and the survey folder.`, "");
   L.push("## Picking the next feature", "");

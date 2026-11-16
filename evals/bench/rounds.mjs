@@ -14,7 +14,11 @@
 //   source}]: held-out templates drawn from outside the seeded split (round 3 on, split.mjs
 //   drawFresh); a round's ids resolve from the seeded lists and from these alike.
 //   A round may be written before it is current (its held-out drawn ahead of its release point);
-//   the P51 guards treat its held-out as unreadable too (unreadableIds).
+//   the P51 guards treat its held-out as unreadable too (unreadableIds). A round's `heldOut` may
+//   be empty until its fresh held-out is drawn (round 5: round 4's held-out promoted, dev 120).
+//
+// Round 5 on: a round reports its numbers out of its own dev size (N of 120), and on the earlier
+// round's dev as a subset for continuity (roundTally, summary.mjs).
 
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -22,7 +26,9 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
-export function readSplits(file = join(HERE, "splits.json")) {
+// N2C_BENCH_SPLITS: another splits file (tests only: a round with a held-out to skip while the
+// committed current round has none drawn yet).
+export function readSplits(file = process.env.N2C_BENCH_SPLITS || join(HERE, "splits.json")) {
   return JSON.parse(readFileSync(file, "utf8"));
 }
 
@@ -71,6 +77,16 @@ export function withoutHeldOut(ids, splits, n) {
 // Dev ids of the current round that have fixtures (what `run.mjs --split dev` runs).
 export function devWithFixtures(splits, fixturesDir = join(HERE, "fixtures"), n) {
   return roundOf(splits, n).dev.map((r) => r.id).filter((id) => existsSync(join(fixturesDir, String(id))));
+}
+
+// A bench run's numbers over a set of dev ids: passes (by `counts`, summary.mjs's P50 rule),
+// the gate sum, and ids with no row (counted as not passing, reached 0). `rows` are one tag's
+// latest rows per template. -> {passed, of, gateSum, missing}
+export function roundTally(rows, ids, counts = (r) => !!r.passedAll) {
+  const want = new Set([...ids].map(Number));
+  const mine = rows.filter((r) => want.has(Number(r.template)));
+  const have = new Set(mine.map((r) => Number(r.template)));
+  return { passed: mine.filter(counts).length, of: want.size, gateSum: mine.reduce((n, r) => n + (r.reached ?? 0), 0), missing: [...want].filter((id) => !have.has(id)) };
 }
 
 // PLAN Phase 6 overfitting bound: 1.96 · sqrt(p(1 − p)(1/nDev + 1/nHeld)) + 2 × flips

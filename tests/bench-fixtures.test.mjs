@@ -180,17 +180,24 @@ test("P51: convert-coverage without --ids skips the current round's held-out", a
   const { tmpdir } = await import("node:os");
   const { spawnSync } = await import("node:child_process");
   const { readSplits, heldOutIds, withoutHeldOut } = await import("../evals/bench/rounds.mjs");
-  const splits = readSplits();
+  // The committed current round may have no held-out drawn yet (round 5 until its blind session):
+  // then the guard is checked on a copy whose current round is the last one that has a held-out.
+  const committed = readSplits();
+  const last = [...committed.rounds].reverse().find((r) => r.heldOut.length);
+  const splits = heldOutIds(committed).length ? committed : { ...committed, currentRound: last.round, rounds: committed.rounds.filter((r) => r.round <= last.round) };
   const held = heldOutIds(splits);
   assert.ok(held.length > 0);
   assert.deepEqual(withoutHeldOut([String(held[0]), "99999991", held[1]], splits), { kept: ["99999991"], skipped: [String(held[0]), held[1]] });
   const dir = mkdtempSync(join(tmpdir(), "n2c-p51-"));
+  const splitsDir = mkdtempSync(join(tmpdir(), "n2c-p51-splits-"));
+  const splitsFile = join(splitsDir, "splits.json");
+  writeFileSync(splitsFile, JSON.stringify(splits));
   try {
     const wf = { name: "t", nodes: [{ id: "a", name: "Start", type: "n8n-nodes-base.manualTrigger", typeVersion: 1, position: [0, 0], parameters: {} }, { id: "b", name: "Set", type: "n8n-nodes-base.set", typeVersion: 3.4, position: [200, 0], parameters: {} }], connections: { Start: { main: [[{ node: "Set", type: "main", index: 0 }]] } } };
     for (const id of [held[0], 99999991]) writeFileSync(join(dir, `${id}.json`), JSON.stringify(wf));
     const run = (extra) => {
       const out = join(dir, `out${extra.length}.md`);
-      const r = spawnSync(process.execPath, [join(BENCH, "..", "convert-coverage.mjs"), "--corpus", dir, "--out", out, ...extra], { encoding: "utf8" });
+      const r = spawnSync(process.execPath, [join(BENCH, "..", "convert-coverage.mjs"), "--corpus", dir, "--out", out, ...extra], { encoding: "utf8", env: { ...process.env, N2C_BENCH_SPLITS: splitsFile } });
       assert.equal(r.status, 0, r.stderr);
       return readFileSync(out, "utf8");
     };
@@ -202,6 +209,7 @@ test("P51: convert-coverage without --ids skips the current round's held-out", a
     assert.match(run(["--ids", `${held[0]},99999991`]), /over 2 templates/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
+    rmSync(splitsDir, { recursive: true, force: true });
   }
 });
 
@@ -359,11 +367,55 @@ test("round 4: dev is 100 round-4-eligible templates, held-out 20 fresh, amendme
   }
   for (const t of fromWalk) assert.ok(byId.get(t.id)?.topUp === 4 && byId.get(t.id).r4 === "eligible", String(t.id));
   // While round 3 is current the P51 guards already skip round 4's held-out; once round 4 is
-  // current (after release point 3), round 3's held-out is dev and only round 4's is skipped.
-  assert.ok([3, 4].includes(roundOf(splits).round));
-  const expected = roundOf(splits).round === 3 ? [...ids(r3.heldOut), ...ids(r4.heldOut)] : ids(r4.heldOut);
-  assert.deepEqual(new Set(unreadableIds(splits)), new Set(expected));
+  // current (after release point 3), round 3's held-out is dev and only round 4's is skipped;
+  // from round 5 (after release point 4) round 4's held-out is dev too.
+  assert.deepEqual(new Set(unreadableIds(splits, 3)), new Set([...ids(r3.heldOut), ...ids(r4.heldOut), ...(roundOf(splits, 5)?.heldOut ?? []).map((r) => r.id)]));
+  assert.ok(ids(r4.heldOut).every((id) => unreadableIds(splits, 4).includes(id)));
   // PROPOSALS P51: never in the survey folder.
   const survey = join(BENCH, "..", "survey", "data", "wf");
   for (const t of fresh.templates) assert.ok(!existsSync(join(survey, `${t.id}.json`)), `${t.id} is in evals/survey/data/wf`);
+});
+
+// Round 5 (PLAN Phase 6, rolling held-out; after release point 4): round 4's 20 fresh held-out
+// join dev (promoted), nothing is dropped, so dev is 120 templates, all with fixtures; round 5's
+// held-out is empty until a separate blind session draws it. The round's numbers are out of its
+// 120, with round 4's 100 as a subset (roundTally; summary.mjs, convert-coverage.mjs).
+test("round 5: round 4's held-out joins dev (120, all fixtured), no held-out yet, numbers out of 120 with round 4's 100 as a subset", async () => {
+  const { readSplits, roundOf, devWithFixtures, unreadableIds, withoutHeldOut, roundTally } = await import("../evals/bench/rounds.mjs");
+  const splits = readSplits();
+  const ids = (rows) => rows.map((r) => r.id);
+  const r4 = roundOf(splits, 4);
+  const r5 = roundOf(splits, 5);
+  assert.equal(splits.currentRound, 5);
+  assert.equal(roundOf(splits).round, 5);
+  assert.deepEqual(ids(r5.promoted), ids(r4.heldOut));
+  assert.deepEqual(ids(r5.promoted), ids(splits.heldOutFresh4.templates));
+  assert.deepEqual([r5.dropped.length, r5.devAdded.length, r5.heldOut.length], [0, 0, 0]);
+  assert.deepEqual(new Set(ids(r5.dev)), new Set([...ids(r4.dev), ...ids(r4.heldOut)]));
+  assert.equal(new Set(ids(r5.dev)).size, 120);
+  assert.equal(devWithFixtures(splits).length, 120);
+  for (const t of splits.heldOutFresh4.templates) {
+    for (const v of VARIANTS) {
+      const p = join(BENCH, "fixtures", String(t.id), `${v}.json`);
+      assert.ok(existsSync(p), `${t.id}/${v}`);
+      assert.equal(JSON.parse(readFileSync(p, "utf8")).sha256, t.sha256, `${t.id}/${v}`);
+    }
+  }
+  // Nothing is held out now: the P51 guards skip no id, and round 4's held-out is readable.
+  assert.deepEqual(unreadableIds(splits), []);
+  assert.deepEqual(withoutHeldOut(ids(r4.heldOut), splits).skipped, []);
+  // Round 4 as written is unchanged.
+  assert.equal(r4.dev.length, 100);
+  // The round's numbers: out of 120 (a template without a row counts as not passing), round 4's
+  // 100 as a subset.
+  const rows = [
+    { template: r4.dev[0].id, passedAll: true, reached: 9 },
+    { template: r4.heldOut[0].id, passedAll: true, reached: 9 },
+    { template: r4.heldOut[1].id, passedAll: false, reached: 3 },
+  ];
+  const all = roundTally(rows, ids(r5.dev));
+  assert.deepEqual([all.passed, all.of, all.gateSum, all.missing.length], [2, 120, 21, 117]);
+  const sub = roundTally(rows, ids(r4.dev));
+  assert.deepEqual([sub.passed, sub.of, sub.gateSum, sub.missing.length], [1, 100, 9, 99]);
+  assert.equal(roundTally(rows, ids(r5.dev), (r) => r.passedAll && r.template !== r4.heldOut[0].id).passed, 1, "the caller's pass rule (P50) is applied");
 });

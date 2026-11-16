@@ -63,15 +63,15 @@ test("levers: ranked by alone blocks, then total; dev unlocks counted; unnamed r
   assert.deepEqual([g[0].group, g[0].galleryUnlock, g[0].devUnlock], ["unplanned", 5, 2]);
 });
 
-// PROPOSALS P51: LEVERS.md and levers.json never name a round-4 held-out template (nor any later
-// round's, nor one the current round still holds out); they give only the count skipped.
-test("levers: no current or round-4 held-out id in LEVERS.md or levers.json", () => {
+// PROPOSALS P51: LEVERS.md and levers.json never name ROUND's held-out template (nor any later
+// round's, nor one the current round still holds out); they give only the count skipped. From
+// round 5 round 4's held-out is dev and may be named; round 5's held-out is not drawn yet.
+test("levers: no current or ROUND held-out id in LEVERS.md or levers.json", () => {
   const json = join(BENCH, "levers.json");
   const md = join(BENCH, "LEVERS.md");
   if (!existsSync(json)) return;
   const splits = readSplits();
   const held = new Set([...unreadableIds(splits, ROUND), ...unreadableIds(splits)].map(String));
-  assert.ok(held.size >= 20);
   const doc = JSON.parse(readFileSync(json, "utf8"));
   const named = doc.features.flatMap((f) => Object.values(f.ids).flat()).map(String);
   for (const id of named) assert.ok(!held.has(id), `levers.json names held-out template ${id}`);

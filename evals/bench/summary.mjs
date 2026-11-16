@@ -26,7 +26,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readSplits, roundOf, devWithFixtures, overfittingBound } from "./rounds.mjs";
+import { readSplits, roundOf, devWithFixtures, overfittingBound, roundTally } from "./rounds.mjs";
 import { slipStats, flipsBetween, noEffectClass, NO_EFFECT_CLASSES } from "./gates.mjs";
 import { fromHttp, fromFile, foldResumableUploads } from "./compare.mjs";
 
@@ -163,6 +163,12 @@ for (const r of mine) {
   byGate[r.gate ?? "error"] = (byGate[r.gate ?? "error"] ?? 0) + 1;
   byBucket[r.bucket ?? "?"] = (byBucket[r.bucket ?? "?"] ?? 0) + 1;
 }
+// Round 5 on (PLAN Phase 6): the round's one-shot number is out of its dev size (templates with
+// fixtures; a dev template without a row in this tag counts as not passing), and the previous
+// round's dev that is still dev is reported as a subset for continuity (round 5: round 4's 100).
+const prevRound = round.round > 1 && (splits.rounds ?? []).some((r) => r.round === round.round - 1) ? roundOf(splits, round.round - 1) : null;
+const prevIds = prevRound ? prevRound.dev.map((r) => r.id).filter((id) => devIds.has(id)) : [];
+const roundNumbers = { round: round.round, dev: roundTally(mine, devIds, counts), ...(prevRound ? { subset: { round: prevRound.round, ...roundTally(mine, prevIds, counts) } } : {}) };
 const membership = { round: round.round, dev: mine.filter((r) => devIds.has(r.template)).length, heldOut: mine.filter((r) => heldIds.has(r.template)).length, other: mine.filter((r) => !devIds.has(r.template) && !heldIds.has(r.template)).length };
 const out = {
   tag,
@@ -171,6 +177,7 @@ const out = {
   outcomeSharesTop100: shares,
   coverageTop100: corpus.coverageTop100,
   oneShot: { passed: passed.length, of: mine.length, share: share(passed.length, mine.length) },
+  roundNumbers,
   passNoEffectCompared: { templates: noEffectOf(mine), note: "counted in one-shot success: the workflow's only compared output is its reply or its terminal nodes' items (P70), or only the replayed model inputs were compared (PROPOSALS P50)" },
   passNothingCompared: { templates: nothingOf(mine), note: "not counted: passed every gate with no effect, reply or model input compared (rows from before P50, classed from the recording; from P50 on gate 4 fails them)" },
   oneShotExcludingConnectorLimited: { passed: passed.length, of: rest.length, share: share(passed.length, rest.length), connectorLimited: limited.map((r) => r.template), note: "connector-limited: the failure traces to a fixture connectorGaps field; the real connector shapes behind those gaps are unverified (shape: assumed)" },
@@ -215,6 +222,9 @@ else {
   console.log(`outcome shares, top 100 (analyzer, default answers): ${Object.entries(shares).map(([k, v]) => `${k} ${v}`).join(", ")}`);
   console.log(`coverage of the top 100: ${corpus.coverageTop100.raw.subscription} of ${corpus.coverageTop100.raw.of} raw, ${corpus.coverageTop100.afterExclusions.subscription} of ${corpus.coverageTop100.afterExclusions.of} after exclusions`);
   console.log(`one-shot success: ${out.oneShot.passed} of ${out.oneShot.of} (${out.oneShot.share ?? "-"}%); gate sum ${out.gateSum}`);
+  const rn = out.roundNumbers;
+  const missingNote = (t) => (t.missing.length ? `; ${t.missing.length} without a row in this tag, counted as not passing` : "");
+  console.log(`round ${rn.round} one-shot (out of the round's dev): ${rn.dev.passed} of ${rn.dev.of}, gate sum ${rn.dev.gateSum}${missingNote(rn.dev)}${rn.subset ? `; round ${rn.subset.round}'s dev as a subset: ${rn.subset.passed} of ${rn.subset.of}, gate sum ${rn.subset.gateSum}${missingNote(rn.subset)}` : ""}`);
   const ne = out.passNoEffectCompared.templates;
   console.log(`pass, no effect compared (counted, P50): ${ne.length ? ne.map((x) => `${x.template} (${x.compared})`).join(", ") : "none"}`);
   if (out.passNothingCompared.templates.length) console.log(`pass, nothing compared (not counted; rows from before P50): ${out.passNothingCompared.templates.join(", ")}`);
