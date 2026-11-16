@@ -653,3 +653,26 @@ test("legacy OpenAI text edit: instruction as system text, input as prompt, n8n'
   assert.equal(def.steps.Raw.model.trim, undefined);
   assert.equal(def.steps.Raw.model.system, undefined, "no instruction, no system text");
 });
+
+// R5b1 iteration 48: the Call n8n Workflow Tool v1 with an input schema is offered with that
+// schema, and the sub-workflow gets the parsed arguments as `query` (n8n's DynamicStructuredTool).
+test("Call n8n Workflow Tool v1 with an input schema: the schema offered, the arguments as query", async () => {
+  const lc = "@n8n/n8n-nodes-langchain.";
+  const chat = { parameters: {}, name: "Chat", type: lc + "chatTrigger", typeVersion: 1.1, position: [0, 0], webhookId: "w" };
+  const agent = { parameters: { text: "={{ $json.chatInput }}", promptType: "define", options: {} }, name: "Agent", type: lc + "agent", typeVersion: 1.7, position: [200, 0] };
+  const lm = { parameters: { model: { __rl: true, mode: "list", value: "gpt-4o-mini" }, options: {} }, name: "LM", type: lc + "lmChatOpenAi", typeVersion: 1.2, position: [200, 200] };
+  const tool = { parameters: { name: "lookup", workflowId: "={{ $workflow.id }}", description: "Look up", jsonSchemaExample: '{\n "videoId": "an id"\n}', specifyInputSchema: true }, name: "Tool", type: lc + "toolWorkflow", typeVersion: 1, position: [400, 200] };
+  const sub = { parameters: { inputSource: "passthrough" }, name: "Sub", type: "n8n-nodes-base.executeWorkflowTrigger", typeVersion: 1.1, position: [0, 400] };
+  const set = { parameters: { assignments: { assignments: [{ id: "1", name: "id", type: "string", value: "={{ $json.query.videoId }}" }] }, options: {} }, name: "Pick", type: "n8n-nodes-base.set", typeVersion: 3.4, position: [200, 400] };
+  const conns = { ...link("Chat", "Agent"), ...link("Sub", "Pick"), LM: { ai_languageModel: [[{ node: "Agent", type: "ai_languageModel", index: 0 }]] }, Tool: { ai_tool: [[{ node: "Agent", type: "ai_tool", index: 0 }]] } };
+  const def = convertJson(tiny([chat, agent, lm, tool, sub, set], conns)).definition;
+  const t = def.steps.Agent.agent.tools.find((x) => x.name === "lookup");
+  assert.deepEqual(t.inputSchema, { type: "object", properties: { videoId: { type: "string" } } });
+  assert.deepEqual(def.steps.Tool.subflow, { self: true, inputs: {}, queryArgs: true });
+  const { executeAgentTool } = await import("../skills/n8n-to-claude/runtime/src/nodes2.mjs");
+  let handed;
+  const exec = { run: { definition: def, api: { runSubflow: async (_e, _s, items) => ((handed = items), { output: [[{ json: { ok: 1 } }]] }) } }, scope: () => ({}), name: "Agent", runIndex: 0 };
+  const r = await executeAgentTool(exec, def.steps.Agent.agent.tools, { name: "lookup", args: { videoId: "v1" } }, 0);
+  assert.deepEqual(r, { ok: true, value: { ok: 1 } });
+  assert.deepEqual(handed, [{ json: { query: { videoId: "v1" } } }]);
+});

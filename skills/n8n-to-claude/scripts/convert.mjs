@@ -1895,11 +1895,19 @@ function buildToolWorkflow(ctx, items, report, wr, tn, ts, stack, rootId, allow,
   // Inputs: v2 workflowInputs (values may hold $fromAI); v1 fields + the model's query. n8n's v2
   // uses the mapped values only when the sub-workflow's input schema is listed
   // (workflowInputs.schema); otherwise it offers a DynamicTool and sends {query: input}.
+  // v1 with "Specify Input Schema" offers a DynamicStructuredTool with that schema (from the JSON
+  // example or the schema written) and hands the sub-workflow the parsed arguments as `query`.
   const mapped = isObj(tp.workflowInputs?.value) && (tp.workflowInputs?.schema ?? []).length > 0;
+  const v1Schema = (ts.n8n.typeVersion ?? 1) < 2 && tp.specifyInputSchema === true;
   let inputSchema = mapped ? fromAiSchema(tp.workflowInputs.value) : null;
+  const fields = Array.isArray(tp.fields?.values) && tp.fields.values.length ? Object.fromEntries(tp.fields.values.map((f) => [f.name, f.stringValue ?? f.numberValue ?? f.booleanValue ?? f.objectValue ?? f.arrayValue ?? ""])) : null;
   if (mapped) ts.subflow.inputs = clone(tp.workflowInputs.value);
-  else if (Array.isArray(tp.fields?.values) && tp.fields.values.length) {
-    ts.subflow.inputs = Object.fromEntries(tp.fields.values.map((f) => [f.name, f.stringValue ?? f.numberValue ?? f.booleanValue ?? f.objectValue ?? f.arrayValue ?? ""]));
+  else if (v1Schema) {
+    inputSchema = parserSchema({ ...ts, name: tn, params: { schemaType: tp.schemaType ?? "fromJson", jsonSchemaExample: tp.jsonSchemaExample, inputSchema: tp.inputSchema } }, []);
+    ts.subflow.inputs = fields ?? {};
+    ts.subflow.queryArgs = true;
+  } else if (fields) {
+    ts.subflow.inputs = fields;
     ts.subflow.inputs.query = "={{ $fromAI('input') }}";
     inputSchema = clone(DYNAMIC_TOOL_SCHEMA);
   }

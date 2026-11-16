@@ -33697,7 +33697,9 @@ async function executeAgentTool(exec, tools, call, itemIndex) {
     }
     if (kind === "subflow") {
       if (!sub?.subflow) return { ok: false, error: { message: `tool "${spec.name}" has no sub-workflow in the definition` } };
-      const input = isObject(sub.subflow.inputs) ? resolveParameter(sub.subflow.inputs, () => exec.scope(itemIndex, { locals })) : args;
+      let input = isObject(sub.subflow.inputs) ? resolveParameter(sub.subflow.inputs, () => exec.scope(itemIndex, { locals })) : args;
+      // Call n8n Workflow Tool v1 with an input schema: the parsed arguments are the query.
+      if (sub.subflow.queryArgs) input = { ...(isObject(input) ? input : {}), query: deepCopy(args) };
       const { runSubflow } = exec.run.api;
       const res = await runSubflow(exec, sub.subflow, [{ json: isObject(input) ? input : { query: input } }], `${exec.name}#${exec.runIndex}#${itemIndex}/tool${(exec._toolCalls = (exec._toolCalls ?? 0) + 1)}`);
       const outItems = (res.output[0] ?? []).map((it) => it.json);

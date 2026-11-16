@@ -258,6 +258,7 @@
               "definition": { "type": "object" },
               "trigger": { "type": "string" },
               "inputs": { "type": "object", "description": "Sub-workflow tool: the item handed to the sub-workflow; $fromAI() values come from the model's arguments." },
+              "queryArgs": { "type": "boolean", "description": "Sub-workflow tool with an input schema (Call n8n Workflow Tool v1): the model's whole argument object goes to the sub-workflow as `query`, beside `inputs`." },
               "workflowId": { "type": "string" }
             }
           },
