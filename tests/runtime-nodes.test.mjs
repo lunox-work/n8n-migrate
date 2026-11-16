@@ -376,7 +376,7 @@ test("HTTP Request 4.2 builds the request from parameters and splits JSON arrays
   );
   const r = await run(def, { trigger: [{ id: 3, q: "x" }], host: { http: async (req, meta) => (seen.push({ req, meta }), { status: 200, headers: { "content-type": "application/json; charset=utf-8" }, body: '[{"a":1},{"a":2}]' }) } });
   assert.equal(r.status, "done");
-  assert.deepEqual(seen[0].req, { method: "POST", url: "https://api.example.com/v1/items/3", headers: { "x-trace": "t", accept: "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7" }, query: { q: "x" }, body: { n: 3 }, contentType: "json", auth: { credentialType: "httpHeaderAuth", secret: "API key" }, step: "Get" });
+  assert.deepEqual(seen[0].req, { method: "POST", url: "https://api.example.com/v1/items/3", headers: { "x-trace": "t", accept: "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7" }, query: { q: "x" }, body: { n: 3 }, contentType: "json", auth: { credentialType: "httpHeaderAuth", secret: "API key" }, response: { format: "autodetect" }, step: "Get" });
   assert.equal(seen[0].meta.id, "Get#0#0");
   assert.match(seen[0].meta.effectKey, /^[0-9a-f]{32}$/);
   assert.deepEqual(out(r, "Get"), [{ a: 1 }, { a: 2 }]);

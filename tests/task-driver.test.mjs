@@ -386,3 +386,33 @@ test("http in the driver: a binary body goes as bytes; a file response or a bina
   const text = await executeHttp({ kind: "http", method: "GET", url: "https://x.example.com/a", headers: {}, response: { format: "text" } }, { secrets: "env" }, async () => new Response("héllo", { headers: { "content-type": "image/png" } }));
   assert.equal(text.value.body, "héllo", "an explicit text format stays text whatever the type");
 });
+
+test("an HTTP Request whose response may be a file tells the host its response format, so the task driver keeps the bytes", async () => {
+  const { run } = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/runtime/src/api.mjs")).href);
+  const { executeHttp } = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/runtime/src/driver.mjs")).href);
+  const zip = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x08, 0x00, 0x8b, 0xff, 0x00, 0xe9]);
+  const def = (options) => ({
+    schemaVersion: 1,
+    name: "Download",
+    steps: {
+      Start: { kind: "trigger", n8n: { type: "n8n-nodes-base.manualTrigger", typeVersion: 1 }, params: {} },
+      Download: { kind: "http", n8n: { type: "n8n-nodes-base.httpRequest", typeVersion: 4.2 }, params: { url: "https://files.example.com/a.xlsx", options } },
+    },
+    edges: [{ from: "Start", fromOutput: 0, to: "Download", toInput: 0 }],
+    allow: { tools: [], http: [{ method: "GET", host: "files.example.com" }], sql: [] },
+    secrets: [],
+  });
+  const fetch = async () => new Response(zip, { status: 200, headers: { "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" } });
+  const asked = [];
+  // The host is the task driver's executeHttp, as in a local task.
+  const host = { http: async (p) => (asked.push(p), (await executeHttp({ kind: "http", ...p }, { secrets: "env" }, fetch)).value) };
+  const r = await run(def({}), { clock: { startedAt: "2026-11-16T09:00:00Z" }, virtualTime: true, trigger: { node: "Start", items: [{ json: {} }] }, host });
+  assert.equal(r.status, "done");
+  assert.deepEqual(asked[0].response, { format: "autodetect" });
+  const bin = r.runData.Download[0].data.main[0][0].binary.data;
+  assert.equal(Buffer.from(bin.data, "base64").equals(zip), true, "the bytes arrive unchanged");
+  // A JSON or text response format is the runtime's own business.
+  asked.length = 0;
+  await run(def({ response: { response: { responseFormat: "json" } } }), { clock: { startedAt: "2026-11-16T09:00:00Z" }, virtualTime: true, trigger: { node: "Start", items: [{ json: {} }] }, host: { http: async (p) => (asked.push(p), { status: 200, headers: { "content-type": "application/json" }, body: {} }) } });
+  assert.equal(asked[0].response, undefined);
+});

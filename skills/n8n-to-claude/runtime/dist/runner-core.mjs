@@ -17679,9 +17679,17 @@ function pageBody(value) {
   return { body: body ?? {}, headers, statusCode: Number(value.status ?? value.statusCode ?? 0) };
 }
 
+// What the host gets of a built request: everything but the runtime's own response handling,
+// except the response format when the response may be a file (format "file", or "autodetect"
+// with a binary content type): the task driver's executeHttp then hands the bytes back as
+// bodyBase64 instead of decoding them as text, which would corrupt them.
+function hostRequest({ response, pagination, ...r }) {
+  return response?.format === "file" || response?.format === "autodetect" ? { ...r, response: { format: response.format } } : r;
+}
+
 async function paginate(exec, req, i) {
   const pg = req.pagination;
-  const { response, pagination, ...base } = req;
+  const base = hostRequest(req);
   const $request = { method: base.method, uri: base.url, qs: base.query, headers: base.headers, ...(base.body !== undefined ? { body: base.body } : {}) };
   const locals = { $request, $response: {}, $version: exec.typeVersion, $pageCount: 0 };
   const resolve = (v) => resolveParameter(v, () => exec.scope(i, { locals: { ...locals } }));
@@ -17891,7 +17899,7 @@ const httpRequest = {
         }
       }
     } else {
-      const sendable = reqs.map(({ response, ...r }) => r);
+      const sendable = reqs.map(hostRequest);
       const results = await exec.request(sendable);
       items.forEach((_, i) => {
         if (errors[i] !== undefined) return void out.push({ json: { error: errors[i] }, pairedItem: { item: i } });
