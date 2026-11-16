@@ -824,3 +824,7 @@ Next levers by the round-4 rule (alone, then total, a dev unlock preferred; `lev
 - Bench `r4l-i44` (2085, 1862; 0 `claude -p`): **2085 4 → 4 with a later blocker**: the read now names the spreadsheet by id on both sides; the turn still differs only in which service read it (n8n's Sheets API against the Drive export), which the comparer counts as different reads (P114). 1862 stays at preflight (its Sheets update has no tool).
 - Round-4 numbers: **one-shot 36 of 100, gate sum 549** (unchanged); **converter coverage 48** (unchanged; `--compare`: no regression).
 - Verdict: accepted (rule c: a later blocking cause, no gate falling).
+
+## Iteration 45: not run (claude -p budget)
+
+- Next by the round-4 rule after iteration 41: `@n8n/n8n-nodes-langchain.toolSerpApi` (http, no-tool; gallery 3/5; dev unlock 1954, 1959, 2324). None of the three has an n8n recording (they have stopped at preflight since round 3), so measuring it needs live n8n recordings of four variants of three agent templates plus their claude-driver runs, about 30 `claude -p`, which would eat the full re-run's reserve (ledger 1337, cap 1431). Left for the next batch; `levers.mjs --offline` unchanged after iterations 43–44.
