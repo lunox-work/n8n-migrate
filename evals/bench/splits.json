@@ -140,7 +140,7 @@
     { "round": 2, "promoted": [2468, 2271, 2178, 3986, 3904, 5035, 2860, 3291, 1826, 3224, 3018, 2090, 2729, 4846, 1951, 2275, 2139, 2473, 2395, 2703], "heldOut": [1992, 1980, 2786, 2557, 2894, 2552, 2384, 1748, 1938, 890, 1960, 2872, 2324, 2878, 2026, 2085, 2006, 3085, 2320, 1959], "note": "held-out 1-20 join dev after release point 1; held-out 21-40 score release point 2", "scored": "release point 2 (2026-11-15, evals/bench/RELEASE-2.md)" },
     { "round": 3, "promoted": [1992, 1980, 2786, 2557, 2894, 2552, 2384, 1748, 1938, 890, 1960, 2872, 2324, 2878, 2026, 2085, 2006, 3085, 2320, 1959], "heldOut": [2824, 2292, 4028, 4968, 3314, 3082, 5010, 2799, 2354, 1897, 2768, 2648, 1150, 2537, 2288, 2705, 2374, 2883, 3169, 2201], "note": "held-out 21-40 join dev after release point 2, so dev is all 100 seeded templates (70 with fixtures). The seeded held-out list is used up: release point 3 scores 20 fresh held-out templates from outside the seeded split (splits.heldOutFresh: Phase 5 overflow plus a round-3 top-up of the listing, drawn by seed per wake-up stratum), labelled blind and fixtured by a separate blind session before any is run" },
     { "round": 4, "promoted": [2824, 2292, 4028, 4968, 3314, 3082, 5010, 2799, 2354, 1897, 2768, 2648, 1150, 2537, 2288, 2705, 2374, 2883, 3169, 2201], "dropped": [2415, 2098, 3016, 3393, 2417, 5993, 2167, 2413, 6270, 5110, 4352, 2749, 2328, 1826, 2395, 2894, 1938, 2878, 2320, 3169, 1073, 1992, 4968, 2374], "heldOut": [2433, 2572, 4506, 3132, 503, 2782, 1957, 2416, 2740, 6137, 2736, 1554, 2956, 2741, 4635, 2694, 10230, 4366, 2612, 3131], "note": "round 3's 20 fresh held-out join dev after release point 3, and the 20 of those 120 templates that fail round-4 eligibility leave (dropped; EXCLUSIONS.md Round 4 eligibility, AUDIT-R4.md), so dev is the 100 eligible. Release point 4 scores 20 fresh held-out templates (splits.heldOutFresh4: a round-4 top-up of the listing, each round-4 eligible, drawn by seed 20261116 per wake-up stratum), labelled blind before any is run", "devAdded": [2421, 3617, 4969, 2695] },
-    { "round": 5, "promoted": [2433, 2572, 4506, 3132, 503, 2782, 1957, 2416, 2740, 6137, 2736, 1554, 2956, 2741, 4635, 2694, 10230, 4366, 2612, 3131], "heldOut": [3003, 8487, 2922, 3880, 2945, 3627, 2276, 3701, 4498, 1283, 3809, 2023, 683, 3200, 5626, 3710, 2897, 4022, 3259, 3027], "note": "round 4's 20 fresh held-out (splits.heldOutFresh4, scored at release point 4, evals/bench/RELEASE-4.md) join dev, so dev is 120 templates, all with fixtures; nothing is dropped (each was round-4 eligible when drawn). From round 5 fixing sessions may read these 20, their fixtures and results, and RELEASE-4.md's aggregates; template-specific rules stay forbidden (the lint covers every corpus id). Round 5's held-out is empty until a separate blind session fetches, draws, labels and fixtures it (EXCLUSIONS.md Later rounds' held-out); the round reports its numbers out of its 120 dev templates, and on round 4's 100 as a subset. Release point 5 scores 20 fresh held-out templates (splits.heldOutFresh5: a round-5 top-up of the listing past the gallery ranking's pages, each eligible by the round-4 rule with amendment 1, drawn by seed 20261117 per wake-up stratum), labelled blind before any is run" }
+    { "round": 5, "promoted": [2433, 2572, 4506, 3132, 503, 2782, 1957, 2416, 2740, 6137, 2736, 1554, 2956, 2741, 4635, 2694, 10230, 4366, 2612, 3131], "heldOut": [3003, 8487, 2922, 3880, 2945, 3627, 2276, 3701, 4498, 1283, 3809, 2023, 683, 3200, 5626, 3710, 2897, 4022, 3027, 4036], "note": "round 4's 20 fresh held-out (splits.heldOutFresh4, scored at release point 4, evals/bench/RELEASE-4.md) join dev, so dev is 120 templates, all with fixtures; nothing is dropped (each was round-4 eligible when drawn). From round 5 fixing sessions may read these 20, their fixtures and results, and RELEASE-4.md's aggregates; template-specific rules stay forbidden (the lint covers every corpus id). Round 5's held-out is empty until a separate blind session fetches, draws, labels and fixtures it (EXCLUSIONS.md Later rounds' held-out); the round reports its numbers out of its 120 dev templates, and on round 4's 100 as a subset. Release point 5 scores 20 fresh held-out templates (splits.heldOutFresh5: a round-5 top-up of the listing past the gallery ranking's pages, each eligible by the round-4 rule with amendment 1, drawn by seed 20261117 per wake-up stratum), labelled blind before any is run" }
   ],
   "heldOutFresh": {
     "round": 3,
@@ -286,7 +286,7 @@
   "heldOutFresh5": {
     "round": 5,
     "seed": 20261117,
-    "method": "evals/bench/split.mjs drawFresh(): pool = the round-5 top-up's entries that are eligible by the round-4 rule with amendment 1 (fetch.mjs freshPool(templates, 5); the walk started after the gallery ranking's listing pages and skipped every id on them); mulberry32(seed) Fisher-Yates over the pool sorted by id ascending; per wake-up stratum the first quota in shuffled order, skipping a template excluded after the draw (`excluded` or `r4Hand`; it stays in the shuffle); the list keeps the shuffled order; no drawn id may be named in levers.json or LEVERS.md",
+    "method": "evals/bench/split.mjs drawFresh(): pool = the round-5 top-up's entries that are eligible by the round-4 rule with amendment 1 (fetch.mjs freshPool(templates, 5); the walk started after the gallery ranking's listing pages and skipped every id on them); mulberry32(seed) Fisher-Yates over the pool sorted by id ascending; per wake-up stratum the first quota in shuffled order, skipping a template excluded after the draw (`excluded` or `r4Hand`; it stays in the shuffle); a redraw whose stratum has no candidate left takes the first eligible entries of the views walk after the round's walk (fetch.mjs extendWalk, pool held-refill) in listing order, after the shuffled pool (PROPOSALS P126); the list keeps the shuffled order; no drawn id may be named in levers.json or LEVERS.md",
     "quotas": {
       "chat": 6,
       "manual": 5,
@@ -295,7 +295,7 @@
       "form": 2,
       "other": 1
     },
-    "candidates": 104,
+    "candidates": 129,
     "strata": {
       "form": 2,
       "other": 1,
@@ -332,6 +332,15 @@
         "in": [
           683
         ]
+      },
+      {
+        "why": "3259 excluded by clause 6 (r4Hand) while fixturing: Add columns to new sheet gives the sheet Create a new sheet makes one column (linkedin_url), but Appends the results to the sheet maps 13 columns and n8n 2.x's Sheets v4.5 append refuses a header missing any of them (Column names were updated after the node's setup), so n8n fails that node whatever the data; the chat stratum had no candidate left, so the views walk continued after the round's walk (P126)",
+        "out": [
+          3259
+        ],
+        "in": [
+          4036
+        ]
       }
     ],
     "templates": [
@@ -353,8 +362,8 @@
       { "id": 3710, "sha256": "cac13623972d165d5bfa93d37001114d6b99953ec291756918358e734d16b014", "wakeup": "chat", "source": "top-up" },
       { "id": 2897, "sha256": "2494a97848b516b10bb46950cd93a85f07d70aa177857061488e28e0ea59b2f2", "wakeup": "chat", "source": "top-up" },
       { "id": 4022, "sha256": "69b7e6178cb81cd33f944a7d8e9f47bcfa8b2cf82cc478d2603f102140934de0", "wakeup": "chat", "source": "top-up" },
-      { "id": 3259, "sha256": "c344ca5f515a9cb3010a43f6b118a03d06feb245c6951e602e56704995472ff0", "wakeup": "chat", "source": "top-up" },
-      { "id": 3027, "sha256": "8ee845f4e60c2ea44d58921128d6c8eea92ce3c488ea388824a7b6ea54b2b493", "wakeup": "chat", "source": "top-up" }
+      { "id": 3027, "sha256": "8ee845f4e60c2ea44d58921128d6c8eea92ce3c488ea388824a7b6ea54b2b493", "wakeup": "chat", "source": "top-up" },
+      { "id": 4036, "sha256": "ce0b3dd880a02dffee60217ffe2ea77b883c84361141179884303e4cf235aec0", "wakeup": "chat", "source": "views walk page 27" }
     ]
   }
 }
