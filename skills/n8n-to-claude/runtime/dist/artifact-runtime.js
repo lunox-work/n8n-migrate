@@ -32991,11 +32991,19 @@ async function paginate(exec, req, i) {
   return pages;
 }
 
+// A response's headers as n8n's request helper hands them to a node: Node's http message
+// headers, names lower-cased and Set-Cookie always a list (one entry per line, even for one).
+function responseHeaders(raw) {
+  const headers = Object.fromEntries(Object.entries(raw ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
+  if (headers["set-cookie"] !== undefined && !Array.isArray(headers["set-cookie"])) headers["set-cookie"] = [String(headers["set-cookie"])];
+  return headers;
+}
+
 function httpItems(exec, req, res, i) {
   const fmt = req.response;
   const value = res.value ?? {};
   const status = Number(value.status ?? value.statusCode ?? 200);
-  const headers = Object.fromEntries(Object.entries(value.headers ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
+  const headers = responseHeaders(value.headers);
   let body = value.body;
   const statusMessage = value.statusMessage ?? REASONS[status];
   if (!res.ok || (status >= 400 && !fmt.neverError)) {
@@ -33980,7 +33988,7 @@ function requestImplFor(step) {
   return null;
 }
 
-return { GROUP2, BINARY_CONTENT_TYPES, buildHttpRequest, applyLookup, canDeriveRequest, executeAgentTool, requestImplFor };
+return { GROUP2, BINARY_CONTENT_TYPES, buildHttpRequest, responseHeaders, applyLookup, canDeriveRequest, executeAgentTool, requestImplFor };
 })();
 
 // ---- src/nodes.mjs ----

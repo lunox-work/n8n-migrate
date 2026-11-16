@@ -412,6 +412,14 @@ test("HTTP Request: text, full response, 4xx errors and neverError", async () =>
   assert.deepEqual(out(await run(mk({}, { onError: "continueRegularOutput" }), { host: host(500, "x") }), "Get"), [{ error: { message: '500 - "x"', name: "AxiosError", code: "ERR_BAD_RESPONSE", status: 500 } }]);
 });
 
+test("HTTP Request full response: Set-Cookie is a list, as Node's http hands it to n8n", async () => {
+  const mk = () => wf([start(), node("Get", "httpRequest", { url: "https://x.test/a", options: { response: { response: { fullResponse: true, responseFormat: "text" } } } }, { v: 4.2 })], chain("Start", "Get"), { allow: { http: [{ method: "GET", host: "x.test", pathPrefix: "/" }] } });
+  const host = (headers) => ({ http: async () => ({ status: 200, headers, body: "ok" }) });
+  assert.deepEqual(out(await run(mk(), { host: host({ "Set-Cookie": "a=1; path=/", Server: "x" }) }), "Get")[0].headers, { "set-cookie": ["a=1; path=/"], server: "x" });
+  assert.deepEqual(out(await run(mk(), { host: host({ "set-cookie": ["a=1", "b=2; Expires=Wed, 21 Oct 2026 07:28:00 GMT"] }) }), "Get")[0].headers, { "set-cookie": ["a=1", "b=2; Expires=Wed, 21 Oct 2026 07:28:00 GMT"] });
+  assert.deepEqual(out(await run(mk(), { host: host({ server: "x" }) }), "Get")[0].headers, { server: "x" });
+});
+
 test("tool, model and agent steps hand out requests with evaluated arguments", async () => {
   const calls = [];
   const def = wf(

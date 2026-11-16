@@ -452,6 +452,10 @@ export async function executeHttp(req, task, fetchImpl = globalThis.fetch, { che
     const bytes = Buffer.from(await res.arrayBuffer());
     const rh = {};
     res.headers.forEach((v, k) => (rh[k] = v));
+    // fetch joins Set-Cookie lines with ", " (ambiguous next to Expires); Node's http, which n8n's
+    // request helper reads, hands them over as a list, one entry per line.
+    const cookies = res.headers.getSetCookie?.();
+    if (cookies?.length) rh["set-cookie"] = cookies;
     // A file response, or an autodetected binary type, goes back as bytes (the runtime makes
     // binary data of it); anything else as UTF-8 text.
     const fmt = req.response?.format;

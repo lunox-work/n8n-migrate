@@ -135,7 +135,7 @@ Schema-invalid definitions:
 
 ## Tool maps
 
-82 operation entries in `references/tool-maps.json`: 63 connector tools, 11 REST request templates, 8 explained no-tool blocks; 2 substitutions (smtp-to-gmail, imap-to-gmail-poll). Fidelity of the mapped ones: unverified 50, exact 24. 4 connector entries need their arguments translated by the skill (Notion property formats).
+86 operation entries in `references/tool-maps.json`: 67 connector tools, 11 REST request templates, 8 explained no-tool blocks; 2 substitutions (smtp-to-gmail, imap-to-gmail-poll). Fidelity of the mapped ones: unverified 50, exact 28. 4 connector entries need their arguments translated by the skill (Notion property formats).
 
 Steps in the forced run by fidelity: tools unverified 80; REST templates exact 14.
 
