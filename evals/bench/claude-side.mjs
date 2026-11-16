@@ -24,6 +24,7 @@ import { claudeP } from "./claude.mjs";
 import { redactSecrets } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
 import { modelConsumers, containerPath, N8N_HOME } from "./n8n-side.mjs";
 import { maskRunTime, fromTool, fromHttp, keyOf, table } from "./compare.mjs";
+import { CLAUDE_PG, claudeConnectionUrl, collectClaudeRun, dbPlan, ensureClaudeDatabase, seedClaudeRun } from "../n8n/databases.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
@@ -956,6 +957,25 @@ export function driverFiles(stateEffects = [], fx) {
 // therefore still differs; no dev template formats one with a time of day.
 export const CODE_NODE_TZ = "UTC";
 
+// PROPOSALS P129: the setup answer to a credential's database question (analyze.mjs
+// askDatabases) is the Claude side's own Postgres, the template's database there.
+export function databaseAnswers(report, id) {
+  const out = {};
+  for (const w of report?.workflows ?? []) for (const q of w.questions ?? []) if (/\/database\/.+$/.test(q.id)) out[q.id] = claudeConnectionUrl(id);
+  return out;
+}
+
+// PROPOSALS P129: a folder with a database step gets the Claude side's own Postgres, seeded
+// from the fixture's db plan (the same plan the n8n side seeds) into the template's database.
+// -> the seed state for collectClaudeRun(), or null (no db step, or no Postgres in the plan).
+export async function claudeDbSeed(def, fx, log = console.error) {
+  if (!Object.values(def?.steps ?? {}).some((s) => s.kind === "db" && s.db?.engine === "postgres")) return null;
+  const plan = dbPlan(fx);
+  if (!plan?.postgres) return null;
+  await ensureClaudeDatabase({ log });
+  return seedClaudeRun(plan, fx.template);
+}
+
 export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects = [], n8nSources = {}, mode = "replay", liveFallback = true, startedAt, runTime = null, log = console.error } = {}) {
   const def = JSON.parse(readFileSync(join(folder, "definition.json"), "utf8"));
   const core = await import(pathToFileURL(join(folder, "runtime", "runner-core.mjs")).href);
@@ -1169,6 +1189,13 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
   const trig = def.steps[fx.trigger.node];
   const polls = !!trig?.poll && fx.trigger.kind === "poll";
   const seed = polls && n8nPinsTrigger(fx) ? pollCursorSeed(core, trig.poll, fx, conn) : null;
+  // PROPOSALS P129: database steps reach the Claude side's own Postgres through the folder's
+  // own client (runtime/pgclient.mjs), the password the bench role has.
+  const dbState = await claudeDbSeed(def, fx, log);
+  if (dbState) {
+    const { runDb } = await import(pathToFileURL(join(folder, "runtime", "pgclient.mjs")).href);
+    host.db = async (p) => runDb(p, { password: p.secret ? CLAUDE_PG.password : undefined });
+  }
   const t0 = Date.now();
   // PROPOSALS P123: the run's native Date zone is n8n's Code-node zone (CODE_NODE_TZ); restored after.
   const tz = process.env.TZ;
@@ -1180,6 +1207,7 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
     if (tz === undefined) delete process.env.TZ;
     else process.env.TZ = tz;
   }
+  if (dbState) seen.db = collectClaudeRun(dbState);
   return { res, seen, files: disk.files(), wallMs: Date.now() - t0, definition: def, polled: polls, ...(seed ? { pollSeed: seed.note } : {}) };
 }
 

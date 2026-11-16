@@ -29,6 +29,8 @@ import { claudeBin, LEDGER, ledger, MAX_RUNS, memoryGate, spawnWithPrompt, Budge
 import { CODE_NODE_TZ, connectorFixtures, driverFiles, httpRoutes, modelKeyFor } from "./claude-side.mjs";
 import { fromTool } from "./compare.mjs";
 import { startMock } from "../n8n/mock-server.mjs";
+import { claudeDbSeed } from "./claude-side.mjs";
+import { collectClaudeRun } from "../n8n/databases.mjs";
 import { startShim } from "./model-shim.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -138,6 +140,8 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   // The task prompt goes on stdin (PROPOSALS P14), as every bench `claude -p` does.
   const args = ["-p", "--model", model, "--output-format", "stream-json", "--verbose", "--strict-mcp-config", "--mcp-config", mcpConfig, "--setting-sources", "project", "--settings", flagSettings, "--no-session-persistence", "--max-budget-usd", "1.5"];
   const env = sessionEnv({ httpMockUrl: httpMock ? `http://127.0.0.1:${httpMock.address().port}` : null, secrets: def.secrets ?? [], diskRoot, absDirs });
+  // PROPOSALS P129: the Claude side's database, seeded from the fixture before the run starts.
+  const dbState = await claudeDbSeed(def, fx, log);
   // The bench's start runs in the session's environment (it may reach the first http step).
   const pre = await preStart(env);
   // The run directory is replaced so no home path reaches a results row.
@@ -205,7 +209,7 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   return {
     // PROPOSALS P70: each node's last run outputs (item json), for a run compared on its result.
     run: state ? { status: state.status, output: state.result?.output ?? [], error: state.result?.error ?? null, outputs: nodeOutputs(state.result?.runData) } : null,
-    effects: [...effects.filter((e) => e.valid).map((e) => ({ t: e.t, connector: e.connector, tool: e.tool, args: e.args })), ...httpEffects, ...files.map((f) => ({ file: true, ...f }))],
+    effects: [...effects.filter((e) => e.valid).map((e) => ({ t: e.t, connector: e.connector, tool: e.tool, args: e.args })), ...httpEffects, ...files.map((f) => ({ file: true, ...f })), ...collectClaudeRun(dbState)],
     replayLog,
     httpModelCalls,
     invalidCalls: effects.filter((e) => !e.valid).map((e) => `${e.connector}.${e.tool}: ${e.error}`),
@@ -276,8 +280,10 @@ export function sessionEnv({ base = process.env, httpMockUrl = null, secrets = [
   if (httpMockUrl) {
     env.N2C_BENCH_HTTP_MOCK = httpMockUrl;
     env.NODE_OPTIONS = `${env.NODE_OPTIONS} --import=${pathToFileURL(join(HERE, "http-preload.mjs")).href}`;
-    for (const sec of secrets) env[`N2C_SECRET_${String(sec.name).toUpperCase().replace(/[^A-Z0-9]+/g, "_")}`] = `bench-secret-${String(sec.credentialType ?? sec.name).replace(/[^\w-]+/g, "-")}`;
   }
+  // A dummy per declared secret where a bench stand-in reads it: the http mock, and the
+  // Claude-side database (PROPOSALS P129), whose role password is bench-secret-postgres.
+  for (const sec of secrets) if (httpMockUrl || sec.credentialType === "postgres") env[`N2C_SECRET_${String(sec.name).toUpperCase().replace(/[^A-Z0-9]+/g, "_")}`] = `bench-secret-${String(sec.credentialType ?? sec.name).replace(/[^\w-]+/g, "-")}`;
   if (absDirs.length) {
     env.N2C_BENCH_DISK_ROOT = diskRoot;
     env.N2C_BENCH_DISK_DIRS = JSON.stringify(absDirs);

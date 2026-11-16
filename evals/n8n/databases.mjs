@@ -357,8 +357,8 @@ function runArgs(engine) {
 }
 
 // psql as the superuser over the container's socket. -> stdout (throws with the server's error).
-export function psql(database, sql, { allowFail = false } = {}) {
-  const r = docker(["exec", "-i", SIDECARS.postgres.name, "psql", "-X", "-q", "-A", "-t", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", database], { input: sql, allowFail: true });
+export function psql(database, sql, { allowFail = false, container = SIDECARS.postgres.name } = {}) {
+  const r = docker(["exec", "-i", container, "psql", "-X", "-q", "-A", "-t", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", database], { input: sql, allowFail: true });
   if (r.status !== 0 && !allowFail) throw new Error((r.stderr || r.stdout || "").trim().slice(0, 1500));
   return r.stdout;
 }
@@ -414,6 +414,69 @@ export async function ensureDatabases(engines = [], { log = console.error } = {}
 
 export function removeDatabases() {
   for (const e of ENGINES) docker(["rm", "-f", "-v", SIDECARS[e].name], { allowFail: true });
+  docker(["rm", "-f", "-v", CLAUDE_PG.name], { allowFail: true });
+}
+
+// ---------- the Claude side's database (PROPOSALS P129) ----------
+//
+// The migrated folder's database steps (runtime postgres.mjs) connect from the host, where the
+// in-process runner and the claude driver's task driver run, so the Claude side has its own
+// Postgres: the same pinned image and settings as the n8n side's, its own container on Docker's
+// default bridge, published on 127.0.0.1 only, 256 MiB. Per run (one template variant) it is
+// seeded from the same plan (dbPlan) into the template's own database (claudeDatabaseName: a
+// fixed name, since the converted folder's connection answer names it; a fresh database per
+// run, dropped and created again), and collected the same way: the row diff is the write
+// effect, the statements the runtime sent (role `bench`, this database) are reads. The role's
+// password is the value the claude driver hands the task as the step's secret
+// (claude-driver.mjs sessionEnv: bench-secret-<credential type>), so the folder's secret
+// handling is exercised as written.
+export const CLAUDE_PG = { name: "n8n2claude-claude-postgres", image: SIDECARS.postgres.image, port: 5432, hostPort: 5692, host: "127.0.0.1", memory: "256m", password: "bench-secret-postgres" };
+export const claudeDatabaseName = (id) => `bench_claude_${String(id).replace(/\W+/g, "")}`.toLowerCase().slice(0, 63);
+export function claudeConnectionUrl(id) {
+  return `postgres://${DB_USER}@${CLAUDE_PG.host}:${CLAUDE_PG.hostPort}/${claudeDatabaseName(id)}`;
+}
+export async function ensureClaudeDatabase({ log = console.error } = {}) {
+  if (running(CLAUDE_PG.name)) return false;
+  docker(["rm", "-f", "-v", CLAUDE_PG.name], { allowFail: true });
+  docker([
+    "run", "-d", "--name", CLAUDE_PG.name, "--label", "n8n2claude.db=postgres-claude", `--memory=${CLAUDE_PG.memory}`, `--memory-swap=${CLAUDE_PG.memory}`, "-p", `${CLAUDE_PG.host}:${CLAUDE_PG.hostPort}:${CLAUDE_PG.port}`, "-e", `POSTGRES_PASSWORD=${SUPER_PASSWORD}`, CLAUDE_PG.image,
+    "-c", "shared_buffers=32MB", "-c", "max_connections=40", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off", "-c", "timezone=UTC",
+    "-c", "log_statement=all", "-c", "logging_collector=on", "-c", "log_destination=jsonlog", "-c", "log_directory=log", "-c", "log_filename=bench.log", "-c", "log_rotation_age=0", "-c", "log_rotation_size=0",
+  ]);
+  const t0 = Date.now();
+  for (;;) {
+    const r = docker(["exec", "-e", `PGPASSWORD=${SUPER_PASSWORD}`, CLAUDE_PG.name, "psql", "-X", "-q", "-At", "-h", "127.0.0.1", "-U", "postgres", "-c", "SELECT 1"], { allowFail: true });
+    if (r.status === 0 && /1/.test(r.stdout)) break;
+    if (!running(CLAUDE_PG.name) || Date.now() - t0 > 90_000) throw new Error(`${CLAUDE_PG.name} not ready:\n${docker(["logs", "--tail", "30", CLAUDE_PG.name], { allowFail: true }).stderr}`);
+    await sleep(1000);
+  }
+  psql("postgres", `DO $b$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${DB_USER}') THEN CREATE ROLE ${pgIdent(DB_USER)} LOGIN PASSWORD '${CLAUDE_PG.password}'; END IF; END $b$;`, { container: CLAUDE_PG.name });
+  log(`${CLAUDE_PG.name} up (${CLAUDE_PG.image.split("@")[0]}, ${CLAUDE_PG.memory} cap, 127.0.0.1:${CLAUDE_PG.hostPort}, ${Math.round((Date.now() - t0) / 100) / 10} s)`);
+  return true;
+}
+// The plan's Postgres part seeded fresh into the template's Claude-side database. -> {before}
+// (throws DbSeedError when the seed is refused).
+export function seedClaudeRun(plan, id) {
+  if (!plan?.postgres) return null;
+  const database = claudeDatabaseName(id);
+  const errs = planErrors({ postgres: plan.postgres });
+  if (errs.length) throw new DbSeedError(errs.slice(0, 3).join("; "));
+  psql("postgres", `DROP DATABASE IF EXISTS ${pgIdent(database)} WITH (FORCE);\nCREATE DATABASE ${pgIdent(database)} OWNER ${pgIdent(DB_USER)};`, { container: CLAUDE_PG.name });
+  try {
+    psql(database, pgSeedSql({ ...plan.postgres, database }), { container: CLAUDE_PG.name });
+  } catch (e) {
+    throw new DbSeedError(`postgres seed refused: ${e.message}`);
+  }
+  const logLines = docker(["exec", CLAUDE_PG.name, "sh", "-c", `wc -l < ${PG_LOG} 2>/dev/null || echo 0`], { allowFail: true }).stdout;
+  return { database, before: pgSnapshot(database, CLAUDE_PG.name), logFrom: Number(String(logLines).trim()) || 0 };
+}
+// After a Claude-side run: [{engine, op, ...} changes, {engine, sql, ...} statements], the
+// shape claudeEffect()/fromDb() take, statements only from log lines written since the seed.
+export function collectClaudeRun(state) {
+  if (!state) return [];
+  const text = docker(["exec", CLAUDE_PG.name, "sh", "-c", `tail -n +${state.logFrom + 1} ${PG_LOG}`], { allowFail: true }).stdout ?? "";
+  const statements = pgStatements(text, { database: state.database }).map((st) => ({ engine: "postgres", ...st, tables: sqlTables(st.sql) }));
+  return [...diffTables(state.before, pgSnapshot(state.database, CLAUDE_PG.name), "postgres"), ...statements];
 }
 
 // The n8n credential data for each engine of a plan (n8n 2.47.7 credential property names).
@@ -426,9 +489,9 @@ export function dbCredentials(plan) {
 
 // ---------- per run ----------
 
-function pgSnapshot(database) {
-  const tables = JSON.parse(psql(database, PG_TABLES_SQL).trim() || "[]");
-  return JSON.parse(psql(database, pgRowsSql(tables)).trim() || "{}");
+function pgSnapshot(database, container = SIDECARS.postgres.name) {
+  const tables = JSON.parse(psql(database, PG_TABLES_SQL, { container }).trim() || "[]");
+  return JSON.parse(psql(database, pgRowsSql(tables), { container }).trim() || "{}");
 }
 const MONGO_SNAPSHOT = `const snap = (d) => Object.fromEntries(d.getCollectionNames().filter((n) => !n.startsWith("system.")).sort().map((n) => [n, d.getCollection(n).find().sort({ $natural: 1 }).toArray()]));`;
 

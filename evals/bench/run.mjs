@@ -46,7 +46,7 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState, siteAnswers, hostsAnswers, substitutionApprovals, loadCredentialSpecs, ensureN8n, codeModules, DbSeedError, dbSummary } from "./n8n-side.mjs";
-import { convertPlain, convertSkill, filledSource, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, recordedCalls, syntheticOutcome, nondeterministicTools, connectorGapFields } from "./claude-side.mjs";
+import { convertPlain, convertSkill, filledSource, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, recordedCalls, syntheticOutcome, nondeterministicTools, connectorGapFields, databaseAnswers } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
 import { fromHttp, fromTool, fromFile, fromDb, replyOf, resultOf, isResult, lastOutputs, terminalNodes, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads } from "./compare.mjs";
 import { n8nCheckVariants, n8nCheckKey, n8nCheckSummary, gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited, n8nFailsOf, modelRefusal } from "./gates.mjs";
@@ -428,6 +428,9 @@ async function benchTemplate(id, args, L) {
     // PROPOSALS P80: a step whose host comes from data is answered "public", as n8n runs it.
     const hosts = hostsAnswers(readJson(join(folder, "report.json")));
     if (Object.keys(hosts).length) claudeOv.push({ answers: hosts });
+    // PROPOSALS P129: a credential's database is the Claude side's own Postgres.
+    const dbs = databaseAnswers(readJson(join(folder, "report.json")), id);
+    if (Object.keys(dbs).length) claudeOv.push({ answers: dbs });
     // PROPOSALS P53: the substitutions the converter offers are approved, as the person would.
     const approve = substitutionApprovals(readJson(join(folder, "definition.json")), readJson(join(SKILL, "references", "tool-maps.json")));
     if (approve.length) claudeOv.push({ approve });
