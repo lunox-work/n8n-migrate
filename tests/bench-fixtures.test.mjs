@@ -492,4 +492,11 @@ test("round 5 held-out: 20 fresh past the gallery ranking, eligible, reproducibl
   }
   const survey = join(BENCH, "..", "survey", "data", "wf");
   for (const t of fresh.templates) assert.ok(!existsSync(join(survey, `${t.id}.json`)), `${t.id} is in evals/survey/data/wf`);
+  // Blind hand labels cover exactly the drawn 20; a template redrawn out keeps no label.
+  const labels = JSON.parse(readFileSync(join(BENCH, "labels-held5.json"), "utf8"));
+  assert.equal(labels.round, 5);
+  assert.deepEqual(labels.labels.map((l) => l.id).sort((a, b) => a - b), ids(fresh.templates).sort((a, b) => a - b));
+  const wake = new Map(fresh.templates.map((t) => [t.id, t.wakeup]));
+  for (const l of labels.labels) assert.equal(l.wakeup, wake.get(l.id), String(l.id));
+  for (const { out } of fresh.redraws ?? []) for (const id of out) assert.ok(labels.redrawnOut.some((r) => r.id === id), `${id} redrawn out but not recorded`);
 });
