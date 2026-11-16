@@ -236,6 +236,7 @@
         "bench": 2,
         "self-fail/required-empty": 1,
         "comparable": 5,
+        "hand": 1,
         "outcome/error-workflow": 3,
         "out-of-scope/error-workflow": 3
       },
@@ -243,7 +244,7 @@
       "freshOther": 112,
       "candidates": {
         "form": 11,
-        "manual": 43,
+        "manual": 42,
         "schedule": 30,
         "poll": 13,
         "other": 4,
@@ -778,7 +779,7 @@
     { "rank": 1149, "id": 2280, "topUp": 5, "sha256": "409b6c862fca4cc9e4017d539da4259dbf68b1cb00e82b46417277646007b77a", "outcome": "subscription", "target": "skill", "wakeup": "manual", "r4": "eligible", "pool": "fresh" },
     { "rank": 1150, "id": 3366, "topUp": 5, "sha256": "0707704a31c2e9abdc78ebbbe3928f45b2a566549f6475c076390da4289e4bd4", "outcome": "subscription", "target": "cloud-task", "wakeup": "schedule", "r4": "eligible", "pool": "fresh" },
     { "rank": 1151, "id": 3133, "topUp": 5, "sha256": "7e18ca97c105fe01c888f923c887798b31c540bd6beab925412a1c42f4fabd7d", "outcome": "subscription", "target": "skill", "wakeup": "manual", "r4": "eligible", "pool": "fresh" },
-    { "rank": 1152, "id": 2562, "topUp": 5, "sha256": "016d75d7f2604f390df93c5e79ce3ac5153779f0c9bb4cb4418ad7f054ad23f3", "outcome": "subscription", "target": "skill", "wakeup": "manual", "r4": "eligible", "pool": "fresh" },
+    { "rank": 1152, "id": 2562, "topUp": 5, "sha256": "016d75d7f2604f390df93c5e79ce3ac5153779f0c9bb4cb4418ad7f054ad23f3", "outcome": "subscription", "target": "skill", "wakeup": "manual", "r4Hand": "Post to Bluesky builds its post text from $('Set Caption').item.json['Post Text'].trim(), but Set Caption sets only Caption Text, so the expression calls trim() on undefined and n8n fails the node whatever the data", "r4": "ineligible", "r4Reasons": [ "hand: Post to Bluesky builds its post text from $('Set Caption').item.json['Post Text'].trim(), but Set Caption sets only Caption Text, so the expression calls " ], "pool": "fresh" },
     { "rank": 1153, "id": 3866, "topUp": 5, "sha256": "bb2a629cfd33af4908227ef2d8e6802708b94a3b79490dda7085c9b6f65921e8", "outcome": "subscription", "target": "skill", "wakeup": "manual", "r4": "eligible", "pool": "fresh" },
     { "rank": 1154, "id": 6832, "topUp": 5, "sha256": "b02832099b81dc71a5068575ee11299432e26748526687a3f1d22f5f4d7e5eab", "outcome": "subscription", "target": "skill", "wakeup": "chat", "r4": "ineligible", "r4Reasons": [ "feature: @n8n/n8n-nodes-langchain.googleGemini is not in the planned-feature map" ], "pool": "fresh-other" },
     { "rank": 1155, "id": 1283, "topUp": 5, "sha256": "67b4566b15bea8a4b7bb75ce8de71cecbe80806498e48df3cdab86beb71ca66e", "outcome": "subscription", "target": "local-task", "wakeup": "poll", "r4": "eligible", "pool": "fresh" },
