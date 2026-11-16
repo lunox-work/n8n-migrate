@@ -82,3 +82,20 @@ Fixed on 2026-11-15, before any round-4 template was fetched or opened. Seed **2
 ## Later rounds' held-out: freshness after the gallery ranking
 
 Fixed on 2026-11-16. `evals/bench/levers.mjs` (LEVERS.md) has run the analyzer and the converter coverage check over the listing's first 20 pages (top ~1,000 by views) and names their in-scope ids in files fixing sessions read. Those templates are no longer fresh. A later round's held-out walk (`fetch.mjs --top-up --round N`, N ≥ 5) therefore skips every id on the listing pages `levers.json` `listingPages` records, in addition to the skips above, and starts after them. The ranking itself is only re-run `--offline` from its cache, never on new listing pages, so it never reads a future held-out candidate; extending it to more pages first moves the held-out walk's start past them.
+
+## Round 5 held-out
+
+Fixed on 2026-11-16, before any round-5 template was fetched or opened. Seed **20261117**. Round 5's held-out is 20 templates nobody has read, drawn the way round 4's was ("Round 4 held-out" above), with the freshness rule of "Later rounds' held-out".
+
+1. **Eligibility.** Round 4's rule with amendment 1, unchanged ("Round 4 eligibility", "Round 4 eligibility, amendment 1"; `eligible.mjs` `checkEligibility()`, `eligibility.json` and `eligibility-params.json` as committed). The pending list changes named there are not applied in this round's walk. Amendment 1 is part of the rule from the start, so an entry that fails only its clauses is ineligible like any other (pool `fresh-other`, no `r4Amended`). The verdict is written as `r4` and `r4Reasons`, the rule's name.
+2. **Fresh.** The walk skips, without entering them:
+   - every id already in `corpus.json`, which holds every earlier round's dev, held-out, dropped and walk entries (the Phase 5 walk, the round-3 and round-4 top-ups, round 4's dev refill);
+   - every template in the survey corpus `evals/survey/data/wf` (P51);
+   - every id on the listing pages `levers.json` `listingPages` records, and so everything `levers.json` and `LEVERS.md` name.
+
+   A template whose hash equals one on those pages is excluded `duplicate`. `split.mjs` refuses a draw or redraw that would hold out an id named in `levers.json` or `LEVERS.md`.
+
+3. **Walk.** `node evals/bench/fetch.mjs --top-up --round 5` reads the same listing (views, descending, 50 rows a page), starting on the page after the last one `levers.json` records. It applies the exclusion rules above, unchanged and in the same order, with the same analyzer settings (default answers, `--now 2026-11-16T00:00:00Z`, the checkout's analyzer). Requests are at least 1 s apart, with 3 tries and backoff, and cached in `evals/bench/data` (git-ignored). Paid templates are excluded `paid` and never downloaded. New entries carry `topUp: 5`, and their pool is `fresh` only when eligible.
+4. **Stop.** The walk stops once every wake-up stratum has its quota of eligible candidates (chat 6, manual 5, schedule 4, poll 2, form 2, other 1), but first finishes the listing page it is on. Candidates over a quota stay in the pool, undrawn, as in round 4.
+5. **Draw.** `node evals/bench/split.mjs --fresh --round 5` uses round 4's method with this seed: a mulberry32 Fisher-Yates shuffle over the round's `fresh` entries sorted by id ascending, each stratum taking its first quota in shuffled order. The result goes to `splits.json` `heldOutFresh5`, and its ids are round 5's `heldOut` in `rounds`. A template excluded after the draw (rule `hand`, or `r4Hand` with a one-line reason from the template alone) stays in the shuffle, and only its stratum moves to the next candidate (`--redraw "<why>"`, recorded in `heldOutFresh5.redraws`). If a stratum runs out, the walk continues on the next listing page under the same rules.
+6. **Labels.** Hand labels go in `labels-held5.json` and `LABELS-HELD5.md`, written from the template JSON alone before anyone looks at the analyzer's output for these templates or reads their `corpus.json` entries. Then `compare-labels.mjs --labels evals/bench/labels-held5.json` runs.
