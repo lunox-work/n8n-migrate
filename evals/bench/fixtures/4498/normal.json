@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "template": 4498,
+  "sha256": "e3b724ca0b8e7f635328c92316ea0e409336b22d16146b8e80b1a0a236e61c06",
+  "variant": "normal",
+  "now": "2026-11-16T13:00:00.000Z",
+  "about": "the reel container is IN_PROGRESS on the first check and FINISHED on the second, then it is published",
+  "trigger": {
+    "node": "🚀 Manual Trigger - Start Workflow",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "🔍 Check Processing Status1",
+      "service": "instagram-graph",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://graph.facebook.com/v22.0/17990000000044981",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "status_code": "IN_PROGRESS",
+              "id": "17990000000044981"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://graph.facebook.com/v22.0/17990000000044981",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "status_code": "FINISHED",
+              "id": "17990000000044981"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Instagram or Meta connector"
+      },
+      "note": "GET /{container-id}?fields=status_code (query-auth credential) after each 5 s wait, replied in turn (the last repeats); only FINISHED leaves the retry loop"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Container HTTP Reels",
+    "📤 Publish via HTTP API"
+  ],
+  "writeReplies": [
+    {
+      "node": "Container HTTP Reels",
+      "service": "instagram-graph",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://graph.facebook.com/v22.0/17841456545908024/media",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "id": "17990000000044981"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Instagram or Meta connector"
+      },
+      "note": "Instagram Graph API: POST /{ig-user-id}/media with media_type=REELS, video_url, caption, cover_url and audio_name in the query (header-auth credential): answers the container id"
+    },
+    {
+      "node": "📤 Publish via HTTP API",
+      "service": "instagram-graph",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://graph.facebook.com/v22.0/17841456545908024/media_publish",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "id": "18060000000044981"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Instagram or Meta connector"
+      },
+      "note": "POST /{ig-user-id}/media_publish?creation_id={container}: answers the published media id"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Smart Content Router: HTTP - Reels",
+      "Is Container Ready: false once (retry wait), then true",
+      "HTTP vs FB API Router: http → Publish via HTTP API"
+    ],
+    "offline": "Configure Post Settings fixes the account (17841456545908024), the post type (http_reel) and the media URLs in the template, so every variant takes the Smart Content Router's HTTP - Reels output and the HTTP publish branch; the variants differ in what the Graph API answers. Each status check follows a 5 s wait (Wait v1.1's default). A status other than FINISHED loops forever in the template, so every variant ends with FINISHED."
+  }
+}

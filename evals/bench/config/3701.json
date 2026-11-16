@@ -1,0 +1,56 @@
+{
+  "why": "The Sheets trigger names no spreadsheet or tab (empty values left for the person; its cached URL names spreadsheet 1pb4WLqv2EruLM1z9-utehcINolSj0vlUqZionyLoRUs, tab gid=0), and Gmail sends to an empty To (the person's own address). Filled with that spreadsheet, its first tab and a placeholder address on both sides. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "Trigger- Watches For new URL in Spreadsheet": {
+      "parameters.documentId": {
+        "__rl": true,
+        "mode": "id",
+        "value": "1pb4WLqv2EruLM1z9-utehcINolSj0vlUqZionyLoRUs"
+      },
+      "parameters.sheetName": {
+        "__rl": true,
+        "mode": "list",
+        "value": "gid=0",
+        "cachedResultName": "Sheet1"
+      }
+    },
+    "Send CSV via e-mail": {
+      "parameters.sendTo": "books-digest@bench.example"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Trigger- Watches For new URL in Spreadsheet": {
+          "patch": {
+            "params": {
+              "documentId": {
+                "__rl": true,
+                "mode": "id",
+                "value": "1pb4WLqv2EruLM1z9-utehcINolSj0vlUqZionyLoRUs"
+              },
+              "sheetName": {
+                "__rl": true,
+                "mode": "list",
+                "value": "gid=0",
+                "cachedResultName": "Sheet1"
+              }
+            }
+          }
+        },
+        "Send CSV via e-mail": {
+          "patch": {
+            "params": {
+              "sendTo": "books-digest@bench.example"
+            },
+            "tool": {
+              "args": {
+                "to": "books-digest@bench.example"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "template": 2276,
+  "sha256": "eb829dd495d265e06abf09e31409b3312d5787a02d84433910fa042ef605e616",
+  "variant": "malformed",
+  "now": "2026-11-16T09:45:00.000Z",
+  "about": "the first URL answers 500, the second a JSON content type with a body that is not JSON, the third 404",
+  "trigger": {
+    "node": "Schedule Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T09:45:00.008+00:00",
+          "Readable date": "November 16th 2026, 9:45:00 am",
+          "Readable time": "9:45:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "09",
+          "Minute": "45",
+          "Second": "00",
+          "Timezone": "UTC (UTC+00:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "HTTP Request",
+      "service": "url-list",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "http://firsturl.com",
+            "status": 500,
+            "headers": {
+              "content-type": "text/html; charset=UTF-8"
+            },
+            "body": "<html><body>Internal Server Error</body></html>"
+          },
+          {
+            "method": "GET",
+            "url": "https://secondurl.com",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": "{\"status\": \"ok\", trailing"
+          },
+          {
+            "method": "GET",
+            "url": "https://thirdurl.com",
+            "status": 404,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "error": "not found"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the URLs are the person's own; no connector"
+      },
+      "note": "GET each URL URLs List names (bare origins, P85; the first over plain http through the mock as forward proxy); continueRegularOutput keeps a failed request's error as the item"
+    }
+  ],
+  "models": [],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: the 500 and 404 become error items (continueRegularOutput)"
+    ],
+    "offline": "Every 15 minutes in n8n; the bench runs once. The three URLs are the template's own (written as examples), answered as the person's endpoints would answer. What is compared is the HTTP Request node's output items (the terminal step)."
+  }
+}

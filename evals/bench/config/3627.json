@@ -1,0 +1,21 @@
+{
+  "why": "Basic Params sets x-api-key to empty text (the person's PiAPI key, which the chat and Midjourney requests send). Filled with a placeholder key on both sides; the rest of Basic Params is unchanged. Placeholder fill only: no logic changes.",
+  "n8n": {
+    "Basic Params": {
+      "parameters.jsonOutput": "{\n  \"x-api-key\":\"bench-piapi-key\",\n  \"theme\": \"Hope\",\n  \"scenario\": \"Don't know about the future, confused and feel lost about AI agent\",\n  \"style\":\"Cinematic Grandeur,Sci-Tech Aesthetic, 3D style\",\n  \"example\":\"1. March. Because of your faith, it will happen.2. Something in me will save me.3. To everyone carrying a heavy heart in silence. You are going to be okay.4. Tomorrow will be better.\",\n  \"image_prompt\":\"A cinematic sci-fi metropolis where Deep Neural Nets control a hyper-connected society. Holographic interfaces glow in the air as robotic agents move among humans, symbolizing Industry 4.0. The scene contrasts organic human emotion with cold machine precision, rendered in a hyper-realistic 3D style with futuristic lighting. Epic wide shots showcase the grandeur of this civilization’s industrial evolution.\"\n}\n"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Basic Params": {
+          "patch": {
+            "params": {
+              "jsonOutput": "{\n  \"x-api-key\":\"bench-piapi-key\",\n  \"theme\": \"Hope\",\n  \"scenario\": \"Don't know about the future, confused and feel lost about AI agent\",\n  \"style\":\"Cinematic Grandeur,Sci-Tech Aesthetic, 3D style\",\n  \"example\":\"1. March. Because of your faith, it will happen.2. Something in me will save me.3. To everyone carrying a heavy heart in silence. You are going to be okay.4. Tomorrow will be better.\",\n  \"image_prompt\":\"A cinematic sci-fi metropolis where Deep Neural Nets control a hyper-connected society. Holographic interfaces glow in the air as robotic agents move among humans, symbolizing Industry 4.0. The scene contrasts organic human emotion with cold machine precision, rendered in a hyper-realistic 3D style with futuristic lighting. Epic wide shots showcase the grandeur of this civilization’s industrial evolution.\"\n}\n"
+            }
+          }
+        }
+      }
+    }
+  }
+}

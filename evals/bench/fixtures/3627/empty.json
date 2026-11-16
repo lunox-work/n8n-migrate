@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "template": 3627,
+  "sha256": "afc065d8a2b386d766223f3ff4f7edce87b7a86b80d0b500afb228e4bf60f1a8",
+  "variant": "empty",
+  "now": "2026-11-16T12:10:00.000Z",
+  "about": "the chat answer is empty and the Midjourney task fails with no output, so the Switch has no matching rule and the run ends there",
+  "trigger": {
+    "node": "When clicking Test workflow",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Gpt-4o-mini API",
+      "service": "piapi-llm",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.piapi.ai/v1/chat/completions",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "id": "chatcmpl-bench3627",
+              "object": "chat.completion",
+              "created": 1794831000,
+              "model": "gpt-4o-mini",
+              "choices": [
+                {
+                  "index": 0,
+                  "message": {
+                    "role": "assistant",
+                    "content": ""
+                  },
+                  "finish_reason": "stop"
+                }
+              ],
+              "usage": {
+                "prompt_tokens": 121,
+                "completion_tokens": 18,
+                "total_tokens": 139
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured PiAPI connector"
+      },
+      "note": "PiAPI's OpenAI-compatible chat completions (a third-party host, so plain HTTP on both sides, not the model shim), Bearer from Basic Params' key"
+    },
+    {
+      "node": "Get Midjourney Task",
+      "service": "piapi-midjourney",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.piapi.ai/api/v1/task/bench-3627-task-empty",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "bench-3627-task-empty",
+                "model": "midjourney",
+                "task_type": "imagine",
+                "status": "failed",
+                "output": {
+                  "image_url": "",
+                  "temporary_image_urls": null
+                },
+                "meta": {
+                  "created_at": "2026-11-16T12:10:03Z"
+                },
+                "error": {
+                  "code": 10000,
+                  "message": "no image generated"
+                }
+              },
+              "message": "success"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured PiAPI connector"
+      },
+      "note": "GET /api/v1/task/{task_id} after each 5 s wait, replied in turn (the last repeats)"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Midjourney Generator",
+    "Design in Canvas"
+  ],
+  "writeReplies": [
+    {
+      "node": "Midjourney Generator",
+      "service": "piapi-midjourney",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.piapi.ai/api/v1/task",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "code": 200,
+              "data": {
+                "task_id": "bench-3627-task-empty",
+                "model": "midjourney",
+                "task_type": "imagine",
+                "status": "pending",
+                "input": {},
+                "output": {
+                  "image_url": "",
+                  "temporary_image_urls": null
+                },
+                "meta": {
+                  "created_at": "2026-11-16T12:10:03Z"
+                }
+              },
+              "message": "success"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured PiAPI connector"
+      },
+      "note": "PiAPI Midjourney imagine: POST /api/v1/task answers the queued task"
+    },
+    {
+      "node": "Design in Canvas",
+      "service": "switchboard-canvas",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.canvas.switchboard.ai",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "success": true,
+              "sizes": [
+                {
+                  "width": 1000,
+                  "height": 1500,
+                  "url": "https://cdn.canvas.switchboard.ai/renders/bench-3627.png"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Switchboard connector"
+      },
+      "note": "Switchboard Canvas render (bare origin, P85): answers the rendered image URL"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "If: true at once (failed)",
+      "Switch: no rule matches 'failed', nothing reaches Canvas"
+    ],
+    "offline": "Basic Params leaves x-api-key empty (the person's PiAPI key); the overlay fills it on both sides. The Midjourney task is polled after each 5 s wait (Wait v1.1's default) until it is completed or failed. The prompt template has no 'xxx' to replace, so the image prompt is Basic Params' own; the chat answer only becomes the Canvas text."
+  }
+}
