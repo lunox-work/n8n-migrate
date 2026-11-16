@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "template": 2897,
+  "sha256": "2494a97848b516b10bb46950cd93a85f07d70aa177857061488e28e0ea59b2f2",
+  "variant": "normal",
+  "now": "2026-11-16T17:00:00.000Z",
+  "about": "a plain question to the chat agent",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "bench-2897-session",
+          "action": "sendMessage",
+          "chatInput": "What is the difference between a process and a thread? Answer in two sentences."
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [
+    "AI Agent"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: one agent reply"
+    ],
+    "offline": "No outside read or write: the reply is compared. The model name (deepseek/deepseek-r1-distill-llama-8b) is set in Settings and sent to the person's OpenAI-compatible endpoint (OpenRouter in the template's notes); the bench's OpenAI credential points at the shim. Simple Memory holds one turn per run, keyed by the session id."
+  }
+}

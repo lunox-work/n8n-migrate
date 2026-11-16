@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "template": 3027,
+  "sha256": "8ee845f4e60c2ea44d58921128d6c8eea92ce3c488ea388824a7b6ea54b2b493",
+  "variant": "empty",
+  "now": "2026-11-16T19:30:00.000Z",
+  "about": "an empty chat message",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "bench-3027-session",
+          "action": "sendMessage",
+          "chatInput": ""
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [
+    "Generate a new prompt",
+    "Categorize and name Prompt"
+  ],
+  "writes": [
+    "add to airtable"
+  ],
+  "writeReplies": [
+    {
+      "node": "add to airtable",
+      "service": "airtable",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.airtable.com/v0/app994hU3fOw0ssrx/tbldwJrCK2HmAeknA",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "id": "recBench3027empt1",
+              "createdTime": "2026-11-16T19:30:05.000Z",
+              "fields": {
+                "Name": "",
+                "Category": "",
+                "Prompt": ""
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Airtable connector"
+      },
+      "note": "Airtable create record in the template's Prompt Library base and table: the created record"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch"
+    ],
+    "offline": "Generate a new prompt takes the chat message as its prompt (prompt type auto). Categorize and name Prompt's answer goes through the Auto-fixing Output Parser over a Structured Output Parser ({name, category}); a canned reply fits that schema (P41). The record's fields come from the model replies, so Airtable is answered the same whatever they hold. The chat reply is the generated prompt."
+  }
+}

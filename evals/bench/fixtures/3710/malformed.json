@@ -1,0 +1,260 @@
+{
+  "schemaVersion": 1,
+  "template": 3710,
+  "sha256": "cac13623972d165d5bfa93d37001114d6b99953ec291756918358e734d16b014",
+  "variant": "malformed",
+  "now": "2026-11-16T16:20:00.000Z",
+  "about": "a very long prompt; the API answers one image whose b64_json is not valid base64 and token counts that are null",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "bench-3710-session",
+          "action": "sendMessage",
+          "chatInput": "prompt ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ ∞ "
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Google Drive",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "status": 200,
+            "headers": {
+              "location": "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=bench-3710-1ImgBench3710aB2cD3eF4gH5iJ6kL7mN8"
+            },
+            "query": {
+              "uploadType": "resumable"
+            },
+            "body": ""
+          },
+          {
+            "method": "PUT",
+            "url": "https://www.googleapis.com/upload/drive/v3/files",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "kind": "drive#file",
+              "id": "1ImgBench3710aB2cD3eF4gH5iJ6kL7mN8",
+              "name": "Untitled",
+              "mimeType": "image/jpeg"
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://www.googleapis.com/drive/v3/files/1ImgBench3710aB2cD3eF4gH5iJ6kL7mN8",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "kind": "drive#file",
+              "id": "1ImgBench3710aB2cD3eF4gH5iJ6kL7mN8",
+              "name": "chatgpt_created_by_n8n_1794845000",
+              "mimeType": "image/jpeg",
+              "parents": [
+                "1sIbMHDtcOafBVdCq0gTEuGvnT63s8Fdy"
+              ],
+              "webViewLink": "https://drive.google.com/file/d/1ImgBench3710aB2cD3eF4gH5iJ6kL7mN8/view?usp=drivesdk",
+              "thumbnailLink": "https://lh3.googleusercontent.com/drive-storage/bench-1ImgBench3710aB2cD3eF4gH5iJ6kL7mN8=s220"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "connector rows are not needed: the upload is a write the comparer pairs"
+      },
+      "note": "Drive v3 upload into the template's folder: Convert to File's stored binary takes the resumable path (POST uploadType=resumable, PUT to its Location, PATCH name and parent), as the canned run shows (P56)"
+    },
+    {
+      "node": "Google Sheets",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11K1tui8itMzcSZqHOmzvFnM0G-ihn1uiLUZ_o478j88",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "spreadsheetId": "11K1tui8itMzcSZqHOmzvFnM0G-ihn1uiLUZ_o478j88",
+              "properties": {
+                "title": "n8n-chatgpt-image-1-model"
+              },
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "工作表1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 929800828,
+                    "title": "usage",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11K1tui8itMzcSZqHOmzvFnM0G-ihn1uiLUZ_o478j88/values/'工作表1'",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "range": "'工作表1'!A1:C1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "prompt",
+                  "image",
+                  "image_thumb"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11K1tui8itMzcSZqHOmzvFnM0G-ihn1uiLUZ_o478j88:batchUpdate",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "spreadsheetId": "11K1tui8itMzcSZqHOmzvFnM0G-ihn1uiLUZ_o478j88",
+              "replies": [
+                {}
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Sheets connector that writes cells"
+      },
+      "note": "Sheets v4.5 append (USER_ENTERED) to the first tab: sheet properties, the tab's header row, POST :batchUpdate, then the values write (write-default)"
+    },
+    {
+      "node": "Google Sheets1",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/11K1tui8itMzcSZqHOmzvFnM0G-ihn1uiLUZ_o478j88/values/'usage'",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "range": "usage!A1:G1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "prompt",
+                  "datetime",
+                  "input token",
+                  "input estimated price",
+                  "output token",
+                  "output estimated price",
+                  "total estimated price"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Sheets connector that writes cells"
+      },
+      "note": "Sheets v4.5 append to the usage tab (gid 929800828): its header row (sheet properties and :batchUpdate shared with Google Sheets' routes), then the values write"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "HTTP Request",
+    "Google Drive",
+    "Google Sheets",
+    "Google Sheets1"
+  ],
+  "writeReplies": [
+    {
+      "node": "HTTP Request",
+      "service": "openai-images",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/images/generations",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "created": 1794845000,
+              "background": "opaque",
+              "data": [
+                {
+                  "b64_json": "!!not base64!!"
+                }
+              ],
+              "output_format": "jpeg",
+              "quality": "low",
+              "size": "1024x1024",
+              "usage": {
+                "input_tokens": null,
+                "output_tokens": null,
+                "total_tokens": null
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured image-generation connector"
+      },
+      "note": "OpenAI Images API (gpt-image-1, predefined OpenAI credential): answers data[].b64_json and token usage; an image generation, not a chat model the shim answers"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Loop Over Items: one item"
+    ],
+    "offline": "The manual trigger is disabled; the chat message starts the run. File names use $now on each side. The image is a tiny JPEG returned as b64_json. The spreadsheet and folder are the template's own. The prices fall back to 0 through the template's || 0."
+  }
+}

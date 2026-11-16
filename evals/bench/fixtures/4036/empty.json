@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "template": 4036,
+  "sha256": "ce0b3dd880a02dffee60217ffe2ea77b883c84361141179884303e4cf235aec0",
+  "variant": "empty",
+  "now": "2026-11-16T20:00:00.000Z",
+  "about": "an empty chat message; a search would find nothing",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "bench-4036-session",
+          "action": "sendMessage",
+          "chatInput": ""
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "web_search",
+      "service": "anthropic-web-search",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.anthropic.com/v1/messages",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "id": "msg_bench4036",
+              "type": "message",
+              "role": "assistant",
+              "model": "claude-3-7-sonnet-20250219",
+              "content": [
+                {
+                  "type": "server_tool_use",
+                  "id": "srvtoolu_bench4036",
+                  "name": "web_search",
+                  "input": {
+                    "query": "bench query"
+                  }
+                },
+                {
+                  "type": "web_search_tool_result",
+                  "tool_use_id": "srvtoolu_bench4036",
+                  "content": []
+                },
+                {
+                  "type": "text",
+                  "text": "I could not find any results for that query."
+                }
+              ],
+              "stop_reason": "end_turn",
+              "stop_sequence": null,
+              "usage": {
+                "input_tokens": 2210,
+                "output_tokens": 184,
+                "server_tool_use": {
+                  "web_search_requests": 1
+                }
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured web-search connector"
+      },
+      "note": "agent tool: an HTTP Request tool POSTing a model-written Messages API body with Anthropic's server-side web_search tool (stored Anthropic credential); the same answer for every search, since the queries are model-written. On the n8n side api.anthropic.com/v1/messages is answered by this route before the shim's host forwarding"
+    }
+  ],
+  "models": [
+    "AI Agent"
+  ],
+  "writes": [],
+  "unfed": [
+    {
+      "node": "Think",
+      "why": "n8n's Think tool returns the model's own thought; nothing outside to feed"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "none: with an empty message Simple Memory refuses to save the turn ('input values have 3 keys, you must specify an input key or pass only 1 key as input'), so n8n's baseline ends in error at Simple Memory"
+    ],
+    "offline": "The agent picks web_search, Think or neither (model-driven); with canned replies it calls no tool. The web_search tool's own call to Anthropic is answered from the fixture, not by the model shim (a route wins over the shim's host forwarding). Simple Memory holds one turn per run."
+  }
+}

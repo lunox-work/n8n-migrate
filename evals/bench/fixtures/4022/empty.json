@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "template": 4022,
+  "sha256": "69b7e6178cb81cd33f944a7d8e9f47bcfa8b2cf82cc478d2603f102140934de0",
+  "variant": "empty",
+  "now": "2026-11-16T18:00:00.000Z",
+  "about": "an empty chat message",
+  "trigger": {
+    "node": "Chat Input Trigger",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "bench-4022-session",
+          "action": "sendMessage",
+          "chatInput": ""
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [
+    "AI Content Optimizer"
+  ],
+  "writes": [
+    "Post to X",
+    "Post to Discord",
+    "Post to LinkedIn"
+  ],
+  "writeReplies": [
+    {
+      "node": "Post to X",
+      "service": "x",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.x.com/2/tweets",
+            "status": 201,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "data": {
+                "id": "1857300000000004022",
+                "text": "test automation",
+                "edit_history_tweet_ids": [
+                  "1857300000000004022"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured X connector"
+      },
+      "note": "X API v2 create post: answers data.id and text"
+    },
+    {
+      "node": "Post to Discord",
+      "service": "discord-webhook",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://discord.com/api/webhooks/100000000000000000/bench-dummy",
+            "status": 204,
+            "body": ""
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Discord connector"
+      },
+      "note": "Discord execute-webhook on the bench's discordWebhookApi dummy URL (the person's webhook): 204 without wait"
+    },
+    {
+      "node": "Post to LinkedIn",
+      "service": "linkedin",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.linkedin.com/rest/posts",
+            "status": 201,
+            "headers": {
+              "x-restli-id": "urn:li:share:7263000000000004022"
+            },
+            "body": ""
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured LinkedIn connector"
+      },
+      "note": "LinkedIn Posts API (LinkedIn-Version 202604) as the person XkhxgLp6zG: 201 with the post URN in x-restli-id and no body"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Route to Platform: one output per platform name the model writes"
+    ],
+    "offline": "The chain's Structured Output Parser expects a list of {platform, content}; which posts go out depends on the model's reply and on its platform names matching the Switch exactly (Twitter, Discord, LinkedIn or Linkedin; the parser's own example says twitter and discord in lower case). A canned reply fits the schema as an empty list (P41), so the canned run ends at Split Platform Content; recorded replies decide the posts, so the three post replies (X, the Discord webhook, LinkedIn Posts) are unchecked by a canned run. Every post repeats the chat input by design."
+  }
+}
