@@ -212,6 +212,31 @@ test("convert: a Sheets v4 read goes over REST only when a Sheets step of the wo
   assert.equal(other.steps.Read.kind, "tool");
 });
 
+// R5b3 iteration 56: a spreadsheet create beside Sheets REST writes goes over the Sheets API, so
+// the new spreadsheet's id and tabs reach the next steps as n8n gives them.
+test("Sheets spreadsheet create: over REST beside a Sheets REST write (n8n's body, the API's answer as the item); alone through the Drive connector", async () => {
+  const cred = { googleSheetsOAuth2Api: { id: "1", name: "My Google" } };
+  const create = { parameters: { title: "={{ 'Leads ' + $json.n }}", options: { locale: "en_GB" }, resource: "spreadsheet", sheetsUi: { sheetValues: [{ title: "Leads" }] } }, name: "Create", type: "n8n-nodes-base.googleSheets", typeVersion: 4.5, position: [200, 0], credentials: cred };
+  const add = { parameters: { operation: "append", documentId: { __rl: true, mode: "id", value: "={{ $json.spreadsheetId }}" }, sheetName: { __rl: true, mode: "id", value: "={{ $json.sheets[0].properties.sheetId }}" }, columns: { mappingMode: "autoMapInputData", value: {} }, options: {} }, name: "Add", type: "n8n-nodes-base.googleSheets", typeVersion: 4.5, position: [400, 0], credentials: cred };
+  const links = { Start: { main: [[{ node: "Create", type: "main", index: 0 }]] }, Create: { main: [[{ node: "Add", type: "main", index: 0 }]] } };
+  const def = convertWorkflow([manual, create, add], links);
+  assert.deepEqual([def.steps.Create.kind, def.steps.Create.rest.program, def.steps.Create.rest.effect], ["http", "googleSheets", "write"]);
+  assert.ok(def.allow.http.some((h) => h.method === "POST" && h.host === HOST && h.pathPrefix === "/v4/spreadsheets"));
+  assert.equal(convertWorkflow([manual, create], { Start: links.Start }).steps.Create.tool.name, "create_file");
+  const seen = [];
+  const http = async (p) => {
+    const u = new URL(p.url);
+    seen.push({ method: p.method, path: u.pathname, body: p.body });
+    if (p.method === "POST" && u.pathname === "/v4/spreadsheets") return { status: 200, body: { spreadsheetId: "NEW1", sheets: [{ properties: { sheetId: 42, title: "Leads" } }] } };
+    return { status: 200, body: {} };
+  };
+  // The create step alone (the append's own requests are covered above).
+  const r = await run({ ...def, steps: { Start: def.steps.Start, Create: def.steps.Create }, edges: def.edges.filter((e) => e.to === "Create") }, { host: { http }, trigger: [{ n: 1 }] });
+  assert.equal(r.status, "done", JSON.stringify(r.error));
+  assert.deepEqual(seen[0], { method: "POST", path: "/v4/spreadsheets", body: { properties: { title: "Leads 1", locale: "en_GB" }, sheets: [{ properties: { title: "Leads", hidden: false } }] } });
+  assert.deepEqual(out(r, "Create"), [{ spreadsheetId: "NEW1", sheets: [{ properties: { sheetId: 42, title: "Leads" } }] }]);
+});
+
 // ---------- LinkedIn post:create (rest.mjs linkedIn, n8n LinkedIn node v1) ----------
 
 function linkedInExec(params, items, answers) {

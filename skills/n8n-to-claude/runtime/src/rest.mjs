@@ -487,12 +487,45 @@ async function sheetsUpdate(exec, sheet, sheetName, sheetId, upsert) {
   return mapped.map((json, i) => ({ json, pairedItem: { item: i } }));
 }
 
+// ---- spreadsheet: create (n8n v4.x spreadsheet create, read in the 2.47.7 image) ----
+// Per item one POST /v4/spreadsheets with {properties: {title, autoRecalc?, locale?}, sheets:
+// [{properties}] from Sheets' rows}, the options' autoRecalc and locale only when set; the
+// item is the API's answer (the new spreadsheet: spreadsheetId, properties, sheets, ...).
+async function sheetsCreate(exec) {
+  const call = googleClient(exec, "https://sheets.googleapis.com");
+  const out = [];
+  const items = exec.getInputData();
+  for (let i = 0; i < items.length; i++) {
+    const title = exec.param("title", i, undefined);
+    const sheetsUi = exec.param("sheetsUi", i, {}) ?? {};
+    const body = { properties: { title }, sheets: [] };
+    const options = exec.param("options", i, {}) ?? {};
+    // Each tab row carries the description's defaults n8n fills (title "", hidden false).
+    if (Object.keys(sheetsUi).length) body.sheets = (sheetsUi.sheetValues ?? []).map((properties) => ({ properties: { title: "", hidden: false, ...properties } }));
+    if (options.autoRecalc) body.properties.autoRecalc = options.autoRecalc;
+    if (options.locale) body.properties.locale = options.locale;
+    const res = await call("POST", "/v4/spreadsheets", { body });
+    for (const json of Array.isArray(res) ? res : [res]) out.push({ json, pairedItem: { item: i } });
+  }
+  return out;
+}
+
 const googleSheets = {
   versions: (v) => v >= 4,
   operations: ["read", "append", "update", "appendOrUpdate"],
   async execute(exec) {
-    const operation = exec.param("operation", 0, "read", { rawExpressions: true });
     const resource = exec.param("resource", 0, "sheet", { rawExpressions: true });
+    // n8n's default operation is the resource's own: create for a spreadsheet, read for a sheet.
+    const operation = exec.param("operation", 0, resource === "spreadsheet" ? "create" : "read", { rawExpressions: true });
+    if (resource === "spreadsheet" && operation === "create") {
+      try {
+        return [await sheetsCreate(exec)];
+      } catch (e) {
+        if (e?.name === "Suspend" || e?.name === "ContainmentViolation") throw e;
+        if (exec.continueOnFail()) return [[{ json: { error: e.message }, pairedItem: { item: 0 } }]];
+        throw e;
+      }
+    }
     if (resource !== "sheet" || !googleSheets.operations.includes(operation)) throw new NodeError(`Google Sheets ${resource} ${operation} has no REST program`, { node: exec.name });
     try {
       const id = spreadsheetIdOf(exec, exec.param("documentId", 0));

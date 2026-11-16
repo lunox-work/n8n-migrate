@@ -772,6 +772,18 @@
             "caveats": ["Google OAuth access tokens expire after an hour and a service-account sign-in is not built yet: the stored secret must be a current access token, so an unattended run needs it refreshed."],
             "understood": ["operation", "resource", "documentId", "sheetName", "columns.mappingMode", "columns.value", "columns.schema", "columns.matchingColumns", "columns.attemptToConvertTypes", "columns.convertFieldsToString", "options.cellFormat", "options.useAppend", "options.locationDefine", "options.handlingExtraData", "options.valueRenderMode", "authentication"]
           }
+        },
+        "spreadsheet": {
+          "create": {
+            "rest": "googleSheets",
+            "whenSiblingRest": true,
+            "credentialType": "googleSheetsOAuth2Api",
+            "hosts": [{ "method": "POST", "host": "sheets.googleapis.com", "pathPrefix": "/v4/spreadsheets" }],
+            "effect": "write",
+            "fidelity": "exact",
+            "caveats": ["Created over the Sheets API with the credential the workflow's Sheets writes already store, so the new spreadsheet's id and tabs reach the next steps as n8n gives them. Google OAuth access tokens expire after an hour and a service-account sign-in is not built yet: the stored secret must be a current access token, so an unattended run needs it refreshed."],
+            "understood": ["operation", "resource", "title", "sheetsUi", "options.locale", "options.autoRecalc", "authentication"]
+          }
         }
       },
       ">=3": {
