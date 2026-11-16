@@ -903,3 +903,13 @@ Next levers by the round-4 rule (alone, then total, a dev unlock preferred; `lev
 - Bench `r5b1-i48b` (2956, 2786, 2324; 7 `claude -p`, ledger 1620 → 1627: first live n8n recordings of 2956's empty, malformed and hostile variants, now that its normal variant passes in process, and two claude-driver runs): **2956 4 → 9** (all gates; compares the chat reply only); 2786, 2324 3 → 3 (Outlook and SerpAPI steps block them first).
 - Round 5 numbers: **one-shot 43 of 120, gate sum 657** (was 42, 652); round 4's 100: 38, 559 (unchanged; 2956 is one of the promoted 20). **Converter coverage 59** (unchanged; preflight clean 44; `--compare`: no regression). No pass lost, no gate fell.
 - Verdict: accepted (+1 pass, gate sum +5). `levers.mjs --offline` unchanged.
+
+## Iteration 49: a DateTime nested in a parameter is its ISO text, as n8n-core leaves it (accepted)
+
+- Bucket: field map (gate 4, 2799 after part B: its Sheets append wrote `fetched_at` as `"2026-…"`, JSON-quoted, where n8n writes `2026-…`). Outside the LEVERS pick, from the batch's gate-4 list.
+- Cause: n8n-core's `getNodeParameter` runs `cleanupParameterData` on the resolved value (read in the image), which turns a Luxon DateTime nested in an object or array into its `toString()` text; a Set assignment of `{{$now}}` therefore reaches the node as a string. The runtime handed the node the DateTime, and Set's string type JSON-stringified it.
+- Change: `runtime/src/engine.mjs` `param()` applies the same clean-up in place (nested DateTimes only; a DateTime that is the parameter's whole value, or an array element, is left as n8n leaves it). Test in `tests/runtime-engine.test.mjs`.
+- Affected set: a sweep ran every dev template's in-process Claude side (normal variant, replayed models, no live fallback; 119 of 120 had a converted folder) with the runtime before and after; only 2799's run changed, so only 2799 was benched.
+- Bench `r5b1-i49` (2799; 3 `claude -p`, ledger 1627 → 1630, claude-driver runs with one slip retried): **2799 4 → 9** (all gates; five effects compared).
+- Round 5 numbers: **one-shot 44 of 120, gate sum 662** (was 43, 657); round 4's 100: **39, 564** (was 38, 559). **Converter coverage 59** (no converter change). No pass lost, no gate fell.
+- Verdict: accepted (+1 pass, gate sum +5). `levers.mjs --offline` unchanged.

@@ -271,3 +271,12 @@ test("run() refuses to start when preflight fails, with every issue listed", asy
   assert.equal(r.error.name, "PreflightFailed");
   assert.equal(r.error.issues.length, 1);
 });
+
+// R5b1 iteration 49: n8n-core's getNodeParameter runs cleanupParameterData, so a DateTime nested
+// in a parameter's object or array (a Set assignment's value) is its toString() text before the
+// node sees it; a Set string field of {{$now}} is the ISO text, not JSON-quoted.
+test("a DateTime nested in a parameter is its ISO text, as n8n's cleanupParameterData leaves it", async () => {
+  const set = node("Set", "set", { assignments: { assignments: [{ id: "1", name: "a", type: "string", value: "={{$now}}" }, { id: "2", name: "o", type: "object", value: "={{ { d: $now } }}" }, { id: "3", name: "s", type: "string", value: "=at {{ $now }}" }] }, options: {} }, { v: 3.4 });
+  const r = await run(wf([start(), set], [["Start", "Set"]]), { trigger: [{}] });
+  assert.deepEqual(out(r, "Set"), [{ a: "2026-11-13T22:00:00.000-05:00", o: { d: "2026-11-13T22:00:00.000-05:00" }, s: "at 2026-11-13T22:00:00.000-05:00" }]);
+});

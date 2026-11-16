@@ -33,6 +33,7 @@ import { resolveParameter } from "./expression.mjs";
 import { createScope, enterRun } from "./proxy.mjs";
 import { nodeImplFor } from "./nodes.mjs";
 import { normalizePath } from "./files.mjs";
+import { DateTime } from "../vendor/luxon.mjs";
 
 export class Suspend extends Error {
   constructor(requests) {
@@ -398,7 +399,7 @@ export class NodeExecution {
     if (v === undefined) v = fallback;
     if (v === undefined) throw new NodeError(`Could not get parameter "${path}"`, { node: this.name });
     if (opts.rawExpressions) return v;
-    return resolveParameter(v, () => this.scope(itemIndex));
+    return cleanupParameterData(resolveParameter(v, () => this.scope(itemIndex)));
   }
   evaluate(expression, itemIndex = 0) {
     return resolveParameter(expression, () => this.scope(itemIndex));
@@ -738,3 +739,26 @@ export function serializeRunData(runData) {
 }
 
 export { stableStringify };
+
+// n8n-core getNodeParameter runs cleanupParameterData on the resolved value: a Luxon DateTime
+// nested in an object or array (an assignment's value, a field in a collection) becomes its
+// toString() text (ISO with the zone offset); a DateTime that is itself the parameter's value
+// is left as it is. In place, as n8n does.
+function cleanupParameterData(v) {
+  if (v === null || typeof v !== "object" || DateTime.isDateTime(v)) return v;
+  if (Array.isArray(v)) {
+    for (let i = 0; i < v.length; i++) {
+      if (DateTime.isDateTime(v[i])) continue;
+      cleanupParameterData(v[i]);
+    }
+    return v;
+  }
+  for (const k of Object.keys(v)) {
+    const x = v[k];
+    if (x !== null && typeof x === "object") {
+      if (DateTime.isDateTime(x)) v[k] = x.toString();
+      else cleanupParameterData(x);
+    }
+  }
+  return v;
+}
