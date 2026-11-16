@@ -816,3 +816,11 @@ Next levers by the round-4 rule (alone, then total, a dev unlock preferred; `lev
 - Bench `r4l-i43` (2085; 0 `claude -p`): **2085 4 → 4 with a later blocker**: the `list_columns` and `column_values` tool results now equal n8n's; what still differs is the read behind them (n8n reads the spreadsheet by id over the Sheets API, the Claude side asks the Drive connector with the whole document URL as `fileId`), iteration 44.
 - Round-4 numbers: **one-shot 36 of 100, gate sum 549** (unchanged); **converter coverage 48** (unchanged; `--compare`: no regression).
 - Verdict: accepted (rule c: a later blocking cause, no gate falling).
+
+## Iteration 44: the spreadsheet id of a url-mode document, as n8n takes it (accepted)
+
+- Bucket: field map (gate 4, 2085's next blocker after iteration 43; general: any Sheets read or Sheets trigger through the Drive export whose document is given by URL). The converter passed the `documentId` resource locator's value straight to the Drive connector's `fileId`, so a document given by URL sent the whole URL, which Drive refuses; n8n's `getSpreadsheetId` takes the first run of 25 or more word characters or dashes from a url-mode value (`""` without one) and any other mode's value as it is.
+- Change: `convert.mjs` spec `{param, extract: "spreadsheetId"}` (mode-aware; an expression is wrapped so the runner takes the id per item); tool-maps `googleSheets` read and trigger poll use it for `fileId`. Test in `tests/rest-sheets.test.mjs`.
+- Bench `r4l-i44` (2085, 1862; 0 `claude -p`): **2085 4 → 4 with a later blocker**: the read now names the spreadsheet by id on both sides; the turn still differs only in which service read it (n8n's Sheets API against the Drive export), which the comparer counts as different reads (P114). 1862 stays at preflight (its Sheets update has no tool).
+- Round-4 numbers: **one-shot 36 of 100, gate sum 549** (unchanged); **converter coverage 48** (unchanged; `--compare`: no regression).
+- Verdict: accepted (rule c: a later blocking cause, no gate falling).

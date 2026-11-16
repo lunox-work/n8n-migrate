@@ -260,7 +260,8 @@ function resolveSpec(spec, params, issues) {
     // when: the field exists only when that parameter is set (n8n's `if (additionalFields.x)`
     // around a nested read with a default, e.g. WordPress's post template).
     if (spec.when !== undefined && !getParam(params, spec.when)) return undefined;
-    let v = unwrapParam(getParam(params, spec.param), spec.param, issues);
+    const raw = getParam(params, spec.param);
+    let v = unwrapParam(raw, spec.param, issues);
     if (v === undefined || v === "") v = spec.default;
     if (v === undefined) return undefined;
     if (spec.map) {
@@ -270,6 +271,13 @@ function resolveSpec(spec, params, issues) {
       }
       const m = spec.map[String(v)];
       return m === undefined || m === null || m === "" ? undefined : clone(m);
+    }
+    // n8n's getSpreadsheetId: a resource locator in url mode gives the first run of 25 or more
+    // word characters or dashes ("" without one); any other mode gives the value as it is.
+    if (spec.extract === "spreadsheetId") {
+      if (!isObj(raw) || raw.mode !== "url") return v;
+      if (!isExpr(v)) return /([-\w]{25,})/.exec(String(v))?.[0] ?? "";
+      return `={{ ((s) => (s.match(/([-\\w]{25,})/) || [""])[0])(String(${toJs(v)})) }}`;
     }
     if (spec.extract === "googleId") {
       if (!isExpr(v)) return GOOGLE_ID.exec(String(v))?.[1] ?? v;

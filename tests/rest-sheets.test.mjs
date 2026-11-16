@@ -297,3 +297,17 @@ test("a Sheets read through the Drive export: rows lead with row_number, as n8n'
   assert.equal(res.status, "done", res.error?.message);
   assert.deepEqual(Object.keys(out(res, "Read")[0]), ["row_number", "name", "score"]);
 });
+
+test("convert: a Sheets read through the Drive export gets the spreadsheet id from a url-mode document, as n8n's getSpreadsheetId", async () => {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET}/edit#gid=7`;
+  const reader = (documentId) => ({ parameters: { documentId, sheetName: { __rl: true, mode: "list", value: "gid=0" }, options: {} }, name: "Read", type: "n8n-nodes-base.googleSheets", typeVersion: 4.5, position: [200, 0], credentials: { googleSheetsOAuth2Api: { id: "1", name: "My Google" } } });
+  const links = { Start: { main: [[{ node: "Read", type: "main", index: 0 }]] } };
+  assert.equal(convertWorkflow([manual, reader({ __rl: true, mode: "url", value: url })], links).steps.Read.tool.args.fileId, SHEET);
+  assert.equal(convertWorkflow([manual, reader({ __rl: true, mode: "id", value: SHEET })], links).steps.Read.tool.args.fileId, SHEET);
+  assert.equal(convertWorkflow([manual, reader({ __rl: true, mode: "url", value: "https://example.test/short" })], links).steps.Read.tool.args.fileId, "", "no id in the URL: n8n's empty id");
+  const def = convertWorkflow([manual, reader({ __rl: true, mode: "url", value: "={{ $json.sheet }}" })], links);
+  const seen = [];
+  const res = await run(def, { host: { tool: async (p) => (seen.push(p.args.fileId), { content: Buffer.from("name\nAnn").toString("base64") }) }, trigger: [{ sheet: url }] });
+  assert.equal(res.status, "done", res.error?.message);
+  assert.deepEqual(seen, [SHEET], "an expression is resolved per item, then the id taken from it");
+});
