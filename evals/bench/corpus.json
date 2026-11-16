@@ -236,7 +236,7 @@
         "bench": 2,
         "self-fail/required-empty": 1,
         "comparable": 5,
-        "hand": 2,
+        "hand": 3,
         "outcome/error-workflow": 3,
         "out-of-scope/error-workflow": 3
       },
@@ -245,7 +245,7 @@
       "candidates": {
         "form": 11,
         "manual": 41,
-        "schedule": 30,
+        "schedule": 29,
         "poll": 13,
         "other": 4,
         "chat": 6
@@ -849,7 +849,7 @@
     { "rank": 1219, "id": 2192, "topUp": 5, "sha256": "bd7e7dc6bb6792f2291f3e4fe35ba5313d9bc609b69df7e232f6260c987786c4", "outcome": "subscription", "target": "artifact-form", "wakeup": "form", "r4": "ineligible", "r4Reasons": [ "feature: n8n-nodes-base.zoom is not in the planned-feature map" ], "pool": "fresh-other" },
     { "rank": 1220, "id": 2062, "topUp": 5, "sha256": "99a298aa61db9e1d95d1f71ce1f997eae0caf4e3f782e3a9edb7c33c65de02a3", "outcome": "subscription", "target": "skill", "wakeup": "manual", "r4": "ineligible", "r4Reasons": [ "feature: n8n-nodes-base.medium is not in the planned-feature map" ], "pool": "fresh-other" },
     { "rank": 1221, "id": 2414, "topUp": 5, "sha256": "0a5cd6923ce7e1f96f532630bbc38654b758ebd8eb16d297a5b963f1d31b6add", "outcome": "subscription", "target": "local-task", "wakeup": "poll", "r4": "eligible", "pool": "fresh" },
-    { "rank": 1222, "id": 4414, "topUp": 5, "sha256": "5c68f9c67bd9d25bd6c4051c96dd52c3af0a099f928b0adf4cc2e6130635baf2", "outcome": "subscription", "target": "local-task", "wakeup": "schedule", "r4": "eligible", "pool": "fresh" },
+    { "rank": 1222, "id": 4414, "topUp": 5, "sha256": "5c68f9c67bd9d25bd6c4051c96dd52c3af0a099f928b0adf4cc2e6130635baf2", "outcome": "subscription", "target": "local-task", "wakeup": "schedule", "r4Hand": "If exists passes on only the rows Google Sheets1 returned for its Link_raw lookup, and every such row has Link_raw (n8n's exists is true for any defined value, empty text included), so its false branch, the only path to AI Agent2, LinkedIn and the Sheets append, is never taken and n8n reaches no write whatever the data", "r4": "ineligible", "r4Reasons": [ "hand: If exists passes on only the rows Google Sheets1 returned for its Link_raw lookup, and every such row has Link_raw (n8n's exists is true for any defined v" ], "pool": "fresh" },
     { "rank": 1223, "id": 4029, "topUp": 5, "excluded": "paid" },
     { "rank": 1224, "id": 3027, "topUp": 5, "sha256": "8ee845f4e60c2ea44d58921128d6c8eea92ce3c488ea388824a7b6ea54b2b493", "outcome": "subscription", "target": "skill", "wakeup": "chat", "r4": "eligible", "pool": "fresh" },
     { "rank": 1225, "id": 7384, "topUp": 5, "sha256": "a587466e43ba0ec563ebf38d77c4d14ff7e1288600ca5a4545592016900b5f7c", "outcome": "keep-in-n8n", "target": null, "wakeup": "chat", "r4": "ineligible", "r4Reasons": [ "outcome: analyzer outcome keep-in-n8n", "out-of-scope/public-chat-page: the chat trigger serves a public chat page (hosted page or embedded chat webhook)", "out-of-scope/community-node: community node @mendable/n8n-nodes-firecrawl.firecrawl", "feature: @mendable/n8n-nodes-firecrawl.firecrawl is not in the planned-feature map" ], "pool": "fresh-other" },
