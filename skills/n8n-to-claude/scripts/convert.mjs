@@ -79,14 +79,16 @@ export function nodeNameToToolName(name) {
   return t;
 }
 // The name n8n gives an agent tool (@n8n/n8n-nodes-langchain 2.47): the Think tool v1 is
-// "thinking_tool"; older versions of the Code Tool (<= 1.1), the Call n8n Workflow Tool (<= 2.1)
-// and the Vector Store Question Answer Tool (1) use the name typed in the tool's `name` field;
-// every other tool and later versions are named after the node (nodeNameToToolName).
+// "thinking_tool"; the SerpAPI tool v1 keeps LangChain's "search" (n8n does not rename it); older
+// versions of the Code Tool (<= 1.1), the Call n8n Workflow Tool (<= 2.1) and the Vector Store
+// Question Answer Tool (1) use the name typed in the tool's `name` field; every other tool and
+// later versions are named after the node (nodeNameToToolName).
 const TYPED_TOOL_NAME_UNTIL = { toolCode: 1.1, toolWorkflow: 2.1, toolVectorStore: 1 };
 export function toolNameFor(nodeName, type, typeVersion, params = {}) {
   const short = String(type).replace(/^@n8n\/n8n-nodes-langchain\./, "");
   const v = typeVersion ?? 1;
   if (short === "toolThink" && v === 1) return "thinking_tool";
+  if (short === "toolSerpApi" && v === 1) return "search";
   const until = TYPED_TOOL_NAME_UNTIL[short];
   const typed = params?.name;
   if (until !== undefined && v <= until && typeof typed === "string" && typed.trim() !== "" && !typed.startsWith("=")) return typed;
@@ -100,6 +102,10 @@ const DYNAMIC_TOOL_SCHEMA = { type: "object", properties: { input: { type: "stri
 // WikipediaQueryRun): a Tool (one optional string, `input`) under the node's tool name with a
 // fixed description; the node has no description parameter.
 const WIKIPEDIA_DESCRIPTION = "A tool for interacting with and fetching data from the Wikipedia API. The input should always be a string query.";
+// The SerpAPI tool (@n8n/n8n-nodes-langchain 2.47 ToolSerpApi v1, LangChain's SerpAPI): a Tool
+// (one optional string, `input`) under the node's tool name with LangChain's fixed description.
+const SERPAPI_DESCRIPTION = "a search engine. useful for when you need to answer questions about current events. input should be a search query.";
+const FIXED_TOOL_DESCRIPTIONS = { [LC + "toolWikipedia"]: WIKIPEDIA_DESCRIPTION, [LC + "toolSerpApi"]: SERPAPI_DESCRIPTION };
 // The Think tool's default description (@n8n/n8n-nodes-langchain 2.47 ToolThink).
 const THINK_DESCRIPTION = "Use the tool to think about something. It will not obtain new information or change the database, but just append the thought to the log. Use it when complex reasoning or some cache memory is needed.";
 
@@ -932,6 +938,17 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
     addHttp("GET", "en.wikipedia.org", "/w/api.php");
   };
 
+  // SerpAPI (agent tool): LangChain's SerpAPI as n8n runs it (runtime rest.mjs serpApi): one GET
+  // of serpapi.com/search with the node's options, the person's key in the query.
+  const applySerpApi = (step) => {
+    step.kind = "http";
+    const secretName = step.credentials?.serpApi ?? "serpApi (no credential named in the export)";
+    step.auth = { credentialType: "serpApi", secret: secretName, placement: "url" };
+    step.rest = { program: "serpApi", effect: "read", fidelity: "exact", map: LC + "toolSerpApi" };
+    addHttp("GET", "serpapi.com", "/search");
+    addSecret(secretName, "serpApi", "serpapi.com");
+  };
+
   // Applies a tool map entry (connector tool or REST template) to a step.
   const applyMap = (name, step, found, params) => {
     const { entry, key } = found;
@@ -1319,6 +1336,7 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         const found = (op != null ? findMap(refs.toolMaps, baseType, v, info.resource ?? "_", op) : null) ?? (bare ? findMap(refs.toolMaps, baseType, v, "_", "_") : null);
         if (baseType === BASE + "rssFeedRead") applyRss(name, step, params);
         else if (type === LC + "toolWikipedia") applyWikipedia(step);
+        else if (type === LC + "toolSerpApi") applySerpApi(step);
         else if (found) applyMap(name, step, found, params);
         else if (type === LC + "toolHttpRequest" || type === BASE + "httpRequestTool") {
           // agent http tools are built in the agent pass
@@ -1534,8 +1552,9 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         // REST program): the runner makes the requests with the model's $fromAI() values.
         const effect = ts.rest ? ts.rest.effect : String(ts.http.method ?? "GET").toUpperCase() === "GET" ? "read" : "write";
         Object.assign(t, { kind: ts.rest ? "rest" : "http", effect });
-        const schema = ts.n8n.type === LC + "toolWikipedia" ? clone(DYNAMIC_TOOL_SCHEMA) : fromAiSchema(tp);
-        if (ts.n8n.type === LC + "toolWikipedia") t.description = WIKIPEDIA_DESCRIPTION;
+        const fixed = FIXED_TOOL_DESCRIPTIONS[ts.n8n.type];
+        const schema = fixed ? clone(DYNAMIC_TOOL_SCHEMA) : fromAiSchema(tp);
+        if (fixed) t.description = fixed;
         if (schema) t.inputSchema = schema;
       } else {
         const why = ts.kind === "blocked" ? ts.blocked.reason : `${shortType(ts.n8n.type)} cannot run in the runtime`;

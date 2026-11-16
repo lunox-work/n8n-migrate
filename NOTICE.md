@@ -68,9 +68,9 @@ the software works with.
 - `skills/n8n-to-claude/runtime/src/feed.mjs`: RSS and Atom parsing follows
   [rss-parser](https://github.com/rbren/rss-parser) 3.13.0's feed building and field lists (MIT
   License, copyright 2016 Bobby Brennan) on xml2js's defaults (MIT, above).
-- `skills/n8n-to-claude/runtime/src/rest.mjs` (the Wikipedia agent tool) and `summarize.mjs`:
-  ports of [LangChain.js](https://github.com/langchain-ai/langchainjs) code n8n runs:
-  `WikipediaQueryRun` (@langchain/community 1.1.27), the summarization chain's prompts and
+- `skills/n8n-to-claude/runtime/src/rest.mjs` (the Wikipedia and SerpAPI agent tools) and
+  `summarize.mjs`: ports of [LangChain.js](https://github.com/langchain-ai/langchainjs) code n8n
+  runs: `WikipediaQueryRun` and `SerpAPI` (@langchain/community 1.1.27), the summarization chain's prompts and
   `JSONLoader` (@langchain/classic 1.0.27), the text splitters (@langchain/textsplitters 1.0.1)
   and f-string prompt templates (@langchain/core 1.2.8); `scripts/convert.mjs` carries
   LangChain's structured-chat (ReAct) prompt texts. MIT License, copyright LangChain, Inc.

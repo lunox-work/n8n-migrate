@@ -147,18 +147,18 @@
    "out-of-scope/under-a-minute": 2
   },
   "inScope": 506,
-  "supportedToday": 170,
-  "fullClass": 103,
+  "supportedToday": 173,
+  "fullClass": 106,
   "answersOnly": 53,
-  "blocked": 283,
+  "blocked": 280,
   "crashes": 0
  },
  "dev": {
   "templates": 120,
   "unnamed": 0,
-  "supportedToday": 46,
+  "supportedToday": 49,
   "answersOnly": 23,
-  "blocked": 51,
+  "blocked": 48,
   "missing": 0,
   "filled": 27
  },
@@ -174,7 +174,7 @@
   {
    "group": "connector",
    "keys": 59,
-   "galleryUnlock": 42,
+   "galleryUnlock": 43,
    "galleryTotal": 80,
    "devUnlock": 10,
    "devTotal": 17
@@ -189,11 +189,11 @@
   },
   {
    "group": "http",
-   "keys": 4,
-   "galleryUnlock": 16,
-   "galleryTotal": 41,
-   "devUnlock": 3,
-   "devTotal": 4
+   "keys": 3,
+   "galleryUnlock": 13,
+   "galleryTotal": 36,
+   "devUnlock": 0,
+   "devTotal": 1
   },
   {
    "group": "files",
@@ -214,7 +214,7 @@
   {
    "group": "vector",
    "keys": 16,
-   "galleryUnlock": 9,
+   "galleryUnlock": 10,
    "galleryTotal": 26,
    "devUnlock": 6,
    "devTotal": 12
@@ -402,15 +402,6 @@
    "devUnlock": 0,
    "devTotal": 1,
    "planned": "connector"
-  },
-  {
-   "group": "@n8n/n8n-nodes-langchain.toolSerpApi",
-   "keys": 1,
-   "galleryUnlock": 3,
-   "galleryTotal": 5,
-   "devUnlock": 3,
-   "devTotal": 3,
-   "planned": "http"
   },
   {
    "group": "n8n-nodes-base.mongoDb",
@@ -1309,26 +1300,6 @@
     "galleryTotal": [2736, 2784, 2981, 3435, 3791, 4709, 5743],
     "devUnlock": [],
     "devTotal": []
-   }
-  },
-  {
-   "key": "@n8n/n8n-nodes-langchain.toolSerpApi",
-   "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
-   "op": "",
-   "planned": "http",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no request template for toolSerpApi yet (it needs the app's REST API with a stored secret)",
-   "galleryAlone": 3,
-   "galleryTotal": 5,
-   "devUnlock": 3,
-   "devTotal": 3,
-   "ids": {
-    "galleryAlone": [1954, 1959, 2324],
-    "galleryTotal": [1954, 1959, 2324, 2326, 5024],
-    "devUnlock": [1954, 1959, 2324],
-    "devTotal": [1954, 1959, 2324]
    }
   },
   {

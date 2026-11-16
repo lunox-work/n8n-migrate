@@ -336,3 +336,43 @@ test("Wikipedia tool: LangChain's WikipediaQueryRun as n8n runs it (search, then
   await run(def, { clock: CLOCK, virtualTime: true, trigger: { node: "Start", items: [{ json: { q: "x" } }] }, host: down });
   assert.deepEqual([fed.ok, fed.error?.message], [false, "Network response was not ok"]);
 });
+
+// R5b3 iteration 55: the SerpAPI tool as n8n runs LangChain's SerpAPI (name "search", its fixed
+// description, one GET of serpapi.com/search with the options, api_key and q, the answer box or
+// snippets picked as the library picks them).
+test("SerpAPI tool: LangChain's SerpAPI as n8n runs it (one search, the library's answer picking)", async () => {
+  const wf = agentWf([{ parameters: { options: { gl: "de", no_cache: true } }, name: "SerpAPI", type: LC + "toolSerpApi", typeVersion: 1, position: [0, 200], credentials: { serpApi: { id: "1", name: "SerpAPI account" } } }]);
+  const def = convertJson(wf);
+  const [tool] = def.steps.Agent.agent.tools;
+  assert.deepEqual([tool.name, tool.kind, tool.effect], ["search", "rest", "read"]);
+  assert.equal(tool.description, "a search engine. useful for when you need to answer questions about current events. input should be a search query.");
+  assert.deepEqual(tool.inputSchema, { type: "object", properties: { input: { type: "string" } } });
+  assert.deepEqual(def.allow.http.map((h) => [h.method, h.host, h.pathPrefix]), [["GET", "serpapi.com", "/search"]]);
+  assert.deepEqual(def.secrets.find((s) => s.name === "SerpAPI account")?.hosts, ["serpapi.com"]);
+  assert.equal(preflight(def, {}).ok, true);
+  const seen = [];
+  let answer = { answer_box: { answer: "2.00%" }, organic_results: [{ snippet: "x" }] };
+  let fed;
+  const host = {
+    http: async (req) => (seen.push(req), { status: 200, headers: { "content-type": "application/json" }, body: JSON.stringify(answer) }),
+    agent: async (p) => {
+      if (p.turn === 0) return { intent: "tool-calls", calls: [{ name: "search", args: { input: "ECB rate & next meeting" } }] };
+      fed = p.transcript[0].results[0];
+      return "done";
+    },
+  };
+  const go = () => run(def, { clock: CLOCK, virtualTime: true, trigger: { node: "Start", items: [{ json: { q: "rates?" } }] }, host });
+  assert.equal((await go()).status, "done");
+  assert.equal(seen[0].url, "https://serpapi.com/search?gl=de&no_cache=true&api_key={{secret}}&q=ECB+rate+%26+next+meeting");
+  assert.deepEqual([seen[0].auth?.secret, seen[0].auth?.placement], ["SerpAPI account", "url"]);
+  assert.deepEqual(fed, { name: "search", ok: true, value: "2.00%" });
+  answer = { knowledge_graph: { title: "ECB", description: "Central bank", type: "Bank", website_link: "u" }, organic_results: [{ snippet: "Deposit 2.00%" }] };
+  await go();
+  assert.equal(fed.value, JSON.stringify(["Central bank", "ECB type: Bank", "Deposit 2.00%"]));
+  answer = {};
+  await go();
+  assert.equal(fed.value, "No good search result found");
+  answer = { error: "Invalid API key." };
+  await go();
+  assert.deepEqual([fed.ok, fed.error?.message], [false, "Got error from serpAPI: Invalid API key."]);
+});

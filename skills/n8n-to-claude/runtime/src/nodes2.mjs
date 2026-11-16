@@ -1587,6 +1587,7 @@ const toolName = (name) => {
   return t;
 };
 // The tool's name as n8n gives it (as the converter's toolNameFor): Think v1 "thinking_tool";
+// SerpAPI v1 LangChain's "search";
 // the typed `name` for the Code Tool <= 1.1, the Call n8n Workflow Tool <= 2.1 and the Vector
 // Store Question Answer Tool 1; otherwise the node's name.
 const TYPED_TOOL_NAME_UNTIL = { toolCode: 1.1, toolWorkflow: 2.1, toolVectorStore: 1 };
@@ -1594,21 +1595,26 @@ function n8nToolName(name, step) {
   const short = String(step.n8n.type).replace(LC, "");
   const v = step.n8n.typeVersion ?? 1;
   if (short === "toolThink" && v === 1) return "thinking_tool";
+  if (short === "toolSerpApi" && v === 1) return "search";
   const typed = step.params?.name;
   const until = TYPED_TOOL_NAME_UNTIL[short];
   if (until !== undefined && v <= until && typeof typed === "string" && typed.trim() !== "" && !typed.startsWith("=")) return typed;
   return toolName(name);
 }
-// The Wikipedia tool's fixed description (ToolWikipedia v1; as convert.mjs).
-const WIKIPEDIA_DESCRIPTION = "A tool for interacting with and fetching data from the Wikipedia API. The input should always be a string query.";
+// The Wikipedia and SerpAPI tools' fixed descriptions (ToolWikipedia v1, ToolSerpApi v1; as
+// convert.mjs): LangChain Tools with one optional string, `input`.
+const FIXED_TOOL_DESCRIPTIONS = {
+  [LC + "toolWikipedia"]: "A tool for interacting with and fetching data from the Wikipedia API. The input should always be a string query.",
+  [LC + "toolSerpApi"]: "a search engine. useful for when you need to answer questions about current events. input should be a search query.",
+};
 const THINK_DESCRIPTION = "Use the tool to think about something. It will not obtain new information or change the database, but just append the thought to the log. Use it when complex reasoning or some cache memory is needed.";
 function agentTools(exec) {
   return subnodesOf(exec, "ai_tool").map(({ name, step }) => {
     const p = step.params ?? {};
     const think = step.n8n.type === LC + "toolThink";
-    const wiki = step.n8n.type === LC + "toolWikipedia";
-    const tool = { name: n8nToolName(name, step), node: name, n8nType: step.n8n.type, description: wiki ? WIKIPEDIA_DESCRIPTION : p.toolDescription ?? p.description ?? (think ? THINK_DESCRIPTION : "") };
-    if (wiki) tool.inputSchema = { type: "object", properties: { input: { type: "string" } } };
+    const fixed = FIXED_TOOL_DESCRIPTIONS[step.n8n.type];
+    const tool = { name: n8nToolName(name, step), node: name, n8nType: step.n8n.type, description: fixed ?? p.toolDescription ?? p.description ?? (think ? THINK_DESCRIPTION : "") };
+    if (fixed) tool.inputSchema = { type: "object", properties: { input: { type: "string" } } };
     if (think) Object.assign(tool, { kind: "think", effect: "none", inputSchema: { type: "object", properties: { input: { type: "string" } } } });
     else if (step.tool?.connector) Object.assign(tool, { kind: "connector", connector: step.tool.connector, tool: step.tool.name, effect: step.tool.effect ?? "write" });
     else if (step.n8n.type === LC + "toolCode") Object.assign(tool, { kind: "code", effect: "none" });

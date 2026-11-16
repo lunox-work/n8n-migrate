@@ -12887,6 +12887,81 @@ const wikipedia = {
   },
 };
 
+// ---------- SerpAPI (agent tool; @n8n/n8n-nodes-langchain ToolSerpApi v1) ----------
+//
+// n8n runs LangChain's SerpAPI (@langchain/community 1.1.27, MIT) with the node's options as its
+// params: one GET of https://serpapi.com/search with the options (`timeout` aside; undefined
+// values left out, the rest as text), then api_key and q, in that order, written by
+// URLSearchParams; q is the model's `input` argument and is left out when absent. The key goes in
+// the URL (placement url; the host writes it with encodeURIComponent, which equals
+// URLSearchParams' form for SerpAPI's hexadecimal keys). The answer is read as JSON whatever its
+// status; an `error` member throws "Got error from serpAPI: <error>"; otherwise the first of: the
+// answer box's result, answer, snippet, highlighted words, or its plain members as JSON; events,
+// sports, top stories, news, jobs, questions and answers, popular destinations as JSON; top
+// sights (title, description, price; 8 at most), shopping (3 at most) as JSON; image thumbnails
+// (10 at most) joined by commas; else the knowledge graph's description and string members and
+// the first organic result's snippet (or its highlighted words, rich snippet, table or link), the
+// buying guide and local places as a JSON list; else "No good search result found". Ported from
+// the library's buildUrl and _call.
+const SERPAPI_KEY_SLOT = "N2CSERPAPIKEYSLOT";
+function serpApiAnswer(res) {
+  if (res.error) throw new Error(`Got error from serpAPI: ${res.error}`);
+  const box = res.answer_box_list ? res.answer_box_list[0] : res.answer_box;
+  if (box) {
+    if (box.result) return box.result;
+    if (box.answer) return box.answer;
+    if (box.snippet) return box.snippet;
+    if (box.snippet_highlighted_words) return box.snippet_highlighted_words.toString();
+    const answer = {};
+    for (const k of Object.keys(box)) if (!Array.isArray(box[k]) && typeof box[k] !== "object" && !(typeof box[k] === "string" && box[k].startsWith("http"))) answer[k] = box[k];
+    return JSON.stringify(answer);
+  }
+  if (res.events_results) return JSON.stringify(res.events_results);
+  if (res.sports_results) return JSON.stringify(res.sports_results);
+  if (res.top_stories) return JSON.stringify(res.top_stories);
+  if (res.news_results) return JSON.stringify(res.news_results);
+  if (res.jobs_results?.jobs) return JSON.stringify(res.jobs_results.jobs);
+  if (res.questions_and_answers) return JSON.stringify(res.questions_and_answers);
+  if (res.popular_destinations?.destinations) return JSON.stringify(res.popular_destinations.destinations);
+  if (res.top_sights?.sights) return JSON.stringify(res.top_sights.sights.map((x) => ({ title: x.title, description: x.description, price: x.price })).slice(0, 8));
+  if (res.shopping_results && res.shopping_results[0]?.title) return JSON.stringify(res.shopping_results.slice(0, 3));
+  if (res.images_results && res.images_results[0]?.thumbnail) return res.images_results.map((x) => x.thumbnail).slice(0, 10).toString();
+  const snippets = [];
+  const kg = res.knowledge_graph;
+  if (kg) {
+    if (kg.description) snippets.push(kg.description);
+    const title = kg.title || "";
+    for (const k of Object.keys(kg)) if (typeof kg[k] === "string" && k !== "title" && k !== "description" && !k.endsWith("_stick") && !k.endsWith("_link") && !k.startsWith("http")) snippets.push(`${title} ${k}: ${kg[k]}`);
+  }
+  const first = res.organic_results?.[0];
+  if (first) {
+    if (first.snippet) snippets.push(first.snippet);
+    else if (first.snippet_highlighted_words) snippets.push(first.snippet_highlighted_words);
+    else if (first.rich_snippet) snippets.push(first.rich_snippet);
+    else if (first.rich_snippet_table) snippets.push(first.rich_snippet_table);
+    else if (first.link) snippets.push(first.link);
+  }
+  if (res.buying_guide) snippets.push(res.buying_guide);
+  if (res.local_results?.places) snippets.push(res.local_results.places);
+  return snippets.length > 0 ? JSON.stringify(snippets) : "No good search result found";
+}
+const serpApi = {
+  versions: (v) => v === 1,
+  async execute(exec) {
+    const { timeout: _timeout, ...params } = exec.param("options", 0, {}) ?? {};
+    const entries = Object.entries({ ...params, api_key: SERPAPI_KEY_SLOT, q: exec.toolInput?.input })
+      .filter(([, value]) => value !== undefined)
+      .map(([key, value]) => [key, `${value}`]);
+    const url = `https://serpapi.com/search?${new URLSearchParams(entries)}`.replace(SERPAPI_KEY_SLOT, "{{secret}}");
+    const req = { kind: "http", itemIndex: 0, method: "GET", url, query: {}, headers: {} };
+    if (exec.step.auth?.secret) req.auth = { credentialType: exec.step.auth.credentialType, secret: exec.step.auth.secret, placement: "url" };
+    const [r] = await exec.request([req]);
+    if (!r.ok) throw new Error(r.error?.message ?? "fetch failed");
+    const body = r.value?.body;
+    return [[{ json: serpApiAnswer(typeof body === "string" ? JSON.parse(body) : body ?? {}) }]];
+  },
+};
+
 // ---------- LinkedIn (n8n LinkedIn node v1, post: create) ----------
 //
 // As n8n-nodes-base 2.47.7's LinkedIn node posts: the Posts API at api.linkedin.com/rest with
@@ -13083,7 +13158,7 @@ const n8nApi = {
   },
 };
 
-const restPrograms = { googleSheets, linkedIn, googleCalendar, rssFeedRead, openAiImage, facebookGraph, discordWebhookV1, wikipedia, n8nApi };
+const restPrograms = { googleSheets, linkedIn, googleCalendar, rssFeedRead, openAiImage, facebookGraph, discordWebhookV1, wikipedia, serpApi, n8nApi };
 
 return { restPrograms };
 })();
@@ -34473,6 +34548,7 @@ const toolName = (name) => {
   return t;
 };
 // The tool's name as n8n gives it (as the converter's toolNameFor): Think v1 "thinking_tool";
+// SerpAPI v1 LangChain's "search";
 // the typed `name` for the Code Tool <= 1.1, the Call n8n Workflow Tool <= 2.1 and the Vector
 // Store Question Answer Tool 1; otherwise the node's name.
 const TYPED_TOOL_NAME_UNTIL = { toolCode: 1.1, toolWorkflow: 2.1, toolVectorStore: 1 };
@@ -34480,21 +34556,26 @@ function n8nToolName(name, step) {
   const short = String(step.n8n.type).replace(LC, "");
   const v = step.n8n.typeVersion ?? 1;
   if (short === "toolThink" && v === 1) return "thinking_tool";
+  if (short === "toolSerpApi" && v === 1) return "search";
   const typed = step.params?.name;
   const until = TYPED_TOOL_NAME_UNTIL[short];
   if (until !== undefined && v <= until && typeof typed === "string" && typed.trim() !== "" && !typed.startsWith("=")) return typed;
   return toolName(name);
 }
-// The Wikipedia tool's fixed description (ToolWikipedia v1; as convert.mjs).
-const WIKIPEDIA_DESCRIPTION = "A tool for interacting with and fetching data from the Wikipedia API. The input should always be a string query.";
+// The Wikipedia and SerpAPI tools' fixed descriptions (ToolWikipedia v1, ToolSerpApi v1; as
+// convert.mjs): LangChain Tools with one optional string, `input`.
+const FIXED_TOOL_DESCRIPTIONS = {
+  [LC + "toolWikipedia"]: "A tool for interacting with and fetching data from the Wikipedia API. The input should always be a string query.",
+  [LC + "toolSerpApi"]: "a search engine. useful for when you need to answer questions about current events. input should be a search query.",
+};
 const THINK_DESCRIPTION = "Use the tool to think about something. It will not obtain new information or change the database, but just append the thought to the log. Use it when complex reasoning or some cache memory is needed.";
 function agentTools(exec) {
   return subnodesOf(exec, "ai_tool").map(({ name, step }) => {
     const p = step.params ?? {};
     const think = step.n8n.type === LC + "toolThink";
-    const wiki = step.n8n.type === LC + "toolWikipedia";
-    const tool = { name: n8nToolName(name, step), node: name, n8nType: step.n8n.type, description: wiki ? WIKIPEDIA_DESCRIPTION : p.toolDescription ?? p.description ?? (think ? THINK_DESCRIPTION : "") };
-    if (wiki) tool.inputSchema = { type: "object", properties: { input: { type: "string" } } };
+    const fixed = FIXED_TOOL_DESCRIPTIONS[step.n8n.type];
+    const tool = { name: n8nToolName(name, step), node: name, n8nType: step.n8n.type, description: fixed ?? p.toolDescription ?? p.description ?? (think ? THINK_DESCRIPTION : "") };
+    if (fixed) tool.inputSchema = { type: "object", properties: { input: { type: "string" } } };
     if (think) Object.assign(tool, { kind: "think", effect: "none", inputSchema: { type: "object", properties: { input: { type: "string" } } } });
     else if (step.tool?.connector) Object.assign(tool, { kind: "connector", connector: step.tool.connector, tool: step.tool.name, effect: step.tool.effect ?? "write" });
     else if (step.n8n.type === LC + "toolCode") Object.assign(tool, { kind: "code", effect: "none" });
