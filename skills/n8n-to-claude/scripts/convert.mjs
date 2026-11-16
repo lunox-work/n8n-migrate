@@ -1648,10 +1648,16 @@ function convertModel(name, step, { params, type, v, review, translate, subnodes
   } else if (type === BASE + "openAi") {
     const op = `${p.resource ?? "text"}:${p.operation ?? "complete"}`;
     if (op === "chat:complete") model = { messages: (p.prompt?.messages ?? []).map((m) => ({ role: m.role === "assistant" ? "assistant" : m.role === "system" ? "system" : "user", content: m.content ?? "" })) };
+    // Text edit: n8n posts {model, input, instruction} to OpenAI's Edits API (retired in 2024),
+    // which applies the instruction to the input. Here the instruction is the system text and
+    // the input the prompt, the two things n8n's request asks, in its order.
+    else if (op === "text:edit") model = { ...(p.instruction !== undefined && p.instruction !== "" ? { system: String(p.instruction) } : {}), prompt: p.input ?? "" };
     else model = { prompt: p.prompt ?? "" };
     const sys = (model.messages ?? []).filter((m) => m.role === "system").map((m) => m.content);
     if (sys.length) (model.system = joinTexts(sys) ?? (reasons.push("a literal system message holds {{ }} next to expressions; the joined system text may differ from n8n's"), sys.join("\n"))), (model.messages = model.messages.filter((m) => m.role !== "system"));
-    model.outputTemplate = op === "chat:complete" ? { index: 0, message: { role: "assistant", content: "$output" }, finish_reason: "stop" } : { index: 0, text: "$output", finish_reason: "stop" };
+    model.outputTemplate = op === "chat:complete" ? { index: 0, message: { role: "assistant", content: "$output" }, finish_reason: "stop" } : op === "text:edit" ? { text: "$output", index: 0 } : { index: 0, text: "$output", finish_reason: "stop" };
+    // Simplify (default on) makes each choice an item and trims its text, for complete and edit.
+    if ((op === "text:complete" || op === "text:edit") && p.simplifyOutput !== false) model.trim = true;
     model.hint = { provider: "openAi (legacy node)", ...(p.model ? { model: String(isObj(p.model) ? p.model.value : p.model) } : {}) };
     reasons.push("the legacy OpenAI node's output (choices) is rebuilt from n8n's simplified shape; check the fields the next steps read");
   } else if (type === LC + "informationExtractor") {

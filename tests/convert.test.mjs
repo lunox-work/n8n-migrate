@@ -636,3 +636,20 @@ test("Discord v1 posts its webhook message as n8n builds it, with no credential"
   const off = await run(convertJson(flow({ text: "x", webhookUri: "={{ $json.hook }}", options: {} })).definition, { clock: CLOCK, virtualTime: true, trigger: [{ hook: "https://evil.example/api/webhooks/1" }], host: { http: async () => ({ status: 204, headers: {}, body: "" }) } });
   assert.match(off.error.message, /not in the definition's allowlist/);
 });
+
+// R5b1 iteration 47: the legacy OpenAI node's text edit asks the instruction and the input (n8n
+// posts both to the retired Edits API); simplify trims a complete or edit choice's text.
+test("legacy OpenAI text edit: instruction as system text, input as prompt, n8n's simplified choice", () => {
+  const edit = { parameters: { input: "={{ $json.text }}", options: {}, operation: "edit", instruction: "translate to German" }, name: "Edit", type: "n8n-nodes-base.openAi", typeVersion: 1, position: [200, 0] };
+  const complete = { parameters: { prompt: "={{ $json.text }}", options: {} }, name: "Complete", type: "n8n-nodes-base.openAi", typeVersion: 1, position: [400, 0] };
+  const raw = { parameters: { input: "x", operation: "edit", simplifyOutput: false }, name: "Raw", type: "n8n-nodes-base.openAi", typeVersion: 1, position: [600, 0] };
+  const def = convertJson(tiny([manual, edit, complete, raw], { ...link("Start", "Edit"), ...link("Edit", "Complete"), ...link("Complete", "Raw") })).definition;
+  const m = def.steps.Edit.model;
+  assert.equal(m.system, "translate to German");
+  assert.equal(m.prompt, "={{ $json.text }}");
+  assert.deepEqual(m.outputTemplate, { text: "$output", index: 0 });
+  assert.equal(m.trim, true);
+  assert.equal(def.steps.Complete.model.trim, true);
+  assert.equal(def.steps.Raw.model.trim, undefined);
+  assert.equal(def.steps.Raw.model.system, undefined, "no instruction, no system text");
+});
