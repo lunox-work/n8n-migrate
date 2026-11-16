@@ -595,12 +595,17 @@ async function topUp() {
 // changes) and pool `dev-refill` when round-eligible, else `dev-refill-other`. A listing page is
 // read from the round's cache, else from the levers ranking's cache of the same listing
 // (levers.json listingPages), else fetched. Returns {entries, pages, requests}; the caller writes
-// corpus.json.
-export async function extendWalk(corpus, round, need, { offline = false } = {}) {
+// corpus.json. `as: "held"` (PROPOSALS P126) continues the same walk for a held-out redraw whose
+// stratum has no candidate left: entries carry `heldRefill: <round>` and pool `held-refill` /
+// `held-refill-other`, so the round's shuffled pool, and every draw already made from it, stay as
+// they are.
+export const REFILL = { dev: { key: "devRefill", pool: "dev-refill" }, held: { key: "heldRefill", pool: "held-refill" } };
+export async function extendWalk(corpus, round, need, { offline = false, as = "dev" } = {}) {
+  const tag = REFILL[as];
   const refs = (f) => JSON.parse(readFileSync(join(REFS, f), "utf8"));
   const opts = { nodes: refs("nodes.json"), capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), now: Date.parse(NOW) };
   const elig = { lists: JSON.parse(readFileSync(join(HERE, "eligibility.json"), "utf8")), nodes: opts.nodes.nodes };
-  const walked = corpus.templates.filter((e) => e.topUp === round || e.devRefill === round).map((e) => e.rank ?? 0);
+  const walked = corpus.templates.filter((e) => e.topUp === round || e.devRefill === round || e.heldRefill === round).map((e) => e.rank ?? 0);
   const known = new Set(corpus.templates.map((e) => e.id));
   const seenHash = new Map(corpus.templates.filter((e) => e.sha256).map((e) => [e.sha256, e.id]));
   const left = { ...need };
@@ -622,7 +627,7 @@ export async function extendWalk(corpus, round, need, { offline = false } = {}) 
     pages.push({ page, file: file.replace(ROOT + "/", "") });
     for (const [i, w] of listing.workflows.entries()) {
       if (known.has(w.id) || entries.some((e) => e.id === w.id) || existsSync(join(SURVEY_CACHE, `${w.id}.json`))) continue;
-      const e = { rank: (page - 1) * ROWS + i + 1, id: w.id, devRefill: round };
+      const e = { rank: (page - 1) * ROWS + i + 1, id: w.id, [tag.key]: round };
       entries.push(e);
       let wf = null;
       if (!((w.price ?? 0) > 0 || w.purchaseUrl)) {
@@ -661,7 +666,7 @@ export async function extendWalk(corpus, round, need, { offline = false } = {}) 
       if (DEMO_FLAG.test(w.name ?? "")) e.flag = "name-demo";
       Object.assign(e, r4Verdict(wf, report, e, elig));
       delete e.r4Amended;
-      e.pool = e.r4 === "eligible" ? "dev-refill" : "dev-refill-other";
+      e.pool = e.r4 === "eligible" ? tag.pool : `${tag.pool}-other`;
       if (e.r4 === "eligible" && left[stratum(e.wakeup)] > 0) left[stratum(e.wakeup)]--;
     }
   }

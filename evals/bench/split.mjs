@@ -4,7 +4,7 @@
 // same file.
 //
 //   node evals/bench/split.mjs [--corpus evals/bench/corpus.json] [--out evals/bench/splits.json]
-//   node evals/bench/split.mjs --fresh [--round 3|4|5] [--redraw "<why>"]   (a fresh held-out: drawFresh() below)
+//   node evals/bench/split.mjs --fresh [--round 3|4|5] [--redraw "<why>"] [--offline]   (a fresh held-out: drawFresh() below)
 //   node evals/bench/split.mjs --amend 1 --round 4 [--offline]   (dev refill after an eligibility amendment: amendDev() below)
 //
 // Method: one Fisher-Yates shuffle of the eligible ids (sorted ascending first) with
@@ -79,14 +79,17 @@ export const FRESH_SEED = 20261115;
 export const FRESH_SEEDS = { 3: FRESH_SEED, 4: 20261116, 5: 20261117 };
 export const freshKey = (round) => (round === FRESH_ROUND ? "heldOutFresh" : `heldOutFresh${round}`);
 // `skip`: ids already dev (a later round's dev refill took them from the same pool); passed over
-// without leaving the shuffle.
-export function drawFresh(candidates, quotas = FRESH_QUOTAS, seed = FRESH_SEED, skip = new Set()) {
+// without leaving the shuffle. `after` (PROPOSALS P126): entries the views walk read after the
+// draw for a stratum with no candidate left (fetch.mjs extendWalk, pool `held-refill`); they come
+// after the shuffled pool in listing order, so no draw from the pool moves.
+export function drawFresh(candidates, quotas = FRESH_QUOTAS, seed = FRESH_SEED, skip = new Set(), after = []) {
   const rnd = mulberry32(seed);
   const order = [...candidates].sort((a, b) => a.id - b.id);
   for (let i = order.length - 1; i > 0; i--) {
     const j = Math.floor(rnd() * (i + 1));
     [order[i], order[j]] = [order[j], order[i]];
   }
+  order.push(...[...after].sort((a, b) => a.rank - b.rank));
   const used = {};
   const drawn = [];
   for (const e of order) {
@@ -112,7 +115,7 @@ const FRESH_TEXT = {
     note: "round 3's 20 fresh held-out join dev after release point 3, and the 20 of those 120 templates that fail round-4 eligibility leave (dropped; EXCLUSIONS.md Round 4 eligibility, AUDIT-R4.md), so dev is the 100 eligible. Release point 4 scores 20 fresh held-out templates (splits.heldOutFresh4: a round-4 top-up of the listing, each round-4 eligible, drawn by seed 20261116 per wake-up stratum), labelled blind before any is run",
   },
   5: {
-    method: "evals/bench/split.mjs drawFresh(): pool = the round-5 top-up's entries that are eligible by the round-4 rule with amendment 1 (fetch.mjs freshPool(templates, 5); the walk started after the gallery ranking's listing pages and skipped every id on them); mulberry32(seed) Fisher-Yates over the pool sorted by id ascending; per wake-up stratum the first quota in shuffled order, skipping a template excluded after the draw (`excluded` or `r4Hand`; it stays in the shuffle); the list keeps the shuffled order; no drawn id may be named in levers.json or LEVERS.md",
+    method: "evals/bench/split.mjs drawFresh(): pool = the round-5 top-up's entries that are eligible by the round-4 rule with amendment 1 (fetch.mjs freshPool(templates, 5); the walk started after the gallery ranking's listing pages and skipped every id on them); mulberry32(seed) Fisher-Yates over the pool sorted by id ascending; per wake-up stratum the first quota in shuffled order, skipping a template excluded after the draw (`excluded` or `r4Hand`; it stays in the shuffle); a redraw whose stratum has no candidate left takes the first eligible entries of the views walk after the round's walk (fetch.mjs extendWalk, pool held-refill) in listing order, after the shuffled pool (PROPOSALS P126); the list keeps the shuffled order; no drawn id may be named in levers.json or LEVERS.md",
     rule: "the same rule as the seeded held-out: never read by a session that changes the skill, converter or runtime until release point 5 has scored it (EXCLUSIONS.md, Round 5 held-out)",
     note: "Release point 5 scores 20 fresh held-out templates (splits.heldOutFresh5: a round-5 top-up of the listing past the gallery ranking's pages, each eligible by the round-4 rule with amendment 1, drawn by seed 20261117 per wake-up stratum), labelled blind before any is run",
   },
@@ -131,10 +134,24 @@ async function roundEntry(splits, round) {
   return { round, promoted: prev.heldOut.map((r) => r.id), dropped, heldOut: [] };
 }
 
+// A round's held-out refill entries (P126), in listing order.
+export const heldRefillOf = (templates, round) => templates.filter((e) => e.heldRefill === round && e.pool === "held-refill").sort((a, b) => a.rank - b.rank);
+
+// corpus.json's layout: one line per template entry.
+function writeCorpus(corpusPath, corpus) {
+  const { templates, ...rest } = corpus;
+  const text = JSON.stringify({ ...rest, templates }, null, 2).replace(/\{\n\s+("rank": \d+,[^{}]*?)\n\s+\}/g, (_, body) => `{ ${body.replace(/\n\s+/g, " ")} }`);
+  writeFileSync(corpusPath, text + "\n");
+}
+
 // `redraw`: why a committed draw is drawn again (a candidate excluded by a rule after the draw,
 // e.g. `hand` while labelling); the same seed and method, so only the excluded template's
 // stratum moves to its next candidate in shuffled order. Kept in the fresh list's `redraws`.
-async function writeFresh(corpusPath, out, redraw = null, round = FRESH_ROUND) {
+// A redraw whose stratum has no candidate left in the round's walk continues the views walk
+// after it (PROPOSALS P126, fetch.mjs extendWalk as "held") and takes that stratum's first
+// eligible entries in listing order, after the shuffled pool; corpus.json records the pages
+// (`heldRefill<round>`).
+async function writeFresh(corpusPath, out, redraw = null, round = FRESH_ROUND, offline = false) {
   const corpus = JSON.parse(readFileSync(corpusPath, "utf8"));
   const splits = JSON.parse(readFileSync(out, "utf8"));
   const seed = FRESH_SEEDS[round];
@@ -143,9 +160,35 @@ async function writeFresh(corpusPath, out, redraw = null, round = FRESH_ROUND) {
   const taken = new Set([...splits.dev, ...splits.heldOut, ...Object.entries(splits).filter(([k]) => /^heldOutFresh\d*$/.test(k) && k !== key).flatMap(([, v]) => v.templates ?? [])].map((r) => r.id));
   const pool = freshPool(corpus.templates, round).filter((e) => !taken.has(e.id));
   const devAdded = new Set(Object.entries(splits).filter(([k]) => /^devAdded\d*$/.test(k)).flatMap(([, v]) => v.templates ?? []).map((t) => t.id));
-  const candidates = pool.filter((e) => isCandidate(e) && !devAdded.has(e.id));
-  const { drawn, strata, short } = drawFresh(pool, FRESH_QUOTAS, seed, devAdded);
-  if (Object.keys(short).length) throw new Error(`fresh draw short of ${JSON.stringify(short)}: top up with fetch.mjs --top-up --round ${round} first`);
+  let refill = heldRefillOf(corpus.templates, round).filter((e) => !taken.has(e.id));
+  let { drawn, strata, short } = drawFresh(pool, FRESH_QUOTAS, seed, devAdded, refill);
+  if (Object.keys(short).length && redraw && round >= 5) {
+    const { extendWalk } = await import("./fetch.mjs");
+    const extension = await extendWalk(corpus, round, short, { offline, as: "held" });
+    corpus.templates.push(...extension.entries);
+    const key = `heldRefill${round}`;
+    const counts = (pred) => extension.entries.filter(pred).length;
+    const prev = corpus[key];
+    corpus[key] = {
+      round,
+      why: `held-out redraws of round ${round} whose stratum had no candidate left in the round's walk (EXCLUSIONS.md; PROPOSALS P126): the views walk continues after the round's walk, and the stratum takes its first eligible entries in listing order, after the shuffled pool`,
+      need: Object.entries(short).reduce((o, [k, n]) => ({ ...o, [k]: (o[k] ?? 0) + n }), prev?.need ?? {}),
+      pages: [...(prev?.pages ?? []), ...extension.pages],
+      rules: "evals/bench/EXCLUSIONS.md (same rules, skips and analyzer as the round's walk) and the round's eligibility; each listing page opened is finished",
+      counts: {
+        newEntries: (prev?.counts.newEntries ?? 0) + extension.entries.length,
+        requests: { listingRequests: (prev?.counts.requests.listingRequests ?? 0) + extension.requests.listingRequests, templateRequests: (prev?.counts.requests.templateRequests ?? 0) + extension.requests.templateRequests },
+        excluded: (prev?.counts.excluded ?? 0) + counts((e) => e.excluded),
+        eligible: (prev?.counts.eligible ?? 0) + counts((e) => e.pool === "held-refill"),
+        ineligible: (prev?.counts.ineligible ?? 0) + counts((e) => e.pool === "held-refill-other"),
+      },
+    };
+    writeCorpus(corpusPath, corpus);
+    refill = heldRefillOf(corpus.templates, round).filter((e) => !taken.has(e.id));
+    ({ drawn, strata, short } = drawFresh(pool, FRESH_QUOTAS, seed, devAdded, refill));
+  }
+  if (Object.keys(short).length) throw new Error(`fresh draw short of ${JSON.stringify(short)}: top up with fetch.mjs --top-up --round ${round} first${round >= 5 ? ", or redraw (--redraw) to continue the views walk" : ""}`);
+  const candidates = [...pool, ...refill].filter((e) => isCandidate(e) && !devAdded.has(e.id));
   let r = splits.rounds.find((x) => x.round === round);
   if (!r && round > FRESH_ROUND) {
     r = await roundEntry(splits, round);
@@ -171,7 +214,7 @@ async function writeFresh(corpusPath, out, redraw = null, round = FRESH_ROUND) {
     strata,
     rule: T.rule,
     ...(redraws.length ? { redraws } : {}),
-    templates: drawn.map((e) => ({ id: e.id, sha256: e.sha256, wakeup: e.wakeup, source: e.pool === "overflow" ? "overflow" : "top-up" })),
+    templates: drawn.map((e) => ({ id: e.id, sha256: e.sha256, wakeup: e.wakeup, source: e.pool === "overflow" ? "overflow" : e.pool === "held-refill" ? `views walk page ${Math.floor((e.rank - 1) / 50) + 1}` : "top-up" })),
   };
   r.heldOut = drawn.map((e) => e.id);
   // A round written before its held-out was drawn (round 5) keeps its note; the draw's is appended.
@@ -276,7 +319,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes(
 } else if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes("--fresh")) {
   const a = process.argv.slice(2);
   const opt = (k, d) => (a.includes(k) ? a[a.indexOf(k) + 1] : d);
-  writeFresh(opt("--corpus", join(HERE, "corpus.json")), opt("--out", join(HERE, "splits.json")), opt("--redraw", null), Number(opt("--round", String(FRESH_ROUND)))).catch((e) => {
+  writeFresh(opt("--corpus", join(HERE, "corpus.json")), opt("--out", join(HERE, "splits.json")), opt("--redraw", null), Number(opt("--round", String(FRESH_ROUND))), a.includes("--offline")).catch((e) => {
     console.error(e.message);
     process.exit(1);
   });

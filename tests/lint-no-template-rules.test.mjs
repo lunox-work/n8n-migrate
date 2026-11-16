@@ -12,7 +12,9 @@ const LINT = join(ROOT, "scripts", "lint-no-template-rules.mjs");
 const run = (...a) => spawnSync(process.execPath, [LINT, ...a], { encoding: "utf8" });
 
 // A round-5-on walk entry that no rule lets into the bench (the lint's header).
-const outsideBench = (t) => (t.topUp ?? 0) >= 5 && (t.excluded || t.pool !== "fresh");
+const splitsDoc = JSON.parse(readFileSync(join(ROOT, "evals/bench/splits.json"), "utf8"));
+const drawnHeld = new Set(Object.entries(splitsDoc).filter(([k]) => /^heldOutFresh\d*$/.test(k)).flatMap(([, v]) => v.templates ?? []).map((t) => t.id));
+const outsideBench = (t) => ((t.topUp ?? 0) >= 5 && (t.excluded || t.pool !== "fresh")) || ((t.heldRefill ?? 0) >= 5 && !drawnHeld.has(t.id));
 
 test("skills/ carries no template id, name or fixture string", () => {
   const r = run();

@@ -7,8 +7,9 @@
 // Checked in every file under skills/ (text files only):
 //   - template ids: every id of three or more digits in evals/bench/corpus.json, less the
 //     entries of a held-out walk from round 5 on that no rule lets into the bench (`excluded`, or
-//     a pool other than `fresh`: such a walk reads ~250 listing entries for 20 slots, and their
-//     ids would collide with ordinary numbers such as 3600; names stay checked) (a one- or
+//     a pool other than `fresh`; of its views-walk continuation for a redraw, PROPOSALS P126,
+//     every entry no redraw took into splits.json: such a walk reads ~250 listing entries for 20
+//     slots, and their ids would collide with ordinary numbers such as 3600; names stay checked) (a one- or
 //     two-digit id cannot be told from an ordinary number; tests/bench-levers.test.mjs uses the
 //     same bound, and such a template's name is still checked), as a whole number not part of a longer
 //     number, version or identifier (not in vendored or built code: runtime/vendor holds
@@ -86,7 +87,9 @@ function idScanText(file, text) {
 const corpus = JSON.parse(readFileSync(join(BENCH, "corpus.json"), "utf8"));
 const ids = [...new Set(corpus.templates.map((t) => String(t.id)))];
 // A walk entry from round 5 on that can never be a bench template (see the header).
-const outsideBench = (t) => (t.topUp ?? 0) >= 5 && (t.excluded || t.pool !== "fresh");
+const splits = JSON.parse(readFileSync(join(BENCH, "splits.json"), "utf8"));
+const drawnHeld = new Set(Object.entries(splits).filter(([k]) => /^heldOutFresh\d*$/.test(k)).flatMap(([, v]) => v.templates ?? []).map((t) => t.id));
+const outsideBench = (t) => ((t.topUp ?? 0) >= 5 && (t.excluded || t.pool !== "fresh")) || ((t.heldRefill ?? 0) >= 5 && !drawnHeld.has(t.id));
 const outside = new Set(corpus.templates.filter(outsideBench).map((t) => String(t.id)));
 
 const names = [];

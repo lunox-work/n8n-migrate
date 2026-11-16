@@ -438,7 +438,7 @@ test("round 5: round 4's held-out joins dev (120, all fixtured), numbers out of 
 // levers.mjs) skip them; nothing a fixing session reads names them.
 test("round 5 held-out: 20 fresh past the gallery ranking, eligible, reproducible, never exposed", async () => {
   const { readSplits, roundOf, heldOutIds, unreadableIds, withoutHeldOut } = await import("../evals/bench/rounds.mjs");
-  const { drawFresh, FRESH_SEEDS, namedInLevers } = await import("../evals/bench/split.mjs");
+  const { drawFresh, FRESH_SEEDS, namedInLevers, heldRefillOf } = await import("../evals/bench/split.mjs");
   const { FRESH_QUOTAS, freshPool, stratum, isCandidate, leversWalk, TOP_UPS } = await import("../evals/bench/fetch.mjs");
   const splits = readSplits();
   const corpus = JSON.parse(readFileSync(join(BENCH, "corpus.json"), "utf8"));
@@ -463,13 +463,23 @@ test("round 5 held-out: 20 fresh past the gallery ranking, eligible, reproducibl
   const earlier = new Set();
   for (const r of splits.rounds) for (const id of [...r.promoted, ...(r.dropped ?? []), ...(r.devAdded ?? []), ...(r.round < 5 ? r.heldOut : [])]) earlier.add(id);
   for (const r of [...splits.dev, ...splits.heldOut]) earlier.add(r.id);
-  for (const e of corpus.templates) if (e.topUp !== 5) earlier.add(e.id);
+  for (const e of corpus.templates) if (e.topUp !== 5 && e.heldRefill !== 5) earlier.add(e.id);
   for (const id of ids(fresh.templates)) assert.ok(!earlier.has(id), `${id} was used or walked by an earlier round`);
-  // Each one is a round-5 walk entry past the gallery ranking's pages, eligible, with the recorded hash.
+  // Each one is a round-5 walk entry past the gallery ranking's pages, eligible, with the recorded
+  // hash; or (PROPOSALS P126) an entry of the views walk continued after it for a redraw whose
+  // stratum had no candidate left, the first eligible one of its stratum in listing order.
   const lastPage = Math.max(...levers.listingPages.map((p) => p.page));
   const byId = new Map(corpus.templates.map((e) => [e.id, e]));
+  const refill = heldRefillOf(corpus.templates, 5);
+  const walkEnd = Math.max(...corpus.templates.filter((e) => e.topUp === 5).map((e) => e.rank));
   for (const t of fresh.templates) {
     const e = byId.get(t.id);
+    if (e?.heldRefill === 5) {
+      assert.ok(e.pool === "held-refill" && e.r4 === "eligible" && !e.excluded && e.rank > walkEnd, String(t.id));
+      assert.equal(t.source, `views walk page ${Math.floor((e.rank - 1) / 50) + 1}`, String(t.id));
+      assert.equal(refill.find((x) => stratum(x.wakeup) === stratum(e.wakeup)).id, e.id, `${t.id} is its stratum's first refill entry`);
+      continue;
+    }
     assert.ok(e && e.topUp === 5 && e.pool === "fresh" && e.r4 === "eligible" && !e.excluded && !e.r4Amended, String(t.id));
     assert.ok(e.rank > lastPage * 50, `${t.id} ranks inside the gallery ranking's pages`);
     assert.equal(e.sha256, t.sha256, String(t.id));
@@ -480,7 +490,7 @@ test("round 5 held-out: 20 fresh past the gallery ranking, eligible, reproducibl
   for (const t of fresh.templates) got[stratum(t.wakeup)] = (got[stratum(t.wakeup)] ?? 0) + 1;
   assert.deepEqual(got, FRESH_QUOTAS);
   // Reproducible from corpus.json and the committed seed; a redrawn template is no candidate.
-  assert.deepEqual(drawFresh(freshPool(corpus.templates, 5), FRESH_QUOTAS, FRESH_SEEDS[5]).drawn.map((e) => e.id), ids(fresh.templates));
+  assert.deepEqual(drawFresh(freshPool(corpus.templates, 5), FRESH_QUOTAS, FRESH_SEEDS[5], new Set(), refill).drawn.map((e) => e.id), ids(fresh.templates));
   for (const { out } of fresh.redraws ?? []) for (const id of out) assert.ok(!isCandidate(byId.get(id)), `${id} was redrawn but is still a candidate`);
   // Fresh: named nowhere a fixing session reads (levers.json, LEVERS.md), not on the ranking's
   // listing pages (where cached), and never in the survey folder (PROPOSALS P51).
@@ -499,4 +509,24 @@ test("round 5 held-out: 20 fresh past the gallery ranking, eligible, reproducibl
   const wake = new Map(fresh.templates.map((t) => [t.id, t.wakeup]));
   for (const l of labels.labels) assert.equal(l.wakeup, wake.get(l.id), String(l.id));
   for (const { out } of fresh.redraws ?? []) for (const id of out) assert.ok(labels.redrawnOut.some((r) => r.id === id), `${id} redrawn out but not recorded`);
+});
+
+// PROPOSALS P126: a held-out redraw whose stratum has no candidate left takes the views walk's
+// entries after the round's walk in listing order, behind the shuffled pool, so no draw made from
+// the pool moves.
+test("P126: refill entries come after the shuffled pool, in listing order", async () => {
+  const { drawFresh } = await import("../evals/bench/split.mjs");
+  const pool = [1, 2, 3, 4, 5, 6].map((id) => ({ id, rank: id, wakeup: id <= 3 ? "chat" : "manual", r4: "eligible", pool: "fresh" }));
+  const quotas = { chat: 2, manual: 2 };
+  const before = drawFresh(pool, quotas, 7).drawn.map((e) => e.id);
+  const out = before.find((id) => id <= 3);
+  const left = pool.map((e) => (e.id === out ? { ...e, r4Hand: "x" } : e));
+  const shortWithout = drawFresh(left.filter((e) => e.wakeup === "manual" || e.id === out), quotas, 7);
+  assert.deepEqual(shortWithout.short, { chat: 2 });
+  const after = [{ id: 90, rank: 990, wakeup: "chat", r4: "eligible", pool: "held-refill" }, { id: 80, rank: 980, wakeup: "chat", r4: "eligible", pool: "held-refill" }];
+  const exhausted = left.map((e) => (e.wakeup === "chat" && e.id !== out && !before.includes(e.id) ? { ...e, r4Hand: "y" } : e));
+  const r = drawFresh(exhausted, quotas, 7, new Set(), after);
+  assert.deepEqual(r.short, {});
+  assert.deepEqual(r.drawn.map((e) => e.id).filter((id) => id < 80), before.filter((id) => id !== out), "draws from the pool keep their order");
+  assert.equal(r.drawn.at(-1).id, 80, "the lowest-ranked refill entry comes in");
 });
