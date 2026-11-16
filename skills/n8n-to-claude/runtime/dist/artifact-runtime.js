@@ -11792,7 +11792,7 @@ return { mimeLookup, mimeExtension, fileTypeFromMimeType, prettyBytes, prepareBi
 const __m_rest_mjs = (() => {
 const { NodeError, isObject } = __m_util_mjs;
 const { parseFeed } = __m_feed_mjs;
-const { prepareBinary } = __m_files_mjs;
+const { binaryOf, prepareBinary } = __m_files_mjs;
 const { base64ToBytes } = __m_hash_mjs;
 // REST programs: node operations an app has no connector tool for, run against the app's own
 // REST API with the person's stored credential, when one operation takes more than one
@@ -12859,7 +12859,102 @@ const wikipedia = {
   },
 };
 
-const restPrograms = { googleSheets, googleCalendar, rssFeedRead, openAiImage, facebookGraph, discordWebhookV1, wikipedia };
+// ---------- LinkedIn (n8n LinkedIn node v1, post: create) ----------
+//
+// As n8n-nodes-base 2.47.7's LinkedIn node posts: the Posts API at api.linkedin.com/rest with
+// LinkedIn-Version 202604 and Rest.li 2.0.0, the text in LinkedIn's "little text" (the reserved
+// characters escaped), the author an organization or person URN, an image registered with
+// /images?action=initializeUpload and its bytes posted to the upload URL the answer names
+// (also with the credential), then POST /posts. A 201 answer gives {urn: x-restli-id}, any
+// other answer its body, as n8n's resolveHeaderData does. Both credential types send the
+// stored token as a Bearer token.
+const LINKEDIN = "https://api.linkedin.com";
+const LINKEDIN_HEADERS = { Accept: "application/json", "X-Restli-Protocol-Version": "2.0.0", "LinkedIn-Version": "202604" };
+const header = (h, name) => Object.entries(h ?? {}).find(([k]) => k.toLowerCase() === name)?.[1];
+async function linkedInRequest(exec, i, method, url, { body, bytes, mimeType } = {}) {
+  const auth = exec.step.auth?.secret ? { credentialType: exec.step.auth.credentialType, secret: exec.step.auth.secret } : undefined;
+  const req = { kind: "http", itemIndex: i, method, url, query: {}, headers: { ...LINKEDIN_HEADERS } };
+  if (bytes !== undefined) {
+    req.headers["Content-Type"] = mimeType;
+    req.body = bytes;
+    req.bodyEncoding = "base64";
+  } else if (body !== undefined && Object.keys(body).length) {
+    req.body = body;
+    req.contentType = "json";
+  }
+  if (auth) req.auth = auth;
+  const [r] = await exec.request([req]);
+  if (!r.ok) throw new NodeError(r.error?.message ?? "request failed", { node: exec.name, itemIndex: i });
+  const v = r.value ?? {};
+  const status = Number(v.status ?? 200);
+  let b = v.body;
+  if (typeof b === "string" && /^\s*[[{]/.test(b)) {
+    try {
+      b = JSON.parse(b);
+    } catch {
+      /* text */
+    }
+  }
+  if (status >= 400) throw new NodeError(`${status} - ${typeof b === "string" ? b : JSON.stringify(b)}`, { node: exec.name, itemIndex: i, httpCode: String(status) });
+  return status === 201 ? { urn: header(v.headers, "x-restli-id") } : b;
+}
+async function linkedInImage(exec, i, owner, prop) {
+  const reg = await linkedInRequest(exec, i, "POST", `${LINKEDIN}/rest/images?action=initializeUpload`, { body: { initializeUploadRequest: { owner } } });
+  const { meta } = binaryOf(exec, i, prop);
+  const { uploadUrl, image } = reg?.value ?? {};
+  await linkedInRequest(exec, i, "POST", uploadUrl, { bytes: meta.data, mimeType: meta.mimeType });
+  return image;
+}
+const linkedIn = {
+  versions: (v) => v === 1,
+  operations: ["create"],
+  async execute(exec) {
+    const items = exec.getInputData();
+    const resource = exec.param("resource", 0, "post", { rawExpressions: true });
+    const operation = exec.param("operation", 0, "create", { rawExpressions: true });
+    if (resource !== "post" || operation !== "create") throw new NodeError(`LinkedIn ${resource} ${operation} has no REST program`, { node: exec.name });
+    const out = [];
+    for (let i = 0; i < items.length; i++) {
+      try {
+        let text = exec.param("text", i, "");
+        if (typeof text !== "string") throw new NodeError(`Parameter "text" is not string`, { node: exec.name, itemIndex: i });
+        if (text.trim() === "") throw new NodeError("The Text field is empty. Enter text to publish the post.", { node: exec.name, itemIndex: i });
+        const category = exec.param("shareMediaCategory", i, "NONE");
+        const postAs = exec.param("postAs", i, "person");
+        const extra = exec.param("additionalFields", i, {});
+        text = text.replace(/[(*)[\]{}<>@|~_]/gm, (c) => "\\" + c);
+        let author;
+        let visibility = "PUBLIC";
+        if (postAs === "person") {
+          visibility = extra.visibility || "PUBLIC";
+          author = `urn:li:person:${exec.param("person", i, "")}`;
+        } else author = `urn:li:organization:${exec.param("organization", i, "")}`;
+        const body = { author, lifecycleState: "PUBLISHED", distribution: { feedDistribution: "MAIN_FEED", thirdPartyDistributionChannels: [] }, visibility };
+        if (category === "IMAGE") {
+          const title = extra.title ? extra.title : "";
+          const id = await linkedInImage(exec, i, author, exec.param("binaryPropertyName", i, "data"));
+          Object.assign(body, { content: { media: { title, id } }, commentary: text });
+        } else if (category === "ARTICLE") {
+          const article = { title: extra.title ? extra.title : "", description: extra.description ? extra.description : "", source: extra.originalUrl ? extra.originalUrl : "" };
+          if (extra.thumbnailBinaryPropertyName) article.thumbnail = await linkedInImage(exec, i, author, extra.thumbnailBinaryPropertyName);
+          Object.assign(body, { content: { article }, commentary: text });
+        } else body.commentary = text;
+        const res = await linkedInRequest(exec, i, "POST", `${LINKEDIN}/rest/posts`, { body });
+        for (const json of asItems(res)) out.push({ json, pairedItem: { item: i } });
+      } catch (e) {
+        if (e?.name === "Suspend" || e?.name === "ContainmentViolation") throw e;
+        if (exec.continueOnFail()) {
+          out.push({ json: { error: e.message }, pairedItem: { item: i } });
+          continue;
+        }
+        throw e;
+      }
+    }
+    return [out];
+  },
+};
+
+const restPrograms = { googleSheets, linkedIn, googleCalendar, rssFeedRead, openAiImage, facebookGraph, discordWebhookV1, wikipedia };
 
 return { restPrograms };
 })();

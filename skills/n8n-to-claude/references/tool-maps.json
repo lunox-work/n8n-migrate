@@ -1011,6 +1011,21 @@
         }
       }
     },
+    "n8n-nodes-base.linkedIn": {
+      "1": {
+        "post": {
+          "create": {
+            "rest": "linkedIn",
+            "credentialType": "linkedInOAuth2Api",
+            "hosts": [{ "method": "POST", "host": "api.linkedin.com", "pathPrefix": "/rest/" }, { "method": "POST", "host": "www.linkedin.com", "pathPrefix": "/dms-uploads/" }],
+            "effect": "write",
+            "fidelity": "exact",
+            "caveats": ["LinkedIn OAuth access tokens expire (about 60 days) and refreshing them is not built: the stored secret must be a current access token.", { "text": "The image's upload URL comes from LinkedIn's answer; one outside www.linkedin.com/dms-uploads/ is refused at run time.", "unless": { "param": "shareMediaCategory", "equals": "NONE" } }],
+            "understood": ["operation", "resource", "authentication", "text", "postAs", "person", "organization", "shareMediaCategory", "binaryPropertyName", "additionalFields.title", "additionalFields.description", "additionalFields.originalUrl", "additionalFields.thumbnailBinaryPropertyName", "additionalFields.visibility"]
+          }
+        }
+      }
+    },
     "n8n-nodes-base.facebookGraphApi": {
       ">=1": {
         "_": {

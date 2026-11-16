@@ -147,29 +147,21 @@
    "out-of-scope/under-a-minute": 2
   },
   "inScope": 475,
-  "supportedToday": 162,
-  "fullClass": 97,
-  "answersOnly": 40,
-  "blocked": 273,
+  "supportedToday": 164,
+  "fullClass": 99,
+  "answersOnly": 41,
+  "blocked": 270,
   "crashes": 0
  },
  "dev": {
   "templates": 100,
   "unnamed": 0,
   "supportedToday": 40,
-  "answersOnly": 14,
-  "blocked": 46,
+  "answersOnly": 15,
+  "blocked": 45,
   "missing": 0
  },
  "byPlanned": [
-  {
-   "group": "rest-template",
-   "keys": 40,
-   "galleryUnlock": 41,
-   "galleryTotal": 76,
-   "devUnlock": 8,
-   "devTotal": 13
-  },
   {
    "group": "unplanned",
    "keys": 92,
@@ -179,9 +171,17 @@
    "devTotal": 0
   },
   {
+   "group": "rest-template",
+   "keys": 39,
+   "galleryUnlock": 38,
+   "galleryTotal": 70,
+   "devUnlock": 7,
+   "devTotal": 11
+  },
+  {
    "group": "connector",
    "keys": 55,
-   "galleryUnlock": 36,
+   "galleryUnlock": 37,
    "galleryTotal": 73,
    "devUnlock": 9,
    "devTotal": 14
@@ -197,7 +197,7 @@
   {
    "group": "http",
    "keys": 4,
-   "galleryUnlock": 13,
+   "galleryUnlock": 14,
    "galleryTotal": 40,
    "devUnlock": 3,
    "devTotal": 4
@@ -229,9 +229,9 @@
   {
    "group": "form-ending",
    "keys": 1,
-   "galleryUnlock": 4,
+   "galleryUnlock": 5,
    "galleryTotal": 6,
-   "devUnlock": 2,
+   "devUnlock": 3,
    "devTotal": 3
   },
   {
@@ -279,7 +279,7 @@
   {
    "group": "n8n-nodes-base.httpRequest",
    "keys": 3,
-   "galleryUnlock": 10,
+   "galleryUnlock": 11,
    "galleryTotal": 35,
    "devUnlock": 0,
    "devTotal": 1,
@@ -340,6 +340,15 @@
    "planned": "connector"
   },
   {
+   "group": "n8n-nodes-base.form",
+   "keys": 1,
+   "galleryUnlock": 5,
+   "galleryTotal": 6,
+   "devUnlock": 3,
+   "devTotal": 3,
+   "planned": "form-ending (some operations)"
+  },
+  {
    "group": "n8n-nodes-base.editImage",
    "keys": 5,
    "galleryUnlock": 4,
@@ -367,22 +376,13 @@
    "planned": "core"
   },
   {
-   "group": "n8n-nodes-base.form",
-   "keys": 1,
-   "galleryUnlock": 4,
-   "galleryTotal": 6,
-   "devUnlock": 2,
-   "devTotal": 3,
-   "planned": "form-ending (some operations)"
-  },
-  {
-   "group": "n8n-nodes-base.linkedIn",
-   "keys": 1,
+   "group": "n8n-nodes-base.notion",
+   "keys": 4,
    "galleryUnlock": 3,
    "galleryTotal": 8,
    "devUnlock": 1,
-   "devTotal": 4,
-   "planned": "rest-template"
+   "devTotal": 3,
+   "planned": "connector"
   },
   {
    "group": "@n8n/n8n-nodes-langchain.toolSerpApi",
@@ -444,15 +444,6 @@
    "galleryUnlock": 2,
    "galleryTotal": 9,
    "devUnlock": 2,
-   "devTotal": 3,
-   "planned": "connector"
-  },
-  {
-   "group": "n8n-nodes-base.notion",
-   "keys": 4,
-   "galleryUnlock": 2,
-   "galleryTotal": 8,
-   "devUnlock": 1,
    "devTotal": 3,
    "planned": "connector"
   },
@@ -1268,15 +1259,35 @@
     "runtime"
    ],
    "reason": "runtime: not implemented in the runtime: n8n-nodes-base.httpRequest vN",
-   "galleryAlone": 6,
+   "galleryAlone": 7,
    "galleryTotal": 24,
    "devUnlock": 0,
    "devTotal": 1,
    "ids": {
-    "galleryAlone": [434, 437, 1169, 1471, 2043, 2972],
+    "galleryAlone": [434, 437, 681, 1169, 1471, 2043, 2972],
     "galleryTotal": [159, 175, 434, 437, 576, 591, 652, 674, 681, 693, 817, 837, 867, 1150, 1169, 1222, 1471, 1520, 1621, 1785, 2043, 2972, 3796, 4671],
     "devUnlock": [],
     "devTotal": [1150]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.form completion",
+   "type": "n8n-nodes-base.form",
+   "op": "completion",
+   "planned": "form-ending",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: form waits for a person (out of scope v1)",
+   "galleryAlone": 5,
+   "galleryTotal": 6,
+   "devUnlock": 3,
+   "devTotal": 3,
+   "ids": {
+    "galleryAlone": [2187, 3082, 3289, 3669, 4767],
+    "galleryTotal": [2187, 2976, 3082, 3289, 3669, 4767],
+    "devUnlock": [2187, 3082, 3669],
+    "devTotal": [2187, 3082, 3669]
    }
   },
   {
@@ -1297,46 +1308,6 @@
     "galleryTotal": [160, 1810, 2123, 2210, 2957, 4671, 5817],
     "devUnlock": [],
     "devTotal": []
-   }
-  },
-  {
-   "key": "n8n-nodes-base.form completion",
-   "type": "n8n-nodes-base.form",
-   "op": "completion",
-   "planned": "form-ending",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: form waits for a person (out of scope v1)",
-   "galleryAlone": 4,
-   "galleryTotal": 6,
-   "devUnlock": 2,
-   "devTotal": 3,
-   "ids": {
-    "galleryAlone": [2187, 3289, 3669, 4767],
-    "galleryTotal": [2187, 2976, 3082, 3289, 3669, 4767],
-    "devUnlock": [2187, 3669],
-    "devTotal": [2187, 3082, 3669]
-   }
-  },
-  {
-   "key": "n8n-nodes-base.linkedIn post:create",
-   "type": "n8n-nodes-base.linkedIn",
-   "op": "post:create",
-   "planned": "rest-template",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret)",
-   "galleryAlone": 3,
-   "galleryTotal": 8,
-   "devUnlock": 1,
-   "devTotal": 4,
-   "ids": {
-    "galleryAlone": [3086, 5002, 5840],
-    "galleryTotal": [681, 2273, 2288, 2557, 3082, 3086, 5002, 5840],
-    "devUnlock": [3086],
-    "devTotal": [2288, 2557, 3082, 3086]
    }
   },
   {

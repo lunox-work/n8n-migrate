@@ -1,6 +1,7 @@
 // REST programs (runtime/src/rest.mjs) and the "same service over REST with your own key"
-// mapping in the converter: Google Sheets v4 writes make n8n's requests (n8n-nodes-base 2.47
-// GoogleSheet.ts), and an unapproved LLM API call stays an http step.
+// mapping in the converter: Google Sheets v4 reads and writes make n8n's requests (n8n-nodes-base
+// 2.47 GoogleSheet.ts), LinkedIn posts as its node sends them, and an unapproved LLM API call
+// stays an http step.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
@@ -10,6 +11,7 @@ import { convertItems, loadReferences } from "../skills/n8n-to-claude/scripts/co
 import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
 import { preflight, start as startRun, resume } from "../skills/n8n-to-claude/runtime/src/api.mjs";
 import { node, wf, run, out, start } from "./runtime-helpers.mjs";
+import { restPrograms } from "../skills/n8n-to-claude/runtime/src/rest.mjs";
 
 const SHEET = "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789";
 const HOST = "sheets.googleapis.com";
@@ -208,4 +210,64 @@ test("convert: a Sheets v4 read goes over REST only when a Sheets step of the wo
   assert.equal(alone.steps.Read.tool.name, "download_file_content");
   const other = convertWorkflow([manual, reader, writer("Add", "Another Google")], links);
   assert.equal(other.steps.Read.kind, "tool");
+});
+
+// ---------- LinkedIn post:create (rest.mjs linkedIn, n8n LinkedIn node v1) ----------
+
+function linkedInExec(params, items, answers) {
+  const seen = [];
+  return {
+    seen,
+    exec: {
+      name: "Publish",
+      typeVersion: 1,
+      step: { auth: { credentialType: "linkedInOAuth2Api", secret: "LinkedIn" } },
+      getInputData: () => items,
+      continueOnFail: () => false,
+      param: (p, i, d) => (p in params ? (typeof params[p] === "function" ? params[p](i) : params[p]) : d),
+      request: async ([req]) => {
+        seen.push(req);
+        return [{ ok: true, value: answers(req) }];
+      },
+    },
+  };
+}
+
+test("LinkedIn post:create: an image post as n8n sends it (little text, initializeUpload, bytes, /rest/posts, the urn from x-restli-id)", async () => {
+  const png = Buffer.from("png bytes").toString("base64");
+  const { exec, seen } = linkedInExec(
+    { resource: "post", operation: "create", text: "Hi (all) @team_1 #ok", postAs: "organization", organization: "123", shareMediaCategory: "IMAGE", additionalFields: {} },
+    [{ json: {}, binary: { data: { data: png, mimeType: "image/png", fileName: "a.png" } } }],
+    (req) => (req.url.endsWith("action=initializeUpload") ? { status: 200, body: JSON.stringify({ value: { uploadUrl: "https://www.linkedin.com/dms-uploads/sp/x", image: "urn:li:image:1" } }) } : req.url.endsWith("/rest/posts") ? { status: 201, headers: { "x-restli-id": "urn:li:share:9" }, body: "" } : { status: 201, body: "" }),
+  );
+  const [out] = await restPrograms.linkedIn.execute(exec);
+  assert.deepEqual(out, [{ json: { urn: "urn:li:share:9" }, pairedItem: { item: 0 } }]);
+  assert.deepEqual(seen.map((r) => `${r.method} ${r.url}`), ["POST https://api.linkedin.com/rest/images?action=initializeUpload", "POST https://www.linkedin.com/dms-uploads/sp/x", "POST https://api.linkedin.com/rest/posts"]);
+  assert.deepEqual(seen[0].body, { initializeUploadRequest: { owner: "urn:li:organization:123" } });
+  assert.equal(seen[1].body, png);
+  assert.equal(seen[1].bodyEncoding, "base64");
+  assert.equal(seen[1].headers["Content-Type"], "image/png");
+  assert.deepEqual(seen[2].body, { author: "urn:li:organization:123", lifecycleState: "PUBLISHED", distribution: { feedDistribution: "MAIN_FEED", thirdPartyDistributionChannels: [] }, visibility: "PUBLIC", content: { media: { title: "", id: "urn:li:image:1" } }, commentary: "Hi \\(all\\) \\@team\\_1 #ok" });
+  for (const r of seen) assert.deepEqual([r.headers["LinkedIn-Version"], r.headers["X-Restli-Protocol-Version"], r.auth.secret], ["202604", "2.0.0", "LinkedIn"]);
+});
+
+test("LinkedIn post:create: a text post as a person keeps its visibility; empty text is refused as n8n refuses it", async () => {
+  const { exec, seen } = linkedInExec({ text: "Hello", postAs: "person", person: "abc", additionalFields: { visibility: "CONNECTIONS" } }, [{ json: {} }], () => ({ status: 201, headers: { "X-RestLi-Id": "urn:li:share:1" }, body: "" }));
+  const [out] = await restPrograms.linkedIn.execute(exec);
+  assert.deepEqual(out[0].json, { urn: "urn:li:share:1" });
+  assert.deepEqual(seen[0].body, { author: "urn:li:person:abc", lifecycleState: "PUBLISHED", distribution: { feedDistribution: "MAIN_FEED", thirdPartyDistributionChannels: [] }, visibility: "CONNECTIONS", commentary: "Hello" });
+  const empty = linkedInExec({ text: "  " }, [{ json: {} }], () => ({ status: 201 }));
+  await assert.rejects(restPrograms.linkedIn.execute(empty.exec), /The Text field is empty/);
+});
+
+test("convert: LinkedIn post:create becomes the linkedIn REST program with the step's credential", () => {
+  const post = { parameters: { text: "={{ $json.t }}", postAs: "organization", organization: "123", additionalFields: {}, shareMediaCategory: "NONE" }, name: "Post", type: "n8n-nodes-base.linkedIn", typeVersion: 1, position: [200, 0], credentials: { linkedInOAuth2Api: { id: "1", name: "My LinkedIn" } } };
+  const def = convertWorkflow([manual, post], { Start: { main: [[{ node: "Post", type: "main", index: 0 }]] } });
+  const s = def.steps.Post;
+  assert.equal(s.kind, "http");
+  assert.equal(s.rest.program, "linkedIn");
+  assert.equal(s.rest.effect, "write");
+  assert.deepEqual(s.auth, { credentialType: "linkedInOAuth2Api", secret: "My LinkedIn" });
+  assert.deepEqual(def.secrets.find((x) => x.name === "My LinkedIn").hosts.sort(), ["api.linkedin.com", "www.linkedin.com"]);
+  assert.equal(preflight(def, {}).ok, true, JSON.stringify(preflight(def, {}).issues));
 });
