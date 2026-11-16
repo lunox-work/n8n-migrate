@@ -1,0 +1,51 @@
+{
+  "why": "Workflow Variables leaves GOOGLE_API_KEY as placeholder text ([Add-Your-Google-API-Key-Here]) for the person's key, and Telegram takes its chat id from $env.TELEGRAM_CHAT_ID, which the template leaves to the person's environment. The key is filled with a placeholder on both sides; the chat id is env on the n8n container (the same value as config/3025.json and 3291.json, since env is shared across overlays) and a step value on the Claude side, where the runtime keeps $env blocked. Placeholder fills only: no logic changes.",
+  "env": {
+    "TELEGRAM_CHAT_ID": "100200300"
+  },
+  "n8n": {
+    "Workflow Variables": {
+      "parameters.assignments.assignments.0.value": "bench-google-api-key"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Workflow Variables": {
+          "patch": {
+            "params": {
+              "assignments": {
+                "assignments": [
+                  {
+                    "id": "e656b8ef-4266-4f50-bd41-703b4bdb04df",
+                    "name": "GOOGLE_API_KEY",
+                    "type": "string",
+                    "value": "bench-google-api-key"
+                  },
+                  {
+                    "id": "32db428d-a2e2-48a0-92c6-3880e744d140",
+                    "name": "VIDEO_ID",
+                    "type": "string",
+                    "value": "={{ $json.id.split(\":\").last() }}"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "Telegram": {
+          "patch": {
+            "params": {
+              "chatId": "100200300"
+            },
+            "http": {
+              "body": {
+                "chat_id": "100200300"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

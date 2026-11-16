@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "template": 3003,
+  "sha256": "c54c3be37c4e283fc4ffbdf5f694ffb12a04ddd54d92646790ef4b452242a2ab",
+  "variant": "malformed",
+  "now": "2026-11-16T14:05:00.000Z",
+  "about": "one channel id in a textarea padded with line breaks; its feed has an entry without any publish date (kept unlabelled, then filtered out) and a new one whose title is very long, and the API answer for it has no standard thumbnail and no player",
+  "trigger": {
+    "node": "On form submission",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "YouTube Channel Ids": "\n  [ \"UCbench3003ChanC00000003\" ]  \n",
+          "submittedAt": "2026-11-16T09:04:51.204-05:00",
+          "formMode": "production"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "RSS Read  - Max 15 Latest Videos per Channel",
+      "service": "youtube-rss",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.youtube.com/feeds/videos.xml",
+            "status": 200,
+            "headers": {
+              "content-type": "text/xml; charset=UTF-8"
+            },
+            "query": {
+              "channel_id": "UCbench3003ChanC00000003"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><feed xmlns:yt=\"http://www.youtube.com/xml/schemas/2015\" xmlns:media=\"http://search.yahoo.com/mrss/\" xmlns=\"http://www.w3.org/2005/Atom\"><link rel=\"self\" href=\"http://www.youtube.com/feeds/videos.xml?channel_id=UCbench3003ChanC00000003\"/><id>yt:channel:bench3003ChanC00000003</id><yt:channelId>bench3003ChanC00000003</yt:channelId><title>Odd Channel</title><link rel=\"alternate\" href=\"https://www.youtube.com/channel/UCbench3003ChanC00000003\"/><author><name>Odd Channel</name><uri>https://www.youtube.com/channel/UCbench3003ChanC00000003</uri></author><published>2019-03-02T10:00:00+00:00</published><entry><id>yt:video:oDd3003nopub</id><yt:videoId>oDd3003nopub</yt:videoId><yt:channelId>UCbench3003ChanC00000003</yt:channelId><title>Premiere scheduled</title><link rel=\"alternate\" href=\"https://www.youtube.com/watch?v=oDd3003nopub\"/><author><name>Odd Channel</name><uri>https://www.youtube.com/channel/UCbench3003ChanC00000003</uri></author><media:group><media:title>Premiere scheduled</media:title><media:description></media:description></media:group></entry><entry><id>yt:video:oDd3003long</id><yt:videoId>oDd3003long</yt:videoId><yt:channelId>UCbench3003ChanC00000003</yt:channelId><title>Live: ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ end</title><link rel=\"alternate\" href=\"https://www.youtube.com/watch?v=oDd3003long\"/><author><name>Odd Channel</name><uri>https://www.youtube.com/channel/UCbench3003ChanC00000003</uri></author><published>{{bench.now-2h}}</published><updated>{{bench.now-2h}}</updated><media:group><media:title>Live: ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ end</media:title><media:description></media:description></media:group></entry></feed>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured connector reads RSS feeds"
+      },
+      "note": "an Atom feed whose first entry has neither published nor updated, so rss-parser gives it no pubDate"
+    },
+    {
+      "node": "Get YouTube Video Details",
+      "service": "youtube-data-api",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/youtube/v3/videos",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "query": {
+              "id": "oDd3003long",
+              "key": "bench-google-api-key"
+            },
+            "body": {
+              "kind": "youtube#videoListResponse",
+              "etag": "bench-list-oDd3003long",
+              "items": [
+                {
+                  "kind": "youtube#video",
+                  "etag": "bench-oDd3003long",
+                  "id": "oDd3003long",
+                  "snippet": {
+                    "publishedAt": "2026-11-15T16:00:00Z",
+                    "channelId": "UCoDd3003long",
+                    "title": "Live: ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ ünïcødé ⚡ end",
+                    "description": "",
+                    "channelTitle": "Odd Channel",
+                    "categoryId": "28",
+                    "liveBroadcastContent": "none",
+                    "thumbnails": {
+                      "default": {
+                        "url": "https://i.ytimg.com/vi/oDd3003long/default.jpg",
+                        "width": 120,
+                        "height": 90
+                      }
+                    }
+                  },
+                  "contentDetails": {
+                    "duration": "PT12M3S",
+                    "dimension": "2d",
+                    "definition": "hd",
+                    "caption": "false",
+                    "licensedContent": true,
+                    "projection": "rectangular"
+                  },
+                  "status": {
+                    "uploadStatus": "processed",
+                    "privacyStatus": "public",
+                    "license": "youtube",
+                    "embeddable": true,
+                    "publicStatsViewable": true,
+                    "madeForKids": false
+                  },
+                  "statistics": {
+                    "viewCount": "48211",
+                    "likeCount": "2210",
+                    "favoriteCount": "0",
+                    "commentCount": "187"
+                  },
+                  "topicDetails": {
+                    "topicCategories": [
+                      "https://en.wikipedia.org/wiki/Technology"
+                    ]
+                  }
+                }
+              ],
+              "pageInfo": {
+                "totalResults": 1,
+                "resultsPerPage": 1
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured YouTube connector"
+      },
+      "note": "YouTube Data API v3 videos.list (part=snippet,contentDetails,status,statistics,player,topicDetails, id, key from the overlay's placeholder fill), one call per new video"
+    }
+  ],
+  "models": [
+    "Create Email per Video",
+    "Create One Email for All Videos"
+  ],
+  "writes": [
+    "Multiple Emails",
+    "Single Email",
+    "Telegram"
+  ],
+  "writeReplies": [
+    {
+      "node": "Telegram",
+      "service": "telegram",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.telegram.org/bot{token}/sendPhoto",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "ok": true,
+              "result": {
+                "message_id": 7100,
+                "from": {
+                  "id": 5550001,
+                  "is_bot": true,
+                  "first_name": "Bench Bot",
+                  "username": "bench_bot"
+                },
+                "chat": {
+                  "id": 100200300,
+                  "type": "private",
+                  "first_name": "Bench"
+                },
+                "date": 1794834300,
+                "photo": [
+                  {
+                    "file_id": "AgACAgQAAxkDbench0",
+                    "file_unique_id": "AQADbench0",
+                    "file_size": 1841,
+                    "width": 90,
+                    "height": 67
+                  }
+                ],
+                "caption": "New YouTube Video From Your Favorite Channel"
+              }
+            }
+          }
+        ]
+      },
+      "note": "Bot API sendPhoto answers the sent message; one call per new video"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "form text non-empty (whitespace around the JSON array)",
+      "the entry without a date fails Label New Videos' check, is returned unchanged with no recent_videos, and Get New Videos drops it"
+    ],
+    "offline": "The form waits for the last node (responseMode lastNode); the bench pins the trigger's item, so no browser waits. 'Recent' is n8n's clock in the Code node (start of today in New York minus 3 days), so publish times are relative to the run ({{bench.now-…}}, P90). The Telegram chat id is $env.TELEGRAM_CHAT_ID, a placeholder the overlay fills (env on the n8n side, a step value on the Claude side), as for 3025 and 3291. The Google API key is placeholder text the overlay fills. The Telegram photo URL resolves to empty text, which the mock accepts as Telegram would refuse it (not modelled)."
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "template": 8487,
+  "sha256": "ed37d23130b08abe7503eb8eb14b5f73cacdbcf9c9e2358b25b841611af63935",
+  "variant": "normal",
+  "now": "2026-11-16T08:30:00.000Z",
+  "about": "a backend engineer's one-page CV, remote full-time in Jakarta; SerpAPI returns three job listings",
+  "trigger": {
+    "node": "On form submission",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "CV/Resume (PDF)": {
+            "filename": "CV_Rina_Pratama.pdf",
+            "mimetype": "application/pdf",
+            "size": 1189
+          },
+          "Preferred Location": "Jakarta",
+          "Job Type": "Full Time",
+          "Work Setting": "Remote",
+          "Minimum Salary Expectation (Optional)": "25-30 juta",
+          "Additional Preferences (Optional)": "product company, English-speaking team",
+          "Email": "rina.pratama@mail.example",
+          "submittedAt": "2026-11-16T15:29:40.118+07:00",
+          "formMode": "production"
+        },
+        "binary": {
+          "CV_Resume__PDF_": {
+            "data": "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA0IDAgUiA+PiA+PiAvQ29udGVudHMgNSAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nID4+CmVuZG9iago1IDAgb2JqCjw8IC9MZW5ndGggNjExID4+CnN0cmVhbQpCVCAvRjEgMTEgVGYgNTAgNzkwIFRkIDE0IFRMCihSaW5hIFByYXRhbWEpIFRqIFQqCihCYWNrZW5kIEVuZ2luZWVyIC0gSmFrYXJ0YSwgSW5kb25lc2lhKSBUaiBUKgoocmluYS5wcmF0YW1hQG1haWwuZXhhbXBsZSB8ICs2MiA4MTIgNTU1MCAxODQ0KSBUaiBUKgooKSBUaiBUKgooRVhQRVJJRU5DRSkgVGogVCoKKFRva29wZWRpYS1saWtlIG1hcmtldHBsYWNlIFwoMjAyMS0yMDI2XCk6IFNlbmlvciBCYWNrZW5kIEVuZ2luZWVyLiBHbywgUG9zdGdyZVNRTCwgS2Fma2E7IGN1dCBjaGVja291dCBwOTkgZnJvbSA5MDAgbXMgdG8gMjEwIG1zLikgVGogVCoKKEZpbnRlY2ggc3RhcnR1cCBcKDIwMTktMjAyMVwpOiBCYWNrZW5kIEVuZ2luZWVyLiBOb2RlLmpzLCBUeXBlU2NyaXB0LCBSZWRpczsgYnVpbHQgdGhlIGxvYW4gZGlzYnVyc2VtZW50IHNlcnZpY2UuKSBUaiBUKgooKSBUaiBUKgooU0tJTExTKSBUaiBUKgooR28sIFR5cGVTY3JpcHQsIFBvc3RncmVTUUwsIEthZmthLCBLdWJlcm5ldGVzLCBBV1MpIFRqIFQqCigpIFRqIFQqCihFRFVDQVRJT04pIFRqIFQqCihCLlNjLiBDb21wdXRlciBTY2llbmNlLCBVbml2ZXJzaXRhcyBJbmRvbmVzaWEsIDIwMTkpIFRqIFQqCkVUCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE1IDAwMDAwIG4gCjAwMDAwMDAwNjQgMDAwMDAgbiAKMDAwMDAwMDEyMSAwMDAwMCBuIAowMDAwMDAwMjQ3IDAwMDAwIG4gCjAwMDAwMDAzNDQgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoxMDA1CiUlRU9GCg==",
+            "mimeType": "application/pdf",
+            "fileName": "CV_Rina_Pratama.pdf",
+            "fileExtension": "pdf",
+            "fileSize": "1189 B"
+          }
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "SerpAPI",
+      "service": "serpapi",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://serpapi.com/search",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "search_metadata": {
+                "id": "bench-8487",
+                "status": "Success",
+                "total_time_taken": 1.12
+              },
+              "search_parameters": {
+                "engine": "google",
+                "google_domain": "google.com"
+              },
+              "search_information": {
+                "total_results": 3120
+              },
+              "organic_results": [
+                {
+                  "position": 1,
+                  "title": "Senior Backend Engineer (Go) - Remote Indonesia - Xendit",
+                  "link": "https://jobs.lever.co/xendit-bench/8487-senior-backend-go",
+                  "displayed_link": "jobs.lever.co",
+                  "snippet": "Remote within Indonesia. 5+ years backend, Go, PostgreSQL, Kafka. Salary IDR 28-38 juta. Posted 3 days ago."
+                },
+                {
+                  "position": 2,
+                  "title": "Backend Engineer, Payments - Jakarta (Hybrid)",
+                  "link": "https://www.linkedin.com/jobs/view/8487000001",
+                  "displayed_link": "www.linkedin.com",
+                  "snippet": "Hybrid in South Jakarta. Node.js or Go, distributed systems. Posted 1 week ago."
+                },
+                {
+                  "position": 3,
+                  "title": "Software Engineer - Platform (Remote) - Glints",
+                  "link": "https://glints.com/id/opportunities/jobs/8487-platform",
+                  "displayed_link": "glints.com",
+                  "snippet": "Full time, remote. Kubernetes, AWS, Go. Posted 5 days ago."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured search connector; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "agent tool: LangChain SerpAPI, GET https://serpapi.com/search with the model-written q and the credential's api_key; the same answer for every query (queries are model-written)"
+    }
+  ],
+  "models": [
+    "Job Hunter Agent"
+  ],
+  "writes": [
+    "Send a message"
+  ],
+  "pinData": {
+    "On form submission": [
+      {
+        "Email": "khmuhtadin@proton.me",
+        "Job Type": "Freelance",
+        "formMode": "test",
+        "submittedAt": "2025-09-11T23:14:58.671+07:00",
+        "Work Setting": "Remote",
+        "CV/Resume (PDF)": {
+          "size": 4430,
+          "filename": "Dummy_ATS_Programmer_CV.pdf",
+          "mimetype": "application/pdf"
+        },
+        "Preferred Location": "USA",
+        "Additional Preferences (Optional)": "",
+        "Minimum Salary Expectation (Optional)": ""
+      }
+    ]
+  },
+  "expect": {
+    "branches": [
+      "no IF/Switch: one agent answer, one email to the form's address"
+    ],
+    "offline": "The CV arrives with the form as a PDF (binary, so the bench submits the form, --via form) and Extract from File reads it locally; the template's own pinData on the trigger is kept verbatim and does not apply to a production submission. Whether and how often the agent calls SerpAPI is model-driven, so SerpAPI answers every query the same. Parse Agent Output falls back to {error, raw} when the agent's text is not JSON, and the email is still sent."
+  }
+}

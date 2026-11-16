@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "template": 8487,
+  "sha256": "ed37d23130b08abe7503eb8eb14b5f73cacdbcf9c9e2358b25b841611af63935",
+  "variant": "empty",
+  "now": "2026-11-16T08:30:00.000Z",
+  "about": "a CV PDF with no text on its page, both optional fields left empty; SerpAPI finds nothing",
+  "trigger": {
+    "node": "On form submission",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "CV/Resume (PDF)": {
+            "filename": "scan.pdf",
+            "mimetype": "application/pdf",
+            "size": 608
+          },
+          "Preferred Location": "Anywhere",
+          "Job Type": "Internship",
+          "Work Setting": "On Site",
+          "Minimum Salary Expectation (Optional)": "",
+          "Additional Preferences (Optional)": "",
+          "Email": "applicant@mail.example",
+          "submittedAt": "2026-11-16T15:29:40.118+07:00",
+          "formMode": "production"
+        },
+        "binary": {
+          "CV_Resume__PDF_": {
+            "data": "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA0IDAgUiA+PiA+PiAvQ29udGVudHMgNSAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nID4+CmVuZG9iago1IDAgb2JqCjw8IC9MZW5ndGggMzIgPj4Kc3RyZWFtCkJUIC9GMSAxMSBUZiA1MCA3OTAgVGQgMTQgVEwKRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTUgMDAwMDAgbiAKMDAwMDAwMDA2NCAwMDAwMCBuIAowMDAwMDAwMTIxIDAwMDAwIG4gCjAwMDAwMDAyNDcgMDAwMDAgbiAKMDAwMDAwMDM0NCAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDYgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjQyNQolJUVPRgo=",
+            "mimeType": "application/pdf",
+            "fileName": "scan.pdf",
+            "fileExtension": "pdf",
+            "fileSize": "608 B"
+          }
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "SerpAPI",
+      "service": "serpapi",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://serpapi.com/search",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "search_metadata": {
+                "id": "bench-8487-empty",
+                "status": "Success"
+              },
+              "search_parameters": {
+                "engine": "google"
+              },
+              "search_information": {
+                "total_results": 0
+              },
+              "error": "Google hasn't returned any results for this query."
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured search connector; the Claude side serves the same responses through its HTTP mock"
+      },
+      "note": "agent tool: LangChain SerpAPI, GET https://serpapi.com/search with the model-written q and the credential's api_key; the same answer for every query (queries are model-written)"
+    }
+  ],
+  "models": [
+    "Job Hunter Agent"
+  ],
+  "writes": [
+    "Send a message"
+  ],
+  "pinData": {
+    "On form submission": [
+      {
+        "Email": "khmuhtadin@proton.me",
+        "Job Type": "Freelance",
+        "formMode": "test",
+        "submittedAt": "2025-09-11T23:14:58.671+07:00",
+        "Work Setting": "Remote",
+        "CV/Resume (PDF)": {
+          "size": 4430,
+          "filename": "Dummy_ATS_Programmer_CV.pdf",
+          "mimetype": "application/pdf"
+        },
+        "Preferred Location": "USA",
+        "Additional Preferences (Optional)": "",
+        "Minimum Salary Expectation (Optional)": ""
+      }
+    ]
+  },
+  "expect": {
+    "branches": [
+      "no IF/Switch",
+      "the CV has no text and the optional fields fall back to 'Not specified' and 'None'"
+    ],
+    "offline": "The CV arrives with the form as a PDF (binary, so the bench submits the form, --via form) and Extract from File reads it locally; the template's own pinData on the trigger is kept verbatim and does not apply to a production submission. Whether and how often the agent calls SerpAPI is model-driven, so SerpAPI answers every query the same. Parse Agent Output falls back to {error, raw} when the agent's text is not JSON, and the email is still sent."
+  }
+}

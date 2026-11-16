@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "template": 2922,
+  "sha256": "5e1c49ccc1893deed172a4008dfabaea1dae43566c236b3e01f1daf426ee6ddf",
+  "variant": "empty",
+  "now": "2026-11-16T10:00:00.000Z",
+  "about": "the caller passes empty facts and empty text, so the Code node stops the run with its own 'Input text is empty' error",
+  "trigger": {
+    "node": "When Executed by Another Workflow",
+    "kind": "subworkflow",
+    "items": [
+      {
+        "json": {
+          "facts": "",
+          "text": ""
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [
+    "Basic LLM Chain4",
+    "Basic LLM Chain"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "none: Code throws 'Input text is empty' on purpose, n8n's baseline ends there in error"
+    ],
+    "offline": "No outside read or write: both models are Ollama models the shim answers, and what is compared is the summary chain's output (a terminal step). With canned replies no claim check answers exactly 'No', so the canned run ends at Filter; recorded replies decide how far it goes. The caller's fields are not in the template; the fixture passes facts and text, the two inputs the trigger declares."
+  }
+}

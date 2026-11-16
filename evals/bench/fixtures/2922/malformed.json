@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "template": 2922,
+  "sha256": "5e1c49ccc1893deed172a4008dfabaea1dae43566c236b3e01f1daf426ee6ddf",
+  "variant": "malformed",
+  "now": "2026-11-16T10:00:00.000Z",
+  "about": "no facts field at all, and text that is one very long run-on with German dates, a list item and no sentence end",
+  "trigger": {
+    "node": "When Executed by Another Workflow",
+    "kind": "subworkflow",
+    "items": [
+      {
+        "json": {
+          "text": "Zusammenfassung: das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma das projekt begann im januar 2025 und  endete im märz 2026, ohne punkt und komma \n- Punkt eins\n- Punkt zwei"
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [
+    "Basic LLM Chain4",
+    "Basic LLM Chain"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "Filter keeps the claims the checker answers 'No'"
+    ],
+    "offline": "No outside read or write: both models are Ollama models the shim answers, and what is compared is the summary chain's output (a terminal step). With canned replies no claim check answers exactly 'No', so the canned run ends at Filter; recorded replies decide how far it goes. The caller's fields are not in the template; the fixture passes facts and text, the two inputs the trigger declares. facts is missing, so the claim prompt's Document line renders empty."
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "template": 3003,
+  "sha256": "c54c3be37c4e283fc4ffbdf5f694ffb12a04ddd54d92646790ef4b452242a2ab",
+  "variant": "empty",
+  "now": "2026-11-16T14:05:00.000Z",
+  "about": "the form is submitted with the textarea empty, so the three default channel ids are read; every feed has no videos, and the run ends at the RSS read",
+  "trigger": {
+    "node": "On form submission",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "YouTube Channel Ids": "",
+          "submittedAt": "2026-11-16T09:04:51.204-05:00",
+          "formMode": "production"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "RSS Read  - Max 15 Latest Videos per Channel",
+      "service": "youtube-rss",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.youtube.com/feeds/videos.xml",
+            "status": 200,
+            "headers": {
+              "content-type": "text/xml; charset=UTF-8"
+            },
+            "query": {
+              "channel_id": "UCTwwnM-YB8zWC0RWwhO5sGw"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><feed xmlns:yt=\"http://www.youtube.com/xml/schemas/2015\" xmlns:media=\"http://search.yahoo.com/mrss/\" xmlns=\"http://www.w3.org/2005/Atom\"><link rel=\"self\" href=\"http://www.youtube.com/feeds/videos.xml?channel_id=UCTwwnM-YB8zWC0RWwhO5sGw\"/><id>yt:channel:TwwnM-YB8zWC0RWwhO5sGw</id><yt:channelId>TwwnM-YB8zWC0RWwhO5sGw</yt:channelId><title>Default channel one</title><link rel=\"alternate\" href=\"https://www.youtube.com/channel/UCTwwnM-YB8zWC0RWwhO5sGw\"/><author><name>Default channel one</name><uri>https://www.youtube.com/channel/UCTwwnM-YB8zWC0RWwhO5sGw</uri></author><published>2019-03-02T10:00:00+00:00</published></feed>"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.youtube.com/feeds/videos.xml",
+            "status": 200,
+            "headers": {
+              "content-type": "text/xml; charset=UTF-8"
+            },
+            "query": {
+              "channel_id": "UCMcoud_ZW7cfxeIugBflSBw"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><feed xmlns:yt=\"http://www.youtube.com/xml/schemas/2015\" xmlns:media=\"http://search.yahoo.com/mrss/\" xmlns=\"http://www.w3.org/2005/Atom\"><link rel=\"self\" href=\"http://www.youtube.com/feeds/videos.xml?channel_id=UCMcoud_ZW7cfxeIugBflSBw\"/><id>yt:channel:Mcoud_ZW7cfxeIugBflSBw</id><yt:channelId>Mcoud_ZW7cfxeIugBflSBw</yt:channelId><title>Default channel two</title><link rel=\"alternate\" href=\"https://www.youtube.com/channel/UCMcoud_ZW7cfxeIugBflSBw\"/><author><name>Default channel two</name><uri>https://www.youtube.com/channel/UCMcoud_ZW7cfxeIugBflSBw</uri></author><published>2019-03-02T10:00:00+00:00</published></feed>"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.youtube.com/feeds/videos.xml",
+            "status": 200,
+            "headers": {
+              "content-type": "text/xml; charset=UTF-8"
+            },
+            "query": {
+              "channel_id": "UCtevzRsHEKhs-RK8pAqwSyQ"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><feed xmlns:yt=\"http://www.youtube.com/xml/schemas/2015\" xmlns:media=\"http://search.yahoo.com/mrss/\" xmlns=\"http://www.w3.org/2005/Atom\"><link rel=\"self\" href=\"http://www.youtube.com/feeds/videos.xml?channel_id=UCtevzRsHEKhs-RK8pAqwSyQ\"/><id>yt:channel:tevzRsHEKhs-RK8pAqwSyQ</id><yt:channelId>tevzRsHEKhs-RK8pAqwSyQ</yt:channelId><title>Default channel three</title><link rel=\"alternate\" href=\"https://www.youtube.com/channel/UCtevzRsHEKhs-RK8pAqwSyQ\"/><author><name>Default channel three</name><uri>https://www.youtube.com/channel/UCtevzRsHEKhs-RK8pAqwSyQ</uri></author><published>2019-03-02T10:00:00+00:00</published></feed>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured connector reads RSS feeds"
+      },
+      "note": "the three default channels' feeds, each with no entry"
+    },
+    {
+      "node": "Get YouTube Video Details",
+      "service": "youtube-data-api",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/youtube/v3/videos",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "kind": "youtube#videoListResponse",
+              "etag": "bench-empty",
+              "items": [],
+              "pageInfo": {
+                "totalResults": 0,
+                "resultsPerPage": 0
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured YouTube connector"
+      },
+      "note": "YouTube Data API v3 videos.list (part=snippet,contentDetails,status,statistics,player,topicDetails, id, key from the overlay's placeholder fill), one call per new video"
+    }
+  ],
+  "models": [
+    "Create Email per Video",
+    "Create One Email for All Videos"
+  ],
+  "writes": [
+    "Multiple Emails",
+    "Single Email",
+    "Telegram"
+  ],
+  "expect": {
+    "branches": [
+      "form text empty: the default channel ids are used",
+      "no feed entry, so nothing reaches Label New Videos"
+    ],
+    "offline": "The form waits for the last node (responseMode lastNode); the bench pins the trigger's item, so no browser waits. 'Recent' is n8n's clock in the Code node (start of today in New York minus 3 days), so publish times are relative to the run ({{bench.now-…}}, P90). The Telegram chat id is $env.TELEGRAM_CHAT_ID, a placeholder the overlay fills (env on the n8n side, a step value on the Claude side), as for 3025 and 3291. The Google API key is placeholder text the overlay fills."
+  }
+}

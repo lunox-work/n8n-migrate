@@ -1,0 +1,351 @@
+{
+  "schemaVersion": 1,
+  "template": 3003,
+  "sha256": "c54c3be37c4e283fc4ffbdf5f694ffb12a04ddd54d92646790ef4b452242a2ab",
+  "variant": "normal",
+  "now": "2026-11-16T14:05:00.000Z",
+  "about": "two channels typed in the form: each feed has one video from yesterday and one from ten days ago, so two new videos get details, two per-video emails, one digest and two Telegram photos",
+  "trigger": {
+    "node": "On form submission",
+    "kind": "form",
+    "items": [
+      {
+        "json": {
+          "YouTube Channel Ids": "[ \"UCbench3003ChanA00000001\", \"UCbench3003ChanB00000002\" ]",
+          "submittedAt": "2026-11-16T09:04:51.204-05:00",
+          "formMode": "production"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "RSS Read  - Max 15 Latest Videos per Channel",
+      "service": "youtube-rss",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.youtube.com/feeds/videos.xml",
+            "status": 200,
+            "headers": {
+              "content-type": "text/xml; charset=UTF-8"
+            },
+            "query": {
+              "channel_id": "UCbench3003ChanA00000001"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><feed xmlns:yt=\"http://www.youtube.com/xml/schemas/2015\" xmlns:media=\"http://search.yahoo.com/mrss/\" xmlns=\"http://www.w3.org/2005/Atom\"><link rel=\"self\" href=\"http://www.youtube.com/feeds/videos.xml?channel_id=UCbench3003ChanA00000001\"/><id>yt:channel:bench3003ChanA00000001</id><yt:channelId>bench3003ChanA00000001</yt:channelId><title>Practical Rust</title><link rel=\"alternate\" href=\"https://www.youtube.com/channel/UCbench3003ChanA00000001\"/><author><name>Practical Rust</name><uri>https://www.youtube.com/channel/UCbench3003ChanA00000001</uri></author><published>2019-03-02T10:00:00+00:00</published><entry><id>yt:video:rUst3003new</id><yt:videoId>rUst3003new</yt:videoId><yt:channelId>UCbench3003ChanA00000001</yt:channelId><title>Async Rust without the pain: structured concurrency</title><link rel=\"alternate\" href=\"https://www.youtube.com/watch?v=rUst3003new\"/><author><name>Practical Rust</name><uri>https://www.youtube.com/channel/UCbench3003ChanA00000001</uri></author><published>{{bench.now-1d}}</published><updated>{{bench.now-1d}}</updated><media:group><media:title>Async Rust without the pain: structured concurrency</media:title><media:description>We look at task scopes in Tokio 2.</media:description></media:group></entry><entry><id>yt:video:rUst3003old</id><yt:videoId>rUst3003old</yt:videoId><yt:channelId>UCbench3003ChanA00000001</yt:channelId><title>Cargo workspaces in 10 minutes</title><link rel=\"alternate\" href=\"https://www.youtube.com/watch?v=rUst3003old\"/><author><name>Practical Rust</name><uri>https://www.youtube.com/channel/UCbench3003ChanA00000001</uri></author><published>{{bench.now-10d}}</published><updated>{{bench.now-10d}}</updated><media:group><media:title>Cargo workspaces in 10 minutes</media:title><media:description></media:description></media:group></entry></feed>"
+          },
+          {
+            "method": "GET",
+            "url": "https://www.youtube.com/feeds/videos.xml",
+            "status": 200,
+            "headers": {
+              "content-type": "text/xml; charset=UTF-8"
+            },
+            "query": {
+              "channel_id": "UCbench3003ChanB00000002"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><feed xmlns:yt=\"http://www.youtube.com/xml/schemas/2015\" xmlns:media=\"http://search.yahoo.com/mrss/\" xmlns=\"http://www.w3.org/2005/Atom\"><link rel=\"self\" href=\"http://www.youtube.com/feeds/videos.xml?channel_id=UCbench3003ChanB00000002\"/><id>yt:channel:bench3003ChanB00000002</id><yt:channelId>bench3003ChanB00000002</yt:channelId><title>Garden Lab</title><link rel=\"alternate\" href=\"https://www.youtube.com/channel/UCbench3003ChanB00000002\"/><author><name>Garden Lab</name><uri>https://www.youtube.com/channel/UCbench3003ChanB00000002</uri></author><published>2019-03-02T10:00:00+00:00</published><entry><id>yt:video:gRdn3003new</id><yt:videoId>gRdn3003new</yt:videoId><yt:channelId>UCbench3003ChanB00000002</yt:channelId><title>Winter sowing in milk jugs</title><link rel=\"alternate\" href=\"https://www.youtube.com/watch?v=gRdn3003new\"/><author><name>Garden Lab</name><uri>https://www.youtube.com/channel/UCbench3003ChanB00000002</uri></author><published>{{bench.now-1d}}</published><updated>{{bench.now-1d}}</updated><media:group><media:title>Winter sowing in milk jugs</media:title><media:description>Cold stratification the easy way.</media:description></media:group></entry><entry><id>yt:video:gRdn3003old</id><yt:videoId>gRdn3003old</yt:videoId><yt:channelId>UCbench3003ChanB00000002</yt:channelId><title>Building a cold frame from old windows</title><link rel=\"alternate\" href=\"https://www.youtube.com/watch?v=gRdn3003old\"/><author><name>Garden Lab</name><uri>https://www.youtube.com/channel/UCbench3003ChanB00000002</uri></author><published>{{bench.now-10d}}</published><updated>{{bench.now-10d}}</updated><media:group><media:title>Building a cold frame from old windows</media:title><media:description></media:description></media:group></entry></feed>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured connector reads RSS feeds"
+      },
+      "note": "YouTube's channel feed (Atom), answered by channel_id; rss-parser maps entry id, published, link and title"
+    },
+    {
+      "node": "Get YouTube Video Details",
+      "service": "youtube-data-api",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/youtube/v3/videos",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "query": {
+              "id": "rUst3003new",
+              "key": "bench-google-api-key"
+            },
+            "body": {
+              "kind": "youtube#videoListResponse",
+              "etag": "bench-list-rUst3003new",
+              "items": [
+                {
+                  "kind": "youtube#video",
+                  "etag": "bench-rUst3003new",
+                  "id": "rUst3003new",
+                  "snippet": {
+                    "publishedAt": "2026-11-15T16:00:00Z",
+                    "channelId": "UCrUst3003new",
+                    "title": "Async Rust without the pain: structured concurrency",
+                    "description": "We look at task scopes in Tokio 2 and why they make cancellation safe.",
+                    "channelTitle": "Practical Rust",
+                    "categoryId": "28",
+                    "liveBroadcastContent": "none",
+                    "thumbnails": {
+                      "default": {
+                        "url": "https://i.ytimg.com/vi/rUst3003new/default.jpg",
+                        "width": 120,
+                        "height": 90
+                      },
+                      "medium": {
+                        "url": "https://i.ytimg.com/vi/rUst3003new/mqdefault.jpg",
+                        "width": 320,
+                        "height": 180
+                      },
+                      "high": {
+                        "url": "https://i.ytimg.com/vi/rUst3003new/hqdefault.jpg",
+                        "width": 480,
+                        "height": 360
+                      },
+                      "standard": {
+                        "url": "https://i.ytimg.com/vi/rUst3003new/sddefault.jpg",
+                        "width": 640,
+                        "height": 480
+                      }
+                    }
+                  },
+                  "contentDetails": {
+                    "duration": "PT12M3S",
+                    "dimension": "2d",
+                    "definition": "hd",
+                    "caption": "false",
+                    "licensedContent": true,
+                    "projection": "rectangular"
+                  },
+                  "status": {
+                    "uploadStatus": "processed",
+                    "privacyStatus": "public",
+                    "license": "youtube",
+                    "embeddable": true,
+                    "publicStatsViewable": true,
+                    "madeForKids": false
+                  },
+                  "statistics": {
+                    "viewCount": "48211",
+                    "likeCount": "2210",
+                    "favoriteCount": "0",
+                    "commentCount": "187"
+                  },
+                  "player": {
+                    "embedHtml": "<iframe width=\"480\" height=\"270\" src=\"//www.youtube.com/embed/rUst3003new\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\" referrerpolicy=\"strict-origin-when-cross-origin\" allowfullscreen></iframe>"
+                  },
+                  "topicDetails": {
+                    "topicCategories": [
+                      "https://en.wikipedia.org/wiki/Technology"
+                    ]
+                  }
+                }
+              ],
+              "pageInfo": {
+                "totalResults": 1,
+                "resultsPerPage": 1
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/youtube/v3/videos",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "query": {
+              "id": "gRdn3003new",
+              "key": "bench-google-api-key"
+            },
+            "body": {
+              "kind": "youtube#videoListResponse",
+              "etag": "bench-list-gRdn3003new",
+              "items": [
+                {
+                  "kind": "youtube#video",
+                  "etag": "bench-gRdn3003new",
+                  "id": "gRdn3003new",
+                  "snippet": {
+                    "publishedAt": "2026-11-15T16:00:00Z",
+                    "channelId": "UCgRdn3003new",
+                    "title": "Winter sowing in milk jugs",
+                    "description": "Cold stratification the easy way: milk jugs, potting mix and patience.",
+                    "channelTitle": "Garden Lab",
+                    "categoryId": "28",
+                    "liveBroadcastContent": "none",
+                    "thumbnails": {
+                      "default": {
+                        "url": "https://i.ytimg.com/vi/gRdn3003new/default.jpg",
+                        "width": 120,
+                        "height": 90
+                      },
+                      "medium": {
+                        "url": "https://i.ytimg.com/vi/gRdn3003new/mqdefault.jpg",
+                        "width": 320,
+                        "height": 180
+                      },
+                      "high": {
+                        "url": "https://i.ytimg.com/vi/gRdn3003new/hqdefault.jpg",
+                        "width": 480,
+                        "height": 360
+                      },
+                      "standard": {
+                        "url": "https://i.ytimg.com/vi/gRdn3003new/sddefault.jpg",
+                        "width": 640,
+                        "height": 480
+                      }
+                    }
+                  },
+                  "contentDetails": {
+                    "duration": "PT12M3S",
+                    "dimension": "2d",
+                    "definition": "hd",
+                    "caption": "false",
+                    "licensedContent": true,
+                    "projection": "rectangular"
+                  },
+                  "status": {
+                    "uploadStatus": "processed",
+                    "privacyStatus": "public",
+                    "license": "youtube",
+                    "embeddable": true,
+                    "publicStatsViewable": true,
+                    "madeForKids": false
+                  },
+                  "statistics": {
+                    "viewCount": "48211",
+                    "likeCount": "2210",
+                    "favoriteCount": "0",
+                    "commentCount": "187"
+                  },
+                  "player": {
+                    "embedHtml": "<iframe width=\"480\" height=\"270\" src=\"//www.youtube.com/embed/gRdn3003new\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\" referrerpolicy=\"strict-origin-when-cross-origin\" allowfullscreen></iframe>"
+                  },
+                  "topicDetails": {
+                    "topicCategories": [
+                      "https://en.wikipedia.org/wiki/Technology"
+                    ]
+                  }
+                }
+              ],
+              "pageInfo": {
+                "totalResults": 1,
+                "resultsPerPage": 1
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured YouTube connector"
+      },
+      "note": "YouTube Data API v3 videos.list (part=snippet,contentDetails,status,statistics,player,topicDetails, id, key from the overlay's placeholder fill), one call per new video"
+    }
+  ],
+  "models": [
+    "Create Email per Video",
+    "Create One Email for All Videos"
+  ],
+  "writes": [
+    "Multiple Emails",
+    "Single Email",
+    "Telegram"
+  ],
+  "writeReplies": [
+    {
+      "node": "Telegram",
+      "service": "telegram",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.telegram.org/bot{token}/sendPhoto",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "ok": true,
+              "result": {
+                "message_id": 7100,
+                "from": {
+                  "id": 5550001,
+                  "is_bot": true,
+                  "first_name": "Bench Bot",
+                  "username": "bench_bot"
+                },
+                "chat": {
+                  "id": 100200300,
+                  "type": "private",
+                  "first_name": "Bench"
+                },
+                "date": 1794834300,
+                "photo": [
+                  {
+                    "file_id": "AgACAgQAAxkDbench0",
+                    "file_unique_id": "AQADbench0",
+                    "file_size": 1841,
+                    "width": 90,
+                    "height": 67
+                  }
+                ],
+                "caption": "New YouTube Video From Your Favorite Channel"
+              }
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://api.telegram.org/bot{token}/sendPhoto",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "ok": true,
+              "result": {
+                "message_id": 7101,
+                "from": {
+                  "id": 5550001,
+                  "is_bot": true,
+                  "first_name": "Bench Bot",
+                  "username": "bench_bot"
+                },
+                "chat": {
+                  "id": 100200300,
+                  "type": "private",
+                  "first_name": "Bench"
+                },
+                "date": 1794834300,
+                "photo": [
+                  {
+                    "file_id": "AgACAgQAAxkDbench1",
+                    "file_unique_id": "AQADbench1",
+                    "file_size": 1841,
+                    "width": 90,
+                    "height": 67
+                  }
+                ],
+                "caption": "New YouTube Video From Your Favorite Channel"
+              }
+            }
+          }
+        ]
+      },
+      "note": "Bot API sendPhoto answers the sent message; one call per new video"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "form text non-empty: its ids are used, not the defaults",
+      "Get New Videos keeps the two videos from yesterday and drops the two from ten days ago"
+    ],
+    "offline": "The form waits for the last node (responseMode lastNode); the bench pins the trigger's item, so no browser waits. 'Recent' is n8n's clock in the Code node (start of today in New York minus 3 days), so publish times are relative to the run ({{bench.now-…}}, P90). The Telegram chat id is $env.TELEGRAM_CHAT_ID, a placeholder the overlay fills (env on the n8n side, a step value on the Claude side), as for 3025 and 3291. The Google API key is placeholder text the overlay fills."
+  }
+}

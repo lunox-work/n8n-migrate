@@ -1,0 +1,26 @@
+{
+  "why": "Gmail sends to an empty To (the person's own alert address, left blank). Filled with a placeholder address on both sides. Placeholder fill only: no logic changes.",
+  "n8n": {
+    "Gmail": {
+      "parameters.sendTo": "uptime-alerts@bench.example"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Gmail": {
+          "patch": {
+            "params": {
+              "sendTo": "uptime-alerts@bench.example"
+            },
+            "tool": {
+              "args": {
+                "to": "uptime-alerts@bench.example"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

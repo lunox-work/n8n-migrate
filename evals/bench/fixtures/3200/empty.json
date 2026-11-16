@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "template": 3200,
+  "sha256": "5d210b6c4970889db92d17ee5aca54b9834026ca4de621abb8622f2cc6c86b4d",
+  "variant": "empty",
+  "now": "2026-11-16T11:20:00.000Z",
+  "about": "Luma answers an empty JSON object, so the record is created with only the fields Global SETTINGS gives",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [],
+  "models": [],
+  "writes": [
+    "Text 2 Video",
+    "ADD Video Info"
+  ],
+  "writeReplies": [
+    {
+      "node": "Text 2 Video",
+      "service": "luma-dream-machine",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.lumalabs.ai/dream-machine/v1/generations",
+            "status": 201,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {}
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Luma connector"
+      },
+      "note": "Dream Machine API: POST /generations queues a video and answers the generation object (state queued; assets come later through the callback, which this workflow does not receive)"
+    },
+    {
+      "node": "ADD Video Info",
+      "service": "airtable",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.airtable.com/v0/appvk87mtcwRve5p5/tblOzRFWgcsfttRWK",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "id": "recBench3200empty1",
+              "createdTime": "2026-11-16T11:20:02.000Z",
+              "fields": {
+                "Status": "Done",
+                "Prompt": "a superhero flying through a volcano",
+                "Cluster ID": "1794834001000_bench32"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Airtable connector"
+      },
+      "note": "Airtable create record in the base and table Global SETTINGS names: the created record"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch"
+    ],
+    "offline": "RANDOM Camera Motion draws one of 15 motions with Math.random() and Global SETTINGS makes cluster_id from Date.now() and Math.random(), so the prompt and Cluster ID differ per run on either side; the fixture answers Luma the same whatever the prompt. The callback URL is placeholder text sent to Luma as data, never called. Luma's and Airtable's credentials are the bench's dummies."
+  }
+}
