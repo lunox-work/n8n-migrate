@@ -555,6 +555,33 @@ test("an HTTP step whose host comes from data asks for its hosts at setup: named
   assert.equal(written.report.workflows[0].questions.some((x) => /\/hosts\//.test(x.id)), false);
 });
 
+test("an RSS Read step whose feed URL comes from data asks for its hosts at setup, as an HTTP step does", async () => {
+  const flow = {
+    id: "rh01",
+    name: "Feeds from a sheet",
+    nodes: [manual, { parameters: { url: "={{ $json.rss_feed_url }}", options: {} }, name: "Read Feed", type: "n8n-nodes-base.rssFeedRead", typeVersion: 1.1, position: [200, 0] }],
+    connections: link("Start", "Read Feed"),
+    settings: { executionOrder: "v1" },
+  };
+  const open = convertJson(flow);
+  const q = open.report.workflows[0].questions.find((x) => x.id === "rh01/hosts/Read Feed");
+  assert.ok(q && q.answer === null, "the hosts question is asked");
+  assert.match(open.definition.steps["Read Feed"].reviewReasons.join(" "), /answer question rh01\/hosts\/Read Feed/);
+  assert.equal(preflight(open.definition).ok, false);
+  const named = convertJson(flow, { answers: { "rh01/hosts/Read Feed": "news.example.com" } }).definition;
+  assert.deepEqual(named.allow.http.map((a) => [a.method, a.host]), [["GET", "news.example.com"]]);
+  assert.equal(preflight(named).ok, true, JSON.stringify(preflight(named).issues));
+  const pub = convertJson(flow, { answers: { "rh01/hosts/Read Feed": "public" } }).definition;
+  assert.deepEqual(pub.allow.http.map((a) => [a.method, a.host, a.scope, a.step]), [["GET", "*", "public", "Read Feed"]]);
+  assert.equal(preflight(pub).ok, true, JSON.stringify(preflight(pub).issues));
+  const feed = '<?xml version="1.0"?><rss version="2.0"><channel><title>N</title><item><title>A</title><link>https://news.example.com/a</link></item></channel></rss>';
+  const http = async () => ({ status: 200, headers: { "content-type": "application/rss+xml" }, body: feed });
+  const ok = await run(pub, { clock: CLOCK, virtualTime: true, trigger: [{ rss_feed_url: "https://news.example.com/rss" }], host: { http } });
+  assert.equal(ok.status, "done");
+  const bad = await run(pub, { clock: CLOCK, virtualTime: true, trigger: [{ rss_feed_url: "https://127.0.0.1/rss" }], host: { http } });
+  assert.equal(bad.status, "failed");
+});
+
 test("Facebook Graph API requests as n8n builds them: token first in the query, then fields and query parameters", async () => {
   const fb = (params) => ({
     id: "fb01",

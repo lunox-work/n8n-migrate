@@ -42,7 +42,6 @@ Top reasons for review flags:
 | the file comes from n8n binary data; check that the step before it puts the file into the item | 5 | 8 |
 | the body is binary data, which the runtime does not send | 5 | 5 |
 | reads "…" from "…", which google-drive create_file does not supply | 3 | 5 |
-| the feed URL is built at run time; narrow allow.http to its host in overrides.json | 3 | 3 |
 | the request URL is built at run time from data; answer question N/hosts/Scrape Website with the hosts it may reach, or "…" for any public https host | 3 | 3 |
 | the response is a file (binary data), which the runtime does not keep | 3 | 3 |
 | tool "…" is left out: no request template for toolSerpApi yet (it needs the app's REST API with a stored secret) | 3 | 3 |
@@ -50,6 +49,7 @@ Top reasons for review flags:
 | parameter "…" has no counterpart in share_file | 2 | 4 |
 | tool "…" is left out: a database step needs the bundled server or a database connector (open decision N) | 2 | 4 |
 | $env is blocked in n8n and in the runtime | 2 | 3 |
+| image analysis needs the image handed to the model, which the model step does not carry yet | 2 | 2 |
 
 Top preflight errors (what stops a run before any effect):
 
@@ -103,7 +103,6 @@ Top reasons for review flags:
 | the file comes from n8n binary data; check that the step before it puts the file into the item | 5 | 8 |
 | the body is binary data, which the runtime does not send | 5 | 5 |
 | reads "…" from "…", which google-drive create_file does not supply | 3 | 5 |
-| the feed URL is built at run time; narrow allow.http to its host in overrides.json | 3 | 3 |
 | the request URL is built at run time from data; answer question N/hosts/Scrape Website with the hosts it may reach, or "…" for any public https host | 3 | 3 |
 | the response is a file (binary data), which the runtime does not keep | 3 | 3 |
 | tool "…" is left out: no request template for toolSerpApi yet (it needs the app's REST API with a stored secret) | 3 | 3 |
@@ -111,6 +110,7 @@ Top reasons for review flags:
 | parameter "…" has no counterpart in share_file | 2 | 4 |
 | tool "…" is left out: a database step needs the bundled server or a database connector (open decision N) | 2 | 4 |
 | $env is blocked in n8n and in the runtime | 2 | 3 |
+| image analysis needs the image handed to the model, which the model step does not carry yet | 2 | 2 |
 
 Top preflight errors (what stops a run before any effect):
 

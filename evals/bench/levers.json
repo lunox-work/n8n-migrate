@@ -149,16 +149,16 @@
   "inScope": 475,
   "supportedToday": 161,
   "fullClass": 90,
-  "answersOnly": 36,
-  "blocked": 278,
+  "answersOnly": 40,
+  "blocked": 274,
   "crashes": 0
  },
  "dev": {
   "templates": 100,
   "unnamed": 0,
   "supportedToday": 40,
-  "answersOnly": 13,
-  "blocked": 47,
+  "answersOnly": 14,
+  "blocked": 46,
   "missing": 0
  },
  "byPlanned": [
@@ -187,20 +187,20 @@
    "devTotal": 14
   },
   {
-   "group": "http",
-   "keys": 5,
-   "galleryUnlock": 17,
-   "galleryTotal": 46,
-   "devUnlock": 4,
-   "devTotal": 7
-  },
-  {
    "group": "db",
    "keys": 13,
-   "galleryUnlock": 14,
+   "galleryUnlock": 15,
    "galleryTotal": 25,
-   "devUnlock": 4,
+   "devUnlock": 5,
    "devTotal": 6
+  },
+  {
+   "group": "http",
+   "keys": 4,
+   "galleryUnlock": 13,
+   "galleryTotal": 40,
+   "devUnlock": 3,
+   "devTotal": 4
   },
   {
    "group": "files",
@@ -376,15 +376,6 @@
    "planned": "form-ending (some operations)"
   },
   {
-   "group": "n8n-nodes-base.rssFeedRead",
-   "keys": 1,
-   "galleryUnlock": 4,
-   "galleryTotal": 6,
-   "devUnlock": 1,
-   "devTotal": 3,
-   "planned": "http"
-  },
-  {
    "group": "n8n-nodes-base.linkedIn",
    "keys": 1,
    "galleryUnlock": 3,
@@ -520,6 +511,15 @@
    "planned": "connector"
   },
   {
+   "group": "n8n-nodes-base.mongoDb",
+   "keys": 3,
+   "galleryUnlock": 2,
+   "galleryTotal": 4,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "planned": "db"
+  },
+  {
    "group": "n8n-nodes-base.hackerNews",
    "keys": 1,
    "galleryUnlock": 2,
@@ -653,15 +653,6 @@
    "devUnlock": 1,
    "devTotal": 2,
    "planned": "rest-template"
-  },
-  {
-   "group": "n8n-nodes-base.mongoDb",
-   "keys": 3,
-   "galleryUnlock": 1,
-   "galleryTotal": 4,
-   "devUnlock": 0,
-   "devTotal": 1,
-   "planned": "db"
   },
   {
    "group": "n8n-nodes-base.compression",
@@ -1326,26 +1317,6 @@
     "galleryTotal": [2187, 2976, 3082, 3289, 3669, 4767],
     "devUnlock": [2187, 3669],
     "devTotal": [2187, 3082, 3669]
-   }
-  },
-  {
-   "key": "n8n-nodes-base.rssFeedRead (URL built at run time)",
-   "type": "n8n-nodes-base.rssFeedRead",
-   "op": "",
-   "planned": "http",
-   "kinds": [
-    "runtime"
-   ],
-   "reason": "runtime: a URL built at run time in a step the analyzer asks no hosts question about",
-   "galleryAlone": 4,
-   "galleryTotal": 6,
-   "devUnlock": 1,
-   "devTotal": 3,
-   "ids": {
-    "galleryAlone": [1160, 2144, 2799, 4678],
-    "galleryTotal": [1160, 2144, 2799, 3986, 4678, 5230],
-    "devUnlock": [2799],
-    "devTotal": [2799, 3986, 5230]
    }
   },
   {

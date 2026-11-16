@@ -1099,8 +1099,8 @@ function askSites(W, ctx) {
   }
 }
 
-// HTTP Request steps whose address comes from data at run time (a URL expression that writes no
-// address of its own: runtime/src/convert.mjs openHost). n8n sends them to any host; the folder
+// HTTP Request steps (v3 and later) and RSS Read steps whose address comes from data at run time
+// (a URL expression that writes no address of its own: runtime/src/convert.mjs openHost). n8n sends them to any host; the folder
 // sends them only where the person says at setup: the hosts it may reach, or "public" (any
 // public https host; private, loopback, link-local and metadata addresses are always refused,
 // and only for a GET or HEAD request without a credential). Unanswered, preflight refuses the
@@ -1108,7 +1108,11 @@ function askSites(W, ctx) {
 function askHosts(W, ctx) {
   for (const n of W.order) {
     const d = W.infos.get(n);
-    if (!d || d.disabled || d.baseType !== "n8n-nodes-base.httpRequest" || d.kind === "model" || d.levers?.includes("llm-api") || (d.typeVersion ?? 1) < 3) continue;
+    if (!d || d.disabled) continue;
+    const http = d.baseType === "n8n-nodes-base.httpRequest" && d.kind !== "model" && !d.levers?.includes("llm-api") && (d.typeVersion ?? 1) >= 3;
+    // RSS Read as a step (a GET without a credential); the agent tool's URL comes from the model.
+    const rss = d.type === "n8n-nodes-base.rssFeedRead" && d.role === "step";
+    if (!http && !rss) continue;
     if (!openHost(d.params?.url)) continue;
     ask(W, ctx, "hosts", d.name, {
       text: `The step "${d.name}" takes its address from data at run time, so its host is not known before a run. Which hosts may it reach? Name them, comma-separated (for example api.example.com, cdn.example.com), or answer "public" to let it reach any public https host, as a scraper that visits sites from a list needs; private, loopback, link-local and cloud-metadata addresses are always refused, and "public" is accepted only for a GET or HEAD request that sends no credential. Any other host is refused at run time.`,

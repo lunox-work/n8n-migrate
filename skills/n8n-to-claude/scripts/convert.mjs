@@ -863,8 +863,22 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       review(step, `the feed URL is built at run time; it may reach only ${written.map((t) => t.host + t.pathPrefix).join(", ")}, written in the step (any other host is refused at run time)`);
       return;
     }
+    // A step whose feed URL comes from data: the person's setup answer (analyze.mjs askHosts)
+    // names the hosts, or "public" (any public https host; RSS Read sends no credential).
+    const q = step.subnode ? null : hostsQuestion(report, name);
+    const ans = parseHostsAnswer(q?.answer);
+    if (ans?.hosts) {
+      for (const h of ans.hosts) addHttp("GET", h, undefined, `${who}: URL built at run time, limited to the hosts named at setup`);
+      review(step, `the feed URL is built at run time from data; it may reach only ${ans.hosts.join(", ")}, named at setup (question ${q.id}); any other host is refused at run time`);
+      return;
+    }
+    if (ans?.public) {
+      addHttp("GET", "*", undefined, `${who}: URL built at run time, any public https host (answered at setup)`, { scope: "public", step: name });
+      review(step, `the feed URL is built at run time from data and may reach any public https host (answered "public" at setup, question ${q.id}): the data picks the feed; private, loopback, link-local and metadata addresses and plain http are refused at run time, and redirects are checked hop by hop`);
+      return;
+    }
     addHttp("GET", "*", undefined, `${who}: URL built at run time`);
-    review(step, "the feed URL is built at run time; narrow allow.http to its host in overrides.json");
+    review(step, ans?.invalid ? `the answer to question ${q.id} is not usable (${ans.invalid}); name the hosts, comma-separated, or answer "public"` : q ? `the feed URL is built at run time from data; answer question ${q.id} with the hosts it may reach, or "public" for any public https host` : "the feed URL is built at run time; narrow allow.http to its host in overrides.json");
   };
 
   // Wikipedia (agent tool): LangChain's WikipediaQueryRun as n8n runs it (runtime rest.mjs
