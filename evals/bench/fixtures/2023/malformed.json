@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 1,
+  "template": 2023,
+  "sha256": "7bc5d68670c17b61439eeb8f95364be9239d3e6e114d2a86467a63857cfefddb",
+  "variant": "malformed",
+  "now": "2026-11-16T08:00:00.000Z",
+  "about": "a review block with no date, rating or profile link, a blank body and a relative review URL, a review whose body is very long, and a page that is not HTML at all",
+  "trigger": {
+    "node": "Execute workflow every day",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-16T08:00:00.021+00:00",
+          "Readable date": "November 16th 2026, 8:00:00 am",
+          "Readable time": "8:00:00 am",
+          "Day of week": "Monday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "16",
+          "Hour": "08",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "UTC (UTC+00:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get G2 data with ScrapingBee",
+      "service": "scrapingbee",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://app.scrapingbee.com/api/v1",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8",
+              "spb-cost": "75"
+            },
+            "query": {
+              "url": "https://www.g2.com/products/zendesk/reviews?utf8=%E2%9C%93&order=most_recent ",
+              "api_key": "bench-scrapingbee-key"
+            },
+            "body": "<!DOCTYPE html><html><head><title>Reviews | G2</title></head><body><div class=\"nested-ajax-loading\"><div class=\"paper paper--white paper--box mb-2 position-relative border-bottom\"><div class=\"d-f mb-1\">Nov 15, 2026</div><a class=\"td-n\" href=\"https://www.g2.com/users/8f2c1d0e-bench\">Reviewer</a><meta itemprop=\"ratingValue\" content=\"not-a-number\"><div itemprop=\"reviewBody\"><div><p><b>What do you like best?</b></p><p>üüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüüü</p></div></div><a class=\"pjax\" href=\"https://www.g2.com/products/zendesk/reviews/zendesk-review-10999999\">Review</a></div></div></body></html>"
+          },
+          {
+            "method": "GET",
+            "url": "https://app.scrapingbee.com/api/v1",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8",
+              "spb-cost": "75"
+            },
+            "query": {
+              "url": "https://www.g2.com/products/intercom/reviews?utf8=%E2%9C%93&order=most_recent ",
+              "api_key": "bench-scrapingbee-key"
+            },
+            "body": "<!DOCTYPE html><html><head><title>Reviews | G2</title></head><body><div class=\"nested-ajax-loading\"><div class=\"paper paper--white paper--box mb-2 position-relative border-bottom\"><div class=\"d-f mb-1\"></div><div itemprop=\"reviewBody\"><p> </p></div><a class=\"pjax\" href=\"/products/intercom/reviews/intercom-review-x\">r</a></div></div></body></html>"
+          },
+          {
+            "method": "GET",
+            "url": "https://app.scrapingbee.com/api/v1",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8",
+              "spb-cost": "75"
+            },
+            "query": {
+              "url": "https://www.g2.com/products/dixa/reviews?utf8=%E2%9C%93&order=most_recent ",
+              "api_key": "bench-scrapingbee-key"
+            },
+            "body": "%PDF-1.4 binary-ish \u0000\u0001"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured ScrapingBee connector"
+      },
+      "note": "ScrapingBee HTML API (GET with api_key and the G2 reviews URL, trailing space included, in the query; batches of 3): answers the page HTML, matched by the url parameter"
+    },
+    {
+      "node": "Get all past reviews",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1Khbjjt_Dw0LdggwEE6sj300McXelmSR1ttoG8UNojyY",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "spreadsheetId": "1Khbjjt_Dw0LdggwEE6sj300McXelmSR1ttoG8UNojyY",
+              "properties": {
+                "title": "G2 reviews"
+              },
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1Khbjjt_Dw0LdggwEE6sj300McXelmSR1ttoG8UNojyY/values/'Sheet1'",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "range": "Sheet1!A1:E1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "date",
+                  "rating",
+                  "review",
+                  "user_profile",
+                  "reviewUrl"
+                ],
+                [
+                  "",
+                  "",
+                  "",
+                  "",
+                  ""
+                ],
+                [
+                  "x"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "note": "Sheets v4 read of the template's spreadsheet (url mode), first tab: sheet properties, then the tab's values"
+    },
+    {
+      "node": "Add new review to Google Sheets",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1Khbjjt_Dw0LdggwEE6sj300McXelmSR1ttoG8UNojyY:batchUpdate",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "spreadsheetId": "1Khbjjt_Dw0LdggwEE6sj300McXelmSR1ttoG8UNojyY",
+              "replies": [
+                {}
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Sheets connector that writes cells"
+      },
+      "note": "Sheets v4 append (defineBelow): the tab's values again (Get all past reviews' route, repeated), POST :batchUpdate, then the values write (write-default)"
+    },
+    {
+      "node": "Send new review to Slack",
+      "service": "slack",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://slack.com/api/chat.postMessage",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "ok": true,
+              "channel": "C07G2REVIEWS",
+              "ts": "1794816000.000100",
+              "message": {
+                "type": "message",
+                "subtype": "bot_message",
+                "text": "New review in G2",
+                "ts": "1794816000.000100",
+                "bot_id": "B0BENCH2023"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "connector rows are not needed: the post is a write the comparer pairs"
+      },
+      "note": "chat.postMessage to #g2_reviews (by name): answers ok with the message"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Add new review to Google Sheets",
+    "Send new review to Slack"
+  ],
+  "expect": {
+    "branches": [
+      "Merge keepNonMatches: both reviews are new"
+    ],
+    "offline": "ScrapingBee's api_key is the template's placeholder text YOUR_API_KEY; the overlay fills it on both sides. Daily at 8 in n8n; the bench runs once. Sheets and Slack name no credential, so the bench's dummies (P61) stand in."
+  }
+}

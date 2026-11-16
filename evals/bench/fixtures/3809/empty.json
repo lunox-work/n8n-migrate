@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 1,
+  "template": 3809,
+  "sha256": "64575f7c6706733df819d43a7727ef08070e8f7d9bcbccf192663dac4d5d5632",
+  "variant": "empty",
+  "now": "2026-11-16T10:30:00.000Z",
+  "about": "the crawl finishes with no pages, so Extract URLs returns nothing and the run ends there",
+  "trigger": {
+    "node": "When clicking ‘Start’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Create Task",
+      "service": "dataforseo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.dataforseo.com/v3/on_page/task_post",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "version": "0.1.20261110",
+              "status_code": 20000,
+              "status_message": "Ok.",
+              "time": "0.0821 sec.",
+              "cost": 0,
+              "tasks_count": 1,
+              "tasks_error": 0,
+              "tasks": [
+                {
+                  "id": "11161030-1535-0216-0000-bench3809aa1",
+                  "status_code": 20100,
+                  "status_message": "Task Created.",
+                  "time": "0.0612 sec.",
+                  "cost": 0,
+                  "result_count": 0,
+                  "path": [
+                    "v3",
+                    "on_page",
+                    "task_post"
+                  ],
+                  "data": {
+                    "api": "on_page",
+                    "function": "task_post",
+                    "target": "yourclientdomain.com"
+                  },
+                  "result": []
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured DataForSEO connector"
+      },
+      "note": "DataForSEO On-Page task_post (basic auth): answers the task id"
+    },
+    {
+      "node": "Check Task Status",
+      "service": "dataforseo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.dataforseo.com/v3/on_page/summary/11161030-1535-0216-0000-bench3809aa1",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "version": "0.1.20261110",
+              "status_code": 20000,
+              "status_message": "Ok.",
+              "time": "0.0821 sec.",
+              "cost": 0,
+              "tasks_count": 1,
+              "tasks_error": 0,
+              "tasks": [
+                {
+                  "id": "11161030-1535-0216-0000-bench3809aa1",
+                  "status_code": 20000,
+                  "status_message": "Ok.",
+                  "time": "0.0612 sec.",
+                  "cost": 0,
+                  "result_count": 1,
+                  "path": [
+                    "v3",
+                    "on_page",
+                    "summary"
+                  ],
+                  "data": {
+                    "api": "on_page",
+                    "function": "summary",
+                    "target": "yourclientdomain.com"
+                  },
+                  "result": [
+                    {
+                      "crawl_progress": "finished",
+                      "crawl_status": {
+                        "max_crawl_pages": 1000,
+                        "pages_in_queue": 0,
+                        "pages_crawled": 5
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured DataForSEO connector"
+      },
+      "note": "GET on_page/summary/{id}, replied in turn after each wait (the last repeats)"
+    },
+    {
+      "node": "Get RAW Audit Data",
+      "service": "dataforseo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.dataforseo.com/v3/on_page/pages",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "version": "0.1.20261110",
+              "status_code": 20000,
+              "status_message": "Ok.",
+              "time": "0.0821 sec.",
+              "cost": 0,
+              "tasks_count": 1,
+              "tasks_error": 0,
+              "tasks": [
+                {
+                  "id": "11161030-1535-0216-0000-bench3809aa1",
+                  "status_code": 20000,
+                  "status_message": "Ok.",
+                  "time": "0.0612 sec.",
+                  "cost": 0,
+                  "result_count": 1,
+                  "path": [
+                    "v3",
+                    "on_page",
+                    "pages"
+                  ],
+                  "data": {
+                    "api": "on_page",
+                    "function": "pages",
+                    "target": "yourclientdomain.com"
+                  },
+                  "result": [
+                    {
+                      "crawl_progress": "finished",
+                      "crawl_status": {
+                        "max_crawl_pages": 1000,
+                        "pages_in_queue": 0,
+                        "pages_crawled": 0
+                      },
+                      "total_items_count": 0,
+                      "items_count": 0,
+                      "items": []
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured DataForSEO connector"
+      },
+      "note": "POST on_page/pages [{id, limit}]: the crawled pages"
+    },
+    {
+      "node": "Get Source URLs Data",
+      "service": "dataforseo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured DataForSEO connector"
+      },
+      "note": "POST on_page/links [{id, page_to}] per 404 or 301 page, answered by page_to (with its closing quote)"
+    },
+    {
+      "node": "Query GSC API",
+      "service": "google-search-console",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Search Console connector"
+      },
+      "note": "Search Console searchAnalytics.query for the sc-domain property (Google OAuth), one POST per crawled 200 page filtered on it, answered by the page URL (with its closing quote) in the raw body"
+    }
+  ],
+  "models": [],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "If: true at once",
+      "no 200 page: Extract URLs returns no item, nothing after it runs"
+    ],
+    "offline": "Both 1-minute waits are shortened to 1 second (timeCompression); Search Console's date range is new Date() on each side. dfs_domain is the template's own placeholder text; DataForSEO is answered whatever target it gets, and the crawled pages are on one example domain. The HTTP nodes name their credential types without a credential, so the bench's dummies (P61) stand in. What is compared is Download Report's HTML file (the terminal step)."
+  }
+}

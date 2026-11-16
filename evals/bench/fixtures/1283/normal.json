@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "template": 1283,
+  "sha256": "67b4566b15bea8a4b7bb75ce8de71cecbe80806498e48df3cdab86beb71ca66e",
+  "variant": "normal",
+  "now": "2026-11-16T09:05:00.000Z",
+  "about": "one new PDF in the watched folder: one notification mail naming it",
+  "trigger": {
+    "node": "Google Drive Trigger",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {
+          "kind": "drive#file",
+          "id": "1kD7bench1283Qx2Lm9Np4Rs6Tu8Vw0Yz",
+          "name": "Q4 board deck.pdf",
+          "mimeType": "application/pdf",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "parents": [
+            "1HwOAKkkgveLji8vVpW9Xrg1EsBskwMNb"
+          ],
+          "spaces": [
+            "drive"
+          ],
+          "version": "2",
+          "webContentLink": "https://drive.google.com/uc?id=1kD7bench1283Qx2Lm9Np4Rs6Tu8Vw0Yz&export=download",
+          "webViewLink": "https://drive.google.com/file/d/1kD7bench1283Qx2Lm9Np4Rs6Tu8Vw0Yz/view?usp=drivesdk",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/application/pdf",
+          "hasThumbnail": true,
+          "thumbnailVersion": "1",
+          "viewedByMe": false,
+          "createdTime": "2026-11-16T09:03:12.418Z",
+          "modifiedTime": "2026-11-16T09:03:12.418Z",
+          "modifiedByMeTime": "2026-11-16T09:03:12.418Z",
+          "modifiedByMe": true,
+          "owners": [
+            {
+              "kind": "drive#user",
+              "displayName": "Bench Owner",
+              "me": true,
+              "permissionId": "07112233445566778899",
+              "emailAddress": "owner@bench.example"
+            }
+          ],
+          "shared": false,
+          "ownedByMe": true,
+          "capabilities": {
+            "canEdit": true
+          },
+          "originalFilename": "Q4 board deck.pdf",
+          "fullFileExtension": "pdf",
+          "fileExtension": "pdf",
+          "size": "48211",
+          "quotaBytesUsed": "48211"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Google Drive Trigger",
+      "service": "google-drive",
+      "connector": {
+        "connector": "google-drive",
+        "shape": "assumed",
+        "calls": [
+          {
+            "tool": "search_files",
+            "args": {
+              "query": "'1HwOAKkkgveLji8vVpW9Xrg1EsBskwMNb' in parents and createdTime > '2026-11-16T09:00:00Z'"
+            },
+            "result": {
+              "files": [
+                {
+                  "id": "1kD7bench1283Qx2Lm9Np4Rs6Tu8Vw0Yz",
+                  "title": "Q4 board deck.pdf",
+                  "mimeType": "application/pdf",
+                  "createdTime": "2026-11-16T09:03:12.418Z",
+                  "modifiedTime": "2026-11-16T09:03:12.418Z",
+                  "parentId": "1HwOAKkkgveLji8vVpW9Xrg1EsBskwMNb",
+                  "viewUrl": "https://drive.google.com/file/d/1kD7bench1283Qx2Lm9Np4Rs6Tu8Vw0Yz/view?usp=drivesdk"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "note": "poll source for the Claude side; the n8n side pins trigger.items (the Drive file resources the trigger lists for the folder)"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Send Email"
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: one file, one mail"
+    ],
+    "offline": "Send Email (SMTP) reaches the mock's SMTP sink (P53), from and to user@example.com as the template sets them. The trigger's new files are pinned on the n8n side (manual mode asks pageSize=1, so one file a poll)."
+  }
+}

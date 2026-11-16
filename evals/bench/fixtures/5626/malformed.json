@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "template": 5626,
+  "sha256": "d7414ae292a02359d6a5a0bef932103279e95570133c04eff1aeffd7c5aba1fe",
+  "variant": "malformed",
+  "now": "2026-11-16T15:40:00.000Z",
+  "about": "a very long message full of quotes and JSON fragments; Pollinations answers an HTML error page with status 200 instead of an image",
+  "trigger": {
+    "node": "When chat message received",
+    "kind": "chat",
+    "items": [
+      {
+        "json": {
+          "sessionId": "bench-5626-session-1",
+          "action": "sendMessage",
+          "chatInput": "\"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", \"prompt\": \"x\", {\"broken\": [}"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "HTTP Request - Create Image",
+      "service": "pollinations",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://image.pollinations.ai/prompt/",
+            "status": 200,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "any": true,
+            "body": "<html><body><h1>Rate limit</h1><p>try later</p></body></html>"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured image-generation connector"
+      },
+      "note": "Pollinations image API: GET /prompt/ {prompt} (the space after the slash is the template's) with width, height, model, seed and nologo in the query; any prompt path on the origin is answered (any), since the prompt is model-written"
+    }
+  ],
+  "models": [
+    "AI Agent - Create Image From Prompt"
+  ],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch"
+    ],
+    "offline": "Code - Clean Json keeps the text after each '\"prompt\":' in the agent's answer, so how many images are requested depends on the model's reply; with a reply that has none, Code - Get Prompt still emits one empty item (alwaysOutputData) and one request goes out for an empty prompt. Pollinations needs no credential. The Telegram trigger, Telegram reply and disk write are disabled in the template. The chat reply is the image request's output."
+  }
+}

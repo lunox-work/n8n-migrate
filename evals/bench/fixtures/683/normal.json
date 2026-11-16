@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "template": 683,
+  "sha256": "93fe477d9b67bee942efb42bf6d548dcbb0b77d644cf3e3d8bd4ec7ad68e6ddd",
+  "variant": "normal",
+  "now": "2026-11-16T22:30:00.000Z",
+  "about": "the 30-minute schedule fires and Discord accepts the post with 204 No Content",
+  "trigger": {
+    "node": "Cron2",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [],
+  "models": [],
+  "writes": [
+    "Discord2"
+  ],
+  "writeReplies": [
+    {
+      "node": "Discord2",
+      "service": "discord-webhook",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://discordapp.com/api/webhooks/756967134353162281/{token}",
+            "status": 204,
+            "body": ""
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Discord connector"
+      },
+      "note": "Discord execute-webhook (the template's own webhook URL; its inline token is matched as {token}, so the fixture does not repeat it): without ?wait=true Discord answers 204 with no body"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: one post"
+    ],
+    "offline": "The run starts at Cron2 (every 30 minutes, the schedule that makes this a local task); Cron and Cron1 post their own fixed texts weekly the same way and are not run. The post's text is fixed in the template, so the variants differ only in what Discord answers."
+  }
+}

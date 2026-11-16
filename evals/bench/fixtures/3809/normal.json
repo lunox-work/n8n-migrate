@@ -1,0 +1,714 @@
+{
+  "schemaVersion": 1,
+  "template": 3809,
+  "sha256": "64575f7c6706733df819d43a7727ef08070e8f7d9bcbccf192663dac4d5d5632",
+  "variant": "normal",
+  "now": "2026-11-16T10:30:00.000Z",
+  "about": "a five-page crawl of a ceramics shop: in progress on the first check, finished on the second; three 200 pages with Search Console data, one 404 and one 301 with their linking pages",
+  "trigger": {
+    "node": "When clicking ‘Start’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Create Task",
+      "service": "dataforseo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.dataforseo.com/v3/on_page/task_post",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "version": "0.1.20261110",
+              "status_code": 20000,
+              "status_message": "Ok.",
+              "time": "0.0821 sec.",
+              "cost": 0,
+              "tasks_count": 1,
+              "tasks_error": 0,
+              "tasks": [
+                {
+                  "id": "11161030-1535-0216-0000-bench3809aa1",
+                  "status_code": 20100,
+                  "status_message": "Task Created.",
+                  "time": "0.0612 sec.",
+                  "cost": 0,
+                  "result_count": 0,
+                  "path": [
+                    "v3",
+                    "on_page",
+                    "task_post"
+                  ],
+                  "data": {
+                    "api": "on_page",
+                    "function": "task_post",
+                    "target": "yourclientdomain.com"
+                  },
+                  "result": []
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured DataForSEO connector"
+      },
+      "note": "DataForSEO On-Page task_post (basic auth): answers the task id"
+    },
+    {
+      "node": "Check Task Status",
+      "service": "dataforseo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.dataforseo.com/v3/on_page/summary/11161030-1535-0216-0000-bench3809aa1",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "version": "0.1.20261110",
+              "status_code": 20000,
+              "status_message": "Ok.",
+              "time": "0.0821 sec.",
+              "cost": 0,
+              "tasks_count": 1,
+              "tasks_error": 0,
+              "tasks": [
+                {
+                  "id": "11161030-1535-0216-0000-bench3809aa1",
+                  "status_code": 20000,
+                  "status_message": "Ok.",
+                  "time": "0.0612 sec.",
+                  "cost": 0,
+                  "result_count": 1,
+                  "path": [
+                    "v3",
+                    "on_page",
+                    "summary"
+                  ],
+                  "data": {
+                    "api": "on_page",
+                    "function": "summary",
+                    "target": "yourclientdomain.com"
+                  },
+                  "result": [
+                    {
+                      "crawl_progress": "in_progress",
+                      "crawl_status": {
+                        "max_crawl_pages": 1000,
+                        "pages_in_queue": 12,
+                        "pages_crawled": 5
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.dataforseo.com/v3/on_page/summary/11161030-1535-0216-0000-bench3809aa1",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "version": "0.1.20261110",
+              "status_code": 20000,
+              "status_message": "Ok.",
+              "time": "0.0821 sec.",
+              "cost": 0,
+              "tasks_count": 1,
+              "tasks_error": 0,
+              "tasks": [
+                {
+                  "id": "11161030-1535-0216-0000-bench3809aa1",
+                  "status_code": 20000,
+                  "status_message": "Ok.",
+                  "time": "0.0612 sec.",
+                  "cost": 0,
+                  "result_count": 1,
+                  "path": [
+                    "v3",
+                    "on_page",
+                    "summary"
+                  ],
+                  "data": {
+                    "api": "on_page",
+                    "function": "summary",
+                    "target": "yourclientdomain.com"
+                  },
+                  "result": [
+                    {
+                      "crawl_progress": "finished",
+                      "crawl_status": {
+                        "max_crawl_pages": 1000,
+                        "pages_in_queue": 0,
+                        "pages_crawled": 5
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured DataForSEO connector"
+      },
+      "note": "GET on_page/summary/{id}, replied in turn after each wait (the last repeats)"
+    },
+    {
+      "node": "Get RAW Audit Data",
+      "service": "dataforseo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.dataforseo.com/v3/on_page/pages",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "version": "0.1.20261110",
+              "status_code": 20000,
+              "status_message": "Ok.",
+              "time": "0.0821 sec.",
+              "cost": 0,
+              "tasks_count": 1,
+              "tasks_error": 0,
+              "tasks": [
+                {
+                  "id": "11161030-1535-0216-0000-bench3809aa1",
+                  "status_code": 20000,
+                  "status_message": "Ok.",
+                  "time": "0.0612 sec.",
+                  "cost": 0,
+                  "result_count": 1,
+                  "path": [
+                    "v3",
+                    "on_page",
+                    "pages"
+                  ],
+                  "data": {
+                    "api": "on_page",
+                    "function": "pages",
+                    "target": "yourclientdomain.com"
+                  },
+                  "result": [
+                    {
+                      "crawl_progress": "finished",
+                      "crawl_status": {
+                        "max_crawl_pages": 1000,
+                        "pages_in_queue": 0,
+                        "pages_crawled": 5
+                      },
+                      "total_items_count": 5,
+                      "items_count": 5,
+                      "items": [
+                        {
+                          "resource_type": "html",
+                          "status_code": 200,
+                          "location": null,
+                          "url": "https://www.bench3809shop.example/",
+                          "meta": {
+                            "title": "Bench Shop | Handmade ceramics and tableware online",
+                            "description": "Shop handmade ceramic mugs, plates and bowls, made in small batches in Lisbon. Free EU shipping over 60 euros.",
+                            "title_length": 51,
+                            "description_length": 110,
+                            "canonical": "https://www.bench3809shop.example/",
+                            "internal_links_count": 24,
+                            "external_links_count": 2,
+                            "inbound_links_count": 3,
+                            "htags": {
+                              "h1": [
+                                "Bench Shop"
+                              ],
+                              "h2": [
+                                "Overview"
+                              ]
+                            },
+                            "content": {
+                              "plain_text_size": 10800,
+                              "plain_text_rate": 0.21,
+                              "plain_text_word_count": 1800,
+                              "automated_readability_index": 9.8,
+                              "flesch_kincaid_readability_index": 62.0
+                            },
+                            "social_media_tags": {
+                              "og:title": "Bench Shop | Handmade ceramics and tableware online"
+                            }
+                          },
+                          "page_timing": {
+                            "time_to_interactive": 812,
+                            "dom_complete": 1012
+                          },
+                          "onpage_score": 91.4,
+                          "total_dom_size": 84211,
+                          "size": 64120,
+                          "click_depth": 0,
+                          "checks": {
+                            "no_title": false,
+                            "no_description": false,
+                            "is_orphan_page": false,
+                            "is_4xx_code": false,
+                            "is_redirect": false,
+                            "canonical_chain": false,
+                            "recursive_canonical": false
+                          },
+                          "last_modified": {
+                            "header": "Tue, 03 Mar 2026 08:00:00 GMT",
+                            "sitemap": null,
+                            "meta_tag": null
+                          }
+                        },
+                        {
+                          "resource_type": "html",
+                          "status_code": 200,
+                          "location": null,
+                          "url": "https://www.bench3809shop.example/blog/glaze-guide-2024",
+                          "meta": {
+                            "title": "Glaze guide 2024 | Bench Shop",
+                            "description": "Our 2024 guide to food-safe glazes.",
+                            "title_length": 29,
+                            "description_length": 35,
+                            "canonical": "https://www.bench3809shop.example/blog/glaze-guide-2024",
+                            "internal_links_count": 2,
+                            "external_links_count": 2,
+                            "inbound_links_count": 3,
+                            "htags": {
+                              "h1": [
+                                "Glaze guide 2024"
+                              ],
+                              "h2": [
+                                "Overview"
+                              ]
+                            },
+                            "content": {
+                              "plain_text_size": 3840,
+                              "plain_text_rate": 0.21,
+                              "plain_text_word_count": 640,
+                              "automated_readability_index": 9.8,
+                              "flesch_kincaid_readability_index": 48.5
+                            },
+                            "social_media_tags": {
+                              "og:title": "Glaze guide 2024 | Bench Shop"
+                            }
+                          },
+                          "page_timing": {
+                            "time_to_interactive": 812,
+                            "dom_complete": 1012
+                          },
+                          "onpage_score": 91.4,
+                          "total_dom_size": 84211,
+                          "size": 64120,
+                          "click_depth": 2,
+                          "checks": {
+                            "no_title": false,
+                            "no_description": false,
+                            "is_orphan_page": false,
+                            "is_4xx_code": false,
+                            "is_redirect": false,
+                            "canonical_chain": false,
+                            "recursive_canonical": false
+                          },
+                          "last_modified": {
+                            "header": "Tue, 03 Mar 2026 08:00:00 GMT",
+                            "sitemap": null,
+                            "meta_tag": null
+                          }
+                        },
+                        {
+                          "resource_type": "html",
+                          "status_code": 200,
+                          "location": null,
+                          "url": "https://www.bench3809shop.example/products/stoneware-mug",
+                          "meta": {
+                            "title": "Stoneware mug, speckled white | Bench Shop",
+                            "description": "",
+                            "title_length": 42,
+                            "description_length": 0,
+                            "canonical": "https://www.bench3809shop.example/products/stoneware-mug",
+                            "internal_links_count": 6,
+                            "external_links_count": 2,
+                            "inbound_links_count": 3,
+                            "htags": {
+                              "h1": [
+                                "Stoneware mug, speckled white",
+                                "Stoneware mug, speckled white"
+                              ],
+                              "h2": [
+                                "Overview"
+                              ]
+                            },
+                            "content": {
+                              "plain_text_size": 1260,
+                              "plain_text_rate": 0.21,
+                              "plain_text_word_count": 210,
+                              "automated_readability_index": 9.8,
+                              "flesch_kincaid_readability_index": 62.0
+                            },
+                            "social_media_tags": {
+                              "og:title": "Stoneware mug, speckled white | Bench Shop"
+                            }
+                          },
+                          "page_timing": {
+                            "time_to_interactive": 812,
+                            "dom_complete": 1012
+                          },
+                          "onpage_score": 91.4,
+                          "total_dom_size": 84211,
+                          "size": 64120,
+                          "click_depth": 1,
+                          "checks": {
+                            "no_title": false,
+                            "no_description": true,
+                            "is_orphan_page": false,
+                            "is_4xx_code": false,
+                            "is_redirect": false,
+                            "canonical_chain": false,
+                            "recursive_canonical": false
+                          },
+                          "last_modified": {
+                            "header": "Tue, 03 Mar 2026 08:00:00 GMT",
+                            "sitemap": null,
+                            "meta_tag": null
+                          }
+                        },
+                        {
+                          "resource_type": "broken",
+                          "status_code": 404,
+                          "location": null,
+                          "url": "https://www.bench3809shop.example/old-sale",
+                          "meta": null,
+                          "page_timing": {
+                            "time_to_interactive": 812,
+                            "dom_complete": 1012
+                          },
+                          "onpage_score": 91.4,
+                          "total_dom_size": 84211,
+                          "size": 64120,
+                          "click_depth": 1,
+                          "checks": {
+                            "no_title": true,
+                            "no_description": true,
+                            "is_orphan_page": false,
+                            "is_4xx_code": true,
+                            "is_redirect": false,
+                            "canonical_chain": false,
+                            "recursive_canonical": false
+                          },
+                          "last_modified": {
+                            "header": "Tue, 03 Mar 2026 08:00:00 GMT",
+                            "sitemap": null,
+                            "meta_tag": null
+                          }
+                        },
+                        {
+                          "resource_type": "redirect",
+                          "status_code": 301,
+                          "location": "https://www.bench3809shop.example/new/about-us",
+                          "url": "https://www.bench3809shop.example/about-us",
+                          "meta": null,
+                          "page_timing": {
+                            "time_to_interactive": 812,
+                            "dom_complete": 1012
+                          },
+                          "onpage_score": 91.4,
+                          "total_dom_size": 84211,
+                          "size": 64120,
+                          "click_depth": 1,
+                          "checks": {
+                            "no_title": true,
+                            "no_description": true,
+                            "is_orphan_page": false,
+                            "is_4xx_code": false,
+                            "is_redirect": true,
+                            "canonical_chain": false,
+                            "recursive_canonical": false
+                          },
+                          "last_modified": {
+                            "header": "Tue, 03 Mar 2026 08:00:00 GMT",
+                            "sitemap": null,
+                            "meta_tag": null
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured DataForSEO connector"
+      },
+      "note": "POST on_page/pages [{id, limit}]: the crawled pages"
+    },
+    {
+      "node": "Get Source URLs Data",
+      "service": "dataforseo",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.dataforseo.com/v3/on_page/links",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "bodyMatch": "https://www.bench3809shop.example/old-sale\"",
+            "body": {
+              "version": "0.1.20261110",
+              "status_code": 20000,
+              "status_message": "Ok.",
+              "time": "0.0821 sec.",
+              "cost": 0,
+              "tasks_count": 1,
+              "tasks_error": 0,
+              "tasks": [
+                {
+                  "id": "11161030-1535-0216-0000-bench3809aa1",
+                  "status_code": 20000,
+                  "status_message": "Ok.",
+                  "time": "0.0612 sec.",
+                  "cost": 0,
+                  "result_count": 1,
+                  "path": [
+                    "v3",
+                    "on_page",
+                    "links"
+                  ],
+                  "data": {
+                    "api": "on_page",
+                    "function": "links",
+                    "target": "yourclientdomain.com"
+                  },
+                  "result": [
+                    {
+                      "crawl_progress": "finished",
+                      "total_items_count": 1,
+                      "items_count": 1,
+                      "items": [
+                        {
+                          "type": "anchor",
+                          "domain_from": "www.bench3809shop.example",
+                          "domain_to": "www.bench3809shop.example",
+                          "link_from": "https://www.bench3809shop.example/blog/glaze-guide-2024",
+                          "link_to": "https://www.bench3809shop.example/old-sale",
+                          "dofollow": true,
+                          "page_from_scheme": "https",
+                          "page_to_scheme": "https",
+                          "direction": "internal",
+                          "is_broken": true,
+                          "text": "last year's sale",
+                          "page_to_status_code": 404
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://api.dataforseo.com/v3/on_page/links",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "bodyMatch": "https://www.bench3809shop.example/about-us\"",
+            "body": {
+              "version": "0.1.20261110",
+              "status_code": 20000,
+              "status_message": "Ok.",
+              "time": "0.0821 sec.",
+              "cost": 0,
+              "tasks_count": 1,
+              "tasks_error": 0,
+              "tasks": [
+                {
+                  "id": "11161030-1535-0216-0000-bench3809aa1",
+                  "status_code": 20000,
+                  "status_message": "Ok.",
+                  "time": "0.0612 sec.",
+                  "cost": 0,
+                  "result_count": 1,
+                  "path": [
+                    "v3",
+                    "on_page",
+                    "links"
+                  ],
+                  "data": {
+                    "api": "on_page",
+                    "function": "links",
+                    "target": "yourclientdomain.com"
+                  },
+                  "result": [
+                    {
+                      "crawl_progress": "finished",
+                      "total_items_count": 2,
+                      "items_count": 2,
+                      "items": [
+                        {
+                          "type": "anchor",
+                          "domain_from": "www.bench3809shop.example",
+                          "domain_to": "www.bench3809shop.example",
+                          "link_from": "https://www.bench3809shop.example/",
+                          "link_to": "https://www.bench3809shop.example/about-us",
+                          "dofollow": true,
+                          "page_from_scheme": "https",
+                          "page_to_scheme": "https",
+                          "direction": "internal",
+                          "is_broken": false,
+                          "text": "About us",
+                          "page_to_status_code": 301
+                        },
+                        {
+                          "type": "anchor",
+                          "domain_from": "www.bench3809shop.example",
+                          "domain_to": "www.bench3809shop.example",
+                          "link_from": "https://www.bench3809shop.example/products/stoneware-mug",
+                          "link_to": "https://www.bench3809shop.example/about-us",
+                          "dofollow": true,
+                          "page_from_scheme": "https",
+                          "page_to_scheme": "https",
+                          "direction": "internal",
+                          "is_broken": false,
+                          "text": "our story",
+                          "page_to_status_code": 301
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured DataForSEO connector"
+      },
+      "note": "POST on_page/links [{id, page_to}] per 404 or 301 page, answered by page_to (with its closing quote)"
+    },
+    {
+      "node": "Query GSC API",
+      "service": "google-search-console",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://searchconsole.googleapis.com/webmasters/v3/sites/sc-domain:bench3809shop.example/searchAnalytics/query",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "bodyMatch": "https://www.bench3809shop.example/\"",
+            "body": {
+              "rows": [
+                {
+                  "keys": [
+                    "https://www.bench3809shop.example/"
+                  ],
+                  "clicks": 412,
+                  "impressions": 9800,
+                  "ctr": 0.042,
+                  "position": 14.2
+                }
+              ],
+              "responseAggregationType": "byPage"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://searchconsole.googleapis.com/webmasters/v3/sites/sc-domain:bench3809shop.example/searchAnalytics/query",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "bodyMatch": "https://www.bench3809shop.example/blog/glaze-guide-2024\"",
+            "body": {
+              "rows": [
+                {
+                  "keys": [
+                    "https://www.bench3809shop.example/blog/glaze-guide-2024"
+                  ],
+                  "clicks": 12,
+                  "impressions": 3100,
+                  "ctr": 0.0039,
+                  "position": 14.2
+                }
+              ],
+              "responseAggregationType": "byPage"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://searchconsole.googleapis.com/webmasters/v3/sites/sc-domain:bench3809shop.example/searchAnalytics/query",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "bodyMatch": "https://www.bench3809shop.example/products/stoneware-mug\"",
+            "body": {
+              "rows": [
+                {
+                  "keys": [
+                    "https://www.bench3809shop.example/products/stoneware-mug"
+                  ],
+                  "clicks": 61,
+                  "impressions": 2400,
+                  "ctr": 0.0254,
+                  "position": 14.2
+                }
+              ],
+              "responseAggregationType": "byPage"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Search Console connector"
+      },
+      "note": "Search Console searchAnalytics.query for the sc-domain property (Google OAuth), one POST per crawled 200 page filtered on it, answered by the page URL (with its closing quote) in the raw body"
+    }
+  ],
+  "models": [],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "If: false once (in_progress, wait), then true",
+      "Loop Over Items: one batch of three 200 pages",
+      "Loop Over Items1: the 404 and the 301, one at a time"
+    ],
+    "offline": "Both 1-minute waits are shortened to 1 second (timeCompression); Search Console's date range is new Date() on each side. dfs_domain is the template's own placeholder text; DataForSEO is answered whatever target it gets, and the crawled pages are on one example domain. The HTTP nodes name their credential types without a credential, so the bench's dummies (P61) stand in. What is compared is Download Report's HTML file (the terminal step)."
+  }
+}

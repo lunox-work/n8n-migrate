@@ -1,0 +1,44 @@
+{
+  "why": "Get G2 data with ScrapingBee sends api_key as the template's placeholder text YOUR_API_KEY (the person's ScrapingBee key). Filled with a placeholder key on both sides; the other query parameters are unchanged. Placeholder fill only: no logic changes.",
+  "n8n": {
+    "Get G2 data with ScrapingBee": {
+      "parameters.queryParameters.parameters.0.value": "bench-scrapingbee-key"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Get G2 data with ScrapingBee": {
+          "patch": {
+            "params": {
+              "queryParameters": {
+                "parameters": [
+                  {
+                    "name": "api_key",
+                    "value": "bench-scrapingbee-key"
+                  },
+                  {
+                    "name": "url",
+                    "value": "=https://www.g2.com/products/{{ $json.competitor }}/reviews?utf8=%E2%9C%93&order=most_recent "
+                  },
+                  {
+                    "name": "premium_proxy",
+                    "value": "true"
+                  },
+                  {
+                    "name": "country_code",
+                    "value": "us"
+                  },
+                  {
+                    "name": "stealth_proxy",
+                    "value": "true"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
