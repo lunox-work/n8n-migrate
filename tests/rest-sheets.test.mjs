@@ -271,3 +271,22 @@ test("convert: LinkedIn post:create becomes the linkedIn REST program with the s
   assert.deepEqual(def.secrets.find((x) => x.name === "My LinkedIn").hosts.sort(), ["api.linkedin.com", "www.linkedin.com"]);
   assert.equal(preflight(def, {}).ok, true, JSON.stringify(preflight(def, {}).issues));
 });
+
+test("Facebook Graph API: sendBinaryData posts the item's binary as one multipart file part, named by <field>:<property>", async () => {
+  const png = Buffer.from("img").toString("base64");
+  const seen = [];
+  const exec = {
+    name: "FB",
+    typeVersion: 1,
+    step: { n8n: { typeVersion: 1 }, auth: { credentialType: "facebookGraphApi", secret: "FB token" } },
+    getInputData: () => [{ json: {}, binary: { photo: { data: png, mimeType: "image/png", fileName: "p.png" } } }],
+    continueOnFail: () => false,
+    param: (p, i, d) => ({ hostUrl: "graph.facebook.com", httpRequestMethod: "POST", graphApiVersion: "v22.0", node: "me", edge: "photos", sendBinaryData: true, binaryPropertyName: "source:photo", options: {} })[p] ?? d,
+    request: async ([req]) => (seen.push(req), [{ ok: true, value: { status: 200, body: '{"id":"1"}' } }]),
+  };
+  const [out] = await restPrograms.facebookGraph.execute(exec);
+  assert.deepEqual(out[0].json, { id: "1" });
+  assert.equal(seen[0].url, "https://graph.facebook.com/v22.0/me/photos?access_token={{secret}}");
+  assert.equal(seen[0].contentType, "multipart-form-data");
+  assert.deepEqual(seen[0].body, { source: { $file: { fileName: "p.png", mimeType: "image/png", data: png } } });
+});

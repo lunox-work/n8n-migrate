@@ -12685,7 +12685,8 @@ const openAiImage = {
 // with each path value encoded as n8n-workflow requestPath encodes a segment (v1 decodes an
 // already-encoded value first); the method as set; the JSON answer is the item. A text answer
 // fails with n8n's message. The token goes in the URL (placement url) to graph.facebook.com and
-// graph-video.facebook.com only.
+// graph-video.facebook.com only. With sendBinaryData the item's binary is sent as a multipart
+// file part (n8n's formData).
 const GRAPH_HOSTS = ["graph.facebook.com", "graph-video.facebook.com"];
 const SEGMENT_KEEP = /%(?:21|24|26|27|28|29|2A|2B|2C|3B|3D|3A|40)/gi;
 function graphSegment(v, decodeFirst) {
@@ -12708,7 +12709,15 @@ const facebookGraph = {
     for (let i = 0; i < items.length; i++) {
       try {
         if (exec.param("authType", i, "accessToken") !== "accessToken") throw new NodeError("Facebook Graph API with OAuth2 is not carried over; use an access token credential", { node: exec.name, itemIndex: i });
-        if (exec.param("sendBinaryData", i, false)) throw new NodeError("Facebook Graph API binary uploads are not carried over", { node: exec.name, itemIndex: i });
+        // sendBinaryData: the item's binary goes as one multipart file part, named by the
+        // "<field>:<property>" parameter (field "file" without a colon), with its file name and type.
+        let filePart;
+        if (exec.param("sendBinaryData", i, false)) {
+          const full = String(exec.param("binaryPropertyName", i, ""));
+          const [field, prop] = full.includes(":") ? full.split(":") : ["file", full];
+          const { meta } = binaryOf(exec, i, prop);
+          filePart = { [field]: { $file: { fileName: meta.fileName, mimeType: meta.mimeType, data: meta.data } } };
+        }
         const hostUrl = String(exec.param("hostUrl", i, "graph.facebook.com"));
         if (!GRAPH_HOSTS.includes(hostUrl)) throw new NodeError(`The Host URL "${hostUrl}" is not supported`, { node: exec.name, itemIndex: i });
         const method = String(exec.param("httpRequestMethod", i, "GET")).toUpperCase();
@@ -12730,6 +12739,7 @@ const facebookGraph = {
           }
         }
         const req = { kind: "http", itemIndex: i, method, url: `https://${hostUrl}${path}?access_token={{secret}}`, query, headers: { accept: "application/json,text/*;q=0.99" } };
+        if (filePart) Object.assign(req, { body: filePart, contentType: "multipart-form-data" });
         if (exec.step.auth?.secret) req.auth = { credentialType: exec.step.auth.credentialType, secret: exec.step.auth.secret, placement: "url" };
         const [r] = await exec.request([req]);
         if (!r.ok) throw new NodeError(r.error?.message ?? "request failed", { node: exec.name, itemIndex: i });

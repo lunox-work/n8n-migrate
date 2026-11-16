@@ -1037,10 +1037,9 @@
             "effect": "byMethod",
             "fidelity": "exact",
             "caveats": ["The access token goes in the request URL as access_token, as n8n sends it: store the secret as the token itself (the n8n credential's Access Token)."],
-            "understood": ["hostUrl", "httpRequestMethod", "graphApiVersion", "node", "edge", "options.fields", "options.queryParameters", "options.queryParametersJson", "allowUnauthorizedCerts", "sendBinaryData", "authType"],
+            "understood": ["hostUrl", "httpRequestMethod", "graphApiVersion", "node", "edge", "options.fields", "options.queryParameters", "options.queryParametersJson", "allowUnauthorizedCerts", "sendBinaryData", "binaryPropertyName", "authType"],
             "review": [
               { "param": "authType", "equals": "oAuth2", "reason": "Facebook Graph API with an OAuth2 credential is not carried over: the step fails at run time; use an access token credential" },
-              { "param": "sendBinaryData", "equals": true, "reason": "a binary upload (sendBinaryData) is not carried over: the step fails at run time" },
               { "param": "allowUnauthorizedCerts", "equals": true, "reason": "Ignore SSL Issues is on in n8n; the runtime always checks the certificate" }
             ]
           }
