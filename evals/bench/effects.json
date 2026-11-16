@@ -1396,6 +1396,13 @@
         "field": "text",
         "nodeType": "n8n-nodes-base.slack",
         "about": "PROPOSALS P111: Slack's workflow link line (`\\n_Automated with this <…workflow/…?utm_source=n8n-internal&utm_medium=powered_by&utm_campaign=n8n-nodes-base.slack_<instance id>|n8n workflow>_`, text messages, v2.1 on, `includeLinkToWorkflow` default on), removed from the end of n8n-side text only"
+      },
+      {
+        "service": "telegram",
+        "action": "send_message",
+        "field": "text",
+        "nodeType": "n8n-nodes-base.telegram",
+        "about": "PROPOSALS P131: Telegram's attribution (sendMessage, v1.1 on, `appendAttribution` default on): `\\n\\n_This message was sent automatically with _[n8n](<link>)` in Markdown, `\\n\\n<em>This message was sent automatically with </em><a href=\"<link>\" target=\"_blank\">n8n</a>` in HTML, removed from the end of n8n-side text only"
       }
     ]
   },

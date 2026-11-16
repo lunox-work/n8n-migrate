@@ -654,6 +654,16 @@ test("legacy OpenAI text edit: instruction as system text, input as prompt, n8n'
   assert.equal(def.steps.Raw.model.system, undefined, "no instruction, no system text");
 });
 
+// R5b3 iteration 54: the OpenAI node v1's image analysis hands on n8n's simplified {content}.
+test("OpenAI v1 image analysis: the reply as n8n's simplified {content}", () => {
+  const lc = "@n8n/n8n-nodes-langchain.";
+  const step = (name, extra, v = 1.8) => ({ parameters: { text: "Describe it", resource: "image", operation: "analyze", imageUrls: "={{ $json.url }}", modelId: { __rl: true, mode: "list", value: "gpt-4o-mini" }, options: {}, ...extra }, name, type: lc + "openAi", typeVersion: v, position: [200, 0] });
+  const def = convertJson(tiny([manual, step("Look", {}), step("Raw", { simplify: false })], { ...link("Start", "Look"), ...link("Look", "Raw") })).definition;
+  assert.deepEqual(def.steps.Look.model.outputTemplate, { content: "$output" });
+  assert.equal(def.steps.Look.model.prompt, "Describe it");
+  assert.deepEqual(def.steps.Raw.model.outputTemplate, { index: 0, message: { role: "assistant", content: "$output" } }, "Simplify off: the raw response is not rebuilt (flagged)");
+});
+
 // R5b1 iteration 48: the Call n8n Workflow Tool v1 with an input schema is offered with that
 // schema, and the sub-workflow gets the parsed arguments as `query` (n8n's DynamicStructuredTool).
 test("Call n8n Workflow Tool v1 with an input schema: the schema offered, the arguments as query", async () => {

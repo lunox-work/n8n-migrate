@@ -683,6 +683,14 @@ export function stripAttribution(text, nodeType) {
   // in an added block or attachment, which the comparer does not compare.
   const slack = new RegExp(`(?:^|\\n)_Automated with this <[^\\s|>]*workflow/[^\\s?|>]*\\?utm_source=n8n-internal&utm_medium=powered_by&utm_campaign=${escRe(encodeURIComponent(nodeType))}(?:_[^\\s|>]+)?\\|n8n workflow>_$`);
   if (slack.test(text)) return { text: text.replace(slack, ""), stripped: "slack" };
+  // PROPOSALS P131: Telegram's sendMessage (v1.1 on, `appendAttribution` default on) gets
+  // `\n\n_This message was sent automatically with _[n8n](<link>)` in Markdown (its default parse
+  // mode) or `\n\n<em>This message was sent automatically with </em><a href="<link>"
+  // target="_blank">n8n</a>` in HTML (Telegram GenericFunctions.js in the 2.47.7 image).
+  const tgMd = new RegExp(`\\n\\n_This message was sent automatically with _\\[n8n\\]\\(${link}\\)$`);
+  if (tgMd.test(text)) return { text: text.replace(tgMd, ""), stripped: "telegram-markdown" };
+  const tgHtml = new RegExp(`\\n\\n<em>This message was sent automatically with </em><a href="${link}" target="_blank">n8n</a>$`);
+  if (tgHtml.test(text)) return { text: text.replace(tgHtml, ""), stripped: "telegram-html" };
   return { text, stripped: false };
 }
 

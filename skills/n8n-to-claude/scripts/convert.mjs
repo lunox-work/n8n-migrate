@@ -1708,7 +1708,11 @@ function convertModel(name, step, { params, type, v, review, translate, subnodes
       model.outputTemplate = op === "text:message" ? { index: 0, message: { role: "assistant", content: "$output", refusal: null, annotations: [] }, logprobs: null, finish_reason: "stop" } : { output: [{ type: "message", role: "assistant", content: [{ type: "output_text", text: "$output" }] }] };
       if (subnodesTo(name, "ai_tool").length) reasons.push("tools attached to the OpenAI node are not mapped");
     } else if (op === "image:analyze") {
-      model = { prompt: p.text ?? "What's in this image?", outputTemplate: { index: 0, message: { role: "assistant", content: "$output" } } };
+      // n8n's v1 analysis (node v1.x) simplifies the chat completion to {content} (Simplify is on
+      // by default); v2 posts to /responses and hands back its output list.
+      model = { prompt: p.text ?? "What's in this image?", outputTemplate: v < 2 && p.simplify !== false ? { content: "$output" } : { index: 0, message: { role: "assistant", content: "$output" } } };
+      if (v < 2 && p.simplify === false) reasons.push("the raw OpenAI response (choices, usage) is not rebuilt; only the simplified content is");
+      if (v >= 2) reasons.push("the v2 node's /responses output list is not rebuilt");
       translate(step, "node", clone(p), "image analysis needs the image handed to the model, which the model step does not carry yet");
     } else {
       block(step, "unsupported", `OpenAI ${op} is not a text model call`);

@@ -1,6 +1,7 @@
 // Round 5 setup's bench decisions (evals/bench/PROPOSALS.md P111-P119).
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 // PROPOSALS P115: a live recording of n8n's concurrent per-item model calls lists them in
 // completion order (the shim numbers a call on arrival and appends it when its reply is ready).
@@ -192,4 +193,19 @@ test("P101: retired routes are marked in the fixture and reported per run", asyn
   const out = logVsFixture({ routes }, effects);
   assert.deepEqual(out.retired, [{ node: "Edit", method: "POST", url: "https://api.openai.com/v1/edits", retired: "OpenAI Edits API, shut down 2024" }]);
   assert.equal(logVsFixture({ routes }, []).retired, undefined, "an unused retired route is not reported");
+});
+
+// PROPOSALS P131 (round 5 batch 3): n8n's Telegram sendMessage (v1.1 on) appends its attribution
+// in Markdown or HTML; the comparer removes exactly that tail from n8n-side text only.
+test("P131: Telegram's attribution is stripped from n8n-side message text only", async () => {
+  const { stripAttribution } = await import("../evals/bench/compare.mjs");
+  const link = "https://n8n.io/?utm_source=n8n-internal&utm_medium=powered_by&utm_campaign=n8n-nodes-base.telegram_7610af69";
+  const md = `\n\n_This message was sent automatically with _[n8n](${link})`;
+  const html = `\n\n<em>This message was sent automatically with </em><a href="${link}" target="_blank">n8n</a>`;
+  assert.deepEqual(stripAttribution(`Shared${md}`, "n8n-nodes-base.telegram"), { text: "Shared", stripped: "telegram-markdown" });
+  assert.deepEqual(stripAttribution(`Shared${html}`, "n8n-nodes-base.telegram"), { text: "Shared", stripped: "telegram-html" });
+  assert.equal(stripAttribution(`Shared${md} more`, "n8n-nodes-base.telegram").stripped, false, "only at the end");
+  assert.equal(stripAttribution(`Shared${md}`, "n8n-nodes-base.slack").stripped, false, "only for the Telegram node's own link");
+  const effects = JSON.parse(readFileSync(new URL("../evals/bench/effects.json", import.meta.url), "utf8"));
+  assert.ok(effects.attribution.list.some((r) => r.service === "telegram" && r.action === "send_message" && r.field === "text" && r.nodeType === "n8n-nodes-base.telegram"));
 });
