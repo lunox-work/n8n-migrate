@@ -1298,6 +1298,23 @@
       }
     ]
   },
+  "attribution": {
+    "about": "PROPOSALS P107: n8n's attribution footer. n8n 2.47.7's Send Email (v2.1 on) and Gmail send and reply append a footer to the message body when the node's `appendAttribution` option is on (its default): to an HTML body a line break, `---` and `<em>This email was sent automatically with <a href=\"<link>\" target=\"_blank\">n8n</a></em>`, the link being https://n8n.io/?utm_source=n8n-internal&utm_medium=powered_by&utm_campaign=<node type>_<the running instance's id>; to a text body `\\n\\n---\\nThis email was sent automatically with n8n\\nhttps://n8n.io`. The footer names the n8n instance that sent the mail, which a migrated folder cannot know and which is false once Claude sends it, so the comparer removes exactly that footer, for the node type the effect comes from, from the end of an n8n-side body before pairing, and reports it as `attributionStripped`. Nothing else in the body is changed, and a Claude-side body is never stripped.",
+    "list": [
+      {
+        "service": "mail",
+        "action": "send",
+        "field": "body",
+        "nodeType": "n8n-nodes-base.emailSend"
+      },
+      {
+        "service": "gmail",
+        "action": "send",
+        "field": "body",
+        "nodeType": "n8n-nodes-base.gmail"
+      }
+    ]
+  },
   "db": {
     "about": "PROPOSALS P66: a database the run used (the bench's Postgres and MongoDB sidecars, evals/n8n/databases.mjs). Writes are the diff of the run's database against its seeded state, not the statements: what the database holds after the run, whatever SQL or command (often model-written) produced it. Rows pair by primary key (documents by _id), else as whole rows. Service is the engine (postgres, mongodb), action the change, target the table (schema.table) or collection; fields are the row's columns (insert), `$key` and the changed columns (update), `$key` or the row (delete), `rows` (drop_table), each compared exactly; an ObjectId the driver generated for an inserted document is left out. The statements the run sent (Postgres log_statement=all for n8n's role in the run's database; the MongoDB profiler) are reads keyed by the tables they name, reported and searched for bait, never failing a comparison",
     "changes": {

@@ -654,7 +654,39 @@ export function applySubstitutions(n8n, claude) {
   return out;
 }
 
+// PROPOSALS P107: n8n's attribution footer (effects.json `attribution`). n8n 2.47.7 appends it
+// in the node itself: an HTML body becomes `\n<tabs>${html}\n<tabs><br>\n<tabs><br>\n<tabs>---
+// \n<tabs><br>\n<tabs><em>This email was sent automatically with <a href="${link}"
+// target="_blank">n8n</a></em>\n<tabs>`, a text body `${text}\n\n---\nThis email was sent
+// automatically with n8n\nhttps://n8n.io`, where link is n8n.io with utm_campaign = the node
+// type, then `_` and the instance id when n8n has one. Only that exact tail is removed (with
+// the HTML form's leading line break and indentation), only for the node type the effect's
+// service comes from, only on the n8n side.
+const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+export function stripAttribution(text, nodeType) {
+  if (typeof text !== "string") return { text, stripped: false };
+  const link = `https://n8n\\.io/\\?utm_source=n8n-internal&utm_medium=powered_by&utm_campaign=${escRe(encodeURIComponent(nodeType))}(?:_[^"\\s]+)?`;
+  // The line break before the first <br> is gone when the body was empty and the mock or the
+  // transport trimmed the message's ends.
+  const html = new RegExp(`(?:^\\s*|\\r?\\n[\\t ]*)<br>\\r?\\n[\\t ]*<br>\\r?\\n[\\t ]*---\\r?\\n[\\t ]*<br>\\r?\\n[\\t ]*<em>This email was sent automatically with <a href="${link}" target="_blank">n8n</a></em>(?:\\r?\\n[\\t ]*)?$`);
+  if (html.test(text)) return { text: text.replace(html, "").replace(/^\r?\n[\t ]*/, ""), stripped: "html" };
+  const plain = /(?:^\s*|\r?\n\r?\n)---\r?\nThis email was sent automatically with n8n\r?\nhttps:\/\/n8n\.io\s*$/;
+  if (plain.test(text)) return { text: text.replace(plain, ""), stripped: "text" };
+  return { text, stripped: false };
+}
+
+export function stripAttributionAll(n8n) {
+  const list = table().attribution?.list ?? [];
+  return n8n.map((e) => {
+    const rule = list.find((r) => r.service === e.service && r.action === e.action);
+    if (!rule || typeof e.fields?.[rule.field] !== "string") return e;
+    const { text, stripped } = stripAttribution(e.fields[rule.field], rule.nodeType);
+    return stripped ? { ...e, fields: { ...e.fields, [rule.field]: text }, attributionStripped: { field: rule.field, form: stripped, nodeType: rule.nodeType } } : e;
+  });
+}
+
 export function compare(n8n, claude, { modelTexts = [], mode = "replay", runTime = null } = {}) {
+  n8n = stripAttributionAll(n8n);
   claude = applySubstitutions(n8n, claude);
   const nW = n8n.filter(isWrite);
   const cW = claude.filter(isWrite);
@@ -699,7 +731,8 @@ export function compare(n8n, claude, { modelTexts = [], mode = "replay", runTime
   const order = nW.map(keyOf).join("|") === cW.map(keyOf).join("|");
   const ok = !writes.missing.length && !writes.extra.length && !writes.fieldDiffs.length;
   const substituted = claude.filter((e) => e.substituted).map((e) => ({ effect: keyOf(e), ...e.substituted }));
-  return { ok, writes, reads, sameOrder: order, judge, runTimeMasked, unmapped: [...n8n, ...claude].filter((e) => e.unmapped).map(summary), ...(substituted.length ? { substituted } : {}) };
+  const attributionStripped = n8n.filter((e) => e.attributionStripped).map((e) => ({ effect: keyOf(e), ...e.attributionStripped }));
+  return { ok, writes, reads, sameOrder: order, judge, runTimeMasked, unmapped: [...n8n, ...claude].filter((e) => e.unmapped).map(summary), ...(substituted.length ? { substituted } : {}), ...(attributionStripped.length ? { attributionStripped } : {}) };
 }
 
 function summary(e) {

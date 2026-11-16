@@ -739,8 +739,31 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
     },
     // PROPOSALS P84: every answer carries the transport headers the mock's Node server adds, the
     // date at the run's virtual clock.
-    http: async (p) => withTransport(await answerHttp(p)),
+    http: async (p) => withTransport(await followRedirects(p)),
   };
+  // PROPOSALS P108: redirects followed as the task driver's executeHttp follows them (and as
+  // n8n's HTTP Request does by default): a 301/302/303/307/308 with a location is asked again at
+  // the location, unless the request says followRedirects: false; a 303, or a 301/302 after a
+  // POST, becomes a GET without a body; at most 20 hops. Each hop is its own logged request
+  // (`redirectFrom`), so gate 6 checks every hop against the definition's allow lists, as the
+  // driver's containment check does. The final answer carries its URL, as executeHttp's does.
+  async function followRedirects(p) {
+    let req = p;
+    let res = await answerHttp(req);
+    for (let hop = 0; p.followRedirects !== false && res && [301, 302, 303, 307, 308].includes(res.status); hop++) {
+      const loc = Object.entries(res.headers ?? {}).find(([k]) => k.toLowerCase() === "location")?.[1];
+      if (!loc) break;
+      if (hop >= 20) throw new Error(`more than 20 redirects from ${p.url}`);
+      const from = new URL(req.url);
+      for (const [k, v] of Object.entries(req.query ?? {})) for (const x of [].concat(v)) from.searchParams.append(k, typeof x === "string" ? x : JSON.stringify(x));
+      const to = new URL(String(loc), from).toString();
+      const method = res.status === 303 || ((res.status === 301 || res.status === 302) && String(req.method).toUpperCase() === "POST") ? "GET" : req.method;
+      req = { ...req, url: to, query: {}, method, ...(method !== req.method ? { body: undefined, contentType: undefined } : {}), redirectFrom: from.toString() };
+      res = await answerHttp(req);
+      if (res && typeof res === "object") res = { ...res, url: to };
+    }
+    return res;
+  }
   const hostStart = Date.now();
   const withTransport = (r) => (r && typeof r === "object" && r.headers ? { ...r, headers: { ...r.headers, ...transportHeaders(r.headers, new Date(Date.parse(startedAt ?? fx.now) + (Date.now() - hostStart))) } } : r);
   async function answerHttp(p) {
@@ -751,7 +774,7 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
       // PROPOSALS P43: an LLM API over HTTP is a model call answered from n8n's recording.
       const mh = isModelHttp(routes, p.method, p.url, body);
       if (mh) return answerModelHttp(p, mh, jsonBody(body));
-      const entry = { method: p.method, url: `${u.origin}${u.pathname}`, query: Object.fromEntries(sp), body, ...(p.contentType ? { contentType: p.contentType } : {}), auth: p.auth?.secret ?? null, ...(p.ownStep ?? p.step ? { step: p.ownStep ?? p.step } : {}) };
+      const entry = { method: p.method, url: `${u.origin}${u.pathname}`, query: Object.fromEntries(sp), body, ...(p.contentType ? { contentType: p.contentType } : {}), auth: p.auth?.secret ?? null, ...(p.ownStep ?? p.step ? { step: p.ownStep ?? p.step } : {}), ...(p.redirectFrom ? { redirectFrom: p.redirectFrom } : {}) };
       seen.http.push(entry);
       // PROPOSALS P29: what the real service refuses whatever the fixture says, as the mock.
       const refused = serviceRefusal(p.method, u.origin, u.pathname, body);
