@@ -25,7 +25,7 @@ import { validate } from "../../tests/schema-check.mjs";
 import { canonical } from "../fetch-survey.mjs";
 import { createHash } from "node:crypto";
 import { modelRoute, modelNodes, modelConsumers } from "./n8n-side.mjs";
-import { readSplits, unreadableIds } from "./rounds.mjs";
+import { readSplits, roundOf, unreadableIds } from "./rounds.mjs";
 import { dbPlan, planErrors } from "../n8n/databases.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -34,6 +34,12 @@ const VARIANTS = ["normal", "empty", "malformed", "hostile"];
 const schema = JSON.parse(readFileSync(join(HERE, "fixture.schema.json"), "utf8"));
 const corpus = JSON.parse(readFileSync(join(HERE, "corpus.json"), "utf8"));
 const hashOf = Object.fromEntries(corpus.templates.map((e) => [e.id, e.sha256]));
+// The current round's dev and held-out ids (PROPOSALS P117).
+let roundIds = null;
+const currentRoundIds = () => (roundIds ??= (() => {
+  const r = roundOf(readSplits());
+  return new Set([...r.dev, ...r.heldOut].map((t) => Number(t.id)));
+})());
 
 const connectorTools = {};
 for (const f of readdirSync(join(ROOT, "evals", "mocks", "connectors"))) {
@@ -113,7 +119,10 @@ export async function checkFixture(fx, raw) {
   for (const k of Object.keys(fx.pinData ?? {})) if (!wf.pinData?.[k]) errors.push(`pinData.${k} is not in the template's pinData`);
   if (wf.pinData && Object.keys(wf.pinData).length && !fx.pinData) errors.push("the template has pinData; copy it into pinData");
   for (const e of modelErrors(fx, wf)) errors.push(e);
-  for (const w of dbNodeWarnings(fx, wf)) warnings.push(w);
+  // PROPOSALS P117: for a template of the current round (dev or held-out) a database node on the
+  // main path without a seeded database is an error, so no fixture relies on a pending bench fix
+  // silently; templates outside the round (dropped ones kept for history) keep the warning.
+  for (const w of dbNodeWarnings(fx, wf)) (currentRoundIds().has(Number(fx.template)) ? errors : warnings).push(w);
   for (const w of pinnedWarnings(fx, wf)) warnings.push(w);
   for (const w of pollWarnings(fx, wf)) warnings.push(w);
   const report = await analyzerReport(raw, fx.template);

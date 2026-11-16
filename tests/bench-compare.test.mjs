@@ -333,7 +333,7 @@ test("P11: a read's rows are served again by args and per calling step; writes s
   assert.equal(pickConnector(list, { messageId: "m1" }, trig, "Trigger", { read: true }).result, "one", "a used row with the same args answers again");
   const w = new Set();
   assert.equal(pickConnector(list, { messageId: "m1" }, w, "Get").result, "one");
-  assert.equal(pickConnector(list, { messageId: "m1" }, w, "Get").result, "two", "a write does not reuse");
+  assert.equal(pickConnector(list, { messageId: "m1" }, w, "Get"), null, "a write does not reuse, and the row for m2 does not answer m1 (P112): the connector's default does");
   const plain = [{ node: "Poll", result: "a" }, { node: "Poll", result: "b" }];
   assert.equal(pickConnector(plain, {}, new Set(), "Later", { read: true }).result, "a", "another step reuses the read's rows from the start");
 });

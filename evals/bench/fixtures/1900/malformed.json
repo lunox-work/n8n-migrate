@@ -24,6 +24,7 @@
           {
             "method": "POST",
             "url": "https://api.openai.com/v1/edits",
+            "retired": "OpenAI's Edits API (/v1/edits, text-davinci-edit-001), shut down by OpenAI in January 2024; answered as it answered",
             "status": 404,
             "body": {
               "error": {

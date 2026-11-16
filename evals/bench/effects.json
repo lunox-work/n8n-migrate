@@ -690,6 +690,83 @@
       }
     },
     {
+      "service": "facebook",
+      "action": "page_photo",
+      "effect": "write",
+      "method": "POST",
+      "host": "graph.facebook.com",
+      "path": "^/v[\\d.]+/(?<id>[^/]+)/photos$",
+      "target": "path.id",
+      "about": "PROPOSALS P113: Graph API POST /{page-id}/photos (developers.facebook.com/docs/graph-api/reference/page/photos): the photo as a multipart file part (`source`; n8n's Facebook Graph API node names the part after its binary field) or a `url`, with `message` (or `caption`) and `link` in the body or the query. The access token is a credential, never a field",
+      "fields": {
+        "message": {
+          "from": [
+            "body.message",
+            "query.message",
+            "body.caption",
+            "query.caption"
+          ],
+          "cmp": "text"
+        },
+        "link": {
+          "from": [
+            "body.link",
+            "query.link"
+          ],
+          "cmp": "exact"
+        },
+        "url": {
+          "from": [
+            "body.url",
+            "query.url"
+          ],
+          "cmp": "exact"
+        },
+        "fileType": {
+          "from": [
+            "body.source.contentType",
+            "body.file.contentType",
+            "body.data.contentType"
+          ],
+          "cmp": "exact"
+        },
+        "fileSha256": {
+          "from": [
+            "body.source.sha256",
+            "body.file.sha256",
+            "body.data.sha256"
+          ],
+          "cmp": "exact"
+        }
+      }
+    },
+    {
+      "service": "facebook",
+      "action": "page_post",
+      "effect": "write",
+      "method": "POST",
+      "host": "graph.facebook.com",
+      "path": "^/v[\\d.]+/(?<id>[^/]+)/feed$",
+      "target": "path.id",
+      "about": "PROPOSALS P113: Graph API POST /{page-id}/feed (developers.facebook.com/docs/graph-api/reference/page/feed): `message` and `link` in the body or the query",
+      "fields": {
+        "message": {
+          "from": [
+            "body.message",
+            "query.message"
+          ],
+          "cmp": "text"
+        },
+        "link": {
+          "from": [
+            "body.link",
+            "query.link"
+          ],
+          "cmp": "exact"
+        }
+      }
+    },
+    {
       "service": "instagram",
       "action": "get",
       "effect": "read",
@@ -1312,6 +1389,13 @@
         "action": "send",
         "field": "body",
         "nodeType": "n8n-nodes-base.gmail"
+      },
+      {
+        "service": "slack",
+        "action": "post_message",
+        "field": "text",
+        "nodeType": "n8n-nodes-base.slack",
+        "about": "PROPOSALS P111: Slack's workflow link line (`\\n_Automated with this <…workflow/…?utm_source=n8n-internal&utm_medium=powered_by&utm_campaign=n8n-nodes-base.slack_<instance id>|n8n workflow>_`, text messages, v2.1 on, `includeLinkToWorkflow` default on), removed from the end of n8n-side text only"
       }
     ]
   },
@@ -1338,5 +1422,21 @@
       "action": "query",
       "effect": "read"
     }
+  },
+  "readEquivalents": {
+    "about": "PROPOSALS P114: reads that ask the same service for the same data by another route count as the same read when an agent's tool turn is matched (claude-side.mjs sameToolTurn, read keys only; writes keep their own keys, and the tool results are compared anyway, so a wrong tab or different rows still differ). A Drive `download_file_content` exported as `text/csv` is a spreadsheet's export (Drive exports only Google Sheets as CSV: developers.google.com/drive/api/guides/ref-export-formats), so it is the read of that spreadsheet that n8n's Google Sheets node makes over the Sheets API (`sheets.get:<spreadsheet id>`).",
+    "list": [
+      {
+        "service": "drive",
+        "action": "download",
+        "when": {
+          "args.exportMimeType": "text/csv"
+        },
+        "as": {
+          "service": "sheets",
+          "action": "get"
+        }
+      }
+    ]
   }
 }

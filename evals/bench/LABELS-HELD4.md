@@ -1,6 +1,6 @@
 # Round 4 held-out labels vs the analyzer
 
-Fixing sessions must not read this file, `labels-held4.json` or the templates until release point 4 has scored them (EXCLUSIONS.md).
+Fixing sessions must not read this file, `labels-held4.json` or the templates until release point 4 has scored them (EXCLUSIONS.md). Since round 5 they are dev material.
 
 20 hand labels (`labels-held4.json`, committed in c25dfb8 before the analyzer was run on these templates) against `analyze.mjs` with default answers at that commit. Reproduce: `node evals/bench/compare-labels.mjs --labels evals/bench/labels-held4.json` (needs `evals/bench/data/`).
 
@@ -19,6 +19,10 @@ By the labels:
 | Blocker kinds                              | 20 / 20   |
 | Questions (all required asked, none extra) | 20 / 20   |
 | Everything                                 | 19 / 20   |
+
+## Round 5 setup (P119)
+
+The table above counted 2198, which amendment 1 redrew out of the held-out, and had no label for 2694, which came in. Round 5 made these templates dev, so the file was fixed: 2198's label moved to `redrawnOut` (kept, not compared), and 2694 got a label written from its template JSON alone, after release point 4, so it is not blind (`blind: false`). Over the 20 current templates, against the analyzer at round 5 setup: outcome 20, outcome and target 19 (1957 below), wake-up 20, blockers 20, questions 19 (1554: iteration 39's hosts question for a data-built feed URL, which postdates the labels), everything 18.
 
 ## Disagreement
 

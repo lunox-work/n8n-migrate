@@ -23,11 +23,7 @@
       "node": "Run SQL Query",
       "service": "postgres",
       "db": {
-        "engine": "postgres",
-        "seed": {
-          "public.customers": [],
-          "public.orders": []
-        }
+        "engine": "postgres"
       },
       "connector": {
         "shape": "assumed",
@@ -39,11 +35,7 @@
       "node": "DB Schema",
       "service": "postgres",
       "db": {
-        "engine": "postgres",
-        "seed": {
-          "public.customers": [],
-          "public.orders": []
-        }
+        "engine": "postgres"
       },
       "connector": {
         "shape": "assumed",
@@ -55,11 +47,7 @@
       "node": "Get table definition",
       "service": "postgres",
       "db": {
-        "engine": "postgres",
-        "seed": {
-          "public.customers": [],
-          "public.orders": []
-        }
+        "engine": "postgres"
       },
       "connector": {
         "shape": "assumed",
@@ -73,6 +61,33 @@
     "OpenAI Chat Model"
   ],
   "writes": [],
+  "db": {
+    "postgres": {
+      "tables": {
+        "public.customers": {
+          "columns": {
+            "id": "integer primary key",
+            "name": "text not null",
+            "email": "text",
+            "country": "text",
+            "created_at": "timestamptz"
+          },
+          "rows": []
+        },
+        "public.orders": {
+          "columns": {
+            "id": "integer primary key",
+            "customer_id": "integer references public.customers(id)",
+            "status": "text",
+            "total": "numeric(10,2)",
+            "details": "jsonb",
+            "created_at": "timestamptz"
+          },
+          "rows": []
+        }
+      }
+    }
+  },
   "expect": {
     "branches": [
       "no IF/Switch; the agent picks the tools (expected: list tables, read definitions, one aggregate query)"

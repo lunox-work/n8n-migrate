@@ -19,10 +19,17 @@
   "writes": [
     "MongoDB"
   ],
+  "db": {
+    "mongodb": {
+      "collections": {
+        "n8n-collection": []
+      }
+    }
+  },
   "expect": {
     "branches": [
       "no IF/Switch: one insert"
     ],
-    "offline": "Depends on a pending bench fix: P66 (a MongoDB sidecar on the bench network, eligibility.json bench.fixes). Until it exists the n8n side's mongoDb credential reaches no server and the insert fails, so the baseline is expected to fail at MongoDB. The workflow has no outside input: Set writes the fixed document {my_key: \"my_value\"} and MongoDB inserts its my_key field into collection n8n-collection, so the four variants run the same data"
+    "offline": "The workflow has no outside input: Set writes the fixed document {my_key: \"my_value\"} and MongoDB inserts its my_key field into collection n8n-collection, so the four variants run the same data. The collection starts empty in the run's MongoDB sidecar (db.mongodb, P66; added in round 5 setup, P117), and the insert is compared as the database's change"
   }
 }

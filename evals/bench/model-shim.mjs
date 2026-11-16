@@ -81,6 +81,10 @@ export function normalize(format, body = {}) {
     out.tools = (body.tools ?? []).flatMap((t) => t.functionDeclarations ?? []).map((f) => ({ name: f.name, description: f.description ?? "", schema: f.parameters ?? {} }));
   } else if (format === "openai-completions") {
     out.messages.push({ role: "user", text: [].concat(body.prompt ?? "").join("\n") });
+  } else if (format === "openai-edits") {
+    // PROPOSALS P116: the retired Edits API (the legacy OpenAI node's text edit): an instruction
+    // and the text it applies to, both what the model is asked.
+    for (const t of [body.instruction, body.input]) if (t !== undefined && t !== null && t !== "") out.messages.push({ role: "user", text: String(t) });
   } else if (format === "hf-text-generation") {
     // Hugging Face's hf-inference text generation ({inputs, parameters}), PROPOSALS P18.
     out.messages.push({ role: "user", text: String(body.inputs ?? "") });
@@ -342,7 +346,7 @@ export function answerOf(format, resp) {
     const m = resp.choices?.[0]?.message ?? {};
     return m.tool_calls?.length ? { calls: m.tool_calls.map((c) => ({ name: c.function?.name, input: safeParse(c.function?.arguments) })) } : { text: m.content ?? "" };
   }
-  if (format === "openai-completions") return { text: resp.choices?.[0]?.text ?? "" };
+  if (format === "openai-completions" || format === "openai-edits") return { text: resp.choices?.[0]?.text ?? "" };
   if (format === "gemini") {
     const parts = resp.candidates?.[0]?.content?.parts ?? [];
     const calls = parts.filter((p) => p.functionCall).map((p) => ({ name: p.functionCall.name, input: p.functionCall.args ?? {} }));
@@ -425,6 +429,22 @@ export function pairRecorded(list = [], index, used, matches) {
   if (free(index)) return take(index);
   for (let j = 0; j < list.length; j++) if (free(j)) return take(j, "unused");
   return { rec: list[index] ?? null, index };
+}
+
+// PROPOSALS P115: a node's recorded calls as a list indexed by their call index, never by their
+// place in the recording. The shim numbers a call when its request arrives but appends it when
+// its reply is ready, so a live recording of concurrent per-item calls lists them in completion
+// order (call 1 before call 0); replay and the checks must all read call k as `index: k`. A
+// second call with an index already taken (not expected) keeps its place after the others.
+export function callsByIndex(calls = []) {
+  const out = [];
+  const extra = [];
+  for (const c of calls) {
+    if (Number.isInteger(c?.index) && c.index >= 0 && out[c.index] === undefined) out[c.index] = c;
+    else extra.push(c);
+  }
+  for (const c of extra) out.push(c);
+  return out;
 }
 
 // The n8n side's replay (P76): the same conversation (system, message texts and tool calls) as a

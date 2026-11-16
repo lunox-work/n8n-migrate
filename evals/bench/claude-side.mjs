@@ -19,11 +19,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { pickRoute, serviceAnswer, serviceRefusal, modelHost, transportHeaders } from "../n8n/mock-server.mjs";
 import { checkSchema, schemaFile } from "../mocks/mcp-server.mjs";
 import { connectorDefault, connectorRefusal, countsAsSend, limitErrors, pageResult } from "../mocks/limits.mjs";
-import { answerOf, formatOf, liveAnswer, normalize, normalizeRunnerRequest, pairRecorded, providerResponse, runnerValue } from "./model-shim.mjs";
+import { answerOf, callsByIndex, formatOf, liveAnswer, normalize, normalizeRunnerRequest, pairRecorded, providerResponse, runnerValue } from "./model-shim.mjs";
 import { claudeP } from "./claude.mjs";
 import { redactSecrets } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
 import { modelConsumers, containerPath, N8N_HOME } from "./n8n-side.mjs";
-import { maskRunTime, fromTool, fromHttp, keyOf } from "./compare.mjs";
+import { maskRunTime, fromTool, fromHttp, keyOf, table } from "./compare.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
@@ -54,7 +54,11 @@ export function convertPlain(id, out, { now = "2026-11-16T00:00:00Z", source = t
 // convert.mjs applyOverrides() merges them into the step (objects key by key, so `{value}`
 // fills a resource locator and keeps its mode; null removes; anything else replaces); the
 // patch itself still runs after conversion. A fill the converter would redact as an inline
-// secret is left to the patch. -> the filled export as text, or null when the overlay fills none.
+// secret is left to the patch, except a URL (PROPOSALS P118): a URL fill whose query carries a
+// dummy token goes into the export as the converter itself would redact it (the token replaced by
+// its redaction marker), so the converter derives the step's host and allow list from it as it
+// would for a real template with an inline token; the patch still supplies the dummy value.
+// -> the filled export as text, or null when the overlay fills none.
 export function filledSource(id, overlay) {
   const steps = Object.entries(overlay?.claude?.overrides?.steps ?? {}).filter(([, o]) => o?.patch?.params && typeof o.patch.params === "object");
   if (!steps.length) return null;
@@ -70,7 +74,13 @@ export function filledSource(id, overlay) {
     for (const [k, v] of Object.entries(o.patch.params)) {
       const before = redactSecrets(n.parameters[k] ?? null).found.length;
       const next = mergeFill({ [k]: structuredClone(n.parameters[k]) }, { [k]: v })[k];
-      if (redactSecrets(next ?? null).found.length > before) continue;
+      if (redactSecrets(next ?? null).found.length > before) {
+        if (k === "url" && typeof next === "string") {
+          n.parameters[k] = redactSecrets(next).value;
+          filled++;
+        }
+        continue;
+      }
       if (next === undefined) delete n.parameters[k];
       else n.parameters[k] = next;
       filled++;
@@ -213,13 +223,22 @@ const toolSchema = (connector, tool) => {
 // first unused, else the last one again. `used` is the caller's: one set per connector tool
 // for writes (single-use, in order) and one per tool and calling step for reads (connectorUse),
 // so a poll read and a later get read never consume each other's rows.
+// PROPOSALS P112: a row whose `args` give an argument the call also carries, with another
+// value, answers a different call: it is never a fallback (a Drive read of a spreadsheet URL got
+// the row of the spreadsheet id). A call no row fits gets the connector's default (null here).
+export function contradicts(rowArgs, callArgs) {
+  if (!isObj(rowArgs) || !isObj(callArgs)) return false;
+  return Object.entries(rowArgs).some(([k, v]) => callArgs[k] !== undefined && !subset(v, callArgs[k]));
+}
 export function pickConnector(list, args, used, node, { read = false } = {}) {
   if (!list?.length) return null;
+  const open = (c) => !contradicts(c.args, args);
   let i = list.findIndex((c, j) => !used.has(j) && c.args && subset(c.args, args));
   if (i < 0 && read) i = list.findIndex((c) => c.args && subset(c.args, args));
-  if (i < 0 && node) i = list.findIndex((c, j) => !used.has(j) && c.node === node);
-  if (i < 0) i = list.findIndex((c, j) => !used.has(j));
-  if (i < 0) i = list.length - 1;
+  if (i < 0 && node) i = list.findIndex((c, j) => !used.has(j) && c.node === node && open(c));
+  if (i < 0) i = list.findIndex((c, j) => !used.has(j) && open(c));
+  if (i < 0 && open(list.at(-1))) i = list.length - 1;
+  if (i < 0) return null;
   used.add(i);
   return { ...list[i], index: i };
 }
@@ -248,6 +267,9 @@ export function sameNormInput(n8nCall, c, runTime = null) {
   const n = normalize(n8nCall.format, n8nCall.request);
   const hay = squash([n.system, ...n.messages.map((m) => m.text)].join(" "));
   const parts = [c.system, ...c.messages.filter((m) => m.role === "user").map((m) => m.text)].map(squash).filter(Boolean);
+  // PROPOSALS P116: a request that asks nothing (no system text, no user text) is not "the same
+  // question" as an n8n call that asked something; before, an empty prompt matched any call.
+  if (!parts.length && hay) return { same: false, emptyPrompt: true, at: "", n8nAround: hay.slice(0, 180) };
   const missing = parts.filter((p) => !hay.includes(p));
   if (!missing.length) return { same: true };
   let still = missing;
@@ -261,6 +283,34 @@ export function sameNormInput(n8nCall, c, runTime = null) {
   let k = 0;
   while (k < p.length && hay.includes(p.slice(0, k + 1))) k++;
   return { same: false, at: p.slice(Math.max(0, k - 60), k + 120), n8nAround: hay.slice(Math.max(0, hay.indexOf(p.slice(0, k)) + k - 60), hay.indexOf(p.slice(0, k)) + k + 120) };
+}
+
+// The claude driver's replay hook (replay-hook.mjs): which recorded call answers runner request
+// `reqId`. PROPOSALS P76: the request's own call index when its input matches, else the node's
+// unused call asked the same thing. PROPOSALS P115: the node's calls are read by their call
+// index (callsByIndex), as claudeDriverModelInputs() checks them, never by their place in the
+// recording, so a live recording of concurrent calls (completion order) pairs and checks alike.
+// `state` ({ids, counts, used}) is the hook's replay-state.json, updated in place.
+// -> {key, index, rec|undefined, pairedBy|null}
+export function replayPick({ recordings = [], workflow = null, state, reqId, req, runTime = null }) {
+  state.ids ??= {};
+  state.counts ??= {};
+  state.used ??= {};
+  const step = String(reqId).split("#")[0];
+  const key = workflow ? modelKeyFor(workflow, step) : step;
+  const list = callsByIndex(recordings.filter((r) => r.node === key));
+  let pairedBy = null;
+  if (state.ids[reqId] === undefined) {
+    const at = state.counts[key] ?? 0;
+    state.counts[key] = at + 1;
+    const used = new Set(state.used[key] ?? []);
+    const pick = pairRecorded(list, at, used, (r) => sameReplayInput(r, req, runTime));
+    state.used[key] = [...used];
+    state.ids[reqId] = pick.index;
+    pairedBy = pick.pairedBy ?? null;
+  }
+  const index = state.ids[reqId];
+  return { key, index, rec: list[index], pairedBy };
 }
 
 // PROPOSALS P76: does a recorded call fit a runner request well enough to pair them by
@@ -446,9 +496,16 @@ export function sameToolShape(n8nMsg, claudeValue) {
 }
 
 // Read keys of Claude-side calls ({tools: [...], http: [...]} as seen by the in-process host).
+// PROPOSALS P114: a connector read the comparer's table calls the same read as n8n's
+// (effects.json readEquivalents: a Drive CSV export of a spreadsheet) takes that read's key.
 export function claudeReadKeys(tools = [], http = []) {
-  const effects = [...tools.filter((t) => !t.invalid).map((t) => fromTool(t, "claude")), ...http.map((h) => fromHttp(h, "claude"))];
+  const effects = [...tools.filter((t) => !t.invalid).map((t) => equivalentRead(fromTool(t, "claude"), t.args ?? {})), ...http.map((h) => fromHttp(h, "claude"))];
   return [...new Set(effects.filter((e) => e && e.effect === "read").map(keyOf))];
+}
+export function equivalentRead(e, args = {}) {
+  if (!e || e.effect !== "read") return e;
+  const rule = (table().readEquivalents?.list ?? []).find((r) => r.service === e.service && r.action === e.action && Object.entries(r.when ?? {}).every(([k, v]) => (k.startsWith("args.") ? args[k.slice(5)] === v : false)));
+  return rule ? { ...e, service: rule.as.service, action: rule.as.action, equivalentOf: `${e.service}.${e.action}` } : e;
 }
 
 // n8nPrev, n8nCall: recorded model calls i-1 and i; n8nEffects: the recording's service
@@ -529,8 +586,7 @@ export function sameToolTurn({ n8nPrev, n8nCall, n8nEffects = [], n8nSources = {
 // reads taken from the driver's effects (MCP mock log and host http log, both timed) between
 // the previous agent turn's answer and this one's. Returns modelInputs in gate4's shape.
 export function claudeDriverModelInputs({ replayLog = [], effects = [], recordings = [], n8nEffects = [], n8nSources = {}, runTime = null, nondeterministic = new Set() }) {
-  const byKey = {};
-  for (const c of recordings) (byKey[c.node] ??= [])[c.index] = c;
+  const byKey = Object.fromEntries(Object.entries(Object.groupBy(recordings, (c) => c.node)).map(([k, v]) => [k, callsByIndex(v)]));
   const lastTurn = new Map();
   const out = [];
   const seen = new Set();
@@ -598,6 +654,57 @@ export function httpModelInputs(calls = [], recordings = [], runTime = null) {
     const rec = recordings.find((r) => r.tag === c.tag && r.index === c.index);
     return { step: rec?.node ?? c.tag, key: rec?.node ?? c.tag, index: c.index, kind: "http", mode: c.mode, ...(rec && c.mode === "replay" ? { input: sameNormInput(rec, normalize(c.format, c.request), runTime) } : {}) };
   });
+}
+
+// ---------- model APIs a fixture answers (PROPOSALS P116) ----------
+//
+// Some model calls n8n makes never reach the model shim: the legacy OpenAI node's text edit posts
+// to the retired `/v1/edits`, which no provider serves any more, so the fixture answers it as a
+// route (P68) and the comparer reports it as a read. The Claude side runs the same node as a model
+// step. Without a recorded call for that node the step was never replayed or checked: the claude
+// driver's session had to write its own answer, and an empty prompt (the converter dropped the
+// edit's input and instruction) ended the run `needs` (1900, rel4-dev). Each such request in n8n's
+// log becomes a recorded call of the fixture read's node (the request n8n sent, the route's
+// reply, mode `fixture`), so the Claude side replays n8n's answer and its question is checked
+// like any replayed model input.
+const FIXTURE_MODEL_APIS = [{ host: "api.openai.com", path: /^\/v1\/edits$/, method: "POST", format: "openai-edits" }];
+export function fixtureModelCalls(rec, fx) {
+  const out = [];
+  if (!rec?.effects?.length || !fx?.reads?.length) return out;
+  const have = new Set((rec.modelCalls ?? []).map((c) => c.node));
+  const count = {};
+  for (const e of [...rec.effects].sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0))) {
+    let u;
+    try {
+      u = new URL(e.path ?? "/", e.proxied ?? "http://mock");
+    } catch {
+      continue;
+    }
+    const api = FIXTURE_MODEL_APIS.find((x) => x.host === u.hostname && x.path.test(u.pathname) && x.method === String(e.method).toUpperCase());
+    if (!api || !String(e.fixture ?? "").startsWith("route")) continue;
+    // The fixture read whose route answered it names the node.
+    let read = null;
+    let route = null;
+    for (const r of fx.reads) {
+      route = (r.http?.responses ?? []).find((x) => String(x.method ?? "GET").toUpperCase() === api.method && (() => { try { const v = new URL(x.url); return v.hostname === u.hostname && v.pathname === u.pathname; } catch { return false; } })());
+      if (route) {
+        read = r;
+        break;
+      }
+    }
+    if (!read || have.has(read.node)) continue;
+    const index = count[read.node] ?? 0;
+    count[read.node] = index + 1;
+    const body = typeof route.body === "string" ? jsonBody(route.body) : route.body;
+    out.push({ tag: `fixture:${read.node}`, node: read.node, index, format: api.format, request: typeof e.body === "string" ? jsonBody(e.body) : e.body ?? {}, response: body ?? {}, mode: "fixture", seq: e.seq ?? null });
+  }
+  return out;
+}
+
+// n8n's recorded model calls for a variant as the Claude side replays them: the shim's calls, the
+// fixture-answered ones (P116) and the hostile fixture's bench-written replies (P38).
+export function recordedCalls(rec, fx) {
+  return withSynthetic([...(rec?.modelCalls ?? []), ...fixtureModelCalls(rec, fx)], fx);
 }
 
 // ---------- bench-written replies on the hostile fixture (PROPOSALS P38) ----------
@@ -753,8 +860,8 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
   const routeCounters = new Map();
   // P109: default answers given to sends so far, per transport (each mock counts its own).
   const defaultSends = { http: 0, tool: 0 };
-  const byKey = {};
-  for (const c of recordings) (byKey[c.node] ??= []).push(c);
+  // PROPOSALS P115: each node's calls by call index, as the claude driver's replay reads them.
+  const byKey = Object.fromEntries(Object.entries(Object.groupBy(recordings, (c) => c.node)).map(([k, v]) => [k, callsByIndex(v)]));
   const modelCount = new Map();
   const modelUsed = new Map();
   // PROPOSALS P76: the recorded call that answers a request, by index or else by content.

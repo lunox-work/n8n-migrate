@@ -12,8 +12,8 @@
 
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join, basename } from "node:path";
-import { answerOf, pairRecorded, runnerValue } from "./model-shim.mjs";
-import { modelKeyFor, sameReplayInput } from "./claude-side.mjs";
+import { answerOf, runnerValue } from "./model-shim.mjs";
+import { replayPick } from "./claude-side.mjs";
 
 const recFile = process.argv[2];
 let input = "";
@@ -40,23 +40,7 @@ function handle(h) {
   if (!req || !["model", "agent"].includes(req.kind)) return null;
   const stateFile = join(dirname(recFile), "replay-state.json");
   const st = existsSync(stateFile) ? JSON.parse(readFileSync(stateFile, "utf8")) : { ids: {}, counts: {}, log: [] };
-  st.used ??= {};
-  const step = String(reqId).split("#")[0];
-  const key = modelKeyFor(workflow, step);
-  const list = recordings.filter((r) => r.node === key);
-  let pairedBy = null;
-  if (st.ids[reqId] === undefined) {
-    // PROPOSALS P76: by index, or else by content (n8n's concurrent calls are indexed by arrival).
-    const at = st.counts[key] ?? 0;
-    st.counts[key] = at + 1;
-    const used = new Set(st.used[key] ?? []);
-    const pick = pairRecorded(list, at, used, (r) => sameReplayInput(r, req, runTime));
-    st.used[key] = [...used];
-    st.ids[reqId] = pick.index;
-    pairedBy = pick.pairedBy ?? null;
-  }
-  const index = st.ids[reqId];
-  const rec = list[index];
+  const { key, index, rec, pairedBy } = replayPick({ recordings, workflow, state: st, reqId, req, runTime });
   // PROPOSALS P16: the request this reply answers and when, so the bench can check the
   // question (sameModelInput) and an agent turn's tools (sameToolTurn) as it does in process.
   // A second write of the same answer is marked, and only the first counts.

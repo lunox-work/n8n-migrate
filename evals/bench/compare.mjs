@@ -185,9 +185,13 @@ export function fromHttp(entry, side = "n8n") {
     return build(side, rule, { body: entry.body, bodyEncoding: entry.bodyEncoding, query, queryObj, groups: m.groups ?? {} }, { method, url: `${u.origin}${u.pathname}`, query: queryObj, body: entry.body });
   }
   // No rule: the effect is still recorded, keyed by host and a path with ids generalised, so it
-  // can only match the same raw request on the other side.
+  // can only match the same raw request on the other side. PROPOSALS P113: a credential carried
+  // in the query (`access_token`, OAuth 2.0 bearer token as a URI query parameter, RFC 6750 2.3)
+  // is left out, as header credentials are: n8n's bench dummy and the Claude side's secret
+  // placeholder are not the request's content.
   const generic = path.replace(/\/[0-9A-Za-z_-]{12,}(?=\/|$)/g, "/:id").replace(/\/\d+(?=\/|$)/g, "/:n");
-  return { side, service: host, action: `${method} ${generic}`, effect: ["GET", "HEAD", "OPTIONS"].includes(method) ? "read" : "write", target: path, fields: { body: entry.body, query: queryObj }, cmp: { body: "exact", query: "exact" }, raw: { method, url: `${u.origin}${u.pathname}` }, unmapped: true };
+  const { access_token: _token, ...queryNoCredential } = queryObj;
+  return { side, service: host, action: `${method} ${generic}`, effect: ["GET", "HEAD", "OPTIONS"].includes(method) ? "read" : "write", target: path, fields: { body: entry.body, query: queryNoCredential }, cmp: { body: "exact", query: "exact" }, raw: { method, url: `${u.origin}${u.pathname}` }, unmapped: true };
 }
 
 // PROPOSALS P46: n8n 2.47.7's Google Drive upload of a stored binary is a resumable upload:
@@ -672,6 +676,13 @@ export function stripAttribution(text, nodeType) {
   if (html.test(text)) return { text: text.replace(html, "").replace(/^\r?\n[\t ]*/, ""), stripped: "html" };
   const plain = /(?:^\s*|\r?\n\r?\n)---\r?\nThis email was sent automatically with n8n\r?\nhttps:\/\/n8n\.io\s*$/;
   if (plain.test(text)) return { text: text.replace(plain, ""), stripped: "text" };
+  // PROPOSALS P111: Slack's message (v2.1 on, `includeLinkToWorkflow` default on, a text message)
+  // gets `\n_Automated with this <{base URL}workflow/{workflow id}?utm_source=n8n-internal&
+  // utm_medium=powered_by&utm_campaign=n8n-nodes-base.slack[_{instance id}]|n8n workflow>_`
+  // (Slack V2 GenericFunctions.js in the 2.47.7 image). Blocks and attachments carry the line
+  // in an added block or attachment, which the comparer does not compare.
+  const slack = new RegExp(`(?:^|\\n)_Automated with this <[^\\s|>]*workflow/[^\\s?|>]*\\?utm_source=n8n-internal&utm_medium=powered_by&utm_campaign=${escRe(encodeURIComponent(nodeType))}(?:_[^\\s|>]+)?\\|n8n workflow>_$`);
+  if (slack.test(text)) return { text: text.replace(slack, ""), stripped: "slack" };
   return { text, stripped: false };
 }
 

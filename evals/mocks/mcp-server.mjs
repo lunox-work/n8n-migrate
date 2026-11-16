@@ -113,7 +113,10 @@ export function createServer({ connector, doc, fixtures = {}, log }) {
     const fits = (x) => x && typeof x === "object" && x.args && subset(x.args, args);
     let i = list.findIndex((x, j) => !used.has(j) && fits(x));
     if (i < 0 && f.reuse) i = list.findIndex(fits);
-    if (i < 0) i = list.findIndex((x, j) => !used.has(j));
+    // PROPOSALS P112: a row whose args give an argument the call carries with another value is
+    // never a fallback; such a call gets the default.
+    const contradicts = (x) => x && typeof x === "object" && isObj(x.args) && isObj(args) && Object.entries(x.args).some(([k, v]) => args[k] !== undefined && !subset(v, args[k]));
+    if (i < 0) i = list.findIndex((x, j) => !used.has(j) && !contradicts(x));
     if (i >= 0) used.add(i);
     let r = i >= 0 ? list[i] : f.default;
     if (r && typeof r === "object" && !Array.isArray(r) && "args" in r && ("result" in r || "text" in r || "error" in r)) {

@@ -68,6 +68,7 @@
           {
             "method": "POST",
             "url": "https://googleads.googleapis.com/v18/customers/1234567890:generateKeywordIdeas",
+            "retired": "Google Ads API v18, sunset by Google in 2025; answered as v18 answered",
             "status": 200,
             "body": {
               "results": [
