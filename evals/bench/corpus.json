@@ -305,6 +305,17 @@
       "ineligible": 64
     }
   },
+  "current": {
+    "analyzer": "skills/n8n-to-claude/scripts/analyze.mjs of the checkout, default answers, one template per run, --now 2026-11-16T00:00:00Z",
+    "refreshed": "2026-11-16",
+    "rule": "PROPOSALS P127: current* fields are today's analyzer verdict where it differs from the frozen draw-day outcome/target/wakeup; reports read them, eligibility and draws never do",
+    "counts": {
+      "analyzed": 628,
+      "differ": 3,
+      "skipped": 20,
+      "missing": 0
+    }
+  },
   "templates": [
     { "rank": 1, "id": 1954, "sha256": "918867c108eb4b4c9fcd39d898e7ef1fe92abe2ed324243771a3a4646ebf4437", "outcome": "subscription", "target": "skill", "wakeup": "chat", "pool": "eligible" },
     { "rank": 2, "id": 1750, "sha256": "306413d3941caa7a8b8803b6c0b4c955ff84eaac806418704b9a2bcc2a174032", "outcome": "hosted", "target": "no-key", "wakeup": "endpoint", "pool": "refusal" },
@@ -335,7 +346,7 @@
     { "rank": 27, "id": 4110, "sha256": "be6833a4487d95faa27239ff526b76223e292a199d06d3fc8851dc45ca8ef5fe", "outcome": "hosted", "target": "key", "wakeup": "relay", "pool": "refusal" },
     { "rank": 28, "id": 4696, "sha256": "c07c6b51c77902f7d755a298920d21aa2c502e42cbb5c3fb22412231cf8bf619", "outcome": "hosted", "target": "key", "wakeup": "relay", "pool": "refusal" },
     { "rank": 29, "id": 2605, "sha256": "04619f5b92ee5491f5b5c2bb7216adfbb3ba55cf6d775b1e3db58c36cefeb3ac", "outcome": "subscription", "target": "skill", "wakeup": "manual", "pool": "eligible" },
-    { "rank": 30, "id": 1534, "sha256": "59b55967cabdb6420790b8387f6c917a31105f8493484c59f3cde43bd4cfa191", "outcome": "keep-in-n8n", "target": null, "wakeup": "schedule", "pool": "refusal" },
+    { "rank": 30, "id": 1534, "sha256": "59b55967cabdb6420790b8387f6c917a31105f8493484c59f3cde43bd4cfa191", "outcome": "keep-in-n8n", "target": null, "wakeup": "schedule", "pool": "refusal", "currentOutcome": "subscription", "currentTarget": "cloud-task", "currentWakeup": "schedule" },
     { "rank": 31, "id": 2679, "sha256": "97fd5f056ffc32ee283dd67460f33e4cf8d9d41a467260f22916f8b3d1a3d0f1", "outcome": "hosted", "target": "no-key", "wakeup": "endpoint", "pool": "refusal" },
     { "rank": 32, "id": 1073, "sha256": "86e5ac4e8eba3d0c2ea3272dcfe70ef85b8e2c83d4da30342527419ba95b7ba1", "outcome": "subscription", "target": "skill", "wakeup": "manual", "pool": "eligible" },
     { "rank": 33, "id": 1953, "sha256": "2bc60e7b6a7893d8744130d1ca84a15ac8830819f8f7e0661159fe7702eb6e39", "outcome": "subscription", "target": "local-task", "wakeup": "poll", "pool": "eligible" },
@@ -708,7 +719,7 @@
     { "rank": 1050, "id": 1739, "topUp": 5, "sha256": "0932f8a38175bf7142963db9d7516ed898d6d8bb05932b679578dd0298449a5f", "outcome": "subscription", "target": "skill", "wakeup": "manual", "r4": "eligible", "pool": "fresh" },
     { "rank": 1051, "id": 3696, "topUp": 5, "sha256": "36566db7792cf093ff326b1cd0025e610c1cc602d2607a967ce3b4a2878f7d9f", "outcome": "subscription", "target": "skill", "wakeup": "manual", "r4": "eligible", "pool": "fresh" },
     { "rank": 1052, "id": 3599, "topUp": 5, "sha256": "d10f48231ec1e476970876df5386eb085cbf66420e4ee6f8855e697e802d49ae", "outcome": "subscription", "target": "skill", "wakeup": "chat", "r4": "ineligible", "r4Reasons": [ "outcome/relay-or-hosted: wake-up relay (needs a relay, a host or is an error workflow)", "outcome/relay-or-hosted: other trigger relay is hosted", "outcome/relay-or-hosted: requires a relay", "feature: n8n-nodes-base.telegramTrigger is not in the planned-feature map" ], "pool": "fresh-other" },
-    { "rank": 1053, "id": 2295, "topUp": 5, "sha256": "e226a8508643724ea0cb6d6cab7ab19f15f1cb9bd3c0c8145572a2ff7c827402", "outcome": "keep-in-n8n", "target": null, "wakeup": "manual", "r4": "ineligible", "r4Reasons": [ "outcome: analyzer outcome keep-in-n8n", "feature: n8n-nodes-base.n8n is not in the planned-feature map" ], "pool": "fresh-other" },
+    { "rank": 1053, "id": 2295, "topUp": 5, "sha256": "e226a8508643724ea0cb6d6cab7ab19f15f1cb9bd3c0c8145572a2ff7c827402", "outcome": "keep-in-n8n", "target": null, "wakeup": "manual", "r4": "ineligible", "r4Reasons": [ "outcome: analyzer outcome keep-in-n8n", "feature: n8n-nodes-base.n8n is not in the planned-feature map" ], "pool": "fresh-other", "currentOutcome": "subscription", "currentTarget": "skill", "currentWakeup": "manual" },
     { "rank": 1054, "id": 617, "topUp": 5, "sha256": "45d14e544bea0f75143665fb4b3334ee668f9e2f3c90eab786d37f5e61394ca2", "outcome": "subscription", "target": "local-task", "wakeup": "schedule", "r4": "ineligible", "r4Reasons": [ "feature: n8n-nodes-base.rocketchat is not in the planned-feature map" ], "pool": "fresh-other" },
     { "rank": 1055, "id": 3930, "topUp": 5, "sha256": "5a3f79709e930893e586a973e4992212c120a8363a630e3c92c9849a0bbc92bc", "outcome": "hosted", "target": "key", "wakeup": "relay", "r4": "ineligible", "r4Reasons": [ "outcome: analyzer outcome hosted", "outcome/relay-or-hosted: wake-up relay (needs a relay, a host or is an error workflow)", "outcome/relay-or-hosted: requires a relay", "feature: n8n-nodes-base.telegramTrigger is not in the planned-feature map" ], "pool": "fresh-other" },
     { "rank": 1056, "id": 5195, "topUp": 5, "sha256": "289af9e2ecdb3bbe42bf8bc40ad6d72a3aefc71b59f8fdb9152844a85a2effb9", "outcome": "subscription", "target": "artifact-form", "wakeup": "form", "r4": "eligible", "pool": "fresh" },
@@ -741,7 +752,7 @@
     { "rank": 1083, "id": 5036, "topUp": 5, "sha256": "2753c1541fee96f64e1289aa194c72e2b1d763f15af95decc70207c380c94075", "outcome": "subscription", "target": "skill", "wakeup": "manual", "r4": "eligible", "pool": "fresh" },
     { "rank": 1084, "id": 1250, "topUp": 5, "sha256": "8929b321e58f2399321aeaa430241af14e60fdb658d6a74fb937129256b0e87e", "outcome": "subscription", "target": "skill", "wakeup": "manual", "r4": "eligible", "pool": "fresh" },
     { "rank": 1085, "id": 2293, "topUp": 5, "sha256": "1d4b088225c3ef61c0bd64998c0f6048128431d7867951d2a7a211d861d9cae2", "outcome": "subscription", "target": "cloud-task", "wakeup": "schedule", "r4": "ineligible", "r4Reasons": [ "feature: n8n-nodes-base.webflow is not in the planned-feature map" ], "pool": "fresh-other" },
-    { "rank": 1086, "id": 2983, "topUp": 5, "sha256": "aa14a230481a720db9ef14e58e495daae92f189731758a6a3298ff153e64c5b9", "outcome": "keep-in-n8n", "target": null, "wakeup": "schedule", "r4": "ineligible", "r4Reasons": [ "outcome: analyzer outcome keep-in-n8n", "feature: n8n-nodes-base.n8n is not in the planned-feature map" ], "pool": "fresh-other" },
+    { "rank": 1086, "id": 2983, "topUp": 5, "sha256": "aa14a230481a720db9ef14e58e495daae92f189731758a6a3298ff153e64c5b9", "outcome": "keep-in-n8n", "target": null, "wakeup": "schedule", "r4": "ineligible", "r4Reasons": [ "outcome: analyzer outcome keep-in-n8n", "feature: n8n-nodes-base.n8n is not in the planned-feature map" ], "pool": "fresh-other", "currentOutcome": "subscription", "currentTarget": "cloud-task", "currentWakeup": "schedule" },
     { "rank": 1087, "id": 3710, "topUp": 5, "sha256": "cac13623972d165d5bfa93d37001114d6b99953ec291756918358e734d16b014", "outcome": "subscription", "target": "skill", "wakeup": "chat", "r4": "eligible", "pool": "fresh" },
     { "rank": 1088, "id": 2961, "topUp": 5, "excluded": "paid" },
     { "rank": 1089, "id": 4775, "topUp": 5, "sha256": "bb45128828541aa35fbe93a7047db4e71c2fa15b8357e4062a585f458b48afcf", "outcome": "subscription", "target": "artifact-form", "wakeup": "form", "r4": "eligible", "pool": "fresh" },

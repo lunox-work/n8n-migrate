@@ -46,7 +46,7 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState, siteAnswers, hostsAnswers, substitutionApprovals, loadCredentialSpecs, ensureN8n, codeModules, DbSeedError, dbSummary } from "./n8n-side.mjs";
-import { convertPlain, convertSkill, filledSource, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, recordedCalls, syntheticOutcome, nondeterministicTools } from "./claude-side.mjs";
+import { convertPlain, convertSkill, filledSource, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, recordedCalls, syntheticOutcome, nondeterministicTools, connectorGapFields } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
 import { fromHttp, fromTool, fromFile, fromDb, replyOf, resultOf, isResult, lastOutputs, terminalNodes, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads } from "./compare.mjs";
 import { n8nCheckVariants, n8nCheckKey, n8nCheckSummary, gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited, n8nFailsOf, modelRefusal } from "./gates.mjs";
@@ -634,7 +634,7 @@ async function benchTemplate(id, args, L) {
     if (!g3c.pass) gates[3] = { ...g3c, driver: "claude", inprocess: gates[3] };
     else {
       // PROPOSALS P16: the driver's replayed requests are checked like the in-process ones.
-      const modelInputs = claudeDriverModelInputs({ replayLog: cn.replayLog ?? [], effects: cn.effects ?? [], recordings: recordedCalls(recs.normal, fxN), n8nEffects: recs.normal?.effects ?? [], n8nSources: recs.normal?.sources ?? {}, runTime: runTime(recs.normal), nondeterministic: nondeterministicTools(wf) }).concat(httpModelInputs(cn.httpModelCalls ?? [], recs.normal?.modelCalls ?? [], runTime(recs.normal)));
+      const modelInputs = claudeDriverModelInputs({ replayLog: cn.replayLog ?? [], effects: cn.effects ?? [], recordings: recordedCalls(recs.normal, fxN), n8nEffects: recs.normal?.effects ?? [], n8nSources: recs.normal?.sources ?? {}, runTime: runTime(recs.normal), nondeterministic: nondeterministicTools(wf), gapFields: connectorGapFields(folderDefinition(folder)) }).concat(httpModelInputs(cn.httpModelCalls ?? [], recs.normal?.modelCalls ?? [], runTime(recs.normal)));
       drivers.claude.modelChecks = { replayed: modelInputs.length, inputsDiffer: modelInputs.filter((m) => !m.input?.same).length, toolTurns: modelInputs.filter((m) => m.tools).length, toolTurnsFailed: modelInputs.filter((m) => m.tools && !m.tools.same).length, toolDefs: toolDefsSummary(modelInputs), ...(cn.replayLog ? {} : { note: "run made before P16: no replayed requests kept" }) };
       const g4c = gate4({ cmp: cNormal, modelInputs, n8nStatus: recs.normal?.status });
       if (!g4c.pass) gates[4] = { ...g4c, driver: "claude", inprocess: gates[4] };
@@ -690,6 +690,15 @@ function toolDefsSummary(models) {
 
 function summarizeCheck(r) {
   return { status: r.status, error: r.error, ...(r.db ? { db: dbSummary(r.db) } : {}), ...(r.modelCallCap ? { modelCallCap: r.modelCallCap } : {}), modelModes: r.modelModes, sources: r.sources, overlay: r.overlay, credentialsAttached: r.credentialsAttached ?? [], ...(r.container ? { container: r.container } : {}), ...(r.pinnedPath ? { pinnedPath: r.pinnedPath } : {}), logVsFixture: r.logVsFixture, httpAttempt: r.httpAttempt ?? null, executionMs: r.executionMs, credentialsMissing: r.credentialsMissing };
+}
+
+// A converted folder's definition, or null when there is none to read.
+function folderDefinition(folder) {
+  try {
+    return JSON.parse(readFileSync(join(folder, "definition.json"), "utf8"));
+  } catch {
+    return null;
+  }
 }
 
 // PROPOSALS P1: a failure that traces to a field the fixture marks as a connector gap.

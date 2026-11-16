@@ -153,6 +153,24 @@ export function connectorFixtures(fx) {
     for (const call of c.calls ?? []) (out[`${c.connector}.${call.tool}`] ??= []).push({ ...call, node: r.node });
   }
   for (const call of sheetsExportCalls(fx)) (out["google-drive.download_file_content"] ??= []).push(call);
+  for (const call of gmailSendCalls(fx)) (out["gmail.send_message"] ??= []).push(call);
+  return out;
+}
+
+// PROPOSALS P128: a write reply fixtured only over HTTP as Gmail's `users.messages.send` answer
+// (the message resource n8n's Gmail node passes on) answers the converter's `send_message` for
+// the same node with the same resource, so a later step or the chat reply sees the same message
+// on both sides. A write reply with connector rows of its own keeps them.
+const GMAIL_SEND = /^https:\/\/(www|gmail)\.googleapis\.com\/(upload\/)?gmail\/v1\/users\/[^/]+\/messages\/send(\?|$)/;
+export function gmailSendCalls(fx) {
+  const out = [];
+  for (const r of fx.writeReplies ?? []) {
+    if (r.connector && !r.connector.none) continue;
+    for (const x of r.http?.responses ?? []) {
+      if (String(x.method ?? "POST").toUpperCase() !== "POST" || !GMAIL_SEND.test(x.url ?? "") || (x.status ?? 200) >= 300 || !isObj(x.body)) continue;
+      out.push({ tool: "send_message", result: x.body, node: r.node, derived: "gmail-send-reply" });
+    }
+  }
   return out;
 }
 
@@ -260,14 +278,88 @@ const squash = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 // descriptions, format instructions). runTime ({startMs, zone}, PROPOSALS P4): when the texts
 // differ, timestamps of the run itself are masked on both sides (compare.mjs maskRunTime) and
 // the check is repeated; a match then is reported with runTimeMasked: true.
-export function sameModelInput(n8nCall, claudeReq, runTime = null) {
-  return sameNormInput(n8nCall, normalizeRunnerRequest(claudeReq), runTime);
+export function sameModelInput(n8nCall, claudeReq, runTime = null, gapFields = []) {
+  return sameNormInput(n8nCall, normalizeRunnerRequest(claudeReq), runTime, gapFields);
+}
+
+// PROPOSALS P124: the fields the definition's connector reads say their tool cannot give
+// (`poll.missingFields`, or `tool.missingFields` of a read, from the tool map) -> [{node, field}].
+// A write's missingFields (the id a send returns) never count: only data read into a prompt.
+export function connectorGapFields(def) {
+  const out = [];
+  for (const [node, s] of Object.entries(def?.steps ?? {})) {
+    const miss = s?.poll ? s.poll.missingFields : s?.tool?.effect === "read" ? s.tool.missingFields : null;
+    for (const field of miss ?? []) out.push({ node, field: String(field) });
+  }
+  return out;
+}
+
+// PROPOSALS P124: `text` without the JSON members named `keys` ("key": value, with the comma
+// that joined it), plain or as escaped JSON inside a JSON string. -> {text, removed: [key]}
+export function stripJsonMembers(text, keys) {
+  let t = String(text);
+  const removed = new Set();
+  for (const key of keys)
+    for (const q of ['"', '\\"']) {
+      const head = `${q}${key}${q}:`;
+      for (let at = t.indexOf(head); at >= 0; at = t.indexOf(head, at)) {
+        let i = at + head.length;
+        while (t[i] === " ") i++;
+        let depth = 0;
+        let inStr = false;
+        for (; i < t.length; i++) {
+          if (inStr) {
+            if (t.startsWith(q, i) && (q !== '"' || t[i - 1] !== "\\")) (inStr = false), (i += q.length - 1);
+            else if (q === '"' && t[i] === "\\") i++;
+            continue;
+          }
+          if (t.startsWith(q, i)) (inStr = true), (i += q.length - 1);
+          else if (t[i] === "{" || t[i] === "[") depth++;
+          else if (t[i] === "}" || t[i] === "]") {
+            if (depth === 0) break;
+            if (--depth === 0) {
+              i++;
+              break;
+            }
+          } else if (t[i] === "," && depth === 0) break;
+        }
+        let a = at;
+        let b = i;
+        if (t[b] === ",") b++;
+        else if (t[a - 1] === ",") a--;
+        t = t.slice(0, a) + t.slice(b);
+        removed.add(key);
+      }
+    }
+  return { text: t, removed: [...removed] };
 }
 
 // The same check on a neutral conversation (normalize()), for a Claude-side request that is
-// already in a provider's format: an LLM API called over HTTP (PROPOSALS P43).
-export function sameNormInput(n8nCall, c, runTime = null) {
+// already in a provider's format: an LLM API called over HTTP (PROPOSALS P43). PROPOSALS P124:
+// when it differs and `gapFields` are given, it is checked again with those members taken out
+// of both sides; a match then still differs, with `gapOnly` naming the fields that made it.
+export function sameNormInput(n8nCall, c, runTime = null, gapFields = []) {
+  const r = sameNormInputPlain(n8nCall, c, runTime);
+  if (r.same || !gapFields.length) return r;
+  const keys = [...new Set(gapFields.map((g) => g.field))];
+  const strip = (x) => (typeof x === "string" ? stripJsonMembers(x, keys) : { text: x, removed: [] });
+  const removed = new Set();
   const n = normalize(n8nCall.format, n8nCall.request);
+  const sys = strip(n.system);
+  const msgs = n.messages.map((m) => {
+    const s2 = strip(m.text);
+    s2.removed.forEach((k) => removed.add(k));
+    return { ...m, text: s2.text };
+  });
+  sys.removed.forEach((k) => removed.add(k));
+  const cs = { ...c, system: strip(c.system).text, messages: c.messages.map((m) => ({ ...m, text: strip(m.text).text })) };
+  if (!removed.size) return r;
+  const again = sameNormInputPlain({ format: "normalized", normalized: { system: sys.text, messages: msgs } }, cs, runTime);
+  return again.same ? { ...r, gapOnly: gapFields.filter((g) => removed.has(g.field)) } : r;
+}
+
+function sameNormInputPlain(n8nCall, c, runTime = null) {
+  const n = n8nCall.format === "normalized" ? n8nCall.normalized : normalize(n8nCall.format, n8nCall.request);
   const hay = squash([n.system, ...n.messages.map((m) => m.text)].join(" "));
   const parts = [c.system, ...c.messages.filter((m) => m.role === "user").map((m) => m.text)].map(squash).filter(Boolean);
   // PROPOSALS P116: a request that asks nothing (no system text, no user text) is not "the same
@@ -588,7 +680,7 @@ export function sameToolTurn({ n8nPrev, n8nCall, n8nEffects = [], n8nSources = {
 // node and call index, and, for an agent turn after a tool call, sameToolTurn with the turn's
 // reads taken from the driver's effects (MCP mock log and host http log, both timed) between
 // the previous agent turn's answer and this one's. Returns modelInputs in gate4's shape.
-export function claudeDriverModelInputs({ replayLog = [], effects = [], recordings = [], n8nEffects = [], n8nSources = {}, runTime = null, nondeterministic = new Set() }) {
+export function claudeDriverModelInputs({ replayLog = [], effects = [], recordings = [], n8nEffects = [], n8nSources = {}, runTime = null, nondeterministic = new Set(), gapFields = [] }) {
   const byKey = Object.fromEntries(Object.entries(Object.groupBy(recordings, (c) => c.node)).map(([k, v]) => [k, callsByIndex(v)]));
   const lastTurn = new Map();
   const out = [];
@@ -610,7 +702,7 @@ export function claudeDriverModelInputs({ replayLog = [], effects = [], recordin
     if (e.mode !== "replay") continue;
     const rec = byKey[e.key]?.[e.index];
     if (!rec) continue;
-    const m = { step, key: e.key, index: e.index, kind: e.req.kind, mode: "replay", input: sameModelInput(rec, e.req, runTime) };
+    const m = { step, key: e.key, index: e.index, kind: e.req.kind, mode: "replay", input: sameModelInput(rec, e.req, runTime, gapFields) };
     const defs = sameToolDefs(rec, e.req);
     if (defs) m.toolDefs = defs;
     const tools = claudeTurn && sameToolTurn({ n8nPrev: byKey[e.key]?.[e.index - 1], n8nCall: rec, n8nEffects, n8nSources, claudeTurn, runTime, nondeterministic });
@@ -853,10 +945,22 @@ export function driverFiles(stateEffects = [], fx) {
   return d.files();
 }
 
+// PROPOSALS P123: the zone a Code node's native Date runs in on the bench's n8n. n8n 2.47.7's
+// internal JavaScript task runner is spawned with GENERIC_TIMEZONE but not TZ
+// (task-runner-process-js.js getProcessEnvVars), so in the bench's container (TZ and
+// GENERIC_TIMEZONE America/New_York) `new Date().toLocaleString()` in a Code node is UTC while
+// Luxon's `DateTime` and `$now` stay in America/New_York. The runtime runs Code nodes and
+// expressions in one process, so the Claude side takes the runner's zone for native Date (in
+// process here, and the claude driver's session through sessionEnv); Luxon keeps the workflow
+// zone on both sides. A native Date in an expression (n8n's main process, America/New_York)
+// therefore still differs; no dev template formats one with a time of day.
+export const CODE_NODE_TZ = "UTC";
+
 export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects = [], n8nSources = {}, mode = "replay", liveFallback = true, startedAt, runTime = null, log = console.error } = {}) {
   const def = JSON.parse(readFileSync(join(folder, "definition.json"), "utf8"));
   const core = await import(pathToFileURL(join(folder, "runtime", "runner-core.mjs")).href);
   const nondeterministic = nondeterministicTools(wf);
+  const gapFields = connectorGapFields(def);
   const conn = connectorFixtures(fx);
   const usedConn = new Map();
   const routes = httpRoutes(fx);
@@ -1003,7 +1107,7 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
     const json = (v) => ({ status: 200, headers: { "content-type": "application/json" }, body: JSON.stringify(v) });
     if (mode === "replay" && rec) {
       entry.mode = "replay";
-      entry.input = sameNormInput(rec, normalize(format, body), runTime);
+      entry.input = sameNormInput(rec, normalize(format, body), runTime, gapFields);
       return json(rec.response);
     }
     if (mode === "replay" && !liveFallback) {
@@ -1034,7 +1138,7 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
     if (mode === "replay" && rec) {
       entry.mode = "replay";
       if (rec.synthetic) entry.synthetic = true;
-      entry.input = sameModelInput(rec, req, runTime);
+      entry.input = sameModelInput(rec, req, runTime, gapFields);
       const defs = sameToolDefs(rec, req);
       if (defs) entry.toolDefs = defs;
       const tools = claudeTurn && sameToolTurn({ n8nPrev: byKey[key]?.[i - 1], n8nCall: rec, n8nEffects, n8nSources, claudeTurn, runTime, nondeterministic });
@@ -1066,7 +1170,16 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
   const polls = !!trig?.poll && fx.trigger.kind === "poll";
   const seed = polls && n8nPinsTrigger(fx) ? pollCursorSeed(core, trig.poll, fx, conn) : null;
   const t0 = Date.now();
-  const res = await core.run(def, { trigger: polls ? undefined : { node: fx.trigger.node, items: fx.trigger.items }, clock: { startedAt: startedAt ?? fx.now }, host, virtualTime: true, mode: "manual", runId: `bench-${fx.template}-${fx.variant}`, ...(seed?.cursor ? { cursors: { [fx.trigger.node]: seed.cursor } } : {}) });
+  // PROPOSALS P123: the run's native Date zone is n8n's Code-node zone (CODE_NODE_TZ); restored after.
+  const tz = process.env.TZ;
+  process.env.TZ = CODE_NODE_TZ;
+  let res;
+  try {
+    res = await core.run(def, { trigger: polls ? undefined : { node: fx.trigger.node, items: fx.trigger.items }, clock: { startedAt: startedAt ?? fx.now }, host, virtualTime: true, mode: "manual", runId: `bench-${fx.template}-${fx.variant}`, ...(seed?.cursor ? { cursors: { [fx.trigger.node]: seed.cursor } } : {}) });
+  } finally {
+    if (tz === undefined) delete process.env.TZ;
+    else process.env.TZ = tz;
+  }
   return { res, seen, files: disk.files(), wallMs: Date.now() - t0, definition: def, polled: polls, ...(seed ? { pollSeed: seed.note } : {}) };
 }
 

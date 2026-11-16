@@ -5,6 +5,7 @@
 //
 //   node evals/bench/fetch.mjs [--out evals/bench/corpus.json] [--max 200] [--offline]
 //   node evals/bench/fetch.mjs --top-up [--round 3|4|5] [--max-entries 400] [--offline]   (fresh held-out, round 3 on)
+//   node evals/bench/fetch.mjs --current   (today's analyzer verdicts beside the frozen draw-day ones, PROPOSALS P127)
 //
 // Stops when every wake-up quota of the 100 eligible (outcome `subscription`) is full and
 // at least REFUSALS non-subscription templates are in the pool, or at --max listing
@@ -127,6 +128,67 @@ async function template(id, offline) {
   return text;
 }
 
+// ---------- draw-day verdicts and today's analyzer (PROPOSALS P127) ----------
+//
+// A walk entry's `outcome`, `target`, `wakeup` (and everything the walk decided from them:
+// `r4`, `r4Reasons`, `pool`, `excluded`, ...) are frozen on the day the entry was walked:
+// eligibility and the draws read them, so a later analyzer change never moves a draw. Today's
+// analyzer verdict is kept apart as `currentOutcome`, `currentTarget`, `currentWakeup`, written
+// only where it differs from the frozen one (absent = the same); reports read it
+// (currentVerdict()). A rebuild (an --offline main walk or --top-up) re-runs today's analyzer
+// on its own entries: an entry the previous corpus.json already holds keeps every field it had,
+// and only its current* fields are refreshed (keepDrawDay()). `--current` refreshes the current*
+// fields of every analyzed entry without re-walking (refreshCurrent()), skipping the current
+// round's held-out ids, and prints counts only.
+export const CURRENT_FIELDS = ["currentOutcome", "currentTarget", "currentWakeup"];
+export const currentVerdict = (e) => ({ outcome: e.currentOutcome ?? e.outcome, target: e.currentTarget ?? e.target, wakeup: e.currentWakeup ?? e.wakeup });
+// Today's verdict on `e` (from an analyzer report), dropped again when it equals the frozen one.
+export function setCurrent(e, report) {
+  e.currentOutcome = report.outcome.kind;
+  e.currentTarget = report.outcome.target;
+  e.currentWakeup = report.wakeup.kind;
+  return dropSameCurrent(e);
+}
+export function dropSameCurrent(e) {
+  if (e.currentOutcome === e.outcome && e.currentTarget === e.target && e.currentWakeup === e.wakeup) for (const k of CURRENT_FIELDS) delete e[k];
+  return e;
+}
+// A rebuilt entry `e` (today's walk) against the entry the previous corpus.json holds for the
+// same id in the same walk (`prev`): `prev` wins on every field, today's analyzer only fills the
+// current* fields (today's verdict, read from e's own outcome/target/wakeup or current*). No
+// `prev`: a new entry, whose draw day is today. Mutates and returns `e`.
+export function keepDrawDay(e, prev) {
+  if (!prev) return dropSameCurrent(e);
+  const today = { currentOutcome: e.currentOutcome ?? e.outcome, currentTarget: e.currentTarget ?? e.target, currentWakeup: e.currentWakeup ?? e.wakeup };
+  const analyzed = e.outcome !== undefined || e.currentOutcome !== undefined;
+  for (const k of Object.keys(e)) delete e[k];
+  Object.assign(e, prev);
+  if (analyzed) Object.assign(e, today);
+  return dropSameCurrent(e);
+}
+// Today's verdict for every analyzed entry (one with a frozen `outcome`) whose id is not in
+// `skip`: analyzeEntry(e) -> report | null (null: no template to read, the entry is left as it
+// is). Mutates the entries; -> {analyzed, differ, skipped, missing}.
+export function refreshCurrent(templates, analyzeEntry, skip = new Set()) {
+  const n = { analyzed: 0, differ: 0, skipped: 0, missing: 0 };
+  for (const e of templates) {
+    if (e.outcome === undefined) continue;
+    if (skip.has(e.id)) {
+      n.skipped++;
+      continue;
+    }
+    const report = analyzeEntry(e);
+    if (!report) {
+      n.missing++;
+      continue;
+    }
+    n.analyzed++;
+    setCurrent(e, report);
+    if (e.currentOutcome !== undefined) n.differ++;
+  }
+  return n;
+}
+
 function main_args() {
   const a = process.argv.slice(2);
   const opt = (k, d) => (a.includes(k) ? a[a.indexOf(k) + 1] : d);
@@ -139,6 +201,8 @@ async function main() {
   const refs = (f) => JSON.parse(readFileSync(join(REFS, f), "utf8"));
   const opts = { nodes: refs("nodes.json"), capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), now: Date.parse(NOW) };
 
+  // PROPOSALS P127: the Phase 5 walk's entries as the previous corpus.json holds them.
+  const prevOf = existsSync(out) ? new Map(JSON.parse(readFileSync(out, "utf8")).templates.filter((e) => !e.topUp && !e.devRefill && !e.heldRefill).map((e) => [e.id, e])) : new Map();
   const filled = Object.fromEntries(Object.keys(QUOTAS).map((k) => [k, 0]));
   const full = () => Object.entries(QUOTAS).every(([k, n]) => filled[k] >= n);
   const entries = [];
@@ -171,57 +235,69 @@ async function main() {
       rank++;
       const e = { rank, id: w.id };
       entries.push(e);
-      let wf = null;
-      // Paid templates are excluded, but within the top 100 they are still analyzed so
-      // that the raw coverage figure counts every one of the 100.
-      if (!((w.price ?? 0) > 0 || w.purchaseUrl) || rank <= 100) {
-        try {
-          wf = JSON.parse(await template(w.id, offline))?.workflow?.workflow ?? null;
-        } catch (err) {
-          e.error = String(err.message).slice(0, 200);
+      // PROPOSALS P127: classified with today's analyzer, then the previous corpus.json's entry
+      // for the same id, if any, wins (only the current* fields are today's); quotas count the
+      // pools as they stand after that, so a rebuild stops where the walk stopped.
+      await (async () => {
+        let wf = null;
+        // Paid templates are excluded, but within the top 100 they are still analyzed so
+        // that the raw coverage figure counts every one of the 100.
+        if (!((w.price ?? 0) > 0 || w.purchaseUrl) || rank <= 100) {
+          try {
+            wf = JSON.parse(await template(w.id, offline))?.workflow?.workflow ?? null;
+          } catch (err) {
+            e.error = String(err.message).slice(0, 200);
+          }
         }
-      }
-      if (wf) e.sha256 = createHash("sha256").update(canonical(wf)).digest("hex");
-      const structural = structuralExclusion(w, wf);
-      if (structural === "paid" && wf) {
-        const report = analyze(unwrap({ workflow: { id: String(w.id), name: w.name, workflow: wf } }, String(w.id)), opts).workflows[0];
-        Object.assign(e, { outcome: report.outcome.kind, target: report.outcome.target, wakeup: report.wakeup.kind });
-      }
-      if (structural) {
-        e.excluded = structural;
-        continue;
-      }
-      if (seenHash.has(e.sha256)) {
-        e.excluded = "duplicate";
-        e.duplicateOf = seenHash.get(e.sha256);
-        continue;
-      }
-      seenHash.set(e.sha256, w.id);
-      const items = unwrap({ workflow: { id: String(w.id), name: w.name, workflow: wf } }, String(w.id));
-      const report = analyze(items, opts).workflows[0];
-      e.outcome = report.outcome.kind;
-      e.target = report.outcome.target;
-      e.wakeup = report.wakeup.kind;
-      if (report.setupOnly) e.setupOnly = true;
-      if (tutorialExclusion(w.name, wf, report)) {
-        e.excluded = "tutorial";
-        continue;
-      }
-      if (HAND[w.id]) {
-        e.excluded = "hand";
-        e.reason = HAND[w.id];
-        continue;
-      }
-      if (DEMO_FLAG.test(w.name ?? "")) e.flag = "name-demo";
-      if (e.outcome === "subscription") {
-        const s = stratum(e.wakeup);
-        if (filled[s] < QUOTAS[s]) {
-          filled[s]++;
-          e.pool = "eligible";
-        } else e.pool = "overflow";
-      } else {
-        e.pool = "refusal";
-        refusals++;
+        if (wf) e.sha256 = createHash("sha256").update(canonical(wf)).digest("hex");
+        const structural = structuralExclusion(w, wf);
+        if (structural === "paid" && wf) {
+          const report = analyze(unwrap({ workflow: { id: String(w.id), name: w.name, workflow: wf } }, String(w.id)), opts).workflows[0];
+          Object.assign(e, { outcome: report.outcome.kind, target: report.outcome.target, wakeup: report.wakeup.kind });
+        }
+        if (structural) {
+          e.excluded = structural;
+          return;
+        }
+        if (seenHash.has(e.sha256)) {
+          e.excluded = "duplicate";
+          e.duplicateOf = seenHash.get(e.sha256);
+          return;
+        }
+        seenHash.set(e.sha256, w.id);
+        const items = unwrap({ workflow: { id: String(w.id), name: w.name, workflow: wf } }, String(w.id));
+        const report = analyze(items, opts).workflows[0];
+        e.outcome = report.outcome.kind;
+        e.target = report.outcome.target;
+        e.wakeup = report.wakeup.kind;
+        if (report.setupOnly) e.setupOnly = true;
+        if (tutorialExclusion(w.name, wf, report)) {
+          e.excluded = "tutorial";
+          return;
+        }
+        if (HAND[w.id]) {
+          e.excluded = "hand";
+          e.reason = HAND[w.id];
+          return;
+        }
+        if (DEMO_FLAG.test(w.name ?? "")) e.flag = "name-demo";
+      })();
+      const prev = prevOf.get(e.id);
+      keepDrawDay(e, prev);
+      if (prev) {
+        if (e.pool === "eligible" && !e.filled) filled[stratum(e.wakeup)]++;
+        else if (e.pool === "refusal") refusals++;
+      } else if (!e.excluded && e.outcome !== undefined) {
+        if (e.outcome === "subscription") {
+          const s = stratum(e.wakeup);
+          if (filled[s] < QUOTAS[s]) {
+            filled[s]++;
+            e.pool = "eligible";
+          } else e.pool = "overflow";
+        } else {
+          e.pool = "refusal";
+          refusals++;
+        }
       }
       if (process.stderr.isTTY) process.stderr.write(`\r${rank} entries, ${Object.values(filled).reduce((a, b) => a + b, 0)} eligible, ${refusals} refusals`);
     }
@@ -232,6 +308,8 @@ async function main() {
   const shortfall = {};
   for (const [k, n] of Object.entries(QUOTAS)) if (filled[k] < n) shortfall[k] = n - filled[k];
   let missing = Object.values(shortfall).reduce((a, b) => a + b, 0);
+  // PROPOSALS P127: slots a kept entry already filled from the overflow on its draw day.
+  for (const e of entries) if (missing && e.filled && e.pool === "eligible" && prevOf.has(e.id)) missing--;
   for (const e of entries) {
     if (!missing) break;
     if (e.pool === "overflow") {
@@ -256,8 +334,9 @@ async function main() {
   // The round-3 top-up (topUp() below) is its own fetch on a later day: a rebuild of the
   // Phase 5 corpus keeps its section and entries as they are.
   const prev = existsSync(out) ? JSON.parse(readFileSync(out, "utf8")) : null;
-  const kept = (prev?.templates ?? []).filter((e) => e.topUp);
-  const topUpSections = Object.fromEntries(Object.entries(prev ?? {}).filter(([k]) => k === "topUp" || /^topUp\d+$/.test(k)));
+  // PROPOSALS P127: later walks (top-ups, dev and held-out refills) and the current* note are kept.
+  const kept = (prev?.templates ?? []).filter((e) => e.topUp || e.devRefill || e.heldRefill);
+  const topUpSections = Object.fromEntries(Object.entries(prev ?? {}).filter(([k]) => /^(topUp\d*|devRefill\d+|heldRefill\d+|current)$/.test(k)));
   const doc = {
     source: `${API}/search?rows=${ROWS}&page=<n>&sort=views:desc, then ${API}/workflows/<id>`,
     fetched: new Date().toLocaleDateString("sv"),
@@ -415,6 +494,8 @@ async function topUp() {
   const others = corpus.templates.filter((e) => e.topUp !== round);
   // A hand call made after the walk (`r4Hand`, read from the template alone) survives a rebuild.
   const handOf = new Map(corpus.templates.filter((e) => e.topUp === round && e.r4Hand).map((e) => [e.id, e.r4Hand]));
+  // PROPOSALS P127: the round's entries as the previous corpus.json holds them (their draw day).
+  const prevOf = new Map(corpus.templates.filter((e) => e.topUp === round).map((e) => [e.id, e]));
   const known = new Set(others.map((e) => e.id));
   const seenHash = new Map(others.filter((e) => e.sha256).map((e) => [e.sha256, e.id]));
   const levers = cfg.afterLevers ? leversWalk() : null;
@@ -472,60 +553,65 @@ async function topUp() {
       // The rank is the entry's place in the fetch day's listing (page and row), not a count.
       const e = { rank: (page - 1) * ROWS + i + 1, id: w.id, topUp: round };
       entries.push(e);
-      let wf = null;
-      if (!((w.price ?? 0) > 0 || w.purchaseUrl)) {
-        try {
-          const f = join(DATA, "wf", `${w.id}.json`);
-          let text;
-          if (existsSync(f)) text = await readFile(f, "utf8");
-          else if (offline) throw new Error(`offline and ${w.id} not downloaded`);
-          else {
-            text = await politeGet(`${API}/workflows/${w.id}`);
-            stats.templateRequests++;
-            await writeFile(f, text);
+      // PROPOSALS P127: classified with today's analyzer, then the previous corpus.json's entry
+      // for the same id in this walk, if any, wins (only the current* fields are today's).
+      await (async () => {
+        let wf = null;
+        if (!((w.price ?? 0) > 0 || w.purchaseUrl)) {
+          try {
+            const f = join(DATA, "wf", `${w.id}.json`);
+            let text;
+            if (existsSync(f)) text = await readFile(f, "utf8");
+            else if (offline) throw new Error(`offline and ${w.id} not downloaded`);
+            else {
+              text = await politeGet(`${API}/workflows/${w.id}`);
+              stats.templateRequests++;
+              await writeFile(f, text);
+            }
+            wf = JSON.parse(text)?.workflow?.workflow ?? null;
+          } catch (err) {
+            e.error = String(err.message).slice(0, 200);
           }
-          wf = JSON.parse(text)?.workflow?.workflow ?? null;
-        } catch (err) {
-          e.error = String(err.message).slice(0, 200);
         }
-      }
-      if (wf) e.sha256 = createHash("sha256").update(canonical(wf)).digest("hex");
-      const structural = structuralExclusion(w, wf);
-      if (structural) {
-        e.excluded = structural;
-        continue;
-      }
-      if (seenHash.has(e.sha256)) {
-        e.excluded = "duplicate";
-        e.duplicateOf = seenHash.get(e.sha256);
-        continue;
-      }
-      seenHash.set(e.sha256, w.id);
-      const report = analyze(unwrap({ workflow: { id: String(w.id), name: w.name, workflow: wf } }, String(w.id)), opts).workflows[0];
-      e.outcome = report.outcome.kind;
-      e.target = report.outcome.target;
-      e.wakeup = report.wakeup.kind;
-      if (report.setupOnly) e.setupOnly = true;
-      if (tutorialExclusion(w.name, wf, report)) {
-        e.excluded = "tutorial";
-        continue;
-      }
-      if (HAND[w.id]) {
-        e.excluded = "hand";
-        e.reason = HAND[w.id];
-        continue;
-      }
-      if (DEMO_FLAG.test(w.name ?? "")) e.flag = "name-demo";
-      if (elig) {
-        if (handOf.has(w.id)) e.r4Hand = handOf.get(w.id);
-        Object.assign(e, r4Verdict(wf, report, e, elig));
-        if (cfg.amendedRule) delete e.r4Amended;
-        // Pool `fresh`: eligible by the rule the walk applied. A later hand call (`r4Hand`) or
-        // amendment moves a template out of the candidates, not out of the pool, so it keeps its
-        // place in the seeded shuffle.
-        const walked = e.r4Hand ? r4Verdict(wf, report, { ...e, r4Hand: undefined }, elig) : e;
-        e.pool = walkPool(walked, cfg);
-      } else e.pool = e.outcome === "subscription" ? "fresh" : "fresh-other";
+        if (wf) e.sha256 = createHash("sha256").update(canonical(wf)).digest("hex");
+        const structural = structuralExclusion(w, wf);
+        if (structural) {
+          e.excluded = structural;
+          return;
+        }
+        if (seenHash.has(e.sha256)) {
+          e.excluded = "duplicate";
+          e.duplicateOf = seenHash.get(e.sha256);
+          return;
+        }
+        seenHash.set(e.sha256, w.id);
+        const report = analyze(unwrap({ workflow: { id: String(w.id), name: w.name, workflow: wf } }, String(w.id)), opts).workflows[0];
+        e.outcome = report.outcome.kind;
+        e.target = report.outcome.target;
+        e.wakeup = report.wakeup.kind;
+        if (report.setupOnly) e.setupOnly = true;
+        if (tutorialExclusion(w.name, wf, report)) {
+          e.excluded = "tutorial";
+          return;
+        }
+        if (HAND[w.id]) {
+          e.excluded = "hand";
+          e.reason = HAND[w.id];
+          return;
+        }
+        if (DEMO_FLAG.test(w.name ?? "")) e.flag = "name-demo";
+        if (elig) {
+          if (handOf.has(w.id)) e.r4Hand = handOf.get(w.id);
+          Object.assign(e, r4Verdict(wf, report, e, elig));
+          if (cfg.amendedRule) delete e.r4Amended;
+          // Pool `fresh`: eligible by the rule the walk applied. A later hand call (`r4Hand`) or
+          // amendment moves a template out of the candidates, not out of the pool, so it keeps its
+          // place in the seeded shuffle.
+          const walked = e.r4Hand ? r4Verdict(wf, report, { ...e, r4Hand: undefined }, elig) : e;
+          e.pool = walkPool(walked, cfg);
+        } else e.pool = e.outcome === "subscription" ? "fresh" : "fresh-other";
+      })();
+      keepDrawDay(e, prevOf.get(e.id));
       if (process.stderr.isTTY) process.stderr.write(`\r${entries.length} new entries, shortfall ${JSON.stringify(shortfall())}   `);
     }
   }
@@ -673,7 +759,38 @@ export async function extendWalk(corpus, round, need, { offline = false, as = "d
   return { entries, pages, requests: { listingRequests: stats.listingRequests - before.listingRequests, templateRequests: stats.templateRequests - before.templateRequests } };
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes("--top-up")) {
+// PROPOSALS P127: `--current [--out corpus.json]` refreshes today's analyzer verdict (current*)
+// of every analyzed entry from the cached templates, offline, leaving every draw-day field as it
+// is; the current round's held-out ids are skipped (never analyzed or written here).
+async function current() {
+  const a = process.argv.slice(2);
+  const out = a.includes("--out") ? a[a.indexOf("--out") + 1] : join(HERE, "corpus.json");
+  const corpus = JSON.parse(readFileSync(out, "utf8"));
+  const refs = (f) => JSON.parse(readFileSync(join(REFS, f), "utf8"));
+  const opts = { nodes: refs("nodes.json"), capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), now: Date.parse(NOW) };
+  const { readSplits, heldOutIds } = await import("./rounds.mjs");
+  const skip = new Set(heldOutIds(readSplits()));
+  const analyzeEntry = (e) => {
+    const f = [join(DATA, "wf", `${e.id}.json`), join(SURVEY_CACHE, `${e.id}.json`)].find((x) => existsSync(x));
+    if (!f) return null;
+    const doc = JSON.parse(readFileSync(f, "utf8"))?.workflow;
+    if (!doc?.workflow) return null;
+    return analyze(unwrap({ workflow: { id: String(e.id), name: doc.name, workflow: doc.workflow } }, String(e.id)), opts).workflows[0];
+  };
+  const counts = refreshCurrent(corpus.templates, analyzeEntry, skip);
+  const { templates, current: _prev, ...rest } = corpus;
+  const doc = { ...rest, current: { analyzer: `skills/n8n-to-claude/scripts/analyze.mjs of the checkout, default answers, one template per run, --now ${NOW}`, refreshed: new Date().toLocaleDateString("sv"), rule: "PROPOSALS P127: current* fields are today's analyzer verdict where it differs from the frozen draw-day outcome/target/wakeup; reports read them, eligibility and draws never do", counts }, templates };
+  const text = JSON.stringify(doc, null, 2).replace(/\{\n\s+("rank": \d+,[^{}]*?)\n\s+\}/g, (_, body) => `{ ${body.replace(/\n\s+/g, " ")} }`);
+  await writeFile(out, text + "\n");
+  console.log(`current analyzer verdicts: ${counts.analyzed} analyzed, ${counts.differ} differ from their draw day, ${counts.skipped} skipped (current held-out), ${counts.missing} without a cached template`);
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes("--current")) {
+  current().catch((e) => {
+    console.error(e.message);
+    process.exit(1);
+  });
+} else if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes("--top-up")) {
   topUp().catch((e) => {
     console.error(e.message);
     process.exit(1);

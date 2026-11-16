@@ -139,8 +139,18 @@ if (args.includes("--release")) {
 
 const corpus = JSON.parse(readFileSync(join(HERE, "corpus.json"), "utf8"));
 const top = corpus.templates.filter((t) => t.rank <= 100);
+// PROPOSALS P127: reports read today's analyzer verdict (fetch.mjs --current: current* where it
+// differs from the frozen draw-day outcome); the draw-day coverage stays in corpus.json.
+const outcomeNow = (t) => t.currentOutcome ?? t.outcome;
 const shares = {};
-for (const t of top) shares[t.outcome] = (shares[t.outcome] ?? 0) + 1;
+for (const t of top) shares[outcomeNow(t)] = (shares[outcomeNow(t)] ?? 0) + 1;
+const topIncluded = top.filter((t) => !t.excluded);
+const coverageTop100 = {
+  raw: { subscription: top.filter((t) => outcomeNow(t) === "subscription").length, of: top.length },
+  afterExclusions: { subscription: topIncluded.filter((t) => outcomeNow(t) === "subscription").length, of: topIncluded.length },
+  drawDay: { raw: corpus.coverageTop100.raw, afterExclusions: corpus.coverageTop100.afterExclusions },
+  currentRefreshed: corpus.current?.refreshed ?? null,
+};
 
 const labels = spawnSync(process.execPath, [join(HERE, "compare-labels.mjs"), "--json"], { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
 let refusal = null;
@@ -175,7 +185,7 @@ const out = {
   membership,
   commit: mine[0]?.commit,
   outcomeSharesTop100: shares,
-  coverageTop100: corpus.coverageTop100,
+  coverageTop100,
   oneShot: { passed: passed.length, of: mine.length, share: share(passed.length, mine.length) },
   roundNumbers,
   passNoEffectCompared: { templates: noEffectOf(mine), note: "counted in one-shot success: the workflow's only compared output is its reply or its terminal nodes' items (P70), or only the replayed model inputs were compared (PROPOSALS P50)" },
@@ -220,7 +230,7 @@ if (json) console.log(JSON.stringify(out, null, 2));
 else {
   console.log(`bench run ${tag} (commit ${out.commit}); round ${round.round}: ${membership.dev} of its templates are dev (${devIds.size} with fixtures), ${membership.heldOut} held-out${membership.other ? `, ${membership.other} neither (an earlier round's held-out or no fixtures)` : ""}`);
   console.log(`outcome shares, top 100 (analyzer, default answers): ${Object.entries(shares).map(([k, v]) => `${k} ${v}`).join(", ")}`);
-  console.log(`coverage of the top 100: ${corpus.coverageTop100.raw.subscription} of ${corpus.coverageTop100.raw.of} raw, ${corpus.coverageTop100.afterExclusions.subscription} of ${corpus.coverageTop100.afterExclusions.of} after exclusions`);
+  console.log(`coverage of the top 100 (today's analyzer${coverageTop100.currentRefreshed ? `, refreshed ${coverageTop100.currentRefreshed}` : ", not refreshed: draw-day verdicts"}): ${coverageTop100.raw.subscription} of ${coverageTop100.raw.of} raw, ${coverageTop100.afterExclusions.subscription} of ${coverageTop100.afterExclusions.of} after exclusions (draw day: ${corpus.coverageTop100.raw.subscription} of ${corpus.coverageTop100.raw.of}, ${corpus.coverageTop100.afterExclusions.subscription} of ${corpus.coverageTop100.afterExclusions.of})`);
   console.log(`one-shot success: ${out.oneShot.passed} of ${out.oneShot.of} (${out.oneShot.share ?? "-"}%); gate sum ${out.gateSum}`);
   const rn = out.roundNumbers;
   const missingNote = (t) => (t.missing.length ? `; ${t.missing.length} without a row in this tag, counted as not passing` : "");

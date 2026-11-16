@@ -69,7 +69,10 @@ export function gate3(r) {
 export function gate4({ cmp, modelInputs = [], n8nStatus, judged = [] }) {
   if (n8nStatus !== "success") return fail("fixture", `n8n baseline did not succeed on the normal fixture (${n8nStatus})`);
   const differs = modelInputs.filter((m) => m.input && !m.input.same);
-  if (differs.length) return fail("field map", `${differs.length} replayed model call(s) got a different input`, differs.slice(0, 2).map((m) => ({ step: m.step, index: m.index, claude: m.input.at, n8n: m.input.n8nAround })));
+  // PROPOSALS P124: when every differing input differs only in fields the tool map says the
+  // connector cannot give, each entry names them (connectorGap); connectorLimited() reads that.
+  const gapOnly = differs.every((m) => m.input.gapOnly?.length);
+  if (differs.length) return fail("field map", `${differs.length} replayed model call(s) got a different input`, differs.slice(0, 2).map((m) => ({ step: m.step, index: m.index, claude: m.input.at, n8n: m.input.n8nAround, ...(gapOnly ? { connectorGap: m.input.gapOnly } : {}) })));
   // PROPOSALS P28: the tools offered to the model, names and input schema shapes (descriptions
   // are reported in the row's model evidence, not gated).
   const defsMiss = modelInputs.filter((m) => m.toolDefs && !m.toolDefs.same);
@@ -283,8 +286,17 @@ export function downstreamOf(wf, from) {
 // a step, that step must be the gapped read or downstream of it. Returns the matched gaps, or
 // null. The cause bucket is not changed by this.
 export function connectorLimited(failed, gate, gaps, wf) {
-  if (!failed || failed.pass || ![3, 4, 5].includes(gate) || !gaps?.length) return null;
+  if (!failed || failed.pass || ![3, 4, 5].includes(gate)) return null;
   if (/^preflight/.test(failed.cause ?? "") || failed.bucket === "fixture" || failed.bucket === "bench defect") return null;
+  // PROPOSALS P124: model inputs that differ only in fields the tool map's missingFields name
+  // (gate4 marks every entry connectorGap only when that holds for all differing inputs).
+  const toolMap = gate === 4 ? [].concat(failed.detail ?? []).filter((d) => d && typeof d === "object") : [];
+  if (toolMap.length && toolMap.every((d) => d.connectorGap?.length)) {
+    const seen = new Map();
+    for (const d of toolMap) for (const g of d.connectorGap) seen.set(`${g.node}\u0000${g.field}`, { node: g.node, field: g.field, text: `${g.field} (tool map missingFields)` });
+    return [...seen.values()];
+  }
+  if (!gaps?.length) return null;
   // JavaScript's own "Cannot read properties of undefined" names no field.
   const hay = JSON.stringify([failed.cause ?? "", failed.detail ?? null]).replace(/\\n/g, " ").replace(/cannot (read|set) propert(y|ies) of/gi, "");
   const step = failedStep(failed);
