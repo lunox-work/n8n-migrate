@@ -107,7 +107,7 @@
  ],
  "analyzer": "analyze.mjs and convert.mjs of the checkout, default answers, --now 2026-11-16T00:00:00Z, no model",
  "rules": "EXCLUSIONS.md exclusion rules (fetch.mjs, same order) and round-4 eligibility clauses 1-3, 5, 6 (eligible.mjs); clause 4 (planned features) is not applied",
- "round": 4,
+ "round": 5,
  "requests": {
   "listing": 14,
   "template": 640,
@@ -115,8 +115,8 @@
  },
  "population": {
   "listingEntries": 997,
-  "heldOutSkipped": 20,
-  "read": 977,
+  "heldOutSkipped": 0,
+  "read": 997,
   "excluded": {
    "tutorial": 22,
    "paid": 67,
@@ -146,85 +146,85 @@
    "self-fail/chat-input-unfed": 6,
    "out-of-scope/under-a-minute": 2
   },
-  "inScope": 475,
-  "supportedToday": 164,
-  "fullClass": 99,
-  "answersOnly": 41,
-  "blocked": 270,
+  "inScope": 495,
+  "supportedToday": 168,
+  "fullClass": 101,
+  "answersOnly": 45,
+  "blocked": 282,
   "crashes": 0
  },
  "dev": {
-  "templates": 100,
+  "templates": 120,
   "unnamed": 0,
-  "supportedToday": 40,
-  "answersOnly": 15,
-  "blocked": 45,
+  "supportedToday": 44,
+  "answersOnly": 19,
+  "blocked": 57,
   "missing": 0
  },
  "byPlanned": [
   {
    "group": "unplanned",
-   "keys": 92,
-   "galleryUnlock": 38,
-   "galleryTotal": 73,
-   "devUnlock": 0,
-   "devTotal": 0
+   "keys": 93,
+   "galleryUnlock": 39,
+   "galleryTotal": 74,
+   "devUnlock": 1,
+   "devTotal": 1
   },
   {
    "group": "rest-template",
-   "keys": 39,
-   "galleryUnlock": 38,
-   "galleryTotal": 70,
-   "devUnlock": 7,
-   "devTotal": 11
+   "keys": 40,
+   "galleryUnlock": 39,
+   "galleryTotal": 72,
+   "devUnlock": 8,
+   "devTotal": 13
   },
   {
    "group": "connector",
-   "keys": 55,
-   "galleryUnlock": 37,
-   "galleryTotal": 73,
-   "devUnlock": 9,
-   "devTotal": 14
+   "keys": 58,
+   "galleryUnlock": 38,
+   "galleryTotal": 77,
+   "devUnlock": 10,
+   "devTotal": 18
   },
   {
    "group": "db",
    "keys": 13,
-   "galleryUnlock": 15,
-   "galleryTotal": 25,
-   "devUnlock": 5,
-   "devTotal": 6
+   "galleryUnlock": 17,
+   "galleryTotal": 27,
+   "devUnlock": 7,
+   "devTotal": 8
   },
   {
    "group": "http",
    "keys": 4,
-   "galleryUnlock": 14,
-   "galleryTotal": 40,
-   "devUnlock": 3,
-   "devTotal": 4
+   "galleryUnlock": 15,
+   "galleryTotal": 41,
+   "devUnlock": 4,
+   "devTotal": 5
   },
   {
    "group": "files",
    "keys": 10,
-   "galleryUnlock": 12,
-   "galleryTotal": 24,
-   "devUnlock": 3,
-   "devTotal": 4
+   "galleryUnlock": 13,
+   "galleryTotal": 25,
+   "devUnlock": 4,
+   "devTotal": 5
   },
   {
    "group": "vector",
    "keys": 16,
    "galleryUnlock": 9,
-   "galleryTotal": 23,
+   "galleryTotal": 26,
    "devUnlock": 6,
-   "devTotal": 9
+   "devTotal": 12
   },
   {
    "group": "core",
-   "keys": 6,
+   "keys": 7,
    "galleryUnlock": 7,
-   "galleryTotal": 27,
+   "galleryTotal": 29,
    "devUnlock": 0,
-   "devTotal": 1
+   "devTotal": 3
   },
   {
    "group": "form-ending",
@@ -251,6 +251,14 @@
    "devTotal": 2
   },
   {
+   "group": "trigger-poll",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 1
+  },
+  {
    "group": "agent",
    "keys": 1,
    "galleryUnlock": 1,
@@ -259,30 +267,22 @@
    "devTotal": 1
   },
   {
-   "group": "trigger-poll",
-   "keys": 1,
-   "galleryUnlock": 1,
-   "galleryTotal": 3,
-   "devUnlock": 0,
-   "devTotal": 0
-  },
-  {
    "group": "state",
    "keys": 5,
    "galleryUnlock": 0,
-   "galleryTotal": 9,
+   "galleryTotal": 11,
    "devUnlock": 0,
-   "devTotal": 2
+   "devTotal": 4
   }
  ],
  "byType": [
   {
    "group": "n8n-nodes-base.httpRequest",
    "keys": 3,
-   "galleryUnlock": 11,
-   "galleryTotal": 35,
-   "devUnlock": 0,
-   "devTotal": 1,
+   "galleryUnlock": 12,
+   "galleryTotal": 36,
+   "devUnlock": 1,
+   "devTotal": 2,
    "planned": "http"
   },
   {
@@ -297,38 +297,47 @@
   {
    "group": "n8n-nodes-base.postgres",
    "keys": 5,
-   "galleryUnlock": 9,
-   "galleryTotal": 13,
-   "devUnlock": 3,
-   "devTotal": 3,
+   "galleryUnlock": 10,
+   "galleryTotal": 14,
+   "devUnlock": 4,
+   "devTotal": 4,
    "planned": "db"
   },
   {
    "group": "n8n-nodes-base.googleSheets",
-   "keys": 7,
+   "keys": 8,
    "galleryUnlock": 7,
-   "galleryTotal": 18,
+   "galleryTotal": 19,
    "devUnlock": 1,
-   "devTotal": 1,
+   "devTotal": 2,
    "planned": "connector"
   },
   {
    "group": "n8n-nodes-base.youTube",
    "keys": 5,
    "galleryUnlock": 7,
-   "galleryTotal": 14,
+   "galleryTotal": 15,
    "devUnlock": 0,
-   "devTotal": 1,
+   "devTotal": 2,
    "planned": "rest-template"
   },
   {
    "group": "@n8n/n8n-nodes-langchain.openAi",
+   "keys": 6,
+   "galleryUnlock": 6,
+   "galleryTotal": 11,
+   "devUnlock": 2,
+   "devTotal": 5,
+   "planned": "model/media/rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.editImage",
    "keys": 5,
    "galleryUnlock": 5,
    "galleryTotal": 10,
-   "devUnlock": 1,
-   "devTotal": 4,
-   "planned": "model/media/rest-template"
+   "devUnlock": 2,
+   "devTotal": 3,
+   "planned": "files"
   },
   {
    "group": "n8n-nodes-base.googleDrive",
@@ -349,15 +358,6 @@
    "planned": "form-ending (some operations)"
   },
   {
-   "group": "n8n-nodes-base.editImage",
-   "keys": 5,
-   "galleryUnlock": 4,
-   "galleryTotal": 9,
-   "devUnlock": 1,
-   "devTotal": 2,
-   "planned": "files"
-  },
-  {
    "group": "n8n-nodes-base.mySql",
    "keys": 5,
    "galleryUnlock": 4,
@@ -370,9 +370,9 @@
    "group": "n8n-nodes-base.xml",
    "keys": 1,
    "galleryUnlock": 4,
-   "galleryTotal": 7,
+   "galleryTotal": 8,
    "devUnlock": 0,
-   "devTotal": 0,
+   "devTotal": 1,
    "planned": "core"
   },
   {
@@ -385,6 +385,24 @@
    "planned": "connector"
   },
   {
+   "group": "n8n-nodes-base.googleDocs",
+   "keys": 2,
+   "galleryUnlock": 3,
+   "galleryTotal": 6,
+   "devUnlock": 2,
+   "devTotal": 3,
+   "planned": "connector"
+  },
+  {
+   "group": "n8n-nodes-base.gmail",
+   "keys": 5,
+   "galleryUnlock": 3,
+   "galleryTotal": 6,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "connector"
+  },
+  {
    "group": "@n8n/n8n-nodes-langchain.toolSerpApi",
    "keys": 1,
    "galleryUnlock": 3,
@@ -394,22 +412,13 @@
    "planned": "http"
   },
   {
-   "group": "n8n-nodes-base.googleDocs",
-   "keys": 2,
+   "group": "n8n-nodes-base.mongoDb",
+   "keys": 3,
    "galleryUnlock": 3,
    "galleryTotal": 5,
    "devUnlock": 2,
    "devTotal": 2,
-   "planned": "connector"
-  },
-  {
-   "group": "n8n-nodes-base.gmail",
-   "keys": 4,
-   "galleryUnlock": 3,
-   "galleryTotal": 5,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "connector"
+   "planned": "db"
   },
   {
    "group": "n8n-nodes-base.jira",
@@ -502,13 +511,13 @@
    "planned": "connector"
   },
   {
-   "group": "n8n-nodes-base.mongoDb",
-   "keys": 3,
+   "group": "n8n-nodes-base.googleCalendar",
+   "keys": 2,
    "galleryUnlock": 2,
-   "galleryTotal": 4,
+   "galleryTotal": 3,
    "devUnlock": 1,
    "devTotal": 1,
-   "planned": "db"
+   "planned": "connector"
   },
   {
    "group": "n8n-nodes-base.hackerNews",
@@ -646,6 +655,15 @@
    "planned": "rest-template"
   },
   {
+   "group": "n8n-nodes-base.rssFeedReadTrigger",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "trigger-poll"
+  },
+  {
    "group": "n8n-nodes-base.compression",
    "keys": 1,
    "galleryUnlock": 1,
@@ -671,15 +689,6 @@
    "devUnlock": 0,
    "devTotal": 1,
    "planned": "agent"
-  },
-  {
-   "group": "n8n-nodes-base.rssFeedReadTrigger",
-   "keys": 1,
-   "galleryUnlock": 1,
-   "galleryTotal": 3,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "trigger-poll"
   },
   {
    "group": "n8n-nodes-base.supabase",
@@ -718,15 +727,6 @@
    "planned": "rest-template"
   },
   {
-   "group": "n8n-nodes-base.googleCalendar",
-   "keys": 1,
-   "galleryUnlock": 1,
-   "galleryTotal": 2,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "connector"
-  },
-  {
    "group": "n8n-nodes-base.linear",
    "keys": 2,
    "galleryUnlock": 1,
@@ -761,6 +761,15 @@
    "devUnlock": 1,
    "devTotal": 1,
    "planned": "rest-template"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.chat",
+   "keys": 1,
+   "galleryUnlock": 1,
+   "galleryTotal": 1,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "planned": "trigger-chat (some operations)"
   },
   {
    "group": "n8n-nodes-base.asana",
@@ -874,9 +883,9 @@
    "group": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
    "keys": 1,
    "galleryUnlock": 0,
-   "galleryTotal": 17,
+   "galleryTotal": 18,
    "devUnlock": 0,
-   "devTotal": 6,
+   "devTotal": 7,
    "planned": "vector"
   },
   {
@@ -892,19 +901,46 @@
    "group": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
    "keys": 4,
    "galleryUnlock": 0,
-   "galleryTotal": 9,
+   "galleryTotal": 10,
+   "devUnlock": 0,
+   "devTotal": 5,
+   "planned": "vector"
+  },
+  {
+   "group": "n8n-nodes-base.dateTime",
+   "keys": 2,
+   "galleryUnlock": 0,
+   "galleryTotal": 8,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "planned": "core"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+   "keys": 1,
+   "galleryUnlock": 0,
+   "galleryTotal": 7,
    "devUnlock": 0,
    "devTotal": 4,
    "planned": "vector"
   },
   {
-   "group": "n8n-nodes-base.dateTime",
+   "group": "@n8n/n8n-nodes-langchain.toolVectorStore",
    "keys": 1,
    "galleryUnlock": 0,
    "galleryTotal": 7,
    "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "core"
+   "devTotal": 5,
+   "planned": "vector"
+  },
+  {
+   "group": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+   "keys": 4,
+   "galleryUnlock": 0,
+   "galleryTotal": 6,
+   "devUnlock": 0,
+   "devTotal": 4,
+   "planned": "state"
   },
   {
    "group": "n8n-nodes-base.github",
@@ -916,40 +952,13 @@
    "planned": "unplanned"
   },
   {
-   "group": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
-   "keys": 1,
-   "galleryUnlock": 0,
-   "galleryTotal": 5,
-   "devUnlock": 0,
-   "devTotal": 2,
-   "planned": "vector"
-  },
-  {
-   "group": "@n8n/n8n-nodes-langchain.toolVectorStore",
-   "keys": 1,
-   "galleryUnlock": 0,
-   "galleryTotal": 5,
-   "devUnlock": 0,
-   "devTotal": 3,
-   "planned": "vector"
-  },
-  {
    "group": "n8n-nodes-base.removeDuplicates",
    "keys": 1,
    "galleryUnlock": 0,
-   "galleryTotal": 5,
+   "galleryTotal": 6,
    "devUnlock": 0,
-   "devTotal": 0,
+   "devTotal": 1,
    "planned": "core/state (some operations)"
-  },
-  {
-   "group": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
-   "keys": 4,
-   "galleryUnlock": 0,
-   "galleryTotal": 4,
-   "devUnlock": 0,
-   "devTotal": 2,
-   "planned": "state"
   },
   {
    "group": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
@@ -1300,14 +1309,34 @@
    ],
    "reason": "runtime: not implemented in the runtime: n8n-nodes-base.xml vN",
    "galleryAlone": 4,
-   "galleryTotal": 7,
+   "galleryTotal": 8,
    "devUnlock": 0,
-   "devTotal": 0,
+   "devTotal": 1,
    "ids": {
     "galleryAlone": [160, 2123, 2210, 2957],
-    "galleryTotal": [160, 1810, 2123, 2210, 2957, 4671, 5817],
+    "galleryTotal": [160, 1810, 2123, 2210, 2957, 3132, 4671, 5817],
     "devUnlock": [],
-    "devTotal": []
+    "devTotal": [3132]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.httpRequest (URL built at run time)",
+   "type": "n8n-nodes-base.httpRequest",
+   "op": "",
+   "planned": "http",
+   "kinds": [
+    "runtime"
+   ],
+   "reason": "runtime: a URL built at run time in a step the analyzer asks no hosts question about",
+   "galleryAlone": 3,
+   "galleryTotal": 7,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [2736, 2981, 3791],
+    "galleryTotal": [2736, 2784, 2981, 3435, 3791, 4709, 5743],
+    "devUnlock": [2736],
+    "devTotal": [2736]
    }
   },
   {
@@ -1348,6 +1377,26 @@
     "galleryTotal": [1954, 1959, 2324, 2326, 5024],
     "devUnlock": [1954, 1959, 2324],
     "devTotal": [1954, 1959, 2324]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.postgresTool executeQuery",
+   "type": "n8n-nodes-base.postgresTool",
+   "op": "executeQuery",
+   "planned": "db",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "galleryAlone": 3,
+   "galleryTotal": 3,
+   "devUnlock": 3,
+   "devTotal": 3,
+   "ids": {
+    "galleryAlone": [2090, 2612, 2859],
+    "galleryTotal": [2090, 2612, 2859],
+    "devUnlock": [2090, 2612, 2859],
+    "devTotal": [2090, 2612, 2859]
    }
   },
   {
@@ -1411,6 +1460,26 @@
    }
   },
   {
+   "key": "n8n-nodes-base.editImage resize",
+   "type": "n8n-nodes-base.editImage",
+   "op": "resize",
+   "planned": "files",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: Edit Image runs GraphicsMagick inside n8n; the runtime has no image library, so resized or edited images would differ",
+   "galleryAlone": 2,
+   "galleryTotal": 6,
+   "devUnlock": 2,
+   "devTotal": 3,
+   "ids": {
+    "galleryAlone": [2416, 2420],
+    "galleryTotal": [2344, 2416, 2418, 2420, 2421, 2618],
+    "devUnlock": [2416, 2420],
+    "devTotal": [2416, 2420, 2421]
+   }
+  },
+  {
    "key": "n8n-nodes-base.mySql executeQuery",
    "type": "n8n-nodes-base.mySql",
    "op": "executeQuery",
@@ -1431,23 +1500,23 @@
    }
   },
   {
-   "key": "n8n-nodes-base.httpRequest (URL built at run time)",
-   "type": "n8n-nodes-base.httpRequest",
-   "op": "",
-   "planned": "http",
+   "key": "@n8n/n8n-nodes-langchain.openAi assistant:message",
+   "type": "@n8n/n8n-nodes-langchain.openAi",
+   "op": "assistant:message",
+   "planned": "rest-template",
    "kinds": [
-    "runtime"
+    "unsupported"
    ],
-   "reason": "runtime: a URL built at run time in a step the analyzer asks no hosts question about",
+   "reason": "unsupported: OpenAI assistant:message is not a text model call",
    "galleryAlone": 2,
    "galleryTotal": 6,
    "devUnlock": 0,
-   "devTotal": 0,
+   "devTotal": 3,
    "ids": {
-    "galleryAlone": [2981, 3791],
-    "galleryTotal": [2784, 2981, 3435, 3791, 4709, 5743],
+    "galleryAlone": [2025, 2693],
+    "galleryTotal": [2025, 2201, 2288, 2693, 2782, 4709],
     "devUnlock": [],
-    "devTotal": []
+    "devTotal": [2201, 2288, 2782]
    }
   },
   {
@@ -1471,23 +1540,23 @@
    }
   },
   {
-   "key": "@n8n/n8n-nodes-langchain.openAi assistant:message",
-   "type": "@n8n/n8n-nodes-langchain.openAi",
-   "op": "assistant:message",
-   "planned": "rest-template",
+   "key": "n8n-nodes-base.googleDocs document:update",
+   "type": "n8n-nodes-base.googleDocs",
+   "op": "document:update",
+   "planned": "connector",
    "kinds": [
-    "unsupported"
+    "no-tool"
    ],
-   "reason": "unsupported: OpenAI assistant:message is not a text model call",
+   "reason": "no-tool: no tool edits a document in place (update_file changes metadata only)",
    "galleryAlone": 2,
    "galleryTotal": 5,
-   "devUnlock": 0,
+   "devUnlock": 1,
    "devTotal": 2,
    "ids": {
-    "galleryAlone": [2025, 2693],
-    "galleryTotal": [2025, 2201, 2288, 2693, 4709],
-    "devUnlock": [],
-    "devTotal": [2201, 2288]
+    "galleryAlone": [3025, 3185],
+    "galleryTotal": [2741, 3025, 3185, 4252, 4403],
+    "devUnlock": [3025],
+    "devTotal": [2741, 3025]
    }
   },
   {
@@ -1550,26 +1619,6 @@
     "galleryTotal": [2, 357, 458, 599, 2903],
     "devUnlock": [],
     "devTotal": []
-   }
-  },
-  {
-   "key": "n8n-nodes-base.googleDocs document:update",
-   "type": "n8n-nodes-base.googleDocs",
-   "op": "document:update",
-   "planned": "connector",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no tool edits a document in place (update_file changes metadata only)",
-   "galleryAlone": 2,
-   "galleryTotal": 4,
-   "devUnlock": 1,
-   "devTotal": 1,
-   "ids": {
-    "galleryAlone": [3025, 3185],
-    "galleryTotal": [3025, 3185, 4252, 4403],
-    "devUnlock": [3025],
-    "devTotal": [3025]
    }
   },
   {
@@ -1710,26 +1759,6 @@
     "galleryTotal": [445, 1130, 3161],
     "devUnlock": [],
     "devTotal": []
-   }
-  },
-  {
-   "key": "n8n-nodes-base.postgresTool executeQuery",
-   "type": "n8n-nodes-base.postgresTool",
-   "op": "executeQuery",
-   "planned": "db",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
-   "galleryAlone": 2,
-   "galleryTotal": 2,
-   "devUnlock": 2,
-   "devTotal": 2,
-   "ids": {
-    "galleryAlone": [2090, 2859],
-    "galleryTotal": [2090, 2859],
-    "devUnlock": [2090, 2859],
-    "devTotal": [2090, 2859]
    }
   },
   {
@@ -1893,23 +1922,23 @@
    }
   },
   {
-   "key": "n8n-nodes-base.editImage resize",
-   "type": "n8n-nodes-base.editImage",
-   "op": "resize",
-   "planned": "files",
+   "key": "n8n-nodes-base.mongoDb document:insert",
+   "type": "n8n-nodes-base.mongoDb",
+   "op": "document:insert",
+   "planned": "db",
    "kinds": [
     "unsupported"
    ],
-   "reason": "unsupported: Edit Image runs GraphicsMagick inside n8n; the runtime has no image library, so resized or edited images would differ",
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
    "galleryAlone": 1,
    "galleryTotal": 5,
    "devUnlock": 1,
    "devTotal": 2,
    "ids": {
-    "galleryAlone": [2420],
-    "galleryTotal": [2344, 2418, 2420, 2421, 2618],
-    "devUnlock": [2420],
-    "devTotal": [2420, 2421]
+    "galleryAlone": [503],
+    "galleryTotal": [159, 503, 1045, 2834, 5230],
+    "devUnlock": [503],
+    "devTotal": [503, 5230]
    }
   },
   {
@@ -2033,6 +2062,26 @@
    }
   },
   {
+   "key": "n8n-nodes-base.rssFeedReadTrigger",
+   "type": "n8n-nodes-base.rssFeedReadTrigger",
+   "op": "",
+   "planned": "trigger-poll",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool map for polling rssFeedReadTrigger",
+   "galleryAlone": 1,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [4478],
+    "galleryTotal": [2249, 4478, 4506, 4887],
+    "devUnlock": [],
+    "devTotal": [4506]
+   }
+  },
+  {
    "key": "n8n-nodes-base.youTube video:upload",
    "type": "n8n-nodes-base.youTube",
    "op": "video:upload",
@@ -2113,6 +2162,26 @@
    }
   },
   {
+   "key": "@n8n/n8n-nodes-langchain.openAi file:upload",
+   "type": "@n8n/n8n-nodes-langchain.openAi",
+   "op": "file:upload",
+   "planned": "rest-template",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: OpenAI file:message is not a text model call",
+   "galleryAlone": 1,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [2781],
+    "galleryTotal": [2201, 2781, 2782],
+    "devUnlock": [],
+    "devTotal": [2201, 2782]
+   }
+  },
+  {
    "key": "@n8n/n8n-nodes-langchain.toolCalculator",
    "type": "@n8n/n8n-nodes-langchain.toolCalculator",
    "op": "",
@@ -2148,26 +2217,6 @@
    "ids": {
     "galleryAlone": [459],
     "galleryTotal": [459, 2665, 2666],
-    "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
-   "key": "n8n-nodes-base.rssFeedReadTrigger",
-   "type": "n8n-nodes-base.rssFeedReadTrigger",
-   "op": "",
-   "planned": "trigger-poll",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no tool map for polling rssFeedReadTrigger",
-   "galleryAlone": 1,
-   "galleryTotal": 3,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [4478],
-    "galleryTotal": [2249, 4478, 4887],
     "devUnlock": [],
     "devTotal": []
    }
@@ -2210,26 +2259,6 @@
     "galleryTotal": [2275, 3396],
     "devUnlock": [2275],
     "devTotal": [2275]
-   }
-  },
-  {
-   "key": "@n8n/n8n-nodes-langchain.openAi file:upload",
-   "type": "@n8n/n8n-nodes-langchain.openAi",
-   "op": "file:upload",
-   "planned": "rest-template",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: OpenAI file:message is not a text model call",
-   "galleryAlone": 1,
-   "galleryTotal": 2,
-   "devUnlock": 0,
-   "devTotal": 1,
-   "ids": {
-    "galleryAlone": [2781],
-    "galleryTotal": [2201, 2781],
-    "devUnlock": [],
-    "devTotal": [2201]
    }
   },
   {
@@ -2370,6 +2399,46 @@
     "galleryTotal": [5338],
     "devUnlock": [5338],
     "devTotal": [5338]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.chat v1",
+   "type": "@n8n/n8n-nodes-langchain.chat",
+   "op": "",
+   "planned": "unplanned",
+   "kinds": [
+    "runtime"
+   ],
+   "reason": "runtime: not implemented in the runtime: @n8n/n8n-nodes-langchain.chat vN",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [10230],
+    "galleryTotal": [10230],
+    "devUnlock": [10230],
+    "devTotal": [10230]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleCalendarTool calendar:availability",
+   "type": "n8n-nodes-base.googleCalendarTool",
+   "op": "calendar:availability",
+   "planned": "connector",
+   "kinds": [
+    "not-captured"
+   ],
+   "reason": "not-captured: connector needs sign-in on this account; schemas not captured; map calendar:availability once they are",
+   "galleryAlone": 1,
+   "galleryTotal": 1,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [3131],
+    "galleryTotal": [3131],
+    "devUnlock": [3131],
+    "devTotal": [3131]
    }
   },
   {
@@ -2823,14 +2892,14 @@
    ],
    "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
    "galleryAlone": 0,
-   "galleryTotal": 17,
+   "galleryTotal": 18,
    "devUnlock": 0,
-   "devTotal": 6,
+   "devTotal": 7,
    "ids": {
     "galleryAlone": [],
-    "galleryTotal": [1960, 2165, 2290, 2344, 2621, 2705, 2784, 2840, 3647, 3986, 4501, 4526, 4551, 5010, 5011, 5024, 5817],
+    "galleryTotal": [1960, 2165, 2290, 2344, 2621, 2705, 2784, 2840, 3647, 3986, 4366, 4501, 4526, 4551, 5010, 5011, 5024, 5817],
     "devUnlock": [],
-    "devTotal": [1960, 2165, 2621, 2705, 3986, 5010]
+    "devTotal": [1960, 2165, 2621, 2705, 3986, 4366, 5010]
    }
   },
   {
@@ -2859,18 +2928,19 @@
    "op": "insert",
    "planned": "vector",
    "kinds": [
-    "unsupported"
+    "unsupported",
+    "dropped"
    ],
    "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
    "galleryAlone": 0,
-   "galleryTotal": 9,
+   "galleryTotal": 10,
    "devUnlock": 0,
-   "devTotal": 4,
+   "devTotal": 5,
    "ids": {
     "galleryAlone": [],
-    "galleryTotal": [1960, 2165, 2705, 2753, 2797, 2871, 3192, 4501, 5024],
+    "galleryTotal": [1960, 2165, 2705, 2741, 2753, 2797, 2871, 3192, 4501, 5024],
     "devUnlock": [],
-    "devTotal": [1960, 2165, 2705, 2753]
+    "devTotal": [1960, 2165, 2705, 2741, 2753]
    }
   },
   {
@@ -2891,6 +2961,47 @@
     "galleryTotal": [2267, 2281, 2330, 2618, 2619, 2662, 2809, 3717, 4481],
     "devUnlock": [],
     "devTotal": []
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+   "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+   "op": "",
+   "planned": "vector",
+   "kinds": [
+    "unsupported",
+    "dropped"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 7,
+   "devUnlock": 0,
+   "devTotal": 4,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2658, 2741, 2753, 2797, 2871, 3192, 6137],
+    "devUnlock": [],
+    "devTotal": [2658, 2741, 2753, 6137]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.toolVectorStore",
+   "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+   "op": "",
+   "planned": "vector",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 7,
+   "devUnlock": 0,
+   "devTotal": 5,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2621, 2705, 2741, 2753, 2784, 4366, 5011],
+    "devUnlock": [],
+    "devTotal": [2621, 2705, 2741, 2753, 4366]
    }
   },
   {
@@ -2934,6 +3045,26 @@
    }
   },
   {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreInMemory insert",
+   "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+   "op": "insert",
+   "planned": "state",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 6,
+   "devUnlock": 0,
+   "devTotal": 4,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2344, 3986, 4366, 5010, 5011, 6137],
+    "devUnlock": [],
+    "devTotal": [3986, 4366, 5010, 6137]
+   }
+  },
+  {
    "key": "n8n-nodes-base.airtable record:update",
    "type": "n8n-nodes-base.airtable",
    "op": "record:update",
@@ -2951,6 +3082,26 @@
     "galleryTotal": [2267, 2281, 2330, 2377, 2618, 2817],
     "devUnlock": [],
     "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.removeDuplicates removeItemsSeenInPreviousExecutions",
+   "type": "n8n-nodes-base.removeDuplicates",
+   "op": "removeItemsSeenInPreviousExecutions",
+   "planned": "state",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "galleryAlone": 0,
+   "galleryTotal": 6,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2564, 2619, 3446, 3868, 3900, 6137],
+    "devUnlock": [],
+    "devTotal": [6137]
    }
   },
   {
@@ -2974,66 +3125,6 @@
    }
   },
   {
-   "key": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
-   "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
-   "op": "",
-   "planned": "vector",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
-   "galleryAlone": 0,
-   "galleryTotal": 5,
-   "devUnlock": 0,
-   "devTotal": 2,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [2658, 2753, 2797, 2871, 3192],
-    "devUnlock": [],
-    "devTotal": [2658, 2753]
-   }
-  },
-  {
-   "key": "@n8n/n8n-nodes-langchain.toolVectorStore",
-   "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
-   "op": "",
-   "planned": "vector",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
-   "galleryAlone": 0,
-   "galleryTotal": 5,
-   "devUnlock": 0,
-   "devTotal": 3,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [2621, 2705, 2753, 2784, 5011],
-    "devUnlock": [],
-    "devTotal": [2621, 2705, 2753]
-   }
-  },
-  {
-   "key": "n8n-nodes-base.removeDuplicates removeItemsSeenInPreviousExecutions",
-   "type": "n8n-nodes-base.removeDuplicates",
-   "op": "removeItemsSeenInPreviousExecutions",
-   "planned": "state",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
-   "galleryAlone": 0,
-   "galleryTotal": 5,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [2564, 2619, 3446, 3868, 3900],
-    "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
    "key": "n8n-nodes-base.youTube video:update",
    "type": "n8n-nodes-base.youTube",
    "op": "video:update",
@@ -3043,34 +3134,14 @@
    ],
    "reason": "no-tool: no request template for youTube video:update yet (it needs the app's REST API with a stored secret)",
    "galleryAlone": 0,
-   "galleryTotal": 5,
+   "galleryTotal": 6,
    "devUnlock": 0,
-   "devTotal": 0,
+   "devTotal": 1,
    "ids": {
     "galleryAlone": [],
-    "galleryTotal": [2211, 2976, 3450, 3900, 3906],
+    "galleryTotal": [2211, 2976, 3450, 3900, 3906, 4506],
     "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
-   "key": "@n8n/n8n-nodes-langchain.vectorStoreInMemory insert",
-   "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
-   "op": "insert",
-   "planned": "state",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
-   "galleryAlone": 0,
-   "galleryTotal": 4,
-   "devUnlock": 0,
-   "devTotal": 2,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [2344, 3986, 5010, 5011],
-    "devUnlock": [],
-    "devTotal": [3986, 5010]
+    "devTotal": [4506]
    }
   },
   {
@@ -3194,26 +3265,6 @@
    }
   },
   {
-   "key": "n8n-nodes-base.mongoDb document:insert",
-   "type": "n8n-nodes-base.mongoDb",
-   "op": "document:insert",
-   "planned": "db",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
-   "galleryAlone": 0,
-   "galleryTotal": 4,
-   "devUnlock": 0,
-   "devTotal": 1,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [159, 1045, 2834, 5230],
-    "devUnlock": [],
-    "devTotal": [5230]
-   }
-  },
-  {
    "key": "n8n-nodes-base.notion block:getAll",
    "type": "n8n-nodes-base.notion",
    "op": "block:getAll",
@@ -3231,6 +3282,47 @@
     "galleryTotal": [2273, 2288, 2290, 2797],
     "devUnlock": [],
     "devTotal": [2288]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreInMemory retrieve-as-tool",
+   "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+   "op": "retrieve-as-tool",
+   "planned": "state",
+   "kinds": [
+    "unsupported",
+    "dropped"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 3,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [3986, 5010, 6137],
+    "devUnlock": [],
+    "devTotal": [3986, 5010, 6137]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStorePinecone retrieve",
+   "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+   "op": "retrieve",
+   "planned": "vector",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 3,
+   "devUnlock": 0,
+   "devTotal": 3,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2705, 2741, 2753],
+    "devUnlock": [],
+    "devTotal": [2705, 2741, 2753]
    }
   },
   {
@@ -3434,9 +3526,49 @@
    }
   },
   {
-   "key": "@n8n/n8n-nodes-langchain.vectorStoreInMemory retrieve-as-tool",
+   "key": "@n8n/n8n-nodes-langchain.openAi assistant:create",
+   "type": "@n8n/n8n-nodes-langchain.openAi",
+   "op": "assistant:create",
+   "planned": "rest-template",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: OpenAI assistant:create is not a text model call",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 2,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2201, 2782],
+    "devUnlock": [],
+    "devTotal": [2201, 2782]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreInMemory load",
    "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
-   "op": "retrieve-as-tool",
+   "op": "load",
+   "planned": "state",
+   "kinds": [
+    "dropped"
+   ],
+   "reason": "dropped: a vector store needs an MCP server (lever not built yet)",
+   "galleryAlone": 0,
+   "galleryTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [2344, 4366],
+    "devUnlock": [],
+    "devTotal": [4366]
+   }
+  },
+  {
+   "key": "@n8n/n8n-nodes-langchain.vectorStoreInMemory retrieve",
+   "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+   "op": "retrieve",
    "planned": "state",
    "kinds": [
     "unsupported"
@@ -3445,12 +3577,12 @@
    "galleryAlone": 0,
    "galleryTotal": 2,
    "devUnlock": 0,
-   "devTotal": 2,
+   "devTotal": 1,
    "ids": {
     "galleryAlone": [],
-    "galleryTotal": [3986, 5010],
+    "galleryTotal": [4366, 5011],
     "devUnlock": [],
-    "devTotal": [3986, 5010]
+    "devTotal": [4366]
    }
   },
   {
@@ -3471,26 +3603,6 @@
     "galleryTotal": [2165, 3192],
     "devUnlock": [],
     "devTotal": [2165]
-   }
-  },
-  {
-   "key": "@n8n/n8n-nodes-langchain.vectorStorePinecone retrieve",
-   "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
-   "op": "retrieve",
-   "planned": "vector",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
-   "galleryAlone": 0,
-   "galleryTotal": 2,
-   "devUnlock": 0,
-   "devTotal": 2,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [2705, 2753],
-    "devUnlock": [],
-    "devTotal": [2705, 2753]
    }
   },
   {
@@ -3995,23 +4107,23 @@
    }
   },
   {
-   "key": "@n8n/n8n-nodes-langchain.openAi assistant:create",
+   "key": "@n8n/n8n-nodes-langchain.openAi assistant:update",
    "type": "@n8n/n8n-nodes-langchain.openAi",
-   "op": "assistant:create",
+   "op": "assistant:update",
    "planned": "rest-template",
    "kinds": [
     "unsupported"
    ],
-   "reason": "unsupported: OpenAI assistant:create is not a text model call",
+   "reason": "unsupported: OpenAI assistant:update is not a text model call",
    "galleryAlone": 0,
    "galleryTotal": 1,
    "devUnlock": 0,
    "devTotal": 1,
    "ids": {
     "galleryAlone": [],
-    "galleryTotal": [2201],
+    "galleryTotal": [2782],
     "devUnlock": [],
-    "devTotal": [2201]
+    "devTotal": [2782]
    }
   },
   {
@@ -4030,46 +4142,6 @@
    "ids": {
     "galleryAlone": [],
     "galleryTotal": [2233],
-    "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
-   "key": "@n8n/n8n-nodes-langchain.vectorStoreInMemory load",
-   "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
-   "op": "load",
-   "planned": "state",
-   "kinds": [
-    "dropped"
-   ],
-   "reason": "dropped: a vector store needs an MCP server (lever not built yet)",
-   "galleryAlone": 0,
-   "galleryTotal": 1,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [2344],
-    "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
-   "key": "@n8n/n8n-nodes-langchain.vectorStoreInMemory retrieve",
-   "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
-   "op": "retrieve",
-   "planned": "state",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: a vector store needs an MCP server (lever not built yet)",
-   "galleryAlone": 0,
-   "galleryTotal": 1,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [5011],
     "devUnlock": [],
     "devTotal": []
    }
@@ -4435,6 +4507,26 @@
    }
   },
   {
+   "key": "n8n-nodes-base.dateTimeTool formatDate",
+   "type": "n8n-nodes-base.dateTimeTool",
+   "op": "formatDate",
+   "planned": "core",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: dateTimeTool cannot run in the runtime",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [4366],
+    "devUnlock": [],
+    "devTotal": [4366]
+   }
+  },
+  {
    "key": "n8n-nodes-base.discord message:send",
    "type": "n8n-nodes-base.discord",
    "op": "message:send",
@@ -4715,6 +4807,26 @@
    }
   },
   {
+   "key": "n8n-nodes-base.gmailTool message:delete",
+   "type": "n8n-nodes-base.gmailTool",
+   "op": "message:delete",
+   "planned": "connector",
+   "kinds": [
+    "no-tool"
+   ],
+   "reason": "no-tool: no tool deletes a message permanently (trash_message only moves it to Trash)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [4366],
+    "devUnlock": [],
+    "devTotal": [4366]
+   }
+  },
+  {
    "key": "n8n-nodes-base.googleCloudNaturalLanguage document:analyzeSentiment",
    "type": "n8n-nodes-base.googleCloudNaturalLanguage",
    "op": "document:analyzeSentiment",
@@ -4852,6 +4964,26 @@
     "galleryTotal": [694],
     "devUnlock": [],
     "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.googleSheets sheet:read (required arguments)",
+   "type": "n8n-nodes-base.googleSheets",
+   "op": "sheet:read",
+   "planned": "connector",
+   "kinds": [
+    "arguments"
+   ],
+   "reason": "arguments: lacks required arguments: fileId",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 1,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [3132],
+    "devUnlock": [],
+    "devTotal": [3132]
    }
   },
   {
