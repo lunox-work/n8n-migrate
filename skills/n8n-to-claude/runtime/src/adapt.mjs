@@ -28,7 +28,8 @@
 //                                       (default) or one empty item.
 //     parse: "csv", text: "path",       the elements are the rows of a CSV text at `text`
 //     decode: "base64",                 (base64-decoded first), keyed by the header row;
-//     rowNumber: {field, start},        each row gets its sheet row number (header = 1).
+//     rowNumber: {field, start, first}, each row gets its sheet row number (header = 1);
+//                                       first: as the item's first key.
 //     shape: "gmail-message",           read the raw output with a tolerant connector-shape
 //                                       reader first (shapes.mjs); paths then address the
 //                                       reader's canonical object. Unrecognised output fails
@@ -224,7 +225,11 @@ function csvElements(s, root) {
     .filter((r) => r.some((x) => x !== ""))
     .map((r, k) => {
       const obj = Object.fromEntries(header.map((h, j) => [h, r[j] ?? ""]));
-      if (s.rowNumber?.field) obj[s.rowNumber.field] = (s.rowNumber.start ?? 2) + k;
+      if (s.rowNumber?.field) {
+        const n = (s.rowNumber.start ?? 2) + k;
+        // first: the row number leads the item's keys, as n8n's Sheets read builds its rows.
+        return { value: s.rowNumber.first ? { [s.rowNumber.field]: n, ...obj } : Object.assign(obj, { [s.rowNumber.field]: n }), parents: [] };
+      }
       return { value: obj, parents: [] };
     });
 }

@@ -808,3 +808,11 @@ Next levers by the round-4 rule (alone, then total, a dev unlock preferred; `lev
 - Bench `r4l-i42` (3086; 0 `claude -p`): **3086 3 → 4**: every step runs and every write is sent; gate 4 differs only in the photo upload's `access_token` query value (the bench dummy against the in-process placeholder), because the comparer table has no rule for Graph page photos and compares the whole query (P113).
 - Round-4 numbers: **one-shot 36 of 100, gate sum 549** (was 548); **converter coverage 48** (unchanged; `--compare`: no regression).
 - Verdict: accepted (gate sum +1, no gate falling).
+
+## Iteration 43: a Sheets read through the Drive export leads its rows with row_number (accepted)
+
+- Bucket: field map (gate 4, a general kind from the batch's list: 2085). n8n's Sheets read builds each row with `row_number` as its first key (`addRowNumber` before the header's columns); the Drive-export adapter added it last, so an agent tool that lists a row's keys (2085's `list_columns`) answered the model in another order.
+- Change: `runtime/src/adapt.mjs` CSV `rowNumber.first` puts the number first; tool-maps `googleSheets >=3 sheet:read` sets it (the Sheets trigger's poll keeps its cursor field where it was: n8n's trigger output has no `row_number` at all). Definition schema `rowNumber.first`. Test in `tests/rest-sheets.test.mjs`.
+- Bench `r4l-i43` (2085; 0 `claude -p`): **2085 4 → 4 with a later blocker**: the `list_columns` and `column_values` tool results now equal n8n's; what still differs is the read behind them (n8n reads the spreadsheet by id over the Sheets API, the Claude side asks the Drive connector with the whole document URL as `fileId`), iteration 44.
+- Round-4 numbers: **one-shot 36 of 100, gate sum 549** (unchanged); **converter coverage 48** (unchanged; `--compare`: no regression).
+- Verdict: accepted (rule c: a later blocking cause, no gate falling).

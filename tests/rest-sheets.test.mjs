@@ -290,3 +290,10 @@ test("Facebook Graph API: sendBinaryData posts the item's binary as one multipar
   assert.equal(seen[0].contentType, "multipart-form-data");
   assert.deepEqual(seen[0].body, { source: { $file: { fileName: "p.png", mimeType: "image/png", data: png } } });
 });
+
+test("a Sheets read through the Drive export: rows lead with row_number, as n8n's read builds them", async () => {
+  const def = convertWorkflow([manual, { parameters: { documentId: { __rl: true, mode: "id", value: SHEET }, sheetName: { __rl: true, mode: "list", value: "gid=0" }, options: {} }, name: "Read", type: "n8n-nodes-base.googleSheets", typeVersion: 4.5, position: [200, 0], credentials: { googleSheetsOAuth2Api: { id: "1", name: "My Google" } } }], { Start: { main: [[{ node: "Read", type: "main", index: 0 }]] } });
+  const res = await run(def, { host: { tool: async () => ({ content: Buffer.from("name,score\nAnn,3").toString("base64") }) }, trigger: [{}] });
+  assert.equal(res.status, "done", res.error?.message);
+  assert.deepEqual(Object.keys(out(res, "Read")[0]), ["row_number", "name", "score"]);
+});

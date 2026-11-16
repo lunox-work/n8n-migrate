@@ -781,7 +781,7 @@
             "tool": "download_file_content",
             "effect": "read",
             "args": { "fileId": "documentId", "exportMimeType": { "const": "text/csv" } },
-            "result": { "parse": "csv", "text": "content", "decode": "base64", "rowNumber": { "field": "row_number", "start": 2 } },
+            "result": { "parse": "csv", "text": "content", "decode": "base64", "rowNumber": { "field": "row_number", "start": 2, "first": true } },
             "fidelity": "unverified",
             "caveats": ["The CSV export holds the first tab only.", "Values arrive as text; n8n gives numbers and booleans as such."],
             "understood": ["operation", "resource", "documentId", "sheetName", "options.dataLocationOnSheet", "options.outputFormatting", "filtersUI", "combineFilters", "options.returnAllMatches", "options.returnFirstMatch"],

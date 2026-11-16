@@ -502,7 +502,7 @@
     },
     "adapter": {
       "type": "object",
-      "description": "Declarative result adapter (runtime/src/adapt.mjs): turns the tool's output into n8n-shaped items. items: path to the elements ([*] flattens); fields: {outName: \"path\" | \"$.root.path\" | \"^.parent.path\" | {path, default} | {const} | {first: [...]} | {split, sep} | {join, sep} | {headers} | {headerLines} | {addresses} | {addressLine}}; passthrough: keep the element's own fields (default true); wrap; empty: none|one. parse: csv turns the text at `text` (decode: base64 first) into one item per row keyed by the header, with rowNumber: {field, start}. shape: a tolerant connector-shape reader (runtime/src/shapes.mjs) applied to the raw output first; unrecognised output fails the step.",
+      "description": "Declarative result adapter (runtime/src/adapt.mjs): turns the tool's output into n8n-shaped items. items: path to the elements ([*] flattens); fields: {outName: \"path\" | \"$.root.path\" | \"^.parent.path\" | {path, default} | {const} | {first: [...]} | {split, sep} | {join, sep} | {headers} | {headerLines} | {addresses} | {addressLine}}; passthrough: keep the element's own fields (default true); wrap; empty: none|one. parse: csv turns the text at `text` (decode: base64 first) into one item per row keyed by the header, with rowNumber: {field, start, first} (first: the number leads the item's keys). shape: a tolerant connector-shape reader (runtime/src/shapes.mjs) applied to the raw output first; unrecognised output fails the step.",
       "additionalProperties": false,
       "properties": {
         "items": { "type": "string" },
@@ -513,7 +513,7 @@
         "parse": { "const": "csv" },
         "text": { "type": "string" },
         "decode": { "const": "base64" },
-        "rowNumber": { "type": "object", "additionalProperties": false, "properties": { "field": { "type": "string" }, "start": { "type": "integer" } } },
+        "rowNumber": { "type": "object", "additionalProperties": false, "properties": { "field": { "type": "string" }, "start": { "type": "integer" }, "first": { "type": "boolean" } } },
         "shape": { "enum": ["gmail-message", "notion-database"] }
       }
     }
