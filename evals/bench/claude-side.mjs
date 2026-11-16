@@ -16,9 +16,9 @@ import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { pickRoute, serviceRefusal, modelHost, transportHeaders } from "../n8n/mock-server.mjs";
+import { pickRoute, serviceAnswer, serviceRefusal, modelHost, transportHeaders } from "../n8n/mock-server.mjs";
 import { checkSchema, schemaFile } from "../mocks/mcp-server.mjs";
-import { connectorRefusal, limitErrors, pageResult } from "../mocks/limits.mjs";
+import { connectorDefault, connectorRefusal, countsAsSend, limitErrors, pageResult } from "../mocks/limits.mjs";
 import { answerOf, formatOf, liveAnswer, normalize, normalizeRunnerRequest, pairRecorded, providerResponse, runnerValue } from "./model-shim.mjs";
 import { claudeP } from "./claude.mjs";
 import { redactSecrets } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
@@ -134,12 +134,69 @@ function subset(want, got) {
 }
 
 // Connector fixtures by connector.tool: [{args?, result|text|error, node}] in fixture order.
+// A Sheets read the fixture answers over REST only gets the Drive export rows P110 derives.
 export function connectorFixtures(fx) {
   const out = {};
   for (const r of [...fx.reads, ...(fx.writeReplies ?? [])]) {
     const c = r.connector;
     if (!c || c.none) continue;
     for (const call of c.calls ?? []) (out[`${c.connector}.${call.tool}`] ??= []).push({ ...call, node: r.node });
+  }
+  for (const call of sheetsExportCalls(fx)) (out["google-drive.download_file_content"] ??= []).push(call);
+  return out;
+}
+
+// PROPOSALS P110: the Drive connector's CSV export of a spreadsheet, answered from the same
+// fixture data as n8n's Sheets REST reads. A read with no connector rows whose http responses
+// read a spreadsheet over the Sheets API (GET …/v4/spreadsheets/<id> for its sheets, GET
+// …/values/<range>) gets one `download_file_content` row (a write's replies get none) (fileId, exportMimeType text/csv),
+// because the converter reads Sheets through that export. What the export holds is what Drive's
+// files.export gives for a spreadsheet as text/csv: the first sheet only (sheets[].properties.index
+// 0), whatever tab the step names, so its values come from the fixture's values response for
+// that sheet, from any read of the same spreadsheet. Cells as text (TRUE/FALSE for booleans),
+// every row padded to the widest, quoted as RFC 4180 when a cell holds a comma, a quote or a
+// line break, rows joined by "\n" (assumed, as the fixtures' hand-written exports). A spreadsheet
+// whose first sheet no fixture response holds gets no row (the default answer, as before).
+const SHEETS_META = /^https:\/\/sheets\.googleapis\.com\/v4\/spreadsheets\/([^/]+)$/;
+const SHEETS_VALUES = /^https:\/\/sheets\.googleapis\.com\/v4\/spreadsheets\/([^/]+)\/values\/(.+)$/;
+const rangeSheet = (range) => {
+  const r = decodeURIComponent(String(range));
+  const bang = r.lastIndexOf("!");
+  const name = bang < 0 ? r : r.slice(0, bang);
+  return /^'.*'$/.test(name) ? name.slice(1, -1).replace(/''/g, "'") : name;
+};
+export function csvExport(values) {
+  const rows = (values ?? []).map((row) => (row ?? []).map((v) => (v === true ? "TRUE" : v === false ? "FALSE" : v == null ? "" : String(v))));
+  const width = Math.max(0, ...rows.map((r) => r.length));
+  return rows.map((r) => [...r, ...Array(width - r.length).fill("")].map((c) => (/[",\r\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(",")).join("\n");
+}
+export function sheetsExportCalls(fx) {
+  const reads = [...(fx.reads ?? []), ...(fx.writeReplies ?? [])];
+  const books = new Map(); // id -> {first: title, name, values: {title: values}}
+  const book = (id) => (books.has(id) ? books.get(id) : books.set(id, { values: {} }).get(id));
+  for (const r of reads)
+    for (const x of r.http?.responses ?? []) {
+      if (String(x.method ?? "GET").toUpperCase() !== "GET" || (x.status ?? 200) !== 200 || !x.body || typeof x.body !== "object") continue;
+      const meta = SHEETS_META.exec(x.url ?? "");
+      if (meta && Array.isArray(x.body.sheets)) {
+        const b = book(decodeURIComponent(meta[1]));
+        const first = x.body.sheets.find((sh) => (sh?.properties?.index ?? 0) === 0);
+        if (first?.properties?.title !== undefined) b.first = first.properties.title;
+        if (x.body.properties?.title) b.name = x.body.properties.title;
+      }
+      const vals = SHEETS_VALUES.exec(x.url ?? "");
+      if (vals && Array.isArray(x.body.values)) book(decodeURIComponent(vals[1])).values[rangeSheet(vals[2])] ??= x.body.values;
+    }
+  const out = [];
+  for (const r of fx.reads ?? []) {
+    if (r.connector && !r.connector.none) continue;
+    const ids = new Set((r.http?.responses ?? []).map((x) => SHEETS_VALUES.exec(x.url ?? "")?.[1]).filter(Boolean).map((x) => decodeURIComponent(x)));
+    for (const id of ids) {
+      const b = books.get(id);
+      const values = b?.first !== undefined ? b.values[b.first] : undefined;
+      if (!values) continue;
+      out.push({ tool: "download_file_content", args: { fileId: id, exportMimeType: "text/csv" }, result: { fileId: id, ...(b.name ? { title: b.name } : {}), mimeType: "text/csv", content: Buffer.from(csvExport(values), "utf8").toString("base64") }, node: r.node, derived: "P110" });
+    }
   }
   return out;
 }
@@ -694,6 +751,8 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
   const usedConn = new Map();
   const routes = httpRoutes(fx);
   const routeCounters = new Map();
+  // P109: default answers given to sends so far, per transport (each mock counts its own).
+  const defaultSends = { http: 0, tool: 0 };
   const byKey = {};
   for (const c of recordings) (byKey[c.node] ??= []).push(c);
   const modelCount = new Map();
@@ -735,7 +794,7 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
       entry.fixture = f ? `${f.node}#${f.index}` : "default";
       if (f?.error) throw Object.assign(new Error(String(f.error)), { name: "ToolError" });
       if (f && "text" in f) return f.text;
-      return pageResult(p.connector, p.tool, p.args, f ? f.result : { ok: true });
+      return pageResult(p.connector, p.tool, p.args, f ? f.result : connectorDefault(p.connector, p.tool, p.args ?? {}, countsAsSend(p.connector, p.tool) ? ++defaultSends.tool : 0));
     },
     // PROPOSALS P84: every answer carries the transport headers the mock's Node server adds, the
     // date at the run's virtual clock.
@@ -784,6 +843,13 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
       }
       const r = pickRoute(routes, String(p.method).toUpperCase(), u.origin, u.pathname, sp, routeCounters, body);
       entry.fixture = r?.key ?? null;
+      // P109: a Gmail send no route answers gets the API's sent message, as the mock answers it.
+      const answered = !r ? serviceAnswer(p.method, u.origin, u.pathname, body, defaultSends.http + 1) : null;
+      if (answered) {
+        defaultSends.http++;
+        entry.fixture = answered.key;
+        return { status: 200, headers: { "content-type": "application/json" }, body: JSON.stringify(answered.f.body) };
+      }
       if (!r && ["POST", "PUT", "PATCH", "DELETE"].includes(String(p.method).toUpperCase())) {
         entry.fixture = "write-default";
         return { status: 200, headers: { "content-type": "application/json" }, body: "{}" };

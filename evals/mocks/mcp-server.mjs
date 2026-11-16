@@ -12,7 +12,9 @@
 // names as with the real connector. `serverName` prints that name.
 //
 // Fixtures (JSON): {"<connector>": {"<tool>": {"responses": [r, ...], "default": r, "reuse"?: true}}}.
-// The n-th call of a tool gets responses[n], then default; with neither, {"ok": true}. A
+// The n-th call of a tool gets responses[n], then default; with neither, the service's known
+// answer (limits.mjs connectorDefault: Gmail send_message's sent message, P109), else
+// {"ok": true}. A
 // response with `args` is matched to calls first: the first unused one whose args are a
 // subset of the call's; with `reuse` (a read: the same arguments answer the same) a used one
 // whose args fit comes next; otherwise the first unused response, in order.
@@ -34,7 +36,7 @@
 import { readFileSync, appendFileSync, existsSync, realpathSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { connectorRefusal, limitErrors, pageResult } from "./limits.mjs";
+import { connectorDefault, connectorRefusal, countsAsSend, limitErrors, pageResult } from "./limits.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
@@ -98,6 +100,7 @@ export function createServer({ connector, doc, fixtures = {}, log }) {
   const tools = doc.tools.filter((t) => t.inputSchema);
   const byName = new Map(tools.map((t) => [t.name, t]));
   const counts = new Map();
+  let sends = 0;
   const mine = fixtures[connector] ?? {};
   const record = (entry) => {
     if (log) appendFileSync(log, JSON.stringify({ t: new Date().toISOString(), connector, ...entry }) + "\n");
@@ -117,7 +120,8 @@ export function createServer({ connector, doc, fixtures = {}, log }) {
       const { args: _a, ...rest } = r;
       r = rest;
     }
-    if (r === undefined) r = { result: { ok: true } };
+    // P109: an unanswered call gets the service's known answer (connectorDefault), else {"ok": true}.
+    if (r === undefined) r = { result: connectorDefault(connector, tool, args, countsAsSend(connector, tool) ? ++sends : 0) };
     if (r === null || typeof r !== "object" || Array.isArray(r) || !("result" in r || "text" in r || "error" in r)) r = { result: r };
     if ("error" in r) return { content: [{ type: "text", text: String(r.error) }], isError: true };
     if ("text" in r) return { content: [{ type: "text", text: String(fill(r.text, args)) }] };

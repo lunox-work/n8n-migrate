@@ -7,6 +7,8 @@
 //     captured tool description); the mock refuses pageSize > 50 and returns at most pageSize
 //     threads with a nextPageToken when it cut the list.
 
+import { gmailSentMessage } from "../n8n/mock-server.mjs";
+
 export const LIMITS = {
   "slack.slack_send_message": { maxChars: { message: 40_000 } },
   "slack.slack_send_message_draft": { maxChars: { message: 40_000 } },
@@ -53,3 +55,15 @@ export function pageResult(connector, tool, args = {}, result) {
   if (result[p.list].length <= size) return result;
   return { ...result, [p.list]: result[p.list].slice(0, size), [p.token]: result[p.token] ?? `mock-page-${size}` };
 }
+
+// PROPOSALS P109: the answer to a call no fixture row answers, where the real service's answer
+// is known and reaches a run's output. Gmail's send_message sends through users.messages.send,
+// whose answer is the sent message's resource {id, threadId, labelIds: ["SENT"]}; the connector's
+// own answer is not captured, so this is the API's (as n8n's Gmail node outputs it), with the
+// ids of the n-th send of the run, the same as the HTTP mock's (mock-server.mjs serviceAnswer).
+// `n` is the 1-based count of such default answers so far. Anything else: {"ok": true}.
+export function connectorDefault(connector, tool, args = {}, n = 1) {
+  if (connector === "gmail" && tool === "send_message") return gmailSentMessage(n);
+  return { ok: true };
+}
+export const countsAsSend = (connector, tool) => connector === "gmail" && tool === "send_message";

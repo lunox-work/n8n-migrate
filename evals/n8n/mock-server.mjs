@@ -32,6 +32,8 @@
 //   write-default) and a read gets 404 {"error":"no fixture"}, logged read-default.
 //   A request the real service always refuses (serviceRefusal: Gmail send without
 //   recipients, PROPOSALS P29) gets the service's error before any route, logged `service: …`.
+//   A Gmail send no route answers gets the API's sent message (serviceAnswer, P109) before
+//   write-default, logged `service: gmail sent message`.
 //
 // TLS (--tls-dir, evals/bench/tls.mjs): a CONNECT to a host with a leaf certificate in
 // <dir>/hosts is answered 200 and the tunnel is terminated here with that leaf, so the
@@ -165,6 +167,22 @@ export function serviceRefusal(method, origin, path, body) {
   if (mime === null || mimeRecipients(mime).length) return null;
   const message = "Recipient address required";
   return { key: "service: gmail send without recipients", f: { status: 400, body: { error: { code: 400, message, errors: [{ message, domain: "global", reason: "invalidArgument" }], status: "INVALID_ARGUMENT" } } } };
+}
+
+// PROPOSALS P109: what the real service answers a write no fixture answers, where the answer
+// reaches a run's output. Gmail's users.messages.send (JSON {raw[, threadId]} or the upload
+// endpoint's MIME text) returns the sent message's Message resource, {id, threadId, labelIds},
+// which n8n's Gmail node (send, reply) outputs as it comes; a message that starts a thread has
+// threadId = id, and the API labels it SENT. The ids are made from the n-th send of the run
+// (gmailSentMessage), so the n8n side's mock and the Claude side's hosts (the REST send here,
+// the connector's send_message in limits.mjs) answer the same send with the same message.
+export function gmailSentMessage(n, threadId) {
+  const id = createHash("sha256").update(`bench gmail sent message ${n}`).digest("hex").slice(0, 16);
+  return { id, threadId: typeof threadId === "string" && threadId ? threadId : id, labelIds: ["SENT"] };
+}
+export function serviceAnswer(method, origin, path, body, n) {
+  if (String(method).toUpperCase() !== "POST" || !GMAIL_SEND.test(path) || (origin && !GMAIL_HOSTS.has(origin))) return null;
+  return { key: "service: gmail sent message", f: { status: 200, body: gmailSentMessage(n, body && typeof body === "object" ? body.threadId : undefined) } };
 }
 
 // PROPOSALS P84: the transport headers Node's HTTP server adds to every answer this mock writes
@@ -321,6 +339,7 @@ export function firstHead(buf) {
   return body && head.subarray(0, rest.length).equals(rest) ? { done: false } : { done: true, out: buf, dropped: false };
 }
 
+const SENT_KEY = "\u0000gmail sent messages";
 export function startMock({ port = 8080, log = null, fixtures = null, host = "0.0.0.0", tlsDir = null, modelShim = null } = {}) {
   let seq = 0;
   const counters = new Map();
@@ -405,7 +424,11 @@ export function startMock({ port = 8080, log = null, fixtures = null, host = "0.
       // A write no fixture answers is accepted (200 {}), as the mock MCP server answers an
       // unfixtured call with {"ok": true}; reads still get the 404 so fixture gaps show.
       const writeDefault = !route && map.__writeDefault && ["POST", "PUT", "PATCH", "DELETE"].includes(req.method) && origin ? { key: "write-default", f: map.__writeDefault } : null;
-      let { key, f } = serviceRefusal(req.method, origin, u.pathname, entry.body) ?? route ?? writeDefault ?? pickFixture(map, req.method, u.pathname, query, counters, origin);
+      // P109: a Gmail send no route answers gets the API's sent message (only with bench routes).
+      const refused = serviceRefusal(req.method, origin, u.pathname, entry.body);
+      const answered = !refused && !route && Array.isArray(map.__routes) && origin ? serviceAnswer(req.method, origin, u.pathname, entry.body, (counters.get(SENT_KEY) ?? 0) + 1) : null;
+      if (answered) counters.set(SENT_KEY, (counters.get(SENT_KEY) ?? 0) + 1);
+      let { key, f } = refused ?? route ?? answered ?? writeDefault ?? pickFixture(map, req.method, u.pathname, query, counters, origin);
       // A read no bench route answers (PROPOSALS P19): 404, logged as read-default, the twin of
       // write-default, so a fixture gap shows in the request log.
       if (key === null && Array.isArray(map.__routes)) key = "read-default";
