@@ -236,7 +236,7 @@
         "bench": 2,
         "self-fail/required-empty": 1,
         "comparable": 5,
-        "hand": 1,
+        "hand": 2,
         "outcome/error-workflow": 3,
         "out-of-scope/error-workflow": 3
       },
@@ -244,7 +244,7 @@
       "freshOther": 112,
       "candidates": {
         "form": 11,
-        "manual": 42,
+        "manual": 41,
         "schedule": 30,
         "poll": 13,
         "other": 4,
@@ -873,7 +873,7 @@
     { "rank": 1243, "id": 1970, "topUp": 5, "sha256": "d50cc1fc1cf5942ba6fab0e6ee95599fcc2666f4356dfdb2951a593ac3f3591a", "outcome": "subscription", "target": "cloud-task", "wakeup": "relay", "r4": "ineligible", "r4Reasons": [ "outcome/relay-or-hosted: wake-up relay (needs a relay, a host or is an error workflow)", "outcome/relay-or-hosted: requires a relay", "feature: n8n-nodes-base.webhook is not in the planned-feature map" ], "pool": "fresh-other" },
     { "rank": 1244, "id": 2124, "topUp": 5, "sha256": "3ffa04c7d53cf2fd02e745509b2d6cd00d1cd64434b8340e9cc283c1b1cfb16b", "outcome": "subscription", "target": "cloud-task", "wakeup": "schedule", "r4": "ineligible", "r4Reasons": [ "feature: n8n-nodes-base.clearbit is not in the planned-feature map" ], "pool": "fresh-other" },
     { "rank": 1245, "id": 781, "topUp": 5, "sha256": "2a47221cd54b4dc5383f225362eab517ecdad99781e9cf9edd24d9dea45d0333", "outcome": "subscription", "target": "cloud-task", "wakeup": "schedule", "r4": "eligible", "pool": "fresh" },
-    { "rank": 1246, "id": 1948, "topUp": 5, "sha256": "b34bf1f4bd12909b628d9363c86fb8767a1376762b73f81a4bd6a1bd0a3adaa1", "outcome": "subscription", "target": "skill", "wakeup": "manual", "r4": "eligible", "pool": "fresh" },
+    { "rank": 1246, "id": 1948, "topUp": 5, "sha256": "b34bf1f4bd12909b628d9363c86fb8767a1376762b73f81a4bd6a1bd0a3adaa1", "outcome": "subscription", "target": "skill", "wakeup": "manual", "r4Hand": "Read Binary Files reads /home/node/.n8n/intermediate.xml, inside n8n's own folder, which n8n 2.x blocks by default (N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES, checked before any allowed path), so n8n refuses the node whatever the data", "r4": "ineligible", "r4Reasons": [ "hand: Read Binary Files reads /home/node/.n8n/intermediate.xml, inside n8n's own folder, which n8n 2.x blocks by default (N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES, ch" ], "pool": "fresh" },
     { "rank": 1247, "id": 3641, "topUp": 5, "excluded": "paid" },
     { "rank": 1248, "id": 2966, "topUp": 5, "sha256": "4643d84e246f4a051aa4f541e829ebd79cf1bc23fc5732d8e0f2207e0fc88380", "outcome": "subscription", "target": "local-task", "wakeup": "poll", "r4": "eligible", "pool": "fresh" },
     { "rank": 1249, "id": 4794, "topUp": 5, "sha256": "8450346e3ca1c46141274182e97edb1ed1c70e280034cc9a2b764de6256c0a06", "outcome": "subscription", "target": "cloud-task", "wakeup": "schedule", "r4": "eligible", "pool": "fresh" },
