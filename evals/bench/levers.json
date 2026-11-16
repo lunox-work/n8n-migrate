@@ -147,10 +147,10 @@
    "out-of-scope/under-a-minute": 2
   },
   "inScope": 475,
-  "supportedToday": 161,
-  "fullClass": 90,
+  "supportedToday": 162,
+  "fullClass": 97,
   "answersOnly": 40,
-  "blocked": 274,
+  "blocked": 273,
   "crashes": 0
  },
  "dev": {
@@ -180,9 +180,9 @@
   },
   {
    "group": "connector",
-   "keys": 56,
-   "galleryUnlock": 37,
-   "galleryTotal": 74,
+   "keys": 55,
+   "galleryUnlock": 36,
+   "galleryTotal": 73,
    "devUnlock": 9,
    "devTotal": 14
   },
@@ -305,9 +305,9 @@
   },
   {
    "group": "n8n-nodes-base.googleSheets",
-   "keys": 8,
-   "galleryUnlock": 8,
-   "galleryTotal": 19,
+   "keys": 7,
+   "galleryUnlock": 7,
+   "galleryTotal": 18,
    "devUnlock": 1,
    "devTotal": 1,
    "planned": "connector"
@@ -2617,26 +2617,6 @@
    "ids": {
     "galleryAlone": [2199],
     "galleryTotal": [2199],
-    "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
-   "key": "n8n-nodes-base.googleSheets sheet:read (required arguments)",
-   "type": "n8n-nodes-base.googleSheets",
-   "op": "sheet:read",
-   "planned": "connector",
-   "kinds": [
-    "arguments"
-   ],
-   "reason": "arguments: lacks required arguments: fileId",
-   "galleryAlone": 1,
-   "galleryTotal": 1,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [4031],
-    "galleryTotal": [4031],
     "devUnlock": [],
     "devTotal": []
    }

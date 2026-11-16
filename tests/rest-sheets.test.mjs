@@ -161,3 +161,51 @@ test("Sheets read row filters follow n8n's lookupValues: first match per filter,
   assert.deepEqual(nums(applyLookup(exec, rows, { filters: [{ lookupColumn: "status", lookupValue: "false" }, { lookupColumn: "q", lookupValue: "d" }], combine: "AND", returnAll: true })), [5]);
   assert.throws(() => applyLookup(exec, rows, { filters: [{ lookupColumn: "nope", lookupValue: "x" }] }), /could not be found/);
 });
+
+test("Sheets read over REST: the named tab, n8n's typed values, row numbers and row filters (n8n readSheet)", async () => {
+  const read = (params, v = 4.5) => node("Sheet", "googleSheets", { operation: "read", documentId: { __rl: true, mode: "url", value: `https://docs.google.com/spreadsheets/d/${SHEET}/edit#gid=7` }, sheetName: { __rl: true, mode: "list", value: 7 }, options: {}, ...params }, { v, kind: "http", auth: { credentialType: "googleSheetsOAuth2Api", secret: "Sheets account" } });
+  const values = [["name", "", "score", "ok"], ["Ann", "", 3, true], [], ["Bo", "", 0, false]];
+  const host = sheetsHost(values);
+  const res = await run(wf([start(), withRest(read({}))], [["Start", "Sheet"]], { allow, secrets }), { host, trigger: [{}] });
+  assert.equal(res.status, "done", res.error?.message);
+  assert.deepEqual(host.seen.map((r) => `${r.method} ${r.path}`), [`GET /v4/spreadsheets/${SHEET}`, `GET /v4/spreadsheets/${SHEET}/values/'Other'`], "the tab by its id, the spreadsheet id from the URL");
+  assert.deepEqual(host.seen[1].query, { valueRenderOption: "UNFORMATTED_VALUE", dateTimeRenderOption: "FORMATTED_STRING" });
+  assert.deepEqual(out(res, "Sheet"), [{ row_number: 2, name: "Ann", score: 3, ok: true }, { row_number: 4, name: "Bo", score: 0, ok: false }], "an empty column and an empty row dropped, values as the API types them");
+  // Filters: first match per filter (4.5), AND, and an unknown column as n8n refuses it.
+  const f = (values, combine) => ({ filtersUI: { values }, ...(combine ? { combineFilters: combine } : {}) });
+  const one = await run(wf([start(), withRest(read({ ...f([{ lookupColumn: "score", lookupValue: "0" }]), options: { returnFirstMatch: true } }))], [["Start", "Sheet"]], { allow, secrets }), { host: sheetsHost(values), trigger: [{}] });
+  assert.deepEqual(out(one, "Sheet"), [{ row_number: 4, name: "Bo", score: 0, ok: false }]);
+  const and = await run(wf([start(), withRest(read(f([{ lookupColumn: "name", lookupValue: "Ann" }, { lookupColumn: "ok", lookupValue: "true" }], "AND")))], [["Start", "Sheet"]], { allow, secrets }), { host: sheetsHost(values), trigger: [{}] });
+  assert.deepEqual(out(and, "Sheet"), [{ row_number: 2, name: "Ann", score: 3, ok: true }]);
+  // A filter row the export saved without its value matches empty cells (n8n's default "").
+  const blank = await run(wf([start(), withRest(read(f([{ lookupColumn: "ok" }])))], [["Start", "Sheet"]], { allow, secrets }), { host: sheetsHost([["name", "ok"], ["Ann", "yes"], ["Bo"]]), trigger: [{}] });
+  assert.deepEqual(out(blank, "Sheet"), [{ row_number: 3, name: "Bo", ok: "" }]);
+  const bad = await run(wf([start(), withRest(read(f([{ lookupColumn: "email", lookupValue: "x" }])))], [["Start", "Sheet"]], { allow, secrets }), { host: sheetsHost(values), trigger: [{}] });
+  assert.match(bad.error?.message ?? "", /The column "email" could not be found/);
+  // 4.2 and later read once per input item; 4.1 once.
+  const twice = sheetsHost(values);
+  await run(wf([start(), withRest(read({}, 4.2))], [["Start", "Sheet"]], { allow, secrets }), { host: twice, trigger: [{}, {}] });
+  const once = sheetsHost(values);
+  await run(wf([start(), withRest(read({}, 4.1))], [["Start", "Sheet"]], { allow, secrets }), { host: once, trigger: [{}, {}] });
+  assert.equal(twice.seen.filter((r) => r.path.includes("/values/")).length, 2);
+  assert.equal(once.seen.filter((r) => r.path.includes("/values/")).length, 1);
+});
+
+test("convert: a Sheets v4 read goes over REST only when a Sheets step of the workflow already does, under the same credential", () => {
+  const cred = (name) => ({ googleSheetsOAuth2Api: { id: "1", name } });
+  const reader = { parameters: { documentId: { __rl: true, mode: "id", value: SHEET }, sheetName: { __rl: true, mode: "list", value: 7 }, options: {} }, name: "Read", type: "n8n-nodes-base.googleSheets", typeVersion: 4.5, position: [200, 0], credentials: cred("My Google") };
+  const writer = (name, credName) => ({ parameters: { operation: "append", documentId: { __rl: true, mode: "id", value: SHEET }, sheetName: { __rl: true, mode: "list", value: "gid=0" }, columns: { mappingMode: "autoMapInputData", value: {} }, options: {} }, name, type: "n8n-nodes-base.googleSheets", typeVersion: 4.5, position: [400, 0], credentials: cred(credName) });
+  const links = { Start: { main: [[{ node: "Read", type: "main", index: 0 }]] }, Read: { main: [[{ node: "Add", type: "main", index: 0 }]] } };
+  const both = convertWorkflow([manual, reader, writer("Add", "My Google")], links);
+  assert.equal(both.steps.Read.kind, "http");
+  assert.equal(both.steps.Read.rest.program, "googleSheets");
+  assert.equal(both.steps.Read.rest.effect, "read");
+  assert.deepEqual(both.steps.Read.auth, { credentialType: "googleSheetsOAuth2Api", secret: "My Google" });
+  assert.equal(preflight(both, {}).ok, true, JSON.stringify(preflight(both, {}).issues));
+  // Alone, or beside a write under another credential: the Drive export, as before.
+  const alone = convertWorkflow([manual, reader], { Start: links.Start });
+  assert.equal(alone.steps.Read.kind, "tool");
+  assert.equal(alone.steps.Read.tool.name, "download_file_content");
+  const other = convertWorkflow([manual, reader, writer("Add", "Another Google")], links);
+  assert.equal(other.steps.Read.kind, "tool");
+});

@@ -332,13 +332,15 @@ function versionMatches(range, v) {
   });
 }
 
-function findMap(toolMaps, type, version, resource, operation) {
+// `accept(entry)` may pass over an entry (whenSiblingRest without such a sibling), so the next
+// version range's entry applies.
+function findMap(toolMaps, type, version, resource, operation, accept = () => true) {
   const byType = toolMaps.maps?.[type];
   if (!byType) return null;
   for (const [range, byRes] of Object.entries(byType)) {
     if (!versionMatches(range, version)) continue;
     const entry = byRes?.[resource ?? "_"]?.[operation];
-    if (entry) return { entry, key: `${type}@${range} ${resource && resource !== "_" ? `${resource}:` : ""}${operation}` };
+    if (entry && accept(entry)) return { entry, key: `${type}@${range} ${resource && resource !== "_" ? `${resource}:` : ""}${operation}` };
   }
   return null;
 }
@@ -1022,6 +1024,20 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
     }
   };
 
+  // whenSiblingRest (tool-maps.json): another enabled, reachable step of the same node type maps
+  // to a REST entry under the same credential name (none named counts as the same), so the
+  // secret stored for it serves the step being mapped too.
+  const credName = (s) => Object.values(s.credentials ?? {})[0] ?? null;
+  const restSibling = (name, baseType, step) =>
+    Object.entries(steps).some(([other, s]) => {
+      if (other === name || s.settings?.disabled === true) return false;
+      const t = refs.nodes.nodes[s.n8n.type]?.toolVariantOf ?? s.n8n.type;
+      const oi = infoOf.get(other) ?? {};
+      if (t !== baseType || oi.branch === "unreached" || oi.operation == null) return false;
+      const f = findMap(refs.toolMaps, t, s.n8n.typeVersion ?? 1, oi.resource ?? "_", oi.operation);
+      return !!f?.entry?.rest && !f.entry.whenSiblingRest && credName(s) === credName(step);
+    });
+
   const capOps = (type, opKey) => {
     for (const c of Object.values(refs.capabilities.connectors ?? {})) {
       const e = c.operations?.[type]?.ops?.[opKey];
@@ -1201,7 +1217,7 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         block(step, "unsupported", "an MCP server tool: add the server as a custom connector, then map its tools", {});
         continue;
       }
-      const found = info.operation != null ? findMap(refs.toolMaps, baseType, v, info.resource ?? "_", info.operation) : null;
+      const found = info.operation != null ? findMap(refs.toolMaps, baseType, v, info.resource ?? "_", info.operation, (e) => !e.whenSiblingRest || (!step.subnode && restSibling(name, baseType, step))) : null;
       if (found) {
         applyMap(name, step, found, params);
         if (step.subnode && step.kind === "tool") {

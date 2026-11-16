@@ -7,7 +7,7 @@
     "understood: parameters this entry reads or accepts; any other parameter set on the node makes the step `review` (it has no counterpart in the tool). review: [{param, equals?, reason}] flags the step when a parameter has that value (any value when equals is absent).",
     "The converter checks every args field against the tool's input JSON schema: required fields present, no unknown fields.",
     "lookup: true (Google Sheets reads): the node's filtersUI rows become tool.lookup, applied by the runtime to the adapted rows as n8n's lookupValues does (cell text equals the value; OR or AND by combineFilters; first match per filter unless all matches are asked for).",
-    "Or rest (a REST program in runtime/src/rest.mjs, for an operation that takes several requests: a read decides the write) with credentialType and hosts [{method, host, pathPrefix}]; the n8n parameters stay in step.params. Keeping the same service over its REST API with the person's own credential is the default mapping, not a substitution (references/translation.md).",
+    "Or rest (a REST program in runtime/src/rest.mjs, for an operation that takes several requests: a read decides the write) with credentialType and hosts [{method, host, pathPrefix}]; the n8n parameters stay in step.params. Keeping the same service over its REST API with the person's own credential is the default mapping, not a substitution (references/translation.md). whenSiblingRest: true: the entry applies only to a step (not an agent tool) whose workflow has another step of the same node type on a REST entry under the same credential name, so the secret the person stores for those steps serves this one too; otherwise the next version range's entry applies (a Sheets read then goes through the Drive export).",
     "recipients (a reply whose n8n node addresses it from the replied-to message's headers, as Gmail's reply): {tool, idArg, arg, from, replyTo, replyToFromVersion}. Before the call the runner reads the message (tool with idArg) and sets args[arg] to the addresses in its first present field of replyTo (only from replyToFromVersion on), else of from; a connector's own default recipients are never relied on.",
     "detail (poll triggers whose n8n node reads each new item again, as Gmail's GET per message): {tool, args, idArg, idField, keep, result, resultWhen, missingFields}. After the cursor, the runner calls the tool once per new item with args plus idArg set to the list item's idField; the item becomes the adapted detail result (the resultWhen branch the node's parameters pick, which may carry its own missingFields); keep names list-item fields used when the detail result lacks them. The step's missingFields are the detail's."
   ],
@@ -735,6 +735,16 @@
     "n8n-nodes-base.googleSheets": {
       ">=4": {
         "sheet": {
+          "read": {
+            "rest": "googleSheets",
+            "whenSiblingRest": true,
+            "credentialType": "googleSheetsOAuth2Api",
+            "hosts": [{ "method": "GET", "host": "sheets.googleapis.com", "pathPrefix": "/v4/spreadsheets/" }],
+            "effect": "read",
+            "fidelity": "exact",
+            "caveats": ["Read over the Sheets API with the credential the workflow's Sheets writes already store, so the named tab is read with n8n's typed values. Google OAuth access tokens expire after an hour and a service-account sign-in is not built yet: the stored secret must be a current access token, so an unattended run needs it refreshed."],
+            "understood": ["operation", "resource", "documentId", "sheetName", "options.dataLocationOnSheet", "options.outputFormatting", "filtersUI", "combineFilters", "options.returnAllMatches", "options.returnFirstMatch", "authentication"]
+          },
           "append": {
             "rest": "googleSheets",
             "credentialType": "googleSheetsOAuth2Api",

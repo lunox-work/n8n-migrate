@@ -11804,7 +11804,7 @@ const { base64ToBytes } = __m_hash_mjs;
 // bodies follow the n8n node's own code (n8n-nodes-base 2.47), so a reviewer can diff them.
 
 
-// ---------- Google Sheets v4 (n8n Google Sheets node v4.x, sheet: append | update | appendOrUpdate) ----------
+// ---------- Google Sheets v4 (n8n Google Sheets node v4.x, sheet: read | append | update | appendOrUpdate) ----------
 
 const SHEETS = "https://sheets.googleapis.com";
 const ROW_NUMBER = "row_number";
@@ -11896,8 +11896,8 @@ function sheetHelper(exec, id) {
   const api = googleClient(exec, SHEETS);
   const h = {
     hint: undefined,
-    async getData(range, valueRenderOption) {
-      const r = await api("GET", `/v4/spreadsheets/${seg(id)}/values/${seg(encodeRange(range))}`, { query: { valueRenderOption, dateTimeRenderOption: "FORMATTED_STRING" } });
+    async getData(range, valueRenderOption, dateTimeRenderOption) {
+      const r = await api("GET", `/v4/spreadsheets/${seg(id)}/values/${seg(encodeRange(range))}`, { query: { valueRenderOption, dateTimeRenderOption: dateTimeRenderOption || "FORMATTED_STRING" } });
       return r.values;
     },
     async getSheet(ref) {
@@ -12069,6 +12069,138 @@ async function sheetsAppend(exec, sheet, range, sheetId) {
   return inputData.map((json, i) => ({ json, pairedItem: { item: i } }));
 }
 
+// ---- read (n8n readSheet with prepareSheetData, structureArrayDataByColumn, lookupValues) ----
+// Rows as the Sheets API returns them, each led by its sheet row number once the header's first
+// cell is renamed row_number (addRowNumber); the clean-ups below keep n8n's own order and its
+// quirks (a header cell that is unset is kept as a column; an all-empty sheet keeps its last row).
+const filled = (cell) => cell || typeof cell === "number";
+function removeEmptyColumns(data) {
+  if (!data?.length) return [];
+  const cols = [];
+  const longest = data.reduce((a, b) => (a.length > b.length ? a : b), []).length;
+  for (let c = 0; c < longest; c++) {
+    const column = data.map((row) => row[c]);
+    if (column[0] !== "" || column.slice(1).some(filled)) cols.push(column);
+  }
+  return (cols[0] || []).map((_, i) => cols.map((col) => (col[i] === undefined ? "" : col[i])));
+}
+function prepareSheetData(values, loc) {
+  let data = [...(values || [])];
+  let headerRow = 0;
+  let firstDataRow = 1;
+  if (loc.rangeDefinition === "specifyRange") {
+    headerRow = parseInt(loc.headerRow, 10) - 1;
+    firstDataRow = parseInt(loc.firstDataRow, 10) - 1;
+  }
+  if (data.length) {
+    data = data.map((row, i) => [i + 1, ...row]);
+    data[headerRow][0] = ROW_NUMBER;
+  }
+  if (loc.rangeDefinition === "detectAutomatically") {
+    data = removeEmptyColumns(data);
+    data = data.slice(data.findIndex((row) => row.slice(1).some(filled)));
+    data[0][0] = ROW_NUMBER;
+    if (loc.readRowsUntil === "firstEmptyRow") {
+      const empty = data.findIndex((row) => row.slice(1).every((cell) => cell === ""));
+      if (empty !== -1) data = data.slice(0, empty);
+    } else {
+      data = data.filter((row) => row.slice(1).some((cell) => filled(cell) || typeof cell === "boolean"));
+      data[0][0] = ROW_NUMBER;
+    }
+  }
+  return { data, headerRow, firstDataRow };
+}
+function rowsToObjects(sheet, startRow, keys, addEmpty) {
+  const out = [];
+  for (let r = startRow; r < sheet.length; r++) {
+    const item = {};
+    for (let c = 0; c < sheet[r].length; c++) if (keys[c]) item[keys[c]] = sheet[r][c] ?? "";
+    if (Object.keys(item).length || addEmpty === true) out.push(item);
+  }
+  return out;
+}
+function structureByColumn(data, keyRow, dataStartRow) {
+  if (keyRow < 0 || dataStartRow < keyRow || keyRow >= data.length) return [];
+  const longest = data.reduce((a, b) => (a.length > b.length ? a : b), []).length;
+  const keys = [];
+  for (let c = 0; c < longest; c++) keys.push(data[keyRow][c] || `col_${c}`);
+  return rowsToObjects(data, dataStartRow, keys, false);
+}
+function lookupRows(exec, { data, keyRowIndex, dataStartRowIndex, lookupValues, returnAllMatches, v, combine }) {
+  if (keyRowIndex < 0 || dataStartRowIndex < keyRowIndex || keyRowIndex >= data.length) throw new NodeError("The key row does not exist", { node: exec.name });
+  const keys = data[keyRowIndex].map((k, c) => k || `col_${c}`);
+  for (const row of data) {
+    if (!row.length) for (let i = 0; i < keys.length; i++) row[i] = "";
+    else if (row.length < keys.length) for (let i = 0; i < keys.length; i++) if (row[i] === undefined) row.push("");
+  }
+  const column = (name) => {
+    const c = keys.indexOf(name);
+    if (c === -1) throw new NodeError(`The column "${name}" could not be found`, { node: exec.name });
+    return c;
+  };
+  const same = (cell, want) => cell?.toString() === want?.toString();
+  const added = [];
+  const found = [keys];
+  const add = (r) => {
+    if (!added.includes(r)) {
+      found.push(data[r]);
+      added.push(r);
+    }
+  };
+  if (combine === "OR") {
+    outer: for (const f of lookupValues) {
+      const c = column(f.lookupColumn);
+      for (let r = dataStartRowIndex; r < data.length; r++) {
+        if (!same(data[r][c], f.lookupValue)) continue;
+        add(r);
+        if (returnAllMatches !== true) {
+          if (v >= 4.6) break outer;
+          continue outer;
+        }
+      }
+    }
+  } else {
+    for (let r = dataStartRowIndex; r < data.length; r++) {
+      if (!lookupValues.every((f) => same(data[r][column(f.lookupColumn)], f.lookupValue))) continue;
+      add(r);
+      if (returnAllMatches !== true) break;
+    }
+  }
+  const clean = removeEmptyColumns(found);
+  return rowsToObjects(clean, 1, clean[0], true);
+}
+async function sheetsRead(exec, sheet, sheetName) {
+  const items = exec.getInputData();
+  const v = exec.typeVersion;
+  let out = [];
+  // n8n 4.0 and 4.1 read once; later versions read once per input item.
+  for (let i = 0; i < (v > 4.1 ? items.length : 1); i++) {
+    const options = exec.param("options", i, {});
+    const format = options.outputFormatting?.values || {};
+    const loc = { ...(options.dataLocationOnSheet?.values || {}) };
+    if (loc.rangeDefinition === undefined) loc.rangeDefinition = "detectAutomatically";
+    const range = loc.rangeDefinition === "specifyRangeA1" && loc.range ? `${sheetName}!${loc.range}` : sheetName;
+    const values = await sheet.getData(range, format.general || "UNFORMATTED_VALUE", format.date || "FORMATTED_STRING");
+    // An empty read hands back an empty list, dropping the rows earlier items read (n8n's own).
+    if (values === undefined || values.length === 0) {
+      out = [];
+      continue;
+    }
+    const { data, headerRow, firstDataRow } = prepareSheetData(values, loc);
+    // A filter row holds n8n's parameter defaults where the export left a field out ("").
+    const filters = (j) => exec.param("filtersUI.values", j, []).map((f) => ({ lookupColumn: f?.lookupColumn ?? "", lookupValue: f?.lookupValue ?? "" }));
+    const lookupValues = filters(i);
+    let rows;
+    if (lookupValues.length) {
+      const returnAllMatches = v < 4.5 ? options.returnAllMatches === "returnAllMatches" : !options.returnFirstMatch;
+      if (v <= 4.1) for (let j = 1; j < items.length; j++) lookupValues.push(...filters(j));
+      rows = lookupRows(exec, { data, keyRowIndex: headerRow, dataStartRowIndex: firstDataRow, lookupValues, returnAllMatches, v, combine: exec.param("combineFilters", i, "OR") });
+    } else rows = structureByColumn(data, headerRow, firstDataRow);
+    out.push(...rows.map((json) => ({ json, pairedItem: { item: i } })));
+  }
+  return out;
+}
+
 // update and appendOrUpdate share most of n8n's code; `upsert` is appendOrUpdate.
 async function sheetsUpdate(exec, sheet, sheetName, sheetId, upsert) {
   const items = exec.getInputData();
@@ -12145,7 +12277,7 @@ async function sheetsUpdate(exec, sheet, sheetName, sheetId, upsert) {
 
 const googleSheets = {
   versions: (v) => v >= 4,
-  operations: ["append", "update", "appendOrUpdate"],
+  operations: ["read", "append", "update", "appendOrUpdate"],
   async execute(exec) {
     const operation = exec.param("operation", 0, "read", { rawExpressions: true });
     const resource = exec.param("resource", 0, "sheet", { rawExpressions: true });
@@ -12155,7 +12287,7 @@ const googleSheets = {
       const sheet = sheetHelper(exec, id);
       const props = await sheet.getSheet(sheetRefOf(exec.param("sheetName", 0)));
       const sheetId = String(props.sheetId);
-      const out = operation === "append" ? await sheetsAppend(exec, sheet, props.title, sheetId) : await sheetsUpdate(exec, sheet, props.title, sheetId, operation === "appendOrUpdate");
+      const out = operation === "read" ? await sheetsRead(exec, sheet, props.title) : operation === "append" ? await sheetsAppend(exec, sheet, props.title, sheetId) : await sheetsUpdate(exec, sheet, props.title, sheetId, operation === "appendOrUpdate");
       return [out];
     } catch (e) {
       if (e?.name === "Suspend" || e?.name === "ContainmentViolation") throw e;
