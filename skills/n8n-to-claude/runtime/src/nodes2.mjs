@@ -22,6 +22,7 @@ import { htmlToMarkdown } from "./htmlmarkdown.mjs";
 import { markdownToHtml } from "./showdown.mjs";
 import { parseXml, buildXml } from "./xml.mjs";
 import { summarizeItem } from "./summarize.mjs";
+import { postgres } from "./postgres.mjs";
 
 const BASE = "n8n-nodes-base.";
 const inRange = (lo, hi) => (v) => v >= lo && v <= hi;
@@ -1612,6 +1613,7 @@ function agentTools(exec) {
     else if (step.tool?.connector) Object.assign(tool, { kind: "connector", connector: step.tool.connector, tool: step.tool.name, effect: step.tool.effect ?? "write" });
     else if (step.n8n.type === LC + "toolCode") Object.assign(tool, { kind: "code", effect: "none" });
     else if (step.kind === "http" && isObject(step.rest)) Object.assign(tool, { kind: "rest", effect: step.rest.effect ?? "write" });
+    else if (step.kind === "db") Object.assign(tool, { kind: "db", effect: step.db?.effect ?? "write" });
     else if (step.n8n.type === LC + "toolHttpRequest" || step.n8n.type === BASE + "httpRequestTool") Object.assign(tool, { kind: "http", method: p.method ?? "GET", url: typeof p.url === "string" && !p.url.startsWith("=") ? p.url : undefined, effect: (p.method ?? "GET") === "GET" ? "read" : "write" });
     else Object.assign(tool, { kind: "n8n", effect: "write" });
     return tool;
@@ -1866,6 +1868,24 @@ export async function executeAgentTool(exec, tools, call, itemIndex) {
       const values = (outItems ?? []).map((it) => it.json);
       return { ok: true, value: values.length === 1 ? values[0] : values };
     }
+    if (kind === "db") {
+      // A database node tool (postgres.mjs): the node runs on the agent's current item with its
+      // $fromAI() values from the model's arguments, and hands back the items' JSON, as the
+      // REST programs above do.
+      if (!sub || sub.kind !== "db" || !postgres.versions(sub.n8n?.typeVersion ?? 1)) return { ok: false, error: { message: `tool "${spec.name}" has no database step` } };
+      const item = exec.getInputData()[itemIndex] ?? { json: {} };
+      const subExec = Object.assign(Object.create(exec), {
+        step: sub,
+        params: { ...(sub.params ?? {}) },
+        getInputData: () => [item],
+        toolInput: args,
+        scope: (_i, extras) => exec.scope(itemIndex, { ...(extras ?? {}), locals: { ...(extras?.locals ?? {}), ...locals } }),
+        request: (reqs) => exec.request(reqs.map((r) => ({ ...r, itemIndex }))),
+      });
+      const [outItems] = await postgres.execute(subExec);
+      const values = (outItems ?? []).map((it) => it.json);
+      return { ok: true, value: values.length === 1 ? values[0] : values };
+    }
     if (kind === "think") {
       // n8n's Think tool returns the model's input unchanged (a no-op that logs a thought).
       return { ok: true, value: typeof args.input === "string" ? args.input : args.input === undefined ? "" : JSON.stringify(args.input) };
@@ -2050,6 +2070,7 @@ export function requestImplFor(step) {
     const prog = restPrograms[step.rest.program];
     return prog && prog.versions(step.n8n?.typeVersion ?? 1) ? prog : null;
   }
+  if (step.kind === "db" && step.db?.engine === "postgres") return postgres.versions(step.n8n?.typeVersion ?? 1) ? postgres : null;
   if (step.kind === "trigger" && isObject(step.poll)) return pollTrigger;
   if (step.n8n?.type === BASE + "httpRequest" && httpRequest.versions(step.n8n?.typeVersion ?? 1)) return httpRequest;
   return null;

@@ -16,13 +16,13 @@ const refs = loadReferences();
 const CLOCK = { startedAt: "2026-11-16T09:00:00Z" };
 const LC = "@n8n/n8n-nodes-langchain.";
 
-function convertJson(wf) {
+function convertJson(wf, answers = {}) {
   const dir = mkdtempSync(join(tmpdir(), "n2c-tools-"));
   const p = join(dir, "wf.json");
   writeFileSync(p, JSON.stringify(wf));
   const loaded = loadInput(p);
   rmSync(dir, { recursive: true, force: true });
-  return convertItems(loaded.items, { refs, now: Date.parse("2026-11-14T00:00:00Z"), forceConvert: true })[0].definition;
+  return convertItems(loaded.items, { refs, now: Date.parse("2026-11-14T00:00:00Z"), forceConvert: true, answers })[0].definition;
 }
 const agentWf = (tools) => ({
   id: "tools01",
@@ -180,15 +180,31 @@ test("RSS Read: a step with a literal URL, and an agent tool whose URL the model
 });
 
 test("an agent tool the converter cannot carry (a database tool) is refused by preflight, by name; a disabled one is not", () => {
-  const pg = (name, extra = {}) => ({ parameters: { query: "{{ $fromAI('sql_statement') }}", operation: "executeQuery", options: {} }, name, type: "n8n-nodes-base.postgresTool", typeVersion: 2.5, position: [0, 200], credentials: { postgres: { id: "1", name: "DB" } }, ...extra });
-  const def = convertJson(agentWf([pg("Postgres")]));
-  assert.equal(def.steps.Postgres.kind, "blocked");
+  const my = (name, extra = {}) => ({ parameters: { query: "{{ $fromAI('sql_statement') }}", operation: "executeQuery", options: {} }, name, type: "n8n-nodes-base.mySqlTool", typeVersion: 2.4, position: [0, 200], credentials: { mySql: { id: "1", name: "DB" } }, ...extra });
+  const def = convertJson(agentWf([my("MySQL")]));
+  assert.equal(def.steps.MySQL.kind, "blocked");
   assert.deepEqual(def.steps.Agent.agent.tools, []);
   const pf = preflight(def, {});
   assert.equal(pf.ok, false);
   const e = pf.issues.find((i) => i.level === "error" && i.step === "Agent");
-  assert.match(e.message, /^blocked: agent tool "Postgres" cannot be carried \(a database step needs .*\); without it the agent would answer without a tool n8n gives it$/);
-  assert.equal(preflight(convertJson(agentWf([pg("Postgres", { disabled: true })])), {}).ok, true, "n8n skips a disabled tool too");
+  assert.match(e.message, /^blocked: agent tool "MySQL" cannot be carried \(a database step needs .*\); without it the agent would answer without a tool n8n gives it$/);
+  assert.equal(preflight(convertJson(agentWf([my("MySQL", { disabled: true })])), {}).ok, true, "n8n skips a disabled tool too");
+});
+
+test("a Postgres tool (executeQuery) waits for its credential's database, then runs as a db tool with the model's SQL", () => {
+  const pg = { parameters: { query: "{{ $fromAI('sql_statement') }}", operation: "executeQuery", options: {} }, name: "Postgres", type: "n8n-nodes-base.postgresTool", typeVersion: 2.5, position: [0, 200], credentials: { postgres: { id: "1", name: "DB" } } };
+  const waiting = convertJson(agentWf([pg]));
+  assert.equal(waiting.steps.Postgres.kind, "blocked");
+  assert.match(preflight(waiting, {}).issues.find((i) => i.level === "error" && i.step === "Agent").message, /the database the credential "DB" connects to is not known yet: answer question tools01\/database\/DB/);
+  const def = convertJson(agentWf([pg]), { "tools01/database/DB": "postgres://reader@db.example.com:5433/shop?sslmode=require" });
+  assert.equal(def.steps.Postgres.kind, "db");
+  assert.deepEqual(def.steps.Postgres.db, { engine: "postgres", operation: "executeQuery", credential: "DB", secret: "DB", connection: { host: "db.example.com", port: 5433, database: "shop", user: "reader", ssl: "require" }, effect: "write", fidelity: "exact" });
+  assert.deepEqual(def.allow.db, [{ engine: "postgres", host: "db.example.com", port: 5433, database: "shop" }]);
+  assert.deepEqual(def.secrets.find((x) => x.name === "DB"), { name: "DB", credentialType: "postgres", hosts: ["db.example.com:5433"] });
+  assert.deepEqual(def.steps.Agent.agent.tools.map((t) => [t.name, t.kind, t.effect, Object.keys(t.inputSchema.properties)]), [["Postgres", "db", "write", ["sql_statement"]]]);
+  assert.match(def.steps.Postgres.reviewReasons.join(" "), /the model writes the SQL/);
+  assert.equal(preflight(def, {}).issues.filter((i) => i.level === "error").length, 0);
+  assert.match(preflight(def, { surface: "artifact" }).issues.find((i) => i.level === "error").message, /artifact page cannot/);
 });
 
 test("tool and placeholder descriptions written as expressions are evaluated on the agent's item, as n8n does", async () => {

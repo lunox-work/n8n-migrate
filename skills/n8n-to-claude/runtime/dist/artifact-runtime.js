@@ -31930,6 +31930,554 @@ async function summarizeItem(spec, item, { evaluate, call, refuse }) {
 return { DEFAULT_PROMPT, REFINE_PROMPT, parseFString, formatFString, jsonStrings, splitText, documentsOf, summarizeItem };
 })();
 
+// ---- src/pgformat.mjs ----
+const __m_pgformat_mjs = (() => {
+// Query formatting as pg-promise 11.9.1 does it for n8n's Postgres node (v2): the node hands
+// pg-promise {query, values: [...], options: {partial: true}} per item, pg-promise writes the
+// values into the text itself (as.format, the array form: $1..$100000 with an optional
+// modifier) and helpers.concat joins the formatted queries with ";" after trimming spaces, tabs,
+// line breaks and semicolons off both ends of each. The text then goes to the server as one
+// simple query. Ported from pg-promise's lib/formatting.js and lib/helpers/methods/concat.js for
+// the values n8n's node passes (strings, numbers, booleans, null, arrays, plain objects); a
+// value pg-promise would format through a function or a custom type is refused.
+//
+// pg-promise: MIT License, Copyright (c) 2015-2018 Vitaly Tomilov. Permission is hereby
+// granted, free of charge, to any person obtaining a copy of this software and associated
+// documentation files (the "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software is furnished to
+// do so, subject to the following conditions: The above copyright notice and this permission
+// notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE
+// IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+// LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+const FM = { raw: 1, alias: 2, name: 4, json: 8, csv: 16, value: 32 };
+const FM_MAP = { "^": FM.raw, ":raw": FM.raw, ":alias": FM.alias, "~": FM.name, ":name": FM.name, ":json": FM.json, ":csv": FM.csv, ":list": FM.csv, ":value": FM.value, "#": FM.value };
+const MULTIPLE_VALUES = /\$([1-9][0-9]{0,16}(?![0-9])(\^|~|#|:raw|:alias|:name|:json|:csv|:list|:value)?)/g;
+const HAS_MODIFIER = /\^|~|#|:raw|:alias|:name|:json|:csv|:list|:value/;
+const MAX_VARIABLE = 100000;
+
+class PgFormatError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "PgFormatError";
+  }
+}
+
+const isNull = (v) => v === undefined || v === null;
+const wrapText = (t) => `'${t}'`;
+const safeText = (t) => t.replace(/'/g, "''");
+const sqlName = (n) => `"${n.replace(/"/g, '""')}"`;
+
+function refuseCustom(value) {
+  if (typeof value === "function") throw new PgFormatError("a query parameter that is a function cannot be formatted as pg-promise would call it");
+  if (!isNull(value) && typeof value === "object" && (typeof value.toPostgres === "function" || typeof value[Symbol.for("ctf.toPostgres")] === "function")) throw new PgFormatError("a query parameter with custom type formatting (toPostgres) cannot be formatted");
+}
+
+function toNumber(num) {
+  if (typeof num === "bigint" || Number.isFinite(num)) {
+    const s = num.toString();
+    return num < 0 ? `(${s})` : s;
+  }
+  if (num === Number.POSITIVE_INFINITY) return wrapText("+Infinity");
+  if (num === Number.NEGATIVE_INFINITY) return wrapText("-Infinity");
+  return wrapText("NaN");
+}
+
+// JSON as pg-promise's utils.toJson writes it (BigInt as its digits).
+const toJson = (data) => (data === undefined ? undefined : JSON.stringify(data, (_, v) => (typeof v === "bigint" ? `${v}#bigint` : v)).replace(/"(-?\d+)#bigint"/g, (_, n) => n));
+
+function asName(name) {
+  if (name && typeof name === "string") return /^\s*\*(\s*)$/.test(name) ? name : sqlName(name);
+  if (name && typeof name === "object") {
+    const keys = Array.isArray(name) ? name : Object.keys(name);
+    if (!keys.length) throw new PgFormatError("Cannot retrieve sql names from an empty array/object.");
+    return keys
+      .map((v) => {
+        if (!v || typeof v !== "string") throw new PgFormatError(`Invalid sql name: ${JSON.stringify(v)}`);
+        return sqlName(v);
+      })
+      .join();
+  }
+  throw new TypeError(`Invalid sql name: ${JSON.stringify(name)}`);
+}
+
+function asAlias(name) {
+  if (name && typeof name === "string")
+    return name
+      .split(".")
+      .filter((f) => f)
+      .map((a) => {
+        const m = a.match(/^([a-z_][a-z0-9_$]*|[A-Z_][A-Z0-9_$]*)$/);
+        return m && m[0] === a ? a : `"${a.replace(/"/g, '""')}"`;
+      })
+      .join(".");
+  throw new TypeError(`Invalid sql alias: ${JSON.stringify(name)}`);
+}
+
+function formatArray(array) {
+  const loop = (a) => "[" + a.map((v) => (Array.isArray(v) ? loop(v) : formatValue(v, null))).join() + "]";
+  return array.length ? "array" + loop(array) : "'{}'";
+}
+
+function formatCSV(values) {
+  if (Array.isArray(values)) return values.map((v) => formatValue(v, null)).join();
+  if (typeof values === "object" && values !== null) return Object.keys(values).map((k) => formatValue(values[k], null)).join();
+  return values === undefined ? "" : formatValue(values, null);
+}
+
+function formatValue(value, fm) {
+  refuseCustom(value);
+  const isRaw = !!(fm & FM.raw);
+  fm &= ~FM.raw;
+  switch (fm) {
+    case FM.alias:
+      return asAlias(value);
+    case FM.name:
+      return asName(value);
+    case FM.json: {
+      const s = toJson(value);
+      return isRaw ? s : wrapText(safeText(s));
+    }
+    case FM.csv:
+      return formatCSV(value);
+    case FM.value:
+      if (isNull(value)) throw new TypeError("Open values cannot be null or undefined.");
+      return safeText(formatValue(value, FM.raw));
+    default:
+      break;
+  }
+  if (isNull(value)) {
+    if (isRaw) throw new TypeError("Values null/undefined cannot be used as raw text.");
+    return "null";
+  }
+  switch (typeof value) {
+    case "string":
+      return isRaw ? value : wrapText(safeText(value));
+    case "boolean":
+      return value ? "true" : "false";
+    case "number":
+    case "bigint":
+      return toNumber(value);
+    case "symbol":
+      throw new TypeError(`Type Symbol has no meaning for PostgreSQL: ${value.toString()}`);
+    default:
+      if (Array.isArray(value)) return formatArray(value);
+      if (value instanceof Date) throw new PgFormatError("a Date query parameter is formatted in the server process's local time by pg; not carried");
+      {
+        const s = toJson(value);
+        return isRaw ? s : wrapText(safeText(s));
+      }
+  }
+}
+
+function stripName(name) {
+  const mod = name.match(HAS_MODIFIER);
+  if (mod) return { name: name.substring(0, mod.index), fm: FM_MAP[mod[0]] };
+  return { name, fm: null };
+}
+
+// pg-promise as.format(query, values, {partial}) for an array of values (or none).
+function formatQuery(query, values, { partial = false } = {}) {
+  if (typeof query !== "string") throw new TypeError("Parameter 'query' must be a text string.");
+  if (values === undefined) return query;
+  if (!Array.isArray(values)) throw new PgFormatError("only an array of query parameters is carried");
+  return query.replace(MULTIPLE_VALUES, (whole) => {
+    const v = stripName(whole.substring(1));
+    const idx = Number(v.name) - 1;
+    if (idx >= MAX_VARIABLE) throw new RangeError(`Variable $${v.name} exceeds supported maximum of $${MAX_VARIABLE}`);
+    if (idx < values.length) return formatValue(values[idx], v.fm);
+    if (partial) return whole;
+    throw new RangeError(`Variable $${v.name} out of range. Parameters array length: ${values.length}`);
+  });
+}
+
+// pg-promise helpers.concat([{query, values, options}]): each formatted, trimmed of leading and
+// trailing whitespace and semicolons, the empty ones dropped, joined with ";".
+function concatQueries(queries) {
+  return queries
+    .map((q) => formatQuery(q.query, q.values, q.options ?? {}).replace(/^[\s;]*|[\s;]*$/g, ""))
+    .filter((q) => q)
+    .join(";");
+}
+
+return { PgFormatError, formatValue, formatQuery, concatQueries };
+})();
+
+// ---- src/postgres.mjs ----
+const __m_postgres_mjs = (() => {
+const { NodeError, isObject } = __m_util_mjs;
+const { concatQueries, formatQuery } = __m_pgformat_mjs;
+// The Postgres node (n8n-nodes-base Postgres v2.x) as n8n 2.47.7 runs it, for the operations
+// the runtime carries: executeQuery. step.kind "db", step.db = {engine: "postgres", operation,
+// connection: {host, port, database, user, ssl}, secret}; the n8n parameters stay in
+// step.params and are read as n8n reads them. The node itself runs here (browser-safe, no
+// node: imports); the database is reached through one host request per node run:
+//
+//   {kind: "db", engine: "postgres", connection, secret, mode, texts, rawTypes, largeNumbers}
+//     mode "single": texts is one text (every item's query, formatted and joined with ";"),
+//       sent as one simple query; the value is {results: [{command, rowCount, rows, fields}]}
+//       (one per statement) or {error}.
+//     mode "independently" | "transaction": one text per item, run one after another on one
+//       connection (in a transaction: BEGIN first, ROLLBACK at the first error, else COMMIT);
+//       the value is {runs: [{results} | {error}]}, stopping after an error in a transaction.
+//   largeNumbers "numbers": bigint and numeric columns come back as numbers (the node's "Output
+//   Large-Format Numbers As" option; "text", the default, keeps pg's strings).
+//   rawTypes: the type OIDs the host hands back as the server's text (dates and timestamps);
+//   every other column comes parsed as pg's default parsers (pg-types 2.2.0) give it, which is
+//   what n8n's pg-promise sees. Timestamps are made ISO here, as n8n's per-connection type
+//   parsers do, with a timestamp without a zone read in the workflow's zone (n8n's process reads
+//   it in its own zone, which on n8n's default set-up is the same; see PLAN known gaps).
+//
+// The host (pgclient.mjs: the task driver, or a bench host) runs the texts with node-postgres.
+// Behaviour read from n8n 2.47.7's Postgres v2 node in the bench image: per item the query
+// parameter (its `{{ }}` parts evaluated on the item even without a leading "=") and its Query
+// Parameters option (from v2.5 each expression one or more values, from v2.8 one value with
+// null and a missing field as SQL NULL); pg-promise formats the values into the text (pgformat.mjs);
+// options from item 0; batching "single" (default), "independently" or "transaction"; one item
+// per returned row, paired with the statement it came from; no rows at all gives
+// {success: true} unless every query is a SELECT; errors as n8n words them.
+
+
+const DATE = 1082;
+const TIMESTAMP = 1114;
+const TIMESTAMPTZ = 1184;
+const DATE_ARRAY = 1182;
+const TIMESTAMP_ARRAY = 1115;
+const TIMESTAMPTZ_ARRAY = 1185;
+const PG_RAW_TYPES = [DATE, TIMESTAMP, TIMESTAMPTZ, DATE_ARRAY, TIMESTAMP_ARRAY, TIMESTAMPTZ_ARRAY];
+
+// ---------- SQL text: which statements a query holds ----------
+
+// The text with string literals, quoted identifiers, dollar-quoted bodies and comments blanked,
+// so `;` and keywords inside them do not count.
+function blankSql(sql) {
+  const s = String(sql ?? "");
+  let out = "";
+  for (let i = 0; i < s.length; ) {
+    const two = s.slice(i, i + 2);
+    if (two === "/*") {
+      const end = s.indexOf("*/", i + 2);
+      i = end < 0 ? s.length : end + 2;
+      out += " ";
+    } else if (two === "--") {
+      const end = s.indexOf("\n", i + 2);
+      i = end < 0 ? s.length : end;
+      out += " ";
+    } else if (s[i] === "'") {
+      // E'...' strings take backslash escapes; '' is a quote inside any string.
+      const escapes = (s[i - 1] === "E" || s[i - 1] === "e") && (i < 2 || !/[A-Za-z0-9_]/.test(s[i - 2]));
+      let j = i + 1;
+      while (j < s.length) {
+        if (escapes && s[j] === "\\" && j + 1 < s.length) j += 2;
+        else if (s[j] === "'" && s[j + 1] === "'") j += 2;
+        else if (s[j] === "'") break;
+        else j++;
+      }
+      i = j + 1;
+      out += "''";
+    } else if (s[i] === '"') {
+      let j = i + 1;
+      while (j < s.length && s[j] !== '"') j += s[j] === "\\" && j + 1 < s.length ? 2 : 1;
+      i = j < s.length ? j + 1 : j;
+      out += '""';
+    } else if (s[i] === "$" && /^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/.test(s.slice(i))) {
+      const tag = /^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/.exec(s.slice(i))[0];
+      const end = s.indexOf(tag, i + tag.length);
+      i = end < 0 ? s.length : end + tag.length;
+      out += " ";
+    } else {
+      out += s[i];
+      i++;
+    }
+  }
+  return out;
+}
+
+const COMMANDS = new Set(["SELECT", "INSERT", "UPDATE", "DELETE", "MERGE"]);
+// The first SELECT/INSERT/UPDATE/DELETE/MERGE word outside parentheses (a CTE's body or a
+// subquery does not count, so WITH x AS (SELECT ...) DELETE ... is a DELETE), or null.
+function topCommand(statement) {
+  let depth = 0;
+  for (const m of statement.matchAll(/[()]|[A-Za-z_][A-Za-z0-9_]*/g)) {
+    if (m[0] === "(") depth++;
+    else if (m[0] === ")") depth = Math.max(0, depth - 1);
+    else if (depth === 0 && COMMANDS.has(m[0].toUpperCase())) return m[0].toUpperCase();
+  }
+  return null;
+}
+const sqlStatements = (sql) =>
+  blankSql(sql)
+    .split(";")
+    .map((x) => x.trim())
+    .filter(Boolean);
+// n8n's test for "the query only reads": every statement's top-level command is SELECT (an
+// empty query counts as one).
+function isSelectQuery(sql) {
+  return sqlStatements(sql).every((st) => topCommand(st) === "SELECT");
+}
+
+// ---------- values n8n's node binds ----------
+
+const RESOLVABLE = /({{[\s\S]*?}})/g;
+const resolvables = (text) => (text ? [...String(text).matchAll(RESOLVABLE)].map((m) => m[1]) : []);
+// n8n's evaluateExpression() of its Postgres helpers: the text a value becomes.
+const valueText = (v) => (v === undefined ? "" : v === null ? "null" : typeof v === "object" ? JSON.stringify(v) : v.toString());
+const isJsonText = (s) => {
+  try {
+    JSON.parse(String(s).trim());
+    return true;
+  } catch {
+    return false;
+  }
+};
+const listOf = (s) =>
+  s === undefined
+    ? []
+    : String(s)
+        .split(",")
+        .filter((x) => x)
+        .map((x) => x.trim());
+
+// One item's {query, values} for executeQuery.
+function itemQuery(exec, i, v, options) {
+  let query = exec.param("query", i, "");
+  if (typeof query !== "string") query = String(query);
+  // `{{ }}` parts are evaluated on the item even when the parameter has no leading "=".
+  for (const r of resolvables(query)) {
+    const val = exec.evaluate("=" + r, i);
+    query = query.replace(r, typeof val === "function" ? String(val) : val);
+  }
+  let values = [];
+  let replacement = exec.param("options.queryReplacement", i, "");
+  if (typeof replacement === "number") replacement = String(replacement);
+  if (typeof replacement === "string") {
+    const raw = exec.step.params?.options?.queryReplacement;
+    if (raw) {
+      if (v >= 2.5) {
+        const text = String(raw).replace(/^=+/, "");
+        const parts = resolvables(text);
+        if (parts.length) {
+          for (const part of parts) {
+            const got = exec.evaluate("=" + part, i);
+            if (Array.isArray(got)) {
+              for (const el of got) {
+                if (el === undefined) {
+                  if (v >= 2.8) values.push(null);
+                  continue;
+                }
+                values.push(typeof el === "object" && el !== null ? JSON.stringify(el) : el);
+              }
+              continue;
+            }
+            if (v >= 2.8) {
+              values.push(got === null || got === undefined ? null : valueText(got));
+              continue;
+            }
+            const t = valueText(got);
+            const each = isJsonText(t) ? [t] : listOf(t);
+            if (each.length) values.push(...each);
+          }
+        } else values.push(...listOf(text));
+      } else {
+        for (const part of String(raw).replace(/^=+/, "").split(",").filter((x) => x).map((x) => x.trim())) {
+          const inner = resolvables(part);
+          if (inner.length) for (const r of inner) values.push(exec.evaluate("=" + r, i));
+          else values.push(part);
+        }
+      }
+    }
+  } else if (Array.isArray(replacement)) values = replacement;
+  else if (v >= 2.8 && (replacement === null || replacement === undefined)) values = [null];
+  else throw new NodeError("Query Parameters must be a string of comma-separated values or an array of values", { node: exec.name, itemIndex: i });
+  // A '$1' written inside quotes is text, not a parameter, when nothing is bound (or the option
+  // says so): it becomes the next parameter, holding the text $1.
+  if (!replacement || options.treatQueryParametersInSingleQuotesAsText) {
+    let next = values.length + 1;
+    for (const lit of query.match(/'\$[0-9]+'/g) ?? []) {
+      query = query.replace(lit, `$${next}`);
+      values.push(lit.replace(/'/g, ""));
+      next++;
+    }
+  }
+  return { query, values, options: { partial: true } };
+}
+
+// ---------- what comes back ----------
+
+const OFFSET = /(?:[+-]\d{2}(?::?\d{2}){0,2}|Z)$/i;
+// n8n's parseDateToISO (`new Date(text).toISOString()`, the text when it is no date), with a
+// timestamp that names no offset read in `zone`.
+function timestampISO(text, zone) {
+  if (typeof text !== "string") return text;
+  if (OFFSET.test(text.trim())) {
+    const d = new Date(text);
+    return Number.isNaN(d.getTime()) ? text : d.toISOString();
+  }
+  const dt = DateTime.fromSQL(text, { zone });
+  if (dt.isValid) return dt.toUTC().toISO();
+  const d = new Date(text);
+  return Number.isNaN(d.getTime()) ? text : d.toISOString();
+}
+// pg-types' DATE parser (a Date at local midnight, Infinity for infinity), as the item's JSON
+// holds it: midnight in `zone` as ISO, null for an infinite date.
+function legacyDateValue(text, zone) {
+  if (typeof text !== "string") return text;
+  if (/^-?infinity$/i.test(text)) return null;
+  const m = /^(\d{1,})-(\d{2})-(\d{2})( BC)?$/.exec(text);
+  if (!m) return text;
+  const year = m[4] ? 1 - Number(m[1]) : Number(m[1]);
+  const dt = DateTime.fromObject({ year, month: Number(m[2]), day: Number(m[3]) }, { zone });
+  return dt.isValid ? dt.toUTC().toISO() : text;
+}
+// A one-dimensional Postgres array literal's elements (NULL as null), or null when it is not
+// one this reads.
+function arrayElements(text) {
+  if (typeof text !== "string" || text[0] !== "{" || text.at(-1) !== "}") return null;
+  const body = text.slice(1, -1);
+  if (body === "") return [];
+  const out = [];
+  let i = 0;
+  while (i <= body.length) {
+    if (body[i] === "{") return null;
+    let el = "";
+    let quoted = false;
+    if (body[i] === '"') {
+      quoted = true;
+      i++;
+      while (i < body.length && body[i] !== '"') {
+        if (body[i] === "\\") i++;
+        el += body[i];
+        i++;
+      }
+      i++;
+    } else {
+      while (i < body.length && body[i] !== ",") el += body[i++];
+    }
+    out.push(!quoted && el === "NULL" ? null : el);
+    if (body[i] === ",") i++;
+    else break;
+  }
+  return out;
+}
+
+function convertRow(row, fields, v, zone) {
+  for (const f of fields) {
+    const val = row[f.name];
+    if (val === null || val === undefined) continue;
+    const t = f.dataTypeID;
+    if (t === TIMESTAMP || t === TIMESTAMPTZ) row[f.name] = timestampISO(val, zone);
+    else if (t === DATE) row[f.name] = v >= 2.7 ? val : legacyDateValue(val, zone);
+    else if (t === DATE_ARRAY || t === TIMESTAMP_ARRAY || t === TIMESTAMPTZ_ARRAY) {
+      const els = arrayElements(val);
+      if (!els) continue;
+      const one = t === DATE_ARRAY ? (x) => (v >= 2.7 ? x : legacyDateValue(x, zone)) : (x) => timestampISO(x, zone);
+      row[f.name] = els.map((x) => (x === null ? null : one(x)));
+    }
+  }
+  return row;
+}
+function resultRows(results, v, zone) {
+  return (results ?? []).map((r) => (r.rows ?? []).map((row) => convertRow(isObject(row) ? row : {}, r.fields ?? [], v, zone)));
+}
+
+// n8n's parsePostgresError: a syntax error names its line, the description is the server's
+// detail or hint or the failed query, a connection failure is named.
+function pgError(exec, e, queries, itemIndex) {
+  let message = String(e?.message ?? e);
+  if (message.includes("syntax error at or near") && queries.length) {
+    const snippet = /syntax error at or near "(.*)"/.exec(message)?.[1];
+    const at = snippet === undefined ? -1 : queries.findIndex((q) => q.query.includes(snippet));
+    if (at !== -1) {
+      if (!itemIndex) itemIndex = at;
+      const line = queries[at].query.split("\n").findIndex((l) => l.includes(snippet));
+      message = `Syntax error at line ${line + 1} near "${snippet}"`;
+    }
+  }
+  let description = e?.description || e?.detail || e?.hint;
+  if (!description && queries[itemIndex || 0]?.query) description = `Failed query: ${queries[itemIndex || 0].query}`;
+  for (const [code, text] of [
+    ["ECONNREFUSED", "Connection refused"],
+    ["ENOTFOUND", "Host not found"],
+    ["ETIMEDOUT", "Connection timed out"],
+  ])
+    if (String(e?.message ?? "").includes(code)) {
+      message = text;
+      description = String(e.message).split(`${code} `)[1]?.trim() ?? description;
+    }
+  return new NodeError(message, { node: exec.name, itemIndex: itemIndex ?? 0, description });
+}
+
+async function runPostgres(exec, queries, options, v) {
+  const db = exec.step.db ?? {};
+  const mode = options.queryBatching || "single";
+  const zone = exec.run?.timezone;
+  // "Output Large-Format Numbers As" numbers: the host turns bigint and numeric text into
+  // numbers (pgclient.mjs, by pg's own type names), as n8n's receive handler does.
+  const largeNumbers = options.largeNumbersOutput === "numbers" ? "numbers" : "text";
+  const pairOf = (i) => ({ item: i });
+  const texts = mode === "single" ? [concatQueries(queries)] : queries.map((q) => formatQuery(q.query, q.values));
+  const [r] = await exec.request([{ kind: "db", itemIndex: 0, engine: "postgres", connection: db.connection ?? null, secret: db.secret ?? null, mode, texts, rawTypes: PG_RAW_TYPES, largeNumbers }]);
+  if (!r.ok) throw pgError(exec, r.error ?? {}, queries);
+  const value = r.value ?? {};
+  if (mode === "single") {
+    if (value.error) {
+      const err = pgError(exec, value.error, queries);
+      if (!exec.continueOnFail()) throw err;
+      return [{ json: { message: err.message, error: { message: err.message, ...(err.description ? { description: err.description } : {}) } } }];
+    }
+    // One item per row, paired with the statement (not the item) it came from, as n8n pairs it.
+    const out = resultRows(value.results, v, zone).flatMap((rows, i) => rows.map((json) => ({ json, pairedItem: pairOf(i) })));
+    if (out.length) return out;
+    const paired = queries.map((_, i) => pairOf(i));
+    if (v < 2.3) return options.operation === "select" ? [] : [{ json: { success: true }, pairedItem: paired }];
+    return queries.every((q) => isSelectQuery(q.query)) ? [] : [{ json: { success: true }, pairedItem: paired }];
+  }
+  const out = [];
+  for (let i = 0; i < queries.length; i++) {
+    const run = value.runs?.[i];
+    if (!run) break;
+    if (run.error) {
+      const err = pgError(exec, run.error, queries, i);
+      if (!exec.continueOnFail()) throw err;
+      out.push({ json: { error: { message: err.message, ...(err.description ? { description: err.description } : {}) } }, pairedItem: pairOf(i) });
+      if (mode === "transaction") break;
+      continue;
+    }
+    let rows = resultRows(run.results, v, zone).flat();
+    if (!rows.length) rows = v < 2.3 ? (options.operation === "select" ? [] : [{ success: true }]) : isSelectQuery(queries[i].query) ? [] : [{ success: true }];
+    out.push(...rows.map((json) => ({ json, pairedItem: pairOf(i) })));
+  }
+  return out;
+}
+
+const postgres = {
+  versions: (v) => v >= 2 && v < 3,
+  async execute(exec) {
+    const v = exec.typeVersion;
+    const operation = exec.param("operation", 0, "insert");
+    const resource = exec.param("resource", 0, "database");
+    if (resource !== "database") throw new NodeError(`The operation "${operation}" is not supported!`, { node: exec.name });
+    const options = { ...(exec.param("options", 0, {}) ?? {}), nodeVersion: v, operation };
+    if (operation !== "executeQuery") throw new NodeError(`Postgres ${operation} is not carried by the runtime`, { node: exec.name });
+    const items = exec.getInputData();
+    const queries = items.map((_, i) => itemQuery(exec, i, v, options));
+    return [await runPostgres(exec, queries, options, v)];
+  },
+};
+
+// What a db request does to the database, for the effect ledger: a read only when every text
+// holds SELECT statements alone (n8n's own test), else a write.
+function dbRequestEffect(req) {
+  return (req.texts ?? []).every((t) => isSelectQuery(t)) ? "read" : "write";
+}
+
+return { PG_RAW_TYPES, blankSql, sqlStatements, isSelectQuery, timestampISO, legacyDateValue, arrayElements, postgres, dbRequestEffect };
+})();
+
 // ---- src/nodes2.mjs ----
 const __m_nodes2_mjs = (() => {
 const { restPrograms } = __m_rest_mjs;
@@ -31946,6 +32494,7 @@ const { htmlToMarkdown } = __m_htmlmarkdown_mjs;
 const { markdownToHtml } = __m_showdown_mjs;
 const { parseXml, buildXml } = __m_xml_mjs;
 const { summarizeItem } = __m_summarize_mjs;
+const { postgres } = __m_postgres_mjs;
 // Node implementations, group 2 (Sort, Remove Duplicates, Summarize, Date & Time, Crypto,
 // Respond to Webhook, Item Lists, Html template/table, Execution Data) and the steps that
 // become host requests (HTTP Request, connector tools, model and agent steps).
@@ -33545,6 +34094,7 @@ function agentTools(exec) {
     else if (step.tool?.connector) Object.assign(tool, { kind: "connector", connector: step.tool.connector, tool: step.tool.name, effect: step.tool.effect ?? "write" });
     else if (step.n8n.type === LC + "toolCode") Object.assign(tool, { kind: "code", effect: "none" });
     else if (step.kind === "http" && isObject(step.rest)) Object.assign(tool, { kind: "rest", effect: step.rest.effect ?? "write" });
+    else if (step.kind === "db") Object.assign(tool, { kind: "db", effect: step.db?.effect ?? "write" });
     else if (step.n8n.type === LC + "toolHttpRequest" || step.n8n.type === BASE + "httpRequestTool") Object.assign(tool, { kind: "http", method: p.method ?? "GET", url: typeof p.url === "string" && !p.url.startsWith("=") ? p.url : undefined, effect: (p.method ?? "GET") === "GET" ? "read" : "write" });
     else Object.assign(tool, { kind: "n8n", effect: "write" });
     return tool;
@@ -33799,6 +34349,24 @@ async function executeAgentTool(exec, tools, call, itemIndex) {
       const values = (outItems ?? []).map((it) => it.json);
       return { ok: true, value: values.length === 1 ? values[0] : values };
     }
+    if (kind === "db") {
+      // A database node tool (postgres.mjs): the node runs on the agent's current item with its
+      // $fromAI() values from the model's arguments, and hands back the items' JSON, as the
+      // REST programs above do.
+      if (!sub || sub.kind !== "db" || !postgres.versions(sub.n8n?.typeVersion ?? 1)) return { ok: false, error: { message: `tool "${spec.name}" has no database step` } };
+      const item = exec.getInputData()[itemIndex] ?? { json: {} };
+      const subExec = Object.assign(Object.create(exec), {
+        step: sub,
+        params: { ...(sub.params ?? {}) },
+        getInputData: () => [item],
+        toolInput: args,
+        scope: (_i, extras) => exec.scope(itemIndex, { ...(extras ?? {}), locals: { ...(extras?.locals ?? {}), ...locals } }),
+        request: (reqs) => exec.request(reqs.map((r) => ({ ...r, itemIndex }))),
+      });
+      const [outItems] = await postgres.execute(subExec);
+      const values = (outItems ?? []).map((it) => it.json);
+      return { ok: true, value: values.length === 1 ? values[0] : values };
+    }
     if (kind === "think") {
       // n8n's Think tool returns the model's input unchanged (a no-op that logs a thought).
       return { ok: true, value: typeof args.input === "string" ? args.input : args.input === undefined ? "" : JSON.stringify(args.input) };
@@ -33983,6 +34551,7 @@ function requestImplFor(step) {
     const prog = restPrograms[step.rest.program];
     return prog && prog.versions(step.n8n?.typeVersion ?? 1) ? prog : null;
   }
+  if (step.kind === "db" && step.db?.engine === "postgres") return postgres.versions(step.n8n?.typeVersion ?? 1) ? postgres : null;
   if (step.kind === "trigger" && isObject(step.poll)) return pollTrigger;
   if (step.n8n?.type === BASE + "httpRequest" && httpRequest.versions(step.n8n?.typeVersion ?? 1)) return httpRequest;
   return null;
@@ -35465,6 +36034,7 @@ const { resolveParameter } = __m_expression_mjs;
 const { createScope, enterRun } = __m_proxy_mjs;
 const { nodeImplFor } = __m_nodes_mjs;
 const { normalizePath } = __m_files_mjs;
+const { dbRequestEffect } = __m_postgres_mjs;
 // Execution engine: runs a definition with n8n's semantics (execution order "v1").
 //
 // Mirrors n8n-core's WorkflowExecute (n8n 2.47):
@@ -35688,6 +36258,18 @@ function checkContainment(definition, req) {
         throw new ContainmentViolation(`secret "${req.auth.secret}" may not be sent to ${t.host}`, { requestId: req.id });
       }
     }
+  } else if (req.kind === "db") {
+    // A database (postgres.mjs): the connection must be one the definition allows (allow.db:
+    // {engine, host, port, database}), and its secret declared for that host and port.
+    const c = req.connection ?? {};
+    const port = Number(c.port ?? 5432);
+    const ok = (allow.db || []).some((a) => a.engine === req.engine && String(a.host).toLowerCase() === String(c.host ?? "").toLowerCase() && Number(a.port ?? 5432) === port && a.database === c.database);
+    if (!ok) throw new ContainmentViolation(`database ${req.engine} ${c.host}:${port}/${c.database} is not in the definition's allowlist`, { requestId: req.id });
+    if (req.secret) {
+      const secret = (definition.secrets || []).find((s) => s.name === req.secret);
+      if (!secret) throw new ContainmentViolation(`secret "${req.secret}" is not declared in the definition`, { requestId: req.id });
+      if (!(secret.hosts ?? []).map((h) => String(h).toLowerCase()).includes(`${String(c.host).toLowerCase()}:${port}`)) throw new ContainmentViolation(`secret "${req.secret}" may not be sent to ${c.host}:${port}`, { requestId: req.id });
+    }
   } else if (req.kind === "file") {
     // Local disk (files.mjs): the path must lie in a directory the definition names for this
     // operation (allow.files: {op, dir}); ".." never climbs out of it.
@@ -35775,6 +36357,7 @@ function requestEffect(req) {
   if (req.kind === "file") return req.op === "write" ? "write" : "read";
   if (req.kind === "http") return WRITE_METHODS.has(String(req.method || "GET").toUpperCase()) ? "write" : "read";
   if (req.kind === "tool") return req.effect === "read" ? "read" : "write";
+  if (req.kind === "db") return dbRequestEffect(req);
   // An agent turn has no effect of its own: each tool call it asks for is a separate tool or
   // http request with its own effect entry (nodes2.mjs, executeAgentTool).
   if (req.kind === "agent") return "none";
@@ -36265,7 +36848,7 @@ const { methodSupport } = __m_extensions_mjs;
 const RUNTIME_VERSION = "0.1.0";
 const DEFINITION_SCHEMA_VERSION = 1;
 const STATE_FORMAT = "n8n-to-claude/run-state";
-const KINDS = ["tool", "http", "code", "model", "agent", "state", "sleep", "subflow", "branch", "loop", "logic", "trigger", "respond", "blocked"];
+const KINDS = ["tool", "http", "db", "code", "model", "agent", "state", "sleep", "subflow", "branch", "loop", "logic", "trigger", "respond", "blocked"];
 
 // ---------- definition checks ----------
 
@@ -36340,6 +36923,10 @@ function preflight(definition, { availableTools, sourceText, pinned, surface } =
       continue;
     }
     if (s.files?.disk && (surface === "cloud-task" || surface === "artifact")) err(`$.steps.${name}`, `blocked: ${s.files.disk === "write" ? "writes" : "reads"} files on the local disk, which only a local task has (this is ${surface === "artifact" ? "the artifact page" : "a cloud task"}): run the workflow as a local task`, { step: name });
+    // A database step (postgres.mjs) needs a TCP connection and the vendored client, which only
+    // a task has; and the database the person named at setup.
+    if (s.kind === "db" && surface === "artifact") err(`$.steps.${name}`, "blocked: a database step connects to the database from the runtime folder, which the artifact page cannot: run the workflow as a task", { step: name });
+    if (s.kind === "db" && !(s.db?.connection?.host && s.db?.connection?.database)) err(`$.steps.${name}.db`, `needs the database its credential "${s.db?.credential ?? "?"}" connects to (the setup question for the credential)`, { step: name });
     if (s.files?.lib && surface === "artifact") err(`$.steps.${name}`, `blocked: ${s.files.lib === "pdfjs" ? "PDF text extraction (pdf.js)" : "spreadsheet files (SheetJS)"} loads a library from the runtime folder, which the artifact page cannot: run the workflow as a task`, { step: name });
     if (s.n8n.type === "n8n-nodes-base.executeWorkflow" && !s.subflow) err(`$.steps.${name}`, "the sub-workflow is not in the definition (only inline and self-referencing sub-workflows run)", { step: name });
     if (s.kind === "blocked") err(`$.steps.${name}`, `blocked: ${s.blocked?.reason ?? "no reason given"}`, { step: name });
@@ -36360,6 +36947,7 @@ function preflight(definition, { availableTools, sourceText, pinned, surface } =
     if (s.kind === "agent") {
       for (const sub of (definition.subnodes ?? []).filter((x) => x.to === name && x.type === "ai_tool")) {
         const ts = steps[sub.from];
+        if (ts && ts.settings?.disabled !== true && ts.kind === "db" && surface === "artifact") err(`$.steps.${name}.agent`, `blocked: agent tool "${sub.from}" is a database step, which connects from the runtime folder; the artifact page cannot: run the workflow as a task`, { step: name });
         if (!ts || ts.settings?.disabled === true || ts.kind !== "blocked") continue;
         err(`$.steps.${name}.agent`, `blocked: agent tool "${sub.from}" cannot be carried (${ts.blocked?.reason ?? "no reason given"}); without it the agent would answer without a tool n8n gives it`, { step: name });
       }

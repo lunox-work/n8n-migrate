@@ -392,6 +392,24 @@ export function executeFile(req, task, dir) {
 // tests/task-driver.test.mjs checks they agree.
 export const BINARY_CONTENT_TYPES = ["image/", "audio/", "video/", "application/octet-stream", "application/gzip", "application/zip", "application/vnd.rar", "application/epub+zip", "application/x-bzip", "application/x-bzip2", "application/x-cdf", "application/vnd.amazon.ebook", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.ms-fontobject", "application/vnd.oasis.opendocument.presentation", "application/pdf", "application/x-tar", "application/vnd.visio", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/x-7z-compressed"];
 
+// A database request (runtime postgres.mjs): run with the vendored client (pgclient.mjs, loaded
+// on first use), the password from the step's secret. Containment (allow.db, the secret's
+// host and port) was checked by the runner when it asked.
+export async function executeDb(req, task, { client = null } = {}) {
+  const source = typeof task.secrets === "function" ? task.secrets : secretSources[task.secrets ?? "env"];
+  let password;
+  if (req.secret) {
+    password = source?.(req.secret);
+    if (password === undefined) return { ok: false, error: { name: "SecretMissing", message: `secret "${req.secret}" is not available (local: set N2C_SECRET_${String(req.secret).toUpperCase().replace(/[^A-Z0-9]+/g, "_")})` } };
+  }
+  try {
+    const run = client ?? (await import("./pgclient.mjs")).runDb;
+    return { ok: true, value: await run(req, { password: password ?? undefined }) };
+  } catch (e) {
+    return { ok: false, error: { name: e?.name ?? "Error", message: String(e?.message ?? e) } };
+  }
+}
+
 export async function executeHttp(req, task, fetchImpl = globalThis.fetch, { check = null, publicOnly = false, isPublicAddress = null, resolve = defaultResolve } = {}) {
   const source = typeof task.secrets === "function" ? task.secrets : secretSources[task.secrets ?? "env"];
   let url = req.url;
@@ -969,6 +987,10 @@ async function advance(P, core, task, store, state, opts = {}) {
         const publicOnly = (state.definition?.allow?.http ?? []).some((a) => a.scope === "public" && a.step === step) && !(state.definition?.allow?.http ?? []).some((a) => a.scope !== "public" && hostOfUrl(a.host) === hostOfUrl(r.url));
         const res = await executeHttp(r, task, opts.fetch, { check: (url, method) => core.checkContainment(state.definition, { ...r, url, method }), publicOnly, isPublicAddress: core.publicAddress, ...(opts.resolve ? { resolve: opts.resolve } : {}) });
         logEvent(P, { event: "http", handle: handles[i], id: r.id, method: r.method, url: r.url.replace(/\?.*$/, ""), ok: res.ok, status: res.value?.status });
+        saveResult(P, handles[i], res);
+      } else if (r.kind === "db") {
+        const res = await executeDb(r, task);
+        logEvent(P, { event: "db", handle: handles[i], id: r.id, engine: r.engine, host: r.connection?.host, ok: res.ok && !res.value?.error });
         saveResult(P, handles[i], res);
       } else if (r.kind === "sleep") {
         const wait = Date.parse(r.until) - Date.now();

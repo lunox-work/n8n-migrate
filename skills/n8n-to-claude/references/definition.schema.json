@@ -39,7 +39,7 @@
         "required": ["kind", "n8n"],
         "additionalProperties": false,
         "properties": {
-          "kind": { "enum": ["tool", "http", "code", "model", "agent", "state", "sleep", "subflow", "branch", "loop", "logic", "trigger", "respond", "blocked"] },
+          "kind": { "enum": ["tool", "http", "db", "code", "model", "agent", "state", "sleep", "subflow", "branch", "loop", "logic", "trigger", "respond", "blocked"] },
           "n8n": {
             "type": "object",
             "required": ["type"],
@@ -219,7 +219,7 @@
                     "description": { "type": "string" },
                     "connector": { "type": "string" },
                     "tool": { "type": "string" },
-                    "kind": { "enum": ["connector", "http", "rest", "code", "subflow", "think", "n8n"] },
+                    "kind": { "enum": ["connector", "http", "rest", "db", "code", "subflow", "think", "n8n"] },
                     "url": { "type": "string" },
                     "effect": { "enum": ["read", "write", "none"] },
                     "inputSchema": { "type": "object" },
@@ -309,6 +309,26 @@
               "map": { "type": "string" },
               "base": { "type": "string", "description": "The person's own site for a program on it (tool-maps.json site: true; the n8n node's reads): the answer to the report's site question, e.g. https://n8n.example.com/api/v1. allow.http and the secret's hosts name its host." },
               "caveats": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "db": {
+            "type": "object",
+            "description": "A database step the runtime runs itself (runtime/src/postgres.mjs: the Postgres node v2's executeQuery, as a step or an agent tool), through a `db` host request the task driver runs with the vendored node-postgres (runtime/src/pgclient.mjs). The n8n parameters stay in params.",
+            "required": ["engine", "operation", "credential"],
+            "additionalProperties": false,
+            "properties": {
+              "engine": { "enum": ["postgres"] },
+              "operation": { "type": "string" },
+              "credential": { "type": "string", "description": "The n8n credential's name; the setup question for it gives the connection." },
+              "secret": { "type": "string", "description": "The secret holding the password (secrets[], hosts host:port)." },
+              "connection": {
+                "type": ["object", "null"],
+                "additionalProperties": false,
+                "properties": { "host": { "type": "string" }, "port": { "type": "integer" }, "database": { "type": "string" }, "user": { "type": "string" }, "ssl": { "enum": ["disable", "require", "verify-full", "no-verify"] } },
+                "description": "The answer to the credential's database question (a postgres:// URL without the password); allow.db names the same database."
+              },
+              "effect": { "enum": ["read", "write"], "description": "read when the query is literal and only SELECT statements; an agent tool built from this step takes it." },
+              "fidelity": { "enum": ["exact", "adapted", "partial", "none", "unverified"] }
             }
           },
           "poll": {
@@ -459,6 +479,11 @@
           }
         },
         "sql": { "type": "array", "items": { "type": "string" } },
+        "db": {
+          "type": "array",
+          "description": "Databases a db step may connect to (the answers to the credentials' database questions); a db request to any other is never handed out.",
+          "items": { "type": "object", "required": ["engine", "host", "database"], "additionalProperties": false, "properties": { "engine": { "enum": ["postgres"] }, "host": { "type": "string" }, "port": { "type": "integer" }, "database": { "type": "string" } } }
+        },
         "files": {
           "type": "array",
           "description": "Local disk paths a file step may read or write: a directory (or one file) per operation, from the paths written in the steps. dir \"*\" (a path built at run time) is refused by preflight until narrowed in overrides.json.",

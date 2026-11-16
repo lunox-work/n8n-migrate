@@ -148,7 +148,7 @@
             "required": ["kind", "name", "nodes", "surfaces"],
             "additionalProperties": false,
             "properties": {
-              "kind": { "enum": ["connector", "model", "http", "secret", "db", "vector", "state", "mcp-server", "poll", "relay", "task-handoff", "host-disk", "local-network", "substitution", "missing-export", "frequency", "frequency-change", "bundled-server"] },
+              "kind": { "enum": ["connector", "model", "http", "secret", "db", "db-client", "vector", "state", "mcp-server", "poll", "relay", "task-handoff", "host-disk", "local-network", "substitution", "missing-export", "frequency", "frequency-change", "bundled-server"] },
               "name": { "description": "connector id, credential name (never a value), inline:<secret kind>, db or vector node type, state key, MCP host, trigger type, the task target (task-handoff: cloud-task or local-task), or a description", "type": "string" },
               "nodes": { "description": "nodes of this workflow that need it; for what a sub-workflow needs, the calling node", "$ref": "#/$defs/nodes" },
               "surfaces": { "$ref": "#/$defs/surfaces" },
@@ -181,7 +181,7 @@
               "id": { "description": "<workflow id>/<kind>[/<node path>]; the key for --answers. A node path inside an inline sub-workflow is \"<call node> › <node>\"", "type": "string" },
               "text": { "type": "string" },
               "nodes": { "$ref": "#/$defs/nodes" },
-              "affects": { "description": "allow.http: the site question (a credential's own site) and the hosts question (an HTTP Request whose address comes from data)", "enum": ["outcome", "effect", "timezone", "sub-workflow", "schedule", "allow.http"] },
+              "affects": { "description": "allow.http: the site question (a credential's own site) and the hosts question (an HTTP Request whose address comes from data); allow.db: the database question (a database credential's connection)", "enum": ["outcome", "effect", "timezone", "sub-workflow", "schedule", "allow.http", "allow.db"] },
               "answerType": { "description": "nodes: true (every listed node), false (none) or a list of the listed node names", "enum": ["boolean", "choice", "text", "nodes"] },
               "options": { "description": "accepted answer → what it changes; <placeholder> keys stand for free text", "type": "object", "additionalProperties": { "type": "string" } },
               "assumed": { "description": "value the report uses while unanswered" },

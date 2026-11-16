@@ -18,8 +18,9 @@ Top reasons for blocked steps:
 | Reason | Templates | Steps |
 | --- | --- | --- |
 | unsupported: a vector store needs an MCP server (lever not built yet) | 12 | 50 |
-| unsupported: a database step needs the bundled server or a database connector (open decision N) | 11 | 34 |
 | input-incomplete: the site the credential "…" points to is not known yet: answer question N/site/wordpressApi Credential (its address, as in the n8n credential), then regenerate | 8 | 9 |
+| unsupported: a database step needs the bundled server or a database connector (open decision N) | 7 | 25 |
+| input-incomplete: the database the credential "…" connects to is not known yet: answer question N/database/postgres Credential (a postgres:// URL without the password), then regenerate | 3 | 7 |
 | unsupported: form waits for a person (out of scope v1) | 3 | 7 |
 | dropped: a vector store needs an MCP server (lever not built yet) | 3 | 5 |
 | no-tool: no tool edits a document in place (update_file changes metadata only) | 3 | 4 |
@@ -31,7 +32,6 @@ Top reasons for blocked steps:
 | no-tool: no request template for hackerNews all:getAll yet (it needs the app's REST API with a stored secret) | 2 | 2 |
 | no-tool: no tool map for googleDrive file:upload yet | 2 | 2 |
 | no-tool: no tool map for microsoftOutlook message:send yet | 2 | 2 |
-| unsupported: Compression (zip, gzip) is not implemented yet | 2 | 2 |
 
 Top reasons for review flags:
 
@@ -43,7 +43,7 @@ Top reasons for review flags:
 | the file comes from n8n binary data; check that the step before it puts the file into the item | 5 | 8 |
 | the body is binary data, which the runtime does not send | 5 | 5 |
 | reads "…" from "…", which google-drive create_file does not supply | 4 | 7 |
-| tool "…" is left out: a database step needs the bundled server or a database connector (open decision N) | 3 | 7 |
+| tool "…" is left out: the database the credential "…" connects to is not known yet: answer question N/database/postgres Credential (a postgres:// URL without the password), then regenerate | 3 | 7 |
 | n8n summarises text over the chain's N-token limit chunk by chunk, counting tokens with the model's tokenizer; the runtime runs the single call and refuses text over N bytes at run time | 3 | 3 |
 | the request URL is built at run time from data; answer question N/hosts/Scrape Website with the hosts it may reach, or "…" for any public https host | 3 | 3 |
 | the response is a file (binary data), which the runtime does not keep | 3 | 3 |
@@ -60,9 +60,9 @@ Top preflight errors (what stops a run before any effect):
 | step "…": a request with a URL built at run time is allowed to any host (GET *); its host cannot be known before a run: narrow it to a host in overrides.json, or answer the step's hosts question | 21 | 21 |
 | blocked: a vector store needs an MCP server (lever not built yet) | 11 | 14 |
 | blocked: agent tool "…" cannot be carried (a vector store needs an MCP server (lever not built yet)); without it the agent would answer without a tool n8n gives it | 9 | 9 |
-| blocked: a database step needs the bundled server or a database connector (open decision N) | 8 | 27 |
 | blocked: the site the credential "…" points to is not known yet: answer question N/site/wordpressApi Credential (its address, as in the n8n credential), then regenerate | 8 | 9 |
-| blocked: agent tool "…" cannot be carried (a database step needs the bundled server or a database connector (open decision N)); without it the agent would answer without a tool n8n gives it | 3 | 7 |
+| blocked: a database step needs the bundled server or a database connector (open decision N) | 7 | 25 |
+| blocked: agent tool "…" cannot be carried (the database the credential "…" connects to is not known yet: answer question N/database/postgres Credential (a postgres:// URL without the password), then regenerate); without it the agent would answer without a tool n8n gives it | 3 | 7 |
 | blocked: form waits for a person (out of scope v1) | 3 | 7 |
 | blocked: agent tool "…" cannot be carried (no request template for toolSerpApi yet (it needs the app's REST API with a stored secret)); without it the agent would answer without a tool n8n gives it | 3 | 3 |
 | blocked: Edit Image runs GraphicsMagick inside n8n; the runtime has no image library, so resized or edited images would differ | 3 | 3 |
@@ -79,8 +79,9 @@ Top reasons for blocked steps:
 | Reason | Templates | Steps |
 | --- | --- | --- |
 | unsupported: a vector store needs an MCP server (lever not built yet) | 12 | 50 |
-| unsupported: a database step needs the bundled server or a database connector (open decision N) | 11 | 34 |
 | input-incomplete: the site the credential "…" points to is not known yet: answer question N/site/wordpressApi Credential (its address, as in the n8n credential), then regenerate | 8 | 9 |
+| unsupported: a database step needs the bundled server or a database connector (open decision N) | 7 | 25 |
+| input-incomplete: the database the credential "…" connects to is not known yet: answer question N/database/postgres Credential (a postgres:// URL without the password), then regenerate | 3 | 7 |
 | unsupported: form waits for a person (out of scope v1) | 3 | 7 |
 | dropped: a vector store needs an MCP server (lever not built yet) | 3 | 5 |
 | no-tool: no tool edits a document in place (update_file changes metadata only) | 3 | 4 |
@@ -92,7 +93,6 @@ Top reasons for blocked steps:
 | no-tool: no request template for hackerNews all:getAll yet (it needs the app's REST API with a stored secret) | 2 | 2 |
 | no-tool: no tool map for googleDrive file:upload yet | 2 | 2 |
 | no-tool: no tool map for microsoftOutlook message:send yet | 2 | 2 |
-| unsupported: Compression (zip, gzip) is not implemented yet | 2 | 2 |
 
 Top reasons for review flags:
 
@@ -104,7 +104,7 @@ Top reasons for review flags:
 | the file comes from n8n binary data; check that the step before it puts the file into the item | 5 | 8 |
 | the body is binary data, which the runtime does not send | 5 | 5 |
 | reads "…" from "…", which google-drive create_file does not supply | 4 | 7 |
-| tool "…" is left out: a database step needs the bundled server or a database connector (open decision N) | 3 | 7 |
+| tool "…" is left out: the database the credential "…" connects to is not known yet: answer question N/database/postgres Credential (a postgres:// URL without the password), then regenerate | 3 | 7 |
 | n8n summarises text over the chain's N-token limit chunk by chunk, counting tokens with the model's tokenizer; the runtime runs the single call and refuses text over N bytes at run time | 3 | 3 |
 | the request URL is built at run time from data; answer question N/hosts/Scrape Website with the hosts it may reach, or "…" for any public https host | 3 | 3 |
 | the response is a file (binary data), which the runtime does not keep | 3 | 3 |
@@ -121,9 +121,9 @@ Top preflight errors (what stops a run before any effect):
 | step "…": a request with a URL built at run time is allowed to any host (GET *); its host cannot be known before a run: narrow it to a host in overrides.json, or answer the step's hosts question | 21 | 21 |
 | blocked: a vector store needs an MCP server (lever not built yet) | 11 | 14 |
 | blocked: agent tool "…" cannot be carried (a vector store needs an MCP server (lever not built yet)); without it the agent would answer without a tool n8n gives it | 9 | 9 |
-| blocked: a database step needs the bundled server or a database connector (open decision N) | 8 | 27 |
 | blocked: the site the credential "…" points to is not known yet: answer question N/site/wordpressApi Credential (its address, as in the n8n credential), then regenerate | 8 | 9 |
-| blocked: agent tool "…" cannot be carried (a database step needs the bundled server or a database connector (open decision N)); without it the agent would answer without a tool n8n gives it | 3 | 7 |
+| blocked: a database step needs the bundled server or a database connector (open decision N) | 7 | 25 |
+| blocked: agent tool "…" cannot be carried (the database the credential "…" connects to is not known yet: answer question N/database/postgres Credential (a postgres:// URL without the password), then regenerate); without it the agent would answer without a tool n8n gives it | 3 | 7 |
 | blocked: form waits for a person (out of scope v1) | 3 | 7 |
 | blocked: agent tool "…" cannot be carried (no request template for toolSerpApi yet (it needs the app's REST API with a stored secret)); without it the agent would answer without a tool n8n gives it | 3 | 3 |
 | blocked: Edit Image runs GraphicsMagick inside n8n; the runtime has no image library, so resized or edited images would differ | 3 | 3 |

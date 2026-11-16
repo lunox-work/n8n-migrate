@@ -41,6 +41,11 @@
       "cloudTask": { "source": "docs 2026-11-14, untested", "value": "no" },
       "localTask": { "source": "docs 2026-11-14, untested", "value": "ok" }
     },
+    "db-client": {
+      "artifact": { "source": "docs 2026-11-14 (code.claude.com/docs/en/artifacts: the CSP lets fetch reach only the page's own origin; no TCP), untested", "value": "no" },
+      "cloudTask": { "source": "docs 2026-11-14 (cloud-environments: network secrets attach to HTTP requests only, so a database password cannot reach the task's own connection), untested", "value": "no" },
+      "localTask": { "source": "runtime 2026-11-17 (the task driver runs the step with the vendored node-postgres, the password from N2C_SECRET_<NAME>); checked on the bench against Postgres 17", "value": "ok" }
+    },
     "local-network": {
       "artifact": { "source": "docs 2026-11-14 (code.claude.com/docs/en/artifacts: the CSP lets fetch reach only the page's own origin), untested", "value": "no" },
       "cloudTask": { "source": "docs 2026-11-14 (cloud environment network access: the VM reaches the internet, not the person's computer or network), untested", "value": "no" },

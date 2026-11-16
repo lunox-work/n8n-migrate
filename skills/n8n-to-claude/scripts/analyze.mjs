@@ -50,7 +50,7 @@ const WAKEUP_RANK = ["endpoint", "mcp-server", "chat", "form", "relay", "poll", 
 const OUTCOME_RANK = ["keep-in-n8n", "hosted", "replaced", "subscription"]; // worst first
 const BLOCKING = new Set(["input-incomplete", "unsupported", "unmapped"]);
 const BLOCKER_ORDER = ["input-incomplete", "unsupported", "unmapped", "substitution", "dropped-branch", "not-an-automation"];
-const REQ_ORDER = ["connector", "model", "http", "secret", "db", "vector", "state", "mcp-server", "poll", "relay", "task-handoff", "host-disk", "local-network", "substitution", "missing-export", "frequency", "frequency-change", "bundled-server"];
+const REQ_ORDER = ["connector", "model", "http", "secret", "db", "db-client", "vector", "state", "mcp-server", "poll", "relay", "task-handoff", "host-disk", "local-network", "substitution", "missing-export", "frequency", "frequency-change", "bundled-server"];
 const SURFACES = ["cloudTask", "localTask", "artifact"];
 const N8N_DEFAULT_TIMEZONE = "America/New_York"; // GENERIC_TIMEZONE default in n8n
 const BRANCH_RANK = ["main", "error-output", "error-trigger", "unreached"];
@@ -1122,6 +1122,55 @@ function askSites(W, ctx) {
   }
 }
 
+// Database steps the runtime runs itself (runtime postgres.mjs, with the vendored node-postgres
+// in a task): the Postgres node v2's executeQuery, as a step or an agent tool. The connection
+// lives in the n8n credential (host, port, database, user, password, SSL), which an export never
+// carries, so one question per such credential asks for it as a connection URL without the
+// password (the password is the credential's stored secret). A database on a local address
+// adds a local-network requirement, as a site answer does.
+export const DB_RUNTIME_OPS = { "n8n-nodes-base.postgres": { versions: [2, 3], operations: ["executeQuery"], defaultOperation: "insert", label: "Postgres" } };
+export function dbRuntimeStep(d) {
+  const spec = Object.prototype.hasOwnProperty.call(DB_RUNTIME_OPS, d?.baseType ?? "") ? DB_RUNTIME_OPS[d.baseType] : null;
+  if (!spec) return null;
+  const v = Number(d.typeVersion ?? d.version ?? 1);
+  const op = d.operation ?? spec.defaultOperation;
+  return v >= spec.versions[0] && v < spec.versions[1] && spec.operations.includes(op) ? spec : null;
+}
+// "postgres://user@host:5432/database?sslmode=require" -> {host, port, database, user, ssl}, or
+// null. No password: it is the stored secret, never part of the answer.
+export function dbConnection(answer) {
+  let u;
+  try {
+    u = new URL(String(answer ?? "").trim());
+  } catch {
+    return null;
+  }
+  if (!/^postgres(ql)?:$/.test(u.protocol) || !u.hostname || u.password) return null;
+  const database = decodeURIComponent(u.pathname.replace(/^\//, ""));
+  if (!database || database.includes("/")) return null;
+  const sslmode = u.searchParams.get("sslmode") ?? "disable";
+  if (![...u.searchParams.keys()].every((k) => k === "sslmode") || !["disable", "require", "verify-full", "no-verify"].includes(sslmode)) return null;
+  return { host: u.hostname.replace(/^\[|\]$/g, "").toLowerCase(), port: Number(u.port || 5432), database, user: decodeURIComponent(u.username || ""), ssl: sslmode };
+}
+function askDatabases(W, ctx) {
+  for (const c of W.credentials ?? []) {
+    const nodes = c.nodes.filter((n) => dbRuntimeStep(W.infos.get(n)));
+    if (!nodes.length) continue;
+    const spec = dbRuntimeStep(W.infos.get(nodes[0]));
+    const { value, answered } = ask(W, ctx, "database", c.name, {
+      text: `Which ${spec.label} database does the credential "${c.name}" connect to? Give it as a connection URL without the password, from the n8n credential's Host, Port, Database and User fields: postgres://<user>@<host>:<port>/<database> (add ?sslmode=require to use SSL, ?sslmode=no-verify to use SSL without checking the server's certificate). The password is stored as the credential's secret at setup. The steps run SQL with that user's rights, so give it only the rights the workflow needs. A database on your own computer or network (localhost, a private IP, a .local or internal name) makes it a local task.`,
+      nodes: nodes.map((n) => `${W.prefix}${n}`),
+      affects: "allow.db",
+      answerType: "text",
+      options: { "<connection URL>": "the database the steps connect to" },
+      assumed: null,
+    });
+    const conn = answered ? dbConnection(value) : null;
+    if (answered && !conn) ctx.answerErrors.push({ id: `${(W.parent || W).id}/database/${W.prefix}${c.name}`, reason: "expected postgres://<user>@<host>:<port>/<database>, no password, with ?sslmode= only" });
+    if (conn && localHost(conn.host)) for (const n of nodes) addReq(W, "local-network", `${spec.label} at ${conn.host}:${conn.port}`, n, { surfaces: surfacesFrom(ctx.capabilities.requirements?.["local-network"]) });
+  }
+}
+
 // HTTP Request steps (v3 and later) and RSS Read steps whose address comes from data at run time
 // (a URL expression that writes no address of its own: runtime/src/convert.mjs openHost). n8n sends them to any host; the folder
 // sends them only where the person says at setup: the hosts it may reach, or "public" (any
@@ -1330,7 +1379,10 @@ function processNode(W, d, ctx, br) {
         addReq(W, "state", `dedupe-history:${scope}`, name, { surfaces: reqSurf("state") });
       } else {
         if (/\.memory[A-Z]/.test(d.baseType)) addShared(W, "chat-memory", shortType(d.baseType), name);
-        addReq(W, "db", shortType(d.baseType), name, { surfaces: reqSurf("db") });
+        // A database step the runtime runs itself (askDatabases) needs a task that can open a
+        // connection; any other waits for a database connector or the bundled server.
+        if (dbRuntimeStep(d)) addReq(W, "db-client", shortType(d.baseType), name, { surfaces: reqSurf("db-client") });
+        else addReq(W, "db", shortType(d.baseType), name, { surfaces: reqSurf("db") });
       }
       break;
     case "vector":
@@ -2237,6 +2289,7 @@ export function analyze(items, { nodes, capabilities, hosts = { model: [], read:
   for (const W of Ws) askWrites(W, ctx);
   for (const W of Ws) askSites(W, ctx);
   for (const W of Ws) askHosts(W, ctx);
+  for (const W of Ws) askDatabases(W, ctx);
   const all = [...Ws, ...ctx.pseudo];
   all.forEach(snapshotOwn);
   all.forEach((W) => propagate(W));

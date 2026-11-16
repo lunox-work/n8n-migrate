@@ -33,6 +33,7 @@ import { resolveParameter } from "./expression.mjs";
 import { createScope, enterRun } from "./proxy.mjs";
 import { nodeImplFor } from "./nodes.mjs";
 import { normalizePath } from "./files.mjs";
+import { dbRequestEffect } from "./postgres.mjs";
 import { DateTime } from "../vendor/luxon.mjs";
 
 export class Suspend extends Error {
@@ -228,6 +229,18 @@ export function checkContainment(definition, req) {
         throw new ContainmentViolation(`secret "${req.auth.secret}" may not be sent to ${t.host}`, { requestId: req.id });
       }
     }
+  } else if (req.kind === "db") {
+    // A database (postgres.mjs): the connection must be one the definition allows (allow.db:
+    // {engine, host, port, database}), and its secret declared for that host and port.
+    const c = req.connection ?? {};
+    const port = Number(c.port ?? 5432);
+    const ok = (allow.db || []).some((a) => a.engine === req.engine && String(a.host).toLowerCase() === String(c.host ?? "").toLowerCase() && Number(a.port ?? 5432) === port && a.database === c.database);
+    if (!ok) throw new ContainmentViolation(`database ${req.engine} ${c.host}:${port}/${c.database} is not in the definition's allowlist`, { requestId: req.id });
+    if (req.secret) {
+      const secret = (definition.secrets || []).find((s) => s.name === req.secret);
+      if (!secret) throw new ContainmentViolation(`secret "${req.secret}" is not declared in the definition`, { requestId: req.id });
+      if (!(secret.hosts ?? []).map((h) => String(h).toLowerCase()).includes(`${String(c.host).toLowerCase()}:${port}`)) throw new ContainmentViolation(`secret "${req.secret}" may not be sent to ${c.host}:${port}`, { requestId: req.id });
+    }
   } else if (req.kind === "file") {
     // Local disk (files.mjs): the path must lie in a directory the definition names for this
     // operation (allow.files: {op, dir}); ".." never climbs out of it.
@@ -315,6 +328,7 @@ export function requestEffect(req) {
   if (req.kind === "file") return req.op === "write" ? "write" : "read";
   if (req.kind === "http") return WRITE_METHODS.has(String(req.method || "GET").toUpperCase()) ? "write" : "read";
   if (req.kind === "tool") return req.effect === "read" ? "read" : "write";
+  if (req.kind === "db") return dbRequestEffect(req);
   // An agent turn has no effect of its own: each tool call it asks for is a separate tool or
   // http request with its own effect entry (nodes2.mjs, executeAgentTool).
   if (req.kind === "agent") return "none";

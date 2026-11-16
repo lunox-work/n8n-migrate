@@ -27,16 +27,16 @@
       "keep-in-n8n": 0
     },
     "targets": {
-      "subscription:cloud-task": 1
+      "subscription:local-task": 1
     },
     "wakeups": {
       "schedule": 1
     },
     "blockers": {},
     "notAnAutomation": 0,
-    "questions": 1,
+    "questions": 2,
     "unmappedTypes": [],
-    "cloudScheduledRunsPerHour": 0.04,
+    "cloudScheduledRunsPerHour": 0,
     "cloudScheduledRunsPerHourLimit": 100,
     "answers": {
       "used": 0,
@@ -66,8 +66,8 @@
       },
       "outcome": {
         "kind": "subscription",
-        "target": "cloud-task",
-        "reason": "fires every 1 d, within a cloud task's limit of one run per 1 h",
+        "target": "local-task",
+        "reason": "fires every 1 d, within a cloud task's limit of one run per 1 h; postgres cannot run in a cloud task, so a local task",
         "alsoTargets": []
       },
       "calledBy": [],
@@ -87,16 +87,16 @@
           }
         },
         {
-          "kind": "db",
+          "kind": "db-client",
           "name": "postgres",
           "nodes": [
             "Read new users",
             "Run statement"
           ],
           "surfaces": {
-            "cloudTask": "needs:db-connector",
-            "localTask": "needs:bundled-server",
-            "artifact": "needs:artifact-mcp"
+            "cloudTask": "no",
+            "localTask": "ok",
+            "artifact": "no"
           }
         },
         {
@@ -114,6 +114,21 @@
         }
       ],
       "questions": [
+        {
+          "id": "sql-effects/database/App DB",
+          "text": "Which Postgres database does the credential \"App DB\" connect to? Give it as a connection URL without the password, from the n8n credential's Host, Port, Database and User fields: postgres://<user>@<host>:<port>/<database> (add ?sslmode=require to use SSL, ?sslmode=no-verify to use SSL without checking the server's certificate). The password is stored as the credential's secret at setup. The steps run SQL with that user's rights, so give it only the rights the workflow needs. A database on your own computer or network (localhost, a private IP, a .local or internal name) makes it a local task.",
+          "nodes": [
+            "Read new users",
+            "Run statement"
+          ],
+          "affects": "allow.db",
+          "answerType": "text",
+          "options": {
+            "<connection URL>": "the database the steps connect to"
+          },
+          "assumed": null,
+          "answer": null
+        },
         {
           "id": "sql-effects/writes",
           "text": "Does \"Run statement\" (SQL built by an expression) change data at the other end? Until you answer, it counts as a write.",

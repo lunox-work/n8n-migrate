@@ -26,7 +26,7 @@ import { methodSupport } from "./extensions.mjs";
 export const RUNTIME_VERSION = "0.1.0";
 export const DEFINITION_SCHEMA_VERSION = 1;
 const STATE_FORMAT = "n8n-to-claude/run-state";
-const KINDS = ["tool", "http", "code", "model", "agent", "state", "sleep", "subflow", "branch", "loop", "logic", "trigger", "respond", "blocked"];
+const KINDS = ["tool", "http", "db", "code", "model", "agent", "state", "sleep", "subflow", "branch", "loop", "logic", "trigger", "respond", "blocked"];
 
 // ---------- definition checks ----------
 
@@ -101,6 +101,10 @@ export function preflight(definition, { availableTools, sourceText, pinned, surf
       continue;
     }
     if (s.files?.disk && (surface === "cloud-task" || surface === "artifact")) err(`$.steps.${name}`, `blocked: ${s.files.disk === "write" ? "writes" : "reads"} files on the local disk, which only a local task has (this is ${surface === "artifact" ? "the artifact page" : "a cloud task"}): run the workflow as a local task`, { step: name });
+    // A database step (postgres.mjs) needs a TCP connection and the vendored client, which only
+    // a task has; and the database the person named at setup.
+    if (s.kind === "db" && surface === "artifact") err(`$.steps.${name}`, "blocked: a database step connects to the database from the runtime folder, which the artifact page cannot: run the workflow as a task", { step: name });
+    if (s.kind === "db" && !(s.db?.connection?.host && s.db?.connection?.database)) err(`$.steps.${name}.db`, `needs the database its credential "${s.db?.credential ?? "?"}" connects to (the setup question for the credential)`, { step: name });
     if (s.files?.lib && surface === "artifact") err(`$.steps.${name}`, `blocked: ${s.files.lib === "pdfjs" ? "PDF text extraction (pdf.js)" : "spreadsheet files (SheetJS)"} loads a library from the runtime folder, which the artifact page cannot: run the workflow as a task`, { step: name });
     if (s.n8n.type === "n8n-nodes-base.executeWorkflow" && !s.subflow) err(`$.steps.${name}`, "the sub-workflow is not in the definition (only inline and self-referencing sub-workflows run)", { step: name });
     if (s.kind === "blocked") err(`$.steps.${name}`, `blocked: ${s.blocked?.reason ?? "no reason given"}`, { step: name });
@@ -121,6 +125,7 @@ export function preflight(definition, { availableTools, sourceText, pinned, surf
     if (s.kind === "agent") {
       for (const sub of (definition.subnodes ?? []).filter((x) => x.to === name && x.type === "ai_tool")) {
         const ts = steps[sub.from];
+        if (ts && ts.settings?.disabled !== true && ts.kind === "db" && surface === "artifact") err(`$.steps.${name}.agent`, `blocked: agent tool "${sub.from}" is a database step, which connects from the runtime folder; the artifact page cannot: run the workflow as a task`, { step: name });
         if (!ts || ts.settings?.disabled === true || ts.kind !== "blocked") continue;
         err(`$.steps.${name}.agent`, `blocked: agent tool "${sub.from}" cannot be carried (${ts.blocked?.reason ?? "no reason given"}); without it the agent would answer without a tool n8n gives it`, { step: name });
       }

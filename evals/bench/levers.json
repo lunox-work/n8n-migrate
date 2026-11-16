@@ -1,6 +1,6 @@
 {
  "$doc": "Missing converter features ranked over n8n's template gallery (evals/bench/levers.mjs; LEVERS.md explains every field). Ids only, no template content.",
- "generated": "2026-11-16",
+ "generated": "2026-11-17",
  "source": "https://api.n8n.io/api/templates/search?rows=50&page=<n>&sort=views:desc (pages 1-20), then https://api.n8n.io/api/templates/workflows/<id>",
  "listingTotal": 14216,
  "listingPages": [
@@ -149,16 +149,16 @@
   "inScope": 506,
   "supportedToday": 170,
   "fullClass": 103,
-  "answersOnly": 48,
-  "blocked": 288,
+  "answersOnly": 51,
+  "blocked": 285,
   "crashes": 0
  },
  "dev": {
   "templates": 120,
   "unnamed": 0,
   "supportedToday": 46,
-  "answersOnly": 19,
-  "blocked": 55,
+  "answersOnly": 22,
+  "blocked": 52,
   "missing": 0,
   "filled": 27
  },
@@ -188,20 +188,20 @@
    "devTotal": 13
   },
   {
-   "group": "db",
-   "keys": 13,
-   "galleryUnlock": 17,
-   "galleryTotal": 27,
-   "devUnlock": 7,
-   "devTotal": 8
-  },
-  {
    "group": "http",
    "keys": 4,
    "galleryUnlock": 16,
    "galleryTotal": 41,
    "devUnlock": 3,
    "devTotal": 4
+  },
+  {
+   "group": "db",
+   "keys": 12,
+   "galleryUnlock": 14,
+   "galleryTotal": 24,
+   "devUnlock": 4,
+   "devTotal": 5
   },
   {
    "group": "files",
@@ -296,15 +296,6 @@
    "planned": "rest-template"
   },
   {
-   "group": "n8n-nodes-base.postgres",
-   "keys": 5,
-   "galleryUnlock": 10,
-   "galleryTotal": 14,
-   "devUnlock": 4,
-   "devTotal": 4,
-   "planned": "db"
-  },
-  {
    "group": "n8n-nodes-base.googleSheets",
    "keys": 8,
    "galleryUnlock": 9,
@@ -321,6 +312,15 @@
    "devUnlock": 0,
    "devTotal": 2,
    "planned": "rest-template"
+  },
+  {
+   "group": "n8n-nodes-base.postgres",
+   "keys": 4,
+   "galleryUnlock": 7,
+   "galleryTotal": 11,
+   "devUnlock": 1,
+   "devTotal": 1,
+   "planned": "db"
   },
   {
    "group": "@n8n/n8n-nodes-langchain.openAi",
@@ -1319,7 +1319,7 @@
    "kinds": [
     "unsupported"
    ],
-   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "reason": "unsupported: Postgres insert is not carried by the runtime yet (executeQuery is)",
    "galleryAlone": 3,
    "galleryTotal": 7,
    "devUnlock": 0,
@@ -1369,26 +1369,6 @@
     "galleryTotal": [1819, 1939, 2151, 2354],
     "devUnlock": [2354],
     "devTotal": [2354]
-   }
-  },
-  {
-   "key": "n8n-nodes-base.postgresTool executeQuery",
-   "type": "n8n-nodes-base.postgresTool",
-   "op": "executeQuery",
-   "planned": "db",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
-   "galleryAlone": 3,
-   "galleryTotal": 3,
-   "devUnlock": 3,
-   "devTotal": 3,
-   "ids": {
-    "galleryAlone": [2090, 2612, 2859],
-    "galleryTotal": [2090, 2612, 2859],
-    "devUnlock": [2090, 2612, 2859],
-    "devTotal": [2090, 2612, 2859]
    }
   },
   {
@@ -3966,7 +3946,7 @@
    "kinds": [
     "unsupported"
    ],
-   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "reason": "unsupported: Postgres select is not carried by the runtime yet (executeQuery is)",
    "galleryAlone": 0,
    "galleryTotal": 2,
    "devUnlock": 0,
@@ -3986,7 +3966,7 @@
    "kinds": [
     "unsupported"
    ],
-   "reason": "unsupported: a database step needs the bundled server or a database connector (open decision N)",
+   "reason": "unsupported: Postgres update is not carried by the runtime yet (executeQuery is)",
    "galleryAlone": 0,
    "galleryTotal": 2,
    "devUnlock": 0,

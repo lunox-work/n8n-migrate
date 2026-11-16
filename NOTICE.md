@@ -74,6 +74,17 @@ the software works with.
   `JSONLoader` (@langchain/classic 1.0.27), the text splitters (@langchain/textsplitters 1.0.1)
   and f-string prompt templates (@langchain/core 1.2.8); `scripts/convert.mjs` carries
   LangChain's structured-chat (ReAct) prompt texts. MIT License, copyright LangChain, Inc.
+- `skills/n8n-to-claude/runtime/vendor/pg/` (copied into a migrated folder only when it has a
+  Postgres step): [node-postgres](https://github.com/brianc/node-postgres) pg 8.21.0 with
+  pg-pool 3.14.0, pg-protocol 1.15.0, pg-connection-string 2.14.0, pg-types 2.2.0, pgpass 1.0.5,
+  postgres-array 2.0.0, postgres-bytea 1.0.0, postgres-date 1.0.7, postgres-interval 1.2.0 and
+  xtend 4.0.2 (MIT License; copyright Brian Carlson and the packages' authors), pg-int8 1.0.1
+  and split2 4.2.0 (ISC License), the npm tarballs' files unmodified; licences and checksums
+  beside them (`LICENSES.txt` for the two packages that ship no licence file).
+- `skills/n8n-to-claude/runtime/src/pgformat.mjs`: a port of
+  [pg-promise](https://github.com/vitaly-t/pg-promise) 11.9.1's query formatting and
+  `helpers.concat` (MIT License, copyright 2015–2018 Vitaly Tomilov); licence in the file's
+  header.
 - `assets/src/fonts/`: DM Mono, DM Sans and Space Grotesk, SIL Open Font
   License 1.1. Used only to render the README images.
 

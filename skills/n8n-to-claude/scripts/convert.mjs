@@ -52,14 +52,15 @@
 //   is built from the steps and kept as tight as the parameters allow.
 // - Zero dependencies, Node >= 20.
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, rmSync, renameSync, readdirSync, realpathSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, cpSync, rmSync, renameSync, readdirSync, realpathSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, join, resolve, basename } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { execFileSync } from "node:child_process";
-import { analyze, loadInput, unwrap, redactSecrets, legacyCron, simulateCron, parseCron, httpTarget, SITE_CREDENTIALS } from "./analyze.mjs";
+import { analyze, loadInput, unwrap, redactSecrets, legacyCron, simulateCron, parseCron, httpTarget, SITE_CREDENTIALS, DB_RUNTIME_OPS, dbConnection } from "./analyze.mjs";
 import { fromN8n, urlTarget, writtenTargets } from "../runtime/src/convert.mjs";
 import { preflight, expressionSupport, nodeImplFor, definitionHash, RUNTIME_VERSION } from "../runtime/src/api.mjs";
+import { isSelectQuery } from "../runtime/src/postgres.mjs";
 import { ALERT_TOOLS } from "../runtime/src/alerts.mjs";
 
 const ALERT_TOOL_KEYS = Object.keys(ALERT_TOOLS);
@@ -833,6 +834,34 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
     if (type === "iCal") return "iCalendar files are not implemented yet";
     return `${shortType(step.n8n.type)} is not implemented yet`;
   };
+  // A Postgres v2 step the runtime carries (postgres.mjs): kind "db", step.db = {engine,
+  // operation, credential, secret, connection, effect}; allow.db names the database and the
+  // secret may go only to its host and port. Returns null, a reason it stays blocked, or
+  // {incomplete} while the credential's database question is unanswered.
+  const dbStep = (name, step, params, v, baseType) => {
+    const spec = DB_RUNTIME_OPS[baseType];
+    const op = params.operation ?? spec.defaultOperation;
+    if (!(v >= spec.versions[0] && v < spec.versions[1])) return `${spec.label} v${v} is not carried by the runtime (v2 is)`;
+    if ((params.resource ?? "database") !== "database") return `${spec.label} ${params.resource} is not supported`;
+    if (!spec.operations.includes(op)) return `${spec.label} ${op} is not carried by the runtime yet (${spec.operations.join(", ")} is)`;
+    const cred = step.credentials?.postgres;
+    if (!cred) return { incomplete: `the step names no ${spec.label} credential, so the database it connects to is unknown` };
+    const q = (report?.workflows ?? []).flatMap((w) => w.questions ?? []).find((x) => x.id.endsWith(`/database/${cred}`));
+    const connection = q && typeof q.answer === "string" ? dbConnection(q.answer) : null;
+    if (!connection) return { incomplete: `the database the credential "${cred}" connects to is not known yet: answer question ${q?.id ?? `<workflow>/database/${cred}`} (a postgres:// URL without the password), then regenerate` };
+    const query = typeof params.query === "string" ? params.query : "";
+    const literal = op === "executeQuery" && !/\{\{/.test(query) && !String(params.options?.queryReplacement ?? "").includes("{{");
+    const effect = literal && isSelectQuery(query) ? "read" : "write";
+    step.kind = "db";
+    delete step.blocked;
+    step.db = { engine: "postgres", operation: op, credential: cred, secret: cred, connection, effect, fidelity: "exact" };
+    allow.db ??= [];
+    if (!allow.db.some((a) => a.engine === "postgres" && a.host === connection.host && a.port === connection.port && a.database === connection.database)) allow.db.push({ engine: "postgres", host: connection.host, port: connection.port, database: connection.database });
+    addSecret(cred, "postgres", `${connection.host}:${connection.port}`);
+    if (/\$fromAI\s*\(/.test(query)) review(step, "the model writes the SQL this step runs; it runs with the rights of the database user you name, so give that user only what the workflow needs (read-only for lookups)");
+    else if (effect === "write") review(step, "runs SQL that may change the database (built from data or not only SELECT statements): check it against a copy first");
+    return null;
+  };
   const addSecret = (name, credentialType, host) => {
     const s = secrets.get(name) ?? { name, credentialType, hosts: [] };
     if (host && host !== "*" && !s.hosts.includes(host)) s.hosts.push(host);
@@ -1140,6 +1169,17 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         applyMap(name, step, found, params);
         continue;
       }
+    }
+
+    // Database steps the runtime runs itself (runtime postgres.mjs, analyze.mjs DB_RUNTIME_OPS):
+    // a step or an agent tool, the n8n parameters kept, the connection from the answer to the
+    // credential's database question.
+    if (info.kind === "db" && Object.prototype.hasOwnProperty.call(DB_RUNTIME_OPS, baseType) && !offBranch) {
+      const why = dbStep(name, step, params, v, baseType);
+      if (!why) continue;
+      if (why.incomplete) block(step, "input-incomplete", why.incomplete);
+      else block(step, "unsupported", why);
+      continue;
     }
 
     // Levers the analyzer knows but the runtime does not have yet.
@@ -1481,6 +1521,12 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       } else if (ts.n8n.type === LC + "toolHttpRequest" || ts.n8n.type === BASE + "httpRequestTool") {
         const built = buildHttpTool(tn, ts, review, addHttp, addSecret, refs);
         Object.assign(t, { kind: "http", effect: built.effect, inputSchema: built.inputSchema });
+      } else if (ts.kind === "db" && ts.db) {
+        // A database node tool (runtime postgres.mjs): the node runs with the model's $fromAI()
+        // values and hands back its items' JSON.
+        Object.assign(t, { kind: "db", effect: ts.db.effect });
+        const schema = fromAiSchema(tp);
+        if (schema) t.inputSchema = schema;
       } else if (ts.kind === "http" && (ts.rest || ts.http)) {
         // A node tool the first pass mapped to the app's REST API (a request template or a
         // REST program): the runner makes the requests with the model's $fromAI() values.
@@ -2207,12 +2253,18 @@ function writeJson(path, data) {
 export const RUNTIME_FILES = ["runner-core.mjs", "runner.mjs", "luxon.mjs", "driver.mjs", "hook.mjs", "store.mjs"];
 // The vendored libraries a file step loads (runtime/src/files.mjs), copied only when the
 // definition has such a step, with their licences; an old copy is removed when it has none.
-export const VENDOR_LIBS = { pdfjs: ["pdf.min.mjs", "pdf.worker.min.mjs", "LICENSE", "SOURCE.txt"], xlsx: ["xlsx.mjs", "LICENSE", "SOURCE.txt"] };
+export const VENDOR_LIBS = { pdfjs: ["pdf.min.mjs", "pdf.worker.min.mjs", "LICENSE", "SOURCE.txt"], xlsx: ["xlsx.mjs", "LICENSE", "SOURCE.txt"], pg: ["node_modules", "SOURCE.txt", "LICENSES.txt"] };
+// The Node files a database step's host needs beside the runner (runtime pgclient.mjs).
+const DB_RUNTIME_FILES = ["pgclient.mjs"];
 export function writeRuntime(dir, def) {
   const rt = join(dir, "runtime");
   mkdirSync(rt, { recursive: true });
   for (const f of RUNTIME_FILES) copyFileSync(join(SKILL, "runtime", "dist", f), join(rt, f));
-  const want = new Set(Object.values(def?.steps ?? {}).map((st) => st.files?.lib).filter(Boolean));
+  const want = new Set(Object.values(def?.steps ?? {}).map((st) => st.files?.lib ?? (st.kind === "db" && st.db?.engine === "postgres" ? "pg" : null)).filter(Boolean));
+  for (const f of DB_RUNTIME_FILES) {
+    if (want.has("pg")) copyFileSync(join(SKILL, "runtime", "dist", f), join(rt, f));
+    else if (existsSync(join(rt, f))) rmSync(join(rt, f), { force: true });
+  }
   for (const [name, files] of Object.entries(VENDOR_LIBS)) {
     const to = join(rt, "vendor", name);
     if (!want.has(name)) {
@@ -2220,7 +2272,7 @@ export function writeRuntime(dir, def) {
       continue;
     }
     mkdirSync(to, { recursive: true });
-    for (const f of files) copyFileSync(join(SKILL, "runtime", "vendor", name, f), join(to, f));
+    for (const f of files) cpSync(join(SKILL, "runtime", "vendor", name, f), join(to, f), { recursive: true });
   }
   if (existsSync(join(rt, "vendor")) && !readdirSync(join(rt, "vendor")).length) rmSync(join(rt, "vendor"), { recursive: true, force: true });
   writeFileSync(join(rt, "VERSION"), `skill ${skillCommit()}\nruntime ${RUNTIME_VERSION}\nconverter ${CONVERTER_VERSION}\n`);
