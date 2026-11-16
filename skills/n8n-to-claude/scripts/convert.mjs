@@ -843,7 +843,7 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
     const op = params.operation ?? spec.defaultOperation;
     if (!(v >= spec.versions[0] && v < spec.versions[1])) return `${spec.label} v${v} is not carried by the runtime (v2 is)`;
     if ((params.resource ?? "database") !== "database") return `${spec.label} ${params.resource} is not supported`;
-    if (!spec.operations.includes(op)) return `${spec.label} ${op} is not carried by the runtime yet (${spec.operations.join(", ")} is)`;
+    if (!spec.operations.includes(op)) return `${spec.label} ${op} is not carried by the runtime yet (it carries ${spec.operations.join(", ")})`;
     const cred = step.credentials?.postgres;
     if (!cred) return { incomplete: `the step names no ${spec.label} credential, so the database it connects to is unknown` };
     const q = (report?.workflows ?? []).flatMap((w) => w.questions ?? []).find((x) => x.id.endsWith(`/database/${cred}`));
@@ -851,7 +851,8 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
     if (!connection) return { incomplete: `the database the credential "${cred}" connects to is not known yet: answer question ${q?.id ?? `<workflow>/database/${cred}`} (a postgres:// URL without the password), then regenerate` };
     const query = typeof params.query === "string" ? params.query : "";
     const literal = op === "executeQuery" && !/\{\{/.test(query) && !String(params.options?.queryReplacement ?? "").includes("{{");
-    const effect = literal && isSelectQuery(query) ? "read" : "write";
+    // A table operation's effect is its name's (n8n builds the SQL); executeQuery's is its text's.
+    const effect = op === "executeQuery" ? (literal && isSelectQuery(query) ? "read" : "write") : op === "select" ? "read" : "write";
     step.kind = "db";
     delete step.blocked;
     step.db = { engine: "postgres", operation: op, credential: cred, secret: cred, connection, effect, fidelity: "exact" };
@@ -859,7 +860,8 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
     if (!allow.db.some((a) => a.engine === "postgres" && a.host === connection.host && a.port === connection.port && a.database === connection.database)) allow.db.push({ engine: "postgres", host: connection.host, port: connection.port, database: connection.database });
     addSecret(cred, "postgres", `${connection.host}:${connection.port}`);
     if (/\$fromAI\s*\(/.test(query)) review(step, "the model writes the SQL this step runs; it runs with the rights of the database user you name, so give that user only what the workflow needs (read-only for lookups)");
-    else if (effect === "write") review(step, "runs SQL that may change the database (built from data or not only SELECT statements): check it against a copy first");
+    else if (op === "executeQuery" && effect === "write") review(step, "runs SQL that may change the database (built from data or not only SELECT statements): check it against a copy first");
+    else if (op === "deleteTable") review(step, "deletes rows, empties or drops the table it names: check it against a copy first");
     return null;
   };
   const addSecret = (name, credentialType, host) => {

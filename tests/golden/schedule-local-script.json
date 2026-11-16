@@ -34,7 +34,7 @@
     },
     "blockers": {},
     "notAnAutomation": 0,
-    "questions": 0,
+    "questions": 1,
     "unmappedTypes": [],
     "cloudScheduledRunsPerHour": 0,
     "cloudScheduledRunsPerHourLimit": 100,
@@ -110,15 +110,15 @@
           }
         },
         {
-          "kind": "db",
+          "kind": "db-client",
           "name": "postgres",
           "nodes": [
             "Insert rows"
           ],
           "surfaces": {
-            "cloudTask": "needs:db-connector",
-            "localTask": "needs:bundled-server",
-            "artifact": "needs:artifact-mcp"
+            "cloudTask": "no",
+            "localTask": "ok",
+            "artifact": "no"
           }
         },
         {
@@ -135,7 +135,22 @@
           }
         }
       ],
-      "questions": [],
+      "questions": [
+        {
+          "id": "schedule-local-script/database/Warehouse DB",
+          "text": "Which Postgres database does the credential \"Warehouse DB\" connect to? Give it as a connection URL without the password, from the n8n credential's Host, Port, Database and User fields: postgres://<user>@<host>:<port>/<database> (add ?sslmode=require to use SSL, ?sslmode=no-verify to use SSL without checking the server's certificate). The password is stored as the credential's secret at setup. The steps run SQL with that user's rights, so give it only the rights the workflow needs. A database on your own computer or network (localhost, a private IP, a .local or internal name) makes it a local task.",
+          "nodes": [
+            "Insert rows"
+          ],
+          "affects": "allow.db",
+          "answerType": "text",
+          "options": {
+            "<connection URL>": "the database the steps connect to"
+          },
+          "assumed": null,
+          "answer": null
+        }
+      ],
       "blockers": [],
       "credentials": [
         {

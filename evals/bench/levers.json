@@ -149,16 +149,16 @@
   "inScope": 506,
   "supportedToday": 170,
   "fullClass": 103,
-  "answersOnly": 51,
-  "blocked": 285,
+  "answersOnly": 53,
+  "blocked": 283,
   "crashes": 0
  },
  "dev": {
   "templates": 120,
   "unnamed": 0,
   "supportedToday": 46,
-  "answersOnly": 22,
-  "blocked": 52,
+  "answersOnly": 23,
+  "blocked": 51,
   "missing": 0,
   "filled": 27
  },
@@ -196,20 +196,20 @@
    "devTotal": 4
   },
   {
-   "group": "db",
-   "keys": 12,
-   "galleryUnlock": 14,
-   "galleryTotal": 24,
-   "devUnlock": 4,
-   "devTotal": 5
-  },
-  {
    "group": "files",
    "keys": 10,
    "galleryUnlock": 13,
    "galleryTotal": 27,
    "devUnlock": 4,
    "devTotal": 5
+  },
+  {
+   "group": "db",
+   "keys": 11,
+   "galleryUnlock": 12,
+   "galleryTotal": 21,
+   "devUnlock": 3,
+   "devTotal": 4
   },
   {
    "group": "vector",
@@ -230,7 +230,7 @@
   {
    "group": "core",
    "keys": 6,
-   "galleryUnlock": 3,
+   "galleryUnlock": 4,
    "galleryTotal": 21,
    "devUnlock": 0,
    "devTotal": 2
@@ -314,15 +314,6 @@
    "planned": "rest-template"
   },
   {
-   "group": "n8n-nodes-base.postgres",
-   "keys": 4,
-   "galleryUnlock": 7,
-   "galleryTotal": 11,
-   "devUnlock": 1,
-   "devTotal": 1,
-   "planned": "db"
-  },
-  {
    "group": "@n8n/n8n-nodes-langchain.openAi",
    "keys": 6,
    "galleryUnlock": 6,
@@ -357,6 +348,15 @@
    "devUnlock": 2,
    "devTotal": 3,
    "planned": "files"
+  },
+  {
+   "group": "n8n-nodes-base.postgres",
+   "keys": 3,
+   "galleryUnlock": 5,
+   "galleryTotal": 8,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "db"
   },
   {
    "group": "n8n-nodes-base.form",
@@ -422,6 +422,15 @@
    "planned": "db"
   },
   {
+   "group": "n8n-nodes-base.compareDatasets",
+   "keys": 2,
+   "galleryUnlock": 3,
+   "galleryTotal": 5,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "planned": "core"
+  },
+  {
    "group": "n8n-nodes-base.jira",
    "keys": 7,
    "galleryUnlock": 3,
@@ -474,15 +483,6 @@
    "devUnlock": 0,
    "devTotal": 0,
    "planned": "rest-template"
-  },
-  {
-   "group": "n8n-nodes-base.compareDatasets",
-   "keys": 2,
-   "galleryUnlock": 2,
-   "galleryTotal": 5,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "planned": "core"
   },
   {
    "group": "n8n-nodes-base.executeCommand",
@@ -1312,26 +1312,6 @@
    }
   },
   {
-   "key": "n8n-nodes-base.postgres insert",
-   "type": "n8n-nodes-base.postgres",
-   "op": "insert",
-   "planned": "db",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: Postgres insert is not carried by the runtime yet (executeQuery is)",
-   "galleryAlone": 3,
-   "galleryTotal": 7,
-   "devUnlock": 0,
-   "devTotal": 1,
-   "ids": {
-    "galleryAlone": [1, 356, 2926],
-    "galleryTotal": [1, 356, 599, 1045, 2081, 2803, 2926],
-    "devUnlock": [],
-    "devTotal": [2803]
-   }
-  },
-  {
    "key": "@n8n/n8n-nodes-langchain.toolSerpApi",
    "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
    "op": "",
@@ -1369,6 +1349,26 @@
     "galleryTotal": [1819, 1939, 2151, 2354],
     "devUnlock": [2354],
     "devTotal": [2354]
+   }
+  },
+  {
+   "key": "n8n-nodes-base.compareDatasets v2.3",
+   "type": "n8n-nodes-base.compareDatasets",
+   "op": "",
+   "planned": "core",
+   "kinds": [
+    "runtime"
+   ],
+   "reason": "runtime: not implemented in the runtime: n8n-nodes-base.compareDatasets vN",
+   "galleryAlone": 3,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [1943, 2081, 4557],
+    "galleryTotal": [1943, 1964, 2081, 4557],
+    "devUnlock": [],
+    "devTotal": []
    }
   },
   {
@@ -1594,26 +1594,6 @@
    }
   },
   {
-   "key": "n8n-nodes-base.compareDatasets v2.3",
-   "type": "n8n-nodes-base.compareDatasets",
-   "op": "",
-   "planned": "core",
-   "kinds": [
-    "runtime"
-   ],
-   "reason": "runtime: not implemented in the runtime: n8n-nodes-base.compareDatasets vN",
-   "galleryAlone": 2,
-   "galleryTotal": 4,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [1943, 4557],
-    "galleryTotal": [1943, 1964, 2081, 4557],
-    "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
    "key": "n8n-nodes-base.googleDrive file:move",
    "type": "n8n-nodes-base.googleDrive",
    "op": "file:move",
@@ -1629,6 +1609,26 @@
    "ids": {
     "galleryAlone": [2393, 4376],
     "galleryTotal": [2393, 2469, 3647, 4376],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.postgres insert",
+   "type": "n8n-nodes-base.postgres",
+   "op": "insert",
+   "planned": "db",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: Postgres v1 is not carried by the runtime (v2 is)",
+   "galleryAlone": 2,
+   "galleryTotal": 4,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [1, 356],
+    "galleryTotal": [1, 356, 599, 1045],
     "devUnlock": [],
     "devTotal": []
    }
@@ -3939,46 +3939,6 @@
    }
   },
   {
-   "key": "n8n-nodes-base.postgres select",
-   "type": "n8n-nodes-base.postgres",
-   "op": "select",
-   "planned": "db",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: Postgres select is not carried by the runtime yet (executeQuery is)",
-   "galleryAlone": 0,
-   "galleryTotal": 2,
-   "devUnlock": 0,
-   "devTotal": 1,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [2081, 2803],
-    "devUnlock": [],
-    "devTotal": [2803]
-   }
-  },
-  {
-   "key": "n8n-nodes-base.postgres update",
-   "type": "n8n-nodes-base.postgres",
-   "op": "update",
-   "planned": "db",
-   "kinds": [
-    "unsupported"
-   ],
-   "reason": "unsupported: Postgres update is not carried by the runtime yet (executeQuery is)",
-   "galleryAlone": 0,
-   "galleryTotal": 2,
-   "devUnlock": 0,
-   "devTotal": 0,
-   "ids": {
-    "galleryAlone": [],
-    "galleryTotal": [357, 2081],
-    "devUnlock": [],
-    "devTotal": []
-   }
-  },
-  {
    "key": "n8n-nodes-base.s3 file:upload",
    "type": "n8n-nodes-base.s3",
    "op": "file:upload",
@@ -5854,6 +5814,26 @@
    "ids": {
     "galleryAlone": [],
     "galleryTotal": [1822],
+    "devUnlock": [],
+    "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.postgres update",
+   "type": "n8n-nodes-base.postgres",
+   "op": "update",
+   "planned": "db",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: Postgres v1 is not carried by the runtime (v2 is)",
+   "galleryAlone": 0,
+   "galleryTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
+   "ids": {
+    "galleryAlone": [],
+    "galleryTotal": [357],
     "devUnlock": [],
     "devTotal": []
    }

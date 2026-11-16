@@ -321,6 +321,33 @@ export function diffTables(before = {}, after = {}, engine = "postgres") {
   return out;
 }
 
+// PROPOSALS P130: a row a run inserted takes the database's own clock in a column whose default
+// is the current time (now(), CURRENT_TIMESTAMP, ...) when the write leaves the column out, so
+// its value is the moment of that side's run and never equal across sides. Such a value, when it
+// lies within the side's run (the server's clock at the seed and at the collect, a second of
+// slack), is replaced by DB_CLOCK and the column named in `generated`; a value the workflow
+// wrote itself (outside the run's window) is kept and compared as written.
+export const DB_CLOCK = "<database clock at insert>";
+export const PG_CLOCK_DEFAULTS_SQL = `SELECT coalesce(json_object_agg(t, cols), '{}'::json) FROM (SELECT table_schema || '.' || table_name AS t, json_agg(column_name ORDER BY ordinal_position) AS cols FROM information_schema.columns WHERE table_schema NOT IN ('pg_catalog', 'information_schema') AND column_default ~* '^(now\\(\\)|current_timestamp|localtimestamp|current_date|transaction_timestamp\\(\\)|statement_timestamp\\(\\)|clock_timestamp\\(\\))' GROUP BY 1) x;`;
+export function markClockDefaults(changes, clockColumns = {}, from, to) {
+  const lo = Date.parse(from) - 1000;
+  const hi = Date.parse(to) + 1000;
+  if (!Number.isFinite(lo) || !Number.isFinite(hi)) return changes;
+  const inRun = (v) => {
+    if (typeof v !== "string") return false;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return [from, to].some((x) => String(x).slice(0, 10) === v);
+    const t = Date.parse(v);
+    return Number.isFinite(t) && t >= lo && t <= hi;
+  };
+  return changes.map((c) => {
+    const cols = c.op === "insert" ? (clockColumns[c.table] ?? []).filter((k) => inRun(c.row?.[k])) : [];
+    return cols.length ? { ...c, row: { ...c.row, ...Object.fromEntries(cols.map((k) => [k, DB_CLOCK])) }, generated: cols } : c;
+  });
+}
+function pgClock(database, container) {
+  return psql(database, "SELECT to_json(clock_timestamp());", { container }).trim().replace(/^"|"$/g, "");
+}
+
 // MongoDB collections as diffTables tables: documents keyed by _id. A document the run inserted
 // whose _id is an ObjectId the driver generated is marked `generatedId` (its value differs on
 // every run, so the comparer leaves it out).
@@ -468,7 +495,7 @@ export function seedClaudeRun(plan, id) {
     throw new DbSeedError(`postgres seed refused: ${e.message}`);
   }
   const logLines = docker(["exec", CLAUDE_PG.name, "sh", "-c", `wc -l < ${PG_LOG} 2>/dev/null || echo 0`], { allowFail: true }).stdout;
-  return { database, before: pgSnapshot(database, CLAUDE_PG.name), logFrom: Number(String(logLines).trim()) || 0 };
+  return { database, before: pgSnapshot(database, CLAUDE_PG.name), logFrom: Number(String(logLines).trim()) || 0, clockFrom: pgClock(database, CLAUDE_PG.name) };
 }
 // After a Claude-side run: [{engine, op, ...} changes, {engine, sql, ...} statements], the
 // shape claudeEffect()/fromDb() take, statements only from log lines written since the seed.
@@ -476,7 +503,9 @@ export function collectClaudeRun(state) {
   if (!state) return [];
   const text = docker(["exec", CLAUDE_PG.name, "sh", "-c", `tail -n +${state.logFrom + 1} ${PG_LOG}`], { allowFail: true }).stdout ?? "";
   const statements = pgStatements(text, { database: state.database }).map((st) => ({ engine: "postgres", ...st, tables: sqlTables(st.sql) }));
-  return [...diffTables(state.before, pgSnapshot(state.database, CLAUDE_PG.name), "postgres"), ...statements];
+  const changes = diffTables(state.before, pgSnapshot(state.database, CLAUDE_PG.name), "postgres");
+  const clockColumns = JSON.parse(psql(state.database, PG_CLOCK_DEFAULTS_SQL, { container: CLAUDE_PG.name }).trim() || "{}");
+  return [...markClockDefaults(changes, clockColumns, state.clockFrom, pgClock(state.database, CLAUDE_PG.name)), ...statements];
 }
 
 // The n8n credential data for each engine of a plan (n8n 2.47.7 credential property names).
@@ -510,7 +539,7 @@ export function seedRun(plan) {
     } catch (e) {
       throw new DbSeedError(`postgres seed refused: ${e.message}`);
     }
-    state.postgres = { before: pgSnapshot(db) };
+    state.postgres = { before: pgSnapshot(db), clockFrom: pgClock(db) };
   }
   if (plan.mongodb) {
     const input = JSON.stringify({ database: plan.mongodb.database, collections: plan.mongodb.collections });
@@ -544,7 +573,8 @@ export function collectRun(plan, state) {
   if (plan.postgres && state.postgres) {
     const db = plan.postgres.database;
     for (const s of pgStatements(docker(["exec", SIDECARS.postgres.name, "cat", PG_LOG], { allowFail: true }).stdout ?? "", { database: db })) statements.push({ engine: "postgres", ...s, tables: sqlTables(s.sql) });
-    changes.push(...diffTables(state.postgres.before, pgSnapshot(db), "postgres"));
+    const clockColumns = JSON.parse(psql(db, PG_CLOCK_DEFAULTS_SQL).trim() || "{}");
+    changes.push(...markClockDefaults(diffTables(state.postgres.before, pgSnapshot(db), "postgres"), clockColumns, state.postgres.clockFrom, pgClock(db)));
   }
   if (plan.mongodb && state.mongodb) {
     const out = mongosh(`${MONGO_SNAPSHOT}

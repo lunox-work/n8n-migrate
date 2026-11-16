@@ -1123,12 +1123,13 @@ function askSites(W, ctx) {
 }
 
 // Database steps the runtime runs itself (runtime postgres.mjs, with the vendored node-postgres
-// in a task): the Postgres node v2's executeQuery, as a step or an agent tool. The connection
+// in a task): the Postgres node v2's executeQuery and table operations (select, insert, update,
+// upsert, deleteTable), as a step or an agent tool. The connection
 // lives in the n8n credential (host, port, database, user, password, SSL), which an export never
 // carries, so one question per such credential asks for it as a connection URL without the
 // password (the password is the credential's stored secret). A database on a local address
 // adds a local-network requirement, as a site answer does.
-export const DB_RUNTIME_OPS = { "n8n-nodes-base.postgres": { versions: [2, 3], operations: ["executeQuery"], defaultOperation: "insert", label: "Postgres" } };
+export const DB_RUNTIME_OPS = { "n8n-nodes-base.postgres": { versions: [2, 3], operations: ["executeQuery", "select", "insert", "update", "upsert", "deleteTable"], defaultOperation: "insert", label: "Postgres" } };
 export function dbRuntimeStep(d) {
   const spec = Object.prototype.hasOwnProperty.call(DB_RUNTIME_OPS, d?.baseType ?? "") ? DB_RUNTIME_OPS[d.baseType] : null;
   if (!spec) return null;

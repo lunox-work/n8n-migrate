@@ -87,6 +87,15 @@ export async function runDb(req, { password = undefined, connectionTimeoutMs = 3
     if (tx) await client.query("BEGIN");
     let failed = false;
     for (const text of texts) {
+      // A query the core could not format ({error} in place of its text) fails where it stands.
+      if (typeof text !== "string") {
+        runs.push({ error: { message: String(text?.error?.message ?? "the query could not be formatted") } });
+        if (tx) {
+          failed = true;
+          break;
+        }
+        continue;
+      }
       try {
         runs.push({ results: asList(await client.query(text)) });
       } catch (e) {

@@ -170,3 +170,22 @@ test("P66: database changes are writes compared field by field; statements are r
   assert.equal(diff.ok, false);
   assert.deepEqual(diff.writes.fieldDiffs[0].diffs.map((d) => d.field), ["status"]);
 });
+
+test("P130: an inserted row's clock-default column filled within the side's run is the database clock; a value the workflow wrote is kept", () => {
+  const ins = (row) => ({ engine: "postgres", op: "insert", table: "public.t", key: { id: 1 }, row: { id: 1, ...row } });
+  const from = "2026-11-17T08:00:00.100+00:00";
+  const to = "2026-11-17T08:00:04.900+00:00";
+  const [a, b, c, d] = D.markClockDefaults(
+    [ins({ at: "2026-11-17T08:00:02.5+00:00", day: "2026-11-17" }), ins({ at: "2026-11-16T10:05:00+00:00" }), { engine: "postgres", op: "update", table: "public.t", key: { id: 1 }, set: { at: "2026-11-17T08:00:02+00:00" } }, ins({ at: "2026-11-17T08:00:02+00:00" })],
+    { "public.t": ["at", "day"] },
+    from,
+    to,
+  );
+  assert.deepEqual(a.row, { id: 1, at: D.DB_CLOCK, day: D.DB_CLOCK });
+  assert.deepEqual(a.generated, ["at", "day"]);
+  assert.equal(b.row.at, "2026-11-16T10:05:00+00:00", "outside the run's window: written by the workflow, compared as written");
+  assert.equal(c.set.at, "2026-11-17T08:00:02+00:00", "only inserts take a column default");
+  assert.equal(d.row.at, D.DB_CLOCK);
+  assert.equal(D.markClockDefaults([ins({ at: "2026-11-17T08:00:02+00:00" })], {}, from, to)[0].row.at, "2026-11-17T08:00:02+00:00", "a column without a clock default is kept");
+  assert.match(D.PG_CLOCK_DEFAULTS_SQL, /column_default ~\* '\^\(now\\\(\\\)\|current_timestamp/);
+});

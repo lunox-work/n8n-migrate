@@ -1,4 +1,4 @@
-// The Postgres node v2's executeQuery as the runtime runs it (runtime postgres.mjs, pgformat.mjs,
+// The Postgres node v2's executeQuery and table operations as the runtime runs them (runtime postgres.mjs, pgformat.mjs,
 // pgclient.mjs), expectations read from n8n 2.47.7's node and pg-promise 11.9.1. The host is a
 // stand-in here; the bench runs the same code against Postgres 17 (PROPOSALS P129).
 import { test } from "node:test";
@@ -8,7 +8,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { wf, node, run, out } from "./runtime-helpers.mjs";
 import { concatQueries, formatQuery } from "../skills/n8n-to-claude/runtime/src/pgformat.mjs";
-import { isSelectQuery, timestampISO, legacyDateValue, arrayElements, dbRequestEffect } from "../skills/n8n-to-claude/runtime/src/postgres.mjs";
+import { isSelectQuery, timestampISO, legacyDateValue, arrayElements, dbRequestEffect, tableDefaults } from "../skills/n8n-to-claude/runtime/src/postgres.mjs";
 import { checkContainment, requestEffect } from "../skills/n8n-to-claude/runtime/src/engine.mjs";
 import { sslOption, loadPg } from "../skills/n8n-to-claude/runtime/src/pgclient.mjs";
 import { executeDb } from "../skills/n8n-to-claude/runtime/src/driver.mjs";
@@ -22,6 +22,11 @@ const pgStep = (name, params, v = 2.5) => {
 };
 const def = (params, v) => wf([node("Start", "manualTrigger"), pgStep("Query", params, v)], [["Start", "Query"]], { allow: { tools: [], http: [], sql: [], db: [{ engine: "postgres", host: CONN.host, port: 5432, database: "shop" }] }, secrets: [{ name: "DB", credentialType: "postgres", hosts: ["db.example.com:5432"] }] });
 const field = (name, dataTypeID) => ({ name, dataTypeID });
+const tdef = (params, v = 2.5, settings = {}) => {
+  const [n, step] = node("PG", "postgres", params, { v, kind: "db", settings });
+  step.db = { engine: "postgres", operation: params.operation, credential: "DB", secret: "DB", connection: CONN, effect: "write" };
+  return wf([node("Start", "manualTrigger"), [n, step]], [["Start", "PG"]], { allow: { tools: [], http: [], sql: [], db: [{ engine: "postgres", host: CONN.host, port: 5432, database: "shop" }] }, secrets: [{ name: "DB", credentialType: "postgres", hosts: ["db.example.com:5432"] }] });
+};
 
 test("pg-promise formatting: values written into the text, partial leaves the rest, concat trims and joins", () => {
   assert.equal(formatQuery("SELECT $1, $2, $3, $4, $5, $6", ["it's", 5, -2.5, true, null, [1, "a"]]), "SELECT 'it''s', 5, (-2.5), true, null, array[1,'a']");
@@ -118,4 +123,94 @@ test("the vendored node-postgres loads from runtime/vendor/pg, and SSL answers m
   assert.equal(sslOption("disable"), false);
   assert.deepEqual(sslOption("no-verify"), { rejectUnauthorized: false });
   assert.equal(sslOption("require"), true);
+});
+
+// Table operations: a host stand-in that answers the information_schema read with `columns`,
+// SELECT EXISTS with `exists`, and every other statement with no rows (or `rows`).
+const COLS = [
+  { column_name: "id", data_type: "integer", is_nullable: "NO", udt_name: "int4", column_default: "nextval('t_id_seq'::regclass)" },
+  { column_name: "name", data_type: "text", is_nullable: "NO", udt_name: "text", column_default: null },
+  { column_name: "tags", data_type: "ARRAY", is_nullable: "YES", udt_name: "_text", column_default: null },
+];
+const tableHost = ({ columns = COLS, exists = true, rows = [] } = {}) => {
+  const texts = [];
+  return {
+    texts,
+    db: async (req) => {
+      texts.push(...req.texts);
+      if (req.mode !== "single") return { runs: req.texts.map(() => ({ results: [{ rows, fields: [] }] })) };
+      const t = req.texts[0];
+      return { results: t.split(";").map((x) => ({ rows: /information_schema/.test(x) ? columns : /SELECT EXISTS/.test(x) ? [{ exists }] : rows, fields: [] })) };
+    },
+  };
+};
+const rl = (value) => ({ __rl: true, mode: "list", value });
+const SCHEMA_Q = "SELECT column_name, data_type, is_nullable, udt_name, column_default FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 't'";
+
+test("table operations: n8n's defaults (schema public, condition equal, limit 50, truncate) filled before the node runs", () => {
+  const p = tableDefaults(2.5, { operation: "select", table: rl("t"), where: { values: [{ column: "a", value: "1" }, { column: "b", condition: "IS NULL" }] }, sort: { values: [{ column: "a" }] } });
+  assert.deepEqual(p.schema, rl("public"));
+  assert.deepEqual(p.where.values, [{ column: "a", condition: "equal", value: "1" }, { column: "b", condition: "IS NULL" }]);
+  assert.deepEqual(p.sort.values, [{ column: "a", direction: "ASC" }]);
+  assert.equal(p.limit, 50);
+  assert.equal(tableDefaults(2.5, { operation: "select", returnAll: true }).limit, undefined, "limit is hidden with Return All");
+  assert.equal(tableDefaults(2.5, { operation: "deleteTable" }).deleteCommand, "truncate");
+  assert.deepEqual(tableDefaults(2.5, { operation: "insert" }).columns, { mappingMode: "defineBelow", value: null });
+  assert.equal(tableDefaults(2.1, { operation: "update", valueToMatchOn: "1" }).valueToMatchOn, undefined, "hidden in auto-map mode, so n8n drops it");
+});
+
+test("select: where, sort and limit as pg-promise placeholders; no rows is no item", async () => {
+  const h = tableHost();
+  const params = { operation: "select", table: rl("t"), where: { values: [{ column: "code", value: "={{ $json.c }}" }, { column: "n", condition: ">", value: "2" }] }, combineConditions: "OR", sort: { values: [{ column: "n", direction: "DESC" }] }, options: {} };
+  const r = await run(tdef(params), { trigger: [{ c: "x'y" }, { c: "z" }], host: h });
+  assert.equal(r.status, "done", JSON.stringify(r.error));
+  assert.deepEqual(h.texts, [`SELECT * FROM "public"."t" WHERE "code" = 'x''y' OR "n" > 2 ORDER BY "n" DESC LIMIT 50;SELECT * FROM "public"."t" WHERE "code" = 'z' OR "n" > 2 ORDER BY "n" DESC LIMIT 50`]);
+  assert.deepEqual(out(r, "PG"), []);
+  const h2 = tableHost({ rows: [{ id: 1 }] });
+  const r2 = await run(tdef({ operation: "select", table: rl("t"), returnAll: true, options: { outputColumns: ["id"] } }), { trigger: [{}], host: h2 });
+  assert.deepEqual(h2.texts, [`SELECT "id" FROM "public"."t"`]);
+  assert.deepEqual(out(r2, "PG"), [{ id: 1 }]);
+  const bad = await run(tdef({ operation: "select", table: rl("t"), where: { values: [{ column: "a", condition: "~", value: "x" }] } }), { trigger: [{}], host: tableHost() });
+  assert.equal(bad.error.message, "Invalid where clause");
+});
+
+test("insert: the table's columns read first, each item checked against them, then INSERT ... RETURNING *", async () => {
+  const h = tableHost({ rows: [{ id: 12, name: "n" }] });
+  const columns = { mappingMode: "defineBelow", value: { name: "={{ $json.n }}", tags: "={{ $json.t }}" }, matchingColumns: ["id"], schema: [{ id: "name", type: "string", required: true }, { id: "tags", type: "array" }] };
+  const r = await run(tdef({ operation: "insert", table: rl("t"), columns, options: {} }, 2.5), { trigger: [{ n: "n", t: ["a", 'b"c'] }], host: h });
+  assert.equal(r.status, "done", JSON.stringify(r.error));
+  assert.deepEqual(h.texts, [SCHEMA_Q, `INSERT INTO "public"."t"("name","tags") VALUES('n','{"a","b\\"c"}') RETURNING *`]);
+  assert.deepEqual(out(r, "PG"), [{ id: 12, name: "n" }]);
+  const missing = await run(tdef({ operation: "insert", table: rl("t"), columns, options: {} }, 2.5), { trigger: [{}], host: tableHost() });
+  assert.equal(missing.error.message, "Invalid input for 'name' [item 0]");
+  assert.equal(missing.error.description, 'The value "name" is required but not set');
+  const unknown = await run(tdef({ operation: "insert", table: rl("t"), columns: { mappingMode: "autoMapInputData", value: {}, matchingColumns: [], schema: [] }, options: { skipOnConflict: true } }, 2.5), { trigger: [{ name: "a", other: 1 }], host: tableHost() });
+  assert.equal(unknown.error.message, "Column 'other' does not exist in selected table");
+});
+
+test("update asks whether each row exists; upsert and deleteTable build n8n's statements", async () => {
+  const h = tableHost();
+  const columns = { mappingMode: "autoMapInputData", value: {}, matchingColumns: ["id"], schema: [] };
+  const r = await run(tdef({ operation: "update", table: rl("t"), columns, options: {} }, 2.5), { trigger: [{ id: 3, name: "n" }], host: h });
+  assert.equal(r.status, "done", JSON.stringify(r.error));
+  assert.deepEqual(h.texts, [SCHEMA_Q, `SELECT EXISTS(SELECT 1 FROM "public"."t" WHERE "id"=3)`, `UPDATE "public"."t" SET "name" = 'n' WHERE "id" = 3 RETURNING *`]);
+  assert.deepEqual(out(r, "PG"), [{ success: true }]);
+  const gone = await run(tdef({ operation: "update", table: rl("t"), columns, options: {} }, 2.5), { trigger: [{ id: 3, name: "n" }], host: tableHost({ exists: false }) });
+  assert.equal(gone.error.message, "The row you are trying to update doesn't exist");
+  const u = tableHost();
+  await run(tdef({ operation: "upsert", table: rl("t"), columns, options: {} }, 2.5), { trigger: [{ id: 3, name: "n" }], host: u });
+  assert.equal(u.texts[1], `INSERT INTO "public"."t"("id","name") VALUES(3,'n') ON CONFLICT ("id") DO UPDATE  SET "name" = 'n' RETURNING *`);
+  const d = tableHost();
+  await run(tdef({ operation: "deleteTable", table: rl("t"), deleteCommand: "delete", where: { values: [{ column: "id", value: "3" }] } }), { trigger: [{}], host: d });
+  assert.deepEqual(d.texts, [`DELETE FROM "public"."t" WHERE "id" = '3'`]);
+});
+
+test("a value pg-promise cannot format fails as that query's error: before sending in single mode, in place under independent batching", async () => {
+  const h = tableHost();
+  const r = await run(tdef({ operation: "select", table: rl("t"), options: { outputColumns: [] } }), { trigger: [{}], host: h });
+  assert.equal(r.error.message, "Cannot retrieve sql names from an empty array/object.");
+  assert.deepEqual(h.texts, []);
+  const seen = [];
+  await run(tdef({ operation: "select", table: rl("t"), options: { outputColumns: [], queryBatching: "independently" } }, 2.5, { onError: "continueRegularOutput" }), { trigger: [{}], host: { db: async (req) => (seen.push(req.texts), { runs: [{ error: req.texts[0].error }] }) } });
+  assert.deepEqual(seen[0], [{ error: { message: "Cannot retrieve sql names from an empty array/object." } }]);
 });
