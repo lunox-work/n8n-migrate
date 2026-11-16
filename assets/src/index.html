@@ -3,10 +3,12 @@
      "67 of 100": evals/bench/corpus.json templates rank 1-100, analyzer outcome with default answers
        (node evals/bench/summary.mjs: subscription 67, hosted 21, keep-in-n8n 11, replaced 1; analyzer re-run per template
        on HEAD 2026-11-15 with corpus.json's --now, same).
-     "29 of 100" and "1 of 20": evals/results.jsonl tags rel3-dev and rel3-held, passedAll (all 8 gates);
-       evals/bench/RELEASE-3.md (commit ab1050b); node evals/bench/summary.mjs --release rel3-dev rel3-held.
-       Dev passes: 585 1747 1900 1938 1953 1963 1980 2063 2139 2163 2167 2197 2299 2384 2413 2473 2552 2567 2614 2703
-       2729 2777 3018 3102 3904 4573 5035 6270 13270; held-out 2824.
+     "35 of 100" and "2 of 20": evals/results.jsonl tags rel4-dev and rel4-held, passedAll (all 8 gates);
+       evals/bench/RELEASE-4.md (commit 8c005e4); node evals/bench/summary.mjs --release rel4-dev rel4-held --flips 1.
+       Round 4's corpus (rebuilt under the round-4 eligibility rule, evals/bench/EXCLUSIONS.md): not comparable with
+       rounds 1-3. "48 fully supported": node evals/convert-coverage.mjs --split dev (full 21 + review 27).
+       Dev passes: 585 1747 1951 1953 1963 1978 1980 2006 2063 2139 2163 2197 2299 2384 2473 2537 2552 2567 2605 2614
+       2648 2695 2703 2729 2777 2813 2824 2883 3018 3085 3102 3904 4573 5035 13270; held-out 2572 1957.
      "0 sent twice": evals/cutover/results.jsonl (one e2e run, 2026-11-14): 9 items over 100 each sent by exactly one system
        across cutover and rollback; the rejected order (task on while n8n on) sent 2 of 2 twice (optionA.doubleSent). -->
 <html>
@@ -74,16 +76,16 @@ h1 em { font-style: normal; color: var(--ok); }
     </div>
     <div class="col">
       <div class="label">Moved in one shot</div>
-      <div class="num ok">29<small>of 100</small></div>
+      <div class="num ok">35<small>of 100</small></div>
       <div class="row">
-        <div class="rowlabel"><span>dev</span><span>29 of 100</span></div>
+        <div class="rowlabel"><span>dev, round 4</span><span>35 of 100</span></div>
         <div class="grid" id="dev" style="grid-template-columns: repeat(25, 1fr); gap: 4px"></div>
       </div>
       <div class="row">
-        <div class="rowlabel"><span>held-out, never tuned on</span><span>1 of 20</span></div>
+        <div class="rowlabel"><span>held-out, never tuned on</span><span>2 of 20</span></div>
         <div class="grid" id="held" style="grid-template-columns: repeat(25, 1fr); gap: 4px"></div>
       </div>
-      <div class="of">pass all 8 gates against the same<br>template running in n8n itself</div>
+      <div class="of">pass all 8 gates against the same<br>template running in n8n itself;<br>48 of 100 fully supported</div>
     </div>
     <div class="col">
       <div class="label">Sent twice at cutover</div>
@@ -99,7 +101,7 @@ h1 em { font-style: normal; color: var(--ok); }
       <div class="of">cutover and rollback against<br>live n8n, one Gmail-poll workflow</div>
     </div>
   </div>
-  <div class="foot">n8n 2.47.7 in Docker as the baseline · top 100 by views, 2026-11-14 · evals/bench/RELEASE-3.md, evals/cutover/</div>
+  <div class="foot">n8n 2.47.7 in Docker as the baseline · top 100 by views, 2026-11-14 · evals/bench/RELEASE-4.md, evals/cutover/</div>
 </section>
 
 <script>
@@ -107,8 +109,8 @@ h1 em { font-style: normal; color: var(--ok); }
 const outcomes = [...Array(67).fill("s"), ...Array(21).fill("m"), ...Array(11).fill("f"), "c"];
 document.getElementById("top").innerHTML = outcomes.map((k) => `<u class="${k}"></u>`).join("");
 const cells = (pass, of) => Array.from({ length: of }, (_, i) => `<u class="${i < pass ? "s" : "f"}"></u>`).join("");
-document.getElementById("dev").innerHTML = cells(29, 100);
-document.getElementById("held").innerHTML = cells(1, 20);
+document.getElementById("dev").innerHTML = cells(35, 100);
+document.getElementById("held").innerHTML = cells(2, 20);
 document.getElementById("once").innerHTML = cells(9, 9);
 document.getElementById("twice").innerHTML = Array.from({ length: 9 }, (_, i) => `<u class="${i < 2 ? "f" : ""}" style="${i < 2 ? "" : "visibility:hidden"}"></u>`).join("");
 </script>

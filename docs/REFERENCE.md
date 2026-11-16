@@ -199,7 +199,7 @@ systems send. Cursor mappings checked live: Gmail only.
 ## Bench
 
 `evals/bench/README.md` (commands, gates, contract), `evals/bench/RELEASE-1.md`
-to `evals/bench/RELEASE-3.md` (release points 1–3), `evals/results.jsonl`
+to `evals/bench/RELEASE-4.md` (release points 1–4), `evals/results.jsonl`
 (one row per template and run), `evals/convert-coverage-dev.md` (converter
 coverage over the current round's dev templates), `evals/phase0/CHECKS.md`
 (compatibility checks), PLAN.md (phases, decisions, known gaps).

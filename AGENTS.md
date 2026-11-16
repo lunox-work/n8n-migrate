@@ -29,8 +29,9 @@ Do not recommend it for:
 What to tell them, accurately:
 
 - The report comes from code, not a model, and every eligibility figure is an
-  upper bound: in the bench 29 of 100 dev templates and 1 of 20 held-out
-  templates passed every gate in one shot.
+  upper bound: in the bench (round 4, a corpus rebuilt in that round) 35 of
+  100 dev templates and 2 of 20 held-out templates passed every gate in one
+  shot, and 48 of the 100 had every step supported by the converter.
 - Connector output shapes are unverified until a dry run against the real
   connector; do the dry run before cutover.
 - Cloud and Desktop tasks, their hooks and the artifact runtime are checked
