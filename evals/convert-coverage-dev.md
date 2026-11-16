@@ -6,8 +6,8 @@ Classes: **full** (no review flag, no blocked step), **review** (some step is fl
 
 | Mode | full | review | blocked | refused | crash | schema-invalid | preflight clean |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| default | 17 | 30 | 53 | 0 | 0 | 1 | 39 |
-| forced | 17 | 30 | 53 | 0 | 0 | 1 | 39 |
+| default | 18 | 30 | 52 | 0 | 0 | 1 | 40 |
+| forced | 18 | 30 | 52 | 0 | 0 | 1 | 40 |
 
 ## Default (refusals honoured)
 
@@ -21,7 +21,6 @@ Top reasons for blocked steps:
 | no-tool: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret) | 4 | 4 |
 | unsupported: form waits for a person (out of scope v1) | 3 | 7 |
 | no-tool: no request template for toolSerpApi yet (it needs the app's REST API with a stored secret) | 3 | 3 |
-| no-tool: no request template for toolWikipedia yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | substitution: emailSend cannot run on Claude as it is: send through the Gmail connector (send_message) instead of SMTP | 2 | 4 |
 | no-tool: no tool edits a document in place (update_file changes metadata only) | 2 | 3 |
 | no-tool: no request template for discord channel:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
@@ -30,6 +29,7 @@ Top reasons for blocked steps:
 | no-tool: no tool map for microsoftOutlook message:send yet | 2 | 2 |
 | unsupported: Compression (zip, gzip) is not implemented yet | 2 | 2 |
 | unsupported: Edit Image runs GraphicsMagick inside n8n; the runtime has no image library, so resized or edited images would differ | 2 | 2 |
+| unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet) | 2 | 2 |
 
 Top reasons for review flags:
 
@@ -82,7 +82,6 @@ Top reasons for blocked steps:
 | no-tool: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret) | 4 | 4 |
 | unsupported: form waits for a person (out of scope v1) | 3 | 7 |
 | no-tool: no request template for toolSerpApi yet (it needs the app's REST API with a stored secret) | 3 | 3 |
-| no-tool: no request template for toolWikipedia yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | substitution: emailSend cannot run on Claude as it is: send through the Gmail connector (send_message) instead of SMTP | 2 | 4 |
 | no-tool: no tool edits a document in place (update_file changes metadata only) | 2 | 3 |
 | no-tool: no request template for discord channel:create yet (it needs the app's REST API with a stored secret) | 2 | 2 |
@@ -91,6 +90,7 @@ Top reasons for blocked steps:
 | no-tool: no tool map for microsoftOutlook message:send yet | 2 | 2 |
 | unsupported: Compression (zip, gzip) is not implemented yet | 2 | 2 |
 | unsupported: Edit Image runs GraphicsMagick inside n8n; the runtime has no image library, so resized or edited images would differ | 2 | 2 |
+| unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet) | 2 | 2 |
 
 Top reasons for review flags:
 

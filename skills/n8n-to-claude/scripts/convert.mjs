@@ -95,6 +95,10 @@ export function toolNameFor(nodeName, type, typeVersion, params = {}) {
 // tool whose inputs have no $fromAI()) takes one optional string, `input`; the tool's code sees
 // it as `query`, the sub-workflow gets it as {query}.
 const DYNAMIC_TOOL_SCHEMA = { type: "object", properties: { input: { type: "string" } } };
+// The Wikipedia tool (@n8n/n8n-nodes-langchain 2.47 ToolWikipedia v1, LangChain's
+// WikipediaQueryRun): a Tool (one optional string, `input`) under the node's tool name with a
+// fixed description; the node has no description parameter.
+const WIKIPEDIA_DESCRIPTION = "A tool for interacting with and fetching data from the Wikipedia API. The input should always be a string query.";
 // The Think tool's default description (@n8n/n8n-nodes-langchain 2.47 ToolThink).
 const THINK_DESCRIPTION = "Use the tool to think about something. It will not obtain new information or change the database, but just append the thought to the log. Use it when complex reasoning or some cache memory is needed.";
 
@@ -863,6 +867,16 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
     review(step, "the feed URL is built at run time; narrow allow.http to its host in overrides.json");
   };
 
+  // Wikipedia (agent tool): LangChain's WikipediaQueryRun as n8n runs it (runtime rest.mjs
+  // wikipedia): GETs of the English Wikipedia API with no credential, a search and then one
+  // extract per top result.
+  const applyWikipedia = (step) => {
+    step.kind = "http";
+    delete step.auth;
+    step.rest = { program: "wikipedia", effect: "read", fidelity: "exact", map: LC + "toolWikipedia" };
+    addHttp("GET", "en.wikipedia.org", "/w/api.php");
+  };
+
   // Applies a tool map entry (connector tool or REST template) to a step.
   const applyMap = (name, step, found, params) => {
     const { entry, key } = found;
@@ -1201,6 +1215,7 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         const op = info.operation ?? (bare ? "_" : null);
         const found = (op != null ? findMap(refs.toolMaps, baseType, v, info.resource ?? "_", op) : null) ?? (bare ? findMap(refs.toolMaps, baseType, v, "_", "_") : null);
         if (baseType === BASE + "rssFeedRead") applyRss(name, step, params);
+        else if (type === LC + "toolWikipedia") applyWikipedia(step);
         else if (found) applyMap(name, step, found, params);
         else if (type === LC + "toolHttpRequest" || type === BASE + "httpRequestTool") {
           // agent http tools are built in the agent pass
@@ -1410,7 +1425,8 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         // REST program): the runner makes the requests with the model's $fromAI() values.
         const effect = ts.rest ? ts.rest.effect : String(ts.http.method ?? "GET").toUpperCase() === "GET" ? "read" : "write";
         Object.assign(t, { kind: ts.rest ? "rest" : "http", effect });
-        const schema = fromAiSchema(tp);
+        const schema = ts.n8n.type === LC + "toolWikipedia" ? clone(DYNAMIC_TOOL_SCHEMA) : fromAiSchema(tp);
+        if (ts.n8n.type === LC + "toolWikipedia") t.description = WIKIPEDIA_DESCRIPTION;
         if (schema) t.inputSchema = schema;
       } else {
         const why = ts.kind === "blocked" ? ts.blocked.reason : `${shortType(ts.n8n.type)} cannot run in the runtime`;

@@ -147,25 +147,25 @@
    "out-of-scope/under-a-minute": 2
   },
   "inScope": 475,
-  "supportedToday": 157,
-  "fullClass": 88,
+  "supportedToday": 161,
+  "fullClass": 90,
   "answersOnly": 36,
-  "blocked": 282,
+  "blocked": 278,
   "crashes": 0
  },
  "dev": {
   "templates": 100,
   "unnamed": 0,
-  "supportedToday": 39,
+  "supportedToday": 40,
   "answersOnly": 13,
-  "blocked": 48,
+  "blocked": 47,
   "missing": 0
  },
  "byPlanned": [
   {
    "group": "rest-template",
    "keys": 40,
-   "galleryUnlock": 40,
+   "galleryUnlock": 41,
    "galleryTotal": 76,
    "devUnlock": 8,
    "devTotal": 13
@@ -188,11 +188,11 @@
   },
   {
    "group": "http",
-   "keys": 6,
-   "galleryUnlock": 21,
-   "galleryTotal": 54,
-   "devUnlock": 5,
-   "devTotal": 9
+   "keys": 5,
+   "galleryUnlock": 17,
+   "galleryTotal": 46,
+   "devUnlock": 4,
+   "devTotal": 7
   },
   {
    "group": "db",
@@ -229,9 +229,9 @@
   {
    "group": "form-ending",
    "keys": 1,
-   "galleryUnlock": 3,
+   "galleryUnlock": 4,
    "galleryTotal": 6,
-   "devUnlock": 1,
+   "devUnlock": 2,
    "devTotal": 3
   },
   {
@@ -288,7 +288,7 @@
   {
    "group": "n8n-nodes-base.airtable",
    "keys": 10,
-   "galleryUnlock": 9,
+   "galleryUnlock": 10,
    "galleryTotal": 25,
    "devUnlock": 1,
    "devTotal": 1,
@@ -340,15 +340,6 @@
    "planned": "connector"
   },
   {
-   "group": "@n8n/n8n-nodes-langchain.toolWikipedia",
-   "keys": 1,
-   "galleryUnlock": 4,
-   "galleryTotal": 10,
-   "devUnlock": 1,
-   "devTotal": 3,
-   "planned": "http"
-  },
-  {
    "group": "n8n-nodes-base.editImage",
    "keys": 5,
    "galleryUnlock": 4,
@@ -376,6 +367,15 @@
    "planned": "core"
   },
   {
+   "group": "n8n-nodes-base.form",
+   "keys": 1,
+   "galleryUnlock": 4,
+   "galleryTotal": 6,
+   "devUnlock": 2,
+   "devTotal": 3,
+   "planned": "form-ending (some operations)"
+  },
+  {
    "group": "n8n-nodes-base.rssFeedRead",
    "keys": 1,
    "galleryUnlock": 4,
@@ -394,13 +394,13 @@
    "planned": "rest-template"
   },
   {
-   "group": "n8n-nodes-base.form",
+   "group": "@n8n/n8n-nodes-langchain.toolSerpApi",
    "keys": 1,
    "galleryUnlock": 3,
-   "galleryTotal": 6,
-   "devUnlock": 1,
+   "galleryTotal": 5,
+   "devUnlock": 3,
    "devTotal": 3,
-   "planned": "form-ending (some operations)"
+   "planned": "http"
   },
   {
    "group": "n8n-nodes-base.googleDocs",
@@ -482,15 +482,6 @@
    "devUnlock": 0,
    "devTotal": 0,
    "planned": "rest-template"
-  },
-  {
-   "group": "@n8n/n8n-nodes-langchain.toolSerpApi",
-   "keys": 1,
-   "galleryUnlock": 2,
-   "galleryTotal": 5,
-   "devUnlock": 2,
-   "devTotal": 3,
-   "planned": "http"
   },
   {
    "group": "n8n-nodes-base.compareDatasets",
@@ -1298,26 +1289,6 @@
    }
   },
   {
-   "key": "@n8n/n8n-nodes-langchain.toolWikipedia",
-   "type": "@n8n/n8n-nodes-langchain.toolWikipedia",
-   "op": "",
-   "planned": "http",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no request template for toolWikipedia yet (it needs the app's REST API with a stored secret)",
-   "galleryAlone": 4,
-   "galleryTotal": 10,
-   "devUnlock": 1,
-   "devTotal": 3,
-   "ids": {
-    "galleryAlone": [1956, 2754, 2883, 2931],
-    "galleryTotal": [1956, 1959, 2187, 2326, 2564, 2618, 2662, 2754, 2883, 2931],
-    "devUnlock": [2883],
-    "devTotal": [1959, 2187, 2883]
-   }
-  },
-  {
    "key": "n8n-nodes-base.xml v1",
    "type": "n8n-nodes-base.xml",
    "op": "",
@@ -1335,6 +1306,26 @@
     "galleryTotal": [160, 1810, 2123, 2210, 2957, 4671, 5817],
     "devUnlock": [],
     "devTotal": []
+   }
+  },
+  {
+   "key": "n8n-nodes-base.form completion",
+   "type": "n8n-nodes-base.form",
+   "op": "completion",
+   "planned": "form-ending",
+   "kinds": [
+    "unsupported"
+   ],
+   "reason": "unsupported: form waits for a person (out of scope v1)",
+   "galleryAlone": 4,
+   "galleryTotal": 6,
+   "devUnlock": 2,
+   "devTotal": 3,
+   "ids": {
+    "galleryAlone": [2187, 3289, 3669, 4767],
+    "galleryTotal": [2187, 2976, 3082, 3289, 3669, 4767],
+    "devUnlock": [2187, 3669],
+    "devTotal": [2187, 3082, 3669]
    }
   },
   {
@@ -1398,23 +1389,23 @@
    }
   },
   {
-   "key": "n8n-nodes-base.form completion",
-   "type": "n8n-nodes-base.form",
-   "op": "completion",
-   "planned": "form-ending",
+   "key": "@n8n/n8n-nodes-langchain.toolSerpApi",
+   "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
+   "op": "",
+   "planned": "http",
    "kinds": [
-    "unsupported"
+    "no-tool"
    ],
-   "reason": "unsupported: form waits for a person (out of scope v1)",
+   "reason": "no-tool: no request template for toolSerpApi yet (it needs the app's REST API with a stored secret)",
    "galleryAlone": 3,
-   "galleryTotal": 6,
-   "devUnlock": 1,
+   "galleryTotal": 5,
+   "devUnlock": 3,
    "devTotal": 3,
    "ids": {
-    "galleryAlone": [3289, 3669, 4767],
-    "galleryTotal": [2187, 2976, 3082, 3289, 3669, 4767],
-    "devUnlock": [3669],
-    "devTotal": [2187, 3082, 3669]
+    "galleryAlone": [1954, 1959, 2324],
+    "galleryTotal": [1954, 1959, 2324, 2326, 5024],
+    "devUnlock": [1954, 1959, 2324],
+    "devTotal": [1954, 1959, 2324]
    }
   },
   {
@@ -1535,26 +1526,6 @@
     "galleryTotal": [1599, 2211, 2242, 2564, 2903, 3900],
     "devUnlock": [],
     "devTotal": []
-   }
-  },
-  {
-   "key": "@n8n/n8n-nodes-langchain.toolSerpApi",
-   "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
-   "op": "",
-   "planned": "http",
-   "kinds": [
-    "no-tool"
-   ],
-   "reason": "no-tool: no request template for toolSerpApi yet (it needs the app's REST API with a stored secret)",
-   "galleryAlone": 2,
-   "galleryTotal": 5,
-   "devUnlock": 2,
-   "devTotal": 3,
-   "ids": {
-    "galleryAlone": [1954, 2324],
-    "galleryTotal": [1954, 1959, 2324, 2326, 5024],
-    "devUnlock": [1954, 2324],
-    "devTotal": [1954, 1959, 2324]
    }
   },
   {

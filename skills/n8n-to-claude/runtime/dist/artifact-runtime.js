@@ -12689,7 +12689,45 @@ const discordWebhookV1 = {
   },
 };
 
-const restPrograms = { googleSheets, googleCalendar, rssFeedRead, openAiImage, facebookGraph, discordWebhookV1 };
+// ---------- Wikipedia (agent tool; @n8n/n8n-nodes-langchain ToolWikipedia v1) ----------
+//
+// n8n runs LangChain's WikipediaQueryRun (@langchain/community 1.1.27, MIT) with its defaults:
+// a search GET of https://en.wikipedia.org/w/api.php (action=query, list=search, srsearch,
+// format=json, as URLSearchParams writes them), then for each of the first 3 results a GET with
+// prop=extracts, explaintext=true, redirects=1, titles=<title>; each page with details adds
+// "Page: <title>\nSummary: <extract>"; the summaries joined by a blank line and cut to 4000
+// characters, or "No good Wikipedia Search Result was found". A non-2xx answer throws "Network
+// response was not ok" (fetch's ok), JSON that does not parse throws the parser's error. The
+// tool is a LangChain Tool: its input is the model's `input` argument (undefined when absent,
+// which URLSearchParams writes as "undefined"). Ported from the library's _call,
+// _fetchSearchResults and _fetchPage; requests go through exec.request like any other.
+const WIKIPEDIA_API = "https://en.wikipedia.org/w/api.php";
+async function wikipediaGet(exec, params) {
+  const [r] = await exec.request([{ kind: "http", itemIndex: 0, method: "GET", url: `${WIKIPEDIA_API}?${new URLSearchParams(params).toString()}`, query: {}, headers: {} }]);
+  if (!r.ok) throw new Error(r.error?.message ?? "fetch failed");
+  const status = Number(r.value?.status ?? 200);
+  if (status < 200 || status > 299) throw new Error("Network response was not ok");
+  const body = r.value?.body;
+  return typeof body === "string" ? JSON.parse(body) : body;
+}
+const wikipedia = {
+  versions: (v) => v === 1,
+  async execute(exec) {
+    const query = exec.toolInput?.input;
+    const search = await wikipediaGet(exec, { action: "query", list: "search", srsearch: `${query}`, format: "json" });
+    const summaries = [];
+    for (let i = 0; i < Math.min(3, search.query.search.length); i += 1) {
+      const page = search.query.search[i].title;
+      const { pages } = (await wikipediaGet(exec, { action: "query", prop: "extracts", explaintext: "true", redirects: "1", format: "json", titles: page })).query;
+      const details = pages[Object.keys(pages)[0]];
+      if (details) summaries.push(`Page: ${page}\nSummary: ${details.extract}`);
+    }
+    const text = summaries.length === 0 ? "No good Wikipedia Search Result was found" : summaries.join("\n\n").slice(0, 4000);
+    return [[{ json: text }]];
+  },
+};
+
+const restPrograms = { googleSheets, googleCalendar, rssFeedRead, openAiImage, facebookGraph, discordWebhookV1, wikipedia };
 
 return { restPrograms };
 })();
@@ -26416,12 +26454,16 @@ function n8nToolName(name, step) {
   if (until !== undefined && v <= until && typeof typed === "string" && typed.trim() !== "" && !typed.startsWith("=")) return typed;
   return toolName(name);
 }
+// The Wikipedia tool's fixed description (ToolWikipedia v1; as convert.mjs).
+const WIKIPEDIA_DESCRIPTION = "A tool for interacting with and fetching data from the Wikipedia API. The input should always be a string query.";
 const THINK_DESCRIPTION = "Use the tool to think about something. It will not obtain new information or change the database, but just append the thought to the log. Use it when complex reasoning or some cache memory is needed.";
 function agentTools(exec) {
   return subnodesOf(exec, "ai_tool").map(({ name, step }) => {
     const p = step.params ?? {};
     const think = step.n8n.type === LC + "toolThink";
-    const tool = { name: n8nToolName(name, step), node: name, n8nType: step.n8n.type, description: p.toolDescription ?? p.description ?? (think ? THINK_DESCRIPTION : "") };
+    const wiki = step.n8n.type === LC + "toolWikipedia";
+    const tool = { name: n8nToolName(name, step), node: name, n8nType: step.n8n.type, description: wiki ? WIKIPEDIA_DESCRIPTION : p.toolDescription ?? p.description ?? (think ? THINK_DESCRIPTION : "") };
+    if (wiki) tool.inputSchema = { type: "object", properties: { input: { type: "string" } } };
     if (think) Object.assign(tool, { kind: "think", effect: "none", inputSchema: { type: "object", properties: { input: { type: "string" } } } });
     else if (step.tool?.connector) Object.assign(tool, { kind: "connector", connector: step.tool.connector, tool: step.tool.name, effect: step.tool.effect ?? "write" });
     else if (step.n8n.type === LC + "toolCode") Object.assign(tool, { kind: "code", effect: "none" });
@@ -26672,6 +26714,7 @@ async function executeAgentTool(exec, tools, call, itemIndex) {
         step: sub,
         params: { ...(sub.params ?? {}) },
         getInputData: () => [item],
+        toolInput: args,
         scope: (_i, extras) => exec.scope(itemIndex, { ...(extras ?? {}), locals: { ...(extras?.locals ?? {}), ...locals } }),
         request: (reqs) => exec.request(reqs.map((r) => ({ ...r, itemIndex }))),
       });

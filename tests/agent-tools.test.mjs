@@ -276,3 +276,47 @@ test("an HTTP Request tool's response reaches the agent as n8n 2.47.7 hands it: 
   assert.equal(r.status, "done", JSON.stringify(r.error));
   assert.deepEqual(fed.map((x) => x.value), [[{ name: "a", meta: { size: 1 } }], [{ data: "# Readme" }]]);
 });
+
+test("Wikipedia tool: LangChain's WikipediaQueryRun as n8n runs it (search, then an extract per top result)", async () => {
+  const wf = agentWf([{ parameters: {}, name: "Fetch Wikipedia Information", type: LC + "toolWikipedia", typeVersion: 1, position: [0, 200] }]);
+  const def = convertJson(wf);
+  const [tool] = def.steps.Agent.agent.tools;
+  assert.deepEqual([tool.name, tool.kind, tool.effect], ["Fetch_Wikipedia_Information", "rest", "read"]);
+  assert.equal(tool.description, "A tool for interacting with and fetching data from the Wikipedia API. The input should always be a string query.");
+  assert.deepEqual(tool.inputSchema, { type: "object", properties: { input: { type: "string" } } });
+  assert.deepEqual(def.allow.http.map((h) => [h.method, h.host, h.pathPrefix]), [["GET", "en.wikipedia.org", "/w/api.php"]]);
+  assert.equal(preflight(def, {}).ok, true);
+  const titles = ["Heat pump", "Air source heat pump", "Coefficient of performance", "Geothermal heat pump"];
+  const seen = [];
+  const http = async (req) => {
+    const u = new URL(req.url);
+    seen.push([...u.searchParams.entries()]);
+    if (u.searchParams.get("list") === "search") return { status: 200, headers: { "content-type": "application/json" }, body: JSON.stringify({ query: { search: titles.map((title) => ({ title })) } }) };
+    const t = u.searchParams.get("titles");
+    if (t === "Air source heat pump") return { status: 200, headers: { "content-type": "application/json" }, body: JSON.stringify({ query: { pages: {} } }) };
+    return { status: 200, headers: { "content-type": "application/json" }, body: JSON.stringify({ query: { pages: { 7: { pageid: 7, title: t, extract: `About ${t}.` } } } }) };
+  };
+  let fed;
+  const host = {
+    http,
+    agent: async (p) => {
+      if (p.turn === 0) return { intent: "tool-calls", calls: [{ name: "Fetch_Wikipedia_Information", args: { input: "heat pumps & cold" } }] };
+      fed = p.transcript[0].results[0];
+      return "done";
+    },
+  };
+  const r = await run(def, { clock: CLOCK, virtualTime: true, trigger: { node: "Start", items: [{ json: { q: "Heat pumps?" } }] }, host });
+  assert.equal(r.status, "done");
+  // The first 3 results; a page without details is skipped.
+  assert.deepEqual(fed, { name: "Fetch_Wikipedia_Information", ok: true, value: "Page: Heat pump\nSummary: About Heat pump.\n\nPage: Coefficient of performance\nSummary: About Coefficient of performance." });
+  assert.deepEqual(seen[0], [["action", "query"], ["list", "search"], ["srsearch", "heat pumps & cold"], ["format", "json"]]);
+  assert.deepEqual(seen[1], [["action", "query"], ["prop", "extracts"], ["explaintext", "true"], ["redirects", "1"], ["format", "json"], ["titles", "Heat pump"]]);
+  assert.equal(seen.length, 4);
+  // No result: LangChain's sentence; an answer that is not 2xx: its error.
+  const none = { ...host, http: async () => ({ status: 200, headers: { "content-type": "application/json" }, body: '{"query":{"search":[]}}' }) };
+  await run(def, { clock: CLOCK, virtualTime: true, trigger: { node: "Start", items: [{ json: { q: "x" } }] }, host: none });
+  assert.equal(fed.value, "No good Wikipedia Search Result was found");
+  const down = { ...host, http: async () => ({ status: 503, headers: {}, body: "" }) };
+  await run(def, { clock: CLOCK, virtualTime: true, trigger: { node: "Start", items: [{ json: { q: "x" } }] }, host: down });
+  assert.deepEqual([fed.ok, fed.error?.message], [false, "Network response was not ok"]);
+});
