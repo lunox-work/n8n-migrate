@@ -140,7 +140,7 @@
     { "round": 2, "promoted": [2468, 2271, 2178, 3986, 3904, 5035, 2860, 3291, 1826, 3224, 3018, 2090, 2729, 4846, 1951, 2275, 2139, 2473, 2395, 2703], "heldOut": [1992, 1980, 2786, 2557, 2894, 2552, 2384, 1748, 1938, 890, 1960, 2872, 2324, 2878, 2026, 2085, 2006, 3085, 2320, 1959], "note": "held-out 1-20 join dev after release point 1; held-out 21-40 score release point 2", "scored": "release point 2 (2026-11-15, evals/bench/RELEASE-2.md)" },
     { "round": 3, "promoted": [1992, 1980, 2786, 2557, 2894, 2552, 2384, 1748, 1938, 890, 1960, 2872, 2324, 2878, 2026, 2085, 2006, 3085, 2320, 1959], "heldOut": [2824, 2292, 4028, 4968, 3314, 3082, 5010, 2799, 2354, 1897, 2768, 2648, 1150, 2537, 2288, 2705, 2374, 2883, 3169, 2201], "note": "held-out 21-40 join dev after release point 2, so dev is all 100 seeded templates (70 with fixtures). The seeded held-out list is used up: release point 3 scores 20 fresh held-out templates from outside the seeded split (splits.heldOutFresh: Phase 5 overflow plus a round-3 top-up of the listing, drawn by seed per wake-up stratum), labelled blind and fixtured by a separate blind session before any is run" },
     { "round": 4, "promoted": [2824, 2292, 4028, 4968, 3314, 3082, 5010, 2799, 2354, 1897, 2768, 2648, 1150, 2537, 2288, 2705, 2374, 2883, 3169, 2201], "dropped": [2415, 2098, 3016, 3393, 2417, 5993, 2167, 2413, 6270, 5110, 4352, 2749, 2328, 1826, 2395, 2894, 1938, 2878, 2320, 3169, 1073, 1992, 4968, 2374], "heldOut": [2433, 2572, 4506, 3132, 503, 2782, 1957, 2416, 2740, 6137, 2736, 1554, 2956, 2741, 4635, 2694, 10230, 4366, 2612, 3131], "note": "round 3's 20 fresh held-out join dev after release point 3, and the 20 of those 120 templates that fail round-4 eligibility leave (dropped; EXCLUSIONS.md Round 4 eligibility, AUDIT-R4.md), so dev is the 100 eligible. Release point 4 scores 20 fresh held-out templates (splits.heldOutFresh4: a round-4 top-up of the listing, each round-4 eligible, drawn by seed 20261116 per wake-up stratum), labelled blind before any is run", "devAdded": [2421, 3617, 4969, 2695] },
-    { "round": 5, "promoted": [2433, 2572, 4506, 3132, 503, 2782, 1957, 2416, 2740, 6137, 2736, 1554, 2956, 2741, 4635, 2694, 10230, 4366, 2612, 3131], "heldOut": [], "note": "round 4's 20 fresh held-out (splits.heldOutFresh4, scored at release point 4, evals/bench/RELEASE-4.md) join dev, so dev is 120 templates, all with fixtures; nothing is dropped (each was round-4 eligible when drawn). From round 5 fixing sessions may read these 20, their fixtures and results, and RELEASE-4.md's aggregates; template-specific rules stay forbidden (the lint covers every corpus id). Round 5's held-out is empty until a separate blind session fetches, draws, labels and fixtures it (EXCLUSIONS.md Later rounds' held-out); the round reports its numbers out of its 120 dev templates, and on round 4's 100 as a subset" }
+    { "round": 5, "promoted": [2433, 2572, 4506, 3132, 503, 2782, 1957, 2416, 2740, 6137, 2736, 1554, 2956, 2741, 4635, 2694, 10230, 4366, 2612, 3131], "heldOut": [3003, 8487, 1948, 2922, 3880, 2945, 3627, 2276, 3701, 4498, 2562, 1283, 4414, 2023, 5626, 3710, 2897, 4022, 3259, 3027], "note": "round 4's 20 fresh held-out (splits.heldOutFresh4, scored at release point 4, evals/bench/RELEASE-4.md) join dev, so dev is 120 templates, all with fixtures; nothing is dropped (each was round-4 eligible when drawn). From round 5 fixing sessions may read these 20, their fixtures and results, and RELEASE-4.md's aggregates; template-specific rules stay forbidden (the lint covers every corpus id). Round 5's held-out is empty until a separate blind session fetches, draws, labels and fixtures it (EXCLUSIONS.md Later rounds' held-out); the round reports its numbers out of its 120 dev templates, and on round 4's 100 as a subset. Release point 5 scores 20 fresh held-out templates (splits.heldOutFresh5: a round-5 top-up of the listing past the gallery ranking's pages, each eligible by the round-4 rule with amendment 1, drawn by seed 20261117 per wake-up stratum), labelled blind before any is run" }
   ],
   "heldOutFresh": {
     "round": 3,
@@ -281,6 +281,51 @@
       { "id": 3617, "sha256": "647991eb4fc53c316d30c72faac88542e5da50118e96b74b7e41e5f81e247a75", "wakeup": "schedule", "source": "walk" },
       { "id": 4969, "sha256": "34a4a1c5733d4a892821e64460a496a3599da464fa323282ac1eec0d04ad1390", "wakeup": "schedule", "source": "walk" },
       { "id": 2695, "sha256": "7b7118be97bcd5fd60ab54e57c49afee65b306457df54a6b0ca0bac46e79cf96", "wakeup": "subworkflow", "source": "views walk page 7" }
+    ]
+  },
+  "heldOutFresh5": {
+    "round": 5,
+    "seed": 20261117,
+    "method": "evals/bench/split.mjs drawFresh(): pool = the round-5 top-up's entries that are eligible by the round-4 rule with amendment 1 (fetch.mjs freshPool(templates, 5); the walk started after the gallery ranking's listing pages and skipped every id on them); mulberry32(seed) Fisher-Yates over the pool sorted by id ascending; per wake-up stratum the first quota in shuffled order, skipping a template excluded after the draw (`excluded` or `r4Hand`; it stays in the shuffle); the list keeps the shuffled order; no drawn id may be named in levers.json or LEVERS.md",
+    "quotas": {
+      "chat": 6,
+      "manual": 5,
+      "schedule": 4,
+      "poll": 2,
+      "form": 2,
+      "other": 1
+    },
+    "candidates": 107,
+    "strata": {
+      "form": 2,
+      "manual": 5,
+      "other": 1,
+      "schedule": 4,
+      "poll": 2,
+      "chat": 6
+    },
+    "rule": "the same rule as the seeded held-out: never read by a session that changes the skill, converter or runtime until release point 5 has scored it (EXCLUSIONS.md, Round 5 held-out)",
+    "templates": [
+      { "id": 3003, "sha256": "c54c3be37c4e283fc4ffbdf5f694ffb12a04ddd54d92646790ef4b452242a2ab", "wakeup": "form", "source": "top-up" },
+      { "id": 8487, "sha256": "ed37d23130b08abe7503eb8eb14b5f73cacdbcf9c9e2358b25b841611af63935", "wakeup": "form", "source": "top-up" },
+      { "id": 1948, "sha256": "b34bf1f4bd12909b628d9363c86fb8767a1376762b73f81a4bd6a1bd0a3adaa1", "wakeup": "manual", "source": "top-up" },
+      { "id": 2922, "sha256": "5e1c49ccc1893deed172a4008dfabaea1dae43566c236b3e01f1daf426ee6ddf", "wakeup": "subworkflow", "source": "top-up" },
+      { "id": 3880, "sha256": "d018f52d5ce65cb877d18b3dc6384a60e000afb552e1f664bb9f2cca52874fd4", "wakeup": "schedule", "source": "top-up" },
+      { "id": 2945, "sha256": "73da4800dffa6b29f8c895849495ba9efbbdf43444e8f3607a94b450e8029f63", "wakeup": "manual", "source": "top-up" },
+      { "id": 3627, "sha256": "afc065d8a2b386d766223f3ff4f7edce87b7a86b80d0b500afb228e4bf60f1a8", "wakeup": "manual", "source": "top-up" },
+      { "id": 2276, "sha256": "eb829dd495d265e06abf09e31409b3312d5787a02d84433910fa042ef605e616", "wakeup": "schedule", "source": "top-up" },
+      { "id": 3701, "sha256": "3d013cef4676e58d3c55be44f893f3f2534a161dd3df03a293e5c341510c3e4b", "wakeup": "poll", "source": "top-up" },
+      { "id": 4498, "sha256": "e3b724ca0b8e7f635328c92316ea0e409336b22d16146b8e80b1a0a236e61c06", "wakeup": "manual", "source": "top-up" },
+      { "id": 2562, "sha256": "016d75d7f2604f390df93c5e79ce3ac5153779f0c9bb4cb4418ad7f054ad23f3", "wakeup": "manual", "source": "top-up" },
+      { "id": 1283, "sha256": "67b4566b15bea8a4b7bb75ce8de71cecbe80806498e48df3cdab86beb71ca66e", "wakeup": "poll", "source": "top-up" },
+      { "id": 4414, "sha256": "5c68f9c67bd9d25bd6c4051c96dd52c3af0a099f928b0adf4cc2e6130635baf2", "wakeup": "schedule", "source": "top-up" },
+      { "id": 2023, "sha256": "7bc5d68670c17b61439eeb8f95364be9239d3e6e114d2a86467a63857cfefddb", "wakeup": "schedule", "source": "top-up" },
+      { "id": 5626, "sha256": "d7414ae292a02359d6a5a0bef932103279e95570133c04eff1aeffd7c5aba1fe", "wakeup": "chat", "source": "top-up" },
+      { "id": 3710, "sha256": "cac13623972d165d5bfa93d37001114d6b99953ec291756918358e734d16b014", "wakeup": "chat", "source": "top-up" },
+      { "id": 2897, "sha256": "2494a97848b516b10bb46950cd93a85f07d70aa177857061488e28e0ea59b2f2", "wakeup": "chat", "source": "top-up" },
+      { "id": 4022, "sha256": "69b7e6178cb81cd33f944a7d8e9f47bcfa8b2cf82cc478d2603f102140934de0", "wakeup": "chat", "source": "top-up" },
+      { "id": 3259, "sha256": "c344ca5f515a9cb3010a43f6b118a03d06feb245c6951e602e56704995472ff0", "wakeup": "chat", "source": "top-up" },
+      { "id": 3027, "sha256": "8ee845f4e60c2ea44d58921128d6c8eea92ce3c488ea388824a7b6ea54b2b493", "wakeup": "chat", "source": "top-up" }
     ]
   }
 }

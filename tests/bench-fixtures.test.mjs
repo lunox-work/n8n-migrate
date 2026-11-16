@@ -239,6 +239,17 @@ test("top-ups: each round's pool, candidates and start page", async () => {
   assert.equal(startPageOf({ counts: { listingEntries: 200 }, templates: [{ rank: 250, topUp: 3 }] }, 4), 6);
   assert.equal(TOP_UPS[3].finishPage, false);
   assert.equal(TOP_UPS[4].eligibility && TOP_UPS[4].finishPage, true);
+  // Round 5: its own entries only; amendment 1 is part of the walk's rule (an entry only the
+  // amendment fails is `fresh-other`), where round 4's walk kept it `fresh` for the shuffle.
+  const t5 = [...t, { id: 7, rank: 1001, topUp: 5, pool: "fresh", r4: "eligible", wakeup: "chat" }, { id: 8, rank: 1002, topUp: 5, pool: "fresh-other", r4: "ineligible", wakeup: "chat" }];
+  assert.deepEqual(freshPool(t5, 5).map((e) => e.id), [7]);
+  assert.deepEqual(freshPool(t5, 4).map((e) => e.id), [4, 6]);
+  const { walkPool } = await import("../evals/bench/fetch.mjs");
+  const amendedOnly = { r4: "ineligible", r4Amended: 1 };
+  assert.equal(walkPool(amendedOnly, TOP_UPS[4]), "fresh");
+  assert.equal(walkPool(amendedOnly, TOP_UPS[5]), "fresh-other");
+  assert.equal(walkPool({ r4: "eligible" }, TOP_UPS[5]), "fresh");
+  assert.equal(walkPool({ r4: "ineligible" }, TOP_UPS[4]), "fresh-other");
   // r4Verdict: the round-4 rule on a workflow the analyzer has read.
   const { analyze, unwrap } = await import("../skills/n8n-to-claude/scripts/analyze.mjs");
   const ROOT = join(BENCH, "..", "..");
@@ -378,9 +389,9 @@ test("round 4: dev is 100 round-4-eligible templates, held-out 20 fresh, amendme
 
 // Round 5 (PLAN Phase 6, rolling held-out; after release point 4): round 4's 20 fresh held-out
 // join dev (promoted), nothing is dropped, so dev is 120 templates, all with fixtures; round 5's
-// held-out is empty until a separate blind session draws it. The round's numbers are out of its
-// 120, with round 4's 100 as a subset (roundTally; summary.mjs, convert-coverage.mjs).
-test("round 5: round 4's held-out joins dev (120, all fixtured), no held-out yet, numbers out of 120 with round 4's 100 as a subset", async () => {
+// held-out is the 20 fresh templates of heldOutFresh5 (next test). The round's numbers are out of
+// its 120, with round 4's 100 as a subset (roundTally; summary.mjs, convert-coverage.mjs).
+test("round 5: round 4's held-out joins dev (120, all fixtured), numbers out of 120 with round 4's 100 as a subset", async () => {
   const { readSplits, roundOf, devWithFixtures, unreadableIds, withoutHeldOut, roundTally } = await import("../evals/bench/rounds.mjs");
   const splits = readSplits();
   const ids = (rows) => rows.map((r) => r.id);
@@ -390,7 +401,7 @@ test("round 5: round 4's held-out joins dev (120, all fixtured), no held-out yet
   assert.equal(roundOf(splits).round, 5);
   assert.deepEqual(ids(r5.promoted), ids(r4.heldOut));
   assert.deepEqual(ids(r5.promoted), ids(splits.heldOutFresh4.templates));
-  assert.deepEqual([r5.dropped.length, r5.devAdded.length, r5.heldOut.length], [0, 0, 0]);
+  assert.deepEqual([r5.dropped.length, r5.devAdded.length], [0, 0]);
   assert.deepEqual(new Set(ids(r5.dev)), new Set([...ids(r4.dev), ...ids(r4.heldOut)]));
   assert.equal(new Set(ids(r5.dev)).size, 120);
   assert.equal(devWithFixtures(splits).length, 120);
@@ -401,8 +412,8 @@ test("round 5: round 4's held-out joins dev (120, all fixtured), no held-out yet
       assert.equal(JSON.parse(readFileSync(p, "utf8")).sha256, t.sha256, `${t.id}/${v}`);
     }
   }
-  // Nothing is held out now: the P51 guards skip no id, and round 4's held-out is readable.
-  assert.deepEqual(unreadableIds(splits), []);
+  // Round 4's held-out is readable now; the P51 guards skip round 5's own held-out only.
+  assert.deepEqual(unreadableIds(splits), ids(r5.heldOut));
   assert.deepEqual(withoutHeldOut(ids(r4.heldOut), splits).skipped, []);
   // Round 4 as written is unchanged.
   assert.equal(r4.dev.length, 100);
@@ -418,4 +429,67 @@ test("round 5: round 4's held-out joins dev (120, all fixtured), no held-out yet
   const sub = roundTally(rows, ids(r4.dev));
   assert.deepEqual([sub.passed, sub.of, sub.gateSum, sub.missing.length], [1, 100, 9, 99]);
   assert.equal(roundTally(rows, ids(r5.dev), (r) => r.passedAll && r.template !== r4.heldOut[0].id).passed, 1, "the caller's pass rule (P50) is applied");
+});
+
+// Round 5's fresh held-out (EXCLUSIONS.md "Round 5 held-out", seed committed before the walk):
+// a top-up past the gallery ranking's listing pages, each eligible by the round-4 rule with
+// amendment 1, drawn by seed per wake-up stratum into splits.json heldOutFresh5. While round 5 is
+// current, heldOutIds() returns them and the P51 guards (convert-coverage.mjs, validate.mjs,
+// levers.mjs) skip them; nothing a fixing session reads names them.
+test("round 5 held-out: 20 fresh past the gallery ranking, eligible, reproducible, never exposed", async () => {
+  const { readSplits, roundOf, heldOutIds, unreadableIds, withoutHeldOut } = await import("../evals/bench/rounds.mjs");
+  const { drawFresh, FRESH_SEEDS, namedInLevers } = await import("../evals/bench/split.mjs");
+  const { FRESH_QUOTAS, freshPool, stratum, isCandidate, leversWalk, TOP_UPS } = await import("../evals/bench/fetch.mjs");
+  const splits = readSplits();
+  const corpus = JSON.parse(readFileSync(join(BENCH, "corpus.json"), "utf8"));
+  const levers = JSON.parse(readFileSync(join(BENCH, "levers.json"), "utf8"));
+  const ids = (rows) => rows.map((r) => r.id);
+  const fresh = splits.heldOutFresh5;
+  const r5 = roundOf(splits, 5);
+  assert.equal(fresh.round, 5);
+  assert.equal(fresh.seed, 20261117);
+  assert.equal(FRESH_SEEDS[5], 20261117);
+  assert.equal(TOP_UPS[5].amendedRule && TOP_UPS[5].afterLevers && TOP_UPS[5].finishPage, true);
+  assert.deepEqual(ids(r5.heldOut), ids(fresh.templates));
+  assert.equal(r5.heldOut.length, 20);
+  if (splits.currentRound === 5) {
+    assert.deepEqual(heldOutIds(splits), ids(fresh.templates));
+    assert.deepEqual(new Set(unreadableIds(splits)), new Set(ids(fresh.templates)));
+    assert.deepEqual(withoutHeldOut(ids(fresh.templates), splits).kept, []);
+  }
+  // Before round 5 the guards already skipped it (written ahead of release point 4).
+  for (const n of [3, 4]) assert.ok(ids(fresh.templates).every((id) => unreadableIds(splits, n).includes(id)), `round ${n}`);
+  // Disjoint from every earlier round's dev, held-out, dropped and walk lists.
+  const earlier = new Set();
+  for (const r of splits.rounds) for (const id of [...r.promoted, ...(r.dropped ?? []), ...(r.devAdded ?? []), ...(r.round < 5 ? r.heldOut : [])]) earlier.add(id);
+  for (const r of [...splits.dev, ...splits.heldOut]) earlier.add(r.id);
+  for (const e of corpus.templates) if (e.topUp !== 5) earlier.add(e.id);
+  for (const id of ids(fresh.templates)) assert.ok(!earlier.has(id), `${id} was used or walked by an earlier round`);
+  // Each one is a round-5 walk entry past the gallery ranking's pages, eligible, with the recorded hash.
+  const lastPage = Math.max(...levers.listingPages.map((p) => p.page));
+  const byId = new Map(corpus.templates.map((e) => [e.id, e]));
+  for (const t of fresh.templates) {
+    const e = byId.get(t.id);
+    assert.ok(e && e.topUp === 5 && e.pool === "fresh" && e.r4 === "eligible" && !e.excluded && !e.r4Amended, String(t.id));
+    assert.ok(e.rank > lastPage * 50, `${t.id} ranks inside the gallery ranking's pages`);
+    assert.equal(e.sha256, t.sha256, String(t.id));
+    assert.equal(e.wakeup, t.wakeup, String(t.id));
+  }
+  assert.ok(corpus.topUp5 && corpus.topUp5.counts.skipped.inLevers >= 0);
+  const got = {};
+  for (const t of fresh.templates) got[stratum(t.wakeup)] = (got[stratum(t.wakeup)] ?? 0) + 1;
+  assert.deepEqual(got, FRESH_QUOTAS);
+  // Reproducible from corpus.json and the committed seed; a redrawn template is no candidate.
+  assert.deepEqual(drawFresh(freshPool(corpus.templates, 5), FRESH_QUOTAS, FRESH_SEEDS[5]).drawn.map((e) => e.id), ids(fresh.templates));
+  for (const { out } of fresh.redraws ?? []) for (const id of out) assert.ok(!isCandidate(byId.get(id)), `${id} was redrawn but is still a candidate`);
+  // Fresh: named nowhere a fixing session reads (levers.json, LEVERS.md), not on the ranking's
+  // listing pages (where cached), and never in the survey folder (PROPOSALS P51).
+  const stale = namedInLevers();
+  for (const id of ids(fresh.templates)) assert.ok(!stale.has(id), `${id} is named in levers.json or LEVERS.md`);
+  if (levers.listingPages.every((p) => existsSync(join(BENCH, "..", "..", p.file)))) {
+    const onPages = leversWalk().ids;
+    for (const id of ids(fresh.templates)) assert.ok(!onPages.has(id), `${id} is on the gallery ranking's listing pages`);
+  }
+  const survey = join(BENCH, "..", "survey", "data", "wf");
+  for (const t of fresh.templates) assert.ok(!existsSync(join(survey, `${t.id}.json`)), `${t.id} is in evals/survey/data/wf`);
 });

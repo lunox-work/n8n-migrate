@@ -5,7 +5,10 @@
 //   node scripts/lint-no-template-rules.mjs [--verbose] [--dir <folder>]   (--dir: scan another folder, for tests)
 //
 // Checked in every file under skills/ (text files only):
-//   - template ids: every id of three or more digits in evals/bench/corpus.json (a one- or
+//   - template ids: every id of three or more digits in evals/bench/corpus.json, less the
+//     entries of a held-out walk from round 5 on that no rule lets into the bench (`excluded`, or
+//     a pool other than `fresh`: such a walk reads ~250 listing entries for 20 slots, and their
+//     ids would collide with ordinary numbers such as 3600; names stay checked) (a one- or
 //     two-digit id cannot be told from an ordinary number; tests/bench-levers.test.mjs uses the
 //     same bound, and such a template's name is still checked), as a whole number not part of a longer
 //     number, version or identifier (not in vendored or built code: runtime/vendor holds
@@ -64,6 +67,9 @@ if (existsSync(VENDOR_DIR))
 
 const corpus = JSON.parse(readFileSync(join(BENCH, "corpus.json"), "utf8"));
 const ids = [...new Set(corpus.templates.map((t) => String(t.id)))];
+// A walk entry from round 5 on that can never be a bench template (see the header).
+const outsideBench = (t) => (t.topUp ?? 0) >= 5 && (t.excluded || t.pool !== "fresh");
+const outside = new Set(corpus.templates.filter(outsideBench).map((t) => String(t.id)));
 
 const names = [];
 let namesMissing = 0;
@@ -101,7 +107,7 @@ if (existsSync(FIXTURES)) for (const f of walk(FIXTURES).filter((f) => f.endsWit
 
 const hits = [];
 const lineOf = (text, idx) => text.slice(0, idx).split("\n").length;
-const numberIds = ids.filter((id) => id.length >= 3);
+const numberIds = ids.filter((id) => id.length >= 3 && !outside.has(id));
 const idRe = new RegExp(`(?<![\\w.\\-])(${numberIds.join("|")})(?![\\w.\\-])`, "g");
 for (const [file, text] of content) {
   const rel = relative(ROOT, file);
