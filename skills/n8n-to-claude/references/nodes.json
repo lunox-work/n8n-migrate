@@ -33515,66 +33515,103 @@
       "displayName": "n8n",
       "group": ["transform"],
       "mapping": {
-        "notes": "calls the n8n instance's own API",
-        "role": "n8n-internal",
+        "flags": ["calls-n8n"],
+        "kind": "blocked",
+        "notes": "calls the person's n8n instance through its public API; only reads of workflows and executions move",
+        "reason": "an n8n API operation other than reading workflows or executions (or one chosen by an expression) stays in n8n",
+        "role": "step",
+        "secrets": true,
         "source": "hand"
       },
       "operations": {
-        "audit:generate": {},
+        "audit:generate": {
+          "effect": "read",
+          "effectBy": "hand",
+          "reason": "generates n8n's security audit: only reads of workflows and executions move"
+        },
         "credential:create": {
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "hand",
+          "reason": "creates an n8n credential: credentials of any kind stay in n8n"
         },
         "credential:delete": {
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "hand",
+          "reason": "deletes an n8n credential: credentials of any kind stay in n8n"
         },
         "credential:getSchema": {
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "hand",
+          "reason": "reads an n8n credential schema: credentials of any kind stay in n8n"
         },
         "execution:delete": {
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "hand",
+          "reason": "deletes an n8n execution: only reads of workflows and executions move for now; a write to n8n needs the writes question and the person's approval, which are not built yet"
         },
         "execution:get": {
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "hand",
+          "kind": "http",
+          "levers": ["http"]
         },
         "execution:getAll": {
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "hand",
+          "kind": "http",
+          "levers": ["http"]
         },
-        "project:addUser": {},
+        "project:addUser": {
+          "effect": "write",
+          "effectBy": "hand",
+          "reason": "adds a user to an n8n project: only reads of workflows and executions move for now; a write to n8n needs the writes question and the person's approval, which are not built yet"
+        },
         "user:get": {
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "hand",
+          "reason": "reads an n8n user: not mapped yet; only reads of workflows and executions move"
         },
-        "workflow:activate": {},
+        "workflow:activate": {
+          "effect": "write",
+          "effectBy": "hand",
+          "reason": "publishes (activates) an n8n workflow: only reads of workflows and executions move for now; a write to n8n needs the writes question and the person's approval, which are not built yet"
+        },
         "workflow:create": {
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "hand",
+          "reason": "creates an n8n workflow: only reads of workflows and executions move for now; a write to n8n needs the writes question and the person's approval, which are not built yet"
         },
-        "workflow:deactivate": {},
+        "workflow:deactivate": {
+          "effect": "write",
+          "effectBy": "hand",
+          "reason": "unpublishes (deactivates) an n8n workflow: only reads of workflows and executions move for now; a write to n8n needs the writes question and the person's approval, which are not built yet"
+        },
         "workflow:delete": {
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "hand",
+          "reason": "deletes an n8n workflow: only reads of workflows and executions move for now; a write to n8n needs the writes question and the person's approval, which are not built yet"
         },
         "workflow:get": {
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "hand",
+          "kind": "http",
+          "levers": ["http"]
         },
         "workflow:getAll": {
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "hand",
+          "kind": "http",
+          "levers": ["http"]
         },
         "workflow:getVersion": {
           "effect": "read",
-          "effectBy": "name"
+          "effectBy": "hand",
+          "reason": "reads one saved version of an n8n workflow: not mapped yet; only the workflow list and the current workflow move"
         },
         "workflow:update": {
           "effect": "write",
-          "effectBy": "name"
+          "effectBy": "hand",
+          "reason": "updates an n8n workflow: only reads of workflows and executions move for now; a write to n8n needs the writes question and the person's approval, which are not built yet"
         }
       },
       "ops": [

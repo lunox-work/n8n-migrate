@@ -44,6 +44,32 @@
       }
     },
     {
+      "id": "00000000-0000-4000-8000-000000000524",
+      "name": "List failed runs",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        114840,
+        500
+      ],
+      "parameters": {
+        "resource": "execution",
+        "returnAll": false,
+        "limit": 20,
+        "filters": {
+          "status": "error"
+        },
+        "options": {},
+        "requestOptions": {}
+      },
+      "credentials": {
+        "n8nApi": {
+          "id": "cred-n8nApi",
+          "name": "n8n account"
+        }
+      }
+    },
+    {
       "id": "00000000-0000-4000-8000-000000000523",
       "name": "Post count",
       "type": "n8n-nodes-base.slack",
@@ -75,6 +101,11 @@
         [
           {
             "node": "List workflows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "List failed runs",
             "type": "main",
             "index": 0
           }

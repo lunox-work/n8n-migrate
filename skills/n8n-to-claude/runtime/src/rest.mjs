@@ -7,7 +7,7 @@
 // result log apply as to any http step; step.auth names the secret. The requests and their
 // bodies follow the n8n node's own code (n8n-nodes-base 2.47), so a reviewer can diff them.
 
-import { NodeError, isObject } from "./util.mjs";
+import { NodeError, isObject, API_STATUS_MESSAGES } from "./util.mjs";
 import { DateTime } from "../vendor/luxon.mjs";
 import { parseFeed } from "./feed.mjs";
 import { binaryOf, prepareBinary } from "./files.mjs";
@@ -1176,4 +1176,105 @@ const linkedIn = {
   },
 };
 
-export const restPrograms = { googleSheets, linkedIn, googleCalendar, rssFeedRead, openAiImage, facebookGraph, discordWebhookV1, wikipedia };
+// ---------- n8n (n8n's own node v1: workflow getAll | get, execution getAll | get) ----------
+//
+// A step that reads the person's n8n instance back through its public API (v1), as
+// n8n-nodes-base 2.47.7's n8n node does (a declarative node: its description's routing, read,
+// not its code) and as observed on the bench's n8n 2.47.7 (PROPOSALS P125). The base is the
+// credential's Base URL, the answer to the report's site question (step.rest.base, e.g.
+// https://n8n.example.com/api/v1); the stored secret is {header: "X-N8N-API-KEY", value},
+// sent only to that host (allow.http and the secret's hosts). Per input item:
+//   workflow get     GET /workflows/<id>                (Workflow: by id, list or URL /workflow/<id>)
+//   execution get    GET /executions/<id>?includeData=   (Include Execution Details, when set)
+//   workflow getAll  GET /workflows?limit=&active=&tags=&name=&projectId=&excludePinnedData=
+//   execution getAll GET /executions?limit=&workflowId=&status=&includeData=
+// A query field is sent only when its filter or option is set (tags and the execution's
+// workflow only when not empty); limit only when Return All is off (default: on for
+// workflows, off for executions; limit 100). With Return All the next pages follow
+// `cursor` = the answer's nextCursor until it is empty; without, one page as the server sends
+// it (n8n does not trim it to the limit). Each workflow or execution is one item; Get gives the
+// answer as one item. An HTTP error fails with n8n's message for its status.
+const N8N_HEADERS = { Accept: "application/json", "Content-Type": "application/json" };
+// The Workflow resource locator's id: its value, or for mode url the id after /workflow/.
+function n8nWorkflowId(v) {
+  const mode = isObject(v) ? v.mode : "id";
+  const value = isObject(v) ? v.value : v;
+  if (mode === "url") return /.*\/workflow\/([0-9a-zA-Z]{1,})/.exec(String(value ?? ""))?.[1] ?? "";
+  return value;
+}
+async function n8nGet(exec, i, base, path, query) {
+  const req = { kind: "http", itemIndex: i, method: "GET", url: base + path, query, headers: { ...N8N_HEADERS } };
+  if (exec.step.auth?.secret) req.auth = { credentialType: exec.step.auth.credentialType, secret: exec.step.auth.secret };
+  const [r] = await exec.request([req]);
+  if (!r.ok) throw new NodeError(r.error?.message ?? "request failed", { node: exec.name, itemIndex: i });
+  const v = r.value ?? {};
+  const status = Number(v.status ?? 200);
+  let b = v.body;
+  if (typeof b === "string" && /^\s*[[{]/.test(b)) {
+    try {
+      b = JSON.parse(b);
+    } catch {
+      /* text */
+    }
+  }
+  if (status >= 400) throw new NodeError(API_STATUS_MESSAGES[status] ?? (isObject(b) && b.message ? String(b.message) : `${status} - ${typeof b === "string" ? b : JSON.stringify(b)}`), { node: exec.name, itemIndex: i, httpCode: String(status) });
+  return b;
+}
+const n8nApi = {
+  versions: (v) => v === 1,
+  operations: { workflow: ["getAll", "get"], execution: ["getAll", "get"] },
+  async execute(exec) {
+    const items = exec.getInputData();
+    const resource = exec.param("resource", 0, "workflow", { rawExpressions: true });
+    const operation = exec.param("operation", 0, "getAll", { rawExpressions: true });
+    if (!n8nApi.operations[resource]?.includes(operation)) throw new NodeError(`n8n ${resource} ${operation} has no REST program: only reads of workflows and executions move`, { node: exec.name });
+    const base = String(exec.step.rest?.base ?? "").replace(/\/+$/, "");
+    if (!base) throw new NodeError("the n8n site is not known: answer the report's site question and regenerate", { node: exec.name });
+    const out = [];
+    for (let i = 0; i < items.length; i++) {
+      try {
+        let data;
+        if (operation === "get") {
+          const id = resource === "workflow" ? n8nWorkflowId(exec.param("workflowId", i, "")) : exec.param("executionId", i, "");
+          const query = {};
+          if (resource === "execution") {
+            const options = exec.param("options", i, {});
+            if (options.activeWorkflows !== undefined) query.includeData = options.activeWorkflows;
+          }
+          data = await n8nGet(exec, i, base, `/${resource}s/${pathSeg(exec, id, i)}`, query);
+        } else {
+          const returnAll = exec.param("returnAll", i, resource === "workflow");
+          const query = {};
+          if (!returnAll) query.limit = exec.param("limit", i, 100);
+          const filters = exec.param("filters", i, {});
+          if (resource === "workflow") {
+            if (filters.activeWorkflows !== undefined) query.active = filters.activeWorkflows;
+            if (filters.tags !== undefined && filters.tags !== "") query.tags = filters.tags;
+            for (const k of ["name", "projectId", "excludePinnedData"]) if (filters[k] !== undefined) query[k] = filters[k];
+          } else {
+            const wid = filters.workflowId !== undefined ? n8nWorkflowId(filters.workflowId) : undefined;
+            if (wid) query.workflowId = wid;
+            if (filters.status !== undefined) query.status = filters.status;
+            const options = exec.param("options", i, {});
+            if (options.activeWorkflows !== undefined) query.includeData = options.activeWorkflows;
+          }
+          data = [];
+          let cursor;
+          do {
+            const page = await n8nGet(exec, i, base, `/${resource}s`, cursor ? { ...query, cursor } : query);
+            if (Array.isArray(page?.data)) data.push(...page.data);
+            cursor = page?.nextCursor;
+          } while (returnAll && cursor);
+        }
+        for (const json of asItems(data ?? [])) out.push({ json, pairedItem: { item: i } });
+      } catch (e) {
+        if (e?.name === "Suspend" || e?.name === "ContainmentViolation") throw e;
+        if (!exec.continueOnFail()) throw e;
+        out.push({ json: { error: e.message }, pairedItem: { item: i } });
+      }
+    }
+    return [out];
+  },
+};
+
+export const restPrograms = { googleSheets, linkedIn, googleCalendar, rssFeedRead, openAiImage, facebookGraph, discordWebhookV1, wikipedia, n8nApi };

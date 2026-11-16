@@ -26,17 +26,17 @@ top of `SKILL/runtime/src/cli.mjs`.
 
 Schema: `SKILL/references/report.schema.json`. Per workflow:
 
-| Field             | Values                                                                                                                                                                 |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `wakeup.kind`     | `schedule`, `poll`, `chat`, `form`, `manual`, `relay` (pushed in, no reply awaited), `endpoint` (caller waits), `mcp-server`, `subworkflow`, `error`                   |
-| `body.kind`       | `prompt`, `script`, `script+model`                                                                                                                                     |
-| `outcome.kind`    | `subscription`, `replaced`, `hosted`, `keep-in-n8n`                                                                                                                    |
-| `outcome.target`  | subscription: `cloud-task`, `local-task`, `skill`, `artifact-form`, `artifact`; hosted: `key`, `no-key`                                                                |
-| `requires[].kind` | `connector`, `model`, `http`, `secret`, `db`, `vector`, `state`, `poll`, `relay`, `task-handoff`, `substitution`, `missing-export`, `frequency`, `bundled-server`, ... |
-| `blockers[].kind` | `input-incomplete`, `unsupported`, `unmapped`, `substitution`, `dropped-branch`, `not-an-automation`                                                                   |
-| `questions[]`     | `id`, `text`, `options`, `assumed`; answer with `--answers {"<id>": <answer>}`                                                                                         |
-| site question     | `<workflow id>/site/<credential name>`: the address of the person's own site for a credential that names one (WordPress `url`); requests go to it and the secret only to its host; unanswered, the step is blocked |
-| hosts question    | `<workflow id>/hosts/<step name>`: an HTTP Request whose host comes from data; a list of hosts, or `public` (any public https host; GET or HEAD without a credential only); unanswered, preflight refuses the step ([Runs](#runs), Hosts) |
+| Field             | Values                                                                                                                                                                                                                                                                                                                                 |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `wakeup.kind`     | `schedule`, `poll`, `chat`, `form`, `manual`, `relay` (pushed in, no reply awaited), `endpoint` (caller waits), `mcp-server`, `subworkflow`, `error`                                                                                                                                                                                   |
+| `body.kind`       | `prompt`, `script`, `script+model`                                                                                                                                                                                                                                                                                                     |
+| `outcome.kind`    | `subscription`, `replaced`, `hosted`, `keep-in-n8n`                                                                                                                                                                                                                                                                                    |
+| `outcome.target`  | subscription: `cloud-task`, `local-task`, `skill`, `artifact-form`, `artifact`; hosted: `key`, `no-key`                                                                                                                                                                                                                                |
+| `requires[].kind` | `connector`, `model`, `http`, `secret`, `db`, `vector`, `state`, `poll`, `relay`, `task-handoff`, `local-network`, `substitution`, `missing-export`, `frequency`, `bundled-server`, ...                                                                                                                                                |
+| `blockers[].kind` | `input-incomplete`, `unsupported`, `unmapped`, `substitution`, `dropped-branch`, `not-an-automation`                                                                                                                                                                                                                                   |
+| `questions[]`     | `id`, `text`, `options`, `assumed`; answer with `--answers {"<id>": <answer>}`                                                                                                                                                                                                                                                         |
+| site question     | `<workflow id>/site/<credential name>`: the address of the person's own site for a credential that names one (WordPress `url`, n8n API `baseUrl`; an n8n address with no path gets `/api/v1`); requests go to it and the secret only to its host; a local address adds `local-network` (a local task); unanswered, the step is blocked |
+| hosts question    | `<workflow id>/hosts/<step name>`: an HTTP Request whose host comes from data; a list of hosts, or `public` (any public https host; GET or HEAD without a credential only); unanswered, preflight refuses the step ([Runs](#runs), Hosts)                                                                                              |
 
 ## Outcomes
 
@@ -96,7 +96,7 @@ the person's key is not a substitution. Flagged steps:
   (`{{ $json.url }}`, a sheet cell, a form field, a scraped link) gets the
   hosts question at setup. A list of hosts allows those hosts only (and the
   step's secret goes to them). `public` adds `{host: "*", scope: "public",
-  step}`: that step alone may reach any public https host, which is the honest
+step}`: that step alone may reach any public https host, which is the honest
   answer for a scraper that visits sites from a list, and the person's explicit
   choice, recorded in the report and in `MIGRATION.md`. It is refused for a
   write method or a step with a credential (name the hosts instead), and on

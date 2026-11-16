@@ -173,7 +173,22 @@ function typeName(v) {
   return typeof v;
 }
 
-return { isObject, isPlainObject, hasOwn, RunnerError, ExpressionError, UnsupportedExpression, UnsupportedNode, ContainmentViolation, NodeError, BadInput, errorJson, deepCopy, isEqual, stableStringify, toPath, getPath, setPath, unsetPath, seedFrom, seededRandom, sleepMs, typeName };
+// n8n's NodeApiError message for an HTTP status (n8n-workflow 2.47.7 STATUS_CODE_MESSAGES), as the
+// HTTP Request node and declarative nodes (the n8n node) fail with it.
+const API_STATUS_MESSAGES = {
+  400: "Bad request - please check your parameters",
+  401: "Authorization failed - please check your credentials",
+  403: "Forbidden - perhaps check your credentials?",
+  404: "The resource you are requesting could not be found",
+  405: "Method not allowed - please check you are using the right HTTP method",
+  429: "The service is receiving too many requests from you",
+  500: "The service was not able to process your request",
+  502: "Bad gateway - the service failed to handle your request",
+  503: "Service unavailable - try again later or consider setting this node to retry automatically (in the node settings)",
+  504: "Gateway timed out - perhaps try again later?",
+};
+
+return { isObject, isPlainObject, hasOwn, RunnerError, ExpressionError, UnsupportedExpression, UnsupportedNode, ContainmentViolation, NodeError, BadInput, errorJson, deepCopy, isEqual, stableStringify, toPath, getPath, setPath, unsetPath, seedFrom, seededRandom, sleepMs, typeName, API_STATUS_MESSAGES };
 })();
 
 // ---- src/hash.mjs ----
@@ -3641,7 +3656,7 @@ return { mimeLookup, mimeExtension, fileTypeFromMimeType, prettyBytes, prepareBi
 
 // ---- src/rest.mjs ----
 const __m_rest_mjs = (() => {
-const { NodeError, isObject } = __m_util_mjs;
+const { NodeError, isObject, API_STATUS_MESSAGES } = __m_util_mjs;
 const { parseFeed } = __m_feed_mjs;
 const { binaryOf, prepareBinary } = __m_files_mjs;
 const { base64ToBytes } = __m_hash_mjs;
@@ -4818,7 +4833,108 @@ const linkedIn = {
   },
 };
 
-const restPrograms = { googleSheets, linkedIn, googleCalendar, rssFeedRead, openAiImage, facebookGraph, discordWebhookV1, wikipedia };
+// ---------- n8n (n8n's own node v1: workflow getAll | get, execution getAll | get) ----------
+//
+// A step that reads the person's n8n instance back through its public API (v1), as
+// n8n-nodes-base 2.47.7's n8n node does (a declarative node: its description's routing, read,
+// not its code) and as observed on the bench's n8n 2.47.7 (PROPOSALS P125). The base is the
+// credential's Base URL, the answer to the report's site question (step.rest.base, e.g.
+// https://n8n.example.com/api/v1); the stored secret is {header: "X-N8N-API-KEY", value},
+// sent only to that host (allow.http and the secret's hosts). Per input item:
+//   workflow get     GET /workflows/<id>                (Workflow: by id, list or URL /workflow/<id>)
+//   execution get    GET /executions/<id>?includeData=   (Include Execution Details, when set)
+//   workflow getAll  GET /workflows?limit=&active=&tags=&name=&projectId=&excludePinnedData=
+//   execution getAll GET /executions?limit=&workflowId=&status=&includeData=
+// A query field is sent only when its filter or option is set (tags and the execution's
+// workflow only when not empty); limit only when Return All is off (default: on for
+// workflows, off for executions; limit 100). With Return All the next pages follow
+// `cursor` = the answer's nextCursor until it is empty; without, one page as the server sends
+// it (n8n does not trim it to the limit). Each workflow or execution is one item; Get gives the
+// answer as one item. An HTTP error fails with n8n's message for its status.
+const N8N_HEADERS = { Accept: "application/json", "Content-Type": "application/json" };
+// The Workflow resource locator's id: its value, or for mode url the id after /workflow/.
+function n8nWorkflowId(v) {
+  const mode = isObject(v) ? v.mode : "id";
+  const value = isObject(v) ? v.value : v;
+  if (mode === "url") return /.*\/workflow\/([0-9a-zA-Z]{1,})/.exec(String(value ?? ""))?.[1] ?? "";
+  return value;
+}
+async function n8nGet(exec, i, base, path, query) {
+  const req = { kind: "http", itemIndex: i, method: "GET", url: base + path, query, headers: { ...N8N_HEADERS } };
+  if (exec.step.auth?.secret) req.auth = { credentialType: exec.step.auth.credentialType, secret: exec.step.auth.secret };
+  const [r] = await exec.request([req]);
+  if (!r.ok) throw new NodeError(r.error?.message ?? "request failed", { node: exec.name, itemIndex: i });
+  const v = r.value ?? {};
+  const status = Number(v.status ?? 200);
+  let b = v.body;
+  if (typeof b === "string" && /^\s*[[{]/.test(b)) {
+    try {
+      b = JSON.parse(b);
+    } catch {
+      /* text */
+    }
+  }
+  if (status >= 400) throw new NodeError(API_STATUS_MESSAGES[status] ?? (isObject(b) && b.message ? String(b.message) : `${status} - ${typeof b === "string" ? b : JSON.stringify(b)}`), { node: exec.name, itemIndex: i, httpCode: String(status) });
+  return b;
+}
+const n8nApi = {
+  versions: (v) => v === 1,
+  operations: { workflow: ["getAll", "get"], execution: ["getAll", "get"] },
+  async execute(exec) {
+    const items = exec.getInputData();
+    const resource = exec.param("resource", 0, "workflow", { rawExpressions: true });
+    const operation = exec.param("operation", 0, "getAll", { rawExpressions: true });
+    if (!n8nApi.operations[resource]?.includes(operation)) throw new NodeError(`n8n ${resource} ${operation} has no REST program: only reads of workflows and executions move`, { node: exec.name });
+    const base = String(exec.step.rest?.base ?? "").replace(/\/+$/, "");
+    if (!base) throw new NodeError("the n8n site is not known: answer the report's site question and regenerate", { node: exec.name });
+    const out = [];
+    for (let i = 0; i < items.length; i++) {
+      try {
+        let data;
+        if (operation === "get") {
+          const id = resource === "workflow" ? n8nWorkflowId(exec.param("workflowId", i, "")) : exec.param("executionId", i, "");
+          const query = {};
+          if (resource === "execution") {
+            const options = exec.param("options", i, {});
+            if (options.activeWorkflows !== undefined) query.includeData = options.activeWorkflows;
+          }
+          data = await n8nGet(exec, i, base, `/${resource}s/${pathSeg(exec, id, i)}`, query);
+        } else {
+          const returnAll = exec.param("returnAll", i, resource === "workflow");
+          const query = {};
+          if (!returnAll) query.limit = exec.param("limit", i, 100);
+          const filters = exec.param("filters", i, {});
+          if (resource === "workflow") {
+            if (filters.activeWorkflows !== undefined) query.active = filters.activeWorkflows;
+            if (filters.tags !== undefined && filters.tags !== "") query.tags = filters.tags;
+            for (const k of ["name", "projectId", "excludePinnedData"]) if (filters[k] !== undefined) query[k] = filters[k];
+          } else {
+            const wid = filters.workflowId !== undefined ? n8nWorkflowId(filters.workflowId) : undefined;
+            if (wid) query.workflowId = wid;
+            if (filters.status !== undefined) query.status = filters.status;
+            const options = exec.param("options", i, {});
+            if (options.activeWorkflows !== undefined) query.includeData = options.activeWorkflows;
+          }
+          data = [];
+          let cursor;
+          do {
+            const page = await n8nGet(exec, i, base, `/${resource}s`, cursor ? { ...query, cursor } : query);
+            if (Array.isArray(page?.data)) data.push(...page.data);
+            cursor = page?.nextCursor;
+          } while (returnAll && cursor);
+        }
+        for (const json of asItems(data ?? [])) out.push({ json, pairedItem: { item: i } });
+      } catch (e) {
+        if (e?.name === "Suspend" || e?.name === "ContainmentViolation") throw e;
+        if (!exec.continueOnFail()) throw e;
+        out.push({ json: { error: e.message }, pairedItem: { item: i } });
+      }
+    }
+    return [out];
+  },
+};
+
+const restPrograms = { googleSheets, linkedIn, googleCalendar, rssFeedRead, openAiImage, facebookGraph, discordWebhookV1, wikipedia, n8nApi };
 
 return { restPrograms };
 })();
@@ -23668,7 +23784,7 @@ return { DEFAULT_PROMPT, REFINE_PROMPT, parseFString, formatFString, jsonStrings
 // ---- src/nodes2.mjs ----
 const __m_nodes2_mjs = (() => {
 const { restPrograms } = __m_rest_mjs;
-const { NodeError, UnsupportedNode, deepCopy, getPath, setPath, unsetPath, isEqual, isObject } = __m_util_mjs;
+const { API_STATUS_MESSAGES, NodeError, UnsupportedNode, deepCopy, getPath, setPath, unsetPath, isEqual, isObject } = __m_util_mjs;
 const { hashHex, hmacBytes, digestBytes, bytesToBase64, base64ToBytes, utf8Bytes, toHex } = __m_hash_mjs;
 const { tryToParseDateTime } = __m_extensions_mjs;
 const { adaptResult, coerceArgs, applyCursorArg, advanceCursor, getAt } = __m_adapt_mjs;
@@ -24463,18 +24579,8 @@ const GROUP2 = {
 
 // ---------- request steps ----------
 
-const STATUS_MESSAGES = {
-  400: "Bad request - please check your parameters",
-  401: "Authorization failed - please check your credentials",
-  403: "Forbidden - perhaps check your credentials?",
-  404: "The resource you are requesting could not be found",
-  405: "Method not allowed - please check you are using the right HTTP method",
-  429: "The service is receiving too many requests from you",
-  500: "The service was not able to process your request",
-  502: "Bad gateway - the service failed to handle your request",
-  503: "Service unavailable - try again later or consider setting this node to retry automatically (in the node settings)",
-  504: "Gateway timed out - perhaps try again later?",
-};
+// n8n's NodeApiError message per HTTP status (util.mjs).
+const STATUS_MESSAGES = API_STATUS_MESSAGES;
 
 // n8n-nodes-base 2.47.7 HttpRequest binaryContentTypes: an autodetected response of one of
 // these types is a file in n8n, anything else not JSON is text. driver.mjs keeps the same list
@@ -27462,6 +27568,16 @@ function publicHttpsUrl(url) {
   if (v4) return publicAddress(h);
   return h.includes(".") && !LOCAL_NAMES.test(h);
 }
+// A host only the person's own computer or network reaches, so a cloud task cannot: an IP
+// literal that is not public (publicAddress), "localhost", a local or internal name
+// (LOCAL_NAMES) or a name without a dot. scripts/analyze.mjs uses it for a site credential's
+// address (a self-hosted n8n or WordPress), which then makes the workflow a local task.
+function localHost(host) {
+  const h = String(host ?? "").toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
+  if (!h) return false;
+  if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(h) || h.includes(":")) return !publicAddress(h);
+  return !h.includes(".") || LOCAL_NAMES.test(h);
+}
 // A resolved address that is public: not unspecified, loopback, private, carrier-grade NAT,
 // link-local (cloud metadata), benchmarking, documentation, multicast or reserved; IPv6 only in
 // 2000::/3 outside documentation, an IPv4-mapped address judged as its IPv4.
@@ -27959,7 +28075,7 @@ function cleanupParameterData(v) {
   return v;
 }
 
-return { Suspend, DEFAULT_TIMEZONE, SLEEP_THRESHOLD_MS, Graph, createRun, normalizePinData, checkContainment, publicHttpsUrl, publicAddress, pathWithin, requestEffect, dispatch, NodeExecution, runEngine, NodeFailure, serializeRunData, stableStringify };
+return { Suspend, DEFAULT_TIMEZONE, SLEEP_THRESHOLD_MS, Graph, createRun, normalizePinData, checkContainment, publicHttpsUrl, localHost, publicAddress, pathWithin, requestEffect, dispatch, NodeExecution, runEngine, NodeFailure, serializeRunData, stableStringify };
 })();
 
 // ---- src/api.mjs ----

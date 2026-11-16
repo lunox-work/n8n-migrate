@@ -265,6 +265,16 @@ export function publicHttpsUrl(url) {
   if (v4) return publicAddress(h);
   return h.includes(".") && !LOCAL_NAMES.test(h);
 }
+// A host only the person's own computer or network reaches, so a cloud task cannot: an IP
+// literal that is not public (publicAddress), "localhost", a local or internal name
+// (LOCAL_NAMES) or a name without a dot. scripts/analyze.mjs uses it for a site credential's
+// address (a self-hosted n8n or WordPress), which then makes the workflow a local task.
+export function localHost(host) {
+  const h = String(host ?? "").toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
+  if (!h) return false;
+  if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(h) || h.includes(":")) return !publicAddress(h);
+  return !h.includes(".") || LOCAL_NAMES.test(h);
+}
 // A resolved address that is public: not unspecified, loopback, private, carrier-grade NAT,
 // link-local (cloud metadata), benchmarking, documentation, multicast or reserved; IPv6 only in
 // 2000::/3 outside documentation, an IPv4-mapped address judged as its IPv4.

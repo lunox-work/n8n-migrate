@@ -57,7 +57,7 @@ import { createHash } from "node:crypto";
 import { dirname, join, resolve, basename } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { execFileSync } from "node:child_process";
-import { analyze, loadInput, unwrap, redactSecrets, legacyCron, simulateCron, parseCron, httpTarget } from "./analyze.mjs";
+import { analyze, loadInput, unwrap, redactSecrets, legacyCron, simulateCron, parseCron, httpTarget, SITE_CREDENTIALS } from "./analyze.mjs";
 import { fromN8n, urlTarget, writtenTargets } from "../runtime/src/convert.mjs";
 import { preflight, expressionSupport, nodeImplFor, definitionHash, RUNTIME_VERSION } from "../runtime/src/api.mjs";
 import { ALERT_TOOLS } from "../runtime/src/alerts.mjs";
@@ -964,7 +964,21 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       const stepMethod = mp ? (isExpr(rawMethod) ? "*" : String(rawMethod).toUpperCase()) : undefined;
       const effect = entry.effect === "byMethod" ? (stepMethod === "GET" ? "read" : "write") : entry.effect === "read" ? "read" : "write";
       if (entry.effect === "byMethod" && stepMethod === "*") review(step, "the HTTP method is set by an expression, so the step counts as a write");
-      step.rest = { program: entry.rest, effect, fidelity: entry.fidelity ?? "exact", ...(cav.length ? { caveats: cav } : {}), map: key };
+      // A program on the person's own site (entry.site: the n8n API node): the base is the answer
+      // to the analyzer's site question for the step's credential; without it the step is blocked.
+      let site = null;
+      if (entry.site) {
+        const credName = Object.entries(step.credentials ?? {}).find(([t]) => t === entry.credentialType)?.[1];
+        const base = credName !== undefined ? siteBase(report, credName, SITE_CREDENTIALS[entry.credentialType]?.defaultPath) : null;
+        if (!base) {
+          const q = credName !== undefined ? siteQuestion(report, credName) : null;
+          block(step, "input-incomplete", `${q ? `the site the credential "${credName}" points to is not known yet: answer question ${q.id} (its address, as in the n8n credential)` : `the step names no ${entry.credentialType} credential, so its site is unknown`}, then regenerate`);
+          return;
+        }
+        const u = new URL(base);
+        site = { base, host: u.hostname.toLowerCase(), path: u.pathname.replace(/\/+$/, "") };
+      }
+      step.rest = { program: entry.rest, effect, fidelity: entry.fidelity ?? "exact", ...(site ? { base: site.base } : {}), ...(cav.length ? { caveats: cav } : {}), map: key };
       // A program without a credential type (a Discord webhook URL carries its own token) sends none.
       const cred = entry.credentialType ? Object.entries(step.credentials ?? {}).find(([t]) => t === entry.credentialType) ?? Object.entries(step.credentials ?? {})[0] : null;
       const credType = cred?.[0] ?? entry.credentialType;
@@ -972,8 +986,10 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       if (secretName) step.auth = { credentialType: credType, secret: secretName };
       else delete step.auth;
       for (const h of entry.hosts ?? []) {
-        addHttp(String(h.method).startsWith("@") ? stepMethod ?? "*" : h.method, h.host, h.pathPrefix);
-        if (secretName) addSecret(secretName, credType, h.host);
+        const host = h.host ?? site?.host;
+        const pathPrefix = h.host === undefined && site ? `${site.path}${h.pathPrefix ?? ""}` : h.pathPrefix;
+        addHttp(String(h.method).startsWith("@") ? stepMethod ?? "*" : h.method, host, pathPrefix);
+        if (secretName) addSecret(secretName, credType, host);
       }
     } else {
       const args = {};
@@ -1091,6 +1107,13 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         review(step, `substituted (${subId}): check the poll query matches the mailbox n8n read`);
       } else applyMap(name, step, { entry: s, key: `substitution ${subId}` }, params);
       continue;
+    }
+
+    // A node the catalogue blocks by default with operations it maps to http (the n8n node's
+    // reads): the basic converter goes by the node, so the step takes the operation's kind.
+    if (step.kind === "blocked" && info.kind === "http" && entry?.mapping?.kind === "blocked" && opKey && entry.operations?.[opKey]?.kind === "http") {
+      step.kind = "http";
+      delete step.blocked;
     }
 
     // An operation the catalogue blocks (send-and-wait, n8n-internal ones).
@@ -1802,7 +1825,8 @@ function siteQuestion(report, credName) {
   for (const w of report?.workflows ?? []) for (const q of w.questions ?? []) if (/\/site\//.test(q.id) && q.id.endsWith(`/site/${credName}`)) return q;
   return null;
 }
-function siteBase(report, credName) {
+// defaultPath (SITE_CREDENTIALS): the path an answer without one gets (n8n's /api/v1).
+function siteBase(report, credName, defaultPath = "") {
   const a = siteQuestion(report, credName)?.answer;
   if (typeof a !== "string") return null;
   let u;
@@ -1812,7 +1836,8 @@ function siteBase(report, credName) {
     return null;
   }
   if (!/^https?:$/.test(u.protocol) || u.search || u.hash || u.username || u.password) return null;
-  return `${u.protocol}//${u.host}${u.pathname.replace(/\/+$/, "")}`;
+  const path = u.pathname.replace(/\/+$/, "");
+  return `${u.protocol}//${u.host}${path || defaultPath}`;
 }
 // h.site = {path, id?}: path after the site ("/wp-json/wp/v2/posts"); id names the parameter
 // whose value ends the path ("/posts/<id>"), literal or an expression after the literal URL.
@@ -2063,8 +2088,14 @@ export function migrationMd(wr, def, { refused, overrides } = {}) {
     if (models.length) L.push("Model steps (they always run on Claude; the original model is kept only as a hint):", "", ...models, "");
     const code = steps.filter(([, s]) => s.kind === "code" && !s.needsTranslation).map(([n]) => `- ${mdEscape(n)}`);
     if (code.length) L.push("Code that runs as written (read it before the first run):", "", ...code, "");
-    const caveats = steps.flatMap(([n, s]) => (s.tool?.caveats ?? s.http?.caveats ?? s.poll?.caveats ?? []).map((c) => `- ${mdEscape(n)}: ${mdEscape(c)}`));
+    const caveats = steps.flatMap(([n, s]) => (s.tool?.caveats ?? s.http?.caveats ?? s.rest?.caveats ?? s.poll?.caveats ?? []).map((c) => `- ${mdEscape(n)}: ${mdEscape(c)}`));
     if (caveats.length) L.push("Known differences from n8n:", "", ...caveats, "");
+    // Steps that call the person's n8n instance back (the n8n node's reads, runtime rest.mjs n8nApi).
+    const back = steps.filter(([, s]) => s.kind !== "blocked" && s.rest?.base && s.rest.program === "n8nApi");
+    if (back.length) {
+      const hosts = uniq(back.map(([, s]) => new URL(s.rest.base).host));
+      L.push(`**Keeps calling n8n:** ${back.map(([n]) => mdEscape(n)).join(", ")} ${back.length > 1 ? "read" : "reads"} workflows or executions from your n8n instance at ${hosts.join(", ")} through its public API. This workflow is useful only while n8n keeps running there; nothing is written to n8n.`, "");
+    }
     if (flagged.length) {
       L.push("## Flagged for review", "");
       for (const [n, s] of flagged) L.push(`- **${mdEscape(n)}**: ${(s.reviewReasons ?? []).map(mdEscape).join("; ")}${s.needsTranslation ? ` (needs a ${s.needsTranslation.kind} translation${s.override ? "; a translation is in overrides.json" : ""})` : ""}`);

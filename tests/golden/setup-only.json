@@ -38,7 +38,7 @@
       "unsupported": 1
     },
     "notAnAutomation": 0,
-    "questions": 1,
+    "questions": 2,
     "unmappedTypes": [],
     "cloudScheduledRunsPerHour": 0,
     "cloudScheduledRunsPerHourLimit": 100,
@@ -326,21 +326,86 @@
       "outcome": {
         "kind": "keep-in-n8n",
         "target": null,
-        "reason": "n8n-internal node: calls the n8n instance's own API",
+        "reason": "unpublishes (deactivates) an n8n workflow: only reads of workflows and executions move for now; a write to n8n needs the writes question and the person's approval, which are not built yet",
         "alsoTargets": []
       },
       "setupOnly": true,
       "setupOnlyReason": "it only manages n8n itself through the n8n API: nothing to move once n8n is gone",
       "calledBy": [],
       "calls": [],
-      "requires": [],
-      "questions": [],
+      "requires": [
+        {
+          "kind": "http",
+          "name": "n8n instance",
+          "nodes": [
+            "List workflows"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "no"
+          },
+          "note": "keeps calling your n8n instance through its public API (reads only), so it is useful only while n8n keeps running"
+        },
+        {
+          "kind": "http",
+          "name": "outbound http",
+          "nodes": [
+            "List workflows"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "ok",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "secret",
+          "name": "n8n admin",
+          "nodes": [
+            "List workflows"
+          ],
+          "surfaces": {
+            "cloudTask": "needs:network-secret",
+            "localTask": "needs:bundled-server",
+            "artifact": "no"
+          }
+        },
+        {
+          "kind": "bundled-server",
+          "name": "local MCP server",
+          "nodes": [
+            "List workflows"
+          ],
+          "surfaces": {
+            "cloudTask": "ok",
+            "localTask": "needs:plugin-mcp-server",
+            "artifact": "no"
+          }
+        }
+      ],
+      "questions": [
+        {
+          "id": "so-n8n-admin/site/n8n admin",
+          "text": "Which n8n site does the credential \"n8n admin\" point to? Give its address as in the n8n credential (its Base URL field, for example https://n8n.example.com/api/v1). Requests and the credential go only to that site. An address on your own computer or network (localhost, a private IP, a .local or internal name) makes it a local task, since a cloud task cannot reach it. These steps keep calling your n8n instance, so they work only while it keeps running.",
+          "nodes": [
+            "List workflows",
+            "Deactivate"
+          ],
+          "affects": "allow.http",
+          "answerType": "text",
+          "options": {
+            "<site address>": "the site the steps' requests and the credential go to"
+          },
+          "assumed": null,
+          "answer": null
+        }
+      ],
       "blockers": [
         {
           "kind": "unsupported",
-          "reason": "n8n-internal node: calls the n8n instance's own API",
+          "reason": "unpublishes (deactivates) an n8n workflow: only reads of workflows and executions move for now; a write to n8n needs the writes question and the person's approval, which are not built yet",
           "nodes": [
-            "List workflows",
             "Deactivate"
           ]
         }
@@ -385,35 +450,39 @@
           "node": "List workflows",
           "type": "n8n-nodes-base.n8n",
           "typeVersion": 1,
-          "role": "n8n-internal",
+          "role": "step",
           "branch": "main",
           "resource": "workflow",
           "operation": "getAll",
-          "kind": null,
+          "kind": "http",
           "effect": "read",
-          "effectBy": "name",
-          "levers": [],
-          "mapping": "name",
+          "effectBy": "hand",
+          "levers": [
+            "http"
+          ],
+          "mapping": "hand",
           "issues": []
         },
         {
           "node": "Deactivate",
           "type": "n8n-nodes-base.n8n",
           "typeVersion": 1,
-          "role": "n8n-internal",
+          "role": "step",
           "branch": "main",
           "resource": "workflow",
           "operation": "deactivate",
-          "kind": null,
-          "effect": null,
-          "effectBy": null,
+          "kind": "blocked",
+          "effect": "write",
+          "effectBy": "hand",
           "levers": [],
           "mapping": "hand",
           "issues": []
         }
       ],
       "unmapped": [],
-      "levers": []
+      "levers": [
+        "http"
+      ]
     },
     {
       "id": "so-not-setup",

@@ -36,6 +36,7 @@ import { createHash } from "node:crypto";
 import { dirname, join, relative, resolve, basename } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { openHost } from "../runtime/src/convert.mjs";
+import { localHost } from "../runtime/src/engine.mjs";
 
 export const VERSION = "0.1.0";
 const REFS = join(dirname(fileURLToPath(import.meta.url)), "..", "references");
@@ -49,7 +50,7 @@ const WAKEUP_RANK = ["endpoint", "mcp-server", "chat", "form", "relay", "poll", 
 const OUTCOME_RANK = ["keep-in-n8n", "hosted", "replaced", "subscription"]; // worst first
 const BLOCKING = new Set(["input-incomplete", "unsupported", "unmapped"]);
 const BLOCKER_ORDER = ["input-incomplete", "unsupported", "unmapped", "substitution", "dropped-branch", "not-an-automation"];
-const REQ_ORDER = ["connector", "model", "http", "secret", "db", "vector", "state", "mcp-server", "poll", "relay", "task-handoff", "host-disk", "substitution", "missing-export", "frequency", "frequency-change", "bundled-server"];
+const REQ_ORDER = ["connector", "model", "http", "secret", "db", "vector", "state", "mcp-server", "poll", "relay", "task-handoff", "host-disk", "local-network", "substitution", "missing-export", "frequency", "frequency-change", "bundled-server"];
 const SURFACES = ["cloudTask", "localTask", "artifact"];
 const N8N_DEFAULT_TIMEZONE = "America/New_York"; // GENERIC_TIMEZONE default in n8n
 const BRANCH_RANK = ["main", "error-output", "error-trigger", "unreached"];
@@ -1080,22 +1081,44 @@ function normalizeAnswer(raw, q) {
 
 // Credential types whose requests go to the person's own site (the base URL lives in the n8n
 // credential, which an export never carries). n8n-nodes-base 2.47.7: WordpressApi.credentials
-// `url`, GenericFunctions wordpressApiRequest `${credentials.url}/wp-json/wp/v2${resource}`.
-// One question per such credential: the site's address, as in the credential; the converter
-// builds the requests on it and sends the secret only to its host (convert.mjs siteBase()).
-export const SITE_CREDENTIALS = { wordpressApi: { field: "url", label: "WordPress", example: "https://example.com" } };
+// `url`, GenericFunctions wordpressApiRequest `${credentials.url}/wp-json/wp/v2${resource}`;
+// N8nApi.credentials `baseUrl` (placeholder https://<name>.app.n8n.cloud/api/v1), the n8n
+// node's requestDefaults baseURL = baseUrl without a trailing "/". One question per such
+// credential: the site's address, as in the credential; the converter builds the requests on
+// it and sends the secret only to its host (convert.mjs siteBase(); `defaultPath` is added to
+// an answer with no path, as n8n's public API always lives under /api/v1).
+// A site on a local address (localhost, a private or link-local IP, a .local or internal
+// name, a name without a dot: runtime engine.mjs localHost) is out of a cloud task's reach:
+// the answer adds a `local-network` requirement, whose surfaces (capabilities.json) move the
+// workflow to a local task, as files on the n8n host's disk do (`host-disk`).
+export const SITE_CREDENTIALS = {
+  wordpressApi: { field: "URL", label: "WordPress", example: "https://example.com" },
+  n8nApi: { field: "Base URL", label: "n8n", example: "https://n8n.example.com/api/v1", defaultPath: "/api/v1", extra: "These steps keep calling your n8n instance, so they work only while it keeps running." },
+};
+// The host name and host (with its port) of a site answer (an absolute http(s) URL), or null.
+export function siteHost(answer) {
+  try {
+    const u = new URL(String(answer ?? "").trim());
+    return /^https?:$/.test(u.protocol) && u.hostname ? { hostname: u.hostname.toLowerCase(), host: u.host.toLowerCase() } : null;
+  } catch {
+    return null;
+  }
+}
 function askSites(W, ctx) {
   for (const c of W.credentials ?? []) {
     const site = SITE_CREDENTIALS[c.type];
     if (!site) continue;
-    ask(W, ctx, "site", c.name, {
-      text: `Which ${site.label} site does the credential "${c.name}" point to? Give its address as in the n8n credential (its URL field, for example ${site.example}). Requests and the credential go only to that site.`,
-      nodes: c.nodes.map((n) => `${W.prefix}${n}`),
+    const nodes = c.nodes.map((n) => `${W.prefix}${n}`);
+    const { value, answered } = ask(W, ctx, "site", c.name, {
+      text: `Which ${site.label} site does the credential "${c.name}" point to? Give its address as in the n8n credential (its ${site.field} field, for example ${site.example}). Requests and the credential go only to that site. An address on your own computer or network (localhost, a private IP, a .local or internal name) makes it a local task, since a cloud task cannot reach it.${site.extra ? ` ${site.extra}` : ""}`,
+      nodes,
       affects: "allow.http",
       answerType: "text",
       options: { "<site address>": "the site the steps' requests and the credential go to" },
       assumed: null,
     });
+    const h = answered ? siteHost(value) : null;
+    if (h && localHost(h.hostname)) for (const n of c.nodes) addReq(W, "local-network", `${site.label} at ${h.host}`, n, { surfaces: surfacesFrom(ctx.capabilities.requirements?.["local-network"]) });
   }
 }
 
@@ -1219,6 +1242,8 @@ function blockedReason(d) {
   return null;
 }
 
+export const N8N_STAYS_NOTE = "keeps calling your n8n instance through its public API (reads only), so it is useful only while n8n keeps running";
+
 // Requirements, blockers and shared state contributed by one node.
 function processNode(W, d, ctx, br) {
   const name = d.name;
@@ -1330,6 +1355,9 @@ function processNode(W, d, ctx, br) {
       W.calls.push({ node: name, br, d });
       break;
   }
+  // A step that calls the person's n8n instance back (the n8n node's reads): the report says it
+  // works only while n8n keeps running (renderText note, MIGRATION.md).
+  if (d.flags.includes("calls-n8n")) addReq(W, "http", "n8n instance", name, { surfaces: reqSurf("http"), note: N8N_STAYS_NOTE });
   const extra = own(caps.nodeRequirements, d.baseType);
   if (extra) addReq(W, extra, extra === "host-disk" ? "n8n host disk" : extra, name, { surfaces: reqSurf(extra) });
   if (d.secrets === true) {
@@ -1508,7 +1536,9 @@ function resolveCalls(W, ctx) {
       continue;
     }
     const reasons = {
-      expression: "the sub-workflow id is set by an expression",
+      // The id is picked at run time among the workflows in n8n, which stay there: the public API
+      // (v1) has no endpoint that runs a workflow, so no call back to n8n can stand in for it.
+      expression: "the sub-workflow id is set by an expression, so the workflow it runs is picked at run time from the ones in n8n; n8n's public API has no endpoint that runs a workflow",
       empty: "the sub-workflow id is empty",
       file: "the sub-workflow is read from a file on the n8n host",
       url: "the sub-workflow is fetched from a URL at run time",
@@ -1958,7 +1988,11 @@ function outcomeForKind(W, ctx, k) {
     const noCloud = reqs.filter((r) => r.surfaces?.cloudTask === "no");
     if (noCloud.length && reqs.every((r) => r.surfaces?.localTask !== "no")) {
       o.target = "local-task";
-      o.reason += `; ${uniq(noCloud.map((r) => r.name)).join(", ")} cannot run in a cloud task, so a local task`;
+      // A site on a local address is out of the cloud VM's reach; anything else cannot run there.
+      const local = uniq(noCloud.filter((r) => r.kind === "local-network").map((r) => r.name));
+      const other = uniq(noCloud.filter((r) => r.kind !== "local-network").map((r) => r.name));
+      const why = [...(other.length ? [`${other.join(", ")} cannot run in a cloud task`] : []), ...(local.length ? [`${local.join(", ")} ${local.length > 1 ? "are local addresses" : "is a local address"} a cloud task cannot reach`] : [])];
+      o.reason += `; ${why.join("; ")}, so a local task`;
     }
   }
   return o;
@@ -2292,6 +2326,7 @@ const REQ_LABEL = {
   poll: () => "polling",
   relay: (n) => `relay (${n})`,
   "host-disk": () => "files on disk",
+  "local-network": (n) => `a local address (${n})`,
   "bundled-server": () => "bundled MCP server",
   "task-handoff": (n) => `hand-off to a ${TARGET_LABEL[n] ?? n}`,
   "frequency-change": (n) => `slower schedule (${n})`,
@@ -2380,6 +2415,7 @@ export function renderText(report, color = false) {
     const notes = [];
     for (const b of w.blockers.filter((b) => b.kind === "dropped-branch")) notes.push(`dropped: ${clean(b.reason)}${b.nodes.length ? ` (${listCut(b.nodes.map(clean))})` : ""}`);
     for (const b of w.blockers.filter((b) => b.kind === "not-an-automation")) notes.push(`looks like a tutorial: ${clean(b.reason)}`);
+    for (const r of w.requires.filter((x) => x.kind === "http" && x.note)) notes.push(`${listCut(r.nodes.map((n) => `"${clean(n)}"`))} ${clean(r.nodes.length > 1 ? r.note.replace(/^keeps /, "keep ") : r.note)}`);
     const offTriggers = w.disabled.filter((n) => /trigger|webhook/i.test(n));
     if (offTriggers.length) notes.push(`disabled: ${listCut(offTriggers.map((n) => `"${clean(n)}"`))} (enable and re-run to see their outcome)`);
     const unreached = w.steps.filter((st) => st.branch === "unreached");

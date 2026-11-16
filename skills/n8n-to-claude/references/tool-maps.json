@@ -7,7 +7,7 @@
     "understood: parameters this entry reads or accepts; any other parameter set on the node makes the step `review` (it has no counterpart in the tool). review: [{param, equals?, reason}] flags the step when a parameter has that value (any value when equals is absent).",
     "The converter checks every args field against the tool's input JSON schema: required fields present, no unknown fields.",
     "lookup: true (Google Sheets reads): the node's filtersUI rows become tool.lookup, applied by the runtime to the adapted rows as n8n's lookupValues does (cell text equals the value; OR or AND by combineFilters; first match per filter unless all matches are asked for).",
-    "Or rest (a REST program in runtime/src/rest.mjs, for an operation that takes several requests: a read decides the write) with credentialType and hosts [{method, host, pathPrefix}]; the n8n parameters stay in step.params. Keeping the same service over its REST API with the person's own credential is the default mapping, not a substitution (references/translation.md). whenSiblingRest: true: the entry applies only to a step (not an agent tool) whose workflow has another step of the same node type on a REST entry under the same credential name, so the secret the person stores for those steps serves this one too; otherwise the next version range's entry applies (a Sheets read then goes through the Drive export).",
+    "Or rest (a REST program in runtime/src/rest.mjs, for an operation that takes several requests: a read decides the write) with credentialType and hosts [{method, host, pathPrefix}]; the n8n parameters stay in step.params. Keeping the same service over its REST API with the person's own credential is the default mapping, not a substitution (references/translation.md). site: true: the program's base is the person's site (the answer to the report's site question for the step's credential, convert.mjs siteBase(), kept as step.rest.base), and a host without a host name takes the site's host, with the site's path before pathPrefix. whenSiblingRest: true: the entry applies only to a step (not an agent tool) whose workflow has another step of the same node type on a REST entry under the same credential name, so the secret the person stores for those steps serves this one too; otherwise the next version range's entry applies (a Sheets read then goes through the Drive export).",
     "recipients (a reply whose n8n node addresses it from the replied-to message's headers, as Gmail's reply): {tool, idArg, arg, from, replyTo, replyToFromVersion}. Before the call the runner reads the message (tool with idArg) and sets args[arg] to the addresses in its first present field of replyTo (only from replyToFromVersion on), else of from; a connector's own default recipients are never relied on.",
     "detail (poll triggers whose n8n node reads each new item again, as Gmail's GET per message): {tool, args, idArg, idField, keep, result, resultWhen, missingFields}. After the cursor, the runner calls the tool once per new item with args plus idArg set to the list item's idField; the item becomes the adapted detail result (the resultWhen branch the node's parameters pick, which may carry its own missingFields); keep names list-item fields used when the detail result lacks them. The step's missingFields are the detail's."
   ],
@@ -1063,6 +1063,58 @@
               { "param": "additionalFields.inQuoteToStatusId", "reason": "the quoted tweet (quote_tweet_id) is not mapped into the request body" },
               { "param": "additionalFields.inReplyToStatusId", "reason": "the replied-to tweet (reply.in_reply_to_tweet_id) is not mapped into the request body" }
             ]
+          }
+        }
+      }
+    },
+    "n8n-nodes-base.n8n": {
+      "1": {
+        "workflow": {
+          "getAll": {
+            "rest": "n8nApi",
+            "site": true,
+            "credentialType": "n8nApi",
+            "hosts": [{ "method": "GET", "pathPrefix": "/workflows" }],
+            "effect": "read",
+            "fidelity": "exact",
+            "caveats": ["Store the secret as JSON { \"header\": \"X-N8N-API-KEY\", \"value\": \"<API key>\" }, the n8n credential's API Key; it is sent only to the n8n site.", "The n8n site is the person's answer to the report's site question (the credential's Base URL; an address with no path gets /api/v1).", "The step keeps calling the person's n8n instance through its public API, so it works only while n8n keeps running."],
+            "understood": ["operation", "resource", "returnAll", "limit", "filters.activeWorkflows", "filters.tags", "filters.name", "filters.projectId", "filters.excludePinnedData"],
+            "review": [{ "param": "requestOptions", "reason": "n8n's request options (batching, proxy, timeout, ignore SSL issues) are not carried over" }]
+          },
+          "get": {
+            "rest": "n8nApi",
+            "site": true,
+            "credentialType": "n8nApi",
+            "hosts": [{ "method": "GET", "pathPrefix": "/workflows/" }],
+            "effect": "read",
+            "fidelity": "exact",
+            "caveats": ["Store the secret as JSON { \"header\": \"X-N8N-API-KEY\", \"value\": \"<API key>\" }, the n8n credential's API Key; it is sent only to the n8n site.", "The n8n site is the person's answer to the report's site question (the credential's Base URL; an address with no path gets /api/v1).", "The step keeps calling the person's n8n instance through its public API, so it works only while n8n keeps running."],
+            "understood": ["operation", "resource", "workflowId"],
+            "review": [{ "param": "requestOptions", "reason": "n8n's request options (batching, proxy, timeout, ignore SSL issues) are not carried over" }]
+          }
+        },
+        "execution": {
+          "getAll": {
+            "rest": "n8nApi",
+            "site": true,
+            "credentialType": "n8nApi",
+            "hosts": [{ "method": "GET", "pathPrefix": "/executions" }],
+            "effect": "read",
+            "fidelity": "exact",
+            "caveats": ["Store the secret as JSON { \"header\": \"X-N8N-API-KEY\", \"value\": \"<API key>\" }, the n8n credential's API Key; it is sent only to the n8n site.", "The n8n site is the person's answer to the report's site question (the credential's Base URL; an address with no path gets /api/v1).", "The step keeps calling the person's n8n instance through its public API, so it works only while n8n keeps running."],
+            "understood": ["operation", "resource", "returnAll", "limit", "filters.workflowId", "filters.status", "options.activeWorkflows"],
+            "review": [{ "param": "requestOptions", "reason": "n8n's request options (batching, proxy, timeout, ignore SSL issues) are not carried over" }]
+          },
+          "get": {
+            "rest": "n8nApi",
+            "site": true,
+            "credentialType": "n8nApi",
+            "hosts": [{ "method": "GET", "pathPrefix": "/executions/" }],
+            "effect": "read",
+            "fidelity": "exact",
+            "caveats": ["Store the secret as JSON { \"header\": \"X-N8N-API-KEY\", \"value\": \"<API key>\" }, the n8n credential's API Key; it is sent only to the n8n site.", "The n8n site is the person's answer to the report's site question (the credential's Base URL; an address with no path gets /api/v1).", "The step keeps calling the person's n8n instance through its public API, so it works only while n8n keeps running."],
+            "understood": ["operation", "resource", "executionId", "options.activeWorkflows"],
+            "review": [{ "param": "requestOptions", "reason": "n8n's request options (batching, proxy, timeout, ignore SSL issues) are not carried over" }]
           }
         }
       }

@@ -166,3 +166,18 @@ export function typeName(v) {
   if (Array.isArray(v)) return "array";
   return typeof v;
 }
+
+// n8n's NodeApiError message for an HTTP status (n8n-workflow 2.47.7 STATUS_CODE_MESSAGES), as the
+// HTTP Request node and declarative nodes (the n8n node) fail with it.
+export const API_STATUS_MESSAGES = {
+  400: "Bad request - please check your parameters",
+  401: "Authorization failed - please check your credentials",
+  403: "Forbidden - perhaps check your credentials?",
+  404: "The resource you are requesting could not be found",
+  405: "Method not allowed - please check you are using the right HTTP method",
+  429: "The service is receiving too many requests from you",
+  500: "The service was not able to process your request",
+  502: "Bad gateway - the service failed to handle your request",
+  503: "Service unavailable - try again later or consider setting this node to retry automatically (in the node settings)",
+  504: "Gateway timed out - perhaps try again later?",
+};
