@@ -239,8 +239,8 @@ test("preflight fails closed: unsupported and blocked steps, missing tools, sour
   assert.equal(missing.ok, false);
   assert.match(missing.issues[0].message, /tool slack.send_message is not available/);
   assert.equal(preflight(base, { availableTools: ["slack.send_message"] }).ok, true);
-  const unsupported = wf([start(), node("MD", "xml", {})], [["Start", "MD"]]);
-  assert.match(preflight(unsupported).issues[0].message, /not implemented: n8n-nodes-base.xml v1/);
+  const unsupported = wf([start(), node("MD", "compareDatasets", {}, { v: 2.3 })], [["Start", "MD"]]);
+  assert.match(preflight(unsupported).issues[0].message, /not implemented: n8n-nodes-base.compareDatasets v2.3/);
   const blocked = wf([start(), node("X", "n8n-nodes-base.n8n", {}, { kind: "blocked", blocked: { reason: "manages n8n itself" } })], [["Start", "X"]]);
   assert.match(preflight(blocked).issues[0].message, /blocked: manages n8n itself/);
   const withSource = { ...base, source: { sha256: hashHex("sha256", "export v1") } };
@@ -251,7 +251,7 @@ test("preflight fails closed: unsupported and blocked steps, missing tools, sour
 
 test("preflight: a blocked or unimplemented step no trigger reaches is a warning, not a refusal", async () => {
   const orphan = node("X", "n8n-nodes-base.n8n", {}, { kind: "blocked", blocked: { reason: "manages n8n itself" } });
-  const def = wf([start(), node("Set", "set", { mode: "manual", assignments: { assignments: [{ name: "a", value: "1", type: "string" }] } }, { v: 3.4 }), orphan, node("MD", "xml", {}), node("After X", "set", {}, { v: 3.4 })], [["Start", "Set"], ["X", "After X"]]);
+  const def = wf([start(), node("Set", "set", { mode: "manual", assignments: { assignments: [{ name: "a", value: "1", type: "string" }] } }, { v: 3.4 }), orphan, node("MD", "compareDatasets", {}, { v: 2.3 }), node("After X", "set", {}, { v: 3.4 })], [["Start", "Set"], ["X", "After X"]]);
   const pf = preflight(def);
   assert.equal(pf.ok, true, JSON.stringify(pf.issues));
   assert.deepEqual(pf.issues.filter((i) => /never runs/.test(i.message)).map((i) => i.step).sort(), ["After X", "MD", "X"]);
@@ -266,7 +266,7 @@ test("preflight: a blocked or unimplemented step no trigger reaches is a warning
 });
 
 test("run() refuses to start when preflight fails, with every issue listed", async () => {
-  const r = await run(wf([start(), node("MD", "xml", {})], [["Start", "MD"]]));
+  const r = await run(wf([start(), node("MD", "compareDatasets", {}, { v: 2.3 })], [["Start", "MD"]]));
   assert.equal(r.status, "failed");
   assert.equal(r.error.name, "PreflightFailed");
   assert.equal(r.error.issues.length, 1);

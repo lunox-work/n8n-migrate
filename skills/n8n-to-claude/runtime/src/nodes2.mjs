@@ -20,6 +20,7 @@ import { parseHtml, selectAll, innerHtml, textContent, isTag, UnsupportedHtml } 
 import { htmlToText } from "./htmltext.mjs";
 import { htmlToMarkdown } from "./htmlmarkdown.mjs";
 import { markdownToHtml } from "./showdown.mjs";
+import { parseXml, buildXml } from "./xml.mjs";
 import { summarizeItem } from "./summarize.mjs";
 
 const BASE = "n8n-nodes-base.";
@@ -709,6 +710,54 @@ const markdown = {
   },
 };
 
+// ---------- XML (v1) ----------
+
+// n8n's XML node with xml2js (xml.mjs). Mode, property name and options are read from item 0.
+// xmlToJson: a new Parser per item with mergeAttrs and explicitArray off unless the options say
+// otherwise, tag and attribute names `__proto__`, `constructor` and `prototype` renamed with a
+// `sanitized_` prefix (n8n's sanitizeXmlName), the parsed object copied as the item's json, no
+// paired item. jsonToxml: a Builder with the node's options builds each item's json into the
+// property. An attribute or character key naming one of those three is refused before any item.
+// Under continue-on-fail n8n replaces the failed input item but returns only the items that
+// worked, so a failed item is dropped from the output; reproduced.
+const XML_FORBIDDEN = ["__proto__", "constructor", "prototype"];
+const sanitizeXmlName = (name) => (XML_FORBIDDEN.includes(name) ? `sanitized_${name}` : name);
+const xml = {
+  versions: (v) => v === 1,
+  defaults: () => ({ mode: "xmlToJson", dataPropertyName: "data", options: {} }),
+  execute(exec) {
+    const items = exec.getInputData();
+    const mode = exec.param("mode", 0);
+    const dataPropertyName = exec.param("dataPropertyName", 0);
+    const options = { ...(exec.param("options", 0, {}) ?? {}) };
+    if (options.attrkey !== undefined) {
+      options.attrkey = String(options.attrkey);
+      if (XML_FORBIDDEN.includes(options.attrkey)) throw err(exec, `The "Attribute Key" option value "${options.attrkey}" is not allowed`);
+    }
+    if (options.charkey !== undefined) {
+      options.charkey = String(options.charkey);
+      if (XML_FORBIDDEN.includes(options.charkey)) throw err(exec, `The "Character Key" option value "${options.charkey}" is not allowed`);
+    }
+    const out = [];
+    for (let i = 0; i < items.length; i++) {
+      try {
+        if (mode === "xmlToJson") {
+          const parserOptions = { mergeAttrs: true, explicitArray: false, ...options, tagNameProcessors: [sanitizeXmlName], attrNameProcessors: [sanitizeXmlName] };
+          const value = items[i].json[dataPropertyName];
+          if (value === undefined) throw err(exec, `Item has no JSON property called "${dataPropertyName}"`, { itemIndex: i });
+          out.push({ json: deepCopy(parseXml(value, parserOptions)) });
+        } else if (mode === "jsonToxml") {
+          out.push({ json: { [dataPropertyName]: buildXml(items[i].json, options) }, pairedItem: { item: i } });
+        } else throw err(exec, `The operation "${mode}" is not known!`, { itemIndex: i });
+      } catch (e) {
+        if (exec.continueOnFail()) continue;
+        throw e instanceof NodeError ? e : err(exec, e.message, { itemIndex: i });
+      }
+    }
+    return [out];
+  },
+};
+
 const htmlExtract = {
   versions: (v) => v === 1,
   defaults: () => ({ sourceData: "json", dataPropertyName: "data", extractionValues: {}, options: {} }),
@@ -740,6 +789,7 @@ export const GROUP2 = {
   [BASE + "html"]: html,
   [BASE + "htmlExtract"]: htmlExtract,
   [BASE + "markdown"]: markdown,
+  [BASE + "xml"]: xml,
   [BASE + "executionData"]: executionData,
 };
 

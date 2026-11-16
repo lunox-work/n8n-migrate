@@ -17,6 +17,10 @@
 //     (node:http STATUS_CODES, case-insensitive: a status table, not a template rule);
 //   - third-party libraries vendored unmodified under runtime/vendor/<lib>/ (their SHA-256 as
 //     the folder's SOURCE.txt records it) are skipped for ids and fixture strings;
+//   - a module table in runtime/src (`"<key>": function (module, exports, require) {` ... `  },`,
+//     PROPOSALS P122): a module body whose SHA-256 is the one `<file>.SOURCE.txt` records
+//     (`sha256 <key> <hex> <package@version/path>`, the published file) is skipped for ids only;
+//     a body that differs by a byte, and everything outside the table, is checked;
 //   - template names: the `name` of each corpus template in evals/bench/data/wf (git-ignored;
 //     skipped with a note on a fresh clone), case-insensitive, names of 12+ characters;
 //   - fixture strings: string values of 12+ characters in evals/bench/fixtures that look
@@ -64,6 +68,20 @@ if (existsSync(VENDOR_DIR))
       if (existsSync(f) && createHash("sha256").update(readFileSync(f)).digest("hex") === m[2]) THIRD_PARTY.add(f);
     }
   }
+
+// P122: verified third-party module bodies inside runtime/src module tables, blanked for the id
+// scan only (newlines kept, so line numbers stay).
+const MODULE_RE = /^  ("[^"\n]+"): function \(module, exports, require\) \{\n([\s\S]*?)\n  \},$/gm;
+function idScanText(file, text) {
+  const src = file.replace(/\.mjs$/, ".SOURCE.txt");
+  if (!file.endsWith(".mjs") || !existsSync(src)) return text;
+  const known = new Map([...readFileSync(src, "utf8").matchAll(/^sha256\s+(\S+)\s+([0-9a-f]{64})\b/gm)].map((m) => [m[1], m[2]]));
+  return text.replace(MODULE_RE, (whole, key, body) => {
+    const k = JSON.parse(key);
+    if (known.get(k) !== createHash("sha256").update(body).digest("hex")) return whole;
+    return whole.replace(body, body.replace(/[^\n]/g, " "));
+  });
+}
 
 const corpus = JSON.parse(readFileSync(join(BENCH, "corpus.json"), "utf8"));
 const ids = [...new Set(corpus.templates.map((t) => String(t.id)))];
@@ -115,7 +133,7 @@ for (const [file, text] of content) {
   // Ids: vendor files are generated from n8n or captured from connectors, never by the loop,
   // and carry many unrelated numbers; skip them for ids only.
   if (!vendor && !NO_ID_CHECK.some((d) => file.startsWith(d + "/")))
-    for (const m of text.matchAll(idRe)) {
+    for (const m of idScanText(file, text).matchAll(idRe)) {
       const line = text.split("\n")[lineOf(text, m.index) - 1].toLowerCase();
       if (STATUS_CODES[m[1]] && line.includes(STATUS_CODES[m[1]].toLowerCase())) continue;
       hits.push(`${rel}:${lineOf(text, m.index)}: template id ${m[1]}`);

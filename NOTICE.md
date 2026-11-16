@@ -39,5 +39,12 @@ the software works with.
   when it has a spreadsheet step): [SheetJS](https://sheetjs.com/) Community Edition 0.20.3
   (npm @e965/xlsx 0.20.3, unmodified), Apache License 2.0, copyright SheetJS LLC; licence and
   checksum beside it.
+- `skills/n8n-to-claude/runtime/src/xml.mjs` (and its copies in `runtime/dist/`): the
+  published CommonJS modules of [xml2js](https://github.com/Leonidas-from-XIV/node-xml2js)
+  0.6.2 (MIT License, copyright 2010–2013 its authors),
+  [xmlbuilder](https://github.com/oozcitak/xmlbuilder-js) 11.0.1 (MIT License, copyright 2013
+  Ozgur Ozcitak) and [sax](https://github.com/isaacs/sax-js) 1.2.4 (ISC License, copyright Isaac
+  Z. Schlueter and contributors), in a module table with one line changed in xml2js's parser
+  (its async error event); licences in the file's header.
 - `assets/src/fonts/`: DM Mono, DM Sans and Space Grotesk, SIL Open Font
   License 1.1. Used only to render the README images.
