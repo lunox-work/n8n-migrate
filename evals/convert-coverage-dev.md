@@ -6,8 +6,8 @@ Classes: **full** (no review flag, no blocked step), **review** (some step is fl
 
 | Mode | full | review | blocked | refused | crash | schema-invalid | preflight clean |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| default | 18 | 30 | 52 | 0 | 0 | 1 | 40 |
-| forced | 18 | 30 | 52 | 0 | 0 | 1 | 40 |
+| default | 21 | 27 | 52 | 0 | 0 | 1 | 40 |
+| forced | 21 | 27 | 52 | 0 | 0 | 1 | 40 |
 
 ## Default (refusals honoured)
 
@@ -18,7 +18,6 @@ Top reasons for blocked steps:
 | unsupported: a vector store needs an MCP server (lever not built yet) | 9 | 40 |
 | unsupported: a database step needs the bundled server or a database connector (open decision N) | 8 | 29 |
 | input-incomplete: the site the credential "…" points to is not known yet: answer question N/site/wordpressApi Credential (its address, as in the n8n credential), then regenerate | 8 | 9 |
-| no-tool: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret) | 4 | 4 |
 | unsupported: form waits for a person (out of scope v1) | 3 | 7 |
 | no-tool: no request template for toolSerpApi yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | substitution: emailSend cannot run on Claude as it is: send through the Gmail connector (send_message) instead of SMTP | 2 | 4 |
@@ -30,12 +29,12 @@ Top reasons for blocked steps:
 | unsupported: Compression (zip, gzip) is not implemented yet | 2 | 2 |
 | unsupported: Edit Image runs GraphicsMagick inside n8n; the runtime has no image library, so resized or edited images would differ | 2 | 2 |
 | unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet) | 2 | 2 |
+| unsupported: OpenAI assistant:message is not a text model call | 2 | 2 |
 
 Top reasons for review flags:
 
 | Reason | Templates | Steps |
 | --- | --- | --- |
-| the sheet "…" may not be the first tab; the export reads the first tab only | 7 | 9 |
 | tool "…" is left out: a vector store needs an MCP server (lever not built yet) | 7 | 7 |
 | an LLM API called with your own API key, as n8n does; approve --approve llm-api-to-claude to run it as a model step on Claude instead | 6 | 8 |
 | the legacy OpenAI node's output (choices) is rebuilt from n8n's simplified shape; check the fields the next steps read | 5 | 13 |
@@ -50,6 +49,7 @@ Top reasons for review flags:
 | tool "…" is left out: a database step needs the bundled server or a database connector (open decision N) | 2 | 4 |
 | $env is blocked in n8n and in the runtime | 2 | 3 |
 | image analysis needs the image handed to the model, which the model step does not carry yet | 2 | 2 |
+| n8n summarises text over the chain's N-token limit chunk by chunk, counting tokens with the model's tokenizer; the runtime runs the single call and refuses text over N bytes at run time | 2 | 2 |
 
 Top preflight errors (what stops a run before any effect):
 
@@ -62,9 +62,9 @@ Top preflight errors (what stops a run before any effect):
 | blocked: a database step needs the bundled server or a database connector (open decision N) | 6 | 25 |
 | blocked: form waits for a person (out of scope v1) | 3 | 7 |
 | blocked: agent tool "…" cannot be carried (no request template for toolSerpApi yet (it needs the app's REST API with a stored secret)); without it the agent would answer without a tool n8n gives it | 3 | 3 |
-| blocked: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | blocked: agent tool "…" cannot be carried (a database step needs the bundled server or a database connector (open decision N)); without it the agent would answer without a tool n8n gives it | 2 | 4 |
 | blocked: emailSend cannot run on Claude as it is: send through the Gmail connector (send_message) instead of SMTP | 2 | 4 |
+| blocked: Compression (zip, gzip) is not implemented yet | 2 | 2 |
 
 Schema-invalid definitions:
 
@@ -79,7 +79,6 @@ Top reasons for blocked steps:
 | unsupported: a vector store needs an MCP server (lever not built yet) | 9 | 40 |
 | unsupported: a database step needs the bundled server or a database connector (open decision N) | 8 | 29 |
 | input-incomplete: the site the credential "…" points to is not known yet: answer question N/site/wordpressApi Credential (its address, as in the n8n credential), then regenerate | 8 | 9 |
-| no-tool: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret) | 4 | 4 |
 | unsupported: form waits for a person (out of scope v1) | 3 | 7 |
 | no-tool: no request template for toolSerpApi yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | substitution: emailSend cannot run on Claude as it is: send through the Gmail connector (send_message) instead of SMTP | 2 | 4 |
@@ -91,12 +90,12 @@ Top reasons for blocked steps:
 | unsupported: Compression (zip, gzip) is not implemented yet | 2 | 2 |
 | unsupported: Edit Image runs GraphicsMagick inside n8n; the runtime has no image library, so resized or edited images would differ | 2 | 2 |
 | unsupported: media steps (transcription, image generation) go through the original provider (lever not built yet) | 2 | 2 |
+| unsupported: OpenAI assistant:message is not a text model call | 2 | 2 |
 
 Top reasons for review flags:
 
 | Reason | Templates | Steps |
 | --- | --- | --- |
-| the sheet "…" may not be the first tab; the export reads the first tab only | 7 | 9 |
 | tool "…" is left out: a vector store needs an MCP server (lever not built yet) | 7 | 7 |
 | an LLM API called with your own API key, as n8n does; approve --approve llm-api-to-claude to run it as a model step on Claude instead | 6 | 8 |
 | the legacy OpenAI node's output (choices) is rebuilt from n8n's simplified shape; check the fields the next steps read | 5 | 13 |
@@ -111,6 +110,7 @@ Top reasons for review flags:
 | tool "…" is left out: a database step needs the bundled server or a database connector (open decision N) | 2 | 4 |
 | $env is blocked in n8n and in the runtime | 2 | 3 |
 | image analysis needs the image handed to the model, which the model step does not carry yet | 2 | 2 |
+| n8n summarises text over the chain's N-token limit chunk by chunk, counting tokens with the model's tokenizer; the runtime runs the single call and refuses text over N bytes at run time | 2 | 2 |
 
 Top preflight errors (what stops a run before any effect):
 
@@ -123,9 +123,9 @@ Top preflight errors (what stops a run before any effect):
 | blocked: a database step needs the bundled server or a database connector (open decision N) | 6 | 25 |
 | blocked: form waits for a person (out of scope v1) | 3 | 7 |
 | blocked: agent tool "…" cannot be carried (no request template for toolSerpApi yet (it needs the app's REST API with a stored secret)); without it the agent would answer without a tool n8n gives it | 3 | 3 |
-| blocked: no request template for linkedIn post:create yet (it needs the app's REST API with a stored secret) | 3 | 3 |
 | blocked: agent tool "…" cannot be carried (a database step needs the bundled server or a database connector (open decision N)); without it the agent would answer without a tool n8n gives it | 2 | 4 |
 | blocked: emailSend cannot run on Claude as it is: send through the Gmail connector (send_message) instead of SMTP | 2 | 4 |
+| blocked: Compression (zip, gzip) is not implemented yet | 2 | 2 |
 
 Schema-invalid definitions:
 
@@ -133,9 +133,9 @@ Schema-invalid definitions:
 
 ## Tool maps
 
-80 operation entries in `references/tool-maps.json`: 61 connector tools, 11 REST request templates, 8 explained no-tool blocks; 2 substitutions (smtp-to-gmail, imap-to-gmail-poll). Fidelity of the mapped ones: unverified 50, exact 22. 4 connector entries need their arguments translated by the skill (Notion property formats).
+82 operation entries in `references/tool-maps.json`: 63 connector tools, 11 REST request templates, 8 explained no-tool blocks; 2 substitutions (smtp-to-gmail, imap-to-gmail-poll). Fidelity of the mapped ones: unverified 50, exact 24. 4 connector entries need their arguments translated by the skill (Notion property formats).
 
-Steps in the forced run by fidelity: tools unverified 79; REST templates exact 11.
+Steps in the forced run by fidelity: tools unverified 60; REST templates exact 11.
 
 No connector output shape was captured (the schemas are input schemas), so every adapter that reads a tool's output is `unverified` until the bench's emulation check runs it against real output. REST templates are `exact` where n8n returns the API's own response body.
 
