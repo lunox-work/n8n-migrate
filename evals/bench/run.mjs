@@ -621,7 +621,7 @@ async function benchTemplate(id, args, L) {
         S[`claude:${v}`] = await runClaudeDriver(folder, loadFixture(id, v, { at: recs[v]?.startedAt }), { wf, recordings: recordedCalls(await need(v), loadFixture(id, v, { at: recs[v]?.startedAt })), startedAt: recs[v]?.startedAt, runTime: runTime(recs[v]), label: `${args.tag}-${id}-${v}-retry`, log });
         save();
       }
-      if (S[`claude:${v}:slip`]) slips[v] = { attempts: [S[`claude:${v}:slip`].summary, S[`claude:${v}`].summary].map((x) => ({ runStatus: x?.runStatus ?? null, slip: x?.slip ?? null, finalText: x?.finalText ?? null })), repeated: !!S[`claude:${v}`].summary?.slip };
+      if (S[`claude:${v}:slip`]) slips[v] = { attempts: [S[`claude:${v}:slip`].summary, S[`claude:${v}`].summary].map((x) => ({ runStatus: x?.runStatus ?? null, slip: x?.slip ?? null, finalText: x?.finalText ?? null, stopReason: x?.stopReason ?? null })), repeated: !!S[`claude:${v}`].summary?.slip };
     }
     const cn = S["claude:normal"];
     const ch = S["claude:hostile"];

@@ -24,6 +24,11 @@
 // whose release point is unfinished) are counted and never named. Dev unlocks count ROUND's
 // dev (round 5: 120, round 4's held-out promoted).
 //
+// PROPOSALS P121: a dev template is converted as the bench converts it, from the export with
+// its overlay's placeholder fills merged in (`claude-side.mjs` `filledSource()`), so the dev
+// columns say what the bench measures; the gallery population keeps the raw template (a person
+// fills a placeholder in a real template, and the row says what the converter does with it).
+//
 // A blocker is a converter step of kind `blocked` (not disabled), as convert-coverage.mjs
 // classifies them, keyed by node type and the analyzer's `resource:operation`. Blocks of kind
 // `input-incomplete` (a question the person answers, such as a credential's site) and of kind
@@ -52,6 +57,8 @@ import { preflight } from "../../skills/n8n-to-claude/runtime/src/api.mjs";
 import { checkEligibility, lookupType, resolveEntry } from "./eligible.mjs";
 import { structuralExclusion, tutorialExclusion, HAND } from "./fetch.mjs";
 import { readSplits, roundOf, unreadableIds } from "./rounds.mjs";
+import { filledSource } from "./claude-side.mjs";
+import { loadOverlay } from "./n8n-side.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
@@ -408,7 +415,7 @@ async function main() {
 
   // 4. ROUND's dev, from the bench cache (every dev template, in the walk or not).
   const dev = [];
-  const devPop = { templates: r4.dev.length, unnamed: 0, supportedToday: 0, answersOnly: 0, blocked: 0, missing: 0 };
+  const devPop = { templates: r4.dev.length, unnamed: 0, supportedToday: 0, answersOnly: 0, blocked: 0, missing: 0, filled: 0 };
   for (const t of r4.dev) {
     if (hidden.has(String(t.id))) throw new Error(`round ${ROUND} dev id ${t.id} is also held out`);
     const f = templateFile(t.id);
@@ -416,7 +423,10 @@ async function main() {
       devPop.missing++;
       continue;
     }
-    const raw = JSON.parse(readFileSync(f, "utf8"));
+    // P121: the overlay-filled export where the bench converts one.
+    const filled = f === join(DATA, "wf", `${t.id}.json`) ? filledSource(t.id, loadOverlay(t.id)) : null;
+    if (filled) devPop.filled++;
+    const raw = JSON.parse(filled ?? readFileSync(f, "utf8"));
     const items = unwrap(raw, String(t.id));
     const report = analyze(items, opts).workflows[0];
     const c = convertOne(items, report, raw.workflow?.workflow ?? raw);
@@ -476,7 +486,7 @@ export function markdown(doc) {
   L.push(`| Blocked by at least one missing feature | ${p.blocked}${p.crashes ? ` (${p.crashes} converter crash or refusal)` : ""} |`);
   L.push("");
   L.push(`Out of scope, by clause (a template counts once per clause it breaks): ${Object.entries(p.outOfScopeByClause).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([k, v]) => `${k} ${v}`).join(", ")}.`, "");
-  L.push(`Round-${doc.round} dev: ${d.templates} templates; ${d.supportedToday} supported today, ${d.answersOnly} blocked only by a question, ${d.blocked} blocked by a missing feature${d.missing ? `, ${d.missing} not in the cache` : ""}. ${d.unnamed ? `${d.unnamed} of them are still held out in the current round (its release point unfinished): they are counted, never named; re-run with \`--offline\` once \`currentRound\` is ${doc.round}.` : ""}`.trim(), "");
+  L.push(`Round-${doc.round} dev: ${d.templates} templates; ${d.supportedToday} supported today, ${d.answersOnly} blocked only by a question, ${d.blocked} blocked by a missing feature${d.missing ? `, ${d.missing} not in the cache` : ""}${d.filled ? ` (${d.filled} converted from the export with the overlay's placeholder fills, as the bench converts them, PROPOSALS P121)` : ""}. ${d.unnamed ? `${d.unnamed} of them are still held out in the current round (its release point unfinished): they are counted, never named; re-run with \`--offline\` once \`currentRound\` is ${doc.round}.` : ""}`.trim(), "");
   if (doc.requests) L.push(`Requests made by the walk that filled the cache: ${doc.requests.listing} listing, ${doc.requests.template} template, ${doc.requests.failed} failed.`, "");
   L.push(`Every template this walk read (listing ranks 1-${doc.listingPages.length * ROWS}) has now been seen by a fixing-side tool, so it is no longer fresh: a later round's held-out walk should start after page ${doc.listingPages.length} of the day's listing, or skip every id in the listing pages this walk used, as round 4's walk skipped \`corpus.json\` and the survey folder.`, "");
   L.push("## Picking the next feature", "");

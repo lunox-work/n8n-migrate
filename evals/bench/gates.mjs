@@ -354,16 +354,24 @@ export function slipStats(rows) {
   return { runs, slipped, retried, repeated, rate: runs ? Math.round((slipped / runs) * 1000) / 10 : null, templates };
 }
 
-// PROPOSALS P106: a repeated slip (both attempts) whose final texts decline to write the
-// answer of a model or agent step is the driver model refusing the template's own prompt, not
-// a runner or converter fault. Returns {bucket: "model refusal", cause, detail} or null; the
-// gate still fails. `slip` is drivers.claude.slips[variant].
-const DECLINE_RE = /\b(won['’]t|will not|can['’]t|cannot|unable to|not able to|decline|refuse|not comfortable)\b/i;
+// PROPOSALS P106, P120: a slip that repeats on both attempts, each run left waiting at the same
+// model or agent step(s) with the answer unwritten, is the driver model declining the
+// template's own prompt, not a runner or converter fault. P120 decides it from the run's
+// structure, never from the final text's wording (which varied between runs of one template):
+// both attempts end `needs` as P40 slips whose outstanding requests name the same steps, or
+// both carry the session's own `refusal` stop reason. A slip at different steps on the two
+// attempts keeps `runFailureCause()`. Returns {bucket: "model refusal", cause, detail} or null;
+// the gate still fails. `slip` is drivers.claude.slips[variant].
+const slipSteps = (a) => [...new Set((a?.slip?.outstanding ?? []).map((o) => String(o).split("#")[0]))].sort();
 export function modelRefusal(slip) {
   if (!slip?.repeated || !Array.isArray(slip.attempts) || slip.attempts.length < 2) return null;
-  if (!slip.attempts.every((a) => a?.runStatus === "needs" && a?.slip && DECLINE_RE.test(a?.finalText ?? ""))) return null;
-  const steps = [...new Set(slip.attempts.flatMap((a) => (a.slip.outstanding ?? []).map((o) => String(o).split("#")[0])))];
-  return fail("model refusal", `the claude driver's model declined to write the answer of step ${steps.map((x) => `"${x}"`).join(", ") || "?"} on both attempts (P106)`, { finalText: String(slip.attempts.at(-1).finalText ?? "").slice(0, 300) });
+  const steps = slip.attempts.map(slipSteps);
+  const key = JSON.stringify(steps[0]);
+  const sameStep = steps[0].length > 0 && slip.attempts.every((a, i) => a?.runStatus === "needs" && a?.slip && JSON.stringify(steps[i]) === key);
+  const stopRefusal = slip.attempts.every((a) => a?.stopReason === "refusal");
+  if (!sameStep && !stopRefusal) return null;
+  const named = [...new Set(steps.flat())];
+  return fail("model refusal", `the claude driver's model declined to write the answer of step ${named.map((x) => `"${x}"`).join(", ") || "?"} on both attempts (P106, P120)`, { finalText: String(slip.attempts.at(-1).finalText ?? "").slice(0, 300), by: sameStep ? "same step outstanding" : "refusal stop reason" });
 }
 
 // Verdict flips between two runs: templates in both whose reached gate or cause differ. With

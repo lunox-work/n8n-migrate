@@ -1410,6 +1410,31 @@ test("P106: a repeated slip whose final texts decline the step is a model refusa
   assert.match(r.cause, /"Idea creator"/);
   assert.ok(BUCKETS.includes(r.bucket));
   assert.equal(modelRefusal({ repeated: false, attempts: [attempt("I won't"), attempt("ok")] }), null);
-  assert.equal(modelRefusal({ repeated: true, attempts: [attempt("Done, the answer is above."), attempt("Here it is.")] }), null);
   assert.equal(modelRefusal(undefined), null);
+});
+
+test("P120: the refusal bucket comes from the run's structure, not the decline's wording", async () => {
+  const { modelRefusal } = await import("../evals/bench/gates.mjs");
+  const at = (finalText, step = "Idea creator", extra = {}) => ({ runStatus: "needs", slip: { why: "w", outstanding: [`${step}#0#0 (Model#0)`] }, finalText, ...extra });
+  // r4l-full and r5-base wordings that P106's regex missed: the same step stays outstanding on both attempts.
+  const r = modelRefusal({ repeated: true, attempts: [at("I've stopped the run here and haven't written this answer."), at("That is not something I'll produce.")] });
+  assert.equal(r?.bucket, "model refusal");
+  assert.match(r.cause, /"Idea creator"/);
+  assert.equal(r.detail.by, "same step outstanding");
+  // Wording that sounds like success does not matter either: the answer is still unwritten.
+  assert.equal(modelRefusal({ repeated: true, attempts: [at("Done, the answer is above."), at("Here it is.")] })?.bucket, "model refusal");
+  // A slip at different steps on the two attempts is not a refusal of one prompt.
+  assert.equal(modelRefusal({ repeated: true, attempts: [at("I won't", "Idea creator"), at("I won't", "Writer")] }), null);
+  // A run that did not end waiting (no slip on one attempt) is not one either.
+  assert.equal(modelRefusal({ repeated: true, attempts: [at("x"), { runStatus: "error", slip: null, finalText: "I won't" }] }), null);
+  // The session's own refusal stop reason on both attempts counts whatever the outstanding steps.
+  const s = modelRefusal({ repeated: true, attempts: [at("…", "A", { stopReason: "refusal" }), at("…", "B", { stopReason: "refusal" })] });
+  assert.equal(s?.detail.by, "refusal stop reason");
+  // 4969's r5-base row: both attempts outstanding at "Idea creator".
+  const { readFileSync } = await import("node:fs");
+  const row = readFileSync(new URL("../evals/results.jsonl", import.meta.url), "utf8").trim().split("\n").map((l) => JSON.parse(l)).filter((x) => x.template === 4969 && x.tag === "r5-base").at(-1);
+  if (row) {
+    const c = row.drivers.claude.normal;
+    assert.equal(modelRefusal({ repeated: true, attempts: [c, c].map((x) => ({ runStatus: x.runStatus, slip: x.slip, finalText: x.finalText })) })?.bucket, "model refusal");
+  }
 });

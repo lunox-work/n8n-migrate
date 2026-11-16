@@ -156,10 +156,11 @@
  "dev": {
   "templates": 120,
   "unnamed": 0,
-  "supportedToday": 44,
+  "supportedToday": 45,
   "answersOnly": 19,
-  "blocked": 57,
-  "missing": 0
+  "blocked": 56,
+  "missing": 0,
+  "filled": 27
  },
  "byPlanned": [
   {
@@ -184,7 +185,7 @@
    "galleryUnlock": 38,
    "galleryTotal": 77,
    "devUnlock": 10,
-   "devTotal": 18
+   "devTotal": 17
   },
   {
    "group": "db",
@@ -199,8 +200,8 @@
    "keys": 4,
    "galleryUnlock": 15,
    "galleryTotal": 41,
-   "devUnlock": 4,
-   "devTotal": 5
+   "devUnlock": 3,
+   "devTotal": 4
   },
   {
    "group": "files",
@@ -223,7 +224,7 @@
    "keys": 7,
    "galleryUnlock": 7,
    "galleryTotal": 29,
-   "devUnlock": 0,
+   "devUnlock": 1,
    "devTotal": 3
   },
   {
@@ -281,8 +282,8 @@
    "keys": 3,
    "galleryUnlock": 12,
    "galleryTotal": 36,
-   "devUnlock": 1,
-   "devTotal": 2,
+   "devUnlock": 0,
+   "devTotal": 1,
    "planned": "http"
   },
   {
@@ -309,7 +310,7 @@
    "galleryUnlock": 7,
    "galleryTotal": 19,
    "devUnlock": 1,
-   "devTotal": 2,
+   "devTotal": 1,
    "planned": "connector"
   },
   {
@@ -371,7 +372,7 @@
    "keys": 1,
    "galleryUnlock": 4,
    "galleryTotal": 8,
-   "devUnlock": 0,
+   "devUnlock": 1,
    "devTotal": 1,
    "planned": "core"
   },
@@ -1310,12 +1311,12 @@
    "reason": "runtime: not implemented in the runtime: n8n-nodes-base.xml vN",
    "galleryAlone": 4,
    "galleryTotal": 8,
-   "devUnlock": 0,
+   "devUnlock": 1,
    "devTotal": 1,
    "ids": {
     "galleryAlone": [160, 2123, 2210, 2957],
     "galleryTotal": [160, 1810, 2123, 2210, 2957, 3132, 4671, 5817],
-    "devUnlock": [],
+    "devUnlock": [3132],
     "devTotal": [3132]
    }
   },
@@ -1330,13 +1331,13 @@
    "reason": "runtime: a URL built at run time in a step the analyzer asks no hosts question about",
    "galleryAlone": 3,
    "galleryTotal": 7,
-   "devUnlock": 1,
-   "devTotal": 1,
+   "devUnlock": 0,
+   "devTotal": 0,
    "ids": {
     "galleryAlone": [2736, 2981, 3791],
     "galleryTotal": [2736, 2784, 2981, 3435, 3791, 4709, 5743],
-    "devUnlock": [2736],
-    "devTotal": [2736]
+    "devUnlock": [],
+    "devTotal": []
    }
   },
   {
@@ -4978,12 +4979,12 @@
    "galleryAlone": 0,
    "galleryTotal": 1,
    "devUnlock": 0,
-   "devTotal": 1,
+   "devTotal": 0,
    "ids": {
     "galleryAlone": [],
     "galleryTotal": [3132],
     "devUnlock": [],
-    "devTotal": [3132]
+    "devTotal": []
    }
   },
   {

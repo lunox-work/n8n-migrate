@@ -116,3 +116,15 @@ test("levers P105: preflight refusals of unblocked steps and run-time refusals a
   ]);
   assert.deepEqual(runTimeRefusals({ n8n: { type: "n8n-nodes-base.httpRequest", typeVersion: 4.2 }, params: { method: "POST", sendBody: true, contentType: "binaryData" } }), []);
 });
+
+test("levers P121: dev templates are converted with their overlay's placeholder fills, the gallery from the raw template", () => {
+  const j = JSON.parse(readFileSync(join(BENCH, "levers.json"), "utf8"));
+  assert.ok(j.dev.filled > 0, "dev templates with overlay fills are counted");
+  const row = j.features.find((f) => f.key === "n8n-nodes-base.httpRequest (URL built at run time)");
+  // 2736's placeholder URL is filled on the bench (P118), so it is no dev blocker; the raw
+  // template in the gallery still counts it.
+  if (row) {
+    assert.ok(!row.ids.devTotal.includes(2736));
+    assert.ok(row.ids.galleryTotal.includes(2736));
+  }
+});

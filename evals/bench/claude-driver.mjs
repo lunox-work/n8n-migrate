@@ -218,6 +218,9 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
       runError: state?.result?.error?.message ?? null,
       prestart: preText,
       finalText: typeof r.result === "string" ? r.result.split(runDir).join("<run>").slice(0, 300) : null,
+      // PROPOSALS P120: the session's own stop reason (`refusal` when the model's safety stop
+      // ended it), read by gates.mjs modelRefusal() beside the run's structure.
+      stopReason: r.stop_reason ?? null,
       permissionDenials: (r.permission_denials ?? []).map((d) => `${d.tool_name}: ${JSON.stringify(d.tool_input).slice(0, 120)}`),
       hookDenies: events.filter((e) => e.event === "hook-deny").map((e) => String(e.reason).slice(0, 140)),
       replays: replays.map((x) => `${x.key}#${x.index} ${x.mode}`),
