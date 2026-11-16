@@ -223,12 +223,15 @@ const toolSchema = (connector, tool) => {
 // first unused, else the last one again. `used` is the caller's: one set per connector tool
 // for writes (single-use, in order) and one per tool and calling step for reads (connectorUse),
 // so a poll read and a later get read never consume each other's rows.
-// PROPOSALS P112: a row whose `args` give an argument the call also carries, with another
-// value, answers a different call: it is never a fallback (a Drive read of a spreadsheet URL got
-// the row of the spreadsheet id). A call no row fits gets the connector's default (null here).
+// PROPOSALS P112: a row whose `args` give an identifier the call also carries (an argument named
+// `id`, `…Id` or `…_id`: fileId, messageId, channel_id), with another value, names another
+// resource: it is never a fallback (a Drive read of a spreadsheet URL got the row of the
+// spreadsheet id). Free-text arguments (a search query that carries the run's time) may differ
+// and still fall back, as before. A call no row fits gets the connector's default (null here).
+export const ID_ARG = /^id$|Id$|_id$/;
 export function contradicts(rowArgs, callArgs) {
   if (!isObj(rowArgs) || !isObj(callArgs)) return false;
-  return Object.entries(rowArgs).some(([k, v]) => callArgs[k] !== undefined && !subset(v, callArgs[k]));
+  return Object.entries(rowArgs).some(([k, v]) => ID_ARG.test(k) && callArgs[k] !== undefined && !subset(v, callArgs[k]));
 }
 export function pickConnector(list, args, used, node, { read = false } = {}) {
   if (!list?.length) return null;

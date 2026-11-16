@@ -90,6 +90,7 @@ test("P112: a connector row that contradicts the call's arguments is not a fallb
   const rows = [{ node: "Read", args: { fileId: "abc123" }, result: "rows of abc123" }, { node: "Read", result: "any" }];
   assert.equal(contradicts({ fileId: "abc123" }, { fileId: "https://docs.google.com/spreadsheets/d/abc123/edit" }), true);
   assert.equal(contradicts({ fileId: "abc123" }, { query: "x" }), false, "an argument the call does not carry is no contradiction");
+  assert.equal(contradicts({ query: "createdTime > '2026-11-16T08:58:00'" }, { query: "createdTime > '2026-11-16T09:01:00'" }), false, "a free-text argument may differ (2614 in r5-base: the run's time in a Drive search)");
   assert.equal(contradicts(undefined, { fileId: "x" }), false);
   const used = new Set();
   assert.equal(pickConnector(rows, { fileId: "https://docs.google.com/spreadsheets/d/abc123/edit" }, used, "Read", { read: true }).result, "any", "the row without args still answers");
