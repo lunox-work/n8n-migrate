@@ -311,3 +311,18 @@ test("convert: a Sheets read through the Drive export gets the spreadsheet id fr
   assert.equal(res.status, "done", res.error?.message);
   assert.deepEqual(seen, [SHEET], "an expression is resolved per item, then the id taken from it");
 });
+
+// R5b1 iteration 50: n8n reads the match column's value with "" as the fallback only for a
+// parameter that is not there; one whose expression resolves to undefined passes, and the
+// update goes on (n8n's update.operation and appendOrUpdate.operation, read in the image).
+test("Sheets update: a match value that resolves to undefined is not the missing-parameter error", async () => {
+  const cols = { mappingMode: "defineBelow", matchingColumns: ["email"], value: { email: "={{ $json.e }}", status: "={{ $json.s }}" }, schema: schema("email", "name", "status") };
+  const values = [["email", "name", "status"], ["ann@x.test", "Ann", "new"]];
+  const host = sheetsHost(values);
+  const res = await run(wf([start(), withRest(sheetsStep("update", cols))], [["Start", "Sheet"]], { allow, secrets }), { host, trigger: [{ s: "done" }] });
+  assert.equal(res.status, "done", res.error?.message);
+  const missing = { ...cols, value: { status: "={{ $json.s }}" } };
+  const res2 = await run(wf([start(), withRest(sheetsStep("update", missing))], [["Start", "Sheet"]], { allow, secrets }), { host: sheetsHost(values), trigger: [{ s: "done" }] });
+  assert.equal(res2.status, "failed");
+  assert.match(res2.error.message, /The 'Column to Match On' parameter is required/);
+});

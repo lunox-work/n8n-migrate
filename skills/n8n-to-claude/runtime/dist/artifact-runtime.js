@@ -12239,7 +12239,10 @@ async function sheetsUpdate(exec, sheet, sheetName, sheetId, upsert) {
       if (extra === "insertInNewColumn") for (const k of Object.keys(items[i].json)) if (!columnNames.includes(k) && k !== ROW_NUMBER) newColumns.add(k);
       inputData.push(items[i].json);
     } else {
-      const match = exec.param(`columns.value`, i, {})[matching[0]] ?? "";
+      // n8n reads columns.value[<match column>] with "" as the fallback for a parameter that is
+      // not there; a value whose expression resolves to undefined is not "" and passes.
+      const rawValues = exec.param("columns.value", i, {}, { rawExpressions: true }) ?? {};
+      const match = rawValues[matching[0]] === undefined ? "" : exec.param("columns.value", i, {})[matching[0]];
       if (match === "") throw new NodeError("The 'Column to Match On' parameter is required", { node: exec.name, itemIndex: i });
       const values = exec.param("columns.value", i, {});
       if (!Object.keys(values).length) throw new NodeError("At least one value has to be added under 'Values to Send'", { node: exec.name });

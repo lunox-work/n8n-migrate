@@ -913,3 +913,13 @@ Next levers by the round-4 rule (alone, then total, a dev unlock preferred; `lev
 - Bench `r5b1-i49` (2799; 3 `claude -p`, ledger 1627 → 1630, claude-driver runs with one slip retried): **2799 4 → 9** (all gates; five effects compared).
 - Round 5 numbers: **one-shot 44 of 120, gate sum 662** (was 43, 657); round 4's 100: **39, 564** (was 38, 559). **Converter coverage 59** (no converter change). No pass lost, no gate fell.
 - Verdict: accepted (+1 pass, gate sum +5). `levers.mjs --offline` unchanged.
+
+## Iteration 50: a Sheets match value that resolves to undefined, as n8n reads it (accepted)
+
+- Bucket: runner bug (gate 5, 2694 malformed: `n8n succeeds, Claude fails`, "The 'Column to Match On' parameter is required"; also a new kind release point 4 named: an append-or-update that refuses a missing match column on malformed data where n8n writes). Outside the LEVERS pick, from the batch's gate-4/5 list.
+- Cause: n8n's Sheets update and append-or-update read `columns.value[<match column>]` with `""` as the fallback for a parameter that is not there (read in the image); a value whose expression resolves to `undefined` is not `""`, so n8n goes on. The REST program turned `undefined` into `""` and refused.
+- Change: `runtime/src/rest.mjs` Sheets update/upsert (define below): the fallback applies only when the raw parameter has no entry for the column. Test in `tests/rest-sheets.test.mjs`.
+- Affected set: a before/after sweep of the in-process Claude side of the 18 dev templates with a define-below Sheets update or upsert, all four variants (72 runs, replayed models): only 2694's malformed run changed.
+- Bench `r5b1-i50` (2694; 2 `claude -p`, ledger 1630 → 1632, claude-driver runs): **2694 5 → 9** (all gates).
+- Round 5 numbers: **one-shot 45 of 120, gate sum 666** (was 44, 662); round 4's 100: 39, 564 (unchanged; 2694 is one of the promoted 20). **Converter coverage 59** (no converter change). No pass lost, no gate fell.
+- Verdict: accepted (+1 pass, gate sum +4). `levers.mjs --offline` unchanged.
