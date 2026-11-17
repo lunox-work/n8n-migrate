@@ -5,7 +5,8 @@
 //   node evals/bench/compare-labels.mjs [--json] [--labels evals/bench/labels-held3.json]
 //
 // --labels: another labels file (a round's held-out labels: labels-held3.json, labels-held4.json,
-// labels-held5.json; EXCLUSIONS.md: not for fixing sessions while that round's held-out is current).
+// labels-held5.json, labels-held6.json, or the P137 experiment's labels-p137.json; EXCLUSIONS.md: not for
+// fixing sessions while that set is held out).
 // summary.mjs reads labels.json only.
 
 import { readFileSync } from "node:fs";
