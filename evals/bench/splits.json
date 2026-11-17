@@ -435,10 +435,21 @@
       "selection": "EXCLUSIONS.md \"P137 experiment held-out\" step 2 (experiments.mjs p137Select): every blocked step (convert-coverage's default mode, `dropped` aside) is no-tool with no tool map or no request template, at least one, and none on a vector, db or media step; judged at convertCommit",
       "convertCommit": "b9d706acfd66eed02b4028f8508153d1957c7be2",
       "pool": {
-        "candidates": 121,
+        "candidates": 120,
         "selected": [11, 13, 466, 615, 862, 863, 1478, 2117, 2131, 2560, 2571, 2716, 2889, 3077, 3397, 3609, 3703, 4327, 4885, 5672, 6241, 8968, 8969],
         "notSelected": [225, 378, 575, 655, 661, 763, 823, 856, 869, 908, 1328, 1407, 1472, 1473, 1692, 1734, 1916, 1940, 1949, 2046, 2185, 2191, 2234, 2298, 2304, 2305, 2353, 2368, 2501, 2570, 2586, 2590, 2610, 2690, 2707, 2779, 2798, 3036, 3037, 3084, 3278, 3301, 3321, 3411, 3420, 3502, 3533, 3534, 3542, 3556, 3561, 3581, 3607, 3626, 3665, 3673, 3681, 3685, 3762, 3775, 3793, 3835, 3854, 3893, 3894, 4008, 4093, 4300, 4328, 4375, 4391, 4406, 4413, 4420, 4432, 4552, 4556, 4564, 4593, 4606, 4643, 4687, 4693, 4753, 4755, 4783, 4883, 4891, 4971, 5083, 5144, 5155, 5305, 5452, 5633, 5678, 6226, 7067, 9449, 17313]
       },
+      "redraws": [
+        {
+          "why": "3609 out by clause 6 (r4Hand) while fixturing: its Information Extractor on the main path has no chat model connected, which n8n 2.47.7 refuses whatever the data",
+          "out": [
+            3609
+          ],
+          "in": [
+            4327
+          ]
+        }
+      ],
       "templates": [
         { "id": 2131, "sha256": "b059308db60404c220403b47e4bcbc28d4bcef2713988030768d9902e0f65980", "wakeup": "schedule", "source": "top-up" },
         { "id": 1478, "sha256": "a5a978facc58b95eeda39b7d48e24d16dfe56df9d5ef0f3a194eaaa7020a10ee", "wakeup": "schedule", "source": "top-up" },
@@ -459,7 +470,7 @@
         { "id": 2889, "sha256": "c7c138260ec9fbb123372d9a3ba8020832576f72b5ce840e5c802ac7f269b55e", "wakeup": "manual", "source": "views walk page 35" },
         { "id": 863, "sha256": "de01c653d60c103a5486e41ad304fd3c2c1d055e314c5b74900a3c1e6358d1ce", "wakeup": "manual", "source": "views walk page 35" },
         { "id": 2117, "sha256": "2d557df2378d2a1a78fa24bb80e864967959395bef52c85edfdbbb998009bfd3", "wakeup": "schedule", "source": "views walk page 35" },
-        { "id": 3609, "sha256": "3ddf1be9d6f225a222797f85efc76dbbcb9650a5774d2d1c25e76f357f695e12", "wakeup": "schedule", "source": "views walk page 36" }
+        { "id": 4327, "sha256": "46b3898387440a7f0adce5d1e0664a9c0c8b1ace65c6e982755913d9d093d632", "wakeup": "poll", "source": "views walk page 36" }
       ]
     }
   ]
