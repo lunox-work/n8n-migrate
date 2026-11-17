@@ -488,7 +488,14 @@ export async function executeHttp(req, task, fetchImpl = globalThis.fetch, { che
     }
     return { ok: true, value: { status: res.status, statusMessage: res.statusText, headers: rh, body: parsed } };
   } catch (e) {
-    return { ok: false, error: { name: e.name ?? "Error", message: redact(e.message ?? e) } };
+    // fetch's own message is only "fetch failed"; the reason (ENOTFOUND, a refused proxy
+    // tunnel, a TLS error) is in e.cause.
+    const cause = e?.cause?.message ?? e?.cause?.code;
+    // Behind a cloud task's proxy, a host the environment does not allow comes back from undici
+    // as "Request was cancelled." (the proxy answers CONNECT with 403); say where to fix it.
+    const behindProxy = process.env.NODE_USE_ENV_PROXY && (process.env.https_proxy || process.env.HTTPS_PROXY) && e?.name !== "ContainmentViolation";
+    const message = String(e?.message ?? e) + (cause && !String(e?.message ?? "").includes(cause) ? `: ${cause}` : "") + (behindProxy ? ` (through the environment's proxy: is ${new URL(url).hostname} in its allowed domains?)` : "");
+    return { ok: false, error: { name: e.name ?? "Error", message: redact(message) } };
   }
 }
 
