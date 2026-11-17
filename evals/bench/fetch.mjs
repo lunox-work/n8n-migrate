@@ -84,7 +84,11 @@ export function tutorialExclusion(name, wf, report) {
 export const HAND = {
   2358: "meetup demo of n8n's AI nodes: three unrelated example flows on one canvas (its description says so)",
   3078: "demo of n8n techniques: five unrelated ways to send images and PDFs to Gemini on one canvas, answering a support-forum question (its description says so); found while labelling round 3's held-out, after the draw",
+  574: "demo of n8n itself: the companion workflow of the Crypto node's docs, a manual trigger and one Crypto node hashing the fixed text 'n8n rocks!' (its description says so); found while labelling round 6's held-out, after the draw",
+  695: "demo of n8n itself: a two-node example of reading the instance's GENERIC_TIMEZONE with moment.js inside a Function node, which works only once the instance allows the module (its description says so); found while labelling round 6's held-out, after the draw",
 };
+// Hand calls made on a walk entry after its draw: the entry keeps its pool (see topUp).
+export const HAND_AFTER_DRAW = new Set([574, 695]);
 
 // ---------- fetch ----------
 
@@ -434,8 +438,9 @@ export function freshShortfall(templates, quotas = FRESH_QUOTAS, round = FRESH_R
 
 // The listing page a round's walk starts on: the page holding the highest rank read by the Phase 5
 // walk or an earlier round's top-up (its already-read entries are skipped as `inCorpus`).
+// A refill that continued this round's walk (or a later one's) does not move its start.
 export function startPageOf(corpus, round) {
-  const ranks = corpus.templates.filter((e) => !e.topUp || e.topUp < round).map((e) => e.rank ?? 0);
+  const ranks = corpus.templates.filter((e) => (!e.topUp || e.topUp < round) && !(e.heldRefill >= round) && !(e.devRefill >= round)).map((e) => e.rank ?? 0);
   return Math.floor(Math.max(corpus.counts.listingEntries, ...ranks) / ROWS) + 1;
 }
 
@@ -598,7 +603,10 @@ async function topUp() {
           e.excluded = "tutorial";
           return;
         }
-        if (HAND[w.id]) {
+        // A hand call on a walk entry is made after the draw (round 6 on: HAND_AFTER_DRAW); the
+        // entry keeps the pool its verdict gives, so it stays in the seeded shuffle and only its
+        // stratum moves (EXCLUSIONS.md "Round 3 top-up", 3078).
+        if (HAND[w.id] && !HAND_AFTER_DRAW.has(w.id)) {
           e.excluded = "hand";
           e.reason = HAND[w.id];
           return;
@@ -616,6 +624,7 @@ async function topUp() {
         } else e.pool = e.outcome === "subscription" ? "fresh" : "fresh-other";
       })();
       keepDrawDay(e, prevOf.get(e.id));
+      if (HAND_AFTER_DRAW.has(w.id)) Object.assign(e, { excluded: "hand", reason: HAND[w.id] });
       if (process.stderr.isTTY) process.stderr.write(`\r${entries.length} new entries, shortfall ${JSON.stringify(shortfall())}   `);
     }
   }

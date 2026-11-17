@@ -347,7 +347,8 @@
         "paid": 47,
         "no-edges": 1,
         "tutorial": 4,
-        "duplicate": 1
+        "duplicate": 1,
+        "hand": 2
       },
       "ineligibleByClause": {
         "outcome": 63,
@@ -374,7 +375,7 @@
       "candidates": {
         "schedule": 38,
         "other": 6,
-        "manual": 44,
+        "manual": 42,
         "chat": 6,
         "form": 6,
         "poll": 14
@@ -1287,7 +1288,7 @@
     { "rank": 1498, "id": 8916, "topUp": 6, "sha256": "32b72e932e7fd332cb23590ec2db322d3fb920d4e3e54b99be4d7f3f03f239fe", "outcome": "subscription", "target": "skill", "wakeup": "chat", "r4": "eligible", "pool": "fresh" },
     { "rank": 1499, "id": 869, "topUp": 6, "sha256": "e2823d25bcc0e211b9745fd0e9f006b1a7d2e222d5eb4c859b7094d8681c4269", "outcome": "subscription", "target": "cloud-task", "wakeup": "schedule", "r4": "eligible", "pool": "fresh" },
     { "rank": 1500, "id": 9008, "topUp": 6, "sha256": "f70efb43880403bc48c941e4b3b1be150298d031f55e07d64efb72910d0a0fe9", "outcome": "hosted", "target": "key", "wakeup": "relay", "r4": "ineligible", "r4Reasons": [ "outcome: analyzer outcome hosted", "outcome/relay-or-hosted: wake-up relay (needs a relay, a host or is an error workflow)", "outcome/relay-or-hosted: requires a relay", "feature: n8n-nodes-base.telegramTrigger is not in the planned-feature map", "feature: @n8n/n8n-nodes-langchain.googleGemini is not in the planned-feature map" ], "pool": "fresh-other" },
-    { "rank": 1501, "id": 695, "topUp": 6, "sha256": "fbd55ad52fd96c46f3bed80b02ba5ce2b4ed7c77eccf23476f09a8a7693bb047", "outcome": "subscription", "target": "artifact", "wakeup": "manual", "r4": "eligible", "pool": "fresh" },
+    { "rank": 1501, "id": 695, "topUp": 6, "sha256": "fbd55ad52fd96c46f3bed80b02ba5ce2b4ed7c77eccf23476f09a8a7693bb047", "outcome": "subscription", "target": "artifact", "wakeup": "manual", "r4": "eligible", "pool": "fresh", "excluded": "hand", "reason": "demo of n8n itself: a two-node example of reading the instance's GENERIC_TIMEZONE with moment.js inside a Function node, which works only once the instance allows the module (its description says so); found while labelling round 6's held-out, after the draw" },
     { "rank": 1502, "id": 2039, "topUp": 6, "sha256": "518f94719ede3a8a75edeac241eba9b080e22229bebe2139fda12aa6aa5a792b", "outcome": "subscription", "target": "local-task", "wakeup": "poll", "r4": "ineligible", "r4Reasons": [ "feature: n8n-nodes-base.pipedrive is not in the planned-feature map" ], "pool": "fresh-other" },
     { "rank": 1503, "id": 2716, "topUp": 6, "sha256": "d5b274a56321ca560c7c04df40d3d28b17b08d86b6845d2b5873d9ce862e0557", "outcome": "subscription", "target": "artifact-form", "wakeup": "form", "r4": "eligible", "pool": "fresh" },
     { "rank": 1504, "id": 2376, "topUp": 6, "sha256": "123190cbaa27a46010736b4bc66cf1cb437ab5ac73256b5f2710c4a70dfb18eb", "outcome": "subscription", "target": "cloud-task", "wakeup": "schedule", "r4": "ineligible", "r4Reasons": [ "feature: n8n-nodes-base.n8n is not in the planned-feature map", "feature: n8n-nodes-base.gitlab is not in the planned-feature map" ], "pool": "fresh-other" },
@@ -1326,7 +1327,7 @@
     { "rank": 1537, "id": 3480, "topUp": 6, "sha256": "556fa53305ace02f1152a4e6253d7ca90d8c1c7c29a206c9d2fa3b60d63c0711", "outcome": "subscription", "target": "skill", "wakeup": "manual", "r4": "ineligible", "r4Reasons": [ "feature: n8n-nodes-base.airtop is not in the planned-feature map" ], "pool": "fresh-other" },
     { "rank": 1538, "id": 13, "topUp": 6, "sha256": "b1dc871ce08f9b45f20739daa7d7f809fb70274b5a1ca124f4cfc3a7641b3fe1", "outcome": "subscription", "target": "skill", "wakeup": "manual", "r4": "eligible", "pool": "fresh" },
     { "rank": 1539, "id": 4191, "topUp": 6, "sha256": "b0c33e55fc633d02b243aceddc3b5289a05e071bf1effefc2d6b1c09eb3258f9", "outcome": "subscription", "target": "skill", "wakeup": "manual", "r4": "ineligible", "r4Reasons": [ "self-fail/chat-input-unfed: promptType is auto (take the prompt from the input's chatInput), and nothing on its main path supplies chatInput (n8n 2.47.7 getProm", "self-fail/required-empty: url is empty (n8n 2.47.7: Parameter \"URL\" is required, from its node description)", "self-fail/required-empty: title is empty (n8n 2.47.7: Parameter \"Title\" is required, from its node description)" ], "pool": "fresh-other" },
-    { "rank": 1540, "id": 574, "topUp": 6, "sha256": "b99b41acb534baaa67801d981644c94c66e5de944dfdeb3d335d578f17dd0486", "outcome": "subscription", "target": "artifact", "wakeup": "manual", "r4": "eligible", "pool": "fresh" },
+    { "rank": 1540, "id": 574, "topUp": 6, "sha256": "b99b41acb534baaa67801d981644c94c66e5de944dfdeb3d335d578f17dd0486", "outcome": "subscription", "target": "artifact", "wakeup": "manual", "r4": "eligible", "pool": "fresh", "excluded": "hand", "reason": "demo of n8n itself: the companion workflow of the Crypto node's docs, a manual trigger and one Crypto node hashing the fixed text 'n8n rocks!' (its description says so); found while labelling round 6's held-out, after the draw" },
     { "rank": 1541, "id": 8785, "topUp": 6, "sha256": "c8b480403e93011b446d761cb7c2da992b1587a4d6d8d9e5bafa972a5881a428", "outcome": "subscription", "target": "cloud-task", "wakeup": "schedule", "r4": "eligible", "pool": "fresh" },
     { "rank": 1542, "id": 4643, "topUp": 6, "sha256": "234e5a71bbac54a7db8301f9d98f4bbad3619050c18d94337473bbeb130c2819", "outcome": "subscription", "target": "cloud-task", "wakeup": "schedule", "r4": "eligible", "pool": "fresh" },
     { "rank": 1543, "id": 4223, "topUp": 6, "sha256": "0aab7dc3e96f1ff409b880f54902d5410e022c0dc79c75d61cc59f89d0612372", "outcome": "keep-in-n8n", "target": null, "wakeup": "relay", "r4": "ineligible", "r4Reasons": [ "outcome: analyzer outcome keep-in-n8n", "outcome/relay-or-hosted: wake-up relay (needs a relay, a host or is an error workflow)", "outcome/relay-or-hosted: requires a relay", "out-of-scope/community-node: community node n8n-nodes-brightdata.brightData", "bench: @n8n/n8n-nodes-langchain.memoryRedisChat: no bench counterpart (unlisted)", "feature: @n8n/n8n-nodes-langchain.memoryRedisChat is not in the planned-feature map", "feature: n8n-nodes-brightdata.brightData is not in the planned-feature map", "feature: n8n-nodes-base.webhook is not in the planned-feature map", "feature: n8n-nodes-base.highLevel is not in the planned-feature map" ], "pool": "fresh-other" },

@@ -141,7 +141,7 @@
     { "round": 3, "promoted": [1992, 1980, 2786, 2557, 2894, 2552, 2384, 1748, 1938, 890, 1960, 2872, 2324, 2878, 2026, 2085, 2006, 3085, 2320, 1959], "heldOut": [2824, 2292, 4028, 4968, 3314, 3082, 5010, 2799, 2354, 1897, 2768, 2648, 1150, 2537, 2288, 2705, 2374, 2883, 3169, 2201], "note": "held-out 21-40 join dev after release point 2, so dev is all 100 seeded templates (70 with fixtures). The seeded held-out list is used up: release point 3 scores 20 fresh held-out templates from outside the seeded split (splits.heldOutFresh: Phase 5 overflow plus a round-3 top-up of the listing, drawn by seed per wake-up stratum), labelled blind and fixtured by a separate blind session before any is run" },
     { "round": 4, "promoted": [2824, 2292, 4028, 4968, 3314, 3082, 5010, 2799, 2354, 1897, 2768, 2648, 1150, 2537, 2288, 2705, 2374, 2883, 3169, 2201], "dropped": [2415, 2098, 3016, 3393, 2417, 5993, 2167, 2413, 6270, 5110, 4352, 2749, 2328, 1826, 2395, 2894, 1938, 2878, 2320, 3169, 1073, 1992, 4968, 2374], "heldOut": [2433, 2572, 4506, 3132, 503, 2782, 1957, 2416, 2740, 6137, 2736, 1554, 2956, 2741, 4635, 2694, 10230, 4366, 2612, 3131], "note": "round 3's 20 fresh held-out join dev after release point 3, and the 20 of those 120 templates that fail round-4 eligibility leave (dropped; EXCLUSIONS.md Round 4 eligibility, AUDIT-R4.md), so dev is the 100 eligible. Release point 4 scores 20 fresh held-out templates (splits.heldOutFresh4: a round-4 top-up of the listing, each round-4 eligible, drawn by seed 20261116 per wake-up stratum), labelled blind before any is run", "devAdded": [2421, 3617, 4969, 2695] },
     { "round": 5, "promoted": [2433, 2572, 4506, 3132, 503, 2782, 1957, 2416, 2740, 6137, 2736, 1554, 2956, 2741, 4635, 2694, 10230, 4366, 2612, 3131], "heldOut": [3003, 8487, 2922, 3880, 2945, 3627, 2276, 3701, 4498, 1283, 3809, 2023, 683, 3200, 5626, 3710, 2897, 4022, 3027, 4036], "note": "round 4's 20 fresh held-out (splits.heldOutFresh4, scored at release point 4, evals/bench/RELEASE-4.md) join dev, so dev is 120 templates, all with fixtures; nothing is dropped (each was round-4 eligible when drawn). From round 5 fixing sessions may read these 20, their fixtures and results, and RELEASE-4.md's aggregates; template-specific rules stay forbidden (the lint covers every corpus id). Round 5's held-out is empty until a separate blind session fetches, draws, labels and fixtures it (EXCLUSIONS.md Later rounds' held-out); the round reports its numbers out of its 120 dev templates, and on round 4's 100 as a subset. Release point 5 scores 20 fresh held-out templates (splits.heldOutFresh5: a round-5 top-up of the listing past the gallery ranking's pages, each eligible by the round-4 rule with amendment 1, drawn by seed 20261117 per wake-up stratum), labelled blind before any is run" },
-    { "round": 6, "promoted": [3003, 8487, 2922, 3880, 2945, 3627, 2276, 3701, 4498, 1283, 3809, 2023, 683, 3200, 5626, 3710, 2897, 4022, 3027, 4036], "heldOut": [3549, 4847, 8785, 2037, 2297, 574, 4692, 6906, 4774, 5287, 3080, 695, 4876, 5149, 3761, 7449, 3706, 8916, 5140, 7647], "note": "round 5's 20 fresh held-out (splits.heldOutFresh5, scored at release point 5, evals/bench/RELEASE-5.md) join dev, so dev is 140 templates, all with fixtures; nothing is dropped (each was eligible by the round-4 rule with amendment 1 when drawn). From round 6 fixing sessions may read these 20, their fixtures, configs and results, and RELEASE-5.md's aggregates; template-specific rules stay forbidden (the lint covers every corpus id). The round reports its numbers out of its 140 dev templates, with round 4's 100 and round 5's 120 as subsets (rounds.mjs subsetRounds). heldOut is the release point's held-out only: empty until a separate blind session fetches, draws, labels and fixtures it; an experiment's own held-out (PROPOSALS P137) is a separate set in splits.experiments, never this list. Release point 6 scores 20 fresh held-out templates (splits.heldOutFresh6: a round-6 top-up of the listing past every earlier walk's pages, each eligible by the round-4 rule with amendment 1, drawn by seed 20261118 per wake-up stratum), labelled blind before any is run; the walk's undrawn candidates are the P137 experiment's pool (splits.experiments p137)" }
+    { "round": 6, "promoted": [3003, 8487, 2922, 3880, 2945, 3627, 2276, 3701, 4498, 1283, 3809, 2023, 683, 3200, 5626, 3710, 2897, 4022, 3027, 4036], "heldOut": [3549, 4847, 8785, 2037, 2297, 4692, 6906, 4774, 5287, 3080, 3581, 4876, 4755, 5149, 3761, 7449, 3706, 8916, 5140, 7647], "note": "round 5's 20 fresh held-out (splits.heldOutFresh5, scored at release point 5, evals/bench/RELEASE-5.md) join dev, so dev is 140 templates, all with fixtures; nothing is dropped (each was eligible by the round-4 rule with amendment 1 when drawn). From round 6 fixing sessions may read these 20, their fixtures, configs and results, and RELEASE-5.md's aggregates; template-specific rules stay forbidden (the lint covers every corpus id). The round reports its numbers out of its 140 dev templates, with round 4's 100 and round 5's 120 as subsets (rounds.mjs subsetRounds). heldOut is the release point's held-out only: empty until a separate blind session fetches, draws, labels and fixtures it; an experiment's own held-out (PROPOSALS P137) is a separate set in splits.experiments, never this list. Release point 6 scores 20 fresh held-out templates (splits.heldOutFresh6: a round-6 top-up of the listing past every earlier walk's pages, each eligible by the round-4 rule with amendment 1, drawn by seed 20261118 per wake-up stratum), labelled blind before any is run; the walk's undrawn candidates are the P137 experiment's pool (splits.experiments p137)" }
   ],
   "heldOutFresh": {
     "round": 3,
@@ -379,7 +379,7 @@
       "form": 2,
       "other": 1
     },
-    "candidates": 114,
+    "candidates": 121,
     "strata": {
       "schedule": 4,
       "manual": 5,
@@ -389,20 +389,33 @@
       "other": 1
     },
     "rule": "the same rule as the seeded held-out: never read by a session that changes the skill, converter or runtime until release point 6 has scored it (EXCLUSIONS.md, Round 6 held-out)",
+    "redraws": [
+      {
+        "why": "574 and 695 (manual) excluded by rule hand while labelling, before any label was written, each a demo of n8n itself read from the template alone: 574 is the Crypto node docs' companion workflow (a manual trigger and one Crypto node hashing fixed text), 695 a two-node example of reading the instance's timezone with moment.js in a Function node; both keep their pool and place in the shuffle",
+        "out": [
+          574,
+          695
+        ],
+        "in": [
+          3581,
+          4755
+        ]
+      }
+    ],
     "templates": [
       { "id": 3549, "sha256": "77e3febbbbd5a63e822d558965ef58fc789e647669e70334e9c9916fc06ec02f", "wakeup": "schedule", "source": "top-up" },
       { "id": 4847, "sha256": "53c4e6cadaff221ff6f9655476f4e8ab71fe6a8a86cbc0e27d7022cabf90fe4b", "wakeup": "schedule", "source": "top-up" },
       { "id": 8785, "sha256": "c8b480403e93011b446d761cb7c2da992b1587a4d6d8d9e5bafa972a5881a428", "wakeup": "schedule", "source": "top-up" },
       { "id": 2037, "sha256": "1f2bbb2e61dc20ce7a9ee71080556876de264d9ca5b0f063b4363aa69b321073", "wakeup": "manual", "source": "top-up" },
       { "id": 2297, "sha256": "5468a9313a54bef4739ced3b2193d116541eb5d66129fe7aabfca3497959359a", "wakeup": "manual", "source": "top-up" },
-      { "id": 574, "sha256": "b99b41acb534baaa67801d981644c94c66e5de944dfdeb3d335d578f17dd0486", "wakeup": "manual", "source": "top-up" },
       { "id": 4692, "sha256": "ae980e6421ddd5319528e471a2b14aa5b65d2db3ac708e257d31de3f4255f369", "wakeup": "poll", "source": "top-up" },
       { "id": 6906, "sha256": "830c06e36ba2067adb8343412a0d877ecdee6cd835015c20dbbbc5f67dc9669e", "wakeup": "chat", "source": "top-up" },
       { "id": 4774, "sha256": "2464e1aff0fc53257d7c24a11030d1647ce08c3ac5dc37c6e491e797881fe7e4", "wakeup": "form", "source": "top-up" },
       { "id": 5287, "sha256": "c5867843d848545c1e59e952da5e4feffc5fd5e4a1f95bba7486d729c60d4c33", "wakeup": "schedule", "source": "top-up" },
       { "id": 3080, "sha256": "f8b904373c4b24663e63c3357d27081b148ba2c26c2e63e5bc491fea3cabfde7", "wakeup": "manual", "source": "top-up" },
-      { "id": 695, "sha256": "fbd55ad52fd96c46f3bed80b02ba5ce2b4ed7c77eccf23476f09a8a7693bb047", "wakeup": "manual", "source": "top-up" },
+      { "id": 3581, "sha256": "98df78447af8a531b45110369952633a13e3c13580f22bc62f196700d91544db", "wakeup": "manual", "source": "top-up" },
       { "id": 4876, "sha256": "250d6b213f551a95f63b0b1cb05926c83ab43cf6f5199d37659ac6f7e187a3b7", "wakeup": "poll", "source": "top-up" },
+      { "id": 4755, "sha256": "25111f46dec7c8de4b20380ade4b655c772d3e589f2e852fe5c05be10fb515e0", "wakeup": "manual", "source": "top-up" },
       { "id": 5149, "sha256": "452b09ece552c0b9c3a125801ed074b28304f60a52578115529a1e12eb4e0466", "wakeup": "subworkflow", "source": "top-up" },
       { "id": 3761, "sha256": "9f58c5ce857402aa6df257a11c36fa4fc8f4d34bff3e6a47cb8d9eddc3ec3b1c", "wakeup": "chat", "source": "top-up" },
       { "id": 7449, "sha256": "75bfff56d7cf081c538407a3cb31de1ff6585cfb01c2f1832ec386cfe0c880f1", "wakeup": "chat", "source": "top-up" },
@@ -422,7 +435,7 @@
       "selection": "EXCLUSIONS.md \"P137 experiment held-out\" step 2 (experiments.mjs p137Select): every blocked step (convert-coverage's default mode, `dropped` aside) is no-tool with no tool map or no request template, at least one, and none on a vector, db or media step; judged at convertCommit",
       "convertCommit": "b9d706acfd66eed02b4028f8508153d1957c7be2",
       "pool": {
-        "candidates": 123,
+        "candidates": 121,
         "selected": [11, 13, 466, 615, 862, 863, 1478, 2117, 2131, 2560, 2571, 2716, 2889, 3077, 3397, 3609, 3703, 4327, 4885, 5672, 6241, 8968, 8969],
         "notSelected": [225, 378, 575, 655, 661, 763, 823, 856, 869, 908, 1328, 1407, 1472, 1473, 1692, 1734, 1916, 1940, 1949, 2046, 2185, 2191, 2234, 2298, 2304, 2305, 2353, 2368, 2501, 2570, 2586, 2590, 2610, 2690, 2707, 2779, 2798, 3036, 3037, 3084, 3278, 3301, 3321, 3411, 3420, 3502, 3533, 3534, 3542, 3556, 3561, 3581, 3607, 3626, 3665, 3673, 3681, 3685, 3762, 3775, 3793, 3835, 3854, 3893, 3894, 4008, 4093, 4300, 4328, 4375, 4391, 4406, 4413, 4420, 4432, 4552, 4556, 4564, 4593, 4606, 4643, 4687, 4693, 4753, 4755, 4783, 4883, 4891, 4971, 5083, 5144, 5155, 5305, 5452, 5633, 5678, 6226, 7067, 9449, 17313]
       },
