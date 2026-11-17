@@ -350,7 +350,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes(
   // re-run of the split keeps them.
   if (existsSync(out)) {
     const prev = JSON.parse(readFileSync(out, "utf8"));
-    for (const k of Object.keys(prev)) if (["roundsRule", "currentRound", "rounds"].includes(k) || /^heldOutFresh\d*$/.test(k)) doc[k] = prev[k];
+    for (const k of Object.keys(prev)) if (["roundsRule", "currentRound", "rounds", "experiments"].includes(k) || /^(heldOutFresh|devAdded)\d*$/.test(k)) doc[k] = prev[k];
   }
   writeFileSync(out, formatSplits(doc));
   console.log(`dev ${dev.length} ${JSON.stringify(strata(dev))}; held-out ${held.length} ${JSON.stringify(strata(held))}; slots ${JSON.stringify(slots)}`);

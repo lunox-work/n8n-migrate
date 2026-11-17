@@ -26,7 +26,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readSplits, roundOf, devWithFixtures, overfittingBound, roundTally } from "./rounds.mjs";
+import { readSplits, roundOf, devWithFixtures, overfittingBound, roundTally, subsetRounds } from "./rounds.mjs";
 import { slipStats, flipsBetween, noEffectClass, NO_EFFECT_CLASSES } from "./gates.mjs";
 import { fromHttp, fromFile, foldResumableUploads } from "./compare.mjs";
 
@@ -174,11 +174,11 @@ for (const r of mine) {
   byBucket[r.bucket ?? "?"] = (byBucket[r.bucket ?? "?"] ?? 0) + 1;
 }
 // Round 5 on (PLAN Phase 6): the round's one-shot number is out of its dev size (templates with
-// fixtures; a dev template without a row in this tag counts as not passing), and the previous
-// round's dev that is still dev is reported as a subset for continuity (round 5: round 4's 100).
-const prevRound = round.round > 1 && (splits.rounds ?? []).some((r) => r.round === round.round - 1) ? roundOf(splits, round.round - 1) : null;
-const prevIds = prevRound ? prevRound.dev.map((r) => r.id).filter((id) => devIds.has(id)) : [];
-const roundNumbers = { round: round.round, dev: roundTally(mine, devIds, counts), ...(prevRound ? { subset: { round: prevRound.round, ...roundTally(mine, prevIds, counts) } } : {}) };
+// fixtures; a dev template without a row in this tag counts as not passing), and earlier rounds'
+// dev that is still dev is reported as subsets for continuity (rounds.mjs subsetRounds; round 6:
+// round 4's 100 and round 5's 120). `subset` stays the latest earlier round, as in round 5.
+const subsets = (splits.rounds ?? []).length ? subsetRounds(splits, round.round).map((s) => ({ round: s.round, ...roundTally(mine, s.ids.filter((id) => devIds.has(id)), counts) })) : [];
+const roundNumbers = { round: round.round, dev: roundTally(mine, devIds, counts), ...(subsets.length ? { subset: subsets.at(-1), subsets } : {}) };
 const membership = { round: round.round, dev: mine.filter((r) => devIds.has(r.template)).length, heldOut: mine.filter((r) => heldIds.has(r.template)).length, other: mine.filter((r) => !devIds.has(r.template) && !heldIds.has(r.template)).length };
 const out = {
   tag,
@@ -234,7 +234,7 @@ else {
   console.log(`one-shot success: ${out.oneShot.passed} of ${out.oneShot.of} (${out.oneShot.share ?? "-"}%); gate sum ${out.gateSum}`);
   const rn = out.roundNumbers;
   const missingNote = (t) => (t.missing.length ? `; ${t.missing.length} without a row in this tag, counted as not passing` : "");
-  console.log(`round ${rn.round} one-shot (out of the round's dev): ${rn.dev.passed} of ${rn.dev.of}, gate sum ${rn.dev.gateSum}${missingNote(rn.dev)}${rn.subset ? `; round ${rn.subset.round}'s dev as a subset: ${rn.subset.passed} of ${rn.subset.of}, gate sum ${rn.subset.gateSum}${missingNote(rn.subset)}` : ""}`);
+  console.log(`round ${rn.round} one-shot (out of the round's dev): ${rn.dev.passed} of ${rn.dev.of}, gate sum ${rn.dev.gateSum}${missingNote(rn.dev)}${(rn.subsets ?? []).map((x) => `; round ${x.round}'s dev as a subset: ${x.passed} of ${x.of}, gate sum ${x.gateSum}${missingNote(x)}`).join("")}`);
   const ne = out.passNoEffectCompared.templates;
   console.log(`pass, no effect compared (counted, P50): ${ne.length ? ne.map((x) => `${x.template} (${x.compared})`).join(", ") : "none"}`);
   if (out.passNothingCompared.templates.length) console.log(`pass, nothing compared (not counted; rows from before P50): ${out.passNothingCompared.templates.join(", ")}`);

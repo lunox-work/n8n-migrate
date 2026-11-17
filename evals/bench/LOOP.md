@@ -1039,3 +1039,9 @@ Next levers by the round-4 rule (alone, then total, a dev unlock preferred; `lev
 - Analyzer kinds from the release-time label check: `labels-held5.json` 20 of 20 on every column, as at setup. Batch 2's move of Postgres steps to local tasks postdates the labels; no held-out template has a database node, so it causes no disagreement.
 - Bench proposals opened: P132–P136.
 - **Round 6 not applied.** `currentRound` stays 5; round 5's held-out stays held-out material (EXCLUSIONS.md) until round 6's setup, a separate step, promotes it to dev and draws a fresh held-out.
+
+## Round 6 setup (outside the loop)
+
+- Rolling held-out after release point 5 (PLAN Phase 6): `splits.json` round 6 promotes round 5's 20 fresh held-out (`promoted`, resolved from `heldOutFresh5`), drops nothing, has no held-out yet; `currentRound` 6. Dev is 140, all with fixtures. A round's two numbers are reported out of its dev size (**N of 140**), with round 4's 100 and round 5's 120 as subsets (`rounds.mjs` `subsetRounds`; `summary.mjs` "round N one-shot", `convert-coverage.mjs --split dev` subset rows). Fixing sessions may now read the 20, their fixtures, configs and results and RELEASE-5.md's aggregates; template-specific rules stay forbidden. Round 6's held-out is left to a separate blind session.
+- More than one held-out set: an experiment's own held-out (P137) goes in `splits.json` `experiments`, never in a round's `heldOut`; `heldOutSets()` names each set a round keeps unread and `unreadableIds()` covers them all.
+- How the loop picks its next feature is unchanged, except that `levers.mjs` now counts round 6's 140 dev templates (`ROUND` 6).

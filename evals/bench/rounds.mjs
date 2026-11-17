@@ -18,7 +18,16 @@
 //   be empty until its fresh held-out is drawn (round 5: round 4's held-out promoted, dev 120).
 //
 // Round 5 on: a round reports its numbers out of its own dev size (N of 120), and on the earlier
-// round's dev as a subset for continuity (roundTally, summary.mjs).
+// round's dev as a subset for continuity (roundTally, summary.mjs). Round 6 on: on every earlier
+// round's dev from round 4 (the rebuilt corpus) as subsets (subsetRounds: round 6 = 140, with
+// round 4's 100 and round 5's 120).
+//
+// More than one held-out set at a time: a round's `heldOut` is its release point's held-out only.
+// An experiment that needs its own held-out (PROPOSALS P137) keeps it in splits.experiments =
+// [{name, seed, rule, templates: [{id, sha256, wakeup, source}]}], never in a round's `heldOut`.
+// Its ids are unreadable in every round until a round promotes them into dev (unreadableIds), and
+// rows resolve from there as from heldOutFresh*. heldOutSets() lists every set a round must keep
+// unread, by name.
 
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -35,7 +44,7 @@ export function readSplits(file = process.env.N2C_BENCH_SPLITS || join(HERE, "sp
 // {round, dev: [{id, sha256, wakeup}], heldOut: [...], promoted: [...]} for round `n`
 // (default: splits.currentRound; a splits file without rounds is round 1 = the seeded split).
 export function roundOf(splits, n = splits.currentRound) {
-  const fresh = Object.entries(splits).filter(([k]) => /^(heldOutFresh|devAdded)\d*$/.test(k)).flatMap(([, v]) => v?.templates ?? []);
+  const fresh = [...Object.entries(splits).filter(([k]) => /^(heldOutFresh|devAdded)\d*$/.test(k)).flatMap(([, v]) => v?.templates ?? []), ...(splits.experiments ?? []).flatMap((e) => e.templates ?? [])];
   const rows = new Map([...splits.dev, ...splits.heldOut, ...fresh].map((r) => [r.id, r]));
   const rounds = splits.rounds ?? [{ round: 1, promoted: [], heldOut: splits.heldOut.map((r) => r.id) }];
   const k = n ?? rounds.at(-1).round;
@@ -55,12 +64,23 @@ export function heldOutIds(splits, n) {
   return roundOf(splits, n).heldOut.map((r) => r.id);
 }
 
-// What a fixing session must not read in round n (default current): that round's held-out and
-// the held-out of every later round already written (drawn ahead of its release point).
-export function unreadableIds(splits, n = splits.currentRound) {
+// Every held-out set round n (default current) must keep unread, by name: the round's own
+// release-point held-out ("round n"), each later round's already written ("round m", drawn ahead
+// of its release point), and each experiment's (splits.experiments, "experiment <name>") less the
+// ids round n's dev already holds. -> [{name, kind: "release" | "experiment", ids}]
+export function heldOutSets(splits, n = splits.currentRound) {
   const k = n ?? (splits.rounds ?? []).at(-1)?.round;
-  const later = (splits.rounds ?? []).filter((r) => r.round > k).flatMap((r) => r.heldOut ?? []);
-  return [...new Set([...heldOutIds(splits, n), ...later])];
+  const sets = [{ name: `round ${k}`, kind: "release", ids: heldOutIds(splits, n) }];
+  for (const r of (splits.rounds ?? []).filter((r) => r.round > k)) sets.push({ name: `round ${r.round}`, kind: "release", ids: [...(r.heldOut ?? [])] });
+  const dev = new Set((splits.rounds ? roundOf(splits, k).dev : splits.dev).map((r) => r.id));
+  for (const e of splits.experiments ?? []) sets.push({ name: `experiment ${e.name}`, kind: "experiment", ids: (e.templates ?? []).map((t) => t.id).filter((id) => !dev.has(id)) });
+  return sets;
+}
+
+// What a fixing session must not read in round n (default current): the ids of every set
+// heldOutSets() names.
+export function unreadableIds(splits, n = splits.currentRound) {
+  return [...new Set(heldOutSets(splits, n).flatMap((s) => s.ids))];
 }
 
 // PROPOSALS P51: a corpus-wide tool run without explicit ids (convert-coverage.mjs over
@@ -87,6 +107,19 @@ export function roundTally(rows, ids, counts = (r) => !!r.passedAll) {
   const mine = rows.filter((r) => want.has(Number(r.template)));
   const have = new Set(mine.map((r) => Number(r.template)));
   return { passed: mine.filter(counts).length, of: want.size, gateSum: mine.reduce((n, r) => n + (r.reached ?? 0), 0), missing: [...want].filter((id) => !have.has(id)) };
+}
+
+// The earlier rounds whose dev round n (default current) reports as subsets, oldest first: every
+// round from SUBSET_FROM (round 4 rebuilt the corpus, so earlier rounds' dev is not inside later
+// ones) up to n - 1, and always round n - 1 (as before round 6), each as the ids of its dev that
+// round n's dev still holds. -> [{round, ids}] (round 6: round 4's 100, round 5's 120)
+export const SUBSET_FROM = 4;
+export function subsetRounds(splits, n = splits.currentRound) {
+  const cur = roundOf(splits, n);
+  const dev = new Set(cur.dev.map((r) => r.id));
+  return (splits.rounds ?? [])
+    .filter((r) => r.round >= Math.min(SUBSET_FROM, cur.round - 1) && r.round < cur.round)
+    .map((r) => ({ round: r.round, ids: roundOf(splits, r.round).dev.map((t) => t.id).filter((id) => dev.has(id)) }));
 }
 
 // PLAN Phase 6 overfitting bound: 1.96 · sqrt(p(1 − p)(1/nDev + 1/nHeld)) + 2 × flips

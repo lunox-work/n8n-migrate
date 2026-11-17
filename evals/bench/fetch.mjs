@@ -768,8 +768,9 @@ async function current() {
   const corpus = JSON.parse(readFileSync(out, "utf8"));
   const refs = (f) => JSON.parse(readFileSync(join(REFS, f), "utf8"));
   const opts = { nodes: refs("nodes.json"), capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), now: Date.parse(NOW) };
-  const { readSplits, heldOutIds } = await import("./rounds.mjs");
-  const skip = new Set(heldOutIds(readSplits()));
+  const { readSplits, unreadableIds } = await import("./rounds.mjs");
+  // Every held-out set the current round keeps unread (its own, a later round's, an experiment's).
+  const skip = new Set(unreadableIds(readSplits()));
   const analyzeEntry = (e) => {
     const f = [join(DATA, "wf", `${e.id}.json`), join(SURVEY_CACHE, `${e.id}.json`)].find((x) => existsSync(x));
     if (!f) return null;

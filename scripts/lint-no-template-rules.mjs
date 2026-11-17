@@ -88,7 +88,7 @@ const corpus = JSON.parse(readFileSync(join(BENCH, "corpus.json"), "utf8"));
 const ids = [...new Set(corpus.templates.map((t) => String(t.id)))];
 // A walk entry from round 5 on that can never be a bench template (see the header).
 const splits = JSON.parse(readFileSync(join(BENCH, "splits.json"), "utf8"));
-const drawnHeld = new Set(Object.entries(splits).filter(([k]) => /^heldOutFresh\d*$/.test(k)).flatMap(([, v]) => v.templates ?? []).map((t) => t.id));
+const drawnHeld = new Set([...Object.entries(splits).filter(([k]) => /^heldOutFresh\d*$/.test(k)).flatMap(([, v]) => v.templates ?? []), ...(splits.experiments ?? []).flatMap((e) => e.templates ?? [])].map((t) => t.id));
 const outsideBench = (t) => ((t.topUp ?? 0) >= 5 && (t.excluded || t.pool !== "fresh")) || ((t.heldRefill ?? 0) >= 5 && !drawnHeld.has(t.id));
 const outside = new Set(corpus.templates.filter(outsideBench).map((t) => String(t.id)));
 

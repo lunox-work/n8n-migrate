@@ -18,11 +18,11 @@
 // Population (LEVERS.md): every listing entry, less ROUND's held-out (and any later round's),
 // which is never read: it is skipped before its file is opened and only counted (PROPOSALS
 // P51). The rest go through fetch.mjs's exclusion rules (EXCLUSIONS.md, same order) and the
-// round-4 eligibility clauses (eligible.mjs; round 5 keeps them) except clause 4 (planned
+// round-4 eligibility clauses (eligible.mjs; rounds 5 and 6 keep them) except clause 4 (planned
 // features): "in scope" = what the rule would admit if the converter supported every planned
 // feature. Templates that are unreadable in the *current* round but dev in ROUND (a held-out
 // whose release point is unfinished) are counted and never named. Dev unlocks count ROUND's
-// dev (round 5: 120, round 4's held-out promoted).
+// dev (round 6: 140, round 5's held-out promoted).
 //
 // PROPOSALS P121: a dev template is converted as the bench converts it, from the export with
 // its overlay's placeholder fills merged in (`claude-side.mjs` `filledSource()`), so the dev
@@ -69,7 +69,7 @@ const ROWS = 50;
 const DELAY_MS = 1100;
 const UA = "n8n-template-gallery-survey/0.1 (anonymous, read-only)";
 const NOW = "2026-11-16T00:00:00Z"; // the round-4 walk's analyzer clock (fetch.mjs NOW)
-export const ROUND = 5;
+export const ROUND = 6;
 
 // ---------- pure parts (unit-tested) ----------
 

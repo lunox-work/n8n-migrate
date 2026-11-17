@@ -13,7 +13,7 @@ const run = (...a) => spawnSync(process.execPath, [LINT, ...a], { encoding: "utf
 
 // A round-5-on walk entry that no rule lets into the bench (the lint's header).
 const splitsDoc = JSON.parse(readFileSync(join(ROOT, "evals/bench/splits.json"), "utf8"));
-const drawnHeld = new Set(Object.entries(splitsDoc).filter(([k]) => /^heldOutFresh\d*$/.test(k)).flatMap(([, v]) => v.templates ?? []).map((t) => t.id));
+const drawnHeld = new Set([...Object.entries(splitsDoc).filter(([k]) => /^heldOutFresh\d*$/.test(k)).flatMap(([, v]) => v.templates ?? []), ...(splitsDoc.experiments ?? []).flatMap((e) => e.templates ?? [])].map((t) => t.id));
 const outsideBench = (t) => ((t.topUp ?? 0) >= 5 && (t.excluded || t.pool !== "fresh")) || ((t.heldRefill ?? 0) >= 5 && !drawnHeld.has(t.id));
 
 test("skills/ carries no template id, name or fixture string", () => {
