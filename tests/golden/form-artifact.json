@@ -67,12 +67,25 @@
       "outcome": {
         "kind": "subscription",
         "target": "artifact-form",
-        "reason": "the form collects submissions in an artifact; an artifact lacks the google-drive REST API, so a cloud task picks each submission up and runs the steps",
+        "reason": "the form collects submissions in an artifact; an artifact lacks the google-drive REST API, google-token, so a local task (computer on) picks each submission up and runs the steps",
         "alsoTargets": []
       },
       "calledBy": [],
       "calls": [],
       "requires": [
+        {
+          "kind": "google-token",
+          "name": "Google Sheets",
+          "nodes": [
+            "Append claim"
+          ],
+          "surfaces": {
+            "cloudTask": "no",
+            "localTask": "needs:google-refresh-secret",
+            "artifact": "no"
+          },
+          "note": "a Google access token lasts an hour, so this runs as a local task whose secret lets the runner refresh it: the OAuth client's {client_id, client_secret, refresh_token} or a service-account key (setup-local-task.md); a cloud task cannot refresh it"
+        },
         {
           "kind": "connector",
           "name": "google-drive",
@@ -94,7 +107,7 @@
         },
         {
           "kind": "task-handoff",
-          "name": "cloud-task",
+          "name": "local-task",
           "nodes": [
             "Expense form"
           ],

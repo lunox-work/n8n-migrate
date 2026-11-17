@@ -27,7 +27,7 @@
       "keep-in-n8n": 0
     },
     "targets": {
-      "subscription:cloud-task": 1
+      "subscription:local-task": 1
     },
     "wakeups": {
       "schedule": 1
@@ -36,7 +36,7 @@
     "notAnAutomation": 0,
     "questions": 0,
     "unmappedTypes": [],
-    "cloudScheduledRunsPerHour": 0.5,
+    "cloudScheduledRunsPerHour": 0,
     "cloudScheduledRunsPerHourLimit": 100,
     "answers": {
       "used": 0,
@@ -66,13 +66,26 @@
       },
       "outcome": {
         "kind": "subscription",
-        "target": "cloud-task",
-        "reason": "fires every 2 h, within a cloud task's limit of one run per 1 h",
+        "target": "local-task",
+        "reason": "fires every 2 h, within a cloud task's limit of one run per 1 h; the Google token of Google Sheets expires after an hour and a cloud task cannot refresh it, so a local task",
         "alsoTargets": []
       },
       "calledBy": [],
       "calls": [],
       "requires": [
+        {
+          "kind": "google-token",
+          "name": "Google Sheets",
+          "nodes": [
+            "Append row"
+          ],
+          "surfaces": {
+            "cloudTask": "no",
+            "localTask": "needs:google-refresh-secret",
+            "artifact": "no"
+          },
+          "note": "a Google access token lasts an hour, so this runs as a local task whose secret lets the runner refresh it: the OAuth client's {client_id, client_secret, refresh_token} or a service-account key (setup-local-task.md); a cloud task cannot refresh it"
+        },
         {
           "kind": "connector",
           "name": "google-drive",

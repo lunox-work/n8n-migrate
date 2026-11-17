@@ -28,7 +28,7 @@
     },
     "targets": {
       "hosted:key": 1,
-      "subscription:cloud-task": 2,
+      "subscription:local-task": 2,
       "subscription:skill": 1
     },
     "wakeups": {
@@ -41,7 +41,7 @@
     "notAnAutomation": 0,
     "questions": 0,
     "unmappedTypes": [],
-    "cloudScheduledRunsPerHour": 0.04,
+    "cloudScheduledRunsPerHour": 0,
     "cloudScheduledRunsPerHourLimit": 100,
     "answers": {
       "used": 4,
@@ -357,8 +357,8 @@
       },
       "outcome": {
         "kind": "subscription",
-        "target": "cloud-task",
-        "reason": "fires every 1 d, within a cloud task's limit of one run per 1 h",
+        "target": "local-task",
+        "reason": "fires every 1 d, within a cloud task's limit of one run per 1 h; the Google token of Google Sheets expires after an hour and a cloud task cannot refresh it, so a local task",
         "alsoTargets": []
       },
       "calledBy": [],
@@ -370,6 +370,18 @@
         }
       ],
       "requires": [
+        {
+          "kind": "google-token",
+          "name": "Google Sheets",
+          "nodes": [
+            "Call child"
+          ],
+          "surfaces": {
+            "cloudTask": "no",
+            "localTask": "needs:google-refresh-secret",
+            "artifact": "no"
+          }
+        },
         {
           "kind": "connector",
           "name": "google-drive",
@@ -503,7 +515,7 @@
       },
       "outcome": {
         "kind": "subscription",
-        "target": "cloud-task",
+        "target": "local-task",
         "reason": "inlined into \"Nightly cleanup (answered)\"; follows \"Nightly cleanup (answered)\"",
         "alsoTargets": []
       },
@@ -512,6 +524,19 @@
       ],
       "calls": [],
       "requires": [
+        {
+          "kind": "google-token",
+          "name": "Google Sheets",
+          "nodes": [
+            "Archive rows"
+          ],
+          "surfaces": {
+            "cloudTask": "no",
+            "localTask": "needs:google-refresh-secret",
+            "artifact": "no"
+          },
+          "note": "a Google access token lasts an hour, so this runs as a local task whose secret lets the runner refresh it: the OAuth client's {client_id, client_secret, refresh_token} or a service-account key (setup-local-task.md); a cloud task cannot refresh it"
+        },
         {
           "kind": "connector",
           "name": "google-drive",

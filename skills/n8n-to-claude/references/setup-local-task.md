@@ -17,7 +17,7 @@ For `outcome.target: local-task` (more often than hourly, the host shell, or a l
 
 1. Review `MIGRATION.md`; resolve flagged steps (`translation.md`).
 2. Open `<repo>` once in Claude Code and accept the trust prompt (an untrusted folder drops the allowlist).
-3. Set the secrets as above. Never handle the values.
+3. Set the secrets as above. Never handle the values. For a Google credential (a Sheets or Calendar step; the report's requirement `google-token`), a Google access token lasts an hour, so the value should be what lets the runner mint a new one for each request: the OAuth client's JSON `{"client_id": "...", "client_secret": "...", "refresh_token": "..."}` (the client and refresh token behind the n8n credential), or a service-account key file's JSON (`client_email`, `private_key`; add `"delegated_email"` to act as a user, as n8n's impersonation does, and share the sheet or calendar with the service account otherwise). A plain access token also works, for one hour.
 4. In the Claude desktop app, create a scheduled task: folder `<repo>`, prompt = the folder's `task-prompt.md`, the schedule from the trigger.
 5. Run it once (Run now). If a permission prompt appears for the runner command or a connector tool, choose "always allow" for exactly that; it should end with `DONE: run ... finished`.
 6. Keep the computer awake at run times. A skipped run is reported as missed at the next run (`alerts.md`) and, for polls, picked up from the cursor.

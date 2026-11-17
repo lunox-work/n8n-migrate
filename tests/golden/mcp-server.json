@@ -72,6 +72,19 @@
       "calls": [],
       "requires": [
         {
+          "kind": "google-token",
+          "name": "Calendar",
+          "nodes": [
+            "List events"
+          ],
+          "surfaces": {
+            "cloudTask": "no",
+            "localTask": "needs:google-refresh-secret",
+            "artifact": "no"
+          },
+          "note": "a Google access token lasts an hour, so this runs as a local task whose secret lets the runner refresh it: the OAuth client's {client_id, client_secret, refresh_token} or a service-account key (setup-local-task.md); a cloud task cannot refresh it"
+        },
+        {
           "kind": "connector",
           "name": "google-calendar",
           "nodes": [

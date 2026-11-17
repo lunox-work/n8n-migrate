@@ -449,3 +449,63 @@ test("cloud egress: fetch errors keep their cause; behind https_proxy the runner
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("Google credentials: a refresh set or service-account key mints a fresh access token per request; a plain token is sent as is", async () => {
+  const { executeHttp, googleAccessToken } = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/runtime/src/driver.mjs")).href);
+  const { generateKeyPairSync, createVerify } = await import("node:crypto");
+  const sheets = { method: "GET", url: "https://sheets.googleapis.com/v4/spreadsheets/abc", auth: { credentialType: "googleSheetsOAuth2Api", secret: "Sheets account" } };
+  const seen = [];
+  const fakeFetch = async (url, init) => {
+    seen.push({ url: String(url), init });
+    if (String(url) === "https://oauth2.googleapis.com/token") {
+      const form = Object.fromEntries(new URLSearchParams(init.body));
+      if (form.refresh_token === "bad") return new Response(JSON.stringify({ error: "invalid_grant", error_description: "Token has been expired or revoked." }), { status: 400, headers: { "content-type": "application/json" } });
+      return new Response(JSON.stringify({ access_token: `minted-${form.grant_type}`, expires_in: 3599 }), { status: 200, headers: { "content-type": "application/json" } });
+    }
+    return new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
+  };
+  // Refresh set (an OAuth2 credential).
+  const refresh = JSON.stringify({ client_id: "cid", client_secret: "csec", refresh_token: "rt" });
+  let r = await executeHttp(sheets, { secrets: () => refresh }, fakeFetch);
+  assert.equal(r.ok, true);
+  assert.deepEqual(Object.fromEntries(new URLSearchParams(seen[0].init.body)), { grant_type: "refresh_token", refresh_token: "rt", client_id: "cid", client_secret: "csec" });
+  assert.equal(seen[1].init.headers.authorization, "Bearer minted-refresh_token");
+  // Service-account key: a JWT signed with its private key, scoped as n8n's Sheets node asks.
+  seen.length = 0;
+  const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+  const key = JSON.stringify({ client_email: "bot@proj.iam.gserviceaccount.com", private_key: privateKey.export({ type: "pkcs8", format: "pem" }).replace(/\n/g, "\\n") });
+  r = await executeHttp(sheets, { secrets: () => key }, fakeFetch);
+  assert.equal(r.ok, true);
+  const form = Object.fromEntries(new URLSearchParams(seen[0].init.body));
+  assert.equal(form.grant_type, "urn:ietf:params:oauth:grant-type:jwt-bearer");
+  const [h, c, sig] = form.assertion.split(".");
+  assert.ok(createVerify("RSA-SHA256").update(`${h}.${c}`).verify(publicKey, sig, "base64url"), "signed with the key");
+  const claims = JSON.parse(Buffer.from(c, "base64url").toString());
+  assert.equal(claims.iss, "bot@proj.iam.gserviceaccount.com");
+  assert.equal(claims.aud, "https://oauth2.googleapis.com/token");
+  assert.equal(claims.scope, "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets");
+  assert.equal(claims.exp - claims.iat, 3600);
+  assert.equal(seen[1].init.headers.authorization, "Bearer minted-urn:ietf:params:oauth:grant-type:jwt-bearer");
+  // A plain access token goes out unchanged, with no call to Google's token endpoint.
+  seen.length = 0;
+  r = await executeHttp(sheets, { secrets: () => "ya29.raw" }, fakeFetch);
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].init.headers.authorization, "Bearer ya29.raw");
+  // Google refuses the refresh: the step fails with Google's reason and the request never goes out.
+  seen.length = 0;
+  r = await executeHttp(sheets, { secrets: () => JSON.stringify({ client_id: "cid", client_secret: "csec", refresh_token: "bad" }) }, fakeFetch);
+  assert.equal(r.ok, false);
+  assert.equal(r.error.name, "SecretRefreshFailed");
+  assert.match(r.error.message, /400 invalid_grant: Token has been expired or revoked/);
+  assert.equal(seen.length, 1, "only the token call");
+  // A non-Google credential's JSON keeps its own meaning ({header, value}).
+  seen.length = 0;
+  await executeHttp({ ...sheets, url: "https://api.example.com/x", auth: { credentialType: "httpHeaderAuth", secret: "K" } }, { secrets: () => '{"header":"X-Key","value":"v"}' }, fakeFetch);
+  assert.equal(seen[0].init.headers["x-key"], "v");
+  // Calendar asks for Calendar scopes.
+  const cal = await googleAccessToken(key, "https://www.googleapis.com/calendar/v3/calendars/primary/events", async (u, init) => {
+    const a = Object.fromEntries(new URLSearchParams(init.body)).assertion.split(".")[1];
+    return new Response(JSON.stringify({ access_token: JSON.parse(Buffer.from(a, "base64url").toString()).scope }), { status: 200 });
+  });
+  assert.equal(cal, "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events");
+});

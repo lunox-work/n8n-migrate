@@ -57,7 +57,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, readdirSync, rmSync, appendFileSync, openSync, closeSync, statSync, realpathSync } from "node:fs";
 import { join, dirname, relative, isAbsolute, basename } from "node:path";
 import { fileURLToPath } from "node:url";
-import { randomBytes } from "node:crypto";
+import { randomBytes, createSign } from "node:crypto";
 import { createStore } from "./store.mjs";
 
 // The command the model runs, relative to the session's working directory: a repo with several
@@ -299,6 +299,54 @@ export const secretSources = {
   proxy: () => null,
 };
 
+// Google access tokens last an hour, so one stored once fails every scheduled run after that.
+// A local task's secret for a Google credential can instead be what lets the runner mint one:
+// the OAuth client's {client_id, client_secret, refresh_token} (what n8n's Google OAuth2
+// credentials keep), or a service-account key {client_email, private_key} (n8n's googleApi
+// credential; optional delegated_email / subject to act as a user). A fresh token is minted at
+// oauth2.googleapis.com for each request and never written to disk. Any other value is sent as
+// it is (a raw access token, which works for an hour). A cloud task cannot do this: its proxy
+// adds a fixed header (analyze.mjs requirement google-token keeps such workflows local).
+const GOOGLE_CREDENTIAL = /^google\w*(OAuth2Api|Api)$/;
+const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+// The scopes n8n's own nodes ask for with a service account (n8n-nodes-base 2.47.7).
+function googleScopes(url) {
+  const u = new URL(url);
+  if (u.hostname === "sheets.googleapis.com") return ["https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/spreadsheets"];
+  if (u.pathname.startsWith("/calendar/")) return ["https://www.googleapis.com/auth/calendar", "https://www.googleapis.com/auth/calendar.events"];
+  return ["https://www.googleapis.com/auth/cloud-platform"];
+}
+const b64url = (x) => Buffer.from(typeof x === "string" ? x : JSON.stringify(x)).toString("base64url");
+export function googleAssertion(key, scopes, now = Date.now()) {
+  const iat = Math.floor(now / 1000);
+  const claims = { iss: key.client_email, scope: scopes.join(" "), aud: GOOGLE_TOKEN_URL, iat, exp: iat + 3600 };
+  const subject = key.delegated_email ?? key.subject;
+  if (subject) claims.sub = subject;
+  const unsigned = `${b64url({ alg: "RS256", typ: "JWT" })}.${b64url(claims)}`;
+  const pem = String(key.private_key).replace(/\\n/g, "\n");
+  return `${unsigned}.${createSign("RSA-SHA256").update(unsigned).sign(pem, "base64url")}`;
+}
+export async function googleAccessToken(value, url, fetchImpl = globalThis.fetch, now = Date.now()) {
+  if (typeof value !== "string" || !value.trim().startsWith("{")) return value;
+  let v;
+  try {
+    v = JSON.parse(value);
+  } catch {
+    return value;
+  }
+  let form;
+  if (v.refresh_token && v.client_id && v.client_secret) form = { grant_type: "refresh_token", refresh_token: v.refresh_token, client_id: v.client_id, client_secret: v.client_secret };
+  else if (v.client_email && v.private_key) form = { grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: googleAssertion(v, googleScopes(url), now) };
+  else return value;
+  const res = await fetchImpl(GOOGLE_TOKEN_URL, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(form).toString() });
+  let j = {};
+  try {
+    j = await res.json();
+  } catch {}
+  if (!res.ok || typeof j.access_token !== "string") throw Object.assign(new Error(`Google did not give an access token for this credential (${res.status}${j.error ? ` ${j.error}` : ""}${j.error_description ? `: ${j.error_description}` : ""})`), { name: "SecretRefreshFailed" });
+  return j.access_token;
+}
+
 function attachSecret(req, value, url, headers) {
   // value: a raw token (Bearer), or JSON {header, value} | {user, password} | {query, value}.
   if (req.auth.placement === "url") return url.replace("{{secret}}", encodeURIComponent(typeof value === "string" ? value : value.value));
@@ -418,6 +466,13 @@ export async function executeHttp(req, task, fetchImpl = globalThis.fetch, { che
   if (req.auth?.secret) {
     secretValue = source?.(req.auth.secret);
     if (secretValue === undefined) return { ok: false, error: { name: "SecretMissing", message: `secret "${req.auth.secret}" is not available (local: set N2C_SECRET_${String(req.auth.secret).toUpperCase().replace(/[^A-Z0-9]+/g, "_")})` } };
+    if (secretValue !== null && GOOGLE_CREDENTIAL.test(String(req.auth.credentialType ?? ""))) {
+      try {
+        secretValue = await googleAccessToken(secretValue, url, fetchImpl);
+      } catch (e) {
+        return { ok: false, error: { name: e.name ?? "Error", message: String(e.message ?? e) } };
+      }
+    }
     if (secretValue !== null) url = attachSecret(req, secretValue, url, headers);
   }
   const u = new URL(url);
