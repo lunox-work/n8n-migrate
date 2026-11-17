@@ -223,6 +223,8 @@ const SKELETON_HEAD = '<!doctype html><html><head><meta charset="utf-8"><meta na
 const served = { pollSlack: pages.pollSlack.html, slice: pages.slice.html, poll: pages.poll.html, agent: pages.agent.html, tampered: tamperedHtml, form: pages.form.html, formHandoff: pages.formHandoff.html, formAll: pages.formAll.html };
 const extFetches = [];
 const server = createServer((req, res) => {
+  // The browser's own favicon request is not the page's: answer it empty.
+  if (req.url === "/favicon.ico") return void res.writeHead(204).end();
   const name = /^\/page\/([\w-]+)$/.exec(req.url)?.[1];
   if (!name || !served[name]) {
     extFetches.push(req.url);
@@ -555,7 +557,7 @@ await check("form: fields per type, validation, submit runs with the form item; 
     const { ctx, be } = await context("formHandoff");
     const page = await open(ctx, "formHandoff");
     assert.match(await page.$eval("#form-submit", (b) => b.textContent), /scheduled task/);
-    assert.match(await page.$eval("#mode-note", (n) => n.textContent), /run by the scheduled cloud task/);
+    assert.match(await page.$eval("#mode-note", (n) => n.textContent), /run by the scheduled local task/);
     await page.fill("#ff-0", "12.5");
     await page.click("#form-submit");
     await page.waitForFunction(() => !document.getElementById("banner").hidden && /Submitted/.test(document.getElementById("banner").textContent));

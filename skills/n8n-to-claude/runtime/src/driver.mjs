@@ -204,13 +204,32 @@ export function expandArgs(input, handle, args) {
   return walk(input);
 }
 
+// Claude Code keeps a connector's file (an MCP resource block) out of the response: a text
+// block "[Resource from <server> at <uri>] Binary content (<mime>, <n> bytes) saved to <path>"
+// takes its place, and Google Drive's download_file_content adds a JSON block whose `content`
+// reads "(file sent separately)" (observed on 2.1.326, 2026-11-18). The runner reads the file
+// and puts its bytes back as the base64 `content` the tool's description promises.
+const BLOB_RE = /\] Binary content \(([^,()]+), \d+ bytes\) saved to (\S+)/;
+export function blobValue(texts, read = (p) => readFileSync(p)) {
+  const i = texts.findIndex((t) => BLOB_RE.test(String(t)));
+  if (i < 0) return undefined;
+  const [, mimeType, file] = BLOB_RE.exec(texts[i]);
+  const rest = texts.filter((_, j) => j !== i).map((t) => parseMaybe(t));
+  const meta = rest.find(isObj) ?? {};
+  try {
+    return { mimeType, ...meta, content: Buffer.from(read(file)).toString("base64") };
+  } catch (e) {
+    return { ...meta, mimeType, content: null, error: `the connector's file was saved to ${file} but could not be read (${e.code ?? e.message})` };
+  }
+}
+
 // The value the runner gets for a connector response: MCP content -> JSON when it parses.
 export function mcpValue(resp) {
   if (resp == null) return null;
-  if (typeof resp === "string") return parseMaybe(resp);
+  if (typeof resp === "string") return blobValue(resp.split(/\n(?=\{)/)) ?? parseMaybe(resp);
   if (Array.isArray(resp)) {
     const texts = resp.filter((b) => b && b.type === "text").map((b) => b.text);
-    if (texts.length === resp.length && texts.length) return parseMaybe(texts.join(""));
+    if (texts.length === resp.length && texts.length) return blobValue(texts) ?? parseMaybe(texts.join(""));
     return resp;
   }
   if (isObj(resp)) {

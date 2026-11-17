@@ -293,6 +293,13 @@ function resolveSpec(spec, params, issues) {
       if (!isExpr(v)) return /([-\w]{25,})/.exec(String(v))?.[0] ?? "";
       return `={{ ((s) => (s.match(/([-\\w]{25,})/) || [""])[0])(String(${toJs(v)})) }}`;
     }
+    // The Drive connector's search_files query names a file's name `title` ("Unsupported query
+    // field: name" otherwise, observed 2026-11-18); n8n's queries use the Drive API's `name`.
+    if (spec.extract === "driveQuery") {
+      // It has no `parents` either: '<id>' in parents is parentId = '<id>'.
+      if (!isExpr(v)) return String(v).replace(/\bname(\s*(?:contains|!=|=))/g, "title$1").replace(/('[^']*')\s+in\s+parents\b/g, "parentId = $1");
+      return `={{ String(${toJs(v)}).replace(/\\bname(\\s*(?:contains|!=|=))/g, "title$1").replace(/('[^']*')\\s+in\\s+parents\\b/g, "parentId = $1") }}`;
+    }
     if (spec.extract === "googleId") {
       if (!isExpr(v)) return GOOGLE_ID.exec(String(v))?.[1] ?? v;
       return `={{ ((s) => (s.match(/\\/d\\/([a-zA-Z0-9_-]{10,})/) || [])[1] || s)(String(${toJs(v)})) }}`;
