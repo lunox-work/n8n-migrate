@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "template": 5149,
+  "sha256": "452b09ece552c0b9c3a125801ed074b28304f60a52578115529a1e12eb4e0466",
+  "variant": "normal",
+  "now": "2026-11-17T09:00:00.000Z",
+  "about": "the caller passes a short HTML report; Gotenberg answers its PDF",
+  "trigger": {
+    "node": "Create PDF from HTML",
+    "kind": "subworkflow",
+    "items": [
+      {
+        "json": {
+          "html": "<html><body><h1>Q3 Sales Report</h1><p>Revenue grew 12% quarter over quarter.</p><table><tr><td>EMEA</td><td>1.2M</td></tr><tr><td>APAC</td><td>0.9M</td></tr></table></body></html>",
+          "file_name": "q3-sales-report"
+        }
+      }
+    ]
+  },
+  "reads": [],
+  "models": [],
+  "writes": [
+    "Convert to PDF with Gotenberg"
+  ],
+  "writeReplies": [
+    {
+      "node": "Convert to PDF with Gotenberg",
+      "service": "gotenberg",
+      "http": {
+        "via": "direct",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "http://gotenberg:3000/forms/chromium/convert/html",
+            "status": 200,
+            "headers": {
+              "content-type": "application/pdf",
+              "content-disposition": "attachment; filename=\"q3-sales-report.pdf\"",
+              "gotenberg-trace": "bench-5149-trace"
+            },
+            "bodyBase64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA0NyA+PgpzdHJlYW0KQlQgL0YxIDE4IFRmIDcyIDcyMCBUZCAoUXVhcnRlcmx5IHJlcG9ydCkgVGogRVQKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBlMSAvQmFzZUZvbnQgL0hlbHZldGljYSA+PgplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjQxIDAwMDAwIG4gCjAwMDAwMDAzMzggMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgo0MDgKJSVFT0YK"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "Gotenberg is the person's own service; no connector"
+      },
+      "note": "Gotenberg 8 Chromium HTML route: multipart POST with the index.html file, scale and metadata; answers the PDF bytes (Gotenberg-Output-Filename names the download)"
+    }
+  ],
+  "pinData": {
+    "Create PDF from HTML": [
+      {
+        "html": "<h1>Hello World</h1>",
+        "file_name": "my-report-2024"
+      }
+    ]
+  },
+  "expect": {
+    "branches": [
+      "no IF/Switch: one HTML file, one conversion"
+    ],
+    "offline": "Gotenberg is the person's own container at http://gotenberg:3000, answered by the mock; it renders the HTML itself, so the pixel and script in the hostile HTML make no request on either side. The template pins its trigger with its example input; each variant's trigger items replace it."
+  }
+}

@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "template": 2037,
+  "sha256": "1f2bbb2e61dc20ce7a9ee71080556876de264d9ca5b0f063b4363aa69b321073",
+  "variant": "normal",
+  "now": "2026-11-17T09:00:00.000Z",
+  "about": "two records carry an image URL; each is updated with an attachment built from it",
+  "trigger": {
+    "node": "When clicking \"Execute Workflow\"",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get all records with an image URL",
+      "service": "airtable",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.airtable.com/v0/app5TBVbHPs64w5lE/tblTVTofgqfzqyIZk",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "query": {
+              "filterByFormula": "NOT({Image source URL} = '')"
+            },
+            "body": {
+              "records": [
+                {
+                  "id": "recBench2037aa01",
+                  "createdTime": "2026-11-10T08:15:00.000Z",
+                  "fields": {
+                    "Name": "Red-eyed tree frog",
+                    "Image source URL": "https://images.example-cdn.com/frogs/red-eyed-tree-frog.jpg"
+                  }
+                },
+                {
+                  "id": "recBench2037aa02",
+                  "createdTime": "2026-11-10T08:15:00.000Z",
+                  "fields": {
+                    "Name": "Poison dart frog",
+                    "Image source URL": "https://images.example-cdn.com/frogs/poison-dart-frog.jpg"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Airtable connector"
+      },
+      "note": "Airtable list records (v2 search, Return All): GET with filterByFormula and pageSize 100; one page, no offset. Airtable v2 (typeVersion 2) flattens fields onto the item"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Update attachment field with images"
+  ],
+  "writeReplies": [
+    {
+      "node": "Update attachment field with images",
+      "service": "airtable",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "PATCH",
+            "url": "https://api.airtable.com/v0/app5TBVbHPs64w5lE/tblTVTofgqfzqyIZk",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "bodyMatch": {
+              "records": [
+                {
+                  "id": "recBench2037aa01"
+                }
+              ]
+            },
+            "body": {
+              "records": [
+                {
+                  "id": "recBench2037aa01",
+                  "createdTime": "2026-11-10T08:15:00.000Z",
+                  "fields": {
+                    "Name": "Red-eyed tree frog",
+                    "Image source URL": "https://images.example-cdn.com/frogs/red-eyed-tree-frog.jpg",
+                    "Image attachment": [
+                      {
+                        "id": "attBench2037aa01",
+                        "width": 1200,
+                        "height": 800,
+                        "url": "https://v5.airtableusercontent.com/v3/u/bench/recBench2037aa01",
+                        "filename": "red-eyed-tree-frog.jpg",
+                        "size": 184220,
+                        "type": "image/jpeg"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://api.airtable.com/v0/app5TBVbHPs64w5lE/tblTVTofgqfzqyIZk",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "bodyMatch": {
+              "records": [
+                {
+                  "id": "recBench2037aa02"
+                }
+              ]
+            },
+            "body": {
+              "records": [
+                {
+                  "id": "recBench2037aa02",
+                  "createdTime": "2026-11-10T08:15:00.000Z",
+                  "fields": {
+                    "Name": "Poison dart frog",
+                    "Image source URL": "https://images.example-cdn.com/frogs/poison-dart-frog.jpg",
+                    "Image attachment": [
+                      {
+                        "id": "attBench2037aa02",
+                        "width": 1200,
+                        "height": 800,
+                        "url": "https://v5.airtableusercontent.com/v3/u/bench/recBench2037aa02",
+                        "filename": "poison-dart-frog.jpg",
+                        "size": 184220,
+                        "type": "image/jpeg"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Airtable connector"
+      },
+      "note": "Airtable update records: one PATCH per item with {typecast: false, records: [{id, fields}]}, matched by record id; Airtable answers the updated record with the attachment it fetched"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: one update per record found"
+    ],
+    "offline": "The attachment value is the object the template builds ({\"Attachment\": {\"url\": …}}) and Airtable is assumed to accept it, as the template's author reports; Airtable downloads the image itself, so no image request is made. Airtable's token is the bench's dummy."
+  }
+}

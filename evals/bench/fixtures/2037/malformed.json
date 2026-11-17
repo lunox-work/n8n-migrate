@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "template": 2037,
+  "sha256": "1f2bbb2e61dc20ce7a9ee71080556876de264d9ca5b0f063b4363aa69b321073",
+  "variant": "malformed",
+  "now": "2026-11-17T09:00:00.000Z",
+  "about": "one URL padded with spaces and holding a space and parentheses, one URL of about 1,900 characters; names null and empty",
+  "trigger": {
+    "node": "When clicking \"Execute Workflow\"",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get all records with an image URL",
+      "service": "airtable",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.airtable.com/v0/app5TBVbHPs64w5lE/tblTVTofgqfzqyIZk",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "query": {
+              "filterByFormula": "NOT({Image source URL} = '')"
+            },
+            "body": {
+              "records": [
+                {
+                  "id": "recBench2037bb01",
+                  "createdTime": "2026-11-10T08:15:00.000Z",
+                  "fields": {
+                    "Name": "Frog",
+                    "Image source URL": "  https://images.example-cdn.com/frogs/glass frog (1).JPG  "
+                  }
+                },
+                {
+                  "id": "recBench2037bb02",
+                  "createdTime": "2026-11-10T08:15:00.000Z",
+                  "fields": {
+                    "Name": "",
+                    "Image source URL": "https://images.example-cdn.com/frogs/very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-x.jpg"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Airtable connector"
+      },
+      "note": "Airtable list records (v2 search, Return All): GET with filterByFormula and pageSize 100; one page, no offset. Airtable v2 (typeVersion 2) flattens fields onto the item"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Update attachment field with images"
+  ],
+  "writeReplies": [
+    {
+      "node": "Update attachment field with images",
+      "service": "airtable",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "PATCH",
+            "url": "https://api.airtable.com/v0/app5TBVbHPs64w5lE/tblTVTofgqfzqyIZk",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "bodyMatch": {
+              "records": [
+                {
+                  "id": "recBench2037bb01"
+                }
+              ]
+            },
+            "body": {
+              "records": [
+                {
+                  "id": "recBench2037bb01",
+                  "createdTime": "2026-11-10T08:15:00.000Z",
+                  "fields": {
+                    "Name": "Frog",
+                    "Image source URL": "  https://images.example-cdn.com/frogs/glass frog (1).JPG  ",
+                    "Image attachment": [
+                      {
+                        "id": "attBench2037bb01",
+                        "width": 1200,
+                        "height": 800,
+                        "url": "https://v5.airtableusercontent.com/v3/u/bench/recBench2037bb01",
+                        "filename": "glass frog (1).JPG  ",
+                        "size": 184220,
+                        "type": "image/jpeg"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://api.airtable.com/v0/app5TBVbHPs64w5lE/tblTVTofgqfzqyIZk",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "bodyMatch": {
+              "records": [
+                {
+                  "id": "recBench2037bb02"
+                }
+              ]
+            },
+            "body": {
+              "records": [
+                {
+                  "id": "recBench2037bb02",
+                  "createdTime": "2026-11-10T08:15:00.000Z",
+                  "fields": {
+                    "Name": "",
+                    "Image source URL": "https://images.example-cdn.com/frogs/very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-x.jpg",
+                    "Image attachment": [
+                      {
+                        "id": "attBench2037bb02",
+                        "width": 1200,
+                        "height": 800,
+                        "url": "https://v5.airtableusercontent.com/v3/u/bench/recBench2037bb02",
+                        "filename": "very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-very-long-name-x.jpg",
+                        "size": 184220,
+                        "type": "image/jpeg"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Airtable connector"
+      },
+      "note": "Airtable update records: one PATCH per item with {typecast: false, records: [{id, fields}]}, matched by record id; Airtable answers the updated record with the attachment it fetched"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: one update per record found"
+    ],
+    "offline": "The attachment value is the object the template builds ({\"Attachment\": {\"url\": …}}) and Airtable is assumed to accept it, as the template's author reports; Airtable downloads the image itself, so no image request is made. Airtable's token is the bench's dummy."
+  }
+}

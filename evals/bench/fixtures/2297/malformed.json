@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "template": 2297,
+  "sha256": "5468a9313a54bef4739ced3b2193d116541eb5d66129fe7aabfca3497959359a",
+  "variant": "malformed",
+  "now": "2026-11-17T09:00:00.000Z",
+  "about": "ConvertAPI's answer is cut short: 300 bytes of a PDF with no xref or end marker, written as it is",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [],
+  "models": [],
+  "writes": [
+    "HTTP Request",
+    "Read/Write Files from Disk"
+  ],
+  "writeReplies": [
+    {
+      "node": "HTTP Request",
+      "service": "convertapi",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://v2.convertapi.com/convert/docx/to/pdf",
+            "status": 200,
+            "headers": {
+              "content-type": "application/pdf",
+              "content-disposition": "attachment; filename=\"document.pdf\""
+            },
+            "bodyBase64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA3MCA+PgpzdHJlYW0KQlQgL0YxIDEyIFRmIDcyIDcyMCBUZCAoU2Ft"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured ConvertAPI connector"
+      },
+      "note": "ConvertAPI v2 convert docx→pdf: multipart POST with the source file's URL in the File parameter and Accept application/octet-stream; answers the PDF bytes"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: one conversion, one file written"
+    ],
+    "offline": "ConvertAPI fetches the sample DOCX from its own CDN itself, so no download is made on either side. The bearer token is the bench's dummy (the template's credential reference is a query-auth one while the node asks for bearer auth). The PDF is written to document.pdf under n8n's working directory."
+  }
+}
