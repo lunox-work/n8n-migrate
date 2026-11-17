@@ -209,6 +209,7 @@
     "sendDocument": "write",
     "sendEmail": "write",
     "sendHtml": "write",
+    "sendLegacy": "write",
     "sendLocation": "write",
     "sendMediaGroup": "write",
     "sendMessage": "write",

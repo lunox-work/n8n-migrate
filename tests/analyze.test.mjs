@@ -298,3 +298,36 @@ test("dst: zones that move their clocks, zones that do not, unknown names", () =
   assert.equal(observesDst("UTC", NOW), false);
   assert.equal(observesDst("Not/AZone", NOW), false);
 });
+
+test("operation key: an authentication value that hides the resource leaves the node with none (Discord v2 webhook)", () => {
+  // n8n-nodes-base 2.47.5 DiscordV2 versionDescription: `resource` (default channel) is hidden for
+  // authentication webhook, where the only operation is sendLegacy (actions/webhook); n8n drops the
+  // hidden parameter and the router runs the webhook send. The catalogue keeps that per
+  // authentication (nodes.json ops byAuthentication, scripts/gen-nodes.mjs).
+  const g = nodes.nodes["n8n-nodes-base.discord"].ops.find((x) => x.versions.includes(2));
+  assert.deepEqual(g.byAuthentication, { webhook: { default: "sendLegacy", operations: ["sendLegacy"] } });
+  assert.equal(g.authenticationDefault, "botToken");
+  assert.ok(!g.resources.message.operations.includes("sendLegacy"), "the webhook operation belongs to no resource");
+  const node = (name, parameters) => ({ id: name, name, type: "n8n-nodes-base.discord", typeVersion: 2, position: [0, 0], parameters });
+  const wf = {
+    id: "discord-auth",
+    name: "Discord auth",
+    nodes: [
+      { id: "t", name: "Start", type: "n8n-nodes-base.manualTrigger", typeVersion: 1, position: [0, 0], parameters: {} },
+      node("Webhook send", { authentication: "webhook", content: "hi", options: {} }),
+      node("Bot default", { guildId: { __rl: true, value: "1", mode: "id" } }),
+      node("Bot message", { resource: "message", operation: "send", content: "hi" }),
+    ],
+    connections: { Start: { main: [[{ node: "Webhook send", type: "main", index: 0 }, { node: "Bot default", type: "main", index: 0 }, { node: "Bot message", type: "main", index: 0 }]] } },
+  };
+  const dir = mkdtempSync(join(tmpdir(), "n2c-discord-"));
+  writeFileSync(join(dir, "wf.json"), JSON.stringify(wf));
+  const steps = Object.fromEntries(analyze(loadInput(join(dir, "wf.json")).items, { nodes, capabilities, hosts, now: NOW }).workflows[0].steps.map((s) => [s.node, s]));
+  assert.equal(steps["Webhook send"].resource ?? null, null);
+  assert.equal(steps["Webhook send"].operation, "sendLegacy");
+  assert.equal(steps["Webhook send"].effect, "write");
+  assert.equal(steps["Bot default"].resource, "channel");
+  assert.equal(steps["Bot default"].operation, "create");
+  assert.equal(steps["Bot message"].resource, "message");
+  assert.equal(steps["Bot message"].operation, "send");
+});

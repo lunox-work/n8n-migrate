@@ -118,16 +118,47 @@ const asArray = (x) => (Array.isArray(x) ? x : [x]);
 const uniqSorted = (xs) => [...new Set(xs)].sort();
 const numSort = (xs) => [...new Set(xs)].sort((a, b) => a - b);
 
-// Resource → operation lists visible at one version. Only `resource` and the
+// Authentication values under which the node shows no `resource` parameter
+// (displayOptions.show/hide.authentication on every resource property), with
+// the operation parameters shown there. n8n drops a hidden parameter from the
+// node's parameters, so under such a value the node has no resource and its
+// operation key is the operation alone, from the operation parameter that is
+// shown only for it (Discord v2 with webhook authentication: no resource,
+// operation `sendLegacy`). -> {auth value: {operations, default}} or null.
+const authShown = (p, a) => {
+  const show = p.displayOptions?.show?.authentication;
+  const hide = p.displayOptions?.hide?.authentication;
+  return (!show || show.map(String).includes(a)) && !(hide && hide.map(String).includes(a));
+};
+function resourceHiddenByAuth(props, resProps, opProps, optionValues) {
+  const auth = props.find((p) => p.name === "authentication");
+  if (!auth || !resProps.length) return null;
+  const out = {};
+  for (const a of optionValues(auth)) {
+    if (resProps.some((p) => authShown(p, a))) continue;
+    const ops = opProps.filter((p) => p.displayOptions?.show?.authentication && authShown(p, a) && !p.displayOptions?.show?.resource && !p.displayOptions?.hide?.resource);
+    if (!ops.length) continue;
+    out[a] = { operations: uniqSorted(ops.flatMap(optionValues)) };
+    if (ops[0].default !== undefined) out[a].default = String(ops[0].default);
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+// Resource → operation lists visible at one version. `resource` and the
 // operation parameter's own displayOptions.show/hide.resource are followed;
-// other conditions (authentication, mode) are ignored, so the lists are the
-// union over those, which is what an analyzer validating a value needs.
+// other conditions (mode) are ignored, so the lists are the union over those,
+// which is what an analyzer validating a value needs. Authentication is
+// followed only where it hides the resource parameter (resourceHiddenByAuth):
+// those operations go under `byAuthentication`, not under any resource.
 function opsAt(descs, v, opParam) {
   const props = descs.flatMap((d) => d.properties || []).filter((p) => p.type === "options" && visibleAt(p, v));
   const optionValues = (p) => (p.options || []).map((o) => String(o.value));
   const resProps = props.filter((p) => p.name === "resource");
-  const opProps = props.filter((p) => p.name === opParam);
-  if (!resProps.length && !opProps.length) return null;
+  const allOpProps = props.filter((p) => p.name === opParam);
+  if (!resProps.length && !allOpProps.length) return null;
+  const byAuth = resourceHiddenByAuth(props, resProps, allOpProps, optionValues);
+  // An operation parameter shown only under authentication values that hide the resource belongs to none of the resources.
+  const opProps = byAuth ? allOpProps.filter((p) => !(p.displayOptions?.show?.authentication ?? []).length || p.displayOptions.show.authentication.map(String).some((a) => !byAuth[a])) : allOpProps;
   if (!resProps.length) {
     const g = { operations: uniqSorted(opProps.flatMap(optionValues)) };
     if (opProps[0].default !== undefined) g.default = String(opProps[0].default);
@@ -149,6 +180,11 @@ function opsAt(descs, v, opParam) {
   for (const r of resources) out[r].operations = uniqSorted(out[r].operations);
   const g = { resources: out };
   if (resProps[0].default !== undefined) g.resourceDefault = String(resProps[0].default);
+  if (byAuth) {
+    g.byAuthentication = byAuth;
+    const auth = props.find((p) => p.name === "authentication");
+    if (auth.default !== undefined) g.authenticationDefault = String(auth.default);
+  }
   return g;
 }
 
@@ -166,12 +202,14 @@ function opsGroups(descs, versions, opParam) {
   return [...groups.values()];
 }
 
-// "resource:operation", or "operation" when the node has no resource parameter.
+// "resource:operation", or "operation" when the node has no resource parameter
+// (or none under an authentication value, byAuthentication).
 function opKeys(groups) {
   const keys = new Set();
   for (const g of groups || []) {
     if (g.resources) for (const [r, x] of Object.entries(g.resources)) for (const o of x.operations) keys.add(`${r}:${o}`);
     else for (const o of g.operations) keys.add(o);
+    for (const x of Object.values(g.byAuthentication ?? {})) for (const o of x.operations) keys.add(o);
   }
   return [...keys].sort();
 }

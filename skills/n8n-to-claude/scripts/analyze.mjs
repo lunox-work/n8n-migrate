@@ -293,7 +293,13 @@ function describeNode(catalogue, node) {
   if (typeVersion === null || (e.versions && !e.versions.includes(typeVersion))) d.issues.push("unknown-version");
   const opParam = m.operationParam || "operation";
   if (e.ops) {
-    const g = e.ops.find((x) => x.versions.includes(typeVersion)) || e.ops.at(-1);
+    const g0 = e.ops.find((x) => x.versions.includes(typeVersion)) || e.ops.at(-1);
+    // An authentication value under which n8n's node description hides the resource parameter
+    // (nodes.json byAuthentication, from scripts/gen-nodes.mjs): n8n drops the hidden parameter,
+    // so the node has no resource there and its operation is the one shown for that value.
+    const auth = params.authentication ?? g0.authenticationDefault;
+    const ga = g0.byAuthentication && !isExpr(auth) && auth != null ? own(g0.byAuthentication, txt(auth)) : null;
+    const g = ga ?? g0;
     if (g.resources) {
       const res = params.resource ?? g.resourceDefault;
       d.resource = res == null ? null : txt(res);

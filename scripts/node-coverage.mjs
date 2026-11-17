@@ -83,7 +83,10 @@ function classify(entry, node) {
     if (r.status === "mapped" && entry.mapping.role !== "trigger" && entry.mapping.role !== "annotation" && entry.mapping.role !== "n8n-internal" && entry.mapping.effect === undefined) r.nodeEffect = "undetermined";
     return r;
   }
-  const g = groupFor(entry, node.typeVersion) || entry.ops.at(-1);
+  const g0 = groupFor(entry, node.typeVersion) || entry.ops.at(-1);
+  // As analyze.mjs: under an authentication value that hides the resource, the node has none.
+  const auth = params.authentication ?? g0.authenticationDefault;
+  const g = (g0.byAuthentication && typeof auth === "string" && !isExpr(auth) && Object.hasOwn(g0.byAuthentication, auth) && g0.byAuthentication[auth]) || g0;
   const opParam = entry.mapping.operationParam || "operation";
   let key;
   if (g.resources) {

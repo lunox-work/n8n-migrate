@@ -13633,7 +13633,6 @@
           "effect": "read",
           "effectBy": "name"
         },
-        "channel:sendLegacy": {},
         "channel:update": {
           "effect": "write",
           "effectBy": "name"
@@ -13646,7 +13645,6 @@
         "member:kick": {},
         "member:roleAdd": {},
         "member:roleRemove": {},
-        "member:sendLegacy": {},
         "member:timeout": {},
         "member:unban": {},
         "message:deleteMessage": {
@@ -13675,23 +13673,33 @@
           "kind": "blocked",
           "reason": "sends, then waits for a human reply through an n8n webhook (out of scope v1)"
         },
-        "message:sendLegacy": {}
+        "sendLegacy": {
+          "effect": "write",
+          "effectBy": "name"
+        }
       },
       "ops": [
         {
+          "authenticationDefault": "botToken",
+          "byAuthentication": {
+            "webhook": {
+              "default": "sendLegacy",
+              "operations": ["sendLegacy"]
+            }
+          },
           "resourceDefault": "channel",
           "resources": {
             "channel": {
               "default": "create",
-              "operations": ["create", "deleteChannel", "get", "getAll", "sendLegacy", "update"]
+              "operations": ["create", "deleteChannel", "get", "getAll", "update"]
             },
             "member": {
               "default": "getAll",
-              "operations": ["ban", "getAll", "kick", "roleAdd", "roleRemove", "sendLegacy", "timeout", "unban"]
+              "operations": ["ban", "getAll", "kick", "roleAdd", "roleRemove", "timeout", "unban"]
             },
             "message": {
               "default": "send",
-              "operations": ["deleteMessage", "get", "getAll", "react", "send", "sendAndWait", "sendLegacy"]
+              "operations": ["deleteMessage", "get", "getAll", "react", "send", "sendAndWait"]
             }
           },
           "versions": [2]
@@ -13732,7 +13740,6 @@
           "effect": "read",
           "effectBy": "name"
         },
-        "channel:sendLegacy": {},
         "channel:update": {
           "effect": "write",
           "effectBy": "name"
@@ -13745,7 +13752,6 @@
         "member:kick": {},
         "member:roleAdd": {},
         "member:roleRemove": {},
-        "member:sendLegacy": {},
         "member:timeout": {},
         "member:unban": {},
         "message:deleteMessage": {
@@ -13774,23 +13780,33 @@
           "kind": "blocked",
           "reason": "sends, then waits for a human reply through an n8n webhook (out of scope v1)"
         },
-        "message:sendLegacy": {}
+        "sendLegacy": {
+          "effect": "write",
+          "effectBy": "name"
+        }
       },
       "ops": [
         {
+          "authenticationDefault": "botToken",
+          "byAuthentication": {
+            "webhook": {
+              "default": "sendLegacy",
+              "operations": ["sendLegacy"]
+            }
+          },
           "resourceDefault": "channel",
           "resources": {
             "channel": {
               "default": "create",
-              "operations": ["create", "deleteChannel", "get", "getAll", "sendLegacy", "update"]
+              "operations": ["create", "deleteChannel", "get", "getAll", "update"]
             },
             "member": {
               "default": "getAll",
-              "operations": ["ban", "getAll", "kick", "roleAdd", "roleRemove", "sendLegacy", "timeout", "unban"]
+              "operations": ["ban", "getAll", "kick", "roleAdd", "roleRemove", "timeout", "unban"]
             },
             "message": {
               "default": "send",
-              "operations": ["deleteMessage", "get", "getAll", "react", "send", "sendAndWait", "sendLegacy"]
+              "operations": ["deleteMessage", "get", "getAll", "react", "send", "sendAndWait"]
             }
           },
           "versions": [2]
