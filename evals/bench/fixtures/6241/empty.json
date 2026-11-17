@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "template": 6241,
+  "sha256": "0ea004bd6345f7334f540b0a188c62ca02ce854a0004263a97a19dba9f6be97c",
+  "variant": "empty",
+  "now": "2026-11-17T22:30:00.000Z",
+  "about": "Linkup finds no article",
+  "trigger": {
+    "node": "Schedule Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "Hour": "05",
+          "Year": "2025",
+          "Month": "July",
+          "Minute": "20",
+          "Second": "28",
+          "Timezone": "America/New_York (UTC-04:00)",
+          "timestamp": "2025-07-18T05:20:28.857-04:00",
+          "Day of week": "Friday",
+          "Day of month": "18",
+          "Readable date": "July 18th 2025, 5:20:28 am",
+          "Readable time": "5:20:28 am"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Query Linkup for news",
+      "service": "linkup",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.linkup.so/v1/search",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "news": []
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Linkup connector"
+      },
+      "note": "Linkup search, POST /v1/search with a JSON body (q, depth standard, outputType structured, structuredOutputSchema as text, fromDate, includeImages) and the bearer credential; with outputType structured Linkup answers the object the schema describes"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Store one news",
+    "Notify in Slack"
+  ],
+  "writeReplies": [],
+  "pinData": {
+    "Schedule Trigger": [
+      {
+        "Hour": "05",
+        "Year": "2025",
+        "Month": "July",
+        "Minute": "20",
+        "Second": "28",
+        "Timezone": "America/New_York (UTC-04:00)",
+        "timestamp": "2025-07-18T05:20:28.857-04:00",
+        "Day of week": "Friday",
+        "Day of month": "18",
+        "Readable date": "July 18th 2025, 5:20:28 am",
+        "Readable time": "5:20:28 am"
+      }
+    ]
+  },
+  "expect": {
+    "branches": [
+      "Split out news has nothing to split: the run stops before the loop"
+    ],
+    "offline": "The trigger carries pinned data in the template (a run of July 2025), which the bench's pin of the same item keeps. Linkup's structured output answers the schema the request sends (a news list) as the response body itself. Each article is stored one at a time (Loop Over Items, batch 1) with a 2 s Wait between; when the loop is done, Aggregate makes one item whose data list counts the stored records for the Slack message. Linkup's fromDate is $now minus 7 days on n8n's unfrozen clock; the fixture does not depend on it."
+  }
+}

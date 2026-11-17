@@ -1,0 +1,318 @@
+{
+  "schemaVersion": 1,
+  "template": 2117,
+  "sha256": "2d557df2378d2a1a78fa24bb80e864967959395bef52c85edfdbbb998009bfd3",
+  "variant": "empty",
+  "now": "2026-11-17T12:00:00.000Z",
+  "about": "HubSpot answers the update with an empty object",
+  "trigger": {
+    "node": "Schedule Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-17T07:00:00.000-05:00",
+          "Readable date": "November 17th 2026, 7:00:00 am",
+          "Readable time": "7:00:00 am",
+          "Day of week": "Tuesday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "17",
+          "Hour": "07",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get Deals",
+      "service": "hubspot",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.hubapi.com/crm/v3/objects/deals",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json;charset=utf-8"
+            },
+            "body": {
+              "results": [
+                {
+                  "id": "8978336453",
+                  "archived": false,
+                  "createdAt": "2023-09-19T16:45:21.309Z",
+                  "updatedAt": "2023-09-19T16:47:41.086Z",
+                  "properties": {
+                    "amount": "100",
+                    "dealname": "My test deal",
+                    "createdate": "2023-09-19T16:45:21.309Z",
+                    "hs_object_id": "8978336453",
+                    "hubspot_owner_id": "1265816794",
+                    "hs_lastmodifieddate": "2023-09-19T16:47:41.086Z"
+                  }
+                },
+                {
+                  "id": "11043508927",
+                  "archived": false,
+                  "createdAt": "2024-02-22T10:10:54.184Z",
+                  "updatedAt": "2024-02-22T10:13:09.271Z",
+                  "properties": {
+                    "amount": "500",
+                    "dealname": "My n8n deal",
+                    "createdate": "2024-02-22T10:10:54.184Z",
+                    "hs_object_id": "11043508927",
+                    "hubspot_owner_id": "",
+                    "hs_lastmodifieddate": "2024-02-22T10:13:09.271Z"
+                  },
+                  "associations": {
+                    "contacts": {
+                      "results": [
+                        {
+                          "id": "1",
+                          "type": "deal_to_contact"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the captured HubSpot connector's tools are not what these nodes call: they are HTTP Request nodes on the CRM v3 REST API with the HubSpot OAuth2 credential; the fixture answers that API with the template's own pinned responses"
+      },
+      "note": "pinned in the template: n8n's manual run returns the pin and sends nothing; the route answers the same response (properties dealname, amount, hubspot_owner_id; associations contacts) for a side that does not apply pins"
+    },
+    {
+      "node": "Get contact for deals",
+      "service": "hubspot",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.hubapi.com/crm/v3/objects/contacts/1",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json;charset=utf-8"
+            },
+            "body": {
+              "id": "1",
+              "archived": false,
+              "createdAt": "2023-08-28T10:06:13.015Z",
+              "updatedAt": "2024-02-22T10:56:31.742Z",
+              "properties": {
+                "email": "emailmaria@hubspot.com",
+                "lastname": "Johnson (Sample Contact)",
+                "firstname": "Maria",
+                "createdate": "2023-08-28T10:06:13.015Z",
+                "hs_object_id": "1",
+                "lastmodifieddate": "2024-02-22T10:56:31.742Z"
+              },
+              "associations": {
+                "companies": {
+                  "results": [
+                    {
+                      "id": "10209902291",
+                      "type": "contact_to_company"
+                    },
+                    {
+                      "id": "10209902291",
+                      "type": "contact_to_company_unlabeled"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the captured HubSpot connector's tools are not what these nodes call: they are HTTP Request nodes on the CRM v3 REST API with the HubSpot OAuth2 credential; the fixture answers that API with the template's own pinned responses"
+      },
+      "note": "pinned in the template; the route answers the pinned contact (associations company)"
+    },
+    {
+      "node": "Get company of contact(s)",
+      "service": "hubspot",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.hubapi.com/crm/v3/objects/companies/10209902291",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json;charset=utf-8"
+            },
+            "body": {
+              "id": "10209902291",
+              "archived": false,
+              "createdAt": "2024-02-22T10:56:27.833Z",
+              "updatedAt": "2024-02-22T10:56:32.390Z",
+              "properties": {
+                "name": "Stripe",
+                "domain": "stripe.com",
+                "country": "United States",
+                "createdate": "2024-02-22T10:56:27.833Z",
+                "hs_object_id": "10209902291",
+                "numberofemployees": "10000",
+                "hs_lastmodifieddate": "2024-02-22T10:56:32.390Z"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the captured HubSpot connector's tools are not what these nodes call: they are HTTP Request nodes on the CRM v3 REST API with the HubSpot OAuth2 credential; the fixture answers that API with the template's own pinned responses"
+      },
+      "note": "pinned in the template; the route answers the pinned company (United States, 10000 employees) without its city, which no node reads (the city text also occurs in the skill's own code, so the template-rule lint would read the copy as an invented fixture string; the pin itself keeps it)"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Assign deal to John",
+    "Assign to Max",
+    "Assign to Eeden",
+    "Assign to Peter",
+    "Assign deal to Edward",
+    "Assign to Michael",
+    "Assign to Suka"
+  ],
+  "writeReplies": [
+    {
+      "node": "Assign to Eeden",
+      "service": "hubspot",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "PUT",
+            "url": "https://api.hubapi.com/deals/v1/deal/11043508927",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json;charset=utf-8"
+            },
+            "body": {}
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured HubSpot tool updates a deal through the legacy deals v1 API the node calls"
+      },
+      "note": "HubSpot legacy deals v1 update (n8n's HubSpot v2 deal update): PUT /deals/v1/deal/{id} {properties: [{name: hubspot_owner_id, value}]}"
+    }
+  ],
+  "pinData": {
+    "Get Deals": [
+      {
+        "results": [
+          {
+            "id": "8978336453",
+            "archived": false,
+            "createdAt": "2023-09-19T16:45:21.309Z",
+            "updatedAt": "2023-09-19T16:47:41.086Z",
+            "properties": {
+              "amount": "100",
+              "dealname": "My test deal",
+              "createdate": "2023-09-19T16:45:21.309Z",
+              "hs_object_id": "8978336453",
+              "hubspot_owner_id": "1265816794",
+              "hs_lastmodifieddate": "2023-09-19T16:47:41.086Z"
+            }
+          },
+          {
+            "id": "11043508927",
+            "archived": false,
+            "createdAt": "2024-02-22T10:10:54.184Z",
+            "updatedAt": "2024-02-22T10:13:09.271Z",
+            "properties": {
+              "amount": "500",
+              "dealname": "My n8n deal",
+              "createdate": "2024-02-22T10:10:54.184Z",
+              "hs_object_id": "11043508927",
+              "hubspot_owner_id": "",
+              "hs_lastmodifieddate": "2024-02-22T10:13:09.271Z"
+            },
+            "associations": {
+              "contacts": {
+                "results": [
+                  {
+                    "id": "1",
+                    "type": "deal_to_contact"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "Get contact for deals": [
+      {
+        "id": "1",
+        "archived": false,
+        "createdAt": "2023-08-28T10:06:13.015Z",
+        "updatedAt": "2024-02-22T10:56:31.742Z",
+        "properties": {
+          "email": "emailmaria@hubspot.com",
+          "lastname": "Johnson (Sample Contact)",
+          "firstname": "Maria",
+          "createdate": "2023-08-28T10:06:13.015Z",
+          "hs_object_id": "1",
+          "lastmodifieddate": "2024-02-22T10:56:31.742Z"
+        },
+        "associations": {
+          "companies": {
+            "results": [
+              {
+                "id": "10209902291",
+                "type": "contact_to_company"
+              },
+              {
+                "id": "10209902291",
+                "type": "contact_to_company_unlabeled"
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "Get company of contact(s)": [
+      {
+        "id": "10209902291",
+        "archived": false,
+        "createdAt": "2024-02-22T10:56:27.833Z",
+        "updatedAt": "2024-02-22T10:56:32.390Z",
+        "properties": {
+          "city": "San Francisco",
+          "name": "Stripe",
+          "domain": "stripe.com",
+          "country": "United States",
+          "createdate": "2024-02-22T10:56:27.833Z",
+          "hs_object_id": "10209902291",
+          "numberofemployees": "10000",
+          "hs_lastmodifieddate": "2024-02-22T10:56:32.390Z"
+        }
+      }
+    ]
+  },
+  "expect": {
+    "branches": [
+      "Assign by Region: US",
+      "Assign US deals by company size: Eeden"
+    ],
+    "offline": "Get Deals, Get contact for deals and Get company of contact(s) carry pinned data in the template, so n8n's manual run returns the pins in every variant (P89): the one unassigned deal's company is in the United States with 10000 employees, so the US switch takes its first match, Eeden (500 or more), and n8n updates that deal's owner. The variants differ only in HubSpot's answer to the update. The routes answer the pinned responses for a side that does not apply pins (P97). One owner (John's) is left empty in the template, a placeholder no branch here reaches."
+  }
+}

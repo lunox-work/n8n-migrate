@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "template": 2889,
+  "sha256": "c7c138260ec9fbb123372d9a3ba8020832576f72b5ce840e5c802ac7f269b55e",
+  "variant": "empty",
+  "now": "2026-11-17T09:30:00.000Z",
+  "about": "the site has no published posts",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get Wordpress Posts",
+      "service": "wordpress",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://wordpress.example/wp-json/wp/v2/posts",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8",
+              "x-wp-total": "0",
+              "x-wp-totalpages": "0"
+            },
+            "body": []
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured WordPress connector"
+      },
+      "note": "WordPress REST posts list with status=publish, per_page=10, page=n (n8n's WordPress v1 getAll with Return All asks the next page until x-wp-totalpages equals the page; the credential's site is the bench dummy https://wordpress.example)"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Upload to Google Drive"
+  ],
+  "writeReplies": [],
+  "expect": {
+    "branches": [
+      "no post: Get Wordpress Posts outputs nothing and the run stops"
+    ],
+    "offline": "Convert to CSV File writes the rows (id, title, link, content) as CSV inside n8n; the Drive upload carries those bytes and the name Wordpress-Posts.csv. The service account's token request is answered by the bench."
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "why": "User Data Storage leaves its base and table empty (URL mode, the person's own Airtable base and table). Filled with one base and table id on both sides. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "User Data Storage": {
+      "parameters.base": {
+        "__rl": true,
+        "mode": "id",
+        "value": "appQ7dWm2716Lx8K"
+      },
+      "parameters.table": {
+        "__rl": true,
+        "mode": "id",
+        "value": "tblV2716UsrK3pQx"
+      }
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "User Data Storage": {
+          "patch": {
+            "params": {
+              "base": {
+                "__rl": true,
+                "mode": "id",
+                "value": "appQ7dWm2716Lx8K"
+              },
+              "table": {
+                "__rl": true,
+                "mode": "id",
+                "value": "tblV2716UsrK3pQx"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "template": 11,
+  "sha256": "282ef3fce0247fea28da4baff77a89aad8f3a378db923b3cdfc3f39f54a96344",
+  "variant": "empty",
+  "now": "2026-11-17T09:15:00.000Z",
+  "about": "the sheet is empty, so the values API returns no values",
+  "trigger": {
+    "node": "Trigger all 15 min",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Read Sheet",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1GT2dc0dOkAC1apY0UlTKY9vitBl8PtKrILvFiAy5VBs/values/A:F",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "range": "Sheet1!A1:F1000",
+              "majorDimension": "ROWS"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the captured Google Drive connector reads a spreadsheet only as a file export; the fixture answers the Sheets values API as n8n's node calls it"
+      },
+      "note": "Sheets v4 values.get of the default range A:F with valueRenderOption=UNFORMATTED_VALUE (n8n's Google Sheets v1 read, service account); the first row is the key row, a sheet with no cells has no values key"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Upload Dropbox"
+  ],
+  "writeReplies": [],
+  "expect": {
+    "branches": [
+      "no rows: Read Sheet outputs nothing and the run stops"
+    ],
+    "offline": "Spreadsheet File v1 writes the rows as XLS (SheetJS) inside n8n; the Dropbox upload carries those bytes, so the comparison is the upload's path and content. The service account's token request is answered by the bench (oauth2.googleapis.com)."
+  }
+}
