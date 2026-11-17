@@ -399,3 +399,71 @@ export function flipsBetween(rowsA, rowsB) {
   }
   return out;
 }
+
+// PROPOSALS P137 amendment 2 (arm B+approved, `run.mjs --arm drafts-approved`): what each
+// approved drafted write did on the normal fixture's first in-process run, for the secondary,
+// report-only bar. `steps` are the approved drafted writes; `claudeEffects` the Claude side's
+// effects, each with the `step` whose request made it (run.mjs stepEffects); `cmp`
+// gate 4's comparison (null when the template stopped before it, `stopped` = {gate, cause}).
+// Outcomes: "same effect" (every write the step made was paired with n8n's and no field
+// differs); "wrong effect" with why (a write n8n did not make, different fields, or no write
+// from the step while n8n made writes the Claude side lacks); "uncompared" (the comparer table
+// has no rule for the step's write and it was not paired, so it is not shown to be the same);
+// "not exercised" (neither side wrote anything the step could account for); "not reached" (the
+// template stopped before gate 4).
+const isWriteEffect = (e) => e && (e.effect === "write" || e.effect === "media");
+export function draftedWriteOutcomes(steps, { claudeEffects = [], cmp = null, stopped = null } = {}) {
+  return (steps ?? []).map((step) => {
+    if (!cmp) return { step, outcome: "not reached", why: stopped ? `the template stopped at gate ${stopped.gate}: ${String(stopped.cause ?? "").slice(0, 200)}` : "gate 4 did not compare" };
+    const own = claudeEffects.filter((e) => isWriteEffect(e) && e.step === step);
+    const missing = cmp.writes?.missing ?? [];
+    if (!own.length) return missing.length ? { step, outcome: "wrong effect", why: `the step made no write while n8n made writes the Claude side lacks: ${missing.map((m) => m.key).join(", ")}` } : { step, outcome: "not exercised", why: "the step made no write and n8n made none the Claude side lacks" };
+    const keyOfE = (e) => `${e.service}.${e.action}:${e.target ?? ""}`;
+    const whys = [];
+    let uncompared = false;
+    for (const e of own) {
+      const k = keyOfE(e);
+      const extra = (cmp.writes?.extra ?? []).find((x) => x.key === k);
+      if (extra) {
+        if (e.unmapped) uncompared = true;
+        else whys.push(`a write n8n did not make (${k})`);
+        continue;
+      }
+      const diff = (cmp.writes?.fieldDiffs ?? []).find((d) => d.effect === k);
+      if (diff) whys.push(`different fields in ${k}: ${diff.diffs.map((d) => d.field).join(", ")}`);
+    }
+    if (whys.length) return { step, outcome: "wrong effect", why: whys.join("; ") };
+    if (uncompared) return { step, outcome: "uncompared", why: `the comparer table has no rule for ${own.filter((e) => e.unmapped).map(keyOfE).join(", ")}` };
+    return { step, outcome: "same effect", writes: own.length };
+  });
+}
+
+// PROPOSALS P137: a gate-4 failure on the effects themselves (a write, media call or disk write
+// missing, extra or with different fields), as opposed to a different model input or tool list.
+export const wrongEffectFailure = (r) => r?.gate === 4 && /^(different writes|different fields|model-written fields differ in replay)$/.test(r.cause ?? "");
+
+// PROPOSALS P137 amendment 2: the secondary bar over arm B+approved's rows (report-only; it
+// ships nothing). Drafted writes that reached gate 4 are those with outcome same effect, wrong
+// effect or uncompared; "reliable enough to offer behind approval" needs at least MIN of them,
+// at least SHARE of them the same effect, and no gate-6 failure in the arm.
+export const SECONDARY_BAR = { share: 0.8, min: 5 };
+export function secondaryBar(rows, bar = SECONDARY_BAR) {
+  const writes = rows.flatMap((r) => (r.draftedWrites ?? []).map((w) => ({ template: r.template, ...w })));
+  const reached = writes.filter((w) => ["same effect", "wrong effect", "uncompared"].includes(w.outcome));
+  const same = reached.filter((w) => w.outcome === "same effect").length;
+  const gate6 = rows.filter((r) => r.gates?.[6] && r.gates[6].pass === false).map((r) => r.template);
+  const share = reached.length ? same / reached.length : null;
+  const verdict = reached.length < bar.min ? "too few drafted writes reached gate 4 to say" : share >= bar.share && !gate6.length ? "reliable enough to offer behind approval" : "not reliable enough";
+  return {
+    passes: rows.filter((r) => r.passedAll).length,
+    of: rows.length,
+    gate4WrongEffect: rows.filter(wrongEffectFailure).map((r) => r.template),
+    gate6Failures: gate6,
+    draftedWrites: writes,
+    reachedGate4: reached.length,
+    sameEffect: same,
+    share: share === null ? null : Math.round(share * 1000) / 10,
+    bar,
+    verdict,
+  };
+}

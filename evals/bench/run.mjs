@@ -6,7 +6,7 @@
 //        [--variants normal,empty,malformed,hostile] [--repeats 3] [--model-mode replay|live]
 //        [--driver inprocess|claude] [--skill <id,id|all|none>] [--tag <run tag>]
 //        [--reuse-convert <tag>] [--record] [--n8n-check all|normal] [--no-n8n-check] [--diagnose]
-//        [--arm plain|drafts]
+//        [--arm plain|drafts|drafts-approved] [--drafts-from <arm B tag>]
 //   node evals/bench/run.mjs --n8n-check-only <templateId>... [--n8n-check all|normal] [--variants ...]
 //   node evals/bench/run.mjs --record-only <templateId>... [--variants ...]
 //
@@ -24,6 +24,14 @@
 //                runner executes the accepted drafts as code, drafted writes stay blocked. The row
 //                carries `arm` and `drafts` (each step's fate, each call with its tokens and cost).
 //                One tag holds one arm; both arms run on the same templates at one commit.
+//                drafts-approved (arm B+approved, PROPOSALS P137 amendment 2, report-only): arm B,
+//                then the bench answers `approve: drafted-write:<step>` for every accepted drafted
+//                write, as the person would after a dry run (a default answer, like the hosts
+//                "public" answer); the row carries `draftedWritesApproved` and `draftedWrites`
+//                (each approved write's outcome on the normal fixture, gates.mjs
+//                draftedWriteOutcomes). summary.mjs prints the secondary bar for such a tag.
+// --drafts-from  arm B+approved only: take each template's drafts from that arm-B tag (same
+//                commit) instead of drafting again, so the arms differ only in the approval.
 // --record       (re)record n8n's model replies live into evals/bench/recordings/ even when a
 //                recording exists. Without it, an existing recording is replayed on the n8n
 //                side too, and a missing one is recorded live once.
@@ -65,10 +73,10 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState, siteAnswers, hostsAnswers, substitutionApprovals, loadCredentialSpecs, ensureN8n, codeModules, DbSeedError, dbSummary, fixtureClock, modelNodes, modelDrawFailure } from "./n8n-side.mjs";
-import { convertPlain, convertSkill, draftArm, filledSource, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, recordedCalls, syntheticOutcome, nondeterministicTools, connectorGapFields, databaseAnswers } from "./claude-side.mjs";
+import { convertPlain, convertSkill, draftArm, approveDraftedWrites, reuseDrafts, filledSource, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, recordedCalls, syntheticOutcome, nondeterministicTools, connectorGapFields, databaseAnswers } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
 import { fromHttp, fromTool, fromFile, fromDb, replyOf, resultOf, isResult, lastOutputs, terminalNodes, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads, randomKeys, applySubstitutions } from "./compare.mjs";
-import { n8nCheckVariants, n8nCheckKey, n8nCheckSummary, gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited, n8nFailsOf, modelRefusal } from "./gates.mjs";
+import { n8nCheckVariants, n8nCheckKey, n8nCheckSummary, draftedWriteOutcomes, gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited, n8nFailsOf, modelRefusal } from "./gates.mjs";
 import { BudgetExceeded, UsageLimit, ledger as claudeLedger, memoryGate } from "./claude.mjs";
 import { readSplits, devWithFixtures } from "./rounds.mjs";
 
@@ -83,10 +91,11 @@ const RECORDINGS = join(HERE, "recordings");
 const RESULTS = join(ROOT, "evals", "results.jsonl");
 const VARIANTS = ["normal", "empty", "malformed", "hostile"];
 // PROPOSALS P137: arm A (the converter) and arm B (the converter plus convert-time drafts).
-export const ARMS = ["plain", "drafts"];
+// Amendment 2: arm B+approved, the same as arm B with drafted writes approved (report-only).
+export const ARMS = ["plain", "drafts", "drafts-approved"];
 
 export function parseArgs(argv) {
-  const a = { diagnose: false, ids: [], variants: VARIANTS, repeats: 3, modelMode: "replay", driver: "inprocess", skill: [], tag: null, reuseConvert: null, record: false, n8nCheck: true, n8nCheckOnly: false, recordOnly: false, split: null, limit: null, arm: "plain" };
+  const a = { diagnose: false, ids: [], variants: VARIANTS, repeats: 3, modelMode: "replay", driver: "inprocess", skill: [], tag: null, reuseConvert: null, record: false, n8nCheck: true, n8nCheckOnly: false, recordOnly: false, split: null, limit: null, arm: "plain", draftsFrom: null };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     const v = () => argv[++i];
@@ -106,10 +115,12 @@ export function parseArgs(argv) {
     else if (k === "--split") a.split = v();
     else if (k === "--limit") a.limit = Number(v());
     else if (k === "--arm") a.arm = v();
+    else if (k === "--drafts-from") a.draftsFrom = v();
     else if (k.startsWith("--")) throw new Error(`unknown flag ${k}`);
     else a.ids.push(Number(k));
   }
   if (!ARMS.includes(a.arm)) throw new Error(`--arm ${a.arm}: one of ${ARMS.join(", ")} (PROPOSALS P137)`);
+  if (a.draftsFrom && a.arm !== "drafts-approved") throw new Error("--drafts-from is for --arm drafts-approved only (PROPOSALS P137 amendment 2)");
   if (a.n8nCheckOnly && !a.ids.length) throw new Error("--n8n-check-only needs template ids");
   if (a.recordOnly && !a.ids.length) throw new Error("--record-only needs template ids");
   if (!a.ids.length) {
@@ -417,6 +428,22 @@ const claudeEffect = (e, fx) => (e.connector ? fromTool(e, "claude", refsOf(fx))
 // n8n's kind first, as gate 4's compare() does, so the excuse finds n8n's mail.
 const asN8nKinds = (n8nList, claudeList) => applySubstitutions(n8nList, claudeList);
 
+// PROPOSALS P137 amendment 2: the Claude side's writes, each with the step whose request made it
+// (the in-process host logs it), for draftedWriteOutcomes(). Not used by any gate.
+function stepEffects(run, fx) {
+  const tools = run.seen.tools.filter((t) => !t.invalid).map((t) => ({ ...fromTool(t, "claude", refsOf(fx)), step: t.step ?? null }));
+  const http = run.seen.http.map((h) => {
+    const e = fromHttp(h, "claude");
+    return e && { ...e, step: h.step ?? null };
+  });
+  return [...tools, ...http.filter(Boolean)];
+}
+// The first failed gate of a gates object, as {gate, cause}.
+function stoppedAt(gates) {
+  const n = Object.keys(gates).map(Number).sort((a, b) => a - b).find((k) => !gates[k]?.pass);
+  return n ? { gate: n, cause: gates[n].cause } : null;
+}
+
 function claudeEffects(run, fx, n8nList = []) {
   const list = [...run.seen.tools.filter((t) => !t.invalid).map((t) => fromTool(t, "claude", refsOf(fx))), ...run.seen.http.map((h) => fromHttp(h, "claude")).filter(Boolean), ...(run.files ?? []).map((f) => fromFile(f, "claude")), ...(run.seen.db ?? []).map((d) => fromDb(d, "claude"))];
   if (["chat", "form"].includes(fx.trigger.kind) && run.res.status === "done") list.push(replyOf(run.res.output, "claude"));
@@ -525,10 +552,20 @@ async function benchTemplate(id, args, L) {
     save();
   }
   // PROPOSALS P137 arm B: the drafting pass on the folder the overlay left, once per tag.
-  if (args.arm === "drafts" && folder && !S.drafts) {
-    S.drafts = await draftArm(id, folder, { log });
+  // Amendment 2, arm B+approved: the same pass (or arm B's drafts with --drafts-from), then the
+  // bench approves every accepted drafted write as the person would after a dry run.
+  if ((args.arm === "drafts" || args.arm === "drafts-approved") && folder && !S.drafts) {
+    const other = args.draftsFrom ? readJson(join(WORK, "ledger", `${args.draftsFrom}.json`))?.templates?.[id]?.steps : null;
+    if (args.draftsFrom && !other?.drafts) throw new Error(`--drafts-from ${args.draftsFrom}: no arm-B drafting for template ${id}`);
+    S.drafts = other ? reuseDrafts({ drafts: other.drafts, folder: other.plain?.folder }, folder, args.draftsFrom) : await draftArm(id, folder, { log });
+    if (!S.drafts) throw new Error(`--drafts-from ${args.draftsFrom}: template ${id}'s drafted folder is gone`);
     save();
   }
+  if (args.arm === "drafts-approved" && folder && S.drafts && !S.draftedWritesApproved) {
+    S.draftedWritesApproved = await approveDraftedWrites(folder);
+    save();
+  }
+  const approvedWrites = S.draftedWritesApproved?.steps ?? [];
   if (S.drafts) {
     drivers.drafts = "convert-time drafts (scripts/draft.mjs, claude -p haiku)";
     metrics.drafts = { calls: S.drafts.callCount, costUsd: S.drafts.costUsd, tokens: S.drafts.tokens };
@@ -606,6 +643,8 @@ async function benchTemplate(id, args, L) {
     const n8nN = n8nEffects(recs.normal, fxN, { result: true });
     const cmp = compare(n8nN, claudeEffects(N, fxN, n8nN), { modelTexts, mode: args.modelMode, random, runTime: runTime(recs.normal) });
     out.cmp = cmp;
+    // PROPOSALS P137 amendment 2: each approved drafted write's outcome (report-only).
+    if (approvedWrites.length) out.draftedWrites = draftedWriteOutcomes(approvedWrites, { claudeEffects: applySubstitutions(n8nN, stepEffects(N, fxN)), cmp });
     let judged = [];
     if (args.modelMode === "live" && cmp.judge.length) {
       const { judgePairs } = await import("./judge.mjs");
@@ -649,6 +688,7 @@ async function benchTemplate(id, args, L) {
     robust: first.robust ?? null,
     judged: first.judged ?? null,
   };
+  if (approvedWrites.length) t.draftedWrites = first.draftedWrites ?? draftedWriteOutcomes(approvedWrites, { stopped: stoppedAt(gates) });
   save();
   if ([3, 4, 5, 6].some((g) => !gates[g]?.pass)) {
     // Diagnostics: the verdict stands (first failed gate), but Contained is measured anyway on
@@ -908,7 +948,10 @@ async function main() {
         // PROPOSALS P137: the arm, and arm B's drafting pass per template (the plain column is
         // then the drafted folder's).
         arm: args.arm,
-        ...(t.steps.drafts ? { drafts: { calls: t.steps.drafts.calls, costUsd: t.steps.drafts.costUsd, tokens: t.steps.drafts.tokens, steps: t.steps.drafts.steps } } : {}),
+        ...(t.steps.drafts ? { drafts: { calls: t.steps.drafts.calls, costUsd: t.steps.drafts.costUsd, tokens: t.steps.drafts.tokens, steps: t.steps.drafts.steps, ...(t.steps.drafts.from ? { from: t.steps.drafts.from } : {}) } } : {}),
+        // PROPOSALS P137 amendment 2 (arm B+approved): the drafted writes the bench approved and
+        // what each did on the normal fixture (not reached when the template stopped before gate 4).
+        ...(args.arm === "drafts-approved" ? { draftedWritesApproved: t.steps.draftedWritesApproved?.steps ?? [], draftedWrites: (t.steps.draftedWritesApproved?.steps ?? []).length ? (t.draftedWrites ?? draftedWriteOutcomes(t.steps.draftedWritesApproved.steps, { stopped: stoppedAt(r.gates ?? {}) })) : [] } : {}),
         plainColumn: t.steps.plainColumn ?? null,
         config: loadOverlay(id) ? { file: `evals/bench/config/${id}.json`, n8n: t.steps["n8n:normal"]?.overlay ?? t.steps.n8nCheck?.overlay ?? [], claude: t.steps.overlayApplied ?? null, env: Object.keys(loadOverlay(id).env ?? {}), nonPlaceholder: loadOverlay(id).timeCompression ? [{ kind: "time-compression", why: loadOverlay(id).timeCompression.why ?? null }] : [] } : null,
         credentialsAttached: t.steps["n8n:normal"]?.credentialsAttached ?? t.steps.n8nCheck?.credentialsAttached ?? [],

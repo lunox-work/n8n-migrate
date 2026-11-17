@@ -1,7 +1,8 @@
 // Convert-time drafts (PLAN status 2026-11-17; references/translation.md "Drafted request
 // templates and tool maps"; bench PROPOSALS P137): the validator's rules (each with a refusing
 // case), the overrides.json `drafts` format as the converter applies it, the write block, the
-// drafting pass with a stand-in model, and the bench's --arm switch. Synthetic workflows only.
+// drafting pass with a stand-in model, and the bench's --arm switch (arm B+approved's default
+// approval and its secondary-bar outcomes, P137 amendment 2). Synthetic workflows only.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs";
@@ -316,10 +317,12 @@ test("draft effect: a write method or a write operation counts as a write", () =
 
 test("bench --arm: plain by default, drafts accepted, anything else refused; draftArm records calls and tokens", async () => {
   const { parseArgs, ARMS } = await import("../evals/bench/run.mjs");
-  assert.deepEqual(ARMS, ["plain", "drafts"]);
+  assert.deepEqual(ARMS, ["plain", "drafts", "drafts-approved"]);
   assert.equal(parseArgs(["123"]).arm, "plain");
   assert.equal(parseArgs(["123", "--arm", "drafts"]).arm, "drafts");
-  assert.throws(() => parseArgs(["123", "--arm", "skill"]), /--arm skill: one of plain, drafts/);
+  assert.equal(parseArgs(["123", "--arm", "drafts-approved", "--drafts-from", "b1"]).draftsFrom, "b1");
+  assert.throws(() => parseArgs(["123", "--arm", "skill"]), /--arm skill: one of plain, drafts, drafts-approved/);
+  assert.throws(() => parseArgs(["123", "--arm", "drafts", "--drafts-from", "b1"]), /--drafts-from is for --arm drafts-approved only/);
   const { draftArm } = await import("../evals/bench/claude-side.mjs");
   const { dir, folder } = folderOf();
   const purposes = [];
@@ -338,4 +341,87 @@ test("bench --arm: plain by default, drafts accepted, anything else refused; dra
   assert.equal(s.steps.find((x) => x.step === "Get record").status, "accepted");
   assert.equal(readJson(join(folder, "definition.json")).steps["Get record"].kind, "http");
   rmSync(dir, { recursive: true, force: true });
+});
+
+test("arm B+approved (P137 amendment 2): the bench approves only accepted drafted writes; arm B keeps them blocked; drafts reused from arm B", async () => {
+  const { approveDraftedWrites, reuseDrafts } = await import("../evals/bench/claude-side.mjs");
+  const answers = {
+    "airtable record:get": { docs: "https://airtable.com/developers/web/api/get-record", method: "GET", url: "https://api.airtable.com/v0/{base}/{table}/{id}", effect: "read", result: {} },
+    "airtable record:create": { docs: "https://airtable.com/developers/web/api/create-records", method: "POST", url: "https://api.airtable.com/v0/{base}/{table}", body: { fields: "columns.value" }, effect: "write", result: {} },
+    "notion block:getAll": { decline: "pages through children" },
+  };
+  const ask = async ({ purpose }) => ({ ok: true, answer: answers[purpose.replace(/^draft /, "")], ms: 1 });
+  // Arm B: the drafted write stays blocked; nothing approves it.
+  const b = folderOf();
+  await draftFolder(b.folder, { refs, now: NOW, ask });
+  assert.equal(readJson(join(b.folder, "definition.json")).steps["Create record"].blocked.kind, "drafted-write");
+  // Arm B+approved: the same drafts, then the bench's default answer for each drafted write.
+  const a = folderOf();
+  const reused = reuseDrafts({ drafts: { steps: [{ step: "Create record", status: "accepted (write: stays blocked)" }] }, folder: b.folder }, a.folder, "armB-tag");
+  assert.equal(reused.from, "armB-tag");
+  assert.equal(reused.callCount, 0);
+  assert.equal(reused.regenerate, 0);
+  assert.equal(readJson(join(a.folder, "definition.json")).steps["Create record"].blocked.kind, "drafted-write");
+  const r = await approveDraftedWrites(a.folder);
+  assert.deepEqual(r.steps, ["Create record"]);
+  assert.equal(r.status, 0);
+  const def = readJson(join(a.folder, "definition.json"));
+  assert.equal(def.steps["Create record"].kind, "http");
+  assert.ok(def.allow.http.some((x) => x.method === "POST" && x.host === "api.airtable.com"));
+  assert.deepEqual(readJson(join(a.folder, "overrides.json")).approve, [writeApproval("Create record")]);
+  // A rejected draft is never approved: its step stays blocked with the rule's reason.
+  assert.equal(def.steps["Read blocks"].kind, "blocked");
+  assert.notEqual(def.steps["Read blocks"].blocked.kind, "drafted-write");
+  // Nothing left to approve: no change, no regenerate.
+  assert.deepEqual(await approveDraftedWrites(a.folder), { steps: [], status: null });
+  rmSync(a.dir, { recursive: true, force: true });
+  rmSync(b.dir, { recursive: true, force: true });
+});
+
+test("P137 amendment 2: drafted-write outcomes and the secondary bar", async () => {
+  const { draftedWriteOutcomes, secondaryBar, wrongEffectFailure, SECONDARY_BAR } = await import("../evals/bench/gates.mjs");
+  const w = (step, key, extra = {}) => ({ service: "api.airtable.com", action: "POST /v0/:id/:id", target: key, effect: "write", step, ...extra });
+  const cmp = {
+    writes: {
+      matched: ["api.airtable.com.POST /v0/:id/:id:/a", "api.airtable.com.POST /v0/:id/:id:/b"],
+      missing: [],
+      extra: [{ key: "api.airtable.com.POST /v0/:id/:id:/c" }, { key: "api.airtable.com.POST /v0/:id/:id:/u", unmapped: true }],
+      fieldDiffs: [{ effect: "api.airtable.com.POST /v0/:id/:id:/b", diffs: [{ field: "body" }] }],
+    },
+  };
+  const effects = [w("Same", "/a"), w("Diff", "/b"), w("Extra", "/c"), w("Uncompared", "/u", { unmapped: true }), { ...w("Other", "/a"), effect: "read" }];
+  const out = Object.fromEntries(draftedWriteOutcomes(["Same", "Diff", "Extra", "Uncompared", "Idle"], { claudeEffects: effects, cmp }).map((o) => [o.step, o]));
+  assert.equal(out.Same.outcome, "same effect");
+  assert.equal(out.Diff.outcome, "wrong effect");
+  assert.match(out.Diff.why, /different fields in .*: body/);
+  assert.equal(out.Extra.outcome, "wrong effect");
+  assert.match(out.Extra.why, /a write n8n did not make/);
+  assert.equal(out.Uncompared.outcome, "uncompared");
+  assert.equal(out.Idle.outcome, "not exercised");
+  const missing = draftedWriteOutcomes(["Idle"], { claudeEffects: [], cmp: { writes: { matched: [], missing: [{ key: "x.y:z" }], extra: [], fieldDiffs: [] } } });
+  assert.equal(missing[0].outcome, "wrong effect");
+  assert.match(missing[0].why, /made no write while n8n made writes the Claude side lacks: x\.y:z/);
+  assert.deepEqual(draftedWriteOutcomes(["S"], { stopped: { gate: 3, cause: "unmapped node" } })[0], { step: "S", outcome: "not reached", why: "the template stopped at gate 3: unmapped node" });
+
+  assert.equal(wrongEffectFailure({ gate: 4, cause: "different fields" }), true);
+  assert.equal(wrongEffectFailure({ gate: 4, cause: "1 replayed model call(s) got a different input" }), false);
+  assert.equal(wrongEffectFailure({ gate: 5, cause: "different fields" }), false);
+
+  assert.deepEqual(SECONDARY_BAR, { share: 0.8, min: 5 });
+  const row = (template, outcomes, extra = {}) => ({ template, passedAll: false, gate: 3, draftedWrites: outcomes.map((o, i) => ({ step: `s${i}`, outcome: o })), gates: {}, ...extra });
+  const few = secondaryBar([row(1, ["same effect", "same effect"]), row(2, ["not reached"])]);
+  assert.equal(few.reachedGate4, 2);
+  assert.equal(few.verdict, "too few drafted writes reached gate 4 to say");
+  const good = secondaryBar([row(1, ["same effect", "same effect", "same effect"], { passedAll: true, gate: null, gates: { 6: { pass: true } } }), row(2, ["same effect", "wrong effect", "not exercised"], { gate: 4, cause: "different fields" })]);
+  assert.equal(good.reachedGate4, 5);
+  assert.equal(good.share, 80);
+  assert.equal(good.passes, 1);
+  assert.deepEqual(good.gate4WrongEffect, [2]);
+  assert.equal(good.verdict, "reliable enough to offer behind approval");
+  const g6 = secondaryBar([row(1, ["same effect", "same effect", "same effect", "same effect", "same effect"], { gate: 6, gates: { 6: { pass: false } } })]);
+  assert.deepEqual(g6.gate6Failures, [1]);
+  assert.equal(g6.verdict, "not reliable enough");
+  const low = secondaryBar([row(1, ["same effect", "same effect", "same effect", "wrong effect", "uncompared"])]);
+  assert.equal(low.share, 60);
+  assert.equal(low.verdict, "not reliable enough");
 });

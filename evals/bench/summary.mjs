@@ -21,13 +21,16 @@
 // template: gate reached, cause, connector-limited, overlays that are not placeholder fills,
 // wall time, cost, n8n execution time. Claude-driver protocol slips (PROPOSALS P40) as their
 // own rate; --against <tag>: verdict flips between this run and another (gate or cause).
+// A tag run with --arm drafts-approved (PROPOSALS P137 amendment 2) also gets the secondary,
+// report-only bar: passes, gate-4 wrong-effect and gate-6 failures, each approved drafted
+// write's outcome, and the pre-registered threshold's verdict (gates.mjs secondaryBar).
 
 import { readFileSync, existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readSplits, roundOf, devWithFixtures, overfittingBound, roundTally, subsetRounds } from "./rounds.mjs";
-import { slipStats, flipsBetween, noEffectClass, NO_EFFECT_CLASSES } from "./gates.mjs";
+import { slipStats, flipsBetween, noEffectClass, NO_EFFECT_CLASSES, secondaryBar } from "./gates.mjs";
 import { fromHttp, fromFile, foldResumableUploads } from "./compare.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -200,6 +203,7 @@ const out = {
   // PROPOSALS P106: failures where the claude driver's model declined the template's own prompt.
   modelRefusals: mine.filter((r) => r.bucket === "model refusal").map((r) => r.template),
   ...(args.includes("--against") ? { flipsAgainst: { tag: args[args.indexOf("--against") + 1], flips: flipsBetween(mine, latest(args[args.indexOf("--against") + 1])) } } : {}),
+  ...(mine.some((r) => r.arm === "drafts-approved") ? { p137SecondaryBar: secondaryBar(mine) } : {}),
   failuresByGate: byGate,
   failuresByBucket: byBucket,
   refusalAccuracy: refusal,
@@ -250,6 +254,11 @@ else {
   console.log(`claude-driver protocol slips (P40, retried once, not a verdict): ${sl.slipped} of ${sl.runs} driver runs (${sl.rate ?? "-"}%), ${sl.retried} retried, ${sl.repeated} repeated${sl.templates.length ? ` (${sl.templates.join(", ")})` : ""}`);
   if (out.modelRefusals.length) console.log(`model refusals (P106, the driver's model declined the template's own prompt; failures, bucket "model refusal"): ${out.modelRefusals.join(", ")}`);
   if (out.flipsAgainst) console.log(`verdict flips against ${out.flipsAgainst.tag}: ${out.flipsAgainst.flips.length}${out.flipsAgainst.flips.length ? " (" + out.flipsAgainst.flips.map((f) => `${f.template}: ${f.from} -> ${f.to}${f.slip ? " [slip]" : ""}`).join("; ") + ")" : ""}`);
+  if (out.p137SecondaryBar) {
+    const b = out.p137SecondaryBar;
+    console.log(`P137 secondary bar (arm B+approved, report-only): ${b.passes} of ${b.of} pass; gate-4 wrong-effect failures ${b.gate4WrongEffect.length}${b.gate4WrongEffect.length ? ` (${b.gate4WrongEffect.join(", ")})` : ""}; gate-6 failures ${b.gate6Failures.length}${b.gate6Failures.length ? ` (${b.gate6Failures.join(", ")})` : ""}; drafted writes reaching gate 4: ${b.reachedGate4}, same effect ${b.sameEffect}${b.share === null ? "" : ` (${b.share}%)`}; bar ${b.bar.share * 100}% of at least ${b.bar.min} with no gate-6 failure: ${b.verdict}`);
+    for (const w of b.draftedWrites) console.log(`  ${w.template} "${w.step}": ${w.outcome}${w.why ? ` (${w.why})` : ""}`);
+  }
   if (refusal) console.log(`refusal accuracy (labels.json vs analyzer): outcome+target ${refusal.outcomeAndTarget}/${refusal.templates}, blockers ${refusal.blockers}/${refusal.templates}, questions ${refusal.questions}/${refusal.templates}, everything ${refusal.all}/${refusal.templates}`);
   console.log("\ntemplate  gate  convert  bucket: cause [CL = connector-limited, NR = n8n cannot run, NF = n8n fails on the template itself, TC = time compression, NE = pass, no effect compared, N0 = pass, nothing compared (not counted)]  | bench s, n8n ms, claude-driver s/$/turns, claude -p runs/$");
   for (const p of out.perTemplate) console.log(`${String(p.template).padEnd(9)} ${String(p.reached === 9 ? "all" : p.reached).padEnd(5)} ${p.convert.padEnd(8)} ${p.connectorLimited ? "CL " : ""}${p.n8nCannotRun ? "NR " : ""}${p.n8nFails ? "NF " : ""}${p.nonPlaceholder.includes("time-compression") ? "TC " : ""}${NO_EFFECT_CLASSES.includes(p.compared) ? `NE (${p.compared}) ` : p.compared === "nothing" ? "N0 " : ""}${p.bucket ?? "-"}: ${(p.cause ?? "").slice(0, 90)} | ${p.benchWallS}, ${p.n8nExecMs ?? "-"}, ${p.claudeDriverS ?? "-"}/${p.claudeDriverUsd ?? "-"}/${p.claudeDriverTurns ?? "-"}, ${p.claudeRuns}/${p.claudeUsd}`);

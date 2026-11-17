@@ -6,6 +6,9 @@
 //   draftArm(id, folder)       PROPOSALS P137 arm B: the skill's drafting pass (scripts/draft.mjs)
 //                              on the converted folder, its model calls (haiku) through claude.mjs
 //                              so the ledger counts them; the folder is regenerated with the drafts
+//   approveDraftedWrites(f)    PROPOSALS P137 amendment 2, arm B+approved: the bench's default
+//                              answer `approve: drafted-write:<step>` for each drafted write
+//   reuseDrafts(other, f, tag) arm B+approved on arm B's drafts (--drafts-from), no model call
 //   convertSkill(id, out)      one headless skill run (claude -p sonnet, N2C_HEADLESS=1) on the
 //                              raw template: no retry, no hand edit; its folder is under test
 //   runInProcess(folder, ...)  the definition through the runner, every request answered by the
@@ -51,7 +54,8 @@ export function convertPlain(id, out, { now = "2026-11-16T00:00:00Z", source = t
   return { status: r.status, stderr: r.stderr.slice(-2000), stdout: r.stdout.slice(-4000), folder: folderIn(out), ms: Date.now() - t0 };
 }
 
-// PROPOSALS P137 arm B ("drafts"): the convert-time drafting pass on a converted folder. The
+// PROPOSALS P137 arm B ("drafts", and "drafts-approved" unless it reuses arm B's drafts): the
+// convert-time drafting pass on a converted folder. The
 // pass is imported (not run as a CLI) only so its model calls go through claudeP, which counts
 // them on the ledger and applies the budget and memory rules; it writes overrides.json `drafts`
 // and regenerates the folder like any skill step. -> {steps, calls, callCount, costUsd, tokens}
@@ -70,6 +74,41 @@ export async function draftArm(id, folder, { log = console.error, claude = claud
   const r = await draftFolder(folder, { ask, model: "haiku", now: Date.parse("2026-11-16T00:00:00Z"), log: (m) => log(`${id}: ${m}`) });
   const sum = (k) => r.calls.reduce((n, c) => n + (c.usage?.[k] ?? 0), 0);
   return { ...r, callCount: r.calls.length, costUsd: Math.round(r.calls.reduce((n, c) => n + (c.costUsd ?? 0), 0) * 10000) / 10000, tokens: { in: sum("in"), out: sum("out"), cacheRead: sum("cacheRead"), cacheWrite: sum("cacheWrite") } };
+}
+
+// PROPOSALS P137 amendment 2, arm B+approved (`--arm drafts-approved`): the bench answers
+// `approve: drafted-write:<step>` for every accepted drafted write, as the person would after
+// a dry run against the real service (a default answer, like the hosts "public" answer, P80),
+// then regenerates. Only this arm calls it; arm B keeps its drafted writes blocked.
+// -> {steps: [approved step names], status} (status: the regenerate's, null when none).
+export async function approveDraftedWrites(folder) {
+  const { writeApproval } = await import(pathToFileURL(join(SKILL, "scripts", "drafts.mjs")).href);
+  const def = JSON.parse(readFileSync(join(folder, "definition.json"), "utf8"));
+  const steps = Object.entries(def.steps ?? {})
+    .filter(([, s]) => s.kind === "blocked" && s.blocked?.kind === "drafted-write")
+    .map(([name]) => name);
+  if (!steps.length) return { steps, status: null };
+  const of = join(folder, "overrides.json");
+  const o = existsSync(of) ? JSON.parse(readFileSync(of, "utf8")) : {};
+  o.approve = [...new Set([...(o.approve ?? []), ...steps.map(writeApproval)])];
+  writeFileSync(of, JSON.stringify(o, null, 2) + "\n");
+  const r = spawnSync(process.execPath, [join(SKILL, "scripts", "convert.mjs"), "--regenerate", folder], { encoding: "utf8" });
+  return { steps, status: r.status };
+}
+
+// PROPOSALS P137 amendment 2: arm B+approved takes arm B's drafts (`--drafts-from <arm B tag>`)
+// so the two arms differ only in the approval: the other tag's overrides.json `drafts` are
+// copied into this folder and it is regenerated (the converter re-checks every draft); no model
+// call. -> the drafting summary in draftArm()'s shape, with `from`, or null when the other tag
+// has no drafted folder for the template.
+export function reuseDrafts(other, folder, tag) {
+  if (!other?.drafts || !other?.folder || !existsSync(join(other.folder, "overrides.json"))) return null;
+  const drafts = JSON.parse(readFileSync(join(other.folder, "overrides.json"), "utf8")).drafts ?? {};
+  const of = join(folder, "overrides.json");
+  const o = existsSync(of) ? JSON.parse(readFileSync(of, "utf8")) : {};
+  writeFileSync(of, JSON.stringify({ ...o, drafts }, null, 2) + "\n");
+  const r = spawnSync(process.execPath, [join(SKILL, "scripts", "convert.mjs"), "--regenerate", folder], { encoding: "utf8" });
+  return { steps: other.drafts.steps ?? [], calls: [], callCount: 0, costUsd: 0, tokens: { in: 0, out: 0, cacheRead: 0, cacheWrite: 0 }, from: tag, regenerate: r.status };
 }
 
 // PROPOSALS P78: the overlay's placeholder fills reach the export the Claude side converts, as
@@ -1029,7 +1068,8 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
     tool: async (p) => {
       const key = `${p.connector}.${p.tool}`;
       const schema = toolSchema(p.connector, p.tool);
-      const entry = { connector: p.connector, tool: p.tool, args: p.args ?? {}, effect: p.effect };
+      // The step that made the call (P137 amendment 2: an approved drafted write's outcome).
+      const entry = { connector: p.connector, tool: p.tool, args: p.args ?? {}, effect: p.effect, ...(p.ownStep ?? p.step ? { step: p.ownStep ?? p.step } : {}) };
       seen.tools.push(entry);
       if (!schema) throw Object.assign(new Error(`Unknown tool: ${p.tool}`), { name: "ToolError" });
       const errs = [...checkSchema(p.args ?? {}, { ...schema.inputSchema, type: "object" }), ...limitErrors(p.connector, p.tool, p.args ?? {})];
