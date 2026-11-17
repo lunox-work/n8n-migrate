@@ -24,10 +24,14 @@ runs no service and sends no telemetry. Nothing it handles reaches its author.
   your Claude session: connector results and model-step inputs pass through
   the model in your account, under your agreement with Anthropic. The cutover
   steps call your n8n instance's API, and nothing else.
+- **Convert-time drafts (optional):** with your go-ahead, `draft.mjs` sends a
+  blocked step's node type, operation and redacted parameters to the model in
+  your account (`claude -p`) to draft a missing request template or tool map;
+  the draft is written to that folder's `overrides.json`.
 - **Retention:** only the folders and records above, on your machine or in
   your repository and artifact. Delete them to remove everything.
 
 Questions about this policy: open an issue at
 https://github.com/lunox-work/n8n-to-claude/issues.
 
-Last updated 2026-11-15.
+Last updated 2026-11-17.

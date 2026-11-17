@@ -1,6 +1,8 @@
 - **Sent off the machine by the skill:** nothing of its own. The analyzer and
   the converter make no network call and call no model. There is no telemetry
-  and nothing reaches the author.
+  and nothing reaches the author. The optional drafting pass (`draft.mjs`), run
+  only with the person's go-ahead, sends a blocked step's node type, operation
+  and redacted parameters to the person's own Claude through `claude -p`.
 - **When a converted workflow runs:** it reaches the services the n8n workflow
   already used, through the person's connectors or the workflow's own HTTP
   requests, limited to the tools and hosts its definition allows. Connector

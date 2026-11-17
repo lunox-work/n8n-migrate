@@ -268,7 +268,7 @@
             "additionalProperties": false,
             "properties": {
               "reason": { "type": "string" },
-              "kind": { "enum": ["no-tool", "not-captured", "substitution", "unsupported", "unmapped", "subnode", "dropped", "input-incomplete", "no-runtime"] },
+              "kind": { "enum": ["no-tool", "not-captured", "substitution", "unsupported", "unmapped", "subnode", "dropped", "input-incomplete", "no-runtime", "drafted-write"] },
               "offer": { "type": "string" },
               "alternative": { "type": "string" }
             }
@@ -436,7 +436,19 @@
             "additionalProperties": false,
             "properties": { "id": { "type": "string" }, "from": { "type": "string" }, "to": { "type": "string" }, "approved": { "type": "boolean" } }
           },
-          "override": { "type": "boolean", "description": "overrides.json patched this step." }
+          "override": { "type": "boolean", "description": "overrides.json patched this step." },
+          "draft": {
+            "type": "object",
+            "description": "A convert-time draft from overrides.json `drafts` (references/translation.md): accepted (the step is built from it and flagged for review), reviewed (a person cleared it), write (blocked until a dry run against the real service and the person's approval), rejected or stale (blocked).",
+            "required": ["kind", "status"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": { "enum": ["rest-template", "tool-map"] },
+              "docs": { "type": "string" },
+              "status": { "enum": ["accepted", "reviewed", "write", "rejected", "stale"] },
+              "reason": { "type": "string" }
+            }
+          }
         }
       }
     },

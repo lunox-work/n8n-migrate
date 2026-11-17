@@ -12,7 +12,7 @@
 // after editing overrides.json, run convert.mjs --regenerate first so the patch is in it.
 //
 // Prints {status, output: [json...], requests: [{kind, connector?, tool?, args?|prompt?|url?}],
-// error?}. Exit 0 when the step ran, 1 when it failed, 2 on bad input. Zero dependencies.
+// error?}. tryDefinition() runs a step of an in-memory definition (draft.mjs's checks). Exit 0 when the step ran, 1 when it failed, 2 on bad input. Zero dependencies.
 
 import { readFileSync, existsSync, realpathSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -33,34 +33,65 @@ function parse(argv) {
 
 export async function tryStep(folder, stepName, { items, pin = false } = {}) {
   const def = JSON.parse(readFileSync(join(folder, "definition.json"), "utf8"));
-  const step = def.steps[stepName];
-  if (!step) throw new Error(`no step "${stepName}" in ${folder}/definition.json`);
+  if (!def.steps[stepName]) throw new Error(`no step "${stepName}" in ${folder}/definition.json`);
   let input = items;
   if (!input && pin && existsSync(join(folder, "source.n8n.json"))) {
-    const src = JSON.parse(readFileSync(join(folder, "source.n8n.json"), "utf8"));
-    const wf = Array.isArray(src) ? src[0] : src;
-    const parent = (def.edges ?? []).find((e) => e.to === stepName)?.from;
-    input = (parent && wf.pinData?.[parent]) || null;
-    if (!input) throw new Error(`the export has no pinData for "${parent ?? "(no parent)"}"`);
+    input = pinnedInput(def, JSON.parse(readFileSync(join(folder, "source.n8n.json"), "utf8")), stepName);
+    if (!input) throw new Error(`the export has no pinData for "${(def.edges ?? []).find((e) => e.to === stepName)?.from ?? "(no parent)"}"`);
   }
-  input = (input ?? [{}]).map((it) => (it && typeof it === "object" && it.json && typeof it.json === "object" ? it.json : it));
-  // The step alone behind a manual trigger that emits the sample items.
+  const { status, output, requests, error } = await tryDefinition(def, stepName, { items: input });
+  return { status, output, requests, ...(error ? { error } : {}) };
+}
+
+// The export's pinData for the step's parent node, or null.
+export function pinnedInput(def, source, stepName) {
+  const wf = Array.isArray(source) ? source[0] : source;
+  const parent = (def.edges ?? []).find((e) => e.to === stepName)?.from;
+  return (parent && wf?.pinData?.[parent]) || null;
+}
+
+// The step alone behind a manual trigger that emits the sample items. upstream: names of nodes
+// the step's expressions read ($('Name')), put between the two as pass-through steps, so
+// $('Name').item.json reads the same sample item as $json.
+export function miniDefinition(def, stepName, { upstream = [] } = {}) {
+  const step = def.steps[stepName];
+  const chain = ["Sample items", ...upstream.filter((n) => n !== stepName && n !== "Sample items"), stepName];
+  const pass = Object.fromEntries(chain.slice(1, -1).map((n) => [n, { kind: "logic", n8n: { type: "n8n-nodes-base.noOp", typeVersion: 1, position: [0, 0] }, params: {} }]));
   const mini = {
     ...def,
-    steps: { "Sample items": { kind: "trigger", n8n: { type: "n8n-nodes-base.manualTrigger", typeVersion: 1, position: [0, 0] }, params: {} }, [stepName]: { ...step, review: undefined } },
-    edges: [{ from: "Sample items", fromOutput: 0, to: stepName, toInput: 0 }],
+    steps: { "Sample items": { kind: "trigger", n8n: { type: "n8n-nodes-base.manualTrigger", typeVersion: 1, position: [0, 0] }, params: {} }, ...pass, [stepName]: { ...step, review: undefined } },
+    edges: chain.slice(1).map((to, i) => ({ from: chain[i], fromOutput: 0, to, toInput: 0 })),
     subnodes: (def.subnodes ?? []).filter((s) => s.to === stepName),
   };
   for (const s of mini.subnodes) mini.steps[s.from] = def.steps[s.from];
+  return mini;
+}
+
+// One step of an in-memory definition on sample items, through the runner's own containment
+// (allow, secret hosts). holdWrites: a dry run as the cutover's, writes held: a request the
+// runner counts as a write (it carries an effect key) is recorded in `held` and answered with a
+// stand-in, a read gets a stand-in too (nothing leaves the machine either way).
+// -> {status, output, requests, held, effects, error?}
+export async function tryDefinition(def, stepName, { items, holdWrites = false, upstream = [] } = {}) {
+  if (!def.steps[stepName]) throw new Error(`no step "${stepName}" in the definition`);
+  const input = (items ?? [{}]).map((it) => (it && typeof it === "object" && it.json && typeof it.json === "object" ? it.json : it));
+  const mini = miniDefinition(def, stepName, { upstream });
   const requests = [];
-  const record = (kind) => async (p) => {
+  const held = [];
+  const record = (kind) => async (p, ctx = {}) => {
     const { id, effectKey, ...rest } = p;
     requests.push({ kind, ...rest });
+    if (holdWrites && ctx.effectKey) held.push({ kind, ...rest });
     return kind === "model" ? "(dry run: no model answer)" : kind === "agent" ? "(dry run: no agent answer)" : { dryRun: true };
   };
-  const res = await run(mini, { trigger: { node: "Sample items", items: input.map((json) => ({ json })) }, mode: "manual", virtualTime: true, host: { tool: record("tool"), model: record("model"), agent: record("agent"), http: async (p) => (requests.push({ kind: "http", method: p.method, url: p.url, body: p.body }), { status: 200, headers: {}, body: { dryRun: true } }), sleep: async () => ({}) } });
-  const out = res.runData?.[stepName]?.at(-1)?.data?.main?.flat().map((it) => it?.json) ?? [];
-  return { status: res.status, output: out, requests, ...(res.error ? { error: res.error } : {}) };
+  const http = async (p, ctx = {}) => {
+    requests.push({ kind: "http", method: p.method, url: p.url, body: p.body });
+    if (holdWrites && ctx.effectKey) held.push({ kind: "http", method: p.method, url: p.url, body: p.body });
+    return { status: 200, headers: {}, body: { dryRun: true } };
+  };
+  const res = await run(mini, { trigger: { node: "Sample items", items: input.map((json) => ({ json })) }, mode: "manual", virtualTime: true, host: { tool: record("tool"), model: record("model"), agent: record("agent"), http, sleep: async () => ({}) } });
+  const output = res.runData?.[stepName]?.at(-1)?.data?.main?.flat().map((it) => it?.json) ?? [];
+  return { status: res.status, output, requests, held, effects: res.effects ?? [], ...(res.error ? { error: res.error } : {}) };
 }
 
 if (process.argv[1] && realpathSync(new URL(import.meta.url)) === realpathSync(resolve(process.argv[1]))) {

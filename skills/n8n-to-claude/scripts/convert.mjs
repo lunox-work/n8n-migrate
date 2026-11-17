@@ -62,6 +62,7 @@ import { fromN8n, urlTarget, writtenTargets } from "../runtime/src/convert.mjs";
 import { preflight, expressionSupport, nodeImplFor, definitionHash, RUNTIME_VERSION } from "../runtime/src/api.mjs";
 import { isSelectQuery } from "../runtime/src/postgres.mjs";
 import { ALERT_TOOLS } from "../runtime/src/alerts.mjs";
+import { draftTarget, validateDraft, sameFor, draftEffect, draftFor, WRITE_BLOCK_REASON, writeApproval } from "./drafts.mjs";
 
 const ALERT_TOOL_KEYS = Object.keys(ALERT_TOOLS);
 
@@ -234,6 +235,12 @@ const GOOGLE_ID = /\/d\/([a-zA-Z0-9_-]{10,})/;
 // value undefined means "leave the argument out"; issues are review reasons.
 function resolveSpec(spec, params, issues) {
   if (typeof spec === "string") return unwrapParam(getParam(params, spec), spec, issues);
+  // A list of specs (a request body's list, as convert-time drafts write them): each element
+  // resolved, elements without a value left out.
+  if (Array.isArray(spec)) {
+    const out = spec.map((s) => resolveSpec(s, params, issues)).filter((v) => v !== undefined);
+    return out.length ? out : undefined;
+  }
   if (!isObj(spec)) return undefined;
   if ("const" in spec) return spec.const === null ? undefined : clone(spec.const);
   if (spec.concat) {
@@ -717,6 +724,10 @@ class Ctx {
     this.approve = new Set(opts.approve ?? []);
     this.now = opts.now ?? Date.now();
     this.force = !!opts.forceConvert;
+    // overrides.json `drafts` (convert-time drafts, drafts.mjs); draftCandidates: draft.mjs's
+    // check pass, which applies drafts not yet accepted and leaves drafted writes unblocked.
+    this.drafts = isObj(opts.drafts) ? opts.drafts : {};
+    this.draftCandidates = !!opts.draftCandidates;
   }
 }
 
@@ -1099,6 +1110,44 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
     }
   };
 
+  // A convert-time draft for a step blocked as an app REST request template missing or a connector
+  // operation without a tool map (overrides.json `drafts`, references/translation.md). Returns
+  // false when the folder has no draft for the step (the step is blocked as before); else the
+  // step is either built from the draft (an accepted read, or a write the person approved) and
+  // flagged for review, or blocked with the draft's reason. The static rules run again here.
+  const useDraft = (name, step, params, opKey, reason) => {
+    const d = ctx.drafts[name];
+    if (!isObj(d)) return false;
+    const target = draftTarget(refs, { step, operation: opKey, reason });
+    const mark = (status, why) => (step.draft = { kind: d.kind, ...(typeof d.docs === "string" ? { docs: d.docs } : {}), status, ...(why ? { reason: why } : {}) });
+    if (!target) return false;
+    if (target.skip || !sameFor(d.for, draftFor(target))) {
+      block(step, "no-tool", reason);
+      mark("stale", target.skip ?? "drafted for another operation, version or credential: draft it again");
+      return true;
+    }
+    const usable = d.status === "accepted" || (ctx.draftCandidates && d.status === "candidate");
+    const v = d.status === "rejected" ? { ok: false, reason: d.reason ?? "rejected" } : usable ? validateDraft(refs, target, d, { params }) : { ok: false, reason: `status ${d.status ?? "missing"} is not accepted` };
+    if (!v.ok) {
+      block(step, "no-tool", `${reason}; the drafted ${d.kind} was rejected: ${v.reason}`);
+      mark("rejected", v.reason);
+      return true;
+    }
+    const write = draftEffect(target, d) === "write";
+    if (write && !ctx.draftCandidates && !ctx.approve.has(writeApproval(name))) {
+      block(step, "drafted-write", WRITE_BLOCK_REASON);
+      mark("write");
+      return true;
+    }
+    delete step.blocked;
+    applyMap(name, step, { entry: d.entry, key: `draft ${name}` }, params);
+    if (step.kind === "blocked") return true;
+    mark(d.reviewed ? "reviewed" : "accepted");
+    if (!d.reviewed) review(step, `drafted at convert time (${d.kind}, docs ${d.docs}): unverified until a person checks it against the docs${write ? "" : " and a dry run"} and sets reviewed in overrides.json`);
+    if (write) review(step, "a drafted write the person approved: the cutover's dry run shows its exact request before any live run");
+    return true;
+  };
+
   // whenSiblingRest (tool-maps.json): another enabled, reachable step of the same node type maps
   // to a REST entry under the same credential name (none named counts as the same), so the
   // secret stored for it serves the step being mapped too.
@@ -1322,7 +1371,10 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       if (info.operation == null) block(step, "input-incomplete", "the operation is set by an expression, so no tool can be chosen");
       else if (cap?.confirmed === "no-tool") block(step, "no-tool", cap.note ?? "the connector has no tool for this operation");
       else if (cap?.confirmed === "not-captured") block(step, "not-captured", `${cap.note ?? "the connector's tools are not captured"}; map ${opKey} once they are`);
-      else block(step, "no-tool", `no tool map for ${shortType(baseType)} ${opKey} yet`);
+      else {
+        const why = `no tool map for ${shortType(baseType)} ${opKey} yet`;
+        if (!useDraft(name, step, params, opKey, why)) block(step, "no-tool", why);
+      }
       continue;
     }
 
@@ -1343,7 +1395,10 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         else if (found) applyMap(name, step, found, params);
         else if (type === LC + "toolHttpRequest" || type === BASE + "httpRequestTool") {
           // agent http tools are built in the agent pass
-        } else block(step, "no-tool", `no request template for ${shortType(baseType)}${opKey ? ` ${opKey}` : ""} yet (it needs the app's REST API with a stored secret)`);
+        } else {
+          const why = `no request template for ${shortType(baseType)}${opKey ? ` ${opKey}` : ""} yet (it needs the app's REST API with a stored secret)`;
+          if (!useDraft(name, step, params, opKey, why)) block(step, "no-tool", why);
+        }
         continue;
       }
     }
@@ -2180,6 +2235,14 @@ export function migrationMd(wr, def, { refused, overrides } = {}) {
       for (const [n, s] of blocked) L.push(`- **${mdEscape(n)}**: ${mdEscape(s.blocked.reason)}${s.blocked.offer ? `. Offer: ${mdEscape(s.blocked.offer)}` : ""}${s.blocked.alternative ? `. Alternative: ${mdEscape(s.blocked.alternative)}` : ""}`);
       L.push("");
     }
+    // Convert-time drafts (overrides.json `drafts`): listed until a person sets `reviewed`.
+    const drafted = steps.filter(([, s]) => s.draft && s.draft.status !== "reviewed");
+    if (drafted.length) {
+      const words = { accepted: "in use, flagged for review", write: `blocked: ${WRITE_BLOCK_REASON}`, rejected: "rejected, the step stays blocked", stale: "not applied, the step stays blocked" };
+      L.push("## Drafted at convert time", "", "A model drafted these from the n8n node and the app's API docs; code checked them (references/translation.md). Each stays listed here until a person checks it against the cited docs and sets `reviewed` on its entry in overrides.json `drafts`.", "");
+      for (const [n, s] of drafted) L.push(`- **${mdEscape(n)}**: ${s.draft.kind}${s.draft.docs ? `, docs ${mdEscape(s.draft.docs)}` : ""}: ${mdEscape(words[s.draft.status] ?? s.draft.status)}${s.draft.reason ? ` (${mdEscape(s.draft.reason)})` : ""}`);
+      L.push("");
+    }
     const subs = steps.filter(([, s]) => s.substitution);
     if (subs.length) {
       L.push("## Substitutions", "");
@@ -2559,8 +2622,17 @@ export function writeFolder(outDir, res, { overrides, refs } = {}) {
 
 export function regenerate(folder, opts = {}) {
   const refs = opts.refs ?? loadReferences();
+  const res = convertFolder(folder, { ...opts, refs });
+  writeFolder(dirname(resolve(folder)), res, { refs });
+  return res;
+}
+
+// A folder's conversion from its stored export and overrides.json (or `opts.overrides`), not
+// written: regenerate() writes it; draft.mjs converts with candidate drafts to check them.
+export function convertFolder(folder, opts = {}) {
+  const refs = opts.refs ?? loadReferences();
   const ovPath = join(folder, "overrides.json");
-  const ov = existsSync(ovPath) ? readJson(ovPath) : emptyOverrides();
+  const ov = opts.overrides ?? (existsSync(ovPath) ? readJson(ovPath) : emptyOverrides());
   const text = readFileSync(join(folder, "source.n8n.json"), "utf8");
   const items = unwrap(JSON.parse(text), "source") ?? [];
   if (!items.length) throw new Error(`${folder}/source.n8n.json holds no n8n workflow`);
@@ -2571,11 +2643,10 @@ export function regenerate(folder, opts = {}) {
   // the stored workflow's own id (an export wrapped with another id, as a template site serves
   // it): answers keyed by the first report's id keep applying after a regenerate.
   const answers = Object.fromEntries(Object.entries(ov.answers ?? {}).map(([k, v]) => [k.includes("/") ? `${items[0].id}/${k.slice(k.indexOf("/") + 1)}` : k, v]));
-  const [res] = convertItems(items.map((it) => ({ ...it, file: "source.n8n.json" })), { refs, answers, approve: ov.approve ?? [], workflow: items[0].id, slug: basename(folder), forceConvert: force, now: opts.now });
+  const [res] = convertItems(items.map((it) => ({ ...it, file: "source.n8n.json" })), { refs, answers, approve: ov.approve ?? [], workflow: items[0].id, slug: basename(folder), forceConvert: force, now: opts.now, drafts: ov.drafts, draftCandidates: opts.draftCandidates });
   // The stored source is the source of truth: keep its bytes (and hash) as they are.
   res.source = text;
   if (res.definition) res.definition.source.sha256 = sha256(text);
-  writeFolder(dirname(resolve(folder)), res, { refs });
   return res;
 }
 

@@ -28,6 +28,7 @@ Scripts (run from this skill's folder, called SKILL below; Node 20+, no install)
 - `node SKILL/scripts/analyze.mjs <input> [--json] [--answers a.json]`: the fit report. No model, no network.
 - `node SKILL/scripts/convert.mjs <input> --out <repo> [--answers a.json] [--approve id,...]`: one folder per workflow under `<repo>`, plus the repo-root settings. `--regenerate <repo>/<folder>` rebuilds a folder from its stored export and `overrides.json`.
 - `node SKILL/scripts/try-step.mjs <folder> <step> [--items i.json | --pin]`: dry run of one step on sample items.
+- `node SKILL/scripts/draft.mjs <folder>`: drafts a missing app REST request template or connector tool map for blocked steps with a model (`claude -p` haiku), checks each in code and writes it to `overrides.json` `drafts`; only with the person's go-ahead (`references/translation.md`, "Drafted request templates and tool maps").
 - `node SKILL/scripts/cutover.mjs <folder> <step>`: cutover and rollback (step 8).
 
 First run `node --version`. No Node, or below 20: stop and tell the person the skill needs Node 20 (Claude Code, or Desktop/Cowork with Node installed); in a chat sandbox with Python only, it cannot run.
@@ -115,6 +116,7 @@ Follow `references/cutover.md`; `cutover.mjs <folder> status` says the next step
 ## Reference files (load when needed)
 
 - `references/translation.md`: rules for translating flagged steps.
+- `references/draft-prompt.md`: the prompt `draft.mjs` sends for a convert-time draft.
 - `references/setup-cloud-task.md`, `references/setup-local-task.md`: task setup.
 - `references/alerts.md`: alert channel, template, missed runs.
 - `references/task-prompt.md`: the task prompt template.

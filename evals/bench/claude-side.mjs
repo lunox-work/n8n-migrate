@@ -3,6 +3,9 @@
 // (definition.json, report.json, MIGRATION.md, run results) are read.
 //
 //   convertPlain(id, out)      scripts/convert.mjs on the raw template (no model)
+//   draftArm(id, folder)       PROPOSALS P137 arm B: the skill's drafting pass (scripts/draft.mjs)
+//                              on the converted folder, its model calls (haiku) through claude.mjs
+//                              so the ledger counts them; the folder is regenerated with the drafts
 //   convertSkill(id, out)      one headless skill run (claude -p sonnet, N2C_HEADLESS=1) on the
 //                              raw template: no retry, no hand edit; its folder is under test
 //   runInProcess(folder, ...)  the definition through the runner, every request answered by the
@@ -46,6 +49,27 @@ export function convertPlain(id, out, { now = "2026-11-16T00:00:00Z", source = t
   const t0 = Date.now();
   const r = spawnSync(process.execPath, [join(SKILL, "scripts", "convert.mjs"), source, "--out", out, "--now", now], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
   return { status: r.status, stderr: r.stderr.slice(-2000), stdout: r.stdout.slice(-4000), folder: folderIn(out), ms: Date.now() - t0 };
+}
+
+// PROPOSALS P137 arm B ("drafts"): the convert-time drafting pass on a converted folder. The
+// pass is imported (not run as a CLI) only so its model calls go through claudeP, which counts
+// them on the ledger and applies the budget and memory rules; it writes overrides.json `drafts`
+// and regenerates the folder like any skill step. -> {steps, calls, callCount, costUsd, tokens}
+// `claude`: claudeP (tests pass a stand-in).
+export async function draftArm(id, folder, { log = console.error, claude = claudeP } = {}) {
+  const { draftFolder } = await import(pathToFileURL(join(SKILL, "scripts", "draft.mjs")).href);
+  const ask = async ({ prompt, system, schema, purpose }) => {
+    try {
+      const r = await claude({ prompt, model: "haiku", purpose: `${purpose} ${id}`, args: ["--system-prompt", system, "--tools", "", "--json-schema", JSON.stringify(schema), "--disable-slash-commands", "--setting-sources", "project"], budgetUsd: 0.5, timeoutMs: 300_000, log });
+      return { ok: true, answer: r.json?.structured_output ?? null, text: r.text, costUsd: r.costUsd, usage: r.usage, ms: r.ms, model: "haiku" };
+    } catch (e) {
+      if (e.constructor?.name === "BudgetExceeded" || e.constructor?.name === "UsageLimit") throw e;
+      return { ok: false, error: e.message.slice(0, 300), costUsd: e.entry?.costUsd ?? null, usage: e.entry?.usage ?? null, ms: e.entry?.ms ?? null, model: "haiku" };
+    }
+  };
+  const r = await draftFolder(folder, { ask, model: "haiku", now: Date.parse("2026-11-16T00:00:00Z"), log: (m) => log(`${id}: ${m}`) });
+  const sum = (k) => r.calls.reduce((n, c) => n + (c.usage?.[k] ?? 0), 0);
+  return { ...r, callCount: r.calls.length, costUsd: Math.round(r.calls.reduce((n, c) => n + (c.costUsd ?? 0), 0) * 10000) / 10000, tokens: { in: sum("in"), out: sum("out"), cacheRead: sum("cacheRead"), cacheWrite: sum("cacheWrite") } };
 }
 
 // PROPOSALS P78: the overlay's placeholder fills reach the export the Claude side converts, as

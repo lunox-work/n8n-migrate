@@ -6,6 +6,7 @@
 //        [--variants normal,empty,malformed,hostile] [--repeats 3] [--model-mode replay|live]
 //        [--driver inprocess|claude] [--skill <id,id|all|none>] [--tag <run tag>]
 //        [--reuse-convert <tag>] [--record] [--n8n-check all|normal] [--no-n8n-check] [--diagnose]
+//        [--arm plain|drafts]
 //   node evals/bench/run.mjs --n8n-check-only <templateId>... [--n8n-check all|normal] [--variants ...]
 //   node evals/bench/run.mjs --record-only <templateId>... [--variants ...]
 //
@@ -17,6 +18,12 @@
 // --tag          names this bench run; its ledger is .work/ledger/<tag>.json. Re-running with
 //                the same tag resumes: finished templates are skipped, finished steps reused.
 // --reuse-convert take gate 2's folders from an earlier tag (the skill run is not repeated).
+// --arm          PROPOSALS P137: plain (default, arm A) is the converter as it is; drafts (arm B)
+//                runs the skill's convert-time drafting pass (scripts/draft.mjs, haiku through the
+//                ledger) on gate 2's folder after the overlay, then everything as in arm A: the
+//                runner executes the accepted drafts as code, drafted writes stay blocked. The row
+//                carries `arm` and `drafts` (each step's fate, each call with its tokens and cost).
+//                One tag holds one arm; both arms run on the same templates at one commit.
 // --record       (re)record n8n's model replies live into evals/bench/recordings/ even when a
 //                recording exists. Without it, an existing recording is replayed on the n8n
 //                side too, and a missing one is recorded live once.
@@ -58,7 +65,7 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState, siteAnswers, hostsAnswers, substitutionApprovals, loadCredentialSpecs, ensureN8n, codeModules, DbSeedError, dbSummary, fixtureClock, modelNodes, modelDrawFailure } from "./n8n-side.mjs";
-import { convertPlain, convertSkill, filledSource, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, recordedCalls, syntheticOutcome, nondeterministicTools, connectorGapFields, databaseAnswers } from "./claude-side.mjs";
+import { convertPlain, convertSkill, draftArm, filledSource, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, recordedCalls, syntheticOutcome, nondeterministicTools, connectorGapFields, databaseAnswers } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
 import { fromHttp, fromTool, fromFile, fromDb, replyOf, resultOf, isResult, lastOutputs, terminalNodes, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads, randomKeys, applySubstitutions } from "./compare.mjs";
 import { n8nCheckVariants, n8nCheckKey, n8nCheckSummary, gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited, n8nFailsOf, modelRefusal } from "./gates.mjs";
@@ -75,9 +82,11 @@ const WORK = join(HERE, ".work");
 const RECORDINGS = join(HERE, "recordings");
 const RESULTS = join(ROOT, "evals", "results.jsonl");
 const VARIANTS = ["normal", "empty", "malformed", "hostile"];
+// PROPOSALS P137: arm A (the converter) and arm B (the converter plus convert-time drafts).
+export const ARMS = ["plain", "drafts"];
 
-function parseArgs(argv) {
-  const a = { diagnose: false, ids: [], variants: VARIANTS, repeats: 3, modelMode: "replay", driver: "inprocess", skill: [], tag: null, reuseConvert: null, record: false, n8nCheck: true, n8nCheckOnly: false, recordOnly: false, split: null, limit: null };
+export function parseArgs(argv) {
+  const a = { diagnose: false, ids: [], variants: VARIANTS, repeats: 3, modelMode: "replay", driver: "inprocess", skill: [], tag: null, reuseConvert: null, record: false, n8nCheck: true, n8nCheckOnly: false, recordOnly: false, split: null, limit: null, arm: "plain" };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     const v = () => argv[++i];
@@ -96,9 +105,11 @@ function parseArgs(argv) {
     else if (k === "--record-only") a.recordOnly = true;
     else if (k === "--split") a.split = v();
     else if (k === "--limit") a.limit = Number(v());
+    else if (k === "--arm") a.arm = v();
     else if (k.startsWith("--")) throw new Error(`unknown flag ${k}`);
     else a.ids.push(Number(k));
   }
+  if (!ARMS.includes(a.arm)) throw new Error(`--arm ${a.arm}: one of ${ARMS.join(", ")} (PROPOSALS P137)`);
   if (a.n8nCheckOnly && !a.ids.length) throw new Error("--n8n-check-only needs template ids");
   if (a.recordOnly && !a.ids.length) throw new Error("--record-only needs template ids");
   if (!a.ids.length) {
@@ -513,6 +524,15 @@ async function benchTemplate(id, args, L) {
     S.overlayApplied = { status: r.status, steps: claudeOv.flatMap((ov) => Object.keys(ov.steps ?? {})), ...(claudeOv.some((ov) => ov.answers) ? { answers: Object.assign({}, ...claudeOv.map((ov) => ov.answers ?? {})) } : {}), ...(claudeOv.some((ov) => ov.approve) ? { approved: claudeOv.flatMap((ov) => ov.approve ?? []) } : {}), ...(overlay?.timeCompression?.claude ? { timeCompression: Object.keys(overlay.timeCompression.claude.overrides?.steps ?? {}) } : {}) };
     save();
   }
+  // PROPOSALS P137 arm B: the drafting pass on the folder the overlay left, once per tag.
+  if (args.arm === "drafts" && folder && !S.drafts) {
+    S.drafts = await draftArm(id, folder, { log });
+    save();
+  }
+  if (S.drafts) {
+    drivers.drafts = "convert-time drafts (scripts/draft.mjs, claude -p haiku)";
+    metrics.drafts = { calls: S.drafts.callCount, costUsd: S.drafts.costUsd, tokens: S.drafts.tokens };
+  }
   const g2 = async (f, skillError) => {
     const definition = f ? readJson(join(f, "definition.json")) : null;
     const report = f ? readJson(join(f, "report.json")) : null;
@@ -825,6 +845,8 @@ async function main() {
   }
   const file = join(WORK, "ledger", `${args.tag}.json`);
   const L = { file, data: readJson(file, { tag: args.tag, started: new Date().toISOString(), args: { ...args, ids: undefined }, templates: {} }) };
+  // PROPOSALS P137: one tag holds one arm, so a resumed tag never mixes them.
+  if ((L.data.args?.arm ?? "plain") !== args.arm) throw new Error(`tag ${args.tag} was run with --arm ${L.data.args?.arm ?? "plain"}; use another tag for --arm ${args.arm}`);
   L.templates = L.data.templates;
   const commit = git(["rev-parse", "--short", "HEAD"]);
   const skillCommit = git(["log", "-1", "--format=%h", "--", "skills/n8n-to-claude"]);
@@ -883,6 +905,10 @@ async function main() {
         gates: Object.fromEntries(Object.entries(r.gates).map(([k, v]) => [k, { pass: v.pass, driver: v.driver ?? null, ...(v.pass ? {} : { bucket: v.bucket, cause: v.cause }) }])),
         drivers: r.drivers,
         modelMode: args.modelMode,
+        // PROPOSALS P137: the arm, and arm B's drafting pass per template (the plain column is
+        // then the drafted folder's).
+        arm: args.arm,
+        ...(t.steps.drafts ? { drafts: { calls: t.steps.drafts.calls, costUsd: t.steps.drafts.costUsd, tokens: t.steps.drafts.tokens, steps: t.steps.drafts.steps } } : {}),
         plainColumn: t.steps.plainColumn ?? null,
         config: loadOverlay(id) ? { file: `evals/bench/config/${id}.json`, n8n: t.steps["n8n:normal"]?.overlay ?? t.steps.n8nCheck?.overlay ?? [], claude: t.steps.overlayApplied ?? null, env: Object.keys(loadOverlay(id).env ?? {}), nonPlaceholder: loadOverlay(id).timeCompression ? [{ kind: "time-compression", why: loadOverlay(id).timeCompression.why ?? null }] : [] } : null,
         credentialsAttached: t.steps["n8n:normal"]?.credentialsAttached ?? t.steps.n8nCheck?.credentialsAttached ?? [],
