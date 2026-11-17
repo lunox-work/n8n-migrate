@@ -14,12 +14,12 @@
 //                          (GIT_INDEX_FILE), parents it on the remote branch, and pushes; on a
 //                          rejected push it refetches and reapplies its own changes (last
 //                          writer wins per document). Needs push rights from the task (Phase 0).
-//   {kind: "artifact-db"}  behind task.json artifactDb: true. Authoritative documents stay in
-//                          the file store (ArtifactData has no lease and needs a version for
-//                          every overwrite); new run records are queued in an outbox that the
-//                          driver hands to the session as one ArtifactData batch at the end of a
-//                          run, so scheduled runs appear in the page's history. Whether a task can
-//                          call ArtifactData at all is a Phase 0 check.
+//   {kind: "artifact-db"}  the file store plus the artifact mirror (below); older task.json files.
+//   Any kind, with task.json artifactDb: true and artifactUrl: authoritative documents stay in
+//                          the store (ArtifactData has no lease and needs a version for every
+//                          overwrite); finished run records queue in an outbox that the driver
+//                          hands to the session as one ArtifactData batch at the end of a run,
+//                          so scheduled runs appear in the page's history.
 //
 // Every document write that must survive a killed session is followed by flush(): the
 // ledger's "sending" before a write goes out, its "sent" after, and the run state after each
@@ -185,7 +185,33 @@ function gitBackend(P, opts) {
 
 // ---------- the store ----------
 
+// With task.json artifactDb: true and an artifactUrl, any store also mirrors finished run
+// records to the artifact's database: they queue in an outbox that the driver hands to the
+// session as one ArtifactData batch at the end of a run (observed working from a cloud task,
+// 2026-11-17). The records themselves stay in the store, so a cloud task keeps its git
+// ledger and cursors; a mirror lost to a killed session only leaves a gap in the page's history.
 export function createStore(P, task = {}, opts = {}) {
+  const store = baseStore(P, task, opts);
+  if (store.outbox || !task.artifactDb || !task.artifactUrl) return store;
+  return withOutbox(P, store);
+}
+function withOutbox(P, store) {
+  const outbox = join(P.n2c, "db-outbox.json");
+  return {
+    ...store,
+    set(path, doc) {
+      store.set(path, doc);
+      if (/^runs\/[^/]+$/.test(path) && doc?.status && doc.status !== "running") writeJson(outbox, { ...readJson(outbox, {}), [path]: doc });
+    },
+    outbox: () => readJson(outbox, {}),
+    clearOutbox: (paths) => {
+      const o = readJson(outbox, {});
+      for (const p of paths) delete o[p];
+      writeJson(outbox, o);
+    },
+  };
+}
+function baseStore(P, task = {}, opts = {}) {
   const spec = typeof task.store === "string" ? { kind: task.store } : task.store ?? { kind: "file" };
   const kind = spec.kind ?? "file";
   // N2C_STORE=file keeps records in the folder whatever task.json says: the bench, tests and
@@ -212,25 +238,10 @@ export function createStore(P, task = {}, opts = {}) {
   }
   const files = fileBackend(spec.dir ? resolve(P.dir, spec.dir) : join(P.n2c, "records"));
   if (kind === "artifact-db") {
-    if (!task.artifactDb) throw new Error('store "artifact-db" needs task.json artifactDb: true (only once Phase 0 shows a task can call ArtifactData)');
-    const outbox = join(P.n2c, "db-outbox.json");
-    return {
-      kind,
-      ...files,
-      set(path, doc) {
-        files.set(path, doc);
-        // Mirror new run records (a document the page reads for its history).
-        if (/^runs\/[^/]+$/.test(path) && doc?.status && doc.status !== "running") writeJson(outbox, { ...readJson(outbox, {}), [path]: doc });
-      },
-      outbox: () => readJson(outbox, {}),
-      clearOutbox: (paths) => {
-        const o = readJson(outbox, {});
-        for (const p of paths) delete o[p];
-        writeJson(outbox, o);
-      },
-      refresh: () => ({}),
-      flush: () => ({ pushed: false }),
-    };
+    // The file store plus the mirror (kept for task.json files written before any store
+    // could mirror; on a cloud task prefer git with artifactDb, which keeps the ledger).
+    if (!task.artifactDb) throw new Error('store "artifact-db" needs task.json artifactDb: true');
+    return withOutbox(P, { kind, ...files, refresh: () => ({}), flush: () => ({ pushed: false }) });
   }
   if (kind !== "file") throw new Error(`unknown store kind "${kind}" (file, git, artifact-db)`);
   return { kind, ...files, refresh: () => ({}), flush: () => ({ pushed: false }) };

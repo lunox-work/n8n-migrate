@@ -245,6 +245,39 @@ test("git store: state, ledger and cursors go to the n2c-state branch; a fresh c
   }
 });
 
+test("git store with artifactDb: records stay on n2c-state and the finished run is mirrored to the artifact in one batch", () => {
+  const base = mkdtempSync(join(tmpdir(), "n2c-git-mirror-"));
+  try {
+    const git = (cwd, ...a) => execFileSync("git", a, { cwd, encoding: "utf8", env: { ...process.env, ...GIT_ENV }, stdio: ["ignore", "pipe", "pipe"] }).trim();
+    git(base, "init", "--quiet", "--bare", "-b", "main", "origin.git");
+    const { dir, folder } = folderFor("tests/fixtures/convert/slice.n8n.json", { task: { store: { kind: "git" } } });
+    const t = readJson(join(folder, "task.json"));
+    writeJson(join(folder, "task.json"), { ...t, artifactDb: true, artifactUrl: "https://claude.ai/artifact/test", toolPrefixes: { ...t.toolPrefixes, "artifact-db": "" } });
+    const work = join(base, "work");
+    git(base, "clone", "--quiet", join(base, "origin.git"), "work");
+    cpSync(folder, join(work, "digest"), { recursive: true });
+    rmSync(dir, { recursive: true, force: true });
+    git(work, "add", ".");
+    git(work, "commit", "--quiet", "-m", "migrated workflow");
+    git(work, "push", "--quiet", "origin", "HEAD:main");
+    const f = join(work, "digest");
+    const s = session(f);
+    const out = s.until(runner(f, ["start", "--clock", "2026-11-14T00:00:00Z"]).out);
+    assert.match(out, /^DONE/m);
+    const batches = s.sent.filter((c) => c.tool === "ArtifactData");
+    assert.equal(batches.length, 1);
+    assert.equal(batches[0].args.action, "batch");
+    assert.equal(batches[0].args.url, "https://claude.ai/artifact/test");
+    const runId = /run (\S+) finished/.exec(out)[1];
+    assert.deepEqual(batches[0].args.writes.map((w) => [w.op, w.collection, w.doc_id, w.data.status]), [["set", "runs", runId, "done"]]);
+    git(work, "fetch", "--quiet", "origin");
+    const tree = git(work, "ls-tree", "-r", "--name-only", "origin/n2c-state").split("\n");
+    assert.ok(tree.includes(`digest/runs/${runId}.json`), "the record itself stays in the git store");
+    assert.ok(tree.some((x) => /^digest\/ledger\/.+\.json$/.test(x)), "so does the ledger");
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
 test("a scheduled poll run works from the scheduled cursor in the store and saves it when done", () => {
   const { dir, folder } = folderFor("tests/fixtures/convert/poll-code-http.n8n.json", {
     mutate: (def) => {
@@ -326,7 +359,10 @@ test("poll-submissions: refused without the artifact-db flag; with it, each subm
     out = s.until(out);
     assert.match(out, /^DONE: 2 form submission\(s\) read, 2 processed, 0 failed/);
     const calls = s.sent.map((c) => `${c.tool}${c.args.action ? ":" + c.args.action : ""}`);
-    assert.deepEqual(calls, ["ArtifactData:query", "send_message", "ArtifactData:update", "send_message", "ArtifactData:update"]);
+    // Each submission's run is also mirrored into the page's history (one batch per run) before
+    // its submission is marked.
+    assert.deepEqual(calls, ["ArtifactData:query", "send_message", "ArtifactData:batch", "ArtifactData:update", "send_message", "ArtifactData:batch", "ArtifactData:update"]);
+    assert.ok(s.sent.filter((c) => c.args.action === "batch").every((c) => c.args.writes.length === 1 && c.args.writes[0].collection === "runs"));
     const updates = s.sent.filter((c) => c.args.action === "update");
     assert.deepEqual(updates.map((u) => [u.args.doc_id, u.args.if_version, u.args.data.status]), [["s-1", 1, "done"], ["s-2", 3, "done"]]);
     assert.deepEqual(s.sent.filter((c) => c.tool === "send_message").map((c) => c.args.subject), ["New message from a@example.com", "New message from b@example.com"]);

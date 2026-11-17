@@ -827,7 +827,7 @@ function finishRun(P, core, task, store, state) {
   const alert = state.status === "failed" && !state.n2c?.dryRun ? core.alertRequest(state.definition, "failed", { runId: state.runId, step: e?.node, errorClass: e?.name }) : null;
   if (alert) queueExtra(P, alert);
   if (state.n2c?.dryRun) store.flush(`dry run ${state.runId}`);
-  if (store.kind === "artifact-db") queueOutbox(P, task, store);
+  if (store.outbox) queueOutbox(P, task, store);
   if (state.n2c?.submission) {
     const sub = state.n2c.submission;
     queueExtra(P, artifactDbRequest(task, "update", { collection: "submissions", doc_id: sub.docId, data: { status: state.status === "done" ? "done" : "failed", runId: state.runId, processedAt: new Date().toISOString() }, ...(sub.version ? { if_version: sub.version } : {}) }, `sub-${sub.docId}-${state.runId}`));
