@@ -965,3 +965,12 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Proposed change.** Either the driver's prompt says that the runner's write is the migrated workflow's own and the session's job is to make it exactly (the person reviews content at dry run, not the driver), or a run that ends `needs` with a write outstanding after the session's own final text counts as a P40 slip: retried once, a repeat stands as the verdict and is reported as a driver decline, apart from runner bugs.
 - **Why not in the loop.** It changes the claude driver's prompt or its slip rule.
 - **Status: open** (release point 5, 2026-11-17).
+
+## P137. Two-arm bench measurement for convert-time model drafts (PLAN status 2026-11-17, "convert-time drafts")
+
+- **Evidence.** Most dev and held-out failures stop at preflight on a missing feature, not a wrong conversion; apps with no REST request template and connector operations with no tool map are the largest translatable kinds (release points 3–5). PLAN decides that a model may draft these at convert time only, into `overrides.json`, and that it ships only if the bench shows a gain.
+- **Proposed change.** A bench mode that runs each template twice at one commit: arm A the plain converter, arm B the converter plus a drafting pass (haiku, `claude -p`, its calls recorded per template with token cost), the runner then deterministic in both. Scored on a fresh held-out set drawn for this experiment only (its own seed, committed before any template is opened; round-4 eligibility with amendment 1; blind labels and blind fixtures from separate sessions; never read by a fixing session; not round 6's held-out). Write steps stay blocked in both arms.
+- **Pre-registered bar** (fixed here, before any run): arm B ships only if (1) its one-shot passes exceed arm A's by at least 1 + 2 × flips templates, flips counted over a repeated run of each arm; (2) arm B has no more gate-4 wrong-effect failures than arm A; (3) arm B has no gate-6 containment failure arm A lacks; (4) every drafted step cites docs and passes the translation.md rules check. Cost per drafted template is reported, not gated.
+- **Order.** After release point 5 and round 6 setup; before any draft is promoted into `tool-maps.json` or `http-hosts.json`, so promotion cannot contaminate the comparison.
+- **Why not in the loop.** It adds a bench mode and a separate held-out draw.
+- **Status: accepted, queued** (maintainer, 2026-11-17).
