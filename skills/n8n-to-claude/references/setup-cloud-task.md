@@ -23,7 +23,7 @@ For a workflow with `outcome.target: cloud-task`. A cloud task (a routine) runs 
 4. In Claude (web, Code), create a scheduled cloud task on that repo, in that environment: paste the folder's `task-prompt.md`; set the schedule from `schedule.cron` converted to the form's timezone (say the converted time in words, e.g. "08:00 Singapore = 00:00 UTC"); schedule a few minutes past the hour when the cron says `:00`.
 5. The task pushes its records to `n2c-state` with the session's GitHub access (observed 2026-11-17). If the first run's records do not appear there, switch the workflow to a local task, or accept that poll workflows replay without a cursor (do not, for writes).
 6. Run it once from the task page (Run now) and read the session: it should end with one `DONE: run ... finished` line. Check `n2c-state` holds `runs/<id>.json`.
-7. Optional: publish the folder's `artifact.html` to watch runs (history from the task needs a task that can write the artifact's database: unconfirmed).
+7. Optional: publish the folder's `artifact.html` to watch runs. To have scheduled runs appear in its history (observed 2026-11-17), set task.json `store: {kind: "artifact-db"}`, `artifactDb: true`, `artifactUrl: <the page's link>` and `toolPrefixes["artifact-db"]: ""`, add `ArtifactData` to the root `.claude/settings.json` allow list and to the task's allowed tools. The runner hands the session one `ArtifactData` batch per run, and the hook checks it like any call. That store keeps the ledger and cursors only in the session's checkout, which a cloud task loses after each run, so use it only for workflows with no poll cursor and no writes until the git store can mirror too.
 
 ## What a run does
 
@@ -32,6 +32,7 @@ The session runs the runner, makes only the calls it prints, and writes model an
 ## Observed (2026-11-17)
 
 - A cloud task trusts the repo's root `.claude/settings.json` and runs its hooks: `n2c-hook.mjs` refused an `ArtifactData` call that no run had requested.
+- A cloud task can call `ArtifactData` (read and batch write) on the person's artifact from a Limited environment with no artifact domains added.
 - Egress goes through the environment's proxy; the runner relaunches Node with `NODE_USE_ENV_PROXY=1` so `fetch` uses it.
 
 ## Unconfirmed (Phase 0)

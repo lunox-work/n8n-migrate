@@ -60,10 +60,11 @@
   moved in one shot with the same effects as n8n. The rest are blocked with
   the reason, or differ when run, which is what the dry run before switch-over
   is for.
-- **Not yet run on a real Claude account.** Scheduled tasks, Desktop tasks,
-  skills and artifact pages are tested against local stand-ins and the docs.
-  What each connector returns is written by hand in the tests. Do the dry
-  run before you switch n8n off.
+- **Partly run on a real Claude account.** Cloud tasks (with HTTP steps and
+  their hooks), artifact pages with a model step, and a skill in a claude.ai
+  chat have run on a real account. Desktop tasks and connector calls are
+  still tested only against local stand-ins, and what each connector returns
+  is written by hand in the tests. Do the dry run before you switch n8n off.
 
 ## Before / After
 
