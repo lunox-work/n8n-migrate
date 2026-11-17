@@ -930,3 +930,38 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Proposed change.** As P107 (mail) and P111 (Slack): effects.json `attribution` gains `telegram.send_message` `text` for `n8n-nodes-base.telegram`; `compare.mjs` `stripAttribution()` removes exactly either tail, with the Telegram node's own link, from the end of n8n-side text only, reported as `attributionStripped`.
 - **Why not in the loop.** It changes the comparer.
 - **Decision (maintainer, round 5 batch 3, 2026-11-17): applied as proposed.** The line names the n8n instance that sent the message, which is false once Claude sends it, so the folder should not write it; the rule is P107's, exact and one-sided. Among dev templates only 2803 sends a Telegram message with it (3291 passes gate 4, 1554 and 3025 stop at gate 3). Test: `tests/bench-r5.test.mjs` "P131".
+
+## P132. A relative fixture time with an offset is filled at two instants, so the two sides get different values that masking never covers (release point 5)
+
+- **Evidence.** Release point 5, one held-out template whose fixture dates feed items `{{bench.now-1d}}` and `{{bench.now-10d}}` (P90): gate 4 `1 replayed model call(s) got a different input`, the only difference the items' `pubDate`/`isoDate`, n8n `…T21:57:19.119Z` against Claude `…T21:57:19.475Z`, a day before the run. `n8n-side.mjs` `loadFixture(id, variant, {at})` fills the n8n side's tokens just before its run (the wall clock then) and the Claude side's from n8n's recorded `startedAt`, which comes a fraction of a second later. P90 says run-time masking covers the seconds between, but masking (P4) only touches timestamps within ±10 minutes of `startedAt`; a value offset by a day is never masked, so it differs by the gap on every run. No dev fixture uses the tokens (P90), so only held-out fixtures written blind are exposed. Same verdict in both held-out runs; the template's later gates are unmeasured.
+- **Proposed change.** Fill both sides from one instant: the n8n side keeps the instant it filled its tokens with in the recording (`fixtureAt`), and the Claude side (in process and the claude driver) fills from that, not from `startedAt`; recordings without it keep today's behaviour. Alternatively mask a filled token's value on both sides by its token (`<bench.now-1d>`), since the fixture, not the run, chose it.
+- **Why not in the loop.** It changes the fixture loader and what a recording keeps.
+- **Status: open** (release point 5, 2026-11-17).
+
+## P133. A write field built with `Math.random()` can never compare equal (release point 5)
+
+- **Evidence.** Release point 5, one held-out template: an HTTP Request body field is `{{ $json.domain + Math.floor(10000 + Math.random() * 90000) }}`, so n8n sends `…42819` and the Claude side `…38922`, a `different fields` difference at gate 4. P75 compares a random Code tool's result by shape, but only for agent tool results; a write has no such rule. The same template also differs on a second write (a JSON body sent as text, a converter matter), so no verdict depends on this today.
+- **Proposed change.** As P75, decided from n8n's own workflow: a write field whose n8n expression calls `Math.random()` is compared by type and shape, the value difference reported as `randomMasked`, never gated.
+- **Why not in the loop.** It changes the comparer.
+- **Status: open** (release point 5, 2026-11-17).
+
+## P134. A held-out baseline that fails on the stand-in's first live draw is neither marked nor re-drawn (release point 5)
+
+- **Evidence.** Release point 5's recording pass: two held-out templates whose canned checks run to the end on every variant failed their first live n8n run on the stand-in model's reply: a Code node after an extraction step reads a list the reply gave as text (`(…).join is not a function`), and an agent's tool call did not match the tool's schema (`Received tool input did not match expected schema`). P13 never re-draws a reply n8n rejects, `expect.n8nCannotRun` and `expect.n8nFails` need a canned check that shows n8n failing (the canned checks pass), so both stay in n as gate-3 `fixture` failures with no baseline. P104 met the same case in dev (2271) and left it unmarked.
+- **Proposed change.** Decide before the next release point, one of: (a) a held-out recording pass re-draws a baseline that fails at a node fed by a model reply up to two more times, every draw kept and reported, and the first draw n8n accepts is the recording; (b) a baseline that fails on a model reply after that is marked `n8nCannotRun` (a structured reply the stand-in does not give, as P104's list says), so `--release` leaves it out beside the headline. Either way the rule is written before the draws are seen.
+- **Why not in the loop.** It changes how held-out baselines are recorded and marked.
+- **Status: open** (release point 5, 2026-11-17).
+
+## P135. The held-out recording pass also runs the claude driver, so it spends the second held-out run's budget (release point 5)
+
+- **Evidence.** P115's procedure records held-out templates in a setup pass before the scored runs. `run.mjs` has no recording-only mode, so the setup pass is a full bench run: it records n8n's model calls live and also runs gate 8's claude driver on every template that passes gates 3–7 in process. At release point 5 that was 52 `claude -p` (35 live n8n model calls, 16 claude-driver runs, 1 Claude-side model call answered live) against an estimate of about 20, and the second scored held-out run did not fit the release point's cap (RELEASE-5.md, Setup).
+- **Proposed change.** `run.mjs --record-only <ids>`: the n8n side of every variant, live, saved as recordings, with no convert, Claude side or driver (no row, ledger entries only for the n8n model calls); release points use it for the setup pass.
+- **Why not in the loop.** It changes how release points are run.
+- **Status: open** (release point 5, 2026-11-17).
+
+## P136. A claude-driver session that declines a send step the runner prints ends the run `needs`, and is not retried (1978)
+
+- **Evidence.** `rel5-dev` 1978, same skill, converter and runtime as `r5b3-full`, where it passed every gate: gates 3–7 pass in process (the Gmail send's fields equal n8n's), then the claude driver's sessions on normal and hostile both stop before the send. Normal: `I'm stopping before the send … the HTML it prints has undefined where the headline and body should be … Sending that to a real address can't` (n8n sends the same HTML, since the in-process send matches it); hostile: the session judged the coupon email unwarranted from the replayed answer. Both runs end `needs`, gate 3 `runner bug: step ?: run needs`. P40 does not retry them: no model request was outstanding, so the session broke no protocol rule. It is the round's one dev pass/fail flip, the same shape as P116's decline but on a connector write, not a model step.
+- **Proposed change.** Either the driver's prompt says that the runner's write is the migrated workflow's own and the session's job is to make it exactly (the person reviews content at dry run, not the driver), or a run that ends `needs` with a write outstanding after the session's own final text counts as a P40 slip: retried once, a repeat stands as the verdict and is reported as a driver decline, apart from runner bugs.
+- **Why not in the loop.** It changes the claude driver's prompt or its slip rule.
+- **Status: open** (release point 5, 2026-11-17).
