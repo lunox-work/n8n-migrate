@@ -154,13 +154,15 @@ export function swapTrigger(wf, trigger, items) {
   return { ...wf, nodes, connections: { ...wf.connections, [start]: { main: [[{ node: trigger.name, type: "main", index: 0 }]] } } };
 }
 
-// Credential references: [{node, type, id, name}].
+// Credential references: [{node, type, id, name}]. A gallery export may strip the reference to
+// an empty name ("" or {id: "", name: ""}), which n8n refuses as a credential name, so an empty
+// name falls back to the type, as a missing one does (PROPOSALS P141).
 export function credentialRefs(wf) {
   const out = [];
   for (const n of wf.nodes) {
     for (const [type, ref] of Object.entries(n.credentials ?? {})) {
       const r = typeof ref === "string" ? { id: null, name: ref } : ref ?? {};
-      out.push({ node: n.name, type, id: r.id ?? null, name: r.name ?? type });
+      out.push({ node: n.name, type, id: r.id || null, name: r.name || type });
     }
   }
   return out;

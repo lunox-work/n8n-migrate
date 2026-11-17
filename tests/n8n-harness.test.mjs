@@ -66,6 +66,14 @@ test("credential references, legacy string form included", () => {
   ]);
 });
 
+test("P141: a credential reference stripped to an empty name takes the type as its name", () => {
+  const refs = credentialRefs({ nodes: [{ name: "A", credentials: { airtableTokenApi: { id: "", name: "" } } }, { name: "B", credentials: { dropboxApi: "" } }] });
+  assert.deepEqual(refs, [
+    { node: "A", type: "airtableTokenApi", id: null, name: "airtableTokenApi" },
+    { node: "B", type: "dropboxApi", id: null, name: "dropboxApi" },
+  ]);
+});
+
 test("run data summary keeps every output and the error", () => {
   const s = summariseRunData({ If: [{ executionStatus: "success", executionTime: 2, data: { main: [[{ json: { a: 1 } }], [{ json: { b: 2 } }]] } }], Bad: [{ executionStatus: "error", error: { message: "boom" }, data: {} }] });
   assert.deepEqual(s.If[0].items.main, [[{ a: 1 }], [{ b: 2 }]]);
