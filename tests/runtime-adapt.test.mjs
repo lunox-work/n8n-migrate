@@ -189,3 +189,17 @@ test("adaptResult: a text answer where JSON is read fails the step instead of em
   assert.equal(r.error.node, "Read");
   assert.match(r.error.message, /answered with text/);
 });
+
+// Iteration 57: n8n's Drive trigger gives each new file's `name` and `webViewLink`; the
+// connector's search rows may name them `title` and `viewUrl`. The trigger's poll adapter
+// carries both names, the connector's own name first when it is there.
+test("adaptResult: the Drive trigger's poll rows carry n8n's name and webViewLink", async () => {
+  const { readFileSync } = await import("node:fs");
+  const maps = JSON.parse(readFileSync(new URL("../skills/n8n-to-claude/references/tool-maps.json", import.meta.url), "utf8"));
+  const poll = maps.nodes?.["n8n-nodes-base.googleDriveTrigger"]?.[">=1"]?._.poll ?? Object.values(maps).find((m) => m?.["n8n-nodes-base.googleDriveTrigger"])?.["n8n-nodes-base.googleDriveTrigger"][">=1"]._.poll;
+  const rows = adaptResult(poll.result, { files: [{ id: "f1", title: "Q4 deck.pdf", viewUrl: "https://drive.example/f1" }, { id: "f2", name: "kept.pdf", title: "other", webViewLink: "https://drive.example/f2" }] });
+  assert.deepEqual(rows.map((r) => [r.id, r.name, r.webViewLink]), [
+    ["f1", "Q4 deck.pdf", "https://drive.example/f1"],
+    ["f2", "kept.pdf", "https://drive.example/f2"],
+  ]);
+});

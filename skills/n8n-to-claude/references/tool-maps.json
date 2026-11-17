@@ -677,7 +677,7 @@
               "orderBy": { "const": "modifiedTime desc" },
               "pageSize": { "const": 100 }
             },
-            "result": { "items": "files[*]" },
+            "result": { "items": "files[*]", "fields": { "name": { "first": ["name", "title"] }, "webViewLink": { "first": ["webViewLink", "viewUrl"] } } },
             "cursor": { "field": "createdTime", "strategy": "max", "idField": "id", "arg": "query", "template": "and createdTime > '{iso}'" },
             "cursorByParam": {
               "param": "event",
@@ -687,7 +687,7 @@
               }
             },
             "fidelity": "unverified",
-            "missingFields": ["kind", "mimeType", "parents", "webViewLink"],
+            "missingFields": ["kind", "mimeType", "parents"],
             "understood": ["pollTimes", "triggerOn", "folderToWatch", "event", "options.fileType"],
             "review": [
               { "param": "triggerOn", "equals": "specificFile", "reason": "watching one file needs a query on its id" },
