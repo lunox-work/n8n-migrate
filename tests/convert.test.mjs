@@ -197,6 +197,17 @@ test("substitutions apply only when approved (SMTP -> Gmail send)", () => {
   assert.deepEqual(on.allow.tools, [{ connector: "gmail", tool: "send_message" }]);
 });
 
+// Iteration 59: the SMTP node's v1 has no emailFormat and sends its text and html as given; the
+// Gmail substitution maps them by the node's version ("@typeVersion"), v2's emailFormat as before.
+test("substitutions: the SMTP v1 send's text and html reach the Gmail send", () => {
+  const v1 = (params) => ({ parameters: { fromEmail: "me@x.test", toEmail: "a@x.test", subject: "Hi", options: {}, ...params }, name: "Send email", type: "n8n-nodes-base.emailSend", typeVersion: 1, position: [200, 0], credentials: { smtp: { id: "1", name: "SMTP" } } });
+  const args = (node) => convertJson(tiny([manual, node], link("Start", "Send email")), { approve: ["smtp-to-gmail"] }).definition.steps["Send email"].tool.args;
+  assert.deepEqual(args(v1({ text: "=Created: {{$json.name}}" })), { to: "a@x.test", subject: "Hi", body: "=Created: {{$json.name}}" });
+  assert.deepEqual(args(v1({ text: "t", html: "<p>h</p>" })), { to: "a@x.test", subject: "Hi", body: "t", htmlBody: "<p>h</p>" });
+  const v2 = { ...v1({ html: "<p>h</p>", text: "stale" }), typeVersion: 2.1 };
+  assert.deepEqual(args(v2), { to: "a@x.test", subject: "Hi", htmlBody: "<p>h</p>" }, "v2 keeps emailFormat's default (html)");
+});
+
 test("inline secrets are redacted in the stored source and flag the step; a run-time URL is refused until narrowed", () => {
   const { dir, folders } = toFolder(join(ROOT, "tests/fixtures/inline-secret.json"), { forceConvert: true });
   const src = readFileSync(join(folders[0], "source.n8n.json"), "utf8");

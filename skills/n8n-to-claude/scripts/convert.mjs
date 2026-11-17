@@ -1041,8 +1041,11 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       }
     } else {
       const args = {};
+      // "@typeVersion": the node's version, for an args `if` where node versions take different
+      // parameters (the SMTP send's v1 has no emailFormat and sends text and html as given).
+      const argParams = { ...params, "@typeVersion": step.n8n?.typeVersion ?? 1 };
       for (const [k, spec] of Object.entries(entry.args ?? {})) {
-        const v = resolveSpec(spec, params, issues);
+        const v = resolveSpec(spec, argParams, issues);
         if (v !== undefined) args[k] = v;
       }
       const schema = toolSchema(refs, entry.connector, entry.tool);
