@@ -28,6 +28,8 @@ A step with `needsTranslation: {kind, original, reason}` in `definition.json` is
 
 ## Drafted request templates and tool maps (convert time)
 
+Experimental, not shipped: on a held-out set, accepted drafts passed no more workflows than leaving the steps blocked, and a drafted read handed on the app's raw response where n8n hands on flattened items, so later steps sent empty fields. Use only when the person asks for it by name and has heard that; a blocked step's default is to stay blocked with its reason.
+
 A step blocked as `no request template for … yet` (an app REST request template missing) or `no tool map for … yet` (a connector operation without a tool map) can get a draft. Not triggers, vector stores, databases or media.
 
 - `node SKILL/scripts/draft.mjs <folder>` asks a model (`claude -p`, haiku by default, on the person's own account and only with their go-ahead: it sends the step's node type and redacted parameters) once per distinct node operation, with the prompt in [draft-prompt.md](draft-prompt.md), checks each draft in code, writes it to `overrides.json` `drafts.<step name>` and regenerates. The runner then executes it as code; no model is called at run time, and the exact-argument hook and the effect ledger apply as to any step.
