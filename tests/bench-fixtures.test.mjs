@@ -513,8 +513,9 @@ test("round 5 held-out: 20 fresh past the gallery ranking, eligible, reproducibl
   for (const { out } of fresh.redraws ?? []) for (const id of out) assert.ok(!isCandidate(byId.get(id)), `${id} was redrawn but is still a candidate`);
   // Fresh: named nowhere a fixing session reads (levers.json, LEVERS.md), not on the ranking's
   // listing pages (where cached), and never in the survey folder (PROPOSALS P51).
+  // While they are held-out (round 5); from round 6 they are dev, and levers.mjs names dev unlocks.
   const stale = namedInLevers();
-  for (const id of ids(fresh.templates)) assert.ok(!stale.has(id), `${id} is named in levers.json or LEVERS.md`);
+  if (splits.currentRound <= 5) for (const id of ids(fresh.templates)) assert.ok(!stale.has(id), `${id} is named in levers.json or LEVERS.md`);
   if (levers.listingPages.every((p) => existsSync(join(BENCH, "..", "..", p.file)))) {
     const onPages = leversWalk().ids;
     for (const id of ids(fresh.templates)) assert.ok(!onPages.has(id), `${id} is on the gallery ranking's listing pages`);

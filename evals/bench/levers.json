@@ -107,7 +107,7 @@
  ],
  "analyzer": "analyze.mjs and convert.mjs of the checkout, default answers, --now 2026-11-16T00:00:00Z, no model",
  "rules": "EXCLUSIONS.md exclusion rules (fetch.mjs, same order) and round-4 eligibility clauses 1-3, 5, 6 (eligible.mjs); clause 4 (planned features) is not applied",
- "round": 5,
+ "round": 6,
  "requests": {
   "listing": 14,
   "template": 640,
@@ -154,13 +154,13 @@
   "crashes": 0
  },
  "dev": {
-  "templates": 120,
+  "templates": 140,
   "unnamed": 0,
-  "supportedToday": 49,
-  "answersOnly": 23,
-  "blocked": 48,
+  "supportedToday": 62,
+  "answersOnly": 27,
+  "blocked": 51,
   "missing": 0,
-  "filled": 27
+  "filled": 31
  },
  "byPlanned": [
   {
@@ -184,8 +184,8 @@
    "keys": 43,
    "galleryUnlock": 39,
    "galleryTotal": 73,
-   "devUnlock": 8,
-   "devTotal": 13
+   "devUnlock": 11,
+   "devTotal": 16
   },
   {
    "group": "http",
@@ -291,8 +291,8 @@
    "keys": 10,
    "galleryUnlock": 10,
    "galleryTotal": 25,
-   "devUnlock": 1,
-   "devTotal": 1,
+   "devUnlock": 3,
+   "devTotal": 3,
    "planned": "rest-template"
   },
   {
@@ -651,8 +651,8 @@
    "keys": 2,
    "galleryUnlock": 1,
    "galleryTotal": 5,
-   "devUnlock": 1,
-   "devTotal": 2,
+   "devUnlock": 2,
+   "devTotal": 3,
    "planned": "rest-template"
   },
   {
@@ -1393,13 +1393,13 @@
    "reason": "no-tool: no request template for airtable record:create yet (it needs the app's REST API with a stored secret)",
    "galleryAlone": 2,
    "galleryTotal": 9,
-   "devUnlock": 0,
-   "devTotal": 0,
+   "devUnlock": 2,
+   "devTotal": 2,
    "ids": {
     "galleryAlone": [2087, 2924],
     "galleryTotal": [2087, 2619, 2662, 2924, 3435, 3717, 4481, 4887, 5743],
-    "devUnlock": [],
-    "devTotal": []
+    "devUnlock": [3027, 3200],
+    "devTotal": [3027, 3200]
    }
   },
   {
@@ -1915,13 +1915,13 @@
    "reason": "no-tool: no request template for discord channel:create yet (it needs the app's REST API with a stored secret)",
    "galleryAlone": 1,
    "galleryTotal": 4,
-   "devUnlock": 1,
-   "devTotal": 2,
+   "devUnlock": 2,
+   "devTotal": 3,
    "ids": {
     "galleryAlone": [3121],
     "galleryTotal": [2249, 2564, 3121, 3442],
-    "devUnlock": [3121],
-    "devTotal": [3121, 3442]
+    "devUnlock": [3121, 4022],
+    "devTotal": [3121, 3442, 4022]
    }
   },
   {
