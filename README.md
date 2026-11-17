@@ -61,10 +61,13 @@
   the reason, or differ when run, which is what the dry run before switch-over
   is for.
 - **Partly run on a real Claude account.** Cloud tasks (with HTTP steps and
-  their hooks), artifact pages with a model step, and a skill in a claude.ai
-  chat have run on a real account. Desktop tasks and connector calls are
-  still tested only against local stand-ins, and what each connector returns
-  is written by hand in the tests. Do the dry run before you switch n8n off.
+  their hooks), local runs, artifact pages with a model step, and a skill in a
+  claude.ai chat have run on a real account. Slack, Google Drive and Notion
+  reads were checked against what the real connectors return; Gmail and
+  every connector write were not. A cloud task did not get Notion's core
+  tools, likely because they need approval: set each tool a workflow uses to
+  run without approval, then Run now once. Do the dry run before you switch
+  n8n off.
 
 ## Before / After
 
@@ -396,10 +399,12 @@ What to tell them, accurately:
   upper bound: in the bench (round 5, on a corpus rebuilt in round 4) 50 of
   120 dev templates and 7 of 20 held-out templates passed every gate in one
   shot, and 62 of the 120 had every step supported by the converter.
-- Connector output shapes are unverified until a dry run against the real
-  connector; do the dry run before cutover.
-- Cloud and Desktop tasks, their hooks and the artifact runtime are checked
-  against docs and local stand-ins, not yet on a real account.
+- Slack, Google Drive and Notion reads are checked against real connector
+  output (2026-11-18); Gmail and all connector writes are not. Do the dry run
+  before cutover.
+- Cloud tasks, their hooks, local runs and the artifact runtime have run on a
+  real account. In a cloud task a connector tool that needs approval was
+  likely not offered: set the workflow's tools to run without approval.
 - Never create a task, publish an artifact, push a repository or run a
   cutover step without the person's go-ahead.
 

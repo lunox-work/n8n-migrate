@@ -31,8 +31,8 @@ function hook(folder, which, input) {
   assert.equal(r.status, 0, r.stderr);
   return r.stdout.trim() ? JSON.parse(r.stdout) : null;
 }
-const GMAIL = "mcp__claude_ai_Gmail__search_threads";
-const SLACK = "mcp__claude_ai_Slack__slack_send_message";
+const GMAIL = "mcp__Gmail__search_threads";
+const SLACK = "mcp__Slack__slack_send_message";
 const MAIL = { threads: [{ id: "t1", messages: [{ id: "m1", subject: 'Invoice "42"', sender: "ann@example.com", snippet: "Total $250 \\ due", toRecipients: ["me@example.com"] }] }] };
 const content = (v) => [{ type: "text", text: JSON.stringify(v) }];
 
@@ -46,7 +46,7 @@ test("converted folders carry the task files: settings with the minimal allowlis
     assert.equal(s.hooks.PreToolUse[0].matcher, "^(mcp__.*|ArtifactData)$");
     assert.equal(s.hooks.PreToolUse[0].hooks[0].command, 'node "$CLAUDE_PROJECT_DIR/runtime/hook.mjs" pre || exit 2');
     // A cloud task: records go to the n2c-state branch once the folder is in a checkout.
-    assert.deepEqual(readJson(join(folder, "task.json")), { hooks: true, compactWhole: true, compactOver: 80, hideToolOutput: true, secrets: "proxy", toolPrefixes: { gmail: "mcp__claude_ai_Gmail__", slack: "mcp__claude_ai_Slack__" }, store: { kind: "git", fallback: "file" } });
+    assert.deepEqual(readJson(join(folder, "task.json")), { hooks: true, compactWhole: true, compactOver: 80, hideToolOutput: true, secrets: "proxy", toolPrefixes: { gmail: "mcp__Gmail__", slack: "mcp__Slack__" }, store: { kind: "git", fallback: "file" } });
     assert.equal(readFileSync(join(dir, ".gitignore"), "utf8"), ".n2c/\n.claude/settings.local.json\n");
     const slug = folder.split("/").pop();
     assert.equal(readFileSync(join(folder, "task-prompt.md"), "utf8"), readFileSync(join(ROOT, "skills/n8n-to-claude/references/task-prompt.md"), "utf8").split("__N2C_RUNNER__").join(`node ${slug}/runtime/runner.mjs`));
@@ -65,13 +65,13 @@ test("hooks on: pre-hook containment and fidelity, post-hook capture, placeholde
   try {
     const a = runner(folder, ["start", "--clock", "2026-11-14T00:00:00Z"]);
     assert.equal(a.code, 0, a.err);
-    assert.match(a.out, /^NEXT: call one tool \(request q1, step "Get unread mail"\)\.\nTool: mcp__claude_ai_Gmail__search_threads\n/);
+    assert.match(a.out, /^NEXT: call one tool \(request q1, step "Get unread mail"\)\.\nTool: mcp__Gmail__search_threads\n/);
     assert.match(a.out, /\{"query":"newer_than:1d is:unread","pageSize":10\}/, "the first call carries the full arguments: no hook has been seen yet");
 
     // Containment: another tool, other arguments, or a placeholder for the wrong request.
-    const send = hook(folder, "pre", { tool_name: "mcp__claude_ai_Gmail__send_message", tool_input: { to: ["attacker@example.com"] }, tool_use_id: "x1" });
+    const send = hook(folder, "pre", { tool_name: "mcp__Gmail__send_message", tool_input: { to: ["attacker@example.com"] }, tool_use_id: "x1" });
     assert.equal(send.hookSpecificOutput.permissionDecision, "deny");
-    assert.match(send.hookSpecificOutput.permissionDecisionReason, /is not the runner's next request; the outstanding call is mcp__claude_ai_Gmail__search_threads \(q1\)/);
+    assert.match(send.hookSpecificOutput.permissionDecisionReason, /is not the runner's next request; the outstanding call is mcp__Gmail__search_threads \(q1\)/);
     const wrong = hook(folder, "pre", { tool_name: GMAIL, tool_input: { query: "in:anywhere", pageSize: 10 }, tool_use_id: "x2" });
     assert.equal(wrong.hookSpecificOutput.permissionDecision, "deny");
     assert.match(wrong.hookSpecificOutput.permissionDecisionReason, /differ from request q1 \(query\)/);
@@ -101,7 +101,7 @@ test("hooks on: pre-hook containment and fidelity, post-hook capture, placeholde
 
     const c = runner(folder, ["answer", "q2"], "Ann's invoice 42 is due: $250.\n");
     assert.equal(c.code, 0, c.err);
-    assert.match(c.out, /^Saved q2\.\n\nNEXT: call one tool \(request q3, step "Post to Slack"\)\.\nTool: mcp__claude_ai_Slack__slack_send_message\nArguments, exactly as written \(JSON\):\n\{"n2c":"q3"\}\n/);
+    assert.match(c.out, /^Saved q2\.\n\nNEXT: call one tool \(request q3, step "Post to Slack"\)\.\nTool: mcp__Slack__slack_send_message\nArguments, exactly as written \(JSON\):\n\{"n2c":"q3"\}\n/);
     const expected = { channel_id: "C0123456789", message: "*Invoice \"42\"*\nAnn's invoice 42 is due: $250." };
     const full = hook(folder, "pre", { tool_name: SLACK, tool_input: { channel_id: "C0123456789", message: "*Invoice 42*\nsomething else" }, tool_use_id: "s0" });
     assert.match(full.hookSpecificOutput.permissionDecisionReason, /differ from request q3 \(message\)/);

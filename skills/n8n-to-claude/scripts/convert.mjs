@@ -2282,6 +2282,8 @@ export function migrationMd(wr, def, { refused, overrides } = {}) {
     const fh = formHandoff(def);
     if (fh) L.push(`- The form's steps cannot all run in the artifact: submissions are stored by the page and a ${fh.target === "local-task" ? "local" : "cloud"} task picks them up (task.json \`source: poll-submissions\`). That needs a task that can read the artifact's database, which is not confirmed yet (task.json \`artifactDb\` stays false until it is).`);
     if (def.secrets.length) L.push("- Secrets on a local task: set `N2C_SECRET_<NAME>` (the credential name in capitals, other characters as `_`). On a cloud task, add them as network secrets for the hosts above.");
+    const cTools = (def.allow.tools ?? []).map((t) => `\`${t.tool}\``);
+    if (cTools.length) L.push(`- On a cloud task, attach ${[...new Set(def.allow.tools.map((t) => t.connector))].join(", ")} to the task and set ${[...new Set(cTools)].join(", ")} to run without approval in the connector's settings on claude.ai, then Run now and check the step: a cloud task's session lacked some connector tools, likely those that need approval (observed 2026-11-18).`);
     if (def.allow.http.length) L.push(`- A cloud task reaches only the domains its environment allows. Add ${def.allow.http.some((h) => h.scope === "public" || h.host === "*") ? 'every host this workflow may reach (a step answered "public" needs the environment\'s full network access)' : [...new Set(def.allow.http.map((h) => h.host))].join(", ")} to the allowed domains of the environment it runs in (a dedicated one for these workflows, not Default), or its HTTP steps fail.`);
     L.push(`- \`artifact.html\` is the artifact page: the graph, Run now (dry run on by default: reads run, writes are shown and not sent) and the run history. Publish it with the capabilities in \`artifact.capabilities.json\`.${Object.values(def.steps).some((st) => st.kind === "http") ? " Its HTTP steps run only in the scheduled task: a run from the page stops there." : ""}`);
     L.push("");
@@ -2384,22 +2386,28 @@ export function writeRuntime(dir, def) {
 
 // ---------- task driver files ----------
 
-// The connector tool name a Claude session shows: <toolPrefix><tool>, from the captured schemas.
-export function toolPrefixes(def, refs) {
+// The connector tool name a Claude session shows: <toolPrefix><tool>. On this machine and in
+// Desktop and chat a claude.ai connector is mcp__claude_ai_<Name>__ (the captured schemas). A
+// cloud task's session names it after the routine's connection, the connector's name with
+// hyphens: mcp__Notion__notion-search, mcp__Google-Drive__search_files (observed 2026-11-18;
+// mcp__claude_ai_Notion__ is "No such tool available" there).
+export const cloudPrefix = (local) => local.replace(/^mcp__claude_ai_/, "mcp__").replace(/__$/, "").replace(/^mcp__(.*)$/, (_, n) => `mcp__${n.replace(/_/g, "-")}__`);
+export function toolPrefixes(def, refs, where) {
   const out = {};
   for (const t of [...(def.allow?.tools ?? []), ...(def.allow?.alerts ?? [])]) {
-    const p = refs.connectors[t.connector]?.toolPrefix;
-    if (p) out[t.connector] = p;
+    const p = refs.connectors[t.connector]?.toolPrefix ?? EXTRA_TOOL_PREFIXES[t.connector];
+    if (p) out[t.connector] = where === "cloud-task" ? cloudPrefix(p) : p;
   }
   return out;
 }
+const taskTarget = (def, target) => formHandoff(def)?.target ?? target;
 // The record store follows the target: a cloud task's checkout is new each run, so its state
 // goes to the n2c-state branch (git); a local task and a skill keep it in the folder (file).
 // An artifact form whose steps run in a task takes its input from the page's submissions.
 export function taskJson(def, refs, target) {
   const handoff = formHandoff(def);
-  const where = handoff?.target ?? target;
-  return { hooks: true, compactWhole: true, compactOver: 80, hideToolOutput: true, secrets: where === "cloud-task" ? "proxy" : "env", toolPrefixes: { ...toolPrefixes(def, refs), ...(handoff ? { "artifact-db": "" } : {}) }, store: where === "cloud-task" ? { kind: "git", fallback: "file" } : { kind: "file" }, ...(handoff ? { source: "poll-submissions", artifactDb: false, artifactUrl: null } : {}) };
+  const where = taskTarget(def, target);
+  return { hooks: true, compactWhole: true, compactOver: 80, hideToolOutput: true, secrets: where === "cloud-task" ? "proxy" : "env", toolPrefixes: { ...toolPrefixes(def, refs, where), ...(handoff ? { "artifact-db": "" } : {}) }, store: where === "cloud-task" ? { kind: "git", fallback: "file" } : { kind: "file" }, ...(handoff ? { source: "poll-submissions", artifactDb: false, artifactUrl: null } : {}) };
 }
 const formHandoff = (def) => Object.values(def.steps).find((s) => s.kind === "trigger" && s.form?.handoff && s.settings?.disabled !== true)?.form.handoff ?? null;
 const HOOK_MATCHER = "^(mcp__.*|ArtifactData)$";
@@ -2408,17 +2416,17 @@ const HOOK_MATCHER = "^(mcp__.*|ArtifactData)$";
 // block, so containment fails closed.
 const hookCommand = (path, which) => `node "${path}" ${which}${which === "pre" ? " || exit 2" : ""}`;
 // .claude/settings.json for the task session. Measured in evals/task-driver/MEASUREMENTS.md.
-export function connectorToolNames(def, refs) {
-  const prefixes = toolPrefixes(def, refs);
+export function connectorToolNames(def, refs, where) {
+  const prefixes = toolPrefixes(def, refs, where);
   const names = [...(def.allow?.tools ?? []), ...(def.allow?.alerts ?? [])].map((t) => (prefixes[t.connector] ?? `mcp__${t.connector}__`) + t.tool);
   if (formHandoff(def)) names.push("ArtifactData");
   return uniq(names);
 }
 // .claude/settings.json for a session opened on this folder alone (one repo per workflow).
-export function taskSettings(def, refs) {
+export function taskSettings(def, refs, target) {
   const hook = (which) => [{ matcher: HOOK_MATCHER, hooks: [{ type: "command", command: hookCommand("$CLAUDE_PROJECT_DIR/runtime/hook.mjs", which), timeout: 30 }] }];
   return {
-    permissions: { defaultMode: "dontAsk", allow: ["Bash(node runtime/runner.mjs *)", "Edit(.n2c/inbox/**)", ...connectorToolNames(def, refs)], deny: ["WebFetch", "WebSearch"] },
+    permissions: { defaultMode: "dontAsk", allow: ["Bash(node runtime/runner.mjs *)", "Edit(.n2c/inbox/**)", ...connectorToolNames(def, refs, taskTarget(def, target))], deny: ["WebFetch", "WebSearch"] },
     hooks: { PreToolUse: hook("pre"), PostToolUse: hook("post") },
   };
 }
@@ -2430,7 +2438,7 @@ export function taskPrompt(runner = "node runtime/runner.mjs") {
 export function writeTaskFiles(dir, def, refs, target) {
   writeJson(join(dir, "task.json"), taskJson(def, refs, target));
   mkdirSync(join(dir, ".claude"), { recursive: true });
-  writeJson(join(dir, ".claude", "settings.json"), taskSettings(def, refs));
+  writeJson(join(dir, ".claude", "settings.json"), taskSettings(def, refs, target));
   writeFileSync(join(dir, "task-prompt.md"), taskPrompt(`node ${basename(dir)}/runtime/runner.mjs`));
 }
 

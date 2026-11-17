@@ -135,7 +135,7 @@ test("a write cut off between sending and sent stops the run: alert once, never 
   try {
     const s = session(folder);
     let out = runner(folder, ["start", "--clock", "2026-11-14T00:00:00Z"]).out;
-    out = s.until(out, (o) => /Tool: mcp__claude_ai_Slack__slack_send_message/.test(o));
+    out = s.until(out, (o) => /Tool: mcp__Slack__slack_send_message/.test(o));
     assert.deepEqual(s.act(out, { killAfterPre: true }), { killed: true });
     const key = readdirSync(join(dir, "state/ledger"))[0].replace(/\.json$/, "");
     assert.equal(readJson(join(dir, "state/ledger", `${key}.json`)).status, "sending");
@@ -385,7 +385,7 @@ test("several workflow folders in one repo: root settings are the union, n2c-hoo
       assert.ok(root.permissions.allow.includes(`Bash(node ${s}/runtime/runner.mjs *)`));
       assert.ok(root.permissions.allow.includes(`Edit(${s}/.n2c/inbox/**)`));
     }
-    assert.ok(root.permissions.allow.includes("mcp__claude_ai_Gmail__send_message") && root.permissions.allow.includes("mcp__claude_ai_Slack__slack_send_message"));
+    assert.ok(root.permissions.allow.includes("mcp__claude_ai_Gmail__send_message") && root.permissions.allow.includes("mcp__Slack__slack_send_message"));
     // A session started at the repo root: commands are printed with the folder path.
     const [digest] = folders;
     const r = spawnSync(process.execPath, [join(digest, "runtime/runner.mjs"), "start"], { cwd: out, encoding: "utf8" });
@@ -397,17 +397,17 @@ test("several workflow folders in one repo: root settings are the union, n2c-hoo
     };
     // The outstanding Gmail read of the digest run is allowed (no decision: the allowlist decides).
     const req = readJson(join(digest, ".n2c/run.json")).requests[0];
-    assert.equal(dispatch("pre", { tool_name: "mcp__claude_ai_Gmail__search_threads", tool_input: req.args, tool_use_id: "u1" }), null);
+    assert.equal(dispatch("pre", { tool_name: "mcp__Gmail__search_threads", tool_input: req.args, tool_use_id: "u1" }), null);
     assert.ok(existsSync(join(digest, ".n2c/calls/u1.json")), "routed to the digest folder's hook");
     // A call no run asked for is denied; so is the right tool with other arguments.
-    assert.equal(dispatch("pre", { tool_name: "mcp__claude_ai_Gmail__send_message", tool_input: { to: ["x@example.com"] }, tool_use_id: "u2" }).hookSpecificOutput.permissionDecision, "deny");
-    assert.equal(dispatch("pre", { tool_name: "mcp__claude_ai_Gmail__search_threads", tool_input: { query: "in:anywhere" }, tool_use_id: "u3" }).hookSpecificOutput.permissionDecision, "deny");
+    assert.equal(dispatch("pre", { tool_name: "mcp__Gmail__send_message", tool_input: { to: ["x@example.com"] }, tool_use_id: "u2" }).hookSpecificOutput.permissionDecision, "deny");
+    assert.equal(dispatch("pre", { tool_name: "mcp__Gmail__search_threads", tool_input: { query: "in:anywhere" }, tool_use_id: "u3" }).hookSpecificOutput.permissionDecision, "deny");
     // post goes to the folder that recorded the call.
-    const post = dispatch("post", { tool_name: "mcp__claude_ai_Gmail__search_threads", tool_input: req.args, tool_use_id: "u1", tool_response: [{ type: "text", text: JSON.stringify(CANNED["gmail.search_threads"](req.args)) }] });
+    const post = dispatch("post", { tool_name: "mcp__Gmail__search_threads", tool_input: req.args, tool_use_id: "u1", tool_response: [{ type: "text", text: JSON.stringify(CANNED["gmail.search_threads"](req.args)) }] });
     assert.match(post.hookSpecificOutput.updatedMCPToolOutput[0].text, new RegExp(`Saved as result q1 .*Now run: node ${slugs[0]}/runtime/runner.mjs next`));
     // With no run in progress anywhere, every call is denied.
     rmSync(join(digest, ".n2c"), { recursive: true, force: true });
-    assert.equal(dispatch("pre", { tool_name: "mcp__claude_ai_Slack__slack_send_message", tool_input: { channel_id: "C1", message: "hi" } }).hookSpecificOutput.permissionDecision, "deny");
+    assert.equal(dispatch("pre", { tool_name: "mcp__Slack__slack_send_message", tool_input: { channel_id: "C1", message: "hi" } }).hookSpecificOutput.permissionDecision, "deny");
   } finally {
     rmSync(out, { recursive: true, force: true });
   }

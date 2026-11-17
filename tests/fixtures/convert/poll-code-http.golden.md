@@ -39,6 +39,7 @@ Store each under its n8n credential name. The value is never written to these fi
 - Run safety: every write is recorded before it goes out, so a run cut off by a usage limit is resumed by the next run without sending anything twice. Records, cursors and the ledger are kept in `.n2c/records/` on a local task and on the `n2c-state` branch on a cloud task.
 - Alerts: none chosen, so a failed or missed run is reported in the task's final message. To get a Slack or Gmail alert, set `alerts` in overrides.json (the skill's `references/alerts.md`) and regenerate.
 - Secrets on a local task: set `N2C_SECRET_<NAME>` (the credential name in capitals, other characters as `_`). On a cloud task, add them as network secrets for the hosts above.
+- On a cloud task, attach gmail to the task and set `search_threads`, `get_message` to run without approval in the connector's settings on claude.ai, then Run now and check the step: a cloud task's session lacked some connector tools, likely those that need approval (observed 2026-11-18).
 - A cloud task reaches only the domains its environment allows. Add api.accounts.example.com to the allowed domains of the environment it runs in (a dedicated one for these workflows, not Default), or its HTTP steps fail.
 - `artifact.html` is the artifact page: the graph, Run now (dry run on by default: reads run, writes are shown and not sent) and the run history. Publish it with the capabilities in `artifact.capabilities.json`. Its HTTP steps run only in the scheduled task: a run from the page stops there.
 

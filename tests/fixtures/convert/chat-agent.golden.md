@@ -36,6 +36,7 @@ The run can only reach these. Anything else is refused.
 - Run safety: every write is recorded before it goes out, so a run cut off by a usage limit is resumed by the next run without sending anything twice. Records, cursors and the ledger are kept in `.n2c/records/` on a local task and on the `n2c-state` branch on a cloud task.
 - Alerts: none chosen, so a failed or missed run is reported in the task's final message. To get a Slack or Gmail alert, set `alerts` in overrides.json (the skill's `references/alerts.md`) and regenerate.
 - `skill/` is this chat workflow as a skill: copy it into `.claude/skills/` (or zip it for upload). Each message goes through the workflow and its reply comes back.
+- On a cloud task, attach gmail, slack to the task and set `search_threads`, `slack_send_message` to run without approval in the connector's settings on claude.ai, then Run now and check the step: a cloud task's session lacked some connector tools, likely those that need approval (observed 2026-11-18).
 - `artifact.html` is the artifact page: the graph, Run now (dry run on by default: reads run, writes are shown and not sent) and the run history. Publish it with the capabilities in `artifact.capabilities.json`.
 
 ## Requirements per surface

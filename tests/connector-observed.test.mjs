@@ -141,3 +141,14 @@ test("Notion: search titles, fetched pages, query rows and fetched data sources"
   assert.equal(db.title[0].plain_text, "Tasks");
   assert.deepEqual(Object.keys(db.properties), ["Name", "Status"]);
 });
+
+test("a session without the step's tool: the failure names the fix", async () => {
+  const { missingToolHint } = await import("../skills/n8n-to-claude/runtime/src/driver.mjs");
+  assert.match(missingToolHint("Error: No such tool available: mcp__Notion__notion-search"), /^Error: No such tool available: mcp__Notion__notion-search \(the session has no such tool: check that the connector is attached/);
+  assert.equal(missingToolHint("rate limited"), "rate limited");
+});
+
+test("cloud tasks name connector tools after the routine's connection", async () => {
+  const { cloudPrefix } = await import("../skills/n8n-to-claude/scripts/convert.mjs");
+  assert.deepEqual(["mcp__claude_ai_Notion__", "mcp__claude_ai_Google_Drive__", "mcp__claude_ai_Atlassian_MCP__"].map(cloudPrefix), ["mcp__Notion__", "mcp__Google-Drive__", "mcp__Atlassian-MCP__"]);
+});

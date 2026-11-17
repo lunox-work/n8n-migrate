@@ -255,6 +255,15 @@ export function overflowResult(text, read = (p) => readFileSync(p, "utf8")) {
     return { ok: false, error: { name: "ResponseTooLarge", message: `the tool's response was larger than the session allows and its saved copy could not be read (${e.code ?? e.message})` } };
   }
 }
+// A session without the tool the step needs ("No such tool available: mcp__Notion__notion-search").
+// Observed 2026-11-18: a cloud task's session offered 37 of the Notion connector's tools and
+// none of its core ones (search, fetch, query, page writes), whatever the routine's connection
+// listed. Likely cause, not yet confirmed: tools set to need approval on claude.ai are not
+// offered to an unattended session.
+export function missingToolHint(text) {
+  if (!/No such tool available/i.test(String(text))) return text;
+  return `${String(text).trim()} (the session has no such tool: check that the connector is attached to the task and that this tool is set to run without approval in the connector's settings on claude.ai; an unattended task likely gets no tool that needs approval)`;
+}
 function parseMaybe(text) {
   const t = String(text).trim();
   if (/^[[{"]/.test(t) || /^(true|false|null|-?\d)/.test(t)) {
@@ -1324,7 +1333,7 @@ export async function command(cmd, pos, flags, { core, dir, stdin, fetch, isTTY 
       if (cmd === "result") {
         // The model cannot transcribe a response the session never showed it: fail the step.
         if (overflowFile(text)) result = { ok: false, error: { name: "ResponseTooLarge", message: "the tool's response was too large to pass through the model; this step needs the runner's hooks" } };
-        else result = flags.error ? { ok: false, error: { name: "ToolError", message: text } } : { ok: true, value: mcpValue(text) };
+        else result = flags.error ? { ok: false, error: { name: /No such tool available/i.test(text) ? "ToolMissing" : "ToolError", message: missingToolHint(text) } } : { ok: true, value: mcpValue(text) };
         result.capturedBy = "model";
       } else {
         let value = text;
