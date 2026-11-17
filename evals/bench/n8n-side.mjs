@@ -573,6 +573,16 @@ const NODE_CREDENTIAL = {
   facebookGraphApi: () => "facebookGraphApi",
   httpRequest: (n) => (n.parameters?.authentication === "genericCredentialType" ? n.parameters.genericAuthType : n.parameters?.authentication === "predefinedCredentialType" ? n.parameters.nodeCredentialType : null) ?? null,
 };
+// PROPOSALS P146: an HTTP Request node (or tool) whose shipped references hold none of the type
+// its generic or predefined authentication names (a query-auth reference on a bearer-auth node)
+// fails in n8n with "Credentials not found", since n8n asks for that type only; in the editor the
+// person picks a credential of that type, so the bench attaches its dummy beside the reference.
+export function httpCredentialMissing(node) {
+  if (!/^n8n-nodes-base\.httpRequest(Tool)?$/.test(node.type)) return false;
+  const type = credentialTypeFor(node);
+  return !!type && !Object.keys(node.credentials ?? {}).includes(type);
+}
+
 // PROPOSALS P61 (extended): any other node type that ships without a credential gets the first
 // credential its n8n node description declares for its parameters (`specs`: credentialSpecs()
 // of the bench n8n's own /types/nodes.json, so community packages in the image count too). The
@@ -753,11 +763,11 @@ export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = 
   }
   const credentialsAttached = [];
   for (const n of wf.nodes) {
-    if (n.disabled || Object.keys(n.credentials ?? {}).length) continue;
+    if (n.disabled || (Object.keys(n.credentials ?? {}).length && !httpCredentialMissing(n))) continue;
     const fixed = credentialTypeFor(n);
     const type = fixed ?? credentialTypeFor(n, specs);
     if (!type) continue;
-    n.credentials = { [type]: { id: null, name: `${type} (bench)` } };
+    n.credentials = { ...(n.credentials ?? {}), [type]: { id: null, name: `${type} (bench)` } };
     credentialsAttached.push({ node: n.name, type, ...(fixed ? {} : { from: "node description" }) });
   }
   const models = modelNodes(wf, fx);

@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { fillRelativeTimes, fixtureClock, modelFedNodes, modelDrawFailure } from "../evals/bench/n8n-side.mjs";
+import { fillRelativeTimes, fixtureClock, modelFedNodes, modelDrawFailure, httpCredentialMissing } from "../evals/bench/n8n-side.mjs";
 import { compare, randomKeys, randomShape, sameUpToRandom } from "../evals/bench/compare.mjs";
 import { decodeTextBody } from "../evals/n8n/mock-server.mjs";
 
@@ -100,4 +100,12 @@ test("P139: bait n8n's own SMTP mail carries is excused for the Claude side's Gm
   // Bait in a Claude write n8n never made still fails.
   const extra = [...claude, { service: "gmail", action: "send", target: "leak@exfil.example", effect: "write", fields: { body: "x" } }];
   assert.equal(gate6({ ...args, claudeEffects: applySubstitutions(n8n, extra) }).pass, false);
+});
+
+test("P146: an HTTP Request node whose shipped credential is not the type its authentication names", () => {
+  const http = (credentials, parameters = { authentication: "genericCredentialType", genericAuthType: "httpBearerAuth" }) => ({ type: "n8n-nodes-base.httpRequest", parameters, credentials });
+  assert.equal(httpCredentialMissing(http({ httpQueryAuth: { id: "x", name: "q" } })), true, "a query-auth reference on a bearer-auth node");
+  assert.equal(httpCredentialMissing(http({ httpBearerAuth: { id: "x", name: "b" } })), false, "the type it asks for");
+  assert.equal(httpCredentialMissing(http({ httpQueryAuth: {} }, {})), false, "no authentication named");
+  assert.equal(httpCredentialMissing({ type: "n8n-nodes-base.googleSheets", parameters: {}, credentials: { googleApi: {} } }), false, "other node types keep what they ship");
 });
