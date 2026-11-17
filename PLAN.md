@@ -449,7 +449,25 @@ Found on the way:
 - `.claude-plugin/` manifest and marketplace entry; zip for upload; listing on skills.sh.
 - README in the hook / hero / stats / before-after shape, with the Phase 0 compatibility table and a line that the project is not affiliated with n8n or Anthropic.
 
-Status 2026-11-15, done locally (nothing pushed or published): LICENSE (MIT), NOTICE.md, PRIVACY.md; `.claude-plugin/` (plugin.json, one-plugin marketplace.json, data.md, icon.png from `assets/icon.svg`); `scripts/skill.mjs` check, sync, pack (`dist-skills/n8n-to-claude-0.1.0.zip` from HEAD) and plugin-branch (dry run by default, `--out` to inspect, `--push` to publish); README with the hero (`assets/src/index.html`), stats each cited to evals data, real before/after output, proof with the losses, the compatibility table; docs/REFERENCE.md; AGENTS.md. Found on the way: the scripts printed nothing from a symlinked skill folder (fixed); the analyzer names a workflow `workflow` in the definition when given the template API's wrapper instead of an export (cosmetic, open); the bench's claude driver runs inside this checkout, so its git store pushed bench run records to `n2c-state` on the public origin (open: delete that branch, and give the bench a file store or a work folder outside the checkout). `node --test` 299 pass. To ship, the author: pushes `main` to github.com/lunox-work/n8n-to-claude (the repository exists and is public, holding only the first commit); runs `node scripts/skill.mjs plugin-branch --push`; lists it on skills.sh and submits to the plugin directory from the `claude-plugin` branch, setting the icon at the first portal save; uploads the zip where a skill upload is wanted.
+Built: LICENSE (MIT), NOTICE.md, PRIVACY.md; `.claude-plugin/` (plugin.json, one-plugin marketplace.json, data.md, icon.png from `assets/icon.svg`); `scripts/skill.mjs` check, sync, pack (`dist-skills/n8n-to-claude-<version>.zip` from HEAD) and plugin-branch (dry run by default, `--out` to inspect, `--push` to publish); README (hero from `assets/src/index.html`, beta status, real before/after output, proof summary); docs/PROOF.md (bench method, losses, compatibility table); docs/REFERENCE.md; AGENTS.md. Open, cosmetic: the analyzer names a workflow `workflow` in the definition when given the template API's wrapper instead of an export.
+
+### Launch checklist (2026-11-17)
+
+Soft launch = the beta README and the code on `main` and `claude-plugin`. Proper launch (announcements) waits for L3–L5. Launch gates are safety and honesty, not a pass count: no silent wrong effect, contained gate at 0, the README's claims match the latest held-out score.
+
+- [x] **L1 Cleanup.** `draft.mjs` experimental and never offered after P137 (e5e9c70). `n2c-state` deleted on origin; its history kept locally as branch `archive/n2c-state` (never `git push --all` here). The bench forces the file store (`evals/bench/run.mjs`).
+- [x] **L2 README for n8n users.** Beta status, plain stats led by held-out, a code-or-model paragraph; bench detail and the compatibility table in docs/PROOF.md. Numbers stay on release point 5 until a release point 6 is scored.
+- [x] **L6a Publish code.** `main` pushed; `node scripts/skill.mjs plugin-branch --push`.
+- [ ] **L3 Real-account runs (person).** One converted workflow per surface: cloud task (repo clone, connectors, a write, hooks, records on `n2c-state` of that private repo), Desktop local task (every minute, hooks, `N2C_SECRET_*`), skill (one chat message), artifact (Run now on the real runtime). Done when every "needs an account" row in [CHECKS.md](evals/phase0/CHECKS.md) and docs/PROOF.md reads observed, or the README says what does not work. If hooks do not run in tasks, the README's security section changes before the announcement.
+- [ ] **L4 Connector shapes and usage.** During L3, capture real responses from Gmail, Slack, Sheets, Drive and Notion; check the bench fixtures and the adapters against them and drop `unverified` where they match. Record the usage-window share of one run.
+- [ ] **L5 Google tokens.** Refresh for Sheets and Calendar REST steps, or the analyzer flags them so a scheduled run does not fail after the first hour.
+- [ ] **L7 Clean-machine install.** `npx skills add lunox-work/n8n-to-claude -g`, `/plugin marketplace add` + install, and the zip, on a machine with no checkout; then analyze, answer, convert and dry-run the README's three exports.
+- [ ] **L6b Listings (person).** skills.sh; plugin directory from the `claude-plugin` branch (icon at the first portal save); tag `v0.1.0` once L3–L5 hold.
+- [ ] **L8 Announce (person).** Own post first (r/ClaudeCode, then HN and X); the n8n forum bans AI-written posts, so any reply there is written by hand.
+
+### Resume: coverage and one-shot
+
+Bench and loop work is paused (LOOP.md "Paused for launch work, 2026-11-17", ac760b4), with the order to resume in: round 6 held-out fixtures (17 left, blind session), the round 6 dev loop (templates that convert cleanly and then fail at run time first), release point 6 on the sealed set (seed 20261118), then P143–P145. Re-run the dev bench on HEAD before the first loop fix, since launch commits touched `skills/` (doc text only). After release point 6, update the README and hero numbers from it.
 
 ## Out of scope for v1
 
