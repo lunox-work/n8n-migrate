@@ -546,9 +546,11 @@ function fence(label, text) {
 // Placeholders only once a hook has captured a response in this run: if the hooks are not
 // active, the first call already carries the full arguments and the model is told how to save
 // the response itself, so a missing hook degrades to the hooks-off path instead of sending a
-// placeholder to a real tool.
+// placeholder to a real tool. The artifact mirror's batch is compact from the first call: it is
+// a long run record (a model retyped its HTML preview wrong on 2 of 2 cloud runs, 2026-11-17),
+// and without a hook ArtifactData only rejects {"n2c": ...} as malformed, so nothing is written.
 function toolInstruction(task, handle, req, { hooksSeen = false, repeat = 0 } = {}) {
-  const compact = task.hooks && hooksSeen;
+  const compact = task.hooks && (hooksSeen || req.purpose === "artifact-db");
   const args = !compact ? req.args ?? {} : task.compactWhole ? { n2c: handle } : compactArgs(req.args ?? {}, handle, task.compactOver);
   const lines = [
     `NEXT: call one tool (request ${handle}, step "${req.step}").`,

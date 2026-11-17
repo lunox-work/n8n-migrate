@@ -262,8 +262,10 @@ test("git store with artifactDb: records stay on n2c-state and the finished run 
     git(work, "push", "--quiet", "origin", "HEAD:main");
     const f = join(work, "digest");
     const s = session(f);
-    const out = s.until(runner(f, ["start", "--clock", "2026-11-14T00:00:00Z"]).out);
+    const printed = [];
+    const out = s.until(runner(f, ["start", "--clock", "2026-11-14T00:00:00Z"]).out, (o) => (printed.push(o), false));
     assert.match(out, /^DONE/m);
+    assert.ok(printed.some((o) => /Tool: ArtifactData\nArguments, exactly as written \(JSON\):\n\{"n2c":"a\d+"\}/.test(o)), "the mirror batch is printed as a placeholder from the first call");
     const batches = s.sent.filter((c) => c.tool === "ArtifactData");
     assert.equal(batches.length, 1);
     assert.equal(batches[0].args.action, "batch");
