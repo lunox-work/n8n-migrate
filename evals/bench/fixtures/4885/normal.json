@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "template": 4885,
+  "sha256": "849d30f2d2a30c0c5eb139dd434b9631cd562d35f0c2ff4675de14b60e106f0c",
+  "variant": "normal",
+  "now": "2026-11-17T05:00:00.000Z",
+  "about": "two leads without an icebreaker: a dental clinic and a roofing firm; each site is scraped and an icebreaker, summary and email are saved",
+  "trigger": {
+    "node": "Run Daily to Process New Leads",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-17T00:00:00.000-05:00",
+          "Readable date": "November 17th 2026, 12:00:00 am",
+          "Readable time": "12:00:00 am",
+          "Day of week": "Tuesday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "17",
+          "Hour": "00",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Search Cold Leads Without Icebreaker",
+      "service": "airtable",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.airtable.com/v0/appPSvSKdA6075xJC/tbl1KgkRF2EEMc2Fq",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "records": [
+                {
+                  "id": "recL4885Bench0001",
+                  "createdTime": "2026-11-15T10:00:00.000Z",
+                  "fields": {
+                    "Name": "Maya Chen",
+                    "Website": "https://greenleafdental.example",
+                    "Phone": "+1 415 555 0142"
+                  }
+                },
+                {
+                  "id": "recL4885Bench0002",
+                  "createdTime": "2026-11-15T10:00:00.000Z",
+                  "fields": {
+                    "Name": "Tom Becker",
+                    "Website": "https://beckerroofing.example",
+                    "Phone": "+1 503 555 0199"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Airtable connector"
+      },
+      "note": "Airtable list records with filterByFormula {Ice breaker} = '' and pageSize=100 (v2.1 search, Return All); v2.1 flattens the fields beside id"
+    },
+    {
+      "node": "Scrape Lead Website with Dumpling AI",
+      "service": "dumpling-ai",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://app.dumplingai.com/api/v1/scrape",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "title": "Greenleaf Dental | Family dentistry in San Mateo",
+              "metadata": {
+                "title": "Greenleaf Dental | Family dentistry in San Mateo",
+                "description": "# Greenleaf Dental\n\nFamily and cosmetic dentistry in San Mateo since 2009. Same-day crowns, Invisalign and evening appoi",
+                "language": "en",
+                "sourceURL": "https://greenleafdental.example",
+                "statusCode": 200
+              },
+              "url": "https://greenleafdental.example",
+              "format": "markdown",
+              "content": "# Greenleaf Dental\n\nFamily and cosmetic dentistry in San Mateo since 2009. Same-day crowns, Invisalign and evening appointments.\n\n## Our team\nDr. Maya Chen and four hygienists.\n\n[Book online](https://greenleafdental.example/book)"
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://app.dumplingai.com/api/v1/scrape",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "title": "Becker Roofing - Portland roof repair",
+              "metadata": {
+                "title": "Becker Roofing - Portland roof repair",
+                "description": "# Becker Roofing\n\nResidential roof repair and replacement across Portland. Free inspections, 25-year workmanship warrant",
+                "language": "en",
+                "sourceURL": "https://beckerroofing.example",
+                "statusCode": 200
+              },
+              "url": "https://beckerroofing.example",
+              "format": "markdown",
+              "content": "# Becker Roofing\n\nResidential roof repair and replacement across Portland. Free inspections, 25-year workmanship warranty.\n\nFamily owned since 1998."
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Dumpling AI connector"
+      },
+      "note": "Dumpling AI scrape, POST /api/v1/scrape {url} with the header credential; answers the page as markdown in content, one call per lead in loop order"
+    }
+  ],
+  "models": [
+    "Generate Icebreaker, Summary & Email (GPT-4o)"
+  ],
+  "writes": [
+    "Save AI Output Back to Airtable"
+  ],
+  "writeReplies": [
+    {
+      "node": "Save AI Output Back to Airtable",
+      "service": "airtable",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "PATCH",
+            "url": "https://api.airtable.com/v0/appPSvSKdA6075xJC/tbl1KgkRF2EEMc2Fq",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "records": [
+                {
+                  "id": "recL4885Bench0001",
+                  "createdTime": "2026-11-15T10:00:00.000Z",
+                  "fields": {
+                    "Name": "Maya Chen",
+                    "Website": "https://greenleafdental.example",
+                    "Phone": "+1 415 555 0142",
+                    "Ice breaker": "(written by the model)",
+                    "website summary": "(written by the model)",
+                    "Email body": "(written by the model)"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "method": "PATCH",
+            "url": "https://api.airtable.com/v0/appPSvSKdA6075xJC/tbl1KgkRF2EEMc2Fq",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "records": [
+                {
+                  "id": "recL4885Bench0002",
+                  "createdTime": "2026-11-15T10:00:00.000Z",
+                  "fields": {
+                    "Name": "Tom Becker",
+                    "Website": "https://beckerroofing.example",
+                    "Phone": "+1 503 555 0199",
+                    "Ice breaker": "(written by the model)",
+                    "website summary": "(written by the model)",
+                    "Email body": "(written by the model)"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Airtable connector"
+      },
+      "note": "Airtable update matching on id: PATCH /v0/{base}/{table} {typecast: false, records: [{id, fields}]}, one per lead"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "loop: two leads, then done"
+    ],
+    "offline": "The base and table are left empty in the template (list mode; their cached URLs name base appPSvSKdA6075xJC and table tbl1KgkRF2EEMc2Fq); the overlay fills both Airtable nodes with those ids on both sides. Airtable evaluates the formula, so every lead returned has no icebreaker. Each lead goes through the loop alone: a 5 s Wait (Wait v1.1's default), the Dumpling AI scrape, the OpenAI message (JSON output: icebreaker, email_body, website_summary) and the Airtable update matching on id. The model's text is recorded at run time; Airtable's answer to the update echoes the fields, which no node reads after it."
+  }
+}

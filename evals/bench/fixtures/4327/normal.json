@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 1,
+  "template": 4327,
+  "sha256": "46b3898387440a7f0adce5d1e0664a9c0c8b1ace65c6e982755913d9d093d632",
+  "variant": "normal",
+  "now": "2026-11-17T11:00:00.000Z",
+  "about": "a new video in the watched folder is transcribed, turned into a blog post with an image, and saved to Airtable",
+  "trigger": {
+    "node": "Watch Folder for New YouTube Videos",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {
+          "kind": "drive#file",
+          "id": "1vBench4327FoodWaste0aQx9",
+          "name": "cut-food-waste-bakery.mp4",
+          "mimeType": "video/mp4",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "parents": [
+            "1mde_V0ePcJEebVydygVKT7GDiABjj2A4"
+          ],
+          "spaces": [
+            "drive"
+          ],
+          "version": "3",
+          "webContentLink": "https://drive.google.com/uc?id=1vBench4327FoodWaste0aQx9&export=download",
+          "webViewLink": "https://drive.google.com/file/d/1vBench4327FoodWaste0aQx9/view?usp=drivesdk",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/video/mp4",
+          "hasThumbnail": true,
+          "thumbnailVersion": "1",
+          "viewedByMe": true,
+          "createdTime": "2026-11-17T10:58:40.000Z",
+          "modifiedTime": "2026-11-17T10:58:40.000Z",
+          "owners": [
+            {
+              "kind": "drive#user",
+              "displayName": "Bench Owner",
+              "me": true,
+              "permissionId": "01234567890123456789",
+              "emailAddress": "owner@bench.example"
+            }
+          ],
+          "originalFilename": "cut-food-waste-bakery.mp4",
+          "fullFileExtension": "mp4",
+          "fileExtension": "mp4",
+          "md5Checksum": "0d6c3c2b5f0e4a1bbench4327md5sum0",
+          "size": "62",
+          "videoMediaMetadata": {
+            "width": 1280,
+            "height": 720,
+            "durationMillis": "184000"
+          }
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Watch Folder for New YouTube Videos",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "files": [
+                {
+                  "kind": "drive#file",
+                  "id": "1vBench4327FoodWaste0aQx9",
+                  "name": "cut-food-waste-bakery.mp4",
+                  "mimeType": "video/mp4",
+                  "starred": false,
+                  "trashed": false,
+                  "explicitlyTrashed": false,
+                  "parents": [
+                    "1mde_V0ePcJEebVydygVKT7GDiABjj2A4"
+                  ],
+                  "spaces": [
+                    "drive"
+                  ],
+                  "version": "3",
+                  "webContentLink": "https://drive.google.com/uc?id=1vBench4327FoodWaste0aQx9&export=download",
+                  "webViewLink": "https://drive.google.com/file/d/1vBench4327FoodWaste0aQx9/view?usp=drivesdk",
+                  "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/video/mp4",
+                  "hasThumbnail": true,
+                  "thumbnailVersion": "1",
+                  "viewedByMe": true,
+                  "createdTime": "2026-11-17T10:58:40.000Z",
+                  "modifiedTime": "2026-11-17T10:58:40.000Z",
+                  "owners": [
+                    {
+                      "kind": "drive#user",
+                      "displayName": "Bench Owner",
+                      "me": true,
+                      "permissionId": "01234567890123456789",
+                      "emailAddress": "owner@bench.example"
+                    }
+                  ],
+                  "originalFilename": "cut-food-waste-bakery.mp4",
+                  "fullFileExtension": "mp4",
+                  "fileExtension": "mp4",
+                  "md5Checksum": "0d6c3c2b5f0e4a1bbench4327md5sum0",
+                  "size": "62",
+                  "videoMediaMetadata": {
+                    "width": 1280,
+                    "height": 720,
+                    "durationMillis": "184000"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the fixture answers the Drive REST API as n8n's trigger calls it"
+      },
+      "note": "files.list with q \"'<folder>' in parents AND mimeType != 'application/vnd.google-apps.folder'\", fields nextPageToken, files(*), pageSize=1 (manual mode)"
+    },
+    {
+      "node": "Download Video File",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1vBench4327FoodWaste0aQx9",
+            "query": {
+              "fields": "mimeType,name"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "mimeType": "video/mp4",
+              "name": "cut-food-waste-bakery.mp4"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files/1vBench4327FoodWaste0aQx9",
+            "query": {
+              "alt": "media"
+            },
+            "status": 200,
+            "headers": {
+              "content-type": "video/mp4"
+            },
+            "bodyBase64": "AAAAGGZ0eXBtcDQyAAAAAG1wNDJpc29tAAAACGZyZWUgYmVuY2gtNDMyNyB2aWRlbyBieXRlcw=="
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the fixture answers the Drive REST API as n8n's node calls it"
+      },
+      "note": "files.get fields=mimeType,name, then files.get alt=media (the bytes)"
+    },
+    {
+      "node": "Transcribe Video with Dumpling AI (Full Transcript)",
+      "service": "dumpling-ai",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://app.dumplingai.com/api/v1/extract-video",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "results": "Hi everyone, I'm Priya and today we're looking at how small bakeries can cut food waste. Um, the first thing is tracking what you throw away every day. We tried it for a month and found that thirty percent of our waste was the same three items. So we changed our morning bake. The second thing is a simple end-of-day discount. And third, partner with a food rescue app. That's it, thanks for watching."
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Dumpling AI connector"
+      },
+      "note": "Dumpling AI extract-video, POST {inputMethod: base64, video, prompt, jsonMode} with the header credential; answers the transcript in results"
+    }
+  ],
+  "models": [
+    "Generate Blog & Image Prompt using GPT-4o"
+  ],
+  "writes": [
+    "Generate Visual from Blog Prompt with Dumpling AI",
+    "Save Blog Post to Airtable",
+    "Upload Blog post Image to Airtable"
+  ],
+  "writeReplies": [
+    {
+      "node": "Generate Visual from Blog Prompt with Dumpling AI",
+      "service": "dumpling-ai",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://app.dumplingai.com/api/v1/generate-ai-image",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "images": [
+                {
+                  "url": "https://cdn.dumplingai.com/generated/bench-4327-image.png"
+                }
+              ],
+              "creditUsage": 6
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Dumpling AI connector"
+      },
+      "note": "Dumpling AI generate-ai-image (FLUX.1-pro, 1024x576); answers the generated image's URL, which no node reads"
+    },
+    {
+      "node": "Save Blog Post to Airtable",
+      "service": "airtable",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.airtable.com/v0/appPSvSKdA6075xJC/tblboiRp54hqA813K",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "id": "recB4327Bench0001",
+              "createdTime": "2026-11-17T11:00:20.000Z",
+              "fields": {
+                "Content": "(the model's blog post)"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Airtable connector"
+      },
+      "note": "Airtable create (v2.1, defineBelow, typecast off): POST /v0/{base}/{table} {typecast, fields: {Content}}"
+    },
+    {
+      "node": "Upload Blog post Image to Airtable",
+      "service": "airtable",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "PATCH",
+            "url": "https://api.airtable.com/v0/appPSvSKdA6075xJC/tblboiRp54hqA813K/recB4327Bench0001",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "id": "recB4327Bench0001",
+              "createdTime": "2026-11-17T11:00:20.000Z",
+              "fields": {
+                "Content": "(the model's blog post)",
+                "Attachments": [
+                  {
+                    "id": "attBench4327a1",
+                    "url": "https://v5.airtableusercontent.example/bench-4327",
+                    "filename": "image",
+                    "size": 0,
+                    "type": "application/octet-stream"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Airtable connector"
+      },
+      "note": "Airtable REST update of one record by id (an HTTP Request with the header credential): PATCH /v0/{base}/{table}/{record id} {fields: {Attachments: [{url}]}}"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "no IF/Switch: one video"
+    ],
+    "offline": "The watched folder is left empty in the template (list mode; its cached URL names the folder), and the attachment PATCH's URL has no base or table (https://api.airtable.com/v0///<record id>); the overlay fills the folder, both Airtable ids (cached in Save Blog Post to Airtable) and that URL on both sides. In n8n's manual mode the Drive trigger lists the folder once with pageSize=1 and emits that file; with no file it fails ('No data with the current filter could be found'). The download asks the file's mimeType and name, then its bytes; Extract from File turns them into base64, which the transcription body carries. The model's blog post and image prompt are recorded at run time; Generate Visual and the PATCH splice the image prompt raw into JSON strings. The attachment's url is the image prompt, not an image (the template's own wiring), which Airtable stores as given."
+  }
+}

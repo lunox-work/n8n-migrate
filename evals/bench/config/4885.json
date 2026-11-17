@@ -1,0 +1,83 @@
+{
+  "why": "Both Airtable nodes leave their base and table empty (list mode with the person's own base and table cached as appPSvSKdA6075xJC and tbl1KgkRF2EEMc2Fq). Filled with those ids on both sides. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "Search Cold Leads Without Icebreaker": {
+      "parameters.base": {
+        "__rl": true,
+        "mode": "list",
+        "value": "appPSvSKdA6075xJC",
+        "cachedResultUrl": "https://airtable.com/appPSvSKdA6075xJC",
+        "cachedResultName": "Testing n8n"
+      },
+      "parameters.table": {
+        "__rl": true,
+        "mode": "list",
+        "value": "tbl1KgkRF2EEMc2Fq",
+        "cachedResultUrl": "https://airtable.com/appPSvSKdA6075xJC/tbl1KgkRF2EEMc2Fq",
+        "cachedResultName": "cold leads"
+      }
+    },
+    "Save AI Output Back to Airtable": {
+      "parameters.base": {
+        "__rl": true,
+        "mode": "list",
+        "value": "appPSvSKdA6075xJC",
+        "cachedResultUrl": "https://airtable.com/appPSvSKdA6075xJC",
+        "cachedResultName": "Testing n8n"
+      },
+      "parameters.table": {
+        "__rl": true,
+        "mode": "list",
+        "value": "tbl1KgkRF2EEMc2Fq",
+        "cachedResultUrl": "https://airtable.com/appPSvSKdA6075xJC/tbl1KgkRF2EEMc2Fq",
+        "cachedResultName": "cold leads"
+      }
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Search Cold Leads Without Icebreaker": {
+          "patch": {
+            "params": {
+              "base": {
+                "__rl": true,
+                "mode": "list",
+                "value": "appPSvSKdA6075xJC",
+                "cachedResultUrl": "https://airtable.com/appPSvSKdA6075xJC",
+                "cachedResultName": "Testing n8n"
+              },
+              "table": {
+                "__rl": true,
+                "mode": "list",
+                "value": "tbl1KgkRF2EEMc2Fq",
+                "cachedResultUrl": "https://airtable.com/appPSvSKdA6075xJC/tbl1KgkRF2EEMc2Fq",
+                "cachedResultName": "cold leads"
+              }
+            }
+          }
+        },
+        "Save AI Output Back to Airtable": {
+          "patch": {
+            "params": {
+              "base": {
+                "__rl": true,
+                "mode": "list",
+                "value": "appPSvSKdA6075xJC",
+                "cachedResultUrl": "https://airtable.com/appPSvSKdA6075xJC",
+                "cachedResultName": "Testing n8n"
+              },
+              "table": {
+                "__rl": true,
+                "mode": "list",
+                "value": "tbl1KgkRF2EEMc2Fq",
+                "cachedResultUrl": "https://airtable.com/appPSvSKdA6075xJC/tbl1KgkRF2EEMc2Fq",
+                "cachedResultName": "cold leads"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

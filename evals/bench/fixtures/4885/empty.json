@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "template": 4885,
+  "sha256": "849d30f2d2a30c0c5eb139dd434b9631cd562d35f0c2ff4675de14b60e106f0c",
+  "variant": "empty",
+  "now": "2026-11-17T05:00:00.000Z",
+  "about": "every lead already has an icebreaker",
+  "trigger": {
+    "node": "Run Daily to Process New Leads",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-17T00:00:00.000-05:00",
+          "Readable date": "November 17th 2026, 12:00:00 am",
+          "Readable time": "12:00:00 am",
+          "Day of week": "Tuesday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "17",
+          "Hour": "00",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Search Cold Leads Without Icebreaker",
+      "service": "airtable",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.airtable.com/v0/appPSvSKdA6075xJC/tbl1KgkRF2EEMc2Fq",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "records": []
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Airtable connector"
+      },
+      "note": "Airtable list records with filterByFormula {Ice breaker} = '' and pageSize=100 (v2.1 search, Return All); v2.1 flattens the fields beside id"
+    },
+    {
+      "node": "Scrape Lead Website with Dumpling AI",
+      "service": "dumpling-ai",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Dumpling AI connector"
+      },
+      "note": "Dumpling AI scrape, POST /api/v1/scrape {url} with the header credential; answers the page as markdown in content, one call per lead in loop order"
+    }
+  ],
+  "models": [
+    "Generate Icebreaker, Summary & Email (GPT-4o)"
+  ],
+  "writes": [
+    "Save AI Output Back to Airtable"
+  ],
+  "writeReplies": [],
+  "expect": {
+    "branches": [
+      "no lead: the search outputs nothing and the run stops"
+    ],
+    "offline": "The base and table are left empty in the template (list mode; their cached URLs name base appPSvSKdA6075xJC and table tbl1KgkRF2EEMc2Fq); the overlay fills both Airtable nodes with those ids on both sides. Airtable evaluates the formula, so every lead returned has no icebreaker. Each lead goes through the loop alone: a 5 s Wait (Wait v1.1's default), the Dumpling AI scrape, the OpenAI message (JSON output: icebreaker, email_body, website_summary) and the Airtable update matching on id. The model's text is recorded at run time; Airtable's answer to the update echoes the fields, which no node reads after it."
+  }
+}

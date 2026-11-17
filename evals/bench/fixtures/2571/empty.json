@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "template": 2571,
+  "sha256": "f3ea49609bc31e9b827c9b27b65db918e9d49459b396c3a39691b913ed27b1a2",
+  "variant": "empty",
+  "now": "2026-11-17T07:45:00.000Z",
+  "about": "the feed has no item",
+  "trigger": {
+    "node": "RSS Feed Trigger",
+    "kind": "poll",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "RSS Feed Trigger",
+      "service": "rss",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://blog.bench-2571.example/feed/",
+            "status": 200,
+            "headers": {
+              "content-type": "application/rss+xml; charset=UTF-8"
+            },
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n<channel>\n<title>Notas de Lucía</title>\n<link>https://blog.bench-2571.example/</link>\n<description>Diseño, código y viajes</description>\n<language>es-ES</language>\n\n</channel>\n</rss>\n"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured RSS connector"
+      },
+      "note": "the feed (RSS 2.0 with content:encoded and an image enclosure), read whole by the trigger's manual poll"
+    },
+    {
+      "node": "Create Session",
+      "service": "bluesky",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://bsky.social/xrpc/com.atproto.server.createSession",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "did": "did:plc:bench2571lucia0000000000",
+              "didDoc": {
+                "@context": [
+                  "https://www.w3.org/ns/did/v1"
+                ],
+                "id": "did:plc:bench2571lucia0000000000",
+                "alsoKnownAs": [
+                  "at://lucia-bench.bsky.social"
+                ]
+              },
+              "handle": "lucia-bench.bsky.social",
+              "email": "lucia@bench.example",
+              "emailConfirmed": true,
+              "emailAuthFactor": false,
+              "accessJwt": "eyJhbGciOiJIUzI1NiJ9.bench-access.sig",
+              "refreshJwt": "eyJhbGciOiJIUzI1NiJ9.bench-refresh.sig",
+              "active": true
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Bluesky connector"
+      },
+      "note": "com.atproto.server.createSession with the handle and app password as JSON body parameters; Bluesky answers the session (did, accessJwt)"
+    },
+    {
+      "node": "Download image",
+      "service": "blog-images",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://blog.bench-2571.example/wp-content/uploads/2026/11/remoto.png",
+            "status": 200,
+            "headers": {
+              "content-type": "image/png"
+            },
+            "bodyBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a file download from the blog's own host"
+      },
+      "note": "not asked in this variant: the item has no enclosure, so the node has no URL and n8n fails it before any request"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Upload image",
+    "Create Post"
+  ],
+  "writeReplies": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch"
+    ],
+    "offline": "The feed URL and the Bluesky handle and app password are placeholders in the template; the overlay fills them on both sides. In n8n's manual mode the RSS Feed Trigger reads the whole feed and emits only its first item (FIXTURES.md); trigger.items is that item as rss-parser gives it. Create Post's JSON body splices contentSnippet raw into a JSON string and reads link title from a misspelt field (lintitlek), so its embed title is empty on both sides by the template's own construction. With no item, the trigger in manual mode still emits one empty item (returnJsonArray of feed.items[0], undefined), so the run goes on to Download image, which has no URL and fails in n8n."
+  }
+}

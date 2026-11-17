@@ -1,0 +1,79 @@
+{
+  "why": "The Drive trigger's folder is left empty (list mode; cached as folder 1mde_V0ePcJEebVydygVKT7GDiABjj2A4), Save Blog Post to Airtable leaves its base and table empty (cached as appPSvSKdA6075xJC and tblboiRp54hqA813K), and Upload Blog post Image to Airtable's URL leaves the same base and table out (https://api.airtable.com/v0///{{ $json.id }}). Filled with those cached ids on both sides. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "Watch Folder for New YouTube Videos": {
+      "parameters.folderToWatch": {
+        "__rl": true,
+        "mode": "list",
+        "value": "1mde_V0ePcJEebVydygVKT7GDiABjj2A4",
+        "cachedResultUrl": "https://drive.google.com/drive/folders/1mde_V0ePcJEebVydygVKT7GDiABjj2A4",
+        "cachedResultName": "Youtube Videos"
+      }
+    },
+    "Save Blog Post to Airtable": {
+      "parameters.base": {
+        "__rl": true,
+        "mode": "list",
+        "value": "appPSvSKdA6075xJC",
+        "cachedResultUrl": "https://airtable.com/appPSvSKdA6075xJC",
+        "cachedResultName": "Testing n8n"
+      },
+      "parameters.table": {
+        "__rl": true,
+        "mode": "list",
+        "value": "tblboiRp54hqA813K",
+        "cachedResultUrl": "https://airtable.com/appPSvSKdA6075xJC/tblboiRp54hqA813K",
+        "cachedResultName": "social post"
+      }
+    },
+    "Upload Blog post Image to Airtable": {
+      "parameters.url": "=https://api.airtable.com/v0/appPSvSKdA6075xJC/tblboiRp54hqA813K/{{ $json.id }}"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Watch Folder for New YouTube Videos": {
+          "patch": {
+            "params": {
+              "folderToWatch": {
+                "__rl": true,
+                "mode": "list",
+                "value": "1mde_V0ePcJEebVydygVKT7GDiABjj2A4",
+                "cachedResultUrl": "https://drive.google.com/drive/folders/1mde_V0ePcJEebVydygVKT7GDiABjj2A4",
+                "cachedResultName": "Youtube Videos"
+              }
+            }
+          }
+        },
+        "Save Blog Post to Airtable": {
+          "patch": {
+            "params": {
+              "base": {
+                "__rl": true,
+                "mode": "list",
+                "value": "appPSvSKdA6075xJC",
+                "cachedResultUrl": "https://airtable.com/appPSvSKdA6075xJC",
+                "cachedResultName": "Testing n8n"
+              },
+              "table": {
+                "__rl": true,
+                "mode": "list",
+                "value": "tblboiRp54hqA813K",
+                "cachedResultUrl": "https://airtable.com/appPSvSKdA6075xJC/tblboiRp54hqA813K",
+                "cachedResultName": "social post"
+              }
+            }
+          }
+        },
+        "Upload Blog post Image to Airtable": {
+          "patch": {
+            "params": {
+              "url": "=https://api.airtable.com/v0/appPSvSKdA6075xJC/tblboiRp54hqA813K/{{ $json.id }}"
+            }
+          }
+        }
+      }
+    }
+  }
+}

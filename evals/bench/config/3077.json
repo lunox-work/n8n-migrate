@@ -1,0 +1,21 @@
+{
+  "why": "Telegram has no chat id in the template (the person's own chat, a P91 placeholder). Filled with one chat id on both sides. Placeholder fill only: no logic changes.",
+  "n8n": {
+    "Telegram": {
+      "parameters.chatId": "100200300"
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "Telegram": {
+          "patch": {
+            "params": {
+              "chatId": "100200300"
+            }
+          }
+        }
+      }
+    }
+  }
+}

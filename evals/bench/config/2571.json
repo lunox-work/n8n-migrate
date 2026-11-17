@@ -1,0 +1,53 @@
+{
+  "why": "The RSS Feed Trigger's feed URL and Create Session's identifier and password are placeholder text (<your feed URL here>, <your username here>, <your app password here>) for the person's feed and Bluesky account. Filled with the fixture's feed, a handle and a placeholder app password on both sides. Placeholder fills only: no logic changes.",
+  "n8n": {
+    "RSS Feed Trigger": {
+      "parameters.feedUrl": "https://blog.bench-2571.example/feed/"
+    },
+    "Create Session": {
+      "parameters.bodyParameters": {
+        "parameters": [
+          {
+            "name": "identifier",
+            "value": "lucia-bench.bsky.social"
+          },
+          {
+            "name": "password",
+            "value": "bench-app-password"
+          }
+        ]
+      }
+    }
+  },
+  "claude": {
+    "overrides": {
+      "steps": {
+        "RSS Feed Trigger": {
+          "patch": {
+            "params": {
+              "feedUrl": "https://blog.bench-2571.example/feed/"
+            }
+          }
+        },
+        "Create Session": {
+          "patch": {
+            "params": {
+              "bodyParameters": {
+                "parameters": [
+                  {
+                    "name": "identifier",
+                    "value": "lucia-bench.bsky.social"
+                  },
+                  {
+                    "name": "password",
+                    "value": "bench-app-password"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

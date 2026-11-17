@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "template": 2560,
+  "sha256": "e93b342d70f650c917ef0fc3f99be9b3fede08400d4765438b1e6a5e7f70d733",
+  "variant": "malformed",
+  "now": "2026-11-17T14:00:00.000Z",
+  "about": "gocomics answers 404 with an HTML error page for the date",
+  "trigger": {
+    "node": "Schedule Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-17T09:00:00.000-05:00",
+          "Readable date": "November 17th 2026, 9:00:00 am",
+          "Readable time": "9:00:00 am",
+          "Day of week": "Tuesday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "17",
+          "Hour": "09",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "HTTP Request",
+      "service": "gocomics",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.gocomics.com",
+            "any": true,
+            "status": 404,
+            "headers": {
+              "content-type": "text/html; charset=utf-8"
+            },
+            "body": "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>Calvin and Hobbes by Bill Watterson for November 17, 2026 | GoComics</title></head>\n<body><main><section class=\"comic\">\n<h1>Page not found</h1>\n</section><footer>Copyright Andrews McMeel Syndication</footer></main></body></html>\n"
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "a public web page"
+      },
+      "note": "the day's comic page (the path is /calvinandhobbes/yyyy/MM/dd from n8n's unfrozen clock, so the route answers any path on the host); n8n's HTTP Request v4.2 returns the HTML as text in data"
+    }
+  ],
+  "models": [
+    "Information Extractor",
+    "OpenAI"
+  ],
+  "writes": [
+    "Discord"
+  ],
+  "writeReplies": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: the page request fails"
+    ],
+    "offline": "The date parts come from $now, so the page path follows the run's clock; the route answers any path on www.gocomics.com. Information Extractor (OpenAI chat model) pulls the strip's image URL from the HTML, OpenAI's image analysis reads that URL directly (n8n does not download it) and writes the dialogue in English and Korean, and the Discord post carries the date, the URL and that text. Both model replies are recorded at run time. The 404 fails the HTTP Request node in n8n before any model call."
+  }
+}

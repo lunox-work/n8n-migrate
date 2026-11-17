@@ -1,0 +1,605 @@
+{
+  "schemaVersion": 1,
+  "template": 3077,
+  "sha256": "6bd349a12f3e1d1f5d9f8424ceb4e01b60adf18000b7468e9290c2ca6c753c80",
+  "variant": "malformed",
+  "now": "2026-11-16T23:15:00.000Z",
+  "about": "a channel row without a channel id, and search results missing liveBroadcastContent and a channel result without a video id",
+  "trigger": {
+    "node": "0715 Trigger",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-17T07:15:00.000+08:00",
+          "Readable date": "November 17th 2026, 7:15:00 am",
+          "Readable time": "7:15:00 am",
+          "Day of week": "Tuesday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "17",
+          "Hour": "07",
+          "Minute": "15",
+          "Second": "00",
+          "Timezone": "Asia/Manila (UTC+08:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Google Sheets",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1RNah4ZZsLxflQXvMq8AEn3BFpscOC2ygMZ1dPTlk-Kk",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "spreadsheetId": "1RNah4ZZsLxflQXvMq8AEn3BFpscOC2ygMZ1dPTlk-Kk",
+              "properties": {
+                "title": "Media Links",
+                "locale": "en_US",
+                "timeZone": "Asia/Manila"
+              },
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 944489068,
+                    "title": "AI News Channels",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1541621778,
+                    "title": "PlaylistId",
+                    "index": 2,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ],
+              "spreadsheetUrl": "https://docs.google.com/spreadsheets/d/1RNah4ZZsLxflQXvMq8AEn3BFpscOC2ygMZ1dPTlk-Kk/edit"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1RNah4ZZsLxflQXvMq8AEn3BFpscOC2ygMZ1dPTlk-Kk/values/'PlaylistId'",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "range": "'PlaylistId'!A1:Z1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Playlist Group",
+                  "New Playlist ID"
+                ],
+                [
+                  "AI News",
+                  "PLbench3077OldPlaylist0000000000000a"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the fixture answers the Sheets values API as n8n's node calls it; no captured connector writes cells"
+      },
+      "note": "Sheets v4.5 read of the PlaylistId tab (gid 1541621778) filtered on Playlist Group = AI News: sheet properties, then the tab's values"
+    },
+    {
+      "node": "Read Channel Names",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1RNah4ZZsLxflQXvMq8AEn3BFpscOC2ygMZ1dPTlk-Kk",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "spreadsheetId": "1RNah4ZZsLxflQXvMq8AEn3BFpscOC2ygMZ1dPTlk-Kk",
+              "properties": {
+                "title": "Media Links",
+                "locale": "en_US",
+                "timeZone": "Asia/Manila"
+              },
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 944489068,
+                    "title": "AI News Channels",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1541621778,
+                    "title": "PlaylistId",
+                    "index": 2,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ],
+              "spreadsheetUrl": "https://docs.google.com/spreadsheets/d/1RNah4ZZsLxflQXvMq8AEn3BFpscOC2ygMZ1dPTlk-Kk/edit"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1RNah4ZZsLxflQXvMq8AEn3BFpscOC2ygMZ1dPTlk-Kk/values/'AI News Channels'",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "range": "'AI News Channels'!A1:Z1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Channel User Name",
+                  "Channel Name",
+                  "Link",
+                  "Channel Id"
+                ],
+                [
+                  "@NoId",
+                  "No Id Channel",
+                  "https://www.youtube.com/@NoId"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the fixture answers the Sheets values API as n8n's node calls it; no captured connector writes cells"
+      },
+      "note": "Sheets v4.5 read of the AI News Channels tab (gid 944489068)"
+    },
+    {
+      "node": "Get Videos",
+      "service": "youtube",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/youtube/v3/search",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "kind": "youtube#searchListResponse",
+              "etag": "etag-search",
+              "regionCode": "PH",
+              "pageInfo": {
+                "totalResults": 2,
+                "resultsPerPage": 5
+              },
+              "items": [
+                {
+                  "kind": "youtube#searchResult",
+                  "etag": "etag-bnch3077v01",
+                  "id": {
+                    "kind": "youtube#video",
+                    "videoId": "bnch3077v01"
+                  },
+                  "snippet": {
+                    "publishedAt": "2026-11-16T14:00:00Z",
+                    "channelId": "UCNJ1Ymd5yFuUPtn21xtRbbw",
+                    "title": "What the new reasoning models get wrong",
+                    "description": "What the new reasoning models get wrong. Full episode notes in the description.",
+                    "thumbnails": {
+                      "default": {
+                        "url": "https://i.ytimg.com/vi/bnch3077v01/default.jpg",
+                        "width": 120,
+                        "height": 90
+                      }
+                    },
+                    "channelTitle": "AI Explained",
+                    "publishTime": "2026-11-16T14:00:00Z"
+                  }
+                },
+                {
+                  "kind": "youtube#searchResult",
+                  "etag": "etag-ch",
+                  "id": {
+                    "kind": "youtube#channel",
+                    "channelId": "UCbench3077chan"
+                  },
+                  "snippet": {
+                    "title": "A channel, not a video",
+                    "liveBroadcastContent": "none"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured YouTube connector"
+      },
+      "note": "YouTube Data API search per channel (part=snippet, publishedAfter, maxResults=5, channel_id, order=date, key), answered in call order"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Create Playlist",
+    "Delete Old Playlist",
+    "Save Playlist ID",
+    "YouTube",
+    "Telegram"
+  ],
+  "writeReplies": [
+    {
+      "node": "Create Playlist",
+      "service": "youtube",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/youtube/v3/playlists",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "kind": "youtube#playlist",
+              "etag": "etag-new",
+              "id": "PLbench3077NewPlaylist0000000000000b",
+              "snippet": {
+                "publishedAt": "2026-11-16T23:15:02Z",
+                "channelId": "UCbench3077owner00000000",
+                "title": "261117 AI News",
+                "description": "",
+                "thumbnails": {},
+                "channelTitle": "Bench Owner",
+                "localized": {
+                  "title": "261117 AI News",
+                  "description": ""
+                }
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured YouTube connector"
+      },
+      "note": "playlists.insert (part=snippet) with the title yyLLdd AI News"
+    },
+    {
+      "node": "Delete Old Playlist",
+      "service": "youtube",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "DELETE",
+            "url": "https://www.googleapis.com/youtube/v3/playlists",
+            "status": 204,
+            "body": ""
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured YouTube connector"
+      },
+      "note": "playlists.delete, 204 No Content; the node outputs {success: true}"
+    },
+    {
+      "node": "Save Playlist ID",
+      "service": "google-sheets",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1RNah4ZZsLxflQXvMq8AEn3BFpscOC2ygMZ1dPTlk-Kk",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "spreadsheetId": "1RNah4ZZsLxflQXvMq8AEn3BFpscOC2ygMZ1dPTlk-Kk",
+              "properties": {
+                "title": "Media Links",
+                "locale": "en_US",
+                "timeZone": "Asia/Manila"
+              },
+              "sheets": [
+                {
+                  "properties": {
+                    "sheetId": 0,
+                    "title": "Sheet1",
+                    "index": 0,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 944489068,
+                    "title": "AI News Channels",
+                    "index": 1,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "sheetId": 1541621778,
+                    "title": "PlaylistId",
+                    "index": 2,
+                    "sheetType": "GRID",
+                    "gridProperties": {
+                      "rowCount": 1000,
+                      "columnCount": 26
+                    }
+                  }
+                }
+              ],
+              "spreadsheetUrl": "https://docs.google.com/spreadsheets/d/1RNah4ZZsLxflQXvMq8AEn3BFpscOC2ygMZ1dPTlk-Kk/edit"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1RNah4ZZsLxflQXvMq8AEn3BFpscOC2ygMZ1dPTlk-Kk/values/'PlaylistId'",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "range": "'PlaylistId'!A1:Z1000",
+              "majorDimension": "ROWS",
+              "values": [
+                [
+                  "Playlist Group",
+                  "New Playlist ID"
+                ],
+                [
+                  "AI News",
+                  "PLbench3077OldPlaylist0000000000000a"
+                ]
+              ]
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/1RNah4ZZsLxflQXvMq8AEn3BFpscOC2ygMZ1dPTlk-Kk/values:batchUpdate",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "spreadsheetId": "1RNah4ZZsLxflQXvMq8AEn3BFpscOC2ygMZ1dPTlk-Kk",
+              "totalUpdatedRows": 1,
+              "totalUpdatedColumns": 1,
+              "totalUpdatedCells": 1,
+              "totalUpdatedSheets": 1,
+              "responses": [
+                {
+                  "spreadsheetId": "1RNah4ZZsLxflQXvMq8AEn3BFpscOC2ygMZ1dPTlk-Kk",
+                  "updatedRange": "PlaylistId!B2",
+                  "updatedRows": 1,
+                  "updatedColumns": 1,
+                  "updatedCells": 1
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the fixture answers the Sheets values API as n8n's node calls it; no captured connector writes cells"
+      },
+      "note": "Sheets v4.5 update matching Playlist Group: reads the tab, then POST values:batchUpdate"
+    },
+    {
+      "node": "YouTube",
+      "service": "youtube",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/youtube/v3/playlistItems",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "kind": "youtube#playlistItem",
+              "etag": "etag-item-1",
+              "id": "UExiZW5jaDMwNzdpdGVt1",
+              "snippet": {
+                "publishedAt": "2026-11-16T23:15:05Z",
+                "channelId": "UCbench3077owner00000000",
+                "title": "What the new reasoning models get wrong",
+                "playlistId": "PLbench3077NewPlaylist0000000000000b",
+                "position": 0,
+                "resourceId": {
+                  "kind": "youtube#video",
+                  "videoId": "bnch3077v01"
+                }
+              },
+              "contentDetails": {
+                "videoId": "bnch3077v01",
+                "videoPublishedAt": "2026-11-16T14:00:00Z"
+              }
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/youtube/v3/playlistItems",
+            "status": 400,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "error": {
+                "code": 400,
+                "message": "Resource id not found.",
+                "errors": [
+                  {
+                    "message": "Resource id not found.",
+                    "domain": "youtube.playlistItem",
+                    "reason": "videoNotFound"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured YouTube connector"
+      },
+      "note": "playlistItems.insert (part=snippet, contentDetails) per video"
+    },
+    {
+      "node": "Telegram",
+      "service": "telegram",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.telegram.org/bot{token}/sendMessage",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "ok": true,
+              "result": {
+                "message_id": 401,
+                "from": {
+                  "id": 7000003077,
+                  "is_bot": true,
+                  "first_name": "News bot",
+                  "username": "bench_news_bot"
+                },
+                "chat": {
+                  "id": 100200300,
+                  "first_name": "Bench",
+                  "type": "private"
+                },
+                "date": 1763334905,
+                "text": "Your AI News YT Playlist has been updated.\n\nThis message was sent automatically with n8n"
+              }
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://api.telegram.org/bot{token}/sendMessage",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json"
+            },
+            "body": {
+              "ok": true,
+              "result": {
+                "message_id": 402,
+                "from": {
+                  "id": 7000003077,
+                  "is_bot": true,
+                  "first_name": "News bot",
+                  "username": "bench_news_bot"
+                },
+                "chat": {
+                  "id": 100200300,
+                  "first_name": "Bench",
+                  "type": "private"
+                },
+                "date": 1763334905,
+                "text": "Your AI News YT Playlist has been updated.\n\nThis message was sent automatically with n8n"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Telegram connector"
+      },
+      "note": "sendMessage per added video (the bot token in the path matched as {token}); n8n's Telegram v1.2 appends its attribution line"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "Filter Out Upcoming keeps both results (a missing liveBroadcastContent is not upcoming)"
+    ],
+    "offline": "In n8n's v1 order the playlist lookup branch (higher on the canvas) runs first: the PlaylistId tab still holds yesterday's id, which Delete Old Playlist removes; then the new playlist is created, its id saved to that row (update matching Playlist Group), the channels read, each channel searched for the last day's videos, upcoming broadcasts filtered out, each video added and a Telegram message sent per added video. The search sends channel_id (not YouTube's documented channelId) and the template's placeholder key; answered per channel in call order as the template's author saw it. YouTube's playlists.delete is sent with the id in a JSON body, not the query; answered 204 as the node's users see it. The Telegram chat id is empty in the template; the overlay fills it on both sides. The workflow's timezone is Asia/Manila. The channel result has no videoId, so YouTube refuses that playlist item (400) and n8n fails the node."
+  }
+}

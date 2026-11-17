@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "template": 4327,
+  "sha256": "46b3898387440a7f0adce5d1e0664a9c0c8b1ace65c6e982755913d9d093d632",
+  "variant": "empty",
+  "now": "2026-11-17T11:00:00.000Z",
+  "about": "the watched folder has no file",
+  "trigger": {
+    "node": "Watch Folder for New YouTube Videos",
+    "kind": "poll",
+    "items": []
+  },
+  "reads": [
+    {
+      "node": "Watch Folder for New YouTube Videos",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/drive/v3/files",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "files": []
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the fixture answers the Drive REST API as n8n's trigger calls it"
+      },
+      "note": "files.list with q \"'<folder>' in parents AND mimeType != 'application/vnd.google-apps.folder'\", fields nextPageToken, files(*), pageSize=1 (manual mode)"
+    },
+    {
+      "node": "Download Video File",
+      "service": "google-drive",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the fixture answers the Drive REST API as n8n's node calls it"
+      },
+      "note": "files.get fields=mimeType,name, then files.get alt=media (the bytes)"
+    },
+    {
+      "node": "Transcribe Video with Dumpling AI (Full Transcript)",
+      "service": "dumpling-ai",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Dumpling AI connector"
+      },
+      "note": "Dumpling AI extract-video, POST {inputMethod: base64, video, prompt, jsonMode} with the header credential; answers the transcript in results"
+    }
+  ],
+  "models": [
+    "Generate Blog & Image Prompt using GPT-4o"
+  ],
+  "writes": [
+    "Generate Visual from Blog Prompt with Dumpling AI",
+    "Save Blog Post to Airtable",
+    "Upload Blog post Image to Airtable"
+  ],
+  "writeReplies": [],
+  "expect": {
+    "branches": [
+      "no file: the trigger fails in manual mode"
+    ],
+    "offline": "The watched folder is left empty in the template (list mode; its cached URL names the folder), and the attachment PATCH's URL has no base or table (https://api.airtable.com/v0///<record id>); the overlay fills the folder, both Airtable ids (cached in Save Blog Post to Airtable) and that URL on both sides. In n8n's manual mode the Drive trigger lists the folder once with pageSize=1 and emits that file; with no file it fails ('No data with the current filter could be found'). The download asks the file's mimeType and name, then its bytes; Extract from File turns them into base64, which the transcription body carries. The model's blog post and image prompt are recorded at run time; Generate Visual and the PATCH splice the image prompt raw into JSON strings. The attachment's url is the image prompt, not an image (the template's own wiring), which Airtable stores as given."
+  }
+}
