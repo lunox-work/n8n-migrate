@@ -2876,7 +2876,7 @@ const decodeHtml = (s) =>
   s.replace(/&(#[xX][0-9a-fA-F]+|#[0-9]+|[A-Za-z][A-Za-z0-9]*);/g, (m, e) => {
     if (e[0] === "#") {
       const n = e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
-      return n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : "�";
+      return n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : "\uFFFD";
     }
     return e in HTML_ENTITIES ? HTML_ENTITIES[e] : m;
   });
@@ -6003,7 +6003,7 @@ const LOOSE_VOID = set("area base basefont br col command embed frame hr img inp
 
 const MAX_NAME = Math.max(...Object.keys(NAMED_ENTITIES).map((k) => k.length));
 function codePoint(n) {
-  if (n === 0 || n > 0x10ffff || (n >= 0xd800 && n <= 0xdfff)) return "�";
+  if (n === 0 || n > 0x10ffff || (n >= 0xd800 && n <= 0xdfff)) return "\uFFFD";
   if (NUMERIC_REMAP[n] !== undefined) return String.fromCodePoint(NUMERIC_REMAP[n]);
   return String.fromCodePoint(n);
 }
