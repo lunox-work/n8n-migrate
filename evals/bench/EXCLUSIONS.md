@@ -111,3 +111,42 @@ Fixed on 2026-11-16, before any round-5 template was fetched or opened. Seed **2
 Written 2026-11-16 and not applied: each becomes a list commit before a later round's eligibility is applied (round 6 on). Round 5's dev and held-out stay as drawn, and no round-5 template is re-checked against these.
 
 - **n8n node reads** (PROPOSALS P125). `eligibility.json` `features.byType` lists `n8n-nodes-base.n8n` with `workflow:getAll`, `workflow:get`, `execution:getAll` and `execution:get` as `http` (built: the converter's `n8nApi` program), so clause 4 counts them as supported. Every other operation (writes, credentials, audit, users, versions) stays unlisted and keeps the template out. Clause 3b gets `bench.fixes` `P125` (bounded, pending until built): the n8n side points the node's `n8nApi` credential at the bench's own n8n, seeded per fixture with workflows and executions, and the Claude side's site answer is routed to the same instance, so these reads count as stood in. A template whose main path reads n8n is then eligible with the fix reported as pending. Clause 1 is unchanged: a template that also writes to n8n is `keep-in-n8n` and stays out.
+
+## Round 6 held-out
+
+Fixed on 2026-11-17, before any round-6 template was fetched or opened. Seed **20261118**. Round 6's held-out is 20 templates nobody has read, drawn the way round 5's was ("Round 5 held-out" above).
+
+1. **Eligibility.** Round 4's rule with amendment 1, unchanged, as for round 5 (`eligible.mjs` `checkEligibility()`, `eligibility.json` and `eligibility-params.json` as committed). The pending list changes above are not applied in this round's walk. The verdict is written as `r4` and `r4Reasons`.
+2. **Fresh.** The walk skips, without entering them:
+
+   - every id already in `corpus.json`, which holds every earlier corpus and walk entry (the Phase 5 walk, the round-3, round-4 and round-5 top-ups, round 4's dev refill and round 5's held-out refill);
+   - every template in the survey corpus `evals/survey/data/wf` (P51);
+   - every id on the listing pages `levers.json` `listingPages` records, and so everything `levers.json` and `LEVERS.md` name.
+
+   A template whose hash equals one of those is excluded `duplicate`. `split.mjs` refuses a draw or redraw that would hold out an id named in `levers.json` or `LEVERS.md`.
+
+3. **Walk.** `node evals/bench/fetch.mjs --top-up --round 6` reads the same listing (views, descending, 50 rows a page). It starts on page 28, the page after the last one any walk read (round 5's held-out refill read pages 26–27). It applies the exclusion rules above, unchanged and in the same order, with the same analyzer settings (default answers, `--now 2026-11-16T00:00:00Z`, the checkout's analyzer at the walk's commit, which the walk's commit message names). Requests are at least 1 s apart, with 3 tries and backoff, and cached in `evals/bench/data` (git-ignored). Paid templates are excluded `paid` and never downloaded. New entries carry `topUp: 6`, and their pool is `fresh` only when eligible.
+4. **Stop.** The walk stops once every wake-up stratum has its quota of eligible candidates (chat 6, manual 5, schedule 4, poll 2, form 2, other 1), but first finishes the listing page it is on.
+5. **Draw.** `node evals/bench/split.mjs --fresh --round 6` uses round 5's method with this seed: a mulberry32 Fisher-Yates shuffle over the round's `fresh` entries sorted by id ascending, each stratum taking its first quota in shuffled order. The result goes to `splits.json` `heldOutFresh6`, and its ids are round 6's `heldOut` in `rounds`. A template excluded after the draw (rule `hand`, or `r4Hand` with a one-line reason from the template alone) stays in the shuffle, and only its stratum moves to the next candidate (`--redraw "<why>"`, recorded in `heldOutFresh6.redraws`). A redraw passes over an id the P137 experiment's set holds (below), which stays in the shuffle. If a stratum runs out, the views walk continues after the round's walk as in round 5 (PROPOSALS P126: entries `heldRefill: 6`, pool `held-refill`, pages in `corpus.json` `heldRefill6`), and the stratum takes its first eligible entries in listing order, after the shuffled pool.
+6. **Labels.** Hand labels go in `labels-held6.json` and `LABELS-HELD6.md`, written from the template JSON alone before anyone looks at the analyzer's output for these templates or reads their `corpus.json` entries. Then `compare-labels.mjs --labels evals/bench/labels-held6.json` runs.
+
+The walk's candidates that round 6 does not draw are the pool of the P137 experiment's held-out (next section).
+
+## P137 experiment held-out
+
+Fixed on 2026-11-17, before any round-6 or experiment template was fetched or opened (PROPOSALS P137, amendment 1). Seed **20261119**. The P137 experiment (two arms: the plain converter against the converter plus convert-time drafts) is scored on 20 templates of its own. They are kept in `splits.json` `experiments` (the entry named `p137`), never in a round's `heldOut`, and are disjoint from round 6's held-out.
+
+1. **Eligibility and freshness.** The same as round 6's: each template is an eligible candidate of the round-6 walk (pool `fresh`, `topUp: 6`, `fetch.mjs` `isCandidate`), or of its views-walk continuation (step 4).
+2. **Selection rule.** A candidate is selected when the rule below holds. It is decided mechanically, only from the template file (`evals/bench/data/wf`), the analyzer with default answers (`--now 2026-11-16T00:00:00Z`) and the converter as `evals/convert-coverage.mjs` runs it in its default mode (`convertItems` with the checkout's references, no answers, its default `--now 2026-11-14T00:00:00Z`). Both run at one commit, recorded as `convertCommit`. The blocked steps are the definition's steps of kind `blocked` that are not disabled, as `convert-coverage.mjs` counts them, except those blocked as `dropped` (left out by design: off the run's path, or an error workflow the runner's failure alert replaces).
+
+   - (a) There is at least one blocked step.
+   - (b) Every blocked step is one of P137's drafting targets: kind `no-tool` with a reason that starts `no tool map for ` (a connector operation or connector poll with no tool map), or `no request template for ` (an app with no REST request template). A `no-tool` block that the connector's captured tools confirm (the connector has no tool for the operation) is not a target, and neither is any other kind (`not-captured`, `input-incomplete`, `unsupported`, `unmapped`, `substitution`).
+   - (c) No blocked step and no analyzer blocker is on a step whose analyzer kind is `vector`, `db` or `media`.
+
+   Every verdict is taken at `convertCommit`, also for a candidate judged later (a redraw, or step 4's continuation). The verdicts are not recomputed when the converter changes.
+
+3. **Draw.** A mulberry32(seed) Fisher-Yates shuffle runs over the round-6 walk's `fresh` entries sorted by id ascending (`fetch.mjs` `freshPool(templates, 6)`, the pool round 6 draws from). In shuffled order, the set takes each entry that is a candidate, is not in round 6's held-out (as drawn, and as redrawn) and is selected, until it holds 20. There are no wake-up quotas, and the list keeps the shuffled order.
+4. **Short.** If fewer than 20 are selected, the views walk continues after the round's walk, as P126 does for a redraw (`fetch.mjs` `extendWalk`, entries `heldRefill: 6`, pool `held-refill`, the same rules, skips, analyzer and eligibility, finishing each listing page it opens). The set then takes selected eligible entries in listing order, after the shuffled pool, until it holds 20. Round 6's own redraws use the same continuation and pass over the set's ids.
+5. **Redraw.** A template excluded after the draw (rule `hand`, or `r4Hand` with a one-line reason from the template alone) stays in the shuffle, and the set takes the next selected candidate in the same order (`split.mjs --experiment p137 --redraw "<why>"`, recorded in the entry's `redraws`).
+6. **Stored.** `splits.json` `experiments` entry `p137`: seed, rule, method, `convertCommit`, the pool (candidate count and the selected ids) and the 20 rows (`id`, `sha256`, `wakeup`, `source`).
+7. **Labels.** Hand labels go in `labels-p137.json` and `LABELS-P137.md`, written the same way as round 6's. The selection's verdict is known for every drawn template, so the labels state it as prior exposure.
