@@ -697,3 +697,22 @@ test("Call n8n Workflow Tool v1 with an input schema: the schema offered, the ar
   assert.deepEqual(r, { ok: true, value: { ok: 1 } });
   assert.deepEqual(handed, [{ json: { query: { videoId: "v1" } } }]);
 });
+
+test("an owner-only Telegram bot moves to a local task, but its trigger is blocked until a getUpdates poll exists", () => {
+  const flow = {
+    id: "tg1",
+    name: "tg bot",
+    nodes: [
+      { id: "1", name: "Telegram Trigger", type: "n8n-nodes-base.telegramTrigger", typeVersion: 1.1, position: [0, 0], parameters: { updates: ["message"], additionalFields: {} }, credentials: { telegramApi: { id: "t", name: "Bot" } } },
+      { id: "2", name: "Reply", type: "n8n-nodes-base.telegram", typeVersion: 1.2, position: [200, 0], parameters: { chatId: "={{ $json.message.chat.id }}", text: "ok", additionalFields: {} }, credentials: { telegramApi: { id: "t", name: "Bot" } } },
+    ],
+    connections: link("Telegram Trigger", "Reply"),
+    settings: { executionOrder: "v1" },
+  };
+  const out = convertJson(flow, { answers: { "tg1/chat-app-users/Telegram Trigger": "only-me" } });
+  assert.equal(out.report.workflows[0].outcome.target, "local-task");
+  const trig = out.definition.steps["Telegram Trigger"];
+  assert.equal(trig.blocked?.kind, "unsupported");
+  assert.match(trig.blocked.reason, /polling Telegram getUpdates is not built yet/);
+  assert.equal(trig.relay, undefined, "not left waiting for a webhook");
+});

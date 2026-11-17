@@ -1342,7 +1342,12 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
           else step.relay = { payloadShape: `the event as n8n's ${shortType(type)} gives it` };
         }
       } else if (wake === "relay" || wake === "endpoint" || /Trigger$/.test(type)) {
-        if (![BASE + "manualTrigger", BASE + "executeWorkflowTrigger", BASE + "start"].includes(type)) step.relay = { payloadShape: `the event as n8n's ${shortType(type)} gives it` };
+        // The analyzer can move an owner-only chat bot to a provider's polling API (Telegram
+        // getUpdates); the runtime has no HTTP poll yet, so the trigger would wait for a webhook
+        // that never comes. Block it rather than convert it (L7, 2026-11-17).
+        const unbuiltPoll = (wr.requires ?? []).find((r) => r.kind === "poll" && (r.nodes ?? []).includes(name) && /getUpdates/.test(String(r.name)));
+        if (unbuiltPoll) block(step, "unsupported", `polling ${unbuiltPoll.name} is not built yet: as a relay this trigger would wait for a webhook that never comes`);
+        else if (![BASE + "manualTrigger", BASE + "executeWorkflowTrigger", BASE + "start"].includes(type)) step.relay = { payloadShape: `the event as n8n's ${shortType(type)} gives it` };
       }
       continue;
     }

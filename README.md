@@ -68,7 +68,7 @@
 
 ## Before / After
 
-<!-- Real output, 2026-11-17, commit b0143fb of this repository, on three of the 100 most-viewed templates saved in
+<!-- Real output, 2026-11-17 (commit b0143fb; re-run in the L7 clean-install check after 3f54a83, which blocks the unbuilt Telegram poll), on three of the 100 most-viewed templates saved in
      export shape ({name, nodes, connections, settings}): 2197 as gmail-labels.json, 1934 as telegram-bot.json,
      1534 as n8n-backup.json. Long lines wrapped at 54 columns; the first panel keeps the backup's "n8n" note and
      drops its timezone note, the Telegram bot's needs line and the question text (marked …); the last panel shortens the
@@ -117,7 +117,7 @@ Telegram AI chatbot — hosted elsewhere (API key) ·
 </td>
 <td width="50%">
 
-### One answer moves the Telegram bot
+### One answer changes the Telegram bot's verdict
 
 ```
 $ cat answers.json
@@ -154,7 +154,7 @@ $ node n8n-to-claude/scripts/convert.mjs exports/ \
 converted  Auto-label incoming Gmail messages with
   AI nodes
 blocked-steps  Back up your n8n workflows to Github
-review  Telegram AI chatbot
+blocked-steps  Telegram AI chatbot
 $ ls my-flows/auto-label-incoming-gmail-messages-\
 with-ai-nodes
 MIGRATION.md
@@ -195,9 +195,10 @@ backup workflow is a daily cloud task: its n8n step reads workflows over
 your n8n's public API, so it keeps working only while n8n runs (writes to
 n8n stay blocked). 18 of its 23 steps convert as they are; the n8n step
 waits for your n8n's address and its three GitHub file steps have no tool
-map yet, so it converts with blocked steps. The Telegram bot moves
-once you say only you talk to it; its image step runs on OpenAI's own API with
-your key, and `MIGRATION.md` lists the two steps to check.
+map yet, so it converts with blocked steps. Once you say only you talk to the
+Telegram bot, the report moves it to a local task that polls Telegram instead
+of waiting for a webhook. That poll is not built yet, so the converted folder
+blocks its trigger instead of leaving it waiting for a call that never comes.
 
 ## Install
 
