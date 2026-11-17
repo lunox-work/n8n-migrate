@@ -529,13 +529,13 @@ const plainObject = (v) => v !== null && typeof v === "object" && !Array.isArray
 // Similarity of two effects in thousandths of a field: a field that is the same counts 1000;
 // two differing object fields (a generic body) count the share of their top-level keys that
 // are the same.
-function fieldScore(a, b, runTime) {
+function fieldScore(a, b, runTime, random = false) {
   let n = 0;
   for (const f of new Set([...Object.keys(a.fields), ...Object.keys(b.fields)])) {
     const cmp = cmpFor(a, b, f);
     const x = a.fields[f];
     const y = b.fields[f];
-    if (sameField(cmp, x, y) || sameUpToRunTime(cmp, x, y, runTime)) n += 1000;
+    if (sameField(cmp, x, y) || sameUpToRunTime(cmp, x, y, runTime) || (random && sameRandomShape(cmp, x, y))) n += 1000;
     else if (cmp === "exact" && plainObject(x) && plainObject(y)) {
       const keys = new Set([...Object.keys(x), ...Object.keys(y)]);
       let same = 0;
@@ -546,7 +546,7 @@ function fieldScore(a, b, runTime) {
   return n;
 }
 
-export function pairWrites(nW, cW, runTime = null) {
+export function pairWrites(nW, cW, runTime = null, random = false) {
   const out = nW.map(() => -1);
   const groups = new Map();
   nW.forEach((a, i) => {
@@ -563,7 +563,7 @@ export function pairWrites(nW, cW, runTime = null) {
     }
     // Integer weights: field matches dominate; displacement only breaks ties.
     const tie = n.length * Math.max(n.length, c.length) + 1;
-    const w = n.map((i, x) => c.map((j, y) => fieldScore(nW[i], cW[j], runTime) * tie - Math.abs(x - y)));
+    const w = n.map((i, x) => c.map((j, y) => fieldScore(nW[i], cW[j], runTime, random) * tie - Math.abs(x - y)));
     const assign = maxAssignment(w);
     assign.forEach((y, x) => {
       if (y >= 0) out[n[x]] = c[y];
@@ -630,6 +630,35 @@ export function maxAssignment(w) {
     else out[p[j] - 1] = j - 1;
   }
   return out;
+}
+
+// ---------- random values in a write (PROPOSALS P133) ----------
+//
+// A write whose own n8n node builds a value with a randomness source in an expression
+// (`{{ … Math.random() … }}`, crypto's random calls) sends a different value on every run, on
+// n8n's side as on the Claude side, so no run can match it. Decided from n8n's workflow, never
+// from a template id: randomWriteNodes() names the fixture's write nodes whose parameters hold
+// such an expression. When there is one, a field of a paired write that differs is compared by
+// type and shape (sameRandomShape: every number becomes `#`, every digit run in a string `#`,
+// every UUID `<uuid>`), and a match is listed in `randomMasked` with both values, never gated.
+// A difference in anything but those digits still fails.
+const RANDOM_EXPR = /\bMath\.random\s*\(|\bcrypto\.(?:randomUUID|randomInt|randomBytes|getRandomValues)\s*\(|\$randomString\b/;
+export function randomWriteNodes(wf, writes = []) {
+  const want = new Set(writes);
+  const expr = (v) => (typeof v === "string" ? v.startsWith("=") && RANDOM_EXPR.test(v) : Array.isArray(v) ? v.some(expr) : v && typeof v === "object" ? Object.values(v).some(expr) : false);
+  return (wf?.nodes ?? []).filter((n) => !n.disabled && want.has(n.name) && expr(n.parameters ?? {})).map((n) => n.name);
+}
+const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+export function randomShape(v) {
+  if (typeof v === "string") return v.replace(UUID_RE, "<uuid>").replace(/\d+(?:\.\d+)?/g, "#");
+  if (typeof v === "number") return "#";
+  if (Array.isArray(v)) return v.map(randomShape);
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, randomShape(x)]));
+  return v;
+}
+export function sameRandomShape(cmp, a, b) {
+  if (cmp === "id" || cmp === "set") return false;
+  return JSON.stringify(randomShape(a)) === JSON.stringify(randomShape(b));
 }
 
 // mode: "replay" (model-written text must be byte-identical) or "live" (it goes to the judge).
@@ -704,7 +733,10 @@ export function stripAttributionAll(n8n) {
   });
 }
 
-export function compare(n8n, claude, { modelTexts = [], mode = "replay", runTime = null } = {}) {
+// random (PROPOSALS P133): true when a write node of the template builds a value with a
+// randomness source (randomWriteNodes); differing fields equal by sameRandomShape go to
+// `randomMasked`.
+export function compare(n8n, claude, { modelTexts = [], mode = "replay", runTime = null, random = false } = {}) {
   n8n = stripAttributionAll(n8n);
   claude = applySubstitutions(n8n, claude);
   const nW = n8n.filter(isWrite);
@@ -713,7 +745,8 @@ export function compare(n8n, claude, { modelTexts = [], mode = "replay", runTime
   const writes = { matched: [], missing: [], extra: [], fieldDiffs: [] };
   const judge = [];
   const runTimeMasked = [];
-  const pairOf = pairWrites(nW, cW, runTime);
+  const randomMasked = [];
+  const pairOf = pairWrites(nW, cW, runTime, random);
   nW.forEach((a, ai) => {
     const i = pairOf[ai];
     if (i < 0) {
@@ -728,6 +761,10 @@ export function compare(n8n, claude, { modelTexts = [], mode = "replay", runTime
       if (sameField(cmp, a.fields[f], b.fields[f])) continue;
       if (sameUpToRunTime(cmp, a.fields[f], b.fields[f], runTime)) {
         runTimeMasked.push({ effect: keyOf(a), field: f });
+        continue;
+      }
+      if (random && sameRandomShape(cmp, a.fields[f], b.fields[f])) {
+        randomMasked.push({ effect: keyOf(a), field: f, n8n: a.fields[f], claude: b.fields[f] });
         continue;
       }
       if (isModelWritten(a.fields[f], modelTexts)) {
@@ -751,7 +788,7 @@ export function compare(n8n, claude, { modelTexts = [], mode = "replay", runTime
   const ok = !writes.missing.length && !writes.extra.length && !writes.fieldDiffs.length;
   const substituted = claude.filter((e) => e.substituted).map((e) => ({ effect: keyOf(e), ...e.substituted }));
   const attributionStripped = n8n.filter((e) => e.attributionStripped).map((e) => ({ effect: keyOf(e), ...e.attributionStripped }));
-  return { ok, writes, reads, sameOrder: order, judge, runTimeMasked, unmapped: [...n8n, ...claude].filter((e) => e.unmapped).map(summary), ...(substituted.length ? { substituted } : {}), ...(attributionStripped.length ? { attributionStripped } : {}) };
+  return { ok, writes, reads, sameOrder: order, judge, runTimeMasked, ...(randomMasked.length ? { randomMasked } : {}), unmapped: [...n8n, ...claude].filter((e) => e.unmapped).map(summary), ...(substituted.length ? { substituted } : {}), ...(attributionStripped.length ? { attributionStripped } : {}) };
 }
 
 function summary(e) {

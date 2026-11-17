@@ -48,7 +48,9 @@ export function loadTemplate(id) {
 }
 
 // `at`: the run's start (ms or ISO) that relative times in the fixture count from (P90); the n8n
-// side fills them just before its run, the Claude side from n8n's recorded start.
+// side fills them just before its run and keeps that instant in its recording (`fixtureAt`), and
+// the Claude side fills from the same instant (fixtureClock), so a filled value is the same on
+// both sides however far from the run it lies (PROPOSALS P132).
 export function loadFixture(id, variant, { at } = {}) {
   return fillRelativeTimes(JSON.parse(readFileSync(join(HERE, "fixtures", String(id), `${variant}.json`), "utf8")), at);
 }
@@ -59,8 +61,14 @@ export function loadFixture(id, variant, { at } = {}) {
 // UTC with milliseconds), `|date` (YYYY-MM-DD, UTC), `|rfc2822`, `|epoch` (seconds) or
 // `|epochMs`. A string that is only an epoch token becomes a number. Both sides get the same
 // values: they count from the same start (n8n's run, and its recorded startedAt on the Claude
-// side), and run-time masking (README "Timezone") covers the seconds between them.
+// side), and run-time masking (README "Timezone") covers the seconds between them. PROPOSALS
+// P132: masking only covers timestamps near the run's start, so a value offset by a day differed
+// by the gap; both sides now fill from the one instant n8n's side filled with (`fixtureAt`).
 const REL_TIME = /\{\{bench\.now(?:([+-]\d+)([smhd]))?(?:\|(iso|date|rfc2822|epoch|epochMs))?\}\}/g;
+// The instant the Claude side fills a recorded variant's relative fixture times from: the n8n
+// run's own fill instant (P132), else (a recording from before P132) its startedAt.
+export const fixtureClock = (rec) => rec?.fixtureAt ?? rec?.startedAt;
+
 export function fillRelativeTimes(value, at) {
   const t0 = at === undefined || at === null ? Date.now() : typeof at === "number" ? at : Date.parse(at);
   const unit = { s: 1e3, m: 6e4, h: 36e5, d: 864e5 };
@@ -672,6 +680,29 @@ export function modelConsumers(wf) {
   return map;
 }
 
+// PROPOSALS P134: the nodes a model reply feeds: each model node, the root nodes that consume it,
+// and every node downstream of those on main connections.
+export function modelFedNodes(wf, models = []) {
+  const consumers = modelConsumers(wf);
+  const out = new Set(models.flatMap((m) => [m.node, ...(consumers[m.node] ?? [])]));
+  const queue = [...out];
+  while (queue.length) {
+    const n = queue.shift();
+    for (const list of wf.connections?.[n]?.main ?? []) for (const e of list ?? []) if (!out.has(e.node)) (out.add(e.node), queue.push(e.node));
+  }
+  return out;
+}
+
+// PROPOSALS P134: a live draw whose baseline failed at a node a model reply feeds, while the same
+// variant's canned check (canned replies that fit, no model) ran to the end: the stand-in's draw,
+// not the template, stopped n8n. -> {node, message} or null.
+export function modelDrawFailure(wf, models, rec, cannedOk = true) {
+  if (!rec || rec.status === "success" || !models?.length || !cannedOk) return null;
+  const node = rec.error?.node;
+  if (!node || !modelFedNodes(wf, models).has(node)) return null;
+  return { node, message: String(rec.error?.message ?? "").slice(0, 300) };
+}
+
 function setPath(obj, path, value) {
   const keys = path.split(".");
   let o = obj;
@@ -705,7 +736,10 @@ export function routesOf(fixture) {
 // Builds everything runWorkflow needs. `pinFallback`: node names to pin from their `n8n` source.
 export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = [], credentialSpecs: specs = null } = {}) {
   const { wf, name } = loadTemplate(id);
-  const fx = loadFixture(id, variant);
+  // PROPOSALS P132: the instant this run's relative fixture times are filled from, kept in the
+  // recording so the Claude side fills the same values.
+  const fixtureAt = new Date().toISOString();
+  const fx = loadFixture(id, variant, { at: fixtureAt });
   const applied = [];
   for (const [kind, section] of [["placeholder", overlay?.n8n], ["time-compression", overlay?.timeCompression?.n8n]]) {
     for (const [node, patches] of Object.entries(section ?? {})) {
@@ -820,7 +854,7 @@ export function prepare(id, variant, { overlay = loadOverlay(id), pinFallback = 
   // PROPOSALS P89: nodes the template itself pins (other than the trigger): n8n's manual run
   // returns the pin instead of running them; the row reports those on the run (`pinnedPath`).
   const templatePinned = templatePins.filter((n) => n !== fx.trigger.node && !sources[n]?.startsWith("pin"));
-  return { pinTrigger, via, formPages, activate: selfCall || formPages.length > 0, id, variant, name, wf: { ...wf, name: `${id} ${name}` }, fixture: fx, db, credentials, credentialsAttached, routes, badRoutes, models, overlayApplied: applied, sources, files, templatePinned };
+  return { pinTrigger, via, formPages, activate: selfCall || formPages.length > 0, id, variant, name, wf: { ...wf, name: `${id} ${name}` }, fixture: fx, fixtureAt, db, credentials, credentialsAttached, routes, badRoutes, models, overlayApplied: applied, sources, files, templatePinned };
 }
 
 // PROPOSALS P60: pinData entries as n8n execution items. An entry that is already an item

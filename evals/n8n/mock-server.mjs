@@ -133,18 +133,24 @@ function decodeBody(buf, contentType) {
   const boundary = /multipart\/form-data/i.test(contentType || "") ? /boundary="?([^";]+)"?/i.exec(contentType)?.[1] : null;
   if (boundary) return { body: parseMultipart(buf, boundary), bodyEncoding: "multipart" };
   const text = buf.toString("utf8");
-  if (Buffer.from(text, "utf8").equals(buf)) {
-    if (/json/i.test(contentType || "") || /^\s*[[{]/.test(text)) {
-      try {
-        return { body: JSON.parse(text), bodyEncoding: "json" };
-      } catch {}
-    }
-    if (/application\/x-www-form-urlencoded/i.test(contentType || "")) {
-      return { body: Object.fromEntries(new URLSearchParams(text)), bodyEncoding: "form" };
-    }
-    return { body: text, bodyEncoding: "text" };
-  }
+  if (Buffer.from(text, "utf8").equals(buf)) return decodeTextBody(text, contentType);
   return { body: buf.toString("base64"), bodyEncoding: "base64" };
+}
+
+// A text body as the log keeps it: JSON when the content type says JSON or the text looks like
+// JSON and parses, a form body as its fields, else the text. The bench's in-process Claude side
+// logs a text body the runner sends by the same rule (PROPOSALS P138), so both sides' requests
+// are compared as the wire carries them.
+export function decodeTextBody(text, contentType) {
+  if (/json/i.test(contentType || "") || /^\s*[[{]/.test(text)) {
+    try {
+      return { body: JSON.parse(text), bodyEncoding: "json" };
+    } catch {}
+  }
+  if (/application\/x-www-form-urlencoded/i.test(contentType || "")) {
+    return { body: Object.fromEntries(new URLSearchParams(text)), bodyEncoding: "form" };
+  }
+  return { body: text, bodyEncoding: "text" };
 }
 
 // Requests the real service refuses whatever a fixture says (PROPOSALS P29), answered before

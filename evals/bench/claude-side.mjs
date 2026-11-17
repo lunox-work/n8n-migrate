@@ -16,7 +16,7 @@ import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { pickRoute, serviceAnswer, serviceRefusal, modelHost, transportHeaders } from "../n8n/mock-server.mjs";
+import { pickRoute, serviceAnswer, serviceRefusal, modelHost, transportHeaders, decodeTextBody } from "../n8n/mock-server.mjs";
 import { checkSchema, schemaFile } from "../mocks/mcp-server.mjs";
 import { connectorDefault, connectorRefusal, countsAsSend, limitErrors, pageResult } from "../mocks/limits.mjs";
 import { answerOf, callsByIndex, formatOf, liveAnswer, normalize, normalizeRunnerRequest, pairRecorded, providerResponse, runnerValue } from "./model-shim.mjs";
@@ -1067,7 +1067,11 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
       // PROPOSALS P43: an LLM API over HTTP is a model call answered from n8n's recording.
       const mh = isModelHttp(routes, p.method, p.url, body);
       if (mh) return answerModelHttp(p, mh, jsonBody(body));
-      const entry = { method: p.method, url: `${u.origin}${u.pathname}`, query: Object.fromEntries(sp), body, ...(p.contentType ? { contentType: p.contentType } : {}), auth: p.auth?.secret ?? null, ...(p.ownStep ?? p.step ? { step: p.ownStep ?? p.step } : {}), ...(p.redirectFrom ? { redirectFrom: p.redirectFrom } : {}) };
+      // PROPOSALS P138: a text body (a raw body the runner sends as written) is logged as the
+      // mock logs n8n's: decoded by the content type the request carries, as on the wire.
+      const contentType = Object.entries(p.headers ?? {}).find(([k]) => k.toLowerCase() === "content-type")?.[1];
+      const logged = typeof body === "string" && p.bodyEncoding !== "base64" && body !== "" ? decodeTextBody(body, contentType).body : body;
+      const entry = { method: p.method, url: `${u.origin}${u.pathname}`, query: Object.fromEntries(sp), body: logged, ...(p.contentType ? { contentType: p.contentType } : {}), auth: p.auth?.secret ?? null, ...(p.ownStep ?? p.step ? { step: p.ownStep ?? p.step } : {}), ...(p.redirectFrom ? { redirectFrom: p.redirectFrom } : {}) };
       seen.http.push(entry);
       // PROPOSALS P29: what the real service refuses whatever the fixture says, as the mock.
       const refused = serviceRefusal(p.method, u.origin, u.pathname, body);

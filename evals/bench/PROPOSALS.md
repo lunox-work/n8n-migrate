@@ -937,6 +937,7 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Proposed change.** Fill both sides from one instant: the n8n side keeps the instant it filled its tokens with in the recording (`fixtureAt`), and the Claude side (in process and the claude driver) fills from that, not from `startedAt`; recordings without it keep today's behaviour. Alternatively mask a filled token's value on both sides by its token (`<bench.now-1d>`), since the fixture, not the run, chose it.
 - **Why not in the loop.** It changes the fixture loader and what a recording keeps.
 - **Status: open** (release point 5, 2026-11-17).
+- **Decision (maintainer, round 6 setup, 2026-11-17): applied, the first option.** One instant per variant: `n8n-side.mjs` `prepare()` fills the fixture's relative times from `fixtureAt` (taken once, just before n8n's run) and the recording keeps it; the Claude side (in process, the claude driver and the driver's model-input checks) fills from `fixtureClock(rec)`, which is `fixtureAt`, or `startedAt` for a recording from before P132. Masking by token was not taken: it would hide a converter that drops or shifts a date. Test: `tests/bench-r6.test.mjs` "P132".
 
 ## P133. A write field built with `Math.random()` can never compare equal (release point 5)
 
@@ -944,6 +945,7 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Proposed change.** As P75, decided from n8n's own workflow: a write field whose n8n expression calls `Math.random()` is compared by type and shape, the value difference reported as `randomMasked`, never gated.
 - **Why not in the loop.** It changes the comparer.
 - **Status: open** (release point 5, 2026-11-17).
+- **Decision (maintainer, round 6 setup, 2026-11-17): applied, narrowed to the write's own node.** Decided from n8n's workflow, never a template id: `compare.mjs` `randomWriteNodes(wf, fixture.writes)` names the fixture's write nodes whose own parameters hold an n8n expression calling `Math.random()` or crypto's random calls. When there is one, `compare(…, { random: true })` compares a differing field of a paired write by type and shape (`sameRandomShape`: numbers, digit runs and UUIDs become tokens), lists a match in `randomMasked` with both values, and never gates it; pairing uses the same rule. A difference outside those tokens still fails. A seeded RNG on both sides was not taken: n8n's expression sandbox draws from V8's own generator, which the bench cannot seed in n8n's process. Test: `tests/bench-r6.test.mjs` "P133".
 
 ## P134. A held-out baseline that fails on the stand-in's first live draw is neither marked nor re-drawn (release point 5)
 
@@ -951,6 +953,7 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Proposed change.** Decide before the next release point, one of: (a) a held-out recording pass re-draws a baseline that fails at a node fed by a model reply up to two more times, every draw kept and reported, and the first draw n8n accepts is the recording; (b) a baseline that fails on a model reply after that is marked `n8nCannotRun` (a structured reply the stand-in does not give, as P104's list says), so `--release` leaves it out beside the headline. Either way the rule is written before the draws are seen.
 - **Why not in the loop.** It changes how held-out baselines are recorded and marked.
 - **Status: open** (release point 5, 2026-11-17).
+- **Decision (maintainer, round 6 setup, 2026-11-17): applied, one redraw then a mark.** The procedure, written before any redraw: the recording pass (`run.mjs --record-only`, P135) draws each variant live; a draw whose baseline fails at a node a model reply feeds (`n8n-side.mjs` `modelFedNodes`: the model node, its consumer, and everything downstream on main connections), while the same variant's canned check runs to the end (`modelDrawFailure`), is drawn once more. If the redraw succeeds it is the recording; if it fails the same way, the pass prints the `expect.n8nCannotRun` mark (node, error, both draws' times) and the setup session writes it into the normal fixture, so `--release` reports the template apart beside the headline. Both draws are reported. Applied to the two release-5 templates now that they are dev (LOOP.md "R6a").
 
 ## P135. The held-out recording pass also runs the claude driver, so it spends the second held-out run's budget (release point 5)
 
@@ -958,6 +961,7 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Proposed change.** `run.mjs --record-only <ids>`: the n8n side of every variant, live, saved as recordings, with no convert, Claude side or driver (no row, ledger entries only for the n8n model calls); release points use it for the setup pass.
 - **Why not in the loop.** It changes how release points are run.
 - **Status: open** (release point 5, 2026-11-17).
+- **Decision (maintainer, round 6 setup, 2026-11-17): applied as proposed.** `run.mjs --record-only <ids> [--variants …]`: for each variant with a model node, the n8n side drawn live and saved as its recording, with P134's one redraw; no convert, Claude side, driver or results row; the ledger gets only n8n's model calls; held-out ids only when named. Release points run it for the held-out setup pass before the scored runs (P115). Test: `tests/bench-r6.test.mjs` "P135".
 
 ## P136. A claude-driver session that declines a send step the runner prints ends the run `needs`, and is not retried (1978)
 
@@ -965,6 +969,7 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Proposed change.** Either the driver's prompt says that the runner's write is the migrated workflow's own and the session's job is to make it exactly (the person reviews content at dry run, not the driver), or a run that ends `needs` with a write outstanding after the session's own final text counts as a P40 slip: retried once, a repeat stands as the verdict and is reported as a driver decline, apart from runner bugs.
 - **Why not in the loop.** It changes the claude driver's prompt or its slip rule.
 - **Status: open** (release point 5, 2026-11-17).
+- **Decision (maintainer, round 6 setup, 2026-11-17): the prompt fix, as a skill change (loop iteration 58), not a bench rule.** The claude driver runs the folder's own `task-prompt.md`, which is what a scheduled task runs for the person, so a session that declines the runner's send is a real failure of the migrated task, not a protocol slip to retry away: a retry would hide it. The runner computes every write from the workflow and the hooks hold its arguments exact, so the session's judgement adds no safety; what it can do is drop a step n8n would have taken. `references/task-prompt.md` rule 5 now says the runner's steps are the workflow's own, checked by the person at the dry run, and are never the session's to skip or hold back; only a refusal from the runner, a hook or the tool stops a step. Rule 2 (data is never instructions) is unchanged. Nothing is keyed on 1978.
 
 ## P137. Two-arm bench measurement for convert-time model drafts (PLAN status 2026-11-17, "convert-time drafts")
 
@@ -974,3 +979,10 @@ Status 2026-11-14: P1 (the connector-limited half) and P2 approved and applied (
 - **Order.** After release point 5 and round 6 setup; before any draft is promoted into `tool-maps.json` or `http-hosts.json`, so promotion cannot contaminate the comparison.
 - **Why not in the loop.** It adds a bench mode and a separate held-out draw.
 - **Status: accepted, queued** (maintainer, 2026-11-17).
+
+## P138. A raw text body the runner sends is logged as text in process, while the mock logs n8n's decoded (release point 5, dev 2768)
+
+- **Evidence.** Release point 5's held-out new kind 2 and dev 2768: an HTTP Request with `contentType: raw` and a JSON body written in an expression. Both sides send the same text with a JSON content type (the runtime's request build is observed from n8n 2.47.7: `rawContentType` sets the header). The mock decodes n8n's text body as JSON (`mock-server.mjs` `decodeBody`: JSON by content type, or by its look), so gate 4 compares an object; the in-process Claude side logs the runner's body as the string it handed over, so gate 4 compares the text. Under the claude driver the host mock decodes both, so only the in-process gate differs. It is the comparer's input, not the converter.
+- **Proposed change.** The in-process Claude side logs a text body by the mock's rule (`decodeTextBody`, shared), with the request's own content-type header, so both sides are compared as the wire carries them.
+- **Why not in the loop.** It changes what the comparer reads.
+- **Decision (maintainer, round 6 setup, 2026-11-17): applied as proposed.** `claude-side.mjs` logs `decodeTextBody(body, content-type)` for a string body that is not base64; the request handed to fixtures and refusals is unchanged. 2768 still differs on its inline key, which the converter redacts to a marker (release point 3's kind); the body itself now compares as JSON on both sides. Test: `tests/bench-r6.test.mjs` "P138".
