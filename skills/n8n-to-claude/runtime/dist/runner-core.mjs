@@ -2876,7 +2876,7 @@ const decodeHtml = (s) =>
   s.replace(/&(#[xX][0-9a-fA-F]+|#[0-9]+|[A-Za-z][A-Za-z0-9]*);/g, (m, e) => {
     if (e[0] === "#") {
       const n = e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
-      return n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : "�";
+      return n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : "\uFFFD";
     }
     return e in HTML_ENTITIES ? HTML_ENTITIES[e] : m;
   });
@@ -5515,7 +5515,7 @@ function fromState(state, { url, title } = {}) {
   return { object: "database", id, url: id ? `https://www.notion.so/${id.replace(/-/g, "")}` : url, public_url: null, title: richText(name), properties };
 }
 
-function notionDatabase(output) {
+function notionDatabase(output, outer = {}) {
   const v = unwrapOne(parseJsonText(output), ["database", "result"]);
   if (isObject(v)) {
     if (isObject(v.properties) && (v.object === "database" || Array.isArray(v.title))) {
@@ -5523,7 +5523,9 @@ function notionDatabase(output) {
     }
     const s = fromState(v, { url: v.url });
     if (s) return s;
-    if (typeof v.text === "string") return notionDatabase(v.text);
+    // notion-fetch: {metadata: {type}, title, url, text: "<data-source ...><data-source-state>"}
+    // (observed 2026-11-18); the outer url is the database's, the state's url its data source's.
+    if (typeof v.text === "string") return notionDatabase(v.text, { url: v.url, title: typeof v.title === "string" ? v.title : undefined });
   }
   if (typeof v === "string") {
     const dbTag = /<database\b[^>]*>/.exec(v)?.[0] ?? "";
@@ -5536,14 +5538,151 @@ function notionDatabase(output) {
     });
     const state = states.find(isObject);
     if (state) {
-      const out = fromState(state, { url: attr(dbTag, "url"), title: attr(dbTag, "title") });
+      const out = fromState(state, { url: attr(dbTag, "url") ?? outer.url, title: attr(dbTag, "title") ?? outer.title });
       if (out) return out;
     }
   }
   throw unrecognised("notion-database", output, "a Notion database (properties), a data source state (schema), or <database> text with a <data-source-state>");
 }
 
-const SHAPES = { "gmail-message": gmailMessage, "notion-database": notionDatabase };
+// ---------- notion-page, notion-rows ----------
+//
+// notion-fetch of a page answers {metadata: {type: "page"}, title, url, text, icon, cover, path,
+// page_last_edited_at} (observed 2026-11-18): the page id is only in the url. Returns
+// {object: "page", id, name, url, icon, cover, last_edited_time}, the fields n8n's simplified
+// page output shares (its property_* need the page's properties, which the tool renders as text).
+function notionPage(output) {
+  const v = unwrapOne(parseJsonText(output), ["page", "result"]);
+  if (isObject(v) && (v.object === "page" || typeof v.url === "string")) {
+    const name = typeof v.title === "string" ? v.title : Array.isArray(v.title) ? v.title.map((t) => t.plain_text ?? "").join("") : v.name;
+    const out = { object: "page", id: v.id ?? idFromUrl(v.url), name: name ?? "", url: v.url };
+    for (const [k, from] of [["icon", "icon"], ["cover", "cover"], ["last_edited_time", "page_last_edited_at"], ["last_edited_time", "last_edited_time"], ["properties", "properties"]]) if (v[from] !== undefined && out[k] === undefined) out[k] = v[from];
+    return out;
+  }
+  throw unrecognised("notion-page", output, "a Notion page (url, title)");
+}
+
+// notion-query-data-sources (rows mode) answers {results: [{<property>: value, ..., url}],
+// has_more} (observed 2026-11-18). Returns {results: [{id, url, property_<snake_case name>}]}:
+// n8n's simplified row keys; a date's expanded columns (date:<name>:start/end) become
+// property_<name> = {start, end}. The title property is not marked, so n8n's `name` is missing.
+const snake = (k) => String(k).trim().replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
+function notionRows(output) {
+  const v = parseJsonText(output);
+  const rows = Array.isArray(v) ? v : isObject(v) && Array.isArray(v.results) ? v.results : null;
+  if (!rows) throw unrecognised("notion-rows", output, "{results: [rows]}");
+  const out = rows.map((r) => {
+    if (!isObject(r)) return { value: r };
+    if (r.object === "page" && isObject(r.properties)) return r;
+    const row = { id: r.id ?? idFromUrl(r.url), url: r.url };
+    // {id, url, properties: {name: plain value}} (the bench's assumed rows) or the flat row.
+    const props = isObject(r.properties) ? r.properties : r;
+    for (const [k, x] of Object.entries(props)) {
+      if (props === r && (k === "url" || k === "id")) continue;
+      const d = /^date:(.+):(start|end|is_datetime)$/.exec(k);
+      if (d) {
+        if (d[2] === "is_datetime") continue;
+        const key = `property_${snake(d[1])}`;
+        row[key] = { ...(isObject(row[key]) ? row[key] : { start: null, end: null }), [d[2]]: x ?? null };
+      } else row[`property_${snake(k)}`] = x;
+    }
+    return row;
+  });
+  return { results: out, has_more: isObject(v) ? Boolean(v.has_more) : false };
+}
+
+// ---------- slack-messages, slack-user ----------
+//
+// The Slack connector answers reads as text, not Slack's REST objects (observed 2026-11-18):
+//   slack_read_channel -> {messages: "Channel: #x (C..)\n\n=== Message from Name <mail> (U..) at
+//     2026-11-17 11:55:33 +08 === \nMessage TS: 1794887733.702439\n<text>\nThread: 2 replies
+//     (latest: ...)\n\n=== Message ...", pagination_info: "..."}; the author part can be absent.
+//   slack_read_thread -> {messages: "=== THREAD PARENT MESSAGE ===\nFrom: Name <mail> (U..)\n
+//     Time: ...\nMessage TS: ...\n<text>\n\n=== THREAD REPLIES (n total) ===\n\n--- Reply 1 of n
+//     ---\nFrom: ...\nTime: ...\nMessage TS: ...\n<text>", ...}
+// slack-messages returns {messages: [{type: "message", user | bot_id, user_name, user_email,
+// text, ts, thread_ts, reply_count, subtype}]}; Slack's own objects ({messages: [{ts, ...}]})
+// pass through. Blocks, attachments, reactions and edits are not in the text.
+const AUTHOR_RE = /^(.*?)(?: <([^<>]*)>)? \(([A-Z0-9]+)\)$/;
+function author(s, m) {
+  const a = AUTHOR_RE.exec(String(s ?? "").trim());
+  if (!a) return;
+  if (/^B/.test(a[3])) m.bot_id = a[3];
+  else m.user = a[3];
+  if (a[1]) m.user_name = a[1];
+  if (a[2]) m.user_email = a[2];
+}
+function parseSlackText(text) {
+  const segs = [];
+  let cur = null;
+  let threadParent = null;
+  for (const line of String(text).split("\n")) {
+    const head = /^=== Message(?: from (.+?))? at (.+?) ===\s*$/.exec(line);
+    if (head || /^=== THREAD PARENT MESSAGE ===\s*$/.test(line) || /^--- Reply \d+ of \d+ ---\s*$/.test(line)) {
+      cur = { m: { type: "message" }, lines: [], reply: /^--- Reply/.test(line), parent: /PARENT/.test(line) };
+      if (head) {
+        author(head[1], cur.m);
+        cur.m.date = head[2];
+      }
+      segs.push(cur);
+      continue;
+    }
+    if (!cur || /^=== THREAD REPLIES \(\d+ total\) ===\s*$/.test(line)) continue;
+    let m;
+    if (!cur.lines.length && (m = /^From: (.*)$/.exec(line))) author(m[1], cur.m);
+    else if (!cur.lines.length && (m = /^Time: (.*)$/.exec(line))) cur.m.date = m[1];
+    else if (!cur.lines.length && cur.m.ts === undefined && (m = /^Message TS: (\S+)/.exec(line))) cur.m.ts = m[1];
+    else cur.lines.push(line);
+  }
+  for (const seg of segs) {
+    while (seg.lines.length && seg.lines.at(-1).trim() === "") seg.lines.pop();
+    const last = seg.lines.at(-1) ?? "";
+    const t = /^Thread: (\d+) repl(?:y|ies)\b/.exec(last);
+    if (t) {
+      seg.m.reply_count = Number(t[1]);
+      seg.m.thread_ts = seg.m.ts;
+      seg.lines.pop();
+    }
+    seg.m.text = seg.lines.join("\n");
+    if (/^<@[A-Z0-9]+(\|[^>]*)?> has joined the channel$/.test(seg.m.text)) seg.m.subtype = "channel_join";
+    if (seg.parent) threadParent = seg.m.ts;
+  }
+  if (threadParent) for (const seg of segs) seg.m.thread_ts = threadParent;
+  return segs.map((s) => s.m);
+}
+function slackMessages(output) {
+  const v = parseJsonText(output);
+  if (isObject(v) && Array.isArray(v.messages)) return { ...v };
+  const text = isObject(v) ? v.messages ?? v.result ?? v.text : v;
+  if (typeof text === "string" && /(^|\n)(=== Message\b|=== THREAD PARENT MESSAGE ===)/.test(text)) return { messages: parseSlackText(text), has_more: isObject(v) && /more messages available/i.test(String(v.pagination_info ?? "")) };
+  if (typeof text === "string" && /^Channel: .*\n*$/.test(text.trim() + "\n")) return { messages: [] };
+  throw unrecognised("slack-messages", output, "Slack messages (a list, or the connector's '=== Message' text)");
+}
+
+// slack_read_user_profile -> {result: "User ID: U..\nUsername: ..\nDisplay Name: ..\nReal Name:
+// ..\nPronouns: ..\nTitle: ..\nEmail: ..\nOrganization Name: ..\nPhone: ..\nStatus: ..\n
+// Timezone: ..\nAdmin: No\nOwner: No\nBot: No\nRestricted: No"} (observed 2026-11-18).
+// Returns Slack's user object as n8n's user info gives it: {id, name, real_name, tz, is_admin,
+// is_owner, is_bot, is_restricted, profile: {display_name, real_name, email, title, phone,
+// pronouns, status_text}}; team, colour, images and the tz offset are not in the text.
+function slackUser(output) {
+  const v = parseJsonText(output);
+  const o = unwrapOne(v, ["user"]);
+  if (isObject(o) && (o.id !== undefined || isObject(o.profile))) return o;
+  const text = isObject(v) ? v.result ?? v.text : v;
+  if (typeof text !== "string" || !/^User ID: /m.test(text)) throw unrecognised("slack-user", output, "a Slack user (id, profile) or the connector's 'User ID:' text");
+  const f = {};
+  for (const line of text.split("\n")) {
+    const m = /^([A-Za-z ]+): ?(.*)$/.exec(line);
+    if (m) f[m[1].trim()] = m[2].trim();
+  }
+  const yes = (k) => (f[k] === undefined ? undefined : /^yes|true$/i.test(f[k]));
+  const nz = (x) => (x === undefined || x === "" ? undefined : x);
+  const profile = Object.fromEntries(Object.entries({ display_name: f["Display Name"] ?? "", real_name: f["Real Name"] ?? "", email: nz(f.Email), title: f.Title ?? "", phone: f.Phone ?? "", pronouns: nz(f.Pronouns), status_text: f.Status ?? "" }).filter(([, x]) => x !== undefined));
+  return Object.fromEntries(Object.entries({ id: f["User ID"], name: f.Username, real_name: f["Real Name"], tz: nz(f.Timezone), is_admin: yes("Admin"), is_owner: yes("Owner"), is_bot: yes("Bot"), is_restricted: yes("Restricted"), profile }).filter(([, x]) => x !== undefined));
+}
+
+const SHAPES = { "gmail-message": gmailMessage, "notion-database": notionDatabase, "notion-page": notionPage, "notion-rows": notionRows, "slack-messages": slackMessages, "slack-user": slackUser };
 
 function readShape(name, output) {
   const fn = SHAPES[name];
@@ -5551,7 +5690,7 @@ function readShape(name, output) {
   return fn(output);
 }
 
-return { parseAddressList, gmailMessage, notionDatabase, SHAPES, readShape };
+return { parseAddressList, gmailMessage, notionDatabase, notionPage, notionRows, parseSlackText, slackMessages, slackUser, SHAPES, readShape };
 })();
 
 // ---- src/adapt.mjs ----
@@ -6003,7 +6142,7 @@ const LOOSE_VOID = set("area base basefont br col command embed frame hr img inp
 
 const MAX_NAME = Math.max(...Object.keys(NAMED_ENTITIES).map((k) => k.length));
 function codePoint(n) {
-  if (n === 0 || n > 0x10ffff || (n >= 0xd800 && n <= 0xdfff)) return "�";
+  if (n === 0 || n > 0x10ffff || (n >= 0xd800 && n <= 0xdfff)) return "\uFFFD";
   if (NUMERIC_REMAP[n] !== undefined) return String.fromCodePoint(NUMERIC_REMAP[n]);
   return String.fromCodePoint(n);
 }

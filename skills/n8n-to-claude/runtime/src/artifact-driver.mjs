@@ -52,11 +52,26 @@ export function agentValue(v, req = {}) {
   if (req.outputSchema || typeof final === "string") return final;
   return final === undefined || final === null ? "" : JSON.stringify(final);
 }
+const textBase64 = (t) => {
+  const bytes = new TextEncoder().encode(t);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+};
 // mcp CallToolResult -> the value the runner adapts (the task driver's mcpValue, same rule).
 export function mcpPayload(result) {
   if (!isObj(result)) return result ?? null;
   if (result.payload !== undefined) return result.payload;
   if (result.structuredContent !== undefined) return result.structuredContent;
+  // A file comes as an MCP resource block beside the tool's JSON (Google Drive's
+  // download_file_content: `content` "(file sent separately)"); its bytes become the base64
+  // `content`, as the task runner's blobValue does with the copy Claude Code saves.
+  const res = (result.content ?? []).find((b) => b?.type === "resource" && isObj(b.resource))?.resource;
+  if (res) {
+    const meta = (result.content ?? []).filter((b) => b?.type === "text").map((b) => { try { return JSON.parse(b.text); } catch { return null; } }).find(isObj) ?? {};
+    const content = typeof res.blob === "string" ? res.blob : typeof res.text === "string" ? textBase64(res.text) : null;
+    return { ...(res.mimeType ? { mimeType: res.mimeType } : {}), ...meta, content };
+  }
   const texts = (result.content ?? []).filter((b) => b?.type === "text").map((b) => b.text);
   if (!texts.length) return result.content ?? null;
   const t = texts.join("");

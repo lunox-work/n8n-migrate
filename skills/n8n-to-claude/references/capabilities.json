@@ -107,6 +107,11 @@
       "cloudTask": { "source": "docs 2026-11-14, untested", "value": "needs:vector-connector" },
       "localTask": { "source": "docs 2026-11-14, untested", "value": "needs:vector-connector" }
     },
+    "google-token": {
+      "artifact": { "source": "docs 2026-11-14 (artifacts: fetch only to its own origin)", "value": "no" },
+      "cloudTask": { "source": "observed 2026-11-17: a cloud task's secrets are added by the environment's proxy as a fixed header; a Google access token lasts 1 h, so every run after the first hour fails", "value": "no" },
+      "localTask": { "source": "runtime driver.mjs: a fresh access token per request from a refresh set or service-account key in N2C_SECRET_<NAME>; unit-tested, not yet run against Google", "value": "needs:google-refresh-secret" }
+    },
     "connector-api": {
       "artifact": { "source": "docs 2026-11-14 (artifacts: no backend, fetch only to its own origin), untested", "value": "no" },
       "cloudTask": { "source": "docs 2026-11-14 (cloud-environments: network secrets, Pro and up, the agent proxy adds the key for listed hosts), untested", "value": "needs:network-secret" },

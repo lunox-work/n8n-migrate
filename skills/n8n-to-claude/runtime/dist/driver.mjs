@@ -57,7 +57,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, readdirSync, rmSync, appendFileSync, openSync, closeSync, statSync, realpathSync } from "node:fs";
 import { join, dirname, relative, isAbsolute, basename } from "node:path";
 import { fileURLToPath } from "node:url";
-import { randomBytes } from "node:crypto";
+import { randomBytes, createSign } from "node:crypto";
 import { createStore } from "./store.mjs";
 
 // The command the model runs, relative to the session's working directory: a repo with several
@@ -205,13 +205,32 @@ export function expandArgs(input, handle, args) {
   return walk(input);
 }
 
+// Claude Code keeps a connector's file (an MCP resource block) out of the response: a text
+// block "[Resource from <server> at <uri>] Binary content (<mime>, <n> bytes) saved to <path>"
+// takes its place, and Google Drive's download_file_content adds a JSON block whose `content`
+// reads "(file sent separately)" (observed on 2.1.326, 2026-11-18). The runner reads the file
+// and puts its bytes back as the base64 `content` the tool's description promises.
+const BLOB_RE = /\] Binary content \(([^,()]+), \d+ bytes\) saved to (\S+)/;
+export function blobValue(texts, read = (p) => readFileSync(p)) {
+  const i = texts.findIndex((t) => BLOB_RE.test(String(t)));
+  if (i < 0) return undefined;
+  const [, mimeType, file] = BLOB_RE.exec(texts[i]);
+  const rest = texts.filter((_, j) => j !== i).map((t) => parseMaybe(t));
+  const meta = rest.find(isObj) ?? {};
+  try {
+    return { mimeType, ...meta, content: Buffer.from(read(file)).toString("base64") };
+  } catch (e) {
+    return { ...meta, mimeType, content: null, error: `the connector's file was saved to ${file} but could not be read (${e.code ?? e.message})` };
+  }
+}
+
 // The value the runner gets for a connector response: MCP content -> JSON when it parses.
 export function mcpValue(resp) {
   if (resp == null) return null;
-  if (typeof resp === "string") return parseMaybe(resp);
+  if (typeof resp === "string") return blobValue(resp.split(/\n(?=\{)/)) ?? parseMaybe(resp);
   if (Array.isArray(resp)) {
     const texts = resp.filter((b) => b && b.type === "text").map((b) => b.text);
-    if (texts.length === resp.length && texts.length) return parseMaybe(texts.join(""));
+    if (texts.length === resp.length && texts.length) return blobValue(texts) ?? parseMaybe(texts.join(""));
     return resp;
   }
   if (isObj(resp)) {
@@ -236,6 +255,15 @@ export function overflowResult(text, read = (p) => readFileSync(p, "utf8")) {
   } catch (e) {
     return { ok: false, error: { name: "ResponseTooLarge", message: `the tool's response was larger than the session allows and its saved copy could not be read (${e.code ?? e.message})` } };
   }
+}
+// A session without the tool the step needs ("No such tool available: mcp__Notion__notion-search").
+// Observed 2026-11-18: a cloud task's session offered 37 of the Notion connector's tools and
+// none of its core ones (search, fetch, query, page writes), whatever the routine's connection
+// listed. Likely cause, not yet confirmed: tools set to need approval on claude.ai are not
+// offered to an unattended session.
+export function missingToolHint(text) {
+  if (!/No such tool available/i.test(String(text))) return text;
+  return `${String(text).trim()} (the session has no such tool: check that the connector is attached to the task and that this tool is set to run without approval in the connector's settings on claude.ai; an unattended task likely gets no tool that needs approval)`;
 }
 function parseMaybe(text) {
   const t = String(text).trim();
@@ -298,6 +326,54 @@ export const secretSources = {
   // goes out without it.
   proxy: () => null,
 };
+
+// Google access tokens last an hour, so one stored once fails every scheduled run after that.
+// A local task's secret for a Google credential can instead be what lets the runner mint one:
+// the OAuth client's {client_id, client_secret, refresh_token} (what n8n's Google OAuth2
+// credentials keep), or a service-account key {client_email, private_key} (n8n's googleApi
+// credential; optional delegated_email / subject to act as a user). A fresh token is minted at
+// oauth2.googleapis.com for each request and never written to disk. Any other value is sent as
+// it is (a raw access token, which works for an hour). A cloud task cannot do this: its proxy
+// adds a fixed header (analyze.mjs requirement google-token keeps such workflows local).
+const GOOGLE_CREDENTIAL = /^google\w*(OAuth2Api|Api)$/;
+const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+// The scopes n8n's own nodes ask for with a service account (n8n-nodes-base 2.47.7).
+function googleScopes(url) {
+  const u = new URL(url);
+  if (u.hostname === "sheets.googleapis.com") return ["https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/spreadsheets"];
+  if (u.pathname.startsWith("/calendar/")) return ["https://www.googleapis.com/auth/calendar", "https://www.googleapis.com/auth/calendar.events"];
+  return ["https://www.googleapis.com/auth/cloud-platform"];
+}
+const b64url = (x) => Buffer.from(typeof x === "string" ? x : JSON.stringify(x)).toString("base64url");
+export function googleAssertion(key, scopes, now = Date.now()) {
+  const iat = Math.floor(now / 1000);
+  const claims = { iss: key.client_email, scope: scopes.join(" "), aud: GOOGLE_TOKEN_URL, iat, exp: iat + 3600 };
+  const subject = key.delegated_email ?? key.subject;
+  if (subject) claims.sub = subject;
+  const unsigned = `${b64url({ alg: "RS256", typ: "JWT" })}.${b64url(claims)}`;
+  const pem = String(key.private_key).replace(/\\n/g, "\n");
+  return `${unsigned}.${createSign("RSA-SHA256").update(unsigned).sign(pem, "base64url")}`;
+}
+export async function googleAccessToken(value, url, fetchImpl = globalThis.fetch, now = Date.now()) {
+  if (typeof value !== "string" || !value.trim().startsWith("{")) return value;
+  let v;
+  try {
+    v = JSON.parse(value);
+  } catch {
+    return value;
+  }
+  let form;
+  if (v.refresh_token && v.client_id && v.client_secret) form = { grant_type: "refresh_token", refresh_token: v.refresh_token, client_id: v.client_id, client_secret: v.client_secret };
+  else if (v.client_email && v.private_key) form = { grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: googleAssertion(v, googleScopes(url), now) };
+  else return value;
+  const res = await fetchImpl(GOOGLE_TOKEN_URL, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(form).toString() });
+  let j = {};
+  try {
+    j = await res.json();
+  } catch {}
+  if (!res.ok || typeof j.access_token !== "string") throw Object.assign(new Error(`Google did not give an access token for this credential (${res.status}${j.error ? ` ${j.error}` : ""}${j.error_description ? `: ${j.error_description}` : ""})`), { name: "SecretRefreshFailed" });
+  return j.access_token;
+}
 
 function attachSecret(req, value, url, headers) {
   // value: a raw token (Bearer), or JSON {header, value} | {user, password} | {query, value}.
@@ -418,6 +494,13 @@ export async function executeHttp(req, task, fetchImpl = globalThis.fetch, { che
   if (req.auth?.secret) {
     secretValue = source?.(req.auth.secret);
     if (secretValue === undefined) return { ok: false, error: { name: "SecretMissing", message: `secret "${req.auth.secret}" is not available (local: set N2C_SECRET_${String(req.auth.secret).toUpperCase().replace(/[^A-Z0-9]+/g, "_")})` } };
+    if (secretValue !== null && GOOGLE_CREDENTIAL.test(String(req.auth.credentialType ?? ""))) {
+      try {
+        secretValue = await googleAccessToken(secretValue, url, fetchImpl);
+      } catch (e) {
+        return { ok: false, error: { name: e.name ?? "Error", message: String(e.message ?? e) } };
+      }
+    }
     if (secretValue !== null) url = attachSecret(req, secretValue, url, headers);
   }
   const u = new URL(url);
@@ -489,7 +572,14 @@ export async function executeHttp(req, task, fetchImpl = globalThis.fetch, { che
     }
     return { ok: true, value: { status: res.status, statusMessage: res.statusText, headers: rh, body: parsed } };
   } catch (e) {
-    return { ok: false, error: { name: e.name ?? "Error", message: redact(e.message ?? e) } };
+    // fetch's own message is only "fetch failed"; the reason (ENOTFOUND, a refused proxy
+    // tunnel, a TLS error) is in e.cause.
+    const cause = e?.cause?.message ?? e?.cause?.code;
+    // Behind a cloud task's proxy, a host the environment does not allow comes back from undici
+    // as "Request was cancelled." (the proxy answers CONNECT with 403); say where to fix it.
+    const behindProxy = process.env.NODE_USE_ENV_PROXY && (process.env.https_proxy || process.env.HTTPS_PROXY) && e?.name !== "ContainmentViolation";
+    const message = String(e?.message ?? e) + (cause && !String(e?.message ?? "").includes(cause) ? `: ${cause}` : "") + (behindProxy ? ` (through the environment's proxy: is ${new URL(url).hostname} in its allowed domains?)` : "");
+    return { ok: false, error: { name: e.name ?? "Error", message: redact(message) } };
   }
 }
 
@@ -539,9 +629,11 @@ function fence(label, text) {
 // Placeholders only once a hook has captured a response in this run: if the hooks are not
 // active, the first call already carries the full arguments and the model is told how to save
 // the response itself, so a missing hook degrades to the hooks-off path instead of sending a
-// placeholder to a real tool.
+// placeholder to a real tool. The artifact mirror's batch is compact from the first call: it is
+// a long run record (a model retyped its HTML preview wrong on 2 of 2 cloud runs, 2026-11-17),
+// and without a hook ArtifactData only rejects {"n2c": ...} as malformed, so nothing is written.
 function toolInstruction(task, handle, req, { hooksSeen = false, repeat = 0 } = {}) {
-  const compact = task.hooks && hooksSeen;
+  const compact = task.hooks && (hooksSeen || req.purpose === "artifact-db");
   const args = !compact ? req.args ?? {} : task.compactWhole ? { n2c: handle } : compactArgs(req.args ?? {}, handle, task.compactOver);
   const lines = [
     `NEXT: call one tool (request ${handle}, step "${req.step}").`,
@@ -820,7 +912,7 @@ function finishRun(P, core, task, store, state) {
   const alert = state.status === "failed" && !state.n2c?.dryRun ? core.alertRequest(state.definition, "failed", { runId: state.runId, step: e?.node, errorClass: e?.name }) : null;
   if (alert) queueExtra(P, alert);
   if (state.n2c?.dryRun) store.flush(`dry run ${state.runId}`);
-  if (store.kind === "artifact-db") queueOutbox(P, task, store);
+  if (store.outbox) queueOutbox(P, task, store);
   if (state.n2c?.submission) {
     const sub = state.n2c.submission;
     queueExtra(P, artifactDbRequest(task, "update", { collection: "submissions", doc_id: sub.docId, data: { status: state.status === "done" ? "done" : "failed", runId: state.runId, processedAt: new Date().toISOString() }, ...(sub.version ? { if_version: sub.version } : {}) }, `sub-${sub.docId}-${state.runId}`));
@@ -1242,7 +1334,7 @@ export async function command(cmd, pos, flags, { core, dir, stdin, fetch, isTTY 
       if (cmd === "result") {
         // The model cannot transcribe a response the session never showed it: fail the step.
         if (overflowFile(text)) result = { ok: false, error: { name: "ResponseTooLarge", message: "the tool's response was too large to pass through the model; this step needs the runner's hooks" } };
-        else result = flags.error ? { ok: false, error: { name: "ToolError", message: text } } : { ok: true, value: mcpValue(text) };
+        else result = flags.error ? { ok: false, error: { name: /No such tool available/i.test(text) ? "ToolMissing" : "ToolError", message: missingToolHint(text) } } : { ok: true, value: mcpValue(text) };
         result.capturedBy = "model";
       } else {
         let value = text;

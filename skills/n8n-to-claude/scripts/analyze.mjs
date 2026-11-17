@@ -1261,6 +1261,8 @@ function askWrites(W, ctx) {
   }
 }
 
+const GOOGLE_REST = new Set(["n8n-nodes-base.googleSheets", "n8n-nodes-base.googleCalendar"]);
+const GOOGLE_TOKEN_NOTE = "a Google access token lasts an hour, so this runs as a local task whose secret lets the runner refresh it: the OAuth client's {client_id, client_secret, refresh_token} or a service-account key (setup-local-task.md); a cloud task cannot refresh it";
 function credentialNames(d) {
   const c = d.node.credentials;
   if (!isObj(c)) return [];
@@ -1419,6 +1421,14 @@ function processNode(W, d, ctx, br) {
   if (d.flags.includes("calls-n8n")) addReq(W, "http", "n8n instance", name, { surfaces: reqSurf("http"), note: N8N_STAYS_NOTE });
   const extra = own(caps.nodeRequirements, d.baseType);
   if (extra) addReq(W, extra, extra === "host-disk" ? "n8n host disk" : extra, name, { surfaces: reqSurf(extra) });
+  // Google Sheets (v4+) and Calendar steps call Google's REST API with the stored credential. A
+  // Google access token lasts an hour, so only a runner that can refresh it keeps working: a
+  // local task given a refresh set or a service-account key. A cloud task's proxy adds a fixed
+  // header (capabilities requirements.google-token).
+  if (!d.disabled && GOOGLE_REST.has(d.baseType) && !(d.baseType === "n8n-nodes-base.googleSheets" && (d.typeVersion ?? 1) < 4)) {
+    const cred = credentialNames(d)[0];
+    addReq(W, "google-token", cred?.name ?? `${shortType(d.baseType)} credential`, name, { surfaces: reqSurf("google-token"), note: GOOGLE_TOKEN_NOTE });
+  }
   if (d.secrets === true) {
     const proto = d.kind === "db" ? "secret:db" : "secret:http";
     const creds = credentialNames(d);
@@ -2049,8 +2059,10 @@ function outcomeForKind(W, ctx, k) {
       o.target = "local-task";
       // A site on a local address is out of the cloud VM's reach; anything else cannot run there.
       const local = uniq(noCloud.filter((r) => r.kind === "local-network").map((r) => r.name));
-      const other = uniq(noCloud.filter((r) => r.kind !== "local-network").map((r) => r.name));
-      const why = [...(other.length ? [`${other.join(", ")} cannot run in a cloud task`] : []), ...(local.length ? [`${local.join(", ")} ${local.length > 1 ? "are local addresses" : "is a local address"} a cloud task cannot reach`] : [])];
+      const other = uniq(noCloud.filter((r) => r.kind !== "local-network" && r.kind !== "google-token").map((r) => r.name));
+      // A Google credential's token lasts an hour and only a local runner can refresh it.
+      const google = uniq(noCloud.filter((r) => r.kind === "google-token").map((r) => r.name));
+      const why = [...(other.length ? [`${other.join(", ")} cannot run in a cloud task`] : []), ...(google.length ? [`the Google token of ${google.join(", ")} expires after an hour and a cloud task cannot refresh it`] : []), ...(local.length ? [`${local.join(", ")} ${local.length > 1 ? "are local addresses" : "is a local address"} a cloud task cannot reach`] : [])];
       o.reason += `; ${why.join("; ")}, so a local task`;
     }
   }
@@ -2406,7 +2418,7 @@ function needsLine(w) {
     if (!groups.has(key)) groups.set(key, []);
     if (!label) groups.get(key).push(clean(r.kind === "state" ? r.name.replace(/^(data-table|static-data|dedupe-history|vector-memory):/, "") : r.name));
   }
-  const names = { connector: "connectors", secret: "secrets", db: "database", vector: "vector store", state: "state", "mcp-server": "MCP server" };
+  const names = { connector: "connectors", secret: "secrets", db: "database", vector: "vector store", state: "state", "mcp-server": "MCP server", "google-token": "Google token refresh" };
   return [...groups].map(([k, xs]) => (xs.length ? `${names[k] ?? k} ${listCut(uniq(xs))}` : k)).join(" · ");
 }
 

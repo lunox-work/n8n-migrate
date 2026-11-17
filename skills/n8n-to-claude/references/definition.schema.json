@@ -553,7 +553,7 @@
         "text": { "type": "string" },
         "decode": { "const": "base64" },
         "rowNumber": { "type": "object", "additionalProperties": false, "properties": { "field": { "type": "string" }, "start": { "type": "integer" }, "first": { "type": "boolean" } } },
-        "shape": { "enum": ["gmail-message", "notion-database"] }
+        "shape": { "enum": ["gmail-message", "notion-database", "notion-page", "notion-rows", "slack-messages", "slack-user"] }
       }
     }
   }

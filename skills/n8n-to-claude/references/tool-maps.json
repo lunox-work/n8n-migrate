@@ -3,7 +3,7 @@
     "n8n node operation -> connector tool (or an app REST request), read by scripts/convert.mjs. Keyed by n8n type -> typeVersion range -> resource -> operation ('_' when the node has no resource; triggers use operation 'poll'). Tool variants (gmailTool, ...) use the entry of the node they vary (nodes.json toolVariantOf).",
     "Entry: connector, tool (the real tool name in references/connectors/<connector>.json), effect, args, result, fidelity, missingFields, caveats, understood, review. Or http (a request template for an app REST API without a tool) with credentialType and placement. Or blocked {kind, reason, alternative}.",
     "args: tool input field -> spec. Specs are resolved at conversion time against the node's parameters; n8n expressions stay expressions and the runner evaluates them per item. Spec forms: \"param.path\" (a resource locator gives its value); {param, default}; {param, map: {n8nValue: toolValue}} (values not in the map are left out); {param, prefix}; {const}; {concat: [spec...], sep}; {if: {param, equals, default}, then, else}; {param, extract: \"googleId\"}; {param, extract: \"spreadsheetId\"} (n8n's getSpreadsheetId: a url-mode resource locator gives the id in it); {binary: param, default, field}; {param, json: true} (a JSON text parameter becomes an object); {param, default, when: param} (only when that parameter is set). http.site {path, id?} instead of http.url: the request goes to the person's site (the answer to the report's site question for the step's credential) plus path, then /<id parameter>. coerce \"ifTruthy\": the field is sent only when its value is truthy.",
-    "caveats: plain-words differences from n8n; an object {text, unless: {param, equals}} is left out when the parameter has that value. result: the declarative result adapter evaluated by the runtime (runtime/src/adapt.mjs), so downstream expressions see n8n's field names. fidelity: exact | adapted | partial | none | unverified. The tool schemas captured on 2026-11-14 carry input schemas only, so no tool output shape is known: every adapter that depends on one is unverified until the bench's emulation check runs it against real output. missingFields: n8n output fields (from n8n's own output schemas, n8n-nodes-base 2.47.5) that the adapter cannot supply.",
+    "caveats: plain-words differences from n8n; an object {text, unless: {param, equals}} is left out when the parameter has that value. result: the declarative result adapter evaluated by the runtime (runtime/src/adapt.mjs), so downstream expressions see n8n's field names. fidelity: exact | adapted | partial | none | unverified. The tool schemas captured on 2026-11-14 carry input schemas only. Slack, Google Drive and Notion read outputs were captured from a real account on 2026-11-18 (evals/connectors/observed-2026-11-18.md): adapters checked against them read adapted or partial; the rest (writes, and every Gmail tool: that connector had no read scope) stay unverified. missingFields: n8n output fields (from n8n's own output schemas, n8n-nodes-base 2.47.5) that the adapter cannot supply.",
     "understood: parameters this entry reads or accepts; any other parameter set on the node makes the step `review` (it has no counterpart in the tool). review: [{param, equals?, reason}] flags the step when a parameter has that value (any value when equals is absent).",
     "The converter checks every args field against the tool's input JSON schema: required fields present, no unknown fields.",
     "In a tool's args, the parameter \"@typeVersion\" is the node's version (for an if where versions take different parameters).",
@@ -475,9 +475,9 @@
               "oldest": "filters.oldest",
               "latest": "filters.latest"
             },
-            "result": { "items": "messages[*]" },
-            "fidelity": "unverified",
-            "missingFields": ["type", "user", "text", "ts"],
+            "result": { "shape": "slack-messages", "items": "messages[*]" },
+            "fidelity": "partial",
+            "missingFields": ["blocks", "attachments", "reactions", "edited", "team", "bot_profile"],
             "understood": ["operation", "resource", "channelId", "returnAll", "limit", "filters.oldest", "filters.latest", "filters.inclusive"],
             "review": [{"param":"returnAll", "equals":true, "reason":"n8n reads every message; the tool returns one page of at most 100"}]
           },
@@ -486,9 +486,9 @@
             "tool": "slack_read_thread",
             "effect": "read",
             "args": { "channel_id": "channelId", "message_ts": "ts" },
-            "result": { "items": "messages[*]" },
-            "fidelity": "unverified",
-            "missingFields": ["type", "user", "text", "ts"],
+            "result": { "shape": "slack-messages", "items": "messages[*]" },
+            "fidelity": "partial",
+            "missingFields": ["blocks", "attachments", "reactions", "edited", "team", "bot_profile"],
             "understood": ["operation", "resource", "channelId", "ts", "returnAll", "limit"]
           }
         },
@@ -498,9 +498,9 @@
             "tool": "slack_read_user_profile",
             "effect": "read",
             "args": { "user_id": "user" },
-            "result": {},
-            "fidelity": "unverified",
-            "missingFields": ["id", "name", "real_name", "profile"],
+            "result": { "shape": "slack-user" },
+            "fidelity": "partial",
+            "missingFields": ["team_id", "color", "tz_offset", "profile.image_*", "profile.status_emoji"],
             "understood": ["operation", "resource", "user"]
           },
           "getProfile": {
@@ -508,9 +508,9 @@
             "tool": "slack_read_user_profile",
             "effect": "read",
             "args": { "user_id": "user" },
-            "result": {},
-            "fidelity": "unverified",
-            "missingFields": ["real_name", "display_name", "email"],
+            "result": { "shape": "slack-user", "items": "profile" },
+            "fidelity": "partial",
+            "missingFields": ["image_*", "status_emoji"],
             "understood": ["operation", "resource", "user"]
           }
         }
@@ -630,14 +630,13 @@
             "args": {
               "query": {
                 "if": { "param": "searchMethod", "equals": "query", "default": "name" },
-                "then": { "param": "queryString" },
-                "else": { "concat": [{ "const": "name contains '" }, { "param": "queryString" }, { "const": "'" }], "sep": "" }
+                "then": { "param": "queryString", "extract": "driveQuery" },
+                "else": { "concat": [{ "const": "title contains '" }, { "param": "queryString" }, { "const": "'" }], "sep": "" }
               },
               "pageSize": { "if": { "param": "returnAll", "equals": true, "default": false }, "then": { "const": 100 }, "else": { "param": "limit", "default": 50 } }
             },
-            "result": { "items": "files[*]" },
-            "fidelity": "unverified",
-            "missingFields": ["id", "name"],
+            "result": { "items": "files[*]", "fields": { "name": { "first": ["name", "title"] }, "webViewLink": { "first": ["webViewLink", "viewUrl"] } } },
+            "fidelity": "adapted",
             "caveats": ["n8n adds trashed = false and the folder and file type filters to the query; only the search text is passed."],
             "understood": ["operation", "resource", "searchMethod", "queryString", "returnAll", "limit", "options.fields"],
             "review": [
@@ -672,7 +671,7 @@
             "args": {
               "query": {
                 "if": { "param": "triggerOn", "equals": "specificFolder", "default": "specificFolder" },
-                "then": { "concat": [{ "const": "'" }, { "param": "folderToWatch" }, { "const": "' in parents and trashed = false" }], "sep": "" },
+                "then": { "concat": [{ "const": "parentId = '" }, { "param": "folderToWatch" }, { "const": "' and trashed = false" }], "sep": "" },
                 "else": { "const": "trashed = false" }
               },
               "orderBy": { "const": "modifiedTime desc" },
@@ -687,7 +686,7 @@
                 "folderUpdated": { "field": "modifiedTime", "strategy": "max", "idField": "id", "arg": "query", "template": "and modifiedTime > '{iso}'" }
               }
             },
-            "fidelity": "unverified",
+            "fidelity": "adapted",
             "missingFields": ["kind", "mimeType", "parents"],
             "understood": ["pollTimes", "triggerOn", "folderToWatch", "event", "options.fileType"],
             "review": [
@@ -795,7 +794,7 @@
             "effect": "read",
             "args": { "fileId": { "param": "documentId", "extract": "spreadsheetId" }, "exportMimeType": { "const": "text/csv" } },
             "result": { "parse": "csv", "text": "content", "decode": "base64", "rowNumber": { "field": "row_number", "start": 2, "first": true } },
-            "fidelity": "unverified",
+            "fidelity": "adapted",
             "caveats": ["The CSV export holds the first tab only.", "Values arrive as text; n8n gives numbers and booleans as such."],
             "understood": ["operation", "resource", "documentId", "sheetName", "options.dataLocationOnSheet", "options.outputFormatting", "filtersUI", "combineFilters", "options.returnAllMatches", "options.returnFirstMatch"],
             "lookup": true,
@@ -869,7 +868,7 @@
             "args": { "fileId": { "param": "documentId", "extract": "spreadsheetId" }, "exportMimeType": { "const": "text/csv" } },
             "result": { "parse": "csv", "text": "content", "decode": "base64", "rowNumber": { "field": "row_number", "start": 2 } },
             "cursor": { "field": "row_number", "strategy": "max" },
-            "fidelity": "unverified",
+            "fidelity": "adapted",
             "caveats": ["The CSV export holds the first tab only.", "New rows are found by row number; a row inserted above the last one is missed, as with n8n's rowAdded."],
             "understood": ["pollTimes", "documentId", "sheetName", "event", "options.valueRender", "options.dateTimeRenderMode"],
             "review": [
@@ -934,7 +933,7 @@
             "args": { "id": "databaseId" },
             "result": { "shape": "notion-database", "passthrough": false, "fields": { "id": "id", "name": { "path": "title[0].plain_text", "default": "" }, "url": "url" } },
             "resultWhen": [{ "param": "simple", "equals": false, "default": true, "result": { "shape": "notion-database" } }],
-            "fidelity": "unverified",
+            "fidelity": "adapted",
             "missingFields": ["cover", "icon", "created_time", "last_edited_time", "created_by", "last_edited_by", "description", "is_inline", "parent", "archived"],
             "understood": ["operation", "resource", "databaseId", "simple"]
           }
@@ -946,9 +945,9 @@
             "effect": "read",
             "args": { "data": { "const": null } },
             "argsNeedTranslation": "the database id must become the data source's collection:// URL (from notion-fetch) inside the tool's data object, and n8n's filters a rows-mode filter",
-            "result": { "items": "results[*]" },
-            "fidelity": "unverified",
-            "missingFields": ["id", "name", "url", "property_*"],
+            "result": { "shape": "notion-rows", "items": "results[*]" },
+            "fidelity": "partial",
+            "missingFields": ["name"],
             "understood": ["operation", "resource", "databaseId", "returnAll", "limit", "simple", "filterType", "filters", "options"]
           },
           "update": {
@@ -991,9 +990,9 @@
             "tool": "notion-fetch",
             "effect": "read",
             "args": { "id": "pageId" },
-            "result": {},
-            "fidelity": "unverified",
-            "missingFields": ["id", "name", "url"],
+            "result": { "shape": "notion-page" },
+            "fidelity": "partial",
+            "missingFields": ["property_*"],
             "understood": ["operation", "resource", "pageId", "simple"]
           },
           "search": {
@@ -1001,9 +1000,9 @@
             "tool": "notion-search",
             "effect": "read",
             "args": { "query": "text" },
-            "result": { "items": "results[*]" },
-            "fidelity": "unverified",
-            "missingFields": ["id", "name", "url"],
+            "result": { "items": "results[*]", "fields": { "name": { "first": ["name", "title"] } } },
+            "fidelity": "partial",
+            "missingFields": ["property_*"],
             "understood": ["operation", "resource", "text", "returnAll", "limit", "simple", "options"]
           }
         }

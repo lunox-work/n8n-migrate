@@ -144,7 +144,17 @@ async function main() {
   throw new BadInput("commands: run, resume, preflight, convert, start, next, show, answer, result, status, chat, resolve");
 }
 
-main().then(
+// A cloud task sends all egress through the proxy named in https_proxy and has no DNS of its
+// own; Node's fetch ignores that proxy unless NODE_USE_ENV_PROXY=1 is set when Node starts
+// (Node 22.21+), so a plain fetch fails with ENOTFOUND (observed 2026-11-17, Node 22.23.4).
+// Run once more with it set, in the same terminal.
+const proxied = (process.env.https_proxy || process.env.HTTPS_PROXY) && !process.env.NODE_USE_ENV_PROXY;
+const relaunch = async () => {
+  const { spawnSync } = await import("node:child_process");
+  const r = spawnSync(process.execPath, ["--disable-warning=UNDICI-EHPA", ...process.execArgv, ...process.argv.slice(1)], { stdio: "inherit", env: { ...process.env, NODE_USE_ENV_PROXY: "1" } });
+  return r.status ?? 1;
+};
+(proxied ? relaunch() : main()).then(
   (code) => process.exit(code),
   (e) => {
     print({ status: e instanceof BadInput || e instanceof SyntaxError || e?.code === "ENOENT" ? "bad-input" : "failed", error: { name: e?.name, message: e?.message } });

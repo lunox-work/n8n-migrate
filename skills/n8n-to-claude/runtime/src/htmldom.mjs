@@ -34,7 +34,7 @@ const LOOSE_VOID = set("area base basefont br col command embed frame hr img inp
 
 const MAX_NAME = Math.max(...Object.keys(NAMED_ENTITIES).map((k) => k.length));
 function codePoint(n) {
-  if (n === 0 || n > 0x10ffff || (n >= 0xd800 && n <= 0xdfff)) return "�";
+  if (n === 0 || n > 0x10ffff || (n >= 0xd800 && n <= 0xdfff)) return "\uFFFD";
   if (NUMERIC_REMAP[n] !== undefined) return String.fromCodePoint(NUMERIC_REMAP[n]);
   return String.fromCodePoint(n);
 }

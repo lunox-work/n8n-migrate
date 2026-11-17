@@ -775,6 +775,7 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
 
   // ---------- runtime ----------
   let driver = null;
+  let perms = null; // the built-in permissions namespace, when this view has it
   let runs = [];
   let busy = false;
   const runBtn = $("run-now");
@@ -804,11 +805,31 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
       if (!selected) select(u.handoff.step);
     } else if (u.phase === "done") banner(null);
   }
+  // Ask for every grant the run needs in one dialog before anything runs. Asked lazily, the
+  // prompt holds a step's call mid-run, and a viewer who answers late finds the run failed
+  // (first real run, 2026-11-17: 15 min behind "Use Claude", then upstream_error).
+  async function askFirst() {
+    if (!perms) return [];
+    const names = [];
+    if (Object.values(steps).some((st) => (st.kind === "model" || st.kind === "agent") && !st.settings?.disabled)) names.push("sample");
+    for (const server of new Set(Object.values(servers))) names.push(`mcp:${server}`);
+    if (!names.length) return [];
+    let states;
+    try { states = await perms.request(names); } catch { return []; }
+    return names.filter((n) => states?.[n] === "denied");
+  }
   async function runNow() {
     if (!driver || busy) return { refused: true, message: busy ? "A run is already in progress in this page." : "not ready" };
     setBusy(true);
     banner(null);
     try {
+      const denied = await askFirst();
+      if (denied.length) {
+        const what = denied.map((n) => (n === "sample" ? "Claude" : n.slice(4))).join(", ");
+        const message = `This run needs your permission for ${what}. Allow it from the artifact's Permissions menu, then run again.`;
+        banner("warn", "Run now needs your permission", [message]);
+        return { refused: true, message };
+      }
       const res = await driver.runNow({ dryRun: dry.checked, input: $("chat-row").hidden ? undefined : $("chat-input").value, advanceScheduled: !dry.checked && $("advance-scheduled").checked });
       if (res.refused) banner("warn", "Run now was refused", [res.message]);
       return res;
@@ -910,7 +931,8 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
   const use = (name) => {
     try { return Promise.resolve(window.claude && typeof window.claude.use === "function" ? window.claude.use(name) : null).catch(() => null); } catch { return Promise.resolve(null); }
   };
-  Promise.all([use("mcp"), use("sample"), use("db")]).then(async ([mcp, sample, db]) => {
+  Promise.all([use("mcp"), use("sample"), use("db"), use("permissions")]).then(async ([mcp, sample, db, permissions]) => {
+    perms = permissions;
     if (!mcp && !sample && !db) {
       banner("info", "Read-only here", [formDef ? "The form works when this page is open in Claude as a published artifact with storage access." : "Run now works when this page is open in Claude as a published artifact with connector, Claude and storage access."]);
       return;
