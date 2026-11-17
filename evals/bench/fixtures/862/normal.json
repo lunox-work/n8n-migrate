@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "template": 862,
+  "sha256": "398199b79709848bb777945ed2247f8cd4c2a5dd2aff5ade7ddaf5f7fe5bfc83",
+  "variant": "normal",
+  "now": "2026-11-17T03:10:00.000Z",
+  "about": "uProc lists n8n.io's A, AAAA, MX, NS and TXT records",
+  "trigger": {
+    "node": "On clicking 'execute'",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get DNS records",
+      "service": "uproc",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.uproc.io/api/v2/process",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "processor": "get-domain-records",
+              "params": {
+                "domain": " n8n.io"
+              },
+              "message": [
+                {
+                  "type": "A",
+                  "host": "n8n.io",
+                  "ip": "104.18.30.144",
+                  "ttl": 300
+                },
+                {
+                  "type": "A",
+                  "host": "n8n.io",
+                  "ip": "104.18.31.144",
+                  "ttl": 300
+                },
+                {
+                  "type": "AAAA",
+                  "host": "n8n.io",
+                  "ipv6": "2606:4700::6812:1e90",
+                  "ttl": 300
+                },
+                {
+                  "type": "MX",
+                  "host": "n8n.io",
+                  "target": "aspmx.l.google.com",
+                  "pri": 1,
+                  "ttl": 3600
+                },
+                {
+                  "type": "MX",
+                  "host": "n8n.io",
+                  "target": "alt1.aspmx.l.google.com",
+                  "pri": 5,
+                  "ttl": 3600
+                },
+                {
+                  "type": "NS",
+                  "host": "n8n.io",
+                  "target": "kate.ns.cloudflare.com",
+                  "ttl": 86400
+                },
+                {
+                  "type": "NS",
+                  "host": "n8n.io",
+                  "target": "rick.ns.cloudflare.com",
+                  "ttl": 86400
+                },
+                {
+                  "type": "TXT",
+                  "host": "n8n.io",
+                  "txt": "v=spf1 include:_spf.google.com include:mailgun.org ~all",
+                  "entries": [
+                    "v=spf1 include:_spf.google.com include:mailgun.org ~all"
+                  ],
+                  "ttl": 300
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured uProc connector"
+      },
+      "note": "uProc's process endpoint (n8n's uProc node POSTs {processor: get-domain-records, params: {domain}} with the template's leading space kept in the domain); the result is under message, as the template family reads it (shape assumed: uProc's API docs are no longer published)"
+    }
+  ],
+  "models": [],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: one lookup"
+    ],
+    "offline": "The domain is fixed in Create Domain Item (n8n.io), so the variants differ only in what uProc answers. Nothing is written: the comparison is the uProc node's output items (the run's terminal step). uProc's response wrapper beyond message is assumed."
+  }
+}

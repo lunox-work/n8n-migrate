@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "template": 2131,
+  "sha256": "b059308db60404c220403b47e4bcbc28d4bcef2713988030768d9902e0f65980",
+  "variant": "malformed",
+  "now": "2026-11-17T14:05:00.000Z",
+  "about": "companies with revenue written with commas, a decimal revenue and no website or employee count",
+  "trigger": {
+    "node": "Trigger every 5 minutes",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-17T09:05:00.000-05:00",
+          "Readable date": "November 17th 2026, 9:05:00 am",
+          "Readable time": "9:05:00 am",
+          "Day of week": "Tuesday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "17",
+          "Hour": "09",
+          "Minute": "05",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get leads created last 5 minutes",
+      "service": "hubspot",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.hubapi.com/companies/v2/companies/recent/modified",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json;charset=utf-8"
+            },
+            "body": {
+              "results": [
+                {
+                  "portalId": 4410822,
+                  "companyId": 18273645011,
+                  "isDeleted": false,
+                  "properties": {
+                    "name": {
+                      "value": "Comma Corp",
+                      "timestamp": 1763388100000,
+                      "source": "CRM_UI",
+                      "sourceId": "userId:61822943",
+                      "versions": [
+                        {
+                          "name": "name",
+                          "value": "Comma Corp",
+                          "timestamp": 1763388100000,
+                          "source": "CRM_UI",
+                          "sourceVid": []
+                        }
+                      ]
+                    },
+                    "website": {
+                      "value": "comma.example",
+                      "timestamp": 1763388100000,
+                      "source": "CRM_UI",
+                      "sourceId": "userId:61822943",
+                      "versions": [
+                        {
+                          "name": "website",
+                          "value": "comma.example",
+                          "timestamp": 1763388100000,
+                          "source": "CRM_UI",
+                          "sourceVid": []
+                        }
+                      ]
+                    },
+                    "annualrevenue": {
+                      "value": "12,500,000",
+                      "timestamp": 1763388100000,
+                      "source": "CRM_UI",
+                      "sourceId": "userId:61822943",
+                      "versions": [
+                        {
+                          "name": "annualrevenue",
+                          "value": "12,500,000",
+                          "timestamp": 1763388100000,
+                          "source": "CRM_UI",
+                          "sourceVid": []
+                        }
+                      ]
+                    },
+                    "numberofemployees": {
+                      "value": "40",
+                      "timestamp": 1763388100000,
+                      "source": "CRM_UI",
+                      "sourceId": "userId:61822943",
+                      "versions": [
+                        {
+                          "name": "numberofemployees",
+                          "value": "40",
+                          "timestamp": 1763388100000,
+                          "source": "CRM_UI",
+                          "sourceVid": []
+                        }
+                      ]
+                    }
+                  },
+                  "additionalDomains": [],
+                  "stateChanges": [],
+                  "mergeAudits": []
+                },
+                {
+                  "portalId": 4410822,
+                  "companyId": 18273645012,
+                  "isDeleted": false,
+                  "properties": {
+                    "name": {
+                      "value": "Half Cent Holdings",
+                      "timestamp": 1763388100000,
+                      "source": "CRM_UI",
+                      "sourceId": "userId:61822943",
+                      "versions": [
+                        {
+                          "name": "name",
+                          "value": "Half Cent Holdings",
+                          "timestamp": 1763388100000,
+                          "source": "CRM_UI",
+                          "sourceVid": []
+                        }
+                      ]
+                    },
+                    "annualrevenue": {
+                      "value": "9000000.50",
+                      "timestamp": 1763388100000,
+                      "source": "CRM_UI",
+                      "sourceId": "userId:61822943",
+                      "versions": [
+                        {
+                          "name": "annualrevenue",
+                          "value": "9000000.50",
+                          "timestamp": 1763388100000,
+                          "source": "CRM_UI",
+                          "sourceVid": []
+                        }
+                      ]
+                    }
+                  },
+                  "additionalDomains": [],
+                  "stateChanges": [],
+                  "mergeAudits": []
+                }
+              ],
+              "hasMore": false,
+              "offset": 2,
+              "total": 2
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the captured HubSpot connector's tools do not return the legacy companies v2 objects (properties as {value, timestamp, versions}) the node reads; the fixture answers the service's REST API as n8n's node calls it"
+      },
+      "note": "HubSpot companies v2 recently modified, as n8n's HubSpot v2 node asks it with Return All (since = $now minus 5 minutes in ms, limit=250, count=100; next page by offset while hasMore)"
+    }
+  ],
+  "models": [],
+  "writes": [
+    "Notify sales rep"
+  ],
+  "writeReplies": [
+    {
+      "node": "Notify sales rep",
+      "service": "slack",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://slack.com/api/chat.postMessage",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "ok": true,
+              "channel": "D0861QW2B7K",
+              "ts": "1763388305.001100",
+              "message": {
+                "user": "U08B3NCH0T1",
+                "type": "message",
+                "ts": "1763388305.001100",
+                "bot_id": "B08B3NCH0T1",
+                "app_id": "A08B3NCH0T1",
+                "text": "New high-quality lead :money_mouth_face:",
+                "team": "T0361BENCH"
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "connector rows are not needed: the post is a write the comparer pairs"
+      },
+      "note": "chat.postMessage to the user id (Slack opens the DM and answers with its D channel id)"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "filter: 12,500,000 reads as 12 and is dropped; 9000000.50 passes"
+    ],
+    "offline": "HubSpot answers by URL; the node's since parameter is $now minus 5 minutes on n8n's unfrozen clock, so the fixture does not depend on it. The Slack text ends with n8n's link to the workflow (includeLinkToWorkflow defaults on in Slack v2.1), which names the instance and workflow id. The second company has no website or employee count, which the Slack text reads."
+  }
+}

@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 1,
+  "template": 466,
+  "sha256": "0a72723e46dbc6c9d1d73911a6fc5616eded7e994e237c8361e799c14a620f14",
+  "variant": "normal",
+  "now": "2026-11-17T03:30:00.000Z",
+  "about": "three contacts over two pages (has-more, then the last page)",
+  "trigger": {
+    "node": "On clicking 'execute'",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Hubspot",
+      "service": "hubspot",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.hubapi.com/contacts/v1/lists/all/contacts/all",
+            "status": 200,
+            "retired": "HubSpot API keys (the hapikey query parameter the node's apiKey authentication sends) were sunset on 2022-11-30, and the legacy v1 Contact Lists endpoints have since been retired in favour of the CRM v3 objects API; answered as the endpoint answered when the template was written",
+            "headers": {
+              "content-type": "application/json;charset=utf-8"
+            },
+            "body": {
+              "contacts": [
+                {
+                  "addedAt": 1762300000101,
+                  "vid": 101,
+                  "canonical-vid": 101,
+                  "merged-vids": [],
+                  "portal-id": 4410822,
+                  "is-contact": true,
+                  "profile-token": "AO_T-mPbench101",
+                  "profile-url": "https://app.hubspot.com/contacts/4410822/contact/101",
+                  "properties": {
+                    "firstname": {
+                      "value": "Ana"
+                    },
+                    "lastmodifieddate": {
+                      "value": "1762900000101"
+                    },
+                    "lastname": {
+                      "value": "Souza"
+                    },
+                    "company": {
+                      "value": "Brightpath Logistics"
+                    }
+                  },
+                  "form-submissions": [],
+                  "identity-profiles": [
+                    {
+                      "vid": 101,
+                      "saved-at-timestamp": 1762300000101,
+                      "deleted-changed-timestamp": 0,
+                      "identities": [
+                        {
+                          "type": "EMAIL",
+                          "value": "ana.souza@brightpath.example",
+                          "timestamp": 1762300000101,
+                          "is-primary": true
+                        },
+                        {
+                          "type": "LEAD_GUID",
+                          "value": "b1e0c7aa-0000-4000-8000-000000000101",
+                          "timestamp": 1762300000102
+                        }
+                      ]
+                    }
+                  ],
+                  "merge-audits": []
+                },
+                {
+                  "addedAt": 1762300000102,
+                  "vid": 102,
+                  "canonical-vid": 102,
+                  "merged-vids": [],
+                  "portal-id": 4410822,
+                  "is-contact": true,
+                  "profile-token": "AO_T-mPbench102",
+                  "profile-url": "https://app.hubspot.com/contacts/4410822/contact/102",
+                  "properties": {
+                    "firstname": {
+                      "value": "Marcus"
+                    },
+                    "lastmodifieddate": {
+                      "value": "1762900000102"
+                    },
+                    "lastname": {
+                      "value": "Lee"
+                    },
+                    "company": {
+                      "value": "Northwind Traders"
+                    }
+                  },
+                  "form-submissions": [],
+                  "identity-profiles": [
+                    {
+                      "vid": 102,
+                      "saved-at-timestamp": 1762300000102,
+                      "deleted-changed-timestamp": 0,
+                      "identities": [
+                        {
+                          "type": "EMAIL",
+                          "value": "marcus.lee@northwind.example",
+                          "timestamp": 1762300000102,
+                          "is-primary": true
+                        },
+                        {
+                          "type": "LEAD_GUID",
+                          "value": "b1e0c7aa-0000-4000-8000-000000000102",
+                          "timestamp": 1762300000103
+                        }
+                      ]
+                    }
+                  ],
+                  "merge-audits": []
+                }
+              ],
+              "has-more": true,
+              "vid-offset": 102
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://api.hubapi.com/contacts/v1/lists/all/contacts/all",
+            "status": 200,
+            "retired": "HubSpot API keys (the hapikey query parameter the node's apiKey authentication sends) were sunset on 2022-11-30, and the legacy v1 Contact Lists endpoints have since been retired in favour of the CRM v3 objects API; answered as the endpoint answered when the template was written",
+            "headers": {
+              "content-type": "application/json;charset=utf-8"
+            },
+            "body": {
+              "contacts": [
+                {
+                  "addedAt": 1762300000151,
+                  "vid": 151,
+                  "canonical-vid": 151,
+                  "merged-vids": [],
+                  "portal-id": 4410822,
+                  "is-contact": true,
+                  "profile-token": "AO_T-mPbench151",
+                  "profile-url": "https://app.hubspot.com/contacts/4410822/contact/151",
+                  "properties": {
+                    "firstname": {
+                      "value": "Priya"
+                    },
+                    "lastmodifieddate": {
+                      "value": "1762900000151"
+                    },
+                    "lastname": {
+                      "value": "Raman"
+                    },
+                    "company": {
+                      "value": "Lumen Health"
+                    }
+                  },
+                  "form-submissions": [],
+                  "identity-profiles": [
+                    {
+                      "vid": 151,
+                      "saved-at-timestamp": 1762300000151,
+                      "deleted-changed-timestamp": 0,
+                      "identities": [
+                        {
+                          "type": "EMAIL",
+                          "value": "priya@lumenhealth.example",
+                          "timestamp": 1762300000151,
+                          "is-primary": true
+                        },
+                        {
+                          "type": "LEAD_GUID",
+                          "value": "b1e0c7aa-0000-4000-8000-000000000151",
+                          "timestamp": 1762300000152
+                        }
+                      ]
+                    }
+                  ],
+                  "merge-audits": []
+                }
+              ],
+              "has-more": false,
+              "vid-offset": 151
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the captured HubSpot connector's tools do not return the legacy v1 contact list objects the node reads; the fixture answers the service's REST API as n8n's node calls it"
+      },
+      "note": "HubSpot legacy contacts endpoint, as n8n's HubSpot v1 node asks it with Return All (limit=250, count=100, hapikey from the apiKey credential, next page by vidOffset while has-more). n8n 2.47.7's v1 paging helper pushes responseData.propertyName (undefined), so the node outputs no items whatever HubSpot returns; the pages are still asked for"
+    }
+  ],
+  "models": [],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "no IF/Switch: two pages read"
+    ],
+    "offline": "Nothing is written: the comparison is the Hubspot node's output (the run's terminal step). In n8n 2.47.7 that output is empty in every variant, because the v1 node's Return All helper collects responseData.propertyName instead of the contacts; the requests (one per page) are the same as the real service would get. HubSpot's API keys and this endpoint are retired (routes marked)."
+  }
+}

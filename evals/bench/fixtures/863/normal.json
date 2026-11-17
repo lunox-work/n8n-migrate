@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "template": 863,
+  "sha256": "de01c653d60c103a5486e41ad304fd3c2c1d055e314c5b74900a3c1e6358d1ce",
+  "variant": "normal",
+  "now": "2026-11-17T03:20:00.000Z",
+  "about": "uProc parses the number as a North American number with too few digits: not valid",
+  "trigger": {
+    "node": "On clicking 'execute'",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Parse and Validate Phone",
+      "service": "uproc",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.uproc.io/api/v2/process",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "processor": "get-phone-parsed",
+              "params": {
+                "phone": "+1234567890"
+              },
+              "message": {
+                "phone": "+1234567890",
+                "country": "US",
+                "prefix": "1",
+                "national": "234567890",
+                "international": "+1 234567890",
+                "type": "UNKNOWN",
+                "valid": false,
+                "possible": false
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured uProc connector"
+      },
+      "note": "uProc's process endpoint (n8n's uProc node, group communication by default, POSTs {processor: get-phone-parsed, params: {phone}}); the result is under message, which the template's IF reads as message.valid (shape assumed: uProc's API docs are no longer published)"
+    }
+  ],
+  "models": [],
+  "writes": [],
+  "expect": {
+    "branches": [
+      "Phone is Valid? false output"
+    ],
+    "offline": "The phone number is fixed in Create Phone Item (+1234567890), so the variants differ only in what uProc answers. Neither IF output leads anywhere: the comparison is the run's terminal items (Phone is Valid? on whichever output it takes). uProc's response wrapper beyond message is assumed."
+  }
+}
