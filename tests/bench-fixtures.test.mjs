@@ -398,8 +398,11 @@ test("round 4: dev is 100 round-4-eligible templates, held-out 20 fresh, amendme
   for (const t of fromWalk) assert.ok(byId.get(t.id)?.topUp === 4 && byId.get(t.id).r4 === "eligible", String(t.id));
   // While round 3 is current the P51 guards already skip round 4's held-out; once round 4 is
   // current (after release point 3), round 3's held-out is dev and only round 4's is skipped;
-  // from round 5 (after release point 4) round 4's held-out is dev too.
-  assert.deepEqual(new Set(unreadableIds(splits, 3)), new Set([...ids(r3.heldOut), ...ids(r4.heldOut), ...(roundOf(splits, 5)?.heldOut ?? []).map((r) => r.id)]));
+  // from round 5 (after release point 4) round 4's held-out is dev too. Later rounds' held-out
+  // and every experiment's set are unreadable in round 3 as well.
+  const later = splits.rounds.filter((r) => r.round > 4).flatMap((r) => r.heldOut);
+  const experiments = (splits.experiments ?? []).flatMap((e) => ids(e.templates));
+  assert.deepEqual(new Set(unreadableIds(splits, 3)), new Set([...ids(r3.heldOut), ...ids(r4.heldOut), ...later, ...experiments]));
   assert.ok(ids(r4.heldOut).every((id) => unreadableIds(splits, 4).includes(id)));
   // PROPOSALS P51: never in the survey folder.
   const survey = join(BENCH, "..", "survey", "data", "wf");
@@ -431,8 +434,9 @@ test("round 5: round 4's held-out joins dev (120, all fixtured), numbers out of 
     }
   }
   // Round 4's held-out is readable from round 5; in round 5 the P51 guards skip round 5's own
-  // held-out only.
-  assert.deepEqual(unreadableIds(splits, 5), ids(r5.heldOut));
+  // held-out, and any later round's and experiment's set (round 6's, P137's).
+  const after5 = [...splits.rounds.filter((r) => r.round > 5).flatMap((r) => r.heldOut), ...(splits.experiments ?? []).flatMap((e) => ids(e.templates))];
+  assert.deepEqual(new Set(unreadableIds(splits, 5)), new Set([...ids(r5.heldOut), ...after5]));
   assert.deepEqual(withoutHeldOut(ids(r4.heldOut), splits, 5).skipped, []);
   // Round 4 as written is unchanged.
   assert.equal(r4.dev.length, 100);
@@ -553,7 +557,7 @@ test("P126: refill entries come after the shuffled pool, in listing order", asyn
 
 // Round 6 (PLAN Phase 6, rolling held-out; after release point 5): round 5's 20 fresh held-out
 // join dev (promoted), nothing is dropped, so dev is 140 templates, all with fixtures; round 6's
-// held-out is empty until a separate blind session draws it. The round's numbers are out of its
+// held-out is the 20 fresh templates of heldOutFresh6 ("round 6 held-out" below). The round's numbers are out of its
 // 140, with round 4's 100 and round 5's 120 as subsets (subsetRounds). An experiment's own
 // held-out (PROPOSALS P137) is a separate set (splits.experiments): never a round's `heldOut`,
 // unreadable in every round until a round promotes it.
@@ -568,7 +572,7 @@ test("round 6: round 5's held-out joins dev (140, all fixtured), numbers out of 
   assert.equal(roundOf(splits).round, 6);
   assert.deepEqual(ids(r6.promoted), ids(r5.heldOut));
   assert.deepEqual(ids(r6.promoted), ids(splits.heldOutFresh5.templates));
-  assert.deepEqual([r6.dropped.length, r6.devAdded.length, r6.heldOut.length], [0, 0, 0]);
+  assert.deepEqual([r6.dropped.length, r6.devAdded.length], [0, 0]);
   assert.deepEqual(new Set(ids(r6.dev)), new Set([...ids(r5.dev), ...ids(r5.heldOut)]));
   assert.equal(new Set(ids(r6.dev)).size, 140);
   assert.equal(devWithFixtures(splits).length, 140);
@@ -579,10 +583,12 @@ test("round 6: round 5's held-out joins dev (140, all fixtured), numbers out of 
       assert.equal(JSON.parse(readFileSync(p, "utf8")).sha256, t.sha256, `${t.id}/${v}`);
     }
   }
-  // Nothing is held out now: round 5's held-out is readable, and the P51 guards skip no id.
-  assert.deepEqual(unreadableIds(splits), []);
+  // Round 5's held-out is readable now; the P51 guards skip round 6's held-out and the P137
+  // experiment's set, and nothing else.
+  const p137 = splits.experiments.find((e) => e.name === "p137");
+  assert.deepEqual(new Set(unreadableIds(splits)), new Set([...ids(r6.heldOut), ...ids(p137.templates)]));
   assert.deepEqual(withoutHeldOut(ids(r5.heldOut), splits).skipped, []);
-  assert.deepEqual(heldOutSets(splits), [{ name: "round 6", kind: "release", ids: [] }]);
+  assert.deepEqual(heldOutSets(splits), [{ name: "round 6", kind: "release", ids: ids(r6.heldOut) }, { name: "experiment p137", kind: "experiment", ids: ids(p137.templates) }]);
   // Earlier rounds as written are unchanged.
   assert.deepEqual([r4.dev.length, r5.dev.length], [100, 120]);
   // Subsets: round 4's 100 and round 5's 120 now; before round 6, only the previous round's.
@@ -596,23 +602,203 @@ test("round 6: round 5's held-out joins dev (140, all fixtured), numbers out of 
   ];
   const tally = (list) => roundTally(rows, list).passed + "/" + roundTally(rows, list).of;
   assert.deepEqual([tally(ids(r6.dev)), ...subsetRounds(splits).map((s) => tally(s.ids))], ["2/140", "1/100", "1/120"]);
-  // An experiment's held-out beside round 6's (a copy; nothing is drawn): its ids are unreadable
-  // in round 6 though round 6's own held-out is empty, stay out of heldOutIds and of round 6's
-  // dev, and a round 7 with its own held-out keeps both sets; a round that promotes the
-  // experiment's ids into dev makes them readable.
+  // An experiment's held-out beside round 6's (a copy with round 6's held-out and experiments
+  // emptied): its ids are unreadable in round 6 though round 6's own held-out is empty, stay out of
+  // heldOutIds and of round 6's dev, and a round 7 with its own held-out keeps both sets; a round
+  // that promotes the experiment's ids into dev makes them readable.
   const row = (id) => ({ id, sha256: "0".repeat(64), wakeup: "manual" });
   const exp = { name: "P137", seed: 1, templates: [row(99999901), row(99999902)] };
-  const withExp = { ...splits, experiments: [exp] };
+  const bare = { ...splits, rounds: splits.rounds.map((r) => (r.round === 6 ? { ...r, heldOut: [] } : r)) };
+  const withExp = { ...bare, experiments: [exp] };
   assert.deepEqual(heldOutIds(withExp), []);
   assert.deepEqual(unreadableIds(withExp), [99999901, 99999902]);
   assert.deepEqual(heldOutSets(withExp).map((s) => [s.name, s.kind, s.ids.length]), [["round 6", "release", 0], ["experiment P137", "experiment", 2]]);
   assert.deepEqual(withoutHeldOut(["99999901", 1], withExp), { kept: [1], skipped: ["99999901"] });
   for (const n of [4, 5, 6]) assert.ok(unreadableIds(withExp, n).includes(99999902), `round ${n}`);
   const r7 = { round: 7, promoted: [], heldOut: [99999911] };
-  const withBoth = { ...withExp, heldOutFresh7: { templates: [row(99999911)] }, rounds: [...splits.rounds, r7] };
+  const withBoth = { ...withExp, heldOutFresh7: { templates: [row(99999911)] }, rounds: [...bare.rounds, r7] };
   assert.deepEqual(new Set(unreadableIds(withBoth)), new Set([99999901, 99999902, 99999911]));
   assert.deepEqual(heldOutIds(withBoth, 7), [99999911]);
   const promotedExp = { ...withBoth, currentRound: 8, rounds: [...withBoth.rounds, { round: 8, promoted: [99999911, 99999901], heldOut: [] }] };
   assert.deepEqual(unreadableIds(promotedExp), [99999902]);
   assert.ok(roundOf(promotedExp).dev.some((r) => r.id === 99999901));
+});
+
+// Round 6's fresh held-out (EXCLUSIONS.md "Round 6 held-out", seed committed before the walk): a
+// top-up past every earlier walk's pages, each eligible by the round-4 rule with amendment 1,
+// drawn by seed per wake-up stratum into splits.json heldOutFresh6. While round 6 is current,
+// heldOutIds() returns them and the P51 guards skip them; nothing a fixing session reads names them.
+test("round 6 held-out: 20 fresh past every earlier walk, eligible, reproducible, never exposed, disjoint from P137's", async () => {
+  const { readSplits, roundOf, heldOutIds, unreadableIds, withoutHeldOut } = await import("../evals/bench/rounds.mjs");
+  const { drawFresh, FRESH_SEEDS, namedInLevers, heldRefillOf } = await import("../evals/bench/split.mjs");
+  const { FRESH_QUOTAS, freshPool, stratum, isCandidate, leversWalk, TOP_UPS } = await import("../evals/bench/fetch.mjs");
+  const splits = readSplits();
+  const corpus = JSON.parse(readFileSync(join(BENCH, "corpus.json"), "utf8"));
+  const levers = JSON.parse(readFileSync(join(BENCH, "levers.json"), "utf8"));
+  const ids = (rows) => rows.map((r) => r.id);
+  const fresh = splits.heldOutFresh6;
+  const r6 = roundOf(splits, 6);
+  assert.equal(fresh.round, 6);
+  assert.equal(fresh.seed, 20261118);
+  assert.equal(FRESH_SEEDS[6], 20261118);
+  assert.equal(TOP_UPS[6].amendedRule && TOP_UPS[6].afterLevers && TOP_UPS[6].finishPage, true);
+  assert.deepEqual(ids(r6.heldOut), ids(fresh.templates));
+  assert.equal(r6.heldOut.length, 20);
+  if (splits.currentRound === 6) {
+    assert.deepEqual(heldOutIds(splits), ids(fresh.templates));
+    assert.ok(ids(fresh.templates).every((id) => unreadableIds(splits).includes(id)));
+    assert.deepEqual(withoutHeldOut(ids(fresh.templates), splits).kept, []);
+  }
+  // Disjoint from every earlier round's lists and every earlier walk, and from P137's set.
+  const earlier = new Set();
+  for (const r of splits.rounds.filter((r) => r.round <= 6)) for (const id of [...r.promoted, ...(r.dropped ?? []), ...(r.devAdded ?? []), ...(r.round < 6 ? r.heldOut : [])]) earlier.add(id);
+  for (const r of [...splits.dev, ...splits.heldOut]) earlier.add(r.id);
+  for (const e of corpus.templates) if (e.topUp !== 6 && e.heldRefill !== 6) earlier.add(e.id);
+  for (const id of ids(fresh.templates)) assert.ok(!earlier.has(id), `${id} was used or walked by an earlier round`);
+  const p137 = new Set(ids(splits.experiments.find((e) => e.name === "p137").templates));
+  for (const id of ids(fresh.templates)) assert.ok(!p137.has(id), `${id} is in P137's set too`);
+  // Each one is a round-6 walk entry past the last page an earlier walk read, eligible, with the
+  // recorded hash; or (P126) the first eligible refill entry of its stratum.
+  const earlierEnd = Math.max(...corpus.templates.filter((e) => e.topUp !== 6 && e.heldRefill !== 6).map((e) => e.rank ?? 0));
+  const byId = new Map(corpus.templates.map((e) => [e.id, e]));
+  const refill = heldRefillOf(corpus.templates, 6);
+  assert.ok(corpus.topUp6.source.includes("from page 28"), corpus.topUp6.source);
+  for (const t of fresh.templates) {
+    const e = byId.get(t.id);
+    if (e?.heldRefill === 6) {
+      assert.ok(e.pool === "held-refill" && e.r4 === "eligible" && !e.excluded, String(t.id));
+      assert.equal(t.source, `views walk page ${Math.floor((e.rank - 1) / 50) + 1}`, String(t.id));
+      continue;
+    }
+    assert.ok(e && e.topUp === 6 && e.pool === "fresh" && e.r4 === "eligible" && !e.excluded && !e.r4Amended, String(t.id));
+    assert.ok(e.rank > earlierEnd, `${t.id} ranks inside an earlier walk's pages`);
+    assert.equal(e.sha256, t.sha256, String(t.id));
+    assert.equal(e.wakeup, t.wakeup, String(t.id));
+  }
+  const got = {};
+  for (const t of fresh.templates) got[stratum(t.wakeup)] = (got[stratum(t.wakeup)] ?? 0) + 1;
+  assert.deepEqual(got, FRESH_QUOTAS);
+  // Reproducible from corpus.json and the committed seed, passing over P137's set; a redrawn
+  // template is no candidate.
+  assert.deepEqual(drawFresh(freshPool(corpus.templates, 6), FRESH_QUOTAS, FRESH_SEEDS[6], p137, refill).drawn.map((e) => e.id), ids(fresh.templates));
+  for (const { out } of fresh.redraws ?? []) for (const id of out) assert.ok(!isCandidate(byId.get(id)), `${id} was redrawn but is still a candidate`);
+  // Fresh: named nowhere a fixing session reads, not on the ranking's pages, not in the survey folder.
+  const stale = namedInLevers();
+  if (splits.currentRound <= 6) for (const id of ids(fresh.templates)) assert.ok(!stale.has(id), `${id} is named in levers.json or LEVERS.md`);
+  if (levers.listingPages.every((p) => existsSync(join(BENCH, "..", "..", p.file)))) {
+    const onPages = leversWalk().ids;
+    for (const id of ids(fresh.templates)) assert.ok(!onPages.has(id), `${id} is on the gallery ranking's listing pages`);
+  }
+  const survey = join(BENCH, "..", "survey", "data", "wf");
+  for (const t of fresh.templates) assert.ok(!existsSync(join(survey, `${t.id}.json`)), `${t.id} is in evals/survey/data/wf`);
+  // Blind hand labels cover exactly the drawn 20; a template redrawn out keeps no label.
+  if (!existsSync(join(BENCH, "labels-held6.json"))) return; // LABELS-PENDING
+  const labels = JSON.parse(readFileSync(join(BENCH, "labels-held6.json"), "utf8"));
+  assert.equal(labels.round, 6);
+  assert.deepEqual(labels.labels.map((l) => l.id).sort((a, b) => a - b), ids(fresh.templates).sort((a, b) => a - b));
+  const wake = new Map(fresh.templates.map((t) => [t.id, t.wakeup]));
+  for (const l of labels.labels) assert.equal(l.wakeup, wake.get(l.id), String(l.id));
+  for (const { out } of fresh.redraws ?? []) for (const id of out) assert.ok(labels.redrawnOut.some((r) => r.id === id), `${id} redrawn out but not recorded`);
+});
+
+// The P137 experiment's own held-out (EXCLUSIONS.md "P137 experiment held-out", PROPOSALS P137
+// amendment 1, seed committed before the walk): 20 of the round-6 walk's candidates that round 6
+// does not draw and the selection rule picks, in splits.json experiments (p137), never a round's
+// heldOut, unreadable to fixing sessions in every round until a round promotes them.
+test("P137 experiment held-out: 20 selected candidates of the round-6 walk, disjoint, reproducible, never exposed", async () => {
+  const { readSplits, roundOf, heldOutIds, unreadableIds, withoutHeldOut, heldOutSets } = await import("../evals/bench/rounds.mjs");
+  const { EXPERIMENTS, drawExperiment } = await import("../evals/bench/experiments.mjs");
+  const { namedInLevers, heldRefillOf } = await import("../evals/bench/split.mjs");
+  const { freshPool, isCandidate, leversWalk } = await import("../evals/bench/fetch.mjs");
+  const splits = readSplits();
+  const corpus = JSON.parse(readFileSync(join(BENCH, "corpus.json"), "utf8"));
+  const ids = (rows) => rows.map((r) => r.id);
+  const exp = splits.experiments.find((e) => e.name === "p137");
+  assert.equal(splits.experiments.filter((e) => e.name === "p137").length, 1);
+  assert.equal(exp.seed, 20261119);
+  assert.equal(EXPERIMENTS.p137.seed, 20261119);
+  assert.equal(exp.round, 6);
+  assert.match(exp.convertCommit, /^[0-9a-f]{40}$/);
+  assert.equal(exp.templates.length, 20);
+  const set = ids(exp.templates);
+  assert.equal(new Set(set).size, 20);
+  // Never a round's held-out, and disjoint from round 6's.
+  for (const r of splits.rounds) for (const id of r.heldOut) assert.ok(!set.includes(id), `${id} is in round ${r.round}'s held-out`);
+  assert.deepEqual(heldOutIds(splits, 6).filter((id) => set.includes(id)), []);
+  // Unreadable in every round from 4 (its walk is round 6's) while no round promotes it.
+  for (const n of [4, 5, 6]) assert.ok(set.every((id) => unreadableIds(splits, n).includes(id)), `round ${n}`);
+  assert.deepEqual(withoutHeldOut(set.map(String), splits).kept, []);
+  assert.ok(heldOutSets(splits).some((s) => s.name === "experiment p137" && s.kind === "experiment" && s.ids.length === 20));
+  assert.ok(!roundOf(splits).dev.some((r) => set.includes(r.id)));
+  // Each one is an eligible candidate of the round-6 walk (or its continuation) with the recorded
+  // hash, selected by the rule at convertCommit.
+  const byId = new Map(corpus.templates.map((e) => [e.id, e]));
+  const selected = new Set(exp.pool.selected);
+  for (const t of exp.templates) {
+    const e = byId.get(t.id);
+    assert.ok(e && (e.topUp === 6 ? e.pool === "fresh" : e.heldRefill === 6 && e.pool === "held-refill"), String(t.id));
+    assert.ok(e.r4 === "eligible" && isCandidate(e), String(t.id));
+    assert.equal(e.sha256, t.sha256, String(t.id));
+    assert.equal(e.wakeup, t.wakeup, String(t.id));
+    assert.ok(selected.has(t.id), `${t.id} is not selected`);
+  }
+  assert.deepEqual(exp.pool.selected.filter((id) => exp.pool.notSelected.includes(id)), []);
+  // Every candidate outside round 6's held-out was judged.
+  const held = new Set(heldOutIds(splits, 6));
+  const refill = heldRefillOf(corpus.templates, 6);
+  for (const e of [...freshPool(corpus.templates, 6), ...refill]) if (isCandidate(e) && !held.has(e.id)) assert.ok(selected.has(e.id) || exp.pool.notSelected.includes(e.id), `${e.id} was not judged`);
+  // Reproducible from corpus.json, the committed seed and the recorded verdicts.
+  assert.deepEqual(drawExperiment(freshPool(corpus.templates, 6), { seed: exp.seed, size: 20, exclude: held, selected, after: refill }).drawn.map((e) => e.id), set);
+  for (const { out } of exp.redraws ?? []) for (const id of out) assert.ok(!isCandidate(byId.get(id)), `${id} was redrawn but is still a candidate`);
+  // Fresh and never exposed: not named in levers.json or LEVERS.md, not on the ranking's pages,
+  // not in the survey folder.
+  const stale = namedInLevers();
+  for (const id of set) assert.ok(!stale.has(id), `${id} is named in levers.json or LEVERS.md`);
+  const levers = JSON.parse(readFileSync(join(BENCH, "levers.json"), "utf8"));
+  if (levers.listingPages.every((p) => existsSync(join(BENCH, "..", "..", p.file)))) {
+    const onPages = leversWalk().ids;
+    for (const id of set) assert.ok(!onPages.has(id), `${id} is on the gallery ranking's listing pages`);
+  }
+  const survey = join(BENCH, "..", "survey", "data", "wf");
+  for (const id of set) assert.ok(!existsSync(join(survey, `${id}.json`)), `${id} is in evals/survey/data/wf`);
+  // Blind hand labels cover exactly the set; a template redrawn out keeps no label.
+  if (!existsSync(join(BENCH, "labels-p137.json"))) return; // LABELS-PENDING
+  const labels = JSON.parse(readFileSync(join(BENCH, "labels-p137.json"), "utf8"));
+  assert.equal(labels.experiment, "p137");
+  assert.deepEqual(labels.labels.map((l) => l.id).sort((a, b) => a - b), [...set].sort((a, b) => a - b));
+  const wake = new Map(exp.templates.map((t) => [t.id, t.wakeup]));
+  for (const l of labels.labels) assert.equal(l.wakeup, wake.get(l.id), String(l.id));
+  for (const { out } of exp.redraws ?? []) for (const id of out) assert.ok(labels.redrawnOut.some((r) => r.id === id), `${id} redrawn out but not recorded`);
+});
+
+// The P137 selection rule (experiments.mjs p137Select) on synthetic definitions, and its draw.
+test("P137 selection rule: only drafting targets blocked, at least one, no vector, db or media step", async () => {
+  const { p137Select, drawExperiment } = await import("../evals/bench/experiments.mjs");
+  const blocked = (kind, reason, extra = {}) => ({ kind: "blocked", blocked: { kind, reason }, ...extra });
+  const report = (steps = [], blockers = []) => ({ steps, blockers });
+  const pick = (steps, r = report()) => p137Select({ steps }, r).selected;
+  assert.equal(pick({ a: { kind: "tool" } }), false, "nothing blocked");
+  assert.equal(pick({ a: blocked("no-tool", "no tool map for notion databasePage:create yet") }), true);
+  assert.equal(pick({ a: blocked("no-tool", "no request template for airtable record:create yet (it needs the app's REST API with a stored secret)") }), true);
+  assert.equal(pick({ a: blocked("no-tool", "no tool map for polling gmailTrigger") }), true, "a connector poll with no tool map");
+  assert.equal(pick({ a: blocked("no-tool", "the connector has no tool for this operation") }), false, "confirmed no-tool");
+  assert.equal(pick({ a: blocked("no-tool", "no tool map for x y yet"), b: blocked("unsupported", "a database step needs the bundled server") }), false, "one non-target block");
+  assert.equal(pick({ a: blocked("no-tool", "no tool map for x y yet"), b: blocked("dropped", "error workflows are replaced") }), true, "dropped steps aside");
+  assert.equal(pick({ a: blocked("no-tool", "no tool map for x y yet"), b: blocked("unmapped", "node type not in the catalogue", { settings: { disabled: true } }) }), true, "disabled steps aside");
+  for (const k of ["not-captured", "input-incomplete", "unmapped", "substitution"]) assert.equal(pick({ a: blocked(k, "no tool map for x") }), false, k);
+  assert.equal(pick({ a: blocked("no-tool", "no request template for x yet") }, report([{ node: "a", kind: "media" }])), false, "a media step");
+  assert.equal(pick({ a: blocked("no-tool", "no request template for x yet") }, report([{ node: "v", kind: "vector" }], [{ kind: "unsupported", nodes: ["v"] }])), false, "an analyzer blocker on a vector step");
+  assert.equal(pick({ a: blocked("no-tool", "no request template for x yet") }, report([{ node: "d", kind: "db" }])), true, "a database step that is not blocked");
+  // The draw: shuffled pool, then refill in listing order; round 6's held-out, non-candidates and
+  // unselected entries passed over; stops at the size.
+  const pool = [1, 2, 3, 4, 5, 6, 7, 8].map((id) => ({ id, rank: id, r4: "eligible", pool: "fresh" }));
+  const sel = new Set([1, 2, 3, 4, 5, 6, 7, 8, 90, 80]);
+  const full = drawExperiment(pool, { seed: 9, size: 8, selected: sel }).drawn.map((e) => e.id);
+  assert.equal(full.length, 8);
+  const r = drawExperiment(pool.map((e) => (e.id === full[0] ? { ...e, r4Hand: "x" } : e)), { seed: 9, size: 4, exclude: new Set([full[1]]), selected: sel });
+  assert.deepEqual(r.drawn.map((e) => e.id), full.slice(2, 6));
+  const after = [{ id: 90, rank: 990, r4: "eligible", pool: "held-refill" }, { id: 80, rank: 980, r4: "eligible", pool: "held-refill" }];
+  const long = drawExperiment(pool, { seed: 9, size: 9, selected: sel, after });
+  assert.deepEqual([long.drawn.at(-1).id, long.short], [80, 0]);
+  assert.equal(drawExperiment(pool, { seed: 9, size: 12, selected: sel, after }).short, 2);
 });

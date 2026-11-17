@@ -4,7 +4,7 @@
 // template, and pins the corpus.
 //
 //   node evals/bench/fetch.mjs [--out evals/bench/corpus.json] [--max 200] [--offline]
-//   node evals/bench/fetch.mjs --top-up [--round 3|4|5] [--max-entries 400] [--offline]   (fresh held-out, round 3 on)
+//   node evals/bench/fetch.mjs --top-up [--round 3|4|5|6] [--max-entries 400] [--offline]   (fresh held-out, round 3 on)
 //   node evals/bench/fetch.mjs --current   (today's analyzer verdicts beside the frozen draw-day ones, PROPOSALS P127)
 //
 // Stops when every wake-up quota of the 100 eligible (outcome `subscription`) is full and
@@ -396,12 +396,16 @@ async function main() {
 //      "Later rounds' held-out", "Round 5 held-out"): the walk starts on the page after the last one
 //      levers.json `listingPages` records, skips every id on those pages (`inLevers`), and excludes a
 //      template whose hash equals one of theirs as `duplicate`.
+//   6: as round 5 (EXCLUSIONS.md "Round 6 held-out"); the walk starts after the last page any walk
+//      read (round 5's held-out refill, startPageOf). Its candidates that round 6 does not draw are
+//      the pool of the P137 experiment's held-out (experiments.mjs).
 export const FRESH_QUOTAS = { chat: 6, manual: 5, schedule: 4, poll: 2, form: 2, other: 1 };
 export const FRESH_ROUND = 3;
 export const TOP_UPS = {
   3: { quotas: FRESH_QUOTAS, overflow: true, eligibility: false, finishPage: false, why: "fresh held-out for release point 3 (PLAN Phase 6): the seeded split's 40 held-out templates are all scored" },
   4: { quotas: FRESH_QUOTAS, overflow: false, eligibility: true, finishPage: true, why: "fresh held-out for release point 4 (PLAN Phase 6; EXCLUSIONS.md, Round 4 held-out): 20 templates nobody has read, each eligible by the round-4 rule" },
   5: { quotas: FRESH_QUOTAS, overflow: false, eligibility: true, amendedRule: true, afterLevers: true, finishPage: true, why: "fresh held-out for release point 5 (PLAN Phase 6; EXCLUSIONS.md, Round 5 held-out): 20 templates nobody has read, each eligible by the round-4 rule with amendment 1, none on the gallery ranking's listing pages" },
+  6: { quotas: FRESH_QUOTAS, overflow: false, eligibility: true, amendedRule: true, afterLevers: true, finishPage: true, why: "fresh held-out for release point 6 (PLAN Phase 6; EXCLUSIONS.md, Round 6 held-out): 20 templates nobody has read, each eligible by the round-4 rule with amendment 1, none on the gallery ranking's listing pages or read by an earlier walk; the undrawn candidates are the P137 experiment's pool (EXCLUSIONS.md, P137 experiment held-out)" },
 };
 export const topUpKey = (round) => (round === FRESH_ROUND ? "topUp" : `topUp${round}`);
 
@@ -616,8 +620,12 @@ async function topUp() {
     }
   }
   if (process.stderr.isTTY) process.stderr.write("\n");
-  // Walk order: Phase 5 entries, then each round's top-up in round order.
-  const all = [...others.filter((e) => !e.topUp || e.topUp < round), ...entries, ...others.filter((e) => e.topUp > round)];
+  // Walk order: the order walks were made in. A rebuild keeps the round's entries where they were;
+  // a first walk of the round goes after every earlier walk and refill (round 6 on; earlier rounds'
+  // rebuilds keep their place too).
+  const at = corpus.templates.findIndex((e) => e.topUp === round);
+  const cut = at >= 0 ? corpus.templates.slice(0, at).filter((e) => e.topUp !== round).length : others.length;
+  const all = [...others.slice(0, cut), ...entries, ...others.slice(cut)];
   const excluded = {};
   for (const e of entries) if (e.excluded) excluded[e.excluded] = (excluded[e.excluded] ?? 0) + 1;
   const strata = (xs) => {
@@ -657,12 +665,8 @@ async function topUp() {
     },
   };
   const { templates: _old, ...rest } = corpus;
-  // Walk sections after the Phase 5 head: top-ups in round order, then dev refills (split.mjs amendDev).
-  const isSection = (k) => /^(topUp\d*|devRefill\d+)$/.test(k);
-  const order = (k) => [k.startsWith("devRefill") ? 1 : 0, Number(k.replace(/\D/g, "") || FRESH_ROUND)];
-  const head = Object.fromEntries(Object.entries(rest).filter(([k]) => !isSection(k)));
-  const sections = Object.fromEntries(Object.entries({ ...rest, [key]: section }).filter(([k]) => isSection(k)).sort(([x], [y]) => order(x)[0] - order(y)[0] || order(x)[1] - order(y)[1]));
-  const text = JSON.stringify({ ...head, ...sections, templates: all }, null, 2).replace(/\{\n\s+("rank": \d+,[^{}]*?)\n\s+\}/g, (_, body) => `{ ${body.replace(/\n\s+/g, " ")} }`);
+  // Sections keep their order; a new walk's section comes after the last one (a rebuild keeps its place).
+  const text = JSON.stringify({ ...rest, [key]: section, templates: all }, null, 2).replace(/\{\n\s+("rank": \d+,[^{}]*?)\n\s+\}/g, (_, body) => `{ ${body.replace(/\n\s+/g, " ")} }`);
   await writeFile(out, text + "\n");
   // Counts only: the labeller reads no verdict per template from this output.
   console.log(
@@ -684,9 +688,10 @@ async function topUp() {
 // corpus.json. `as: "held"` (PROPOSALS P126) continues the same walk for a held-out redraw whose
 // stratum has no candidate left: entries carry `heldRefill: <round>` and pool `held-refill` /
 // `held-refill-other`, so the round's shuffled pool, and every draw already made from it, stay as
-// they are.
+// they are. `accept` (the P137 experiment's held-out, experiments.mjs): `need` is {any: n}, and an
+// eligible entry counts only when accept(entry) holds (the entry's template is cached by then).
 export const REFILL = { dev: { key: "devRefill", pool: "dev-refill" }, held: { key: "heldRefill", pool: "held-refill" } };
-export async function extendWalk(corpus, round, need, { offline = false, as = "dev" } = {}) {
+export async function extendWalk(corpus, round, need, { offline = false, as = "dev", accept = null } = {}) {
   const tag = REFILL[as];
   const refs = (f) => JSON.parse(readFileSync(join(REFS, f), "utf8"));
   const opts = { nodes: refs("nodes.json"), capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), now: Date.parse(NOW) };
@@ -753,7 +758,8 @@ export async function extendWalk(corpus, round, need, { offline = false, as = "d
       Object.assign(e, r4Verdict(wf, report, e, elig));
       delete e.r4Amended;
       e.pool = e.r4 === "eligible" ? tag.pool : `${tag.pool}-other`;
-      if (e.r4 === "eligible" && left[stratum(e.wakeup)] > 0) left[stratum(e.wakeup)]--;
+      const slot = accept ? "any" : stratum(e.wakeup);
+      if (e.r4 === "eligible" && left[slot] > 0 && (!accept || accept(e))) left[slot]--;
     }
   }
   return { entries, pages, requests: { listingRequests: stats.listingRequests - before.listingRequests, templateRequests: stats.templateRequests - before.templateRequests } };
