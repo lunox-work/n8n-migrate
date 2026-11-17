@@ -692,7 +692,6 @@ test("round 6 held-out: 20 fresh past every earlier walk, eligible, reproducible
   const survey = join(BENCH, "..", "survey", "data", "wf");
   for (const t of fresh.templates) assert.ok(!existsSync(join(survey, `${t.id}.json`)), `${t.id} is in evals/survey/data/wf`);
   // Blind hand labels cover exactly the drawn 20; a template redrawn out keeps no label.
-  if (!existsSync(join(BENCH, "labels-held6.json"))) return; // LABELS-PENDING
   const labels = JSON.parse(readFileSync(join(BENCH, "labels-held6.json"), "utf8"));
   assert.equal(labels.round, 6);
   assert.deepEqual(labels.labels.map((l) => l.id).sort((a, b) => a - b), ids(fresh.templates).sort((a, b) => a - b));
@@ -762,7 +761,6 @@ test("P137 experiment held-out: 20 selected candidates of the round-6 walk, disj
   const survey = join(BENCH, "..", "survey", "data", "wf");
   for (const id of set) assert.ok(!existsSync(join(survey, `${id}.json`)), `${id} is in evals/survey/data/wf`);
   // Blind hand labels cover exactly the set; a template redrawn out keeps no label.
-  if (!existsSync(join(BENCH, "labels-p137.json"))) return; // LABELS-PENDING
   const labels = JSON.parse(readFileSync(join(BENCH, "labels-p137.json"), "utf8"));
   assert.equal(labels.experiment, "p137");
   assert.deepEqual(labels.labels.map((l) => l.id).sort((a, b) => a - b), [...set].sort((a, b) => a - b));
