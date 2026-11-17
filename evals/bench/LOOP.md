@@ -1131,3 +1131,12 @@ Not a loop iteration and no dev score change: the convert-time drafting pass (PR
 - Primary bar: (1) 0 ≥ 0 + 1 fails; (2) 1 > 0 fails; (3) holds; (4) holds (every accepted draft cites docs and passed the rules check). **Not shipped.** Secondary (B+approved): 0 passes, gate sums 63 and 65, wrong-effect 2 and 3, gate-6 0, uncompared 1 each; 0 drafted writes with n8n's effect (run 1 too few, run 2 not reliable).
 - Drafting per run: 27 target steps, 20 haiku calls on 15 templates, $0.0298 and $0.0241; 10 declined, 9 and 1 refused (docs), 1 skipped (no host), 7 and 15 accepted (3 reads). Accepted reads changed what later steps see in 2 of 3 templates (nested record values where n8n flattens); drafted writes used another request form than n8n's. No drafted tool map reached the runner.
 - Proposals: P143 (output items and request form unchecked), P144 (steps the pass silently leaves out), P145 (per-write outcome attribution; comparer rules for alternative REST forms). `claude -p` 40 runs (ledger 2398 → 2438).
+
+## Paused for launch work, 2026-11-17
+
+Bench and loop work is paused at the user's request so launch tasks (repo cleanup, publishing, README) can run in this checkout. State at the pause: round 6 is current (dev 140, `r6-base` one-shot 60 of 140, converter coverage 78); P137 is scored and not shipped; round 6's held-out (seed 20261118) is drawn and blind-labelled, and 3 of its 20 templates have blind fixtures (P146 applied); the `claude -p` ledger is at 2438. On resume, in order:
+
+1. Finish round 6's held-out fixtures (17 left, then the `--record-only` setup pass, the PLAN and EXCLUSIONS lines), in a blind session.
+2. The round 6 dev loop. Prioritise dev templates that convert cleanly and then fail at run time (gates 4–8) before new missing-feature levers; Airtable, Discord and Notion request templates go back into the loop as hand-written ports of n8n's node behaviour now that P137 is concluded.
+3. Release point 6 on the sealed round 6 held-out set (seed 20261118).
+4. Bench proposals P143–P145 (draft output and request-form checks, targets the drafting pass leaves out, per-write outcome attribution and comparer rules), plus the open P140-era gaps listed in PLAN's known gaps.
