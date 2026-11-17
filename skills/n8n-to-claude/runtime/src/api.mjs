@@ -233,7 +233,7 @@ async function runSubflow(parentExec, sub, items, prefix) {
   const def = sub.self ? parent.rootDefinition : sub.definition;
   if (!def?.steps) throw new NodeError("Sub-workflow definition is missing", { node: parentExec.name });
   const child = createRun(def, { clock: { startedAt: parent.clock.startedAt }, runId: parent.runId, mode: parent.mode });
-  for (const k of ["clock", "resultLog", "effects", "effectIds", "host", "stepMode", "batchSize", "virtualTime", "sleepThresholdMs", "logs", "console", "randomFor", "executionInfo", "cursorsIn", "cursorsOut"]) child[k] = parent[k];
+  for (const k of ["clock", "expressionZone", "resultLog", "effects", "effectIds", "host", "stepMode", "batchSize", "virtualTime", "sleepThresholdMs", "logs", "console", "randomFor", "executionInfo", "cursorsIn", "cursorsOut"]) child[k] = parent[k];
   child.idPrefix = `${parent.idPrefix}${prefix}/`;
   child.depth = parent.depth + 1;
   child.api = parent.api;

@@ -1901,7 +1901,7 @@ export async function executeAgentTool(exec, tools, call, itemIndex) {
       if ((p.language ?? "javaScript") !== "javaScript") return { ok: false, error: { message: "only JavaScript code tools run" } };
       const code = p.jsCode ?? p.code ?? "";
       const fn = compileCode(code);
-      const lookup = createLookup(exec, itemIndex, { locals: { ...locals, ...args }, lenientMissing: true });
+      const lookup = createLookup(exec, itemIndex, { locals: { ...locals, ...args }, lenientMissing: true, code: true });
       const value = await fn.call({}, lookup.scope);
       return { ok: true, value: value === undefined ? null : JSON.parse(JSON.stringify(value)) };
     }

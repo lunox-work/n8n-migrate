@@ -1223,7 +1223,7 @@ export function codeErrorMessage(e) {
 
 async function runCode(exec, code, locals, itemIndex) {
   const fn = compileCode(code);
-  const lookup = createLookup(exec, itemIndex, { locals, lenientMissing: true });
+  const lookup = createLookup(exec, itemIndex, { locals, lenientMissing: true, code: true });
   const thisArg = { helpers: locals.helpers, getNodeParameter: (p, i = itemIndex, fb) => exec.param(p, i, fb), getInputData: () => exec.connectionInputData };
   return fn.call(thisArg, lookup.scope);
 }

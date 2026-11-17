@@ -31,6 +31,7 @@ import { redactSecrets } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
 import { modelConsumers, containerPath, N8N_HOME } from "./n8n-side.mjs";
 import { maskRunTime, fromTool, fromHttp, keyOf, table } from "./compare.mjs";
 import { CLAUDE_PG, claudeConnectionUrl, collectClaudeRun, dbPlan, ensureClaudeDatabase, seedClaudeRun } from "../n8n/databases.mjs";
+import { ENV as N8N_ENV } from "../n8n/container.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
@@ -1016,9 +1017,14 @@ export function driverFiles(stateEffects = [], fx) {
 // Luxon's `DateTime` and `$now` stay in America/New_York. The runtime runs Code nodes and
 // expressions in one process, so the Claude side takes the runner's zone for native Date (in
 // process here, and the claude driver's session through sessionEnv); Luxon keeps the workflow
-// zone on both sides. A native Date in an expression (n8n's main process, America/New_York)
-// therefore still differs; no dev template formats one with a time of day.
+// zone on both sides.
 export const CODE_NODE_TZ = "UTC";
+// PROPOSALS P140: a native Date in an expression runs in n8n's main process, whose zone is the
+// container's TZ (America/New_York), not the task runner's. The runtime gives expressions a Date
+// in that zone (engine.mjs expressionZone, runtime/src/zoneddate.mjs): runInProcess() passes it,
+// the claude driver's session gets it as N2C_EXPRESSION_TZ (sessionEnv). Code nodes keep
+// CODE_NODE_TZ, Luxon the workflow's zone.
+export const EXPRESSION_TZ = N8N_ENV.TZ;
 
 // PROPOSALS P129: the setup answer to a credential's database question (analyze.mjs
 // askDatabases) is the Claude side's own Postgres, the template's database there.
@@ -1270,7 +1276,7 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
   process.env.TZ = CODE_NODE_TZ;
   let res;
   try {
-    res = await core.run(def, { trigger: polls ? undefined : { node: fx.trigger.node, items: fx.trigger.items }, clock: { startedAt: startedAt ?? fx.now }, host, virtualTime: true, mode: "manual", runId: `bench-${fx.template}-${fx.variant}`, ...(seed?.cursor ? { cursors: { [fx.trigger.node]: seed.cursor } } : {}) });
+    res = await core.run(def, { trigger: polls ? undefined : { node: fx.trigger.node, items: fx.trigger.items }, clock: { startedAt: startedAt ?? fx.now }, expressionZone: EXPRESSION_TZ, host, virtualTime: true, mode: "manual", runId: `bench-${fx.template}-${fx.variant}`, ...(seed?.cursor ? { cursors: { [fx.trigger.node]: seed.cursor } } : {}) });
   } finally {
     if (tz === undefined) delete process.env.TZ;
     else process.env.TZ = tz;

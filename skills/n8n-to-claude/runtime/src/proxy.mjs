@@ -19,6 +19,7 @@ import { ExpressionError, UnsupportedExpression, RunnerError, hasOwn } from "./u
 import { makeScope, evaluateExpression, resolveParameter } from "./expression.mjs";
 import { extend, extendOptional, EXTENDED_FUNCTIONS, setExtensionRandom } from "./extensions.mjs";
 import { jmespathSearch } from "./jmespath.mjs";
+import { zonedDateClass } from "./zoneddate.mjs";
 
 const DENY = ["document", "global", "window", "Window", "globalThis", "self", "alert", "prompt", "confirm", "eval", "uneval", "setTimeout", "setInterval", "setImmediate", "clearImmediate", "queueMicrotask", "Function", "require", "module", "Buffer", "__dirname", "__filename", "fetch", "XMLHttpRequest", "Promise", "Generator", "GeneratorFunction", "AsyncFunction", "AsyncGenerator", "AsyncGeneratorFunction", "WebAssembly", "Reflect", "Proxy", "escape", "unescape", "WebSocket", "importScripts", "navigator", "location", "localStorage", "sessionStorage", "indexedDB"];
 const BLOCKED_OBJECT_STATICS = new Set(["defineProperty", "defineProperties", "setPrototypeOf", "getPrototypeOf", "getOwnPropertyDescriptor", "getOwnPropertyDescriptors", "__defineGetter__", "__defineSetter__", "__lookupGetter__", "__lookupSetter__"]);
@@ -37,17 +38,22 @@ const ALLOWED = {
   decodeURI, decodeURIComponent, Boolean, Symbol, DateTime, Interval, Duration, undefined: undefined,
 };
 
-// Per-run objects that depend on the clock and seed.
+// Per-run objects that depend on the clock and seed. `Date` is what a Code node sees (the
+// process's own zone); `ExprDate`, when the run names n8n's main-process zone
+// (run.expressionZone, PROPOSALS P140), is what an expression sees: a Date whose local time is
+// that zone (zoneddate.mjs), one class per run.
 export function runtimeGlobals(run, seedKey) {
   const now = () => run.clock.now;
-  const FrozenDate = new Proxy(Date, {
-    construct: (t, args) => (args.length ? new Date(...args) : new Date(now())),
-    apply: () => new Date(now()).toString(),
-    get: (t, k, r) => (k === "now" ? now : Reflect.get(t, k, r)),
-  });
+  const frozen = (D) =>
+    new Proxy(D, {
+      construct: (t, args) => (args.length ? new t(...args) : new t(now())),
+      apply: (t) => new t(now()).toString(),
+      get: (t, k, r) => (k === "now" ? now : Reflect.get(t, k, r)),
+    });
   const random = run.randomFor(seedKey);
   const SeededMath = Object.create(Math, { random: { value: random, enumerable: false } });
-  return { Date: FrozenDate, Math: SeededMath, random };
+  if (run.expressionZone && !run._zonedDate) run._zonedDate = zonedDateClass(run.expressionZone, now);
+  return { Date: frozen(Date), ...(run._zonedDate ? { ExprDate: frozen(run._zonedDate) } : {}), Math: SeededMath, random };
 }
 
 // Called before any evaluation: Luxon's global settings follow the run.
@@ -421,7 +427,7 @@ export function createLookup(exec, itemIndex, extras = {}) {
       case "$self":
         throw new UnsupportedExpression(`${name} is not supported`, { function: name });
       case "Date":
-        return g.Date;
+        return extras.code ? g.Date : (g.ExprDate ?? g.Date);
       case "Math":
         return g.Math;
     }

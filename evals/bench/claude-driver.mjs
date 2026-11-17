@@ -26,7 +26,7 @@ import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, wr
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { claudeBin, LEDGER, ledger, MAX_RUNS, memoryGate, spawnWithPrompt, BudgetExceeded, UsageLimit } from "./claude.mjs";
-import { CODE_NODE_TZ, connectorFixtures, driverFiles, httpRoutes, modelKeyFor } from "./claude-side.mjs";
+import { CODE_NODE_TZ, EXPRESSION_TZ, connectorFixtures, driverFiles, httpRoutes, modelKeyFor } from "./claude-side.mjs";
 import { fromTool } from "./compare.mjs";
 import { startMock } from "../n8n/mock-server.mjs";
 import { claudeDbSeed } from "./claude-side.mjs";
@@ -275,7 +275,8 @@ function notRunResult(def, reason) {
 // Exported for the self-test that runs a runner process with it (PROPOSALS P47).
 export function sessionEnv({ base = process.env, httpMockUrl = null, secrets = [], diskRoot = null, absDirs = [] } = {}) {
   // TZ: PROPOSALS P123 (claude-side.mjs CODE_NODE_TZ), the zone of a Code node's native Date in n8n's task runner.
-  const env = { ...base, ENABLE_CLAUDEAI_MCP_SERVERS: "false", CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1", DISABLE_AUTOUPDATER: "1", NODE_OPTIONS: "--max-old-space-size=512", TZ: CODE_NODE_TZ };
+  // N2C_EXPRESSION_TZ: P140 (EXPRESSION_TZ), the zone of an expression's native Date in n8n's main process.
+  const env = { ...base, ENABLE_CLAUDEAI_MCP_SERVERS: "false", CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1", DISABLE_AUTOUPDATER: "1", NODE_OPTIONS: "--max-old-space-size=512", TZ: CODE_NODE_TZ, N2C_EXPRESSION_TZ: EXPRESSION_TZ };
   for (const k of Object.keys(env)) if (k === "ANTHROPIC_API_KEY" || k.startsWith("N2C_SECRET_") || k === "CLAUDECODE" || k.startsWith("CLAUDE_CODE_MESSAGING") || k === "CLAUDE_CODE_SESSION_ID" || k === "CLAUDE_CODE_CHILD_SESSION") delete env[k];
   if (httpMockUrl) {
     env.N2C_BENCH_HTTP_MOCK = httpMockUrl;

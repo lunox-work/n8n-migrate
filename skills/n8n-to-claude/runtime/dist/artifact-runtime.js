@@ -9919,12 +9919,246 @@ function jmespathSearch(data, query) {
 return { jmespathSearch };
 })();
 
+// ---- src/zoneddate.mjs ----
+const __m_zoneddate_mjs = (() => {
+// A native `Date` whose local time is one IANA zone, for n8n expressions (bench PROPOSALS P140).
+//
+// n8n evaluates an expression in its main process, so a native Date there (`new
+// Date().getDate()`, `setDate`, `toString()`, `toLocaleString()`) uses that process's zone: its
+// `TZ` environment variable, else the host's zone (UTC in n8n's own Docker image). The workflow's
+// timezone setting and GENERIC_TIMEZONE only reach Luxon (`$now`, `DateTime`), never the native
+// Date. A Code node runs in n8n's task runner, which is started without `TZ`
+// (task-runner-process-js.js getProcessEnvVars), so its native Date has the runner host's zone.
+// The runtime runs both in one process, so an expression gets this class instead of the process's
+// Date when the run names the zone of n8n's main process (engine.mjs createRun `expressionZone`);
+// a Code node keeps the process's own Date.
+//
+// The class extends Date, so `instanceof Date`, the time value, toISOString(), toJSON(), getUTC*()
+// and Luxon's fromJSDate are unchanged; only the local-time methods are redefined, after
+// ECMA-262's LocalTime and UTC(t) (a local time in a gap is read with the offset before the
+// transition, a repeated one as the earlier instant). The zone's offsets come from Intl.
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_MS = 86400000;
+const pad = (n, w = 2) => String(Math.abs(n)).padStart(w, "0");
+// The year Date.UTC and the Date constructor add to a two-digit year (ECMA-262 MakeFullYear).
+const BASE_YEAR = new Date(Date.UTC(0, 0)).getUTCFullYear();
+// Time value of UTC fields without the two-digit-year rule (MakeDay/MakeTime, as the setters use).
+const utcFields = (y, mo, d, h, mi, s, ms) => {
+  const t = new Date(0);
+  t.setUTCFullYear(y, mo, d);
+  t.setUTCHours(h, mi, s, ms);
+  return t.getTime();
+};
+
+function zonedDateClass(zone, now = () => Date.now()) {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: zone, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric", era: "short" });
+  const longName = new Intl.DateTimeFormat("en-US", { timeZone: zone, timeZoneName: "long" });
+  // Offset of the zone from UTC at time value t, in milliseconds east (UTC+8 -> 28800000; a
+  // local mean time before standard zones keeps its seconds, as V8 does).
+  const offsetAt = (t) => {
+    const p = Object.fromEntries(parts.formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+    let y = Number(p.year);
+    if (p.era === "BC" || p.era === "B") y = 1 - y;
+    const wall = utcFields(y, Number(p.month) - 1, Number(p.day), Number(p.hour) % 24, Number(p.minute), Number(p.second), 0);
+    const whole = t - (((t % 1000) + 1000) % 1000);
+    return wall - whole;
+  };
+  // UTC(t): the time value of local time value `local` in the zone.
+  const fromLocal = (local) => {
+    if (!Number.isFinite(local)) return NaN;
+    const before = offsetAt(local - DAY_MS);
+    const after = offsetAt(local + DAY_MS);
+    const valid = [...new Set([before, after])].map((o) => local - o).filter((t) => offsetAt(t) === local - t);
+    if (valid.length) return Math.min(...valid);
+    return local - before;
+  };
+  const toLocal = (t) => t + offsetAt(t);
+  // Local components of a time value, as the UTC components of its local time value.
+  const fields = (t) => {
+    const d = new Date(toLocal(t));
+    return { y: d.getUTCFullYear(), mo: d.getUTCMonth(), d: d.getUTCDate(), h: d.getUTCHours(), mi: d.getUTCMinutes(), s: d.getUTCSeconds(), ms: d.getUTCMilliseconds(), day: d.getUTCDay() };
+  };
+  const make = (f) => fromLocal(utcFields(f.y, f.mo, f.d, f.h, f.mi, f.s, f.ms));
+  const clip = (t) => (Number.isFinite(t) && Math.abs(t) <= 8.64e15 ? Math.trunc(t) : NaN);
+  // A date-time string with no zone or offset is local time (ECMA-262 Date.parse); the host's
+  // parser reads it in the process's zone, so its local fields are re-read in this one. Strings
+  // with Z, an offset, a zone name, or the date-only ISO forms (UTC) are absolute.
+  const absolute = (s) => /(Z|[+-]\d{2}:?\d{2}|\b(GMT|UTC|UT|[ECMP][SD]T)\b[^a-z]*)\s*(\([^)]*\))?\s*$/i.test(s) || /^\s*[+-]?\d{4,6}(-\d{2}(-\d{2})?)?\s*$/.test(s);
+  const parse = (s) => {
+    const host = Date.parse(s);
+    if (!Number.isFinite(host) || absolute(String(s))) return host;
+    const d = new Date(host);
+    return fromLocal(utcFields(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds()));
+  };
+  const time = (self) => Date.prototype.getTime.call(self);
+  const set = (self, t) => Date.prototype.setTime.call(self, clip(t));
+  const num = (v) => Number(v);
+  const offsetText = (t) => {
+    const o = Math.trunc(offsetAt(t) / 60000);
+    return `GMT${o < 0 ? "-" : "+"}${pad(Math.trunc(Math.abs(o) / 60))}${pad(Math.abs(o) % 60)}`;
+  };
+  // V8 names the zone by its standard or daylight long name, whichever is in effect at t, not by
+  // the name ICU gives that date (which falls back to "GMT-04:00" before the zone's metazone
+  // existed); the two names are read from a reference year.
+  const nameAt = (t) => longName.formatToParts(new Date(t)).find((x) => x.type === "timeZoneName")?.value ?? zone;
+  const refYear = new Date(now()).getUTCFullYear();
+  const REF = [Date.UTC(refYear, 0, 1), Date.UTC(refYear, 6, 1)].map((t) => ({ o: offsetAt(t), name: nameAt(t) })).sort((a, b) => a.o - b.o);
+  const zoneName = (t) => {
+    if (REF[0].o === REF[1].o) return REF[0].name;
+    // In daylight time when the offset is above the year's lower one; in a year with one offset
+    // (London's all-year summer time of 1968-71), above the reference year's standard offset.
+    const y = new Date(toLocal(t)).getUTCFullYear();
+    const [jan, jul] = [offsetAt(utcFields(y, 0, 1, 0, 0, 0, 0)), offsetAt(utcFields(y, 6, 1, 0, 0, 0, 0))];
+    const daylight = jan !== jul ? offsetAt(t) > Math.min(jan, jul) : offsetAt(t) > REF[0].o;
+    return daylight ? REF[1].name : REF[0].name;
+  };
+  const yearText = (y) => (y < 0 ? `-${pad(y, 6)}` : pad(y, 4));
+  const withZone = (opts) => (opts && typeof opts === "object" && opts.timeZone !== undefined ? opts : { ...(opts ?? {}), timeZone: zone });
+
+  class ZonedDate extends Date {
+    constructor(...args) {
+      if (args.length === 0) super(now());
+      else if (args.length === 1) {
+        const v = args[0] instanceof Date ? time(args[0]) : args[0];
+        super(typeof v === "string" ? parse(v) : v);
+      } else {
+        // Date.UTC applies the constructor's two-digit-year rule.
+        const [y, mo, d = 1, h = 0, mi = 0, s = 0, ms = 0] = args.map(num);
+        super(clip(fromLocal(Date.UTC(y, mo, d, h, mi, s, ms))));
+      }
+    }
+    static now() {
+      return now();
+    }
+    static parse(s) {
+      return parse(String(s));
+    }
+    getTimezoneOffset() {
+      const t = time(this);
+      return Number.isFinite(t) ? -offsetAt(t) / 60000 : NaN;
+    }
+    getFullYear() {
+      const t = time(this);
+      return Number.isFinite(t) ? fields(t).y : NaN;
+    }
+    getYear() {
+      const y = this.getFullYear();
+      return Number.isFinite(y) ? y - BASE_YEAR : NaN;
+    }
+    getMonth() {
+      const t = time(this);
+      return Number.isFinite(t) ? fields(t).mo : NaN;
+    }
+    getDate() {
+      const t = time(this);
+      return Number.isFinite(t) ? fields(t).d : NaN;
+    }
+    getDay() {
+      const t = time(this);
+      return Number.isFinite(t) ? fields(t).day : NaN;
+    }
+    getHours() {
+      const t = time(this);
+      return Number.isFinite(t) ? fields(t).h : NaN;
+    }
+    getMinutes() {
+      const t = time(this);
+      return Number.isFinite(t) ? fields(t).mi : NaN;
+    }
+    getSeconds() {
+      const t = time(this);
+      return Number.isFinite(t) ? fields(t).s : NaN;
+    }
+    getMilliseconds() {
+      const t = time(this);
+      return Number.isFinite(t) ? fields(t).ms : NaN;
+    }
+    // Setters (ECMA-262 21.4.4.20-28): the other local fields stay; NaN stays NaN except for
+    // setFullYear, which starts from +0's local time.
+    setFullYear(y, ...rest) {
+      const t = time(this);
+      const f = fields(Number.isFinite(t) ? t : fromLocal(0));
+      return set(this, make({ ...f, y: num(y), ...(rest.length > 0 ? { mo: num(rest[0]) } : {}), ...(rest.length > 1 ? { d: num(rest[1]) } : {}) }));
+    }
+    setMonth(mo, ...rest) {
+      const t = time(this);
+      if (!Number.isFinite(t)) return NaN;
+      return set(this, make({ ...fields(t), mo: num(mo), ...(rest.length > 0 ? { d: num(rest[0]) } : {}) }));
+    }
+    setDate(d) {
+      const t = time(this);
+      if (!Number.isFinite(t)) return NaN;
+      return set(this, make({ ...fields(t), d: num(d) }));
+    }
+    setHours(h, ...rest) {
+      const t = time(this);
+      if (!Number.isFinite(t)) return NaN;
+      const [mi, s, ms] = rest.map(num);
+      const f = fields(t);
+      return set(this, make({ ...f, h: num(h), ...(rest.length > 0 ? { mi } : {}), ...(rest.length > 1 ? { s } : {}), ...(rest.length > 2 ? { ms } : {}) }));
+    }
+    setMinutes(mi, ...rest) {
+      const t = time(this);
+      if (!Number.isFinite(t)) return NaN;
+      const [s, ms] = rest.map(num);
+      return set(this, make({ ...fields(t), mi: num(mi), ...(rest.length > 0 ? { s } : {}), ...(rest.length > 1 ? { ms } : {}) }));
+    }
+    setSeconds(s, ...rest) {
+      const t = time(this);
+      if (!Number.isFinite(t)) return NaN;
+      return set(this, make({ ...fields(t), s: num(s), ...(rest.length > 0 ? { ms: num(rest[0]) } : {}) }));
+    }
+    setMilliseconds(ms) {
+      const t = time(this);
+      if (!Number.isFinite(t)) return NaN;
+      return set(this, make({ ...fields(t), ms: num(ms) }));
+    }
+    setYear(y) {
+      const n = num(y);
+      return this.setFullYear(Number.isFinite(n) && Math.trunc(n) >= 0 && Math.trunc(n) <= 99 ? BASE_YEAR + Math.trunc(n) : n);
+    }
+    toDateString() {
+      const t = time(this);
+      if (!Number.isFinite(t)) return "Invalid Date";
+      const f = fields(t);
+      return `${DAYS[f.day]} ${MONTHS[f.mo]} ${pad(f.d)} ${yearText(f.y)}`;
+    }
+    toTimeString() {
+      const t = time(this);
+      if (!Number.isFinite(t)) return "Invalid Date";
+      const f = fields(t);
+      return `${pad(f.h)}:${pad(f.mi)}:${pad(f.s)} ${offsetText(t)} (${zoneName(t)})`;
+    }
+    toString() {
+      const t = time(this);
+      if (!Number.isFinite(t)) return "Invalid Date";
+      return `${this.toDateString()} ${this.toTimeString()}`;
+    }
+    toLocaleString(locales, opts) {
+      return Date.prototype.toLocaleString.call(this, locales, withZone(opts));
+    }
+    toLocaleDateString(locales, opts) {
+      return Date.prototype.toLocaleDateString.call(this, locales, withZone(opts));
+    }
+    toLocaleTimeString(locales, opts) {
+      return Date.prototype.toLocaleTimeString.call(this, locales, withZone(opts));
+    }
+  }
+  return ZonedDate;
+}
+
+return { zonedDateClass };
+})();
+
 // ---- src/proxy.mjs ----
 const __m_proxy_mjs = (() => {
 const { ExpressionError, UnsupportedExpression, RunnerError, hasOwn } = __m_util_mjs;
 const { makeScope, evaluateExpression, resolveParameter } = __m_expression_mjs;
 const { extend, extendOptional, EXTENDED_FUNCTIONS, setExtensionRandom } = __m_extensions_mjs;
 const { jmespathSearch } = __m_jmespath_mjs;
+const { zonedDateClass } = __m_zoneddate_mjs;
 // The variables an n8n expression or Code node sees ($json, $input, $('Node'), $node, ...).
 //
 // Mirrors n8n-workflow's WorkflowDataProxy (n8n 2.47):
@@ -9959,17 +10193,22 @@ const ALLOWED = {
   decodeURI, decodeURIComponent, Boolean, Symbol, DateTime, Interval, Duration, undefined: undefined,
 };
 
-// Per-run objects that depend on the clock and seed.
+// Per-run objects that depend on the clock and seed. `Date` is what a Code node sees (the
+// process's own zone); `ExprDate`, when the run names n8n's main-process zone
+// (run.expressionZone, PROPOSALS P140), is what an expression sees: a Date whose local time is
+// that zone (zoneddate.mjs), one class per run.
 function runtimeGlobals(run, seedKey) {
   const now = () => run.clock.now;
-  const FrozenDate = new Proxy(Date, {
-    construct: (t, args) => (args.length ? new Date(...args) : new Date(now())),
-    apply: () => new Date(now()).toString(),
-    get: (t, k, r) => (k === "now" ? now : Reflect.get(t, k, r)),
-  });
+  const frozen = (D) =>
+    new Proxy(D, {
+      construct: (t, args) => (args.length ? new t(...args) : new t(now())),
+      apply: (t) => new t(now()).toString(),
+      get: (t, k, r) => (k === "now" ? now : Reflect.get(t, k, r)),
+    });
   const random = run.randomFor(seedKey);
   const SeededMath = Object.create(Math, { random: { value: random, enumerable: false } });
-  return { Date: FrozenDate, Math: SeededMath, random };
+  if (run.expressionZone && !run._zonedDate) run._zonedDate = zonedDateClass(run.expressionZone, now);
+  return { Date: frozen(Date), ...(run._zonedDate ? { ExprDate: frozen(run._zonedDate) } : {}), Math: SeededMath, random };
 }
 
 // Called before any evaluation: Luxon's global settings follow the run.
@@ -10343,7 +10582,7 @@ function createLookup(exec, itemIndex, extras = {}) {
       case "$self":
         throw new UnsupportedExpression(`${name} is not supported`, { function: name });
       case "Date":
-        return g.Date;
+        return extras.code ? g.Date : (g.ExprDate ?? g.Date);
       case "Math":
         return g.Math;
     }
@@ -34895,7 +35134,7 @@ async function executeAgentTool(exec, tools, call, itemIndex) {
       if ((p.language ?? "javaScript") !== "javaScript") return { ok: false, error: { message: "only JavaScript code tools run" } };
       const code = p.jsCode ?? p.code ?? "";
       const fn = compileCode(code);
-      const lookup = createLookup(exec, itemIndex, { locals: { ...locals, ...args }, lenientMissing: true });
+      const lookup = createLookup(exec, itemIndex, { locals: { ...locals, ...args }, lenientMissing: true, code: true });
       const value = await fn.call({}, lookup.scope);
       return { ok: true, value: value === undefined ? null : JSON.parse(JSON.stringify(value)) };
     }
@@ -36305,7 +36544,7 @@ function codeErrorMessage(e) {
 
 async function runCode(exec, code, locals, itemIndex) {
   const fn = compileCode(code);
-  const lookup = createLookup(exec, itemIndex, { locals, lenientMissing: true });
+  const lookup = createLookup(exec, itemIndex, { locals, lenientMissing: true, code: true });
   const thisArg = { helpers: locals.helpers, getNodeParameter: (p, i = itemIndex, fb) => exec.param(p, i, fb), getInputData: () => exec.connectionInputData };
   return fn.call(thisArg, lookup.scope);
 }
@@ -36655,6 +36894,21 @@ class Graph {
 
 // ---------- run state ----------
 
+// The zone of n8n's main process for a native Date in an expression (bench PROPOSALS P140;
+// zoneddate.mjs): opts.expressionZone, else the N2C_EXPRESSION_TZ environment variable where
+// there is one (a task's runner), else none: expressions then use the process's own Date, as
+// Code nodes always do. n8n takes it from its process's TZ, never from the workflow's timezone.
+function expressionZoneOf(opts) {
+  const z = opts.expressionZone ?? globalThis.process?.env?.N2C_EXPRESSION_TZ ?? null;
+  if (z == null || z === "") return null;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: String(z) });
+  } catch {
+    throw new BadInput(`expression zone ${z} is not an IANA time zone`);
+  }
+  return String(z);
+}
+
 function createRun(definition, opts = {}) {
   const startedAt = opts.clock?.startedAt != null ? Date.parse(opts.clock.startedAt) || Number(opts.clock.startedAt) : Date.now();
   if (!Number.isFinite(startedAt)) throw new BadInput("clock.startedAt is not a valid time");
@@ -36665,6 +36919,7 @@ function createRun(definition, opts = {}) {
     runId,
     mode: opts.mode || "trigger",
     timezone: definition.settings?.timezone || DEFAULT_TIMEZONE,
+    expressionZone: expressionZoneOf(opts),
     clock: { startedAt, now: startedAt },
     vars: Object.freeze({ ...(definition.vars || {}) }),
     workflow: { id: definition.id ?? definition.source?.workflowId ?? "migrated", name: definition.name, active: opts.mode !== "manual" },
@@ -37574,7 +37829,7 @@ async function runSubflow(parentExec, sub, items, prefix) {
   const def = sub.self ? parent.rootDefinition : sub.definition;
   if (!def?.steps) throw new NodeError("Sub-workflow definition is missing", { node: parentExec.name });
   const child = createRun(def, { clock: { startedAt: parent.clock.startedAt }, runId: parent.runId, mode: parent.mode });
-  for (const k of ["clock", "resultLog", "effects", "effectIds", "host", "stepMode", "batchSize", "virtualTime", "sleepThresholdMs", "logs", "console", "randomFor", "executionInfo", "cursorsIn", "cursorsOut"]) child[k] = parent[k];
+  for (const k of ["clock", "expressionZone", "resultLog", "effects", "effectIds", "host", "stepMode", "batchSize", "virtualTime", "sleepThresholdMs", "logs", "console", "randomFor", "executionInfo", "cursorsIn", "cursorsOut"]) child[k] = parent[k];
   child.idPrefix = `${parent.idPrefix}${prefix}/`;
   child.depth = parent.depth + 1;
   child.api = parent.api;

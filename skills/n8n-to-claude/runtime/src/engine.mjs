@@ -107,6 +107,21 @@ export class Graph {
 
 // ---------- run state ----------
 
+// The zone of n8n's main process for a native Date in an expression (bench PROPOSALS P140;
+// zoneddate.mjs): opts.expressionZone, else the N2C_EXPRESSION_TZ environment variable where
+// there is one (a task's runner), else none: expressions then use the process's own Date, as
+// Code nodes always do. n8n takes it from its process's TZ, never from the workflow's timezone.
+function expressionZoneOf(opts) {
+  const z = opts.expressionZone ?? globalThis.process?.env?.N2C_EXPRESSION_TZ ?? null;
+  if (z == null || z === "") return null;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: String(z) });
+  } catch {
+    throw new BadInput(`expression zone ${z} is not an IANA time zone`);
+  }
+  return String(z);
+}
+
 export function createRun(definition, opts = {}) {
   const startedAt = opts.clock?.startedAt != null ? Date.parse(opts.clock.startedAt) || Number(opts.clock.startedAt) : Date.now();
   if (!Number.isFinite(startedAt)) throw new BadInput("clock.startedAt is not a valid time");
@@ -117,6 +132,7 @@ export function createRun(definition, opts = {}) {
     runId,
     mode: opts.mode || "trigger",
     timezone: definition.settings?.timezone || DEFAULT_TIMEZONE,
+    expressionZone: expressionZoneOf(opts),
     clock: { startedAt, now: startedAt },
     vars: Object.freeze({ ...(definition.vars || {}) }),
     workflow: { id: definition.id ?? definition.source?.workflowId ?? "migrated", name: definition.name, active: opts.mode !== "manual" },
