@@ -85,6 +85,6 @@
     "branches": [
       "no IF/Switch: the extractor finds no image URL"
     ],
-    "offline": "The date parts come from $now, so the page path follows the run's clock; the route answers any path on www.gocomics.com. Information Extractor (OpenAI chat model) pulls the strip's image URL from the HTML, OpenAI's image analysis reads that URL directly (n8n does not download it) and writes the dialogue in English and Korean, and the Discord post carries the date, the URL and that text. Both model replies are recorded at run time."
+    "offline": "The date parts come from $now, so the page path follows the run's clock; the route answers any path on www.gocomics.com. Information Extractor (OpenAI chat model) pulls the strip's image URL from the HTML, OpenAI's image analysis reads that URL directly (n8n does not download it) and writes the dialogue in English and Korean, and the Discord post carries the date, the URL and that text. Both model replies are recorded at run time. With no image on the page the extractor leaves cartoon_image out (its prompt says to omit what it does not know), so the image analysis gets no URL and n8n fails at OpenAI (both live draws of the recording pass, 2026-11-17); the canned check, whose extractor answers a placeholder text, runs on to the post. This is the template on its data, not the stand-in, so it is not marked."
   }
 }

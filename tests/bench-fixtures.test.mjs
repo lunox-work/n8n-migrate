@@ -117,6 +117,38 @@ test("round 5's fresh held-out of splits.json have fixtures pinned to their hash
   for (const { out } of splits.heldOutFresh5.redraws ?? []) for (const id of out) assert.ok(!existsSync(join(BENCH, "fixtures", String(id))), `${id} was redrawn out but has fixtures`);
 });
 
+// The P137 experiment's set (splits.json experiments p137): its fixtures were written blind
+// (2026-11-17), each pinned to the hash the set recorded, redrawn templates included. A template
+// with no enabled trigger node has none until PROPOSALS P142 is decided (the bench cannot start
+// it); that is read from its template file where the git-ignored corpus is present.
+test("P137 set: fixtures pinned to their hash, none for a template redrawn out", () => {
+  const splits = JSON.parse(readFileSync(join(BENCH, "splits.json"), "utf8"));
+  const exp = splits.experiments.find((e) => e.name === "p137");
+  const noTrigger = (id) => {
+    const f = join(BENCH, "data", "wf", `${id}.json`);
+    if (!existsSync(f)) return null;
+    const raw = JSON.parse(readFileSync(f, "utf8"));
+    const wf = raw.workflow?.workflow ?? raw.workflow ?? raw;
+    return !wf.nodes.some((n) => !n.disabled && (/trigger$/i.test(n.type) || n.type === "n8n-nodes-base.webhook" || /\.(cron|interval)$/.test(n.type)));
+  };
+  let fixtured = 0;
+  for (const { id, sha256 } of exp.templates) {
+    const dir = join(BENCH, "fixtures", String(id));
+    if (!existsSync(dir)) {
+      assert.notEqual(noTrigger(id), false, `${id} has a trigger but no fixtures`);
+      continue;
+    }
+    fixtured++;
+    for (const v of VARIANTS) {
+      const p = join(dir, `${v}.json`);
+      assert.ok(existsSync(p), `${id}/${v}`);
+      assert.equal(JSON.parse(readFileSync(p, "utf8")).sha256, sha256, `${id}/${v}`);
+    }
+  }
+  assert.ok(fixtured >= 19, `${fixtured} of 20 fixtured`);
+  for (const { out } of exp.redraws ?? []) for (const id of out) assert.ok(!existsSync(join(BENCH, "fixtures", String(id))), `${id} was redrawn out but has fixtures`);
+});
+
 // Rolling held-out (PLAN Phase 6, evals/bench/rounds.mjs): the seeded split stays; held-out
 // 1-20, scored at release point 1, join dev in round 2, held-out 21-40 score release point 2 and
 // join dev in round 3.
