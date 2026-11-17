@@ -140,7 +140,20 @@
   }
   const db = Object.freeze({ doc: docRef, collection: collRef });
 
-  const spaces = { mcp, sample, db };
+  // ---------- permissions (built in) ----------
+  // cfg.permDeny: names the viewer declines; every request is logged on window.__n2cPermRequests.
+  const permDeny = new Set(cfg.permDeny || []);
+  window.__n2cPermRequests = [];
+  const permissions = Object.freeze({
+    state: async (name) => (name === undefined ? {} : permDeny.has(name) ? "denied" : "granted"),
+    request: async (names = []) => {
+      window.__n2cPermRequests.push([...names]);
+      return Object.fromEntries(names.map((n) => [n, permDeny.has(n) ? "denied" : "granted"]));
+    },
+    manage: async () => {},
+  });
+
+  const spaces = { mcp, sample, db, permissions };
   const deny = new Set(cfg.deny || []);
   window.claude = Object.freeze({
     use(name) {

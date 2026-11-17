@@ -19,9 +19,9 @@ For a workflow with `outcome.target: cloud-task`. A cloud task (a routine) runs 
 
 1. Review `MIGRATION.md` of each folder; resolve flagged steps first (`translation.md`).
 2. `cd <repo> && git init && git add . && git commit -m "n8n workflows migrated"`; create a private GitHub repo and push `main`. No secret is in the files; `.n2c/` is ignored.
-3. In Claude (web, Code), create a scheduled cloud task on that repo: paste the folder's `task-prompt.md`; set the schedule from `schedule.cron` converted to the form's timezone (say the converted time in words, e.g. "08:00 Singapore = 00:00 UTC"); schedule a few minutes past the hour when the cron says `:00`.
-4. In the task's environment, add every host from MIGRATION.md's "Allowed targets" to the allowed domains (or the HTTP steps fail with a refused connection), then add each secret as a network secret for its listed hosts only. The person types the values; never handle them.
-5. The task pushes its records to `n2c-state` with the session's GitHub access (observed 2026-11-17 on the default environment). If the first run's records do not appear there, switch the workflow to a local task, or accept that poll workflows replay without a cursor (do not, for writes).
+3. Create a cloud environment for the migrated workflows (Settings > Code > Cloud environments > New, e.g. "n8n workflows"), rather than widening Default: Network access Limited, allowed domains = every host from MIGRATION.md's "Allowed targets" (the HTTP steps fail with a refused connection otherwise), plus each secret as a network secret for its listed hosts only. The person types the values; never handle them. The person's other cloud sessions keep their own network, and the list doubles as a record of where the workflows reach.
+4. In Claude (web, Code), create a scheduled cloud task on that repo, in that environment: paste the folder's `task-prompt.md`; set the schedule from `schedule.cron` converted to the form's timezone (say the converted time in words, e.g. "08:00 Singapore = 00:00 UTC"); schedule a few minutes past the hour when the cron says `:00`.
+5. The task pushes its records to `n2c-state` with the session's GitHub access (observed 2026-11-17). If the first run's records do not appear there, switch the workflow to a local task, or accept that poll workflows replay without a cursor (do not, for writes).
 6. Run it once from the task page (Run now) and read the session: it should end with one `DONE: run ... finished` line. Check `n2c-state` holds `runs/<id>.json`.
 7. Optional: publish the folder's `artifact.html` to watch runs (history from the task needs a task that can write the artifact's database: unconfirmed).
 
@@ -29,7 +29,11 @@ For a workflow with `outcome.target: cloud-task`. A cloud task (a routine) runs 
 
 The session runs the runner, makes only the calls it prints, and writes model answers to `.n2c/inbox/`. A usage limit or a stall ends the session with the run's state on `n2c-state`; the next scheduled run resumes it first (same run id, nothing sent twice), then runs its own. A write whose outcome is unknown stops the workflow until the person runs `node <folder>/runtime/runner.mjs resolve <key> sent|resend` in a terminal on a checkout (and pushes). Missed runs and failures alert (`alerts.md`).
 
+## Observed (2026-11-17)
+
+- A cloud task trusts the repo's root `.claude/settings.json` and runs its hooks: `n2c-hook.mjs` refused an `ArtifactData` call that no run had requested.
+- Egress goes through the environment's proxy; the runner relaunches Node with `NODE_USE_ENV_PROXY=1` so `fetch` uses it.
+
 ## Unconfirmed (Phase 0)
 
-- Whether a cloud task trusts the repo's `.claude/settings.json` and runs its hooks. Without hooks the runner degrades to the model saving responses itself (slower; still contained by the allowlist and the definition).
 - Connector tool names in a task (the definition uses the names seen in Claude Code).

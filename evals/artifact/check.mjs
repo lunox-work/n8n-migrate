@@ -252,9 +252,10 @@ async function check(name, fn) {
   }
 }
 
-const browser = await chromium.launch({ headless: true });
+// N2C_CHROMIUM: a browser binary to use when the Playwright copy expects a build that is not installed.
+const browser = await chromium.launch({ headless: true, ...(process.env.N2C_CHROMIUM ? { executablePath: process.env.N2C_CHROMIUM } : {}) });
 const consoleErrors = [];
-async function context(which, { colorScheme = "light", deny } = {}) {
+async function context(which, { colorScheme = "light", deny, permDeny } = {}) {
   const page0 = pages[which] ?? pages.slice;
   const be = backend(page0.caps, buildOf(page0.html).servers);
   const ctx = await browser.newContext({ colorScheme, viewport: { width: 1440, height: 900 } });
@@ -264,7 +265,7 @@ async function context(which, { colorScheme = "light", deny } = {}) {
     if (!ids.has(source.page)) ids.set(source.page, ++seq);
     return be.handle(op, a, ids.get(source.page));
   });
-  await ctx.addInitScript(`window.__n2cShimConfig = ${JSON.stringify({ deny: deny ?? [] })};\n${SHIM}`);
+  await ctx.addInitScript(`window.__n2cShimConfig = ${JSON.stringify({ deny: deny ?? [], permDeny: permDeny ?? [] })};\n${SHIM}`);
   return { ctx, be };
 }
 async function open(ctx, name, { ready = true } = {}) {
@@ -469,8 +470,22 @@ await check("chat agent: sample answers turns, tool-call intents run through the
   assert.ok(be.log.samples.every((s) => s.json && !s.input.includes("slack_send_message") && !s.input.includes("search_threads")), "the model saw connector tool names");
   const output = await page.evaluate(() => window.n2cApp.view.runData["AI Agent"][0].data.main[0][0].json);
   assert.deepEqual(output, { output: "Posted. Last tool said ok=true" });
+  const asked = await page.evaluate(() => window.__n2cPermRequests);
+  assert.equal(asked.length, 1, "one batched permission request per run");
+  assert.ok(asked[0].includes("sample") && asked[0].some((n) => n.startsWith("mcp:")), `asked up front for Claude and the connectors: ${JSON.stringify(asked[0])}`);
   await ctx.close();
-  return `3 sample turns, 1 read through mcp, 1 would-send`;
+  return `3 sample turns, 1 read through mcp, 1 would-send; asked ${asked[0].join(", ")} before the run`;
+});
+
+await check("permission declined up front: Run now is refused before anything runs", async () => {
+  const { ctx, be } = await context("agent", { permDeny: ["sample"] });
+  const page = await open(ctx, "agent");
+  const r = await runAndWait(page, { dry: true, message: "What did Ann send? Post it." });
+  assert.equal(be.log.samples.length, 0);
+  assert.equal(be.log.tools.length, 0);
+  assert.match(r.banner, /needs your permission for Claude/);
+  await ctx.close();
+  return "refused with a banner; 0 sample calls, 0 tool calls";
 });
 
 // 9a. form
