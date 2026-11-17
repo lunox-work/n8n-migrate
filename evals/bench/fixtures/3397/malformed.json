@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "template": 3397,
+  "sha256": "341cf44abd9116f4e1e0324625324f432caf261c786ce99789b2915859dc94cf",
+  "variant": "malformed",
+  "now": "2026-11-17T10:00:00.000Z",
+  "about": "the only contact has no email or name, and Gmail finds no message from an empty address",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get Contacts",
+      "service": "hubspot",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.hubapi.com/crm/v3/objects/contacts/search",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "total": 1,
+              "results": [
+                {
+                  "id": "51011",
+                  "properties": {
+                    "createdate": null,
+                    "email": null,
+                    "firstname": null,
+                    "hs_object_id": "51011",
+                    "lastmodifieddate": "2026-11-10T08:00:00.000Z",
+                    "lastname": null
+                  },
+                  "createdAt": "2026-09-02T10:15:00.000Z",
+                  "updatedAt": "2026-11-10T08:00:00.000Z",
+                  "archived": false
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the fixture answers the CRM v3 search API as n8n's node calls it"
+      },
+      "note": "POST /crm/v3/objects/contacts/search"
+    },
+    {
+      "node": "Get All Customer's Correspondence",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "resultSizeEstimate": 0
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the fixture answers the Gmail REST API as n8n's node calls it (messages.list, then messages.get format=raw per message)"
+      },
+      "note": "messages.list q=from:<email> maxResults=20, one list per contact in loop order; messages.get?format=raw per message (base64url RFC 822)"
+    }
+  ],
+  "models": [
+    "Analyse and Build Persona",
+    "Generate Sales Email"
+  ],
+  "writes": [
+    "Create Draft Email For Review"
+  ],
+  "writeReplies": [],
+  "expect": {
+    "branches": [
+      "loop: one contact; Gmail returns no message, which ends the branch"
+    ],
+    "offline": "The HubSpot search sends sorts by createdate descending, the filter hs_buying_role = DECISION_MAKER and limit 100 (n8n's HubSpot v2.1 contact search, app token); HubSpot returns its default properties. Per contact (Loop Over Items, batch 1): Variables, the Gmail search from:<email> (limit 20, simple off), so each message is fetched in raw format and parsed by mailparser (headers as whole header lines), two Information Extractors (Gemini) for the persona and the email, and a Gmail draft (HTML) to the contact. A contact with no message gives the Gmail node no item, which ends that branch and so the loop (n8n's behaviour). Model replies are recorded at run time."
+  }
+}

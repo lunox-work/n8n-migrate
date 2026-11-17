@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "template": 8969,
+  "sha256": "3de1252d3a4c18f410bf6b48091dba8322736dc5b8841aba432867916146d166",
+  "variant": "malformed",
+  "now": "2026-11-17T05:00:00.000Z",
+  "about": "the most recent contact signed up with a gmail.com address and has a createdate that is not a number",
+  "trigger": {
+    "node": "Run daily1",
+    "kind": "schedule",
+    "items": [
+      {
+        "json": {
+          "timestamp": "2026-11-17T00:00:00.000-05:00",
+          "Readable date": "November 17th 2026, 12:00:00 am",
+          "Readable time": "12:00:00 am",
+          "Day of week": "Tuesday",
+          "Year": "2026",
+          "Month": "November",
+          "Day of month": "17",
+          "Hour": "00",
+          "Minute": "00",
+          "Second": "00",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get recently created/updated contacts1",
+      "service": "hubspot",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.hubapi.com/contacts/v1/lists/recently_updated/contacts/recent",
+            "status": 200,
+            "retired": "HubSpot's legacy v1 Contact Lists endpoints (lists/recently_updated/contacts/recent) have been retired in favour of the CRM v3 objects API; answered as the endpoint answered when the template was written",
+            "headers": {
+              "content-type": "application/json;charset=utf-8"
+            },
+            "body": {
+              "contacts": [
+                {
+                  "addedAt": 1763300000000,
+                  "vid": 80111,
+                  "canonical-vid": 80111,
+                  "merged-vids": [],
+                  "portal-id": 4410822,
+                  "is-contact": true,
+                  "profile-token": "AO_T-bench80111",
+                  "profile-url": "https://app.hubspot.com/contacts/4410822/contact/80111",
+                  "properties": {
+                    "firstname": {
+                      "value": "Sam"
+                    },
+                    "lastmodifieddate": {
+                      "value": "not-a-timestamp"
+                    },
+                    "lastname": {
+                      "value": null
+                    },
+                    "createdate": {
+                      "value": "not-a-timestamp"
+                    }
+                  },
+                  "form-submissions": [],
+                  "identity-profiles": [
+                    {
+                      "vid": 80111,
+                      "saved-at-timestamp": 1763300000000,
+                      "deleted-changed-timestamp": 0,
+                      "identities": [
+                        {
+                          "type": "EMAIL",
+                          "value": "sam.k1987@gmail.com",
+                          "timestamp": 1763300000000,
+                          "is-primary": true
+                        },
+                        {
+                          "type": "LEAD_GUID",
+                          "value": "5d1e0c7a-0000-4000-8000-000000080111",
+                          "timestamp": 1763300000001
+                        }
+                      ]
+                    }
+                  ],
+                  "merge-audits": []
+                }
+              ],
+              "has-more": false,
+              "vid-offset": 80111,
+              "time-offset": 1763380000000
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the captured HubSpot connector's tools do not return the legacy v1 contact objects (identity-profiles, properties as {value}) the node and the filter read; the fixture answers the REST API as n8n's node calls it"
+      },
+      "note": "HubSpot v2.1 contact getRecentlyCreatedUpdated without Return All: GET lists/recently_updated/contacts/recent?count=1 (OAuth2; the node ships no credential, the bench attaches its dummy)"
+    },
+    {
+      "node": "Search the web with SerpAPI1",
+      "service": "serpapi",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured SerpAPI connector"
+      },
+      "note": "the agent's SerpAPI tool: GET /search?q=<model's query>&api_key; used only if the model calls it"
+    }
+  ],
+  "models": [
+    "Company Research Agent1"
+  ],
+  "writes": [
+    "Add company info1"
+  ],
+  "writeReplies": [],
+  "expect": {
+    "branches": [
+      "the filter fails on the contact"
+    ],
+    "offline": "The schedule's empty interval rule runs daily at midnight (n8n's default). HubSpot's recently updated contacts are asked with count=1 (limit 1); the filter keeps a contact created within the last day (createdate in ms, written relative to the run) whose email is not a gmail.com address. The agent (Gemini, a SerpAPI tool, a structured output parser) researches the email's domain; its replies and any tool call are recorded at run time. The upsert POSTs the company fields to createOrUpdate by email and then reads the contact's profile (resolveData off). SerpAPI answers by URL whatever the model searches for. The createdate that is not a number gives toDateTime an invalid date, which the filter's strict type validation refuses, so n8n fails the Filter node."
+  }
+}

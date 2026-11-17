@@ -1,0 +1,254 @@
+{
+  "schemaVersion": 1,
+  "template": 3397,
+  "sha256": "341cf44abd9116f4e1e0324625324f432caf261c786ce99789b2915859dc94cf",
+  "variant": "normal",
+  "now": "2026-11-17T10:00:00.000Z",
+  "about": "two decision makers, each with recent emails; a persona and a draft are written for each",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Get Contacts",
+      "service": "hubspot",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://api.hubapi.com/crm/v3/objects/contacts/search",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "total": 2,
+              "results": [
+                {
+                  "id": "51001",
+                  "properties": {
+                    "createdate": "2026-09-02T10:15:00.000Z",
+                    "email": "ana.ruiz@finlogix.example",
+                    "firstname": "Ana",
+                    "hs_object_id": "51001",
+                    "lastmodifieddate": "2026-11-10T08:00:00.000Z",
+                    "lastname": "Ruiz"
+                  },
+                  "createdAt": "2026-09-02T10:15:00.000Z",
+                  "updatedAt": "2026-11-10T08:00:00.000Z",
+                  "archived": false
+                },
+                {
+                  "id": "51002",
+                  "properties": {
+                    "createdate": "2026-09-02T10:15:00.000Z",
+                    "email": "ben.okafor@harbourfoods.example",
+                    "firstname": "Ben",
+                    "hs_object_id": "51002",
+                    "lastmodifieddate": "2026-11-10T08:00:00.000Z",
+                    "lastname": "Okafor"
+                  },
+                  "createdAt": "2026-09-02T10:15:00.000Z",
+                  "updatedAt": "2026-11-10T08:00:00.000Z",
+                  "archived": false
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the fixture answers the CRM v3 search API as n8n's node calls it"
+      },
+      "note": "POST /crm/v3/objects/contacts/search"
+    },
+    {
+      "node": "Get All Customer's Correspondence",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "messages": [
+                {
+                  "id": "19a0c1d2e3f40001",
+                  "threadId": "19a0c1d2e3f40001"
+                },
+                {
+                  "id": "19a0c1d2e3f40002",
+                  "threadId": "19a0c1d2e3f40002"
+                }
+              ],
+              "resultSizeEstimate": 2
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "messages": [
+                {
+                  "id": "19a0c1d2e3f40011",
+                  "threadId": "19a0c1d2e3f40011"
+                }
+              ],
+              "resultSizeEstimate": 1
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a0c1d2e3f40001",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "id": "19a0c1d2e3f40001",
+              "threadId": "19a0c1d2e3f40001",
+              "labelIds": [
+                "INBOX",
+                "CATEGORY_PERSONAL"
+              ],
+              "snippet": "Thanks for the numbers. Before we commit I need to see the cost per month and a ",
+              "sizeEstimate": 1138,
+              "historyId": "998877",
+              "internalDate": "1794301920000",
+              "raw": "UmV0dXJuLVBhdGg6IDxhbmEucnVpekBmaW5sb2dpeC5leGFtcGxlPg0KRGVsaXZlcmVkLVRvOiBzYWxlc0BiZW5jaC5leGFtcGxlDQpNZXNzYWdlLUlEOiA8MTlhMGMxZDJlM2Y0MDAwMUBtYWlsLmJlbmNoLmV4YW1wbGU-DQpEYXRlOiBNb24sIDEwIE5vdiAyMDI2IDA5OjEyOjAwICswMDAwDQpGcm9tOiBBbmEgUnVpeiA8YW5hLnJ1aXpAZmlubG9naXguZXhhbXBsZT4NClRvOiBzYWxlc0BiZW5jaC5leGFtcGxlDQpTdWJqZWN0OiBSZTogUTEgcGxhbm5pbmcNCk1JTUUtVmVyc2lvbjogMS4wDQpDb250ZW50LVR5cGU6IHRleHQvcGxhaW47IGNoYXJzZXQ9IlVURi04Ig0KQ29udGVudC1UcmFuc2Zlci1FbmNvZGluZzogN2JpdA0KDQpUaGFua3MgZm9yIHRoZSBudW1iZXJzLiBCZWZvcmUgd2UgY29tbWl0IEkgbmVlZCB0byBzZWUgdGhlIGNvc3QgcGVyIG1vbnRoIGFuZCBhIHBpbG90IHBsYW4gd2l0aCBjbGVhciBtaWxlc3RvbmVzLiBJJ2QgcmF0aGVyIHN0YXJ0IHNtYWxsIGFuZCBtZWFzdXJlLgoKT24gRnJpLCA3IE5vdiAyMDI2IGF0IDE2OjAwLCBTYWxlcyA8c2FsZXNAYmVuY2guZXhhbXBsZT4gd3JvdGU6Cj4gSGVyZSBhcmUgdGhlIGZpZ3VyZXMuDQo"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a0c1d2e3f40002",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "id": "19a0c1d2e3f40002",
+              "threadId": "19a0c1d2e3f40002",
+              "labelIds": [
+                "INBOX",
+                "CATEGORY_PERSONAL"
+              ],
+              "snippet": "Quick one: where is our data stored, and can we keep it in the EU? Our complianc",
+              "sizeEstimate": 996,
+              "historyId": "998877",
+              "internalDate": "1793802600000",
+              "raw": "UmV0dXJuLVBhdGg6IDxhbmEucnVpekBmaW5sb2dpeC5leGFtcGxlPg0KRGVsaXZlcmVkLVRvOiBzYWxlc0BiZW5jaC5leGFtcGxlDQpNZXNzYWdlLUlEOiA8MTlhMGMxZDJlM2Y0MDAwMkBtYWlsLmJlbmNoLmV4YW1wbGU-DQpEYXRlOiBUdWUsIDQgTm92IDIwMjYgMTQ6MzA6MDAgKzAwMDANCkZyb206IEFuYSBSdWl6IDxhbmEucnVpekBmaW5sb2dpeC5leGFtcGxlPg0KVG86IHNhbGVzQGJlbmNoLmV4YW1wbGUNClN1YmplY3Q6IERhdGEgc2VjdXJpdHkgcXVlc3Rpb24NCk1JTUUtVmVyc2lvbjogMS4wDQpDb250ZW50LVR5cGU6IHRleHQvcGxhaW47IGNoYXJzZXQ9IlVURi04Ig0KQ29udGVudC1UcmFuc2Zlci1FbmNvZGluZzogN2JpdA0KDQpRdWljayBvbmU6IHdoZXJlIGlzIG91ciBkYXRhIHN0b3JlZCwgYW5kIGNhbiB3ZSBrZWVwIGl0IGluIHRoZSBFVT8gT3VyIGNvbXBsaWFuY2UgdGVhbSB3aWxsIGFzay4NCg"
+            }
+          },
+          {
+            "method": "GET",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/messages/19a0c1d2e3f40011",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "id": "19a0c1d2e3f40011",
+              "threadId": "19a0c1d2e3f40011",
+              "labelIds": [
+                "INBOX",
+                "CATEGORY_PERSONAL"
+              ],
+              "snippet": "Hey! Loved the demo. Let's jump on a quick call next week, Tuesday works. Keep i",
+              "sizeEstimate": 1020,
+              "historyId": "998877",
+              "internalDate": "1794481500000",
+              "raw": "UmV0dXJuLVBhdGg6IDxiZW4ub2thZm9yQGhhcmJvdXJmb29kcy5leGFtcGxlPg0KRGVsaXZlcmVkLVRvOiBzYWxlc0BiZW5jaC5leGFtcGxlDQpNZXNzYWdlLUlEOiA8MTlhMGMxZDJlM2Y0MDAxMUBtYWlsLmJlbmNoLmV4YW1wbGU-DQpEYXRlOiBXZWQsIDEyIE5vdiAyMDI2IDExOjA1OjAwICswMDAwDQpGcm9tOiBCZW4gT2thZm9yIDxiZW4ub2thZm9yQGhhcmJvdXJmb29kcy5leGFtcGxlPg0KVG86IHNhbGVzQGJlbmNoLmV4YW1wbGUNClN1YmplY3Q6IENhbGwgbmV4dCB3ZWVrPw0KTUlNRS1WZXJzaW9uOiAxLjANCkNvbnRlbnQtVHlwZTogdGV4dC9wbGFpbjsgY2hhcnNldD0iVVRGLTgiDQpDb250ZW50LVRyYW5zZmVyLUVuY29kaW5nOiA3Yml0DQoNCkhleSEgTG92ZWQgdGhlIGRlbW8uIExldCdzIGp1bXAgb24gYSBxdWljayBjYWxsIG5leHQgd2VlaywgVHVlc2RheSB3b3Jrcy4gS2VlcCBpdCBzaG9ydCwgSSdtIGluIHRoZSB3YXJlaG91c2UgbW9zdCBkYXlzLg0K"
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "the fixture answers the Gmail REST API as n8n's node calls it (messages.list, then messages.get format=raw per message)"
+      },
+      "note": "messages.list q=from:<email> maxResults=20, one list per contact in loop order; messages.get?format=raw per message (base64url RFC 822)"
+    }
+  ],
+  "models": [
+    "Analyse and Build Persona",
+    "Generate Sales Email"
+  ],
+  "writes": [
+    "Create Draft Email For Review"
+  ],
+  "writeReplies": [
+    {
+      "node": "Create Draft Email For Review",
+      "service": "gmail",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/drafts",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "id": "r-bench3397draft1",
+              "message": {
+                "id": "19b3397d1000000",
+                "threadId": "19b3397d1000000",
+                "labelIds": [
+                  "DRAFT"
+                ]
+              }
+            }
+          },
+          {
+            "method": "POST",
+            "url": "https://www.googleapis.com/gmail/v1/users/me/drafts",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=UTF-8"
+            },
+            "body": {
+              "id": "r-bench3397draft2",
+              "message": {
+                "id": "19b3397d2000000",
+                "threadId": "19b3397d2000000",
+                "labelIds": [
+                  "DRAFT"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "connector rows are not needed: the draft is a write the comparer pairs"
+      },
+      "note": "drafts.create: POST /gmail/v1/users/me/drafts {message: {raw}}; Gmail answers the draft with its message id"
+    }
+  ],
+  "expect": {
+    "branches": [
+      "loop: two contacts, then done"
+    ],
+    "offline": "The HubSpot search sends sorts by createdate descending, the filter hs_buying_role = DECISION_MAKER and limit 100 (n8n's HubSpot v2.1 contact search, app token); HubSpot returns its default properties. Per contact (Loop Over Items, batch 1): Variables, the Gmail search from:<email> (limit 20, simple off), so each message is fetched in raw format and parsed by mailparser (headers as whole header lines), two Information Extractors (Gemini) for the persona and the email, and a Gmail draft (HTML) to the contact. A contact with no message gives the Gmail node no item, which ends that branch and so the loop (n8n's behaviour). Model replies are recorded at run time."
+  }
+}

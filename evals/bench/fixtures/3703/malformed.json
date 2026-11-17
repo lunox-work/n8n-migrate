@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "template": 3703,
+  "sha256": "5e8b90cd626c13f58d536d665c55581fee2f46c121f9a9c3cd8f3b3e05c754a6",
+  "variant": "malformed",
+  "now": "2026-11-17T10:30:00.000Z",
+  "about": "the only record has an empty Link",
+  "trigger": {
+    "node": "When clicking ‘Test workflow’",
+    "kind": "manual",
+    "items": [
+      {
+        "json": {}
+      }
+    ]
+  },
+  "reads": [
+    {
+      "node": "Airtable",
+      "service": "airtable",
+      "http": {
+        "via": "tls-intercept",
+        "responses": [
+          {
+            "method": "GET",
+            "url": "https://api.airtable.com/v0/appHnxLQRVHbCzDyj/tblS1f5XWVMfdyjOz",
+            "status": 200,
+            "headers": {
+              "content-type": "application/json; charset=utf-8"
+            },
+            "body": {
+              "records": [
+                {
+                  "id": "recI3703Bench0011",
+                  "createdTime": "2026-11-12T09:00:00.000Z",
+                  "fields": {
+                    "Name": "No slug yet",
+                    "Link": ""
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Airtable connector"
+      },
+      "note": "Airtable list records (v2.1 search, Return All, no formula: pageSize=100); v2.1 flattens the fields beside id"
+    },
+    {
+      "node": "Perform Indeed Web Request",
+      "service": "brightdata",
+      "http": {
+        "via": "tls-intercept",
+        "responses": []
+      },
+      "connector": {
+        "shape": "assumed",
+        "none": "no captured Bright Data connector"
+      },
+      "note": "Bright Data Web Unlocker, POST /request with a JSON body {zone, url, format: raw, data_format: markdown} and the header credential; answers the page itself as markdown text"
+    }
+  ],
+  "models": [
+    "Markdown to Textual Data Extractor",
+    "Indeed Summarizer",
+    "Indeed Expert AI Agent"
+  ],
+  "writes": [
+    "Initiate a Webhook Notification for Markdown to HTML Response",
+    "Webhook HTTP Request"
+  ],
+  "writeReplies": [],
+  "expect": {
+    "branches": [
+      "If Link field is not empty: false, which ends the loop"
+    ],
+    "offline": "Each Airtable record goes through the loop alone: a 10 s Wait, the If on Link, the Bright Data Web Unlocker request for https://www.indeed.com/cmp/<Link> (zone web_unlocker1, format raw, data_format markdown), whose markdown feeds both the Gemini chain, summarization chain and agent (with its webhook.site HTTP tool) and the Markdown-to-HTML request to webhook.site (a GET with a body: the node sets no method). The agent's turn returns to the loop. A record with an empty Link takes the If's false output, which leads nowhere, so the loop ends there (n8n's behaviour). webhook.site answers its default text. Model replies (and any tool call the agent makes) are recorded at run time. The summarization chain's token counting asks https://tiktoken.pages.dev/js/gpt2.json for its encoding (seven tries, read-default 404 on the bench, PROPOSALS P26) and LangChain falls back to its approximate count, as part of the baseline; each such run takes about 90 s of retries."
+  }
+}
