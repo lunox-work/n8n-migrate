@@ -15,23 +15,25 @@
 
 <!-- Hero figures and their sources: assets/src/index.html (comment at the top). -->
 <p align="center">
-  <img src="assets/hero.png" width="100%" alt="Move your n8n workflows onto your Claude subscription. What can move: 67 of the 100 most-viewed n8n templates run on the subscription by the analyzer's verdict; 21 need hosting, 11 stay in n8n, 1 is replaced by Claude. Moved in one shot, round 4: 35 of 100 dev templates and 2 of 20 held-out templates pass all 8 gates against the same template running in n8n; 48 of the 100 dev templates have every step supported by the converter. Sent twice at cutover: 0 of 9 items when n8n goes off before Claude goes on; with Claude on while n8n is on, 2 of 2 were sent twice.">
+  <img src="assets/hero.png" width="100%" alt="Move your n8n workflows onto your Claude subscription. What can move: 68 of the 100 most-viewed n8n templates run on the subscription by the analyzer's verdict; 21 need hosting, 10 stay in n8n, 1 is replaced by Claude. Moved in one shot, round 5: 50 of 120 dev templates and 7 of 20 held-out templates pass all 8 gates against the same template running in n8n; 62 of the 120 dev templates have every step supported by the converter. Sent twice at cutover: 0 of 9 items when n8n goes off before Claude goes on; with Claude on while n8n is on, 2 of 2 were sent twice.">
 </p>
 
-<!-- 67: evals/bench/corpus.json rank 1-100 outcomes (node evals/bench/summary.mjs); analyzer re-run per template on HEAD
-     2026-11-15 (default answers, corpus.json's --now): subscription 67, hosted 21, keep-in-n8n 11, replaced 1, no outcome changed.
-     35 of 100, 2 of 20, gap and bound: evals/results.jsonl tags rel4-dev, rel4-held (flips: rel4-held-b);
-     node evals/bench/summary.mjs --release rel4-dev rel4-held --flips 1; evals/bench/RELEASE-4.md (commit 8c005e4).
-     48 of 100: node evals/convert-coverage.mjs --split dev (evals/convert-coverage-dev.md, round 4: full 21 + review 27).
-     Round 4 rebuilt the corpus (evals/bench/EXCLUSIONS.md, Round 4 eligibility), so these do not compare with rounds 1-3.
+<!-- 68: evals/bench/corpus.json rank 1-100, today's analyzer verdicts (current* fields, P127; refreshed 2026-11-16 after the
+     n8n node's reads moved): node evals/bench/summary.mjs: subscription 68, hosted 21, keep-in-n8n 10, replaced 1 (draw day 67).
+     50 of 120, 7 of 20, gap and bound: evals/results.jsonl tags rel5-dev, rel5-held (flips: rel5-held-rec);
+     node evals/bench/summary.mjs --release rel5-dev rel5-held --flips 0; evals/bench/RELEASE-5.md (commit b0143fb).
+     62 of 120: node evals/convert-coverage.mjs --split dev (evals/convert-coverage-dev.md, round 5: full 26 + review 36).
+     Round 5's dev = round 4's 100 + round 4's 20 scored held-out. Round 4 rebuilt the corpus (evals/bench/EXCLUSIONS.md,
+     Round 4 eligibility), so rounds 4-5 do not compare with rounds 1-3.
      0 of 9: evals/cutover/results.jsonl (items, optionA.doubleSent).
-     17 of 20: node evals/bench/summary.mjs, "refusal accuracy" (evals/bench/labels.json vs the analyzer). -->
+     14 of 20: node evals/bench/summary.mjs, "refusal accuracy" (evals/bench/labels.json vs the analyzer): everything 14,
+     outcome 19; 3 of the 6 misses are only an extra hosts question, added after the labels were written. -->
 <table>
 <tr>
-<td align="center" width="25%"><h3>67 of 100</h3>most-viewed templates<br>can run on the subscription<br><sub>analyzer verdict, default answers; 21 need hosting, 11 stay in n8n</sub></td>
-<td align="center" width="25%"><h3>35 of 100</h3>pass every gate<br>in one shot<br><sub>round 4 dev, against the same template in n8n; 48 fully supported; held-out 2 of 20</sub></td>
+<td align="center" width="25%"><h3>68 of 100</h3>most-viewed templates<br>can run on the subscription<br><sub>analyzer verdict, default answers; 21 need hosting, 10 stay in n8n</sub></td>
+<td align="center" width="25%"><h3>50 of 120</h3>pass every gate<br>in one shot<br><sub>round 5 dev, against the same template in n8n; 62 fully supported; held-out 7 of 20</sub></td>
 <td align="center" width="25%"><h3>0 of 9</h3>items sent twice<br>through cutover and rollback<br><sub>against live n8n; the wrong order sent 2 of 2 twice</sub></td>
-<td align="center" width="25%"><h3>17 of 20</h3>refusals right<br>on every count<br><sub>hand-labelled templates that should not move; 18 of 20 on outcome</sub></td>
+<td align="center" width="25%"><h3>14 of 20</h3>refusals right<br>on every count<br><sub>hand-labelled templates that should not move; 19 of 20 on outcome</sub></td>
 </tr>
 </table>
 
@@ -50,11 +52,11 @@
 
 ## Before / After
 
-<!-- Real output, 2026-11-15, HEAD of this repository, on three of the 100 most-viewed templates saved in
+<!-- Real output, 2026-11-17, commit b0143fb of this repository, on three of the 100 most-viewed templates saved in
      export shape ({name, nodes, connections, settings}): 2197 as gmail-labels.json, 1934 as telegram-bot.json,
-     1534 as n8n-backup.json. Long lines wrapped at 54 columns; the first panel drops the note and question
-     text (marked …); the last panel shortens the scratch folder's absolute path to ~/my-flows/auto-label-…-ai-nodes.
-     Otherwise verbatim. -->
+     1534 as n8n-backup.json. Long lines wrapped at 54 columns; the first panel keeps the backup's "n8n" note and
+     drops its timezone note, the Telegram bot's needs line and the question text (marked …); the last panel shortens the
+     scratch folder's absolute path to ~/my-flows/auto-label-…-ai-nodes. Otherwise verbatim. -->
 <table>
 <tr>
 <td width="50%">
@@ -70,10 +72,17 @@ Auto-label incoming Gmail messages with AI nodes —
     task's one run per 1 h, so a local task
   needs: connectors gmail · Claude model · polling
 
-Back up your n8n workflows to Github — keep in n8n ·
-  schedule every 1 d, script
-  why: n8n-internal node: calls the n8n instance's
-    own API
+Back up your n8n workflows to Github — moves: cloud
+  task · schedule every 1 d, script
+  why: fires every 1 d, within a cloud task's limit
+    of one run per 1 h
+  needs: connectors github, slack · outbound HTTP ·
+    secrets n8nApi Credential
+  to set up: connector-operation-check,
+    network-secret
+  note: "n8n" keeps calling your n8n instance
+    through its public API (reads only), so it is
+    useful only while n8n keeps running
   …
 
 Telegram AI chatbot — hosted elsewhere (API key) ·
@@ -84,8 +93,9 @@ Telegram AI chatbot — hosted elsewhere (API key) ·
     the replies: outsiders (customers, other people),
     only you, or nobody waits? …
 
-3 workflows: subscription 1 (local-task 1) ·
-  replaced 0 · hosted 1 · keep in n8n 1
+3 workflows: subscription 2 (cloud-task 1,
+  local-task 1) · replaced 0 · hosted 1 · keep in
+  n8n 0
 ```
 
 </td>
@@ -127,7 +137,7 @@ $ node n8n-to-claude/scripts/convert.mjs exports/ \
     | jq -r '.workflows[] | "\(.status)  \(.name)"'
 converted  Auto-label incoming Gmail messages with
   AI nodes
-refused  Back up your n8n workflows to Github
+blocked-steps  Back up your n8n workflows to Github
 review  Telegram AI chatbot
 $ ls my-flows/auto-label-incoming-gmail-messages-\
 with-ai-nodes
@@ -165,7 +175,11 @@ exit 1
 
 **Three exports, three different verdicts, each with its reason.** The Gmail
 labeller converts with all 9 of its steps and runs as a local task. The
-backup workflow stays in n8n: it calls n8n's own API. The Telegram bot moves
+backup workflow is a daily cloud task: its n8n step reads workflows over
+your n8n's public API, so it keeps working only while n8n runs (writes to
+n8n stay blocked). 18 of its 23 steps convert as they are; the n8n step
+waits for your n8n's address and its three GitHub file steps have no tool
+map yet, so it converts with blocked steps. The Telegram bot moves
 once you say only you talk to it; its image step runs on OpenAI's own API with
 your key, and `MIGRATION.md` lists the two steps to check.
 
@@ -231,7 +245,7 @@ Docker, every external call answered by the same fixtures. Raw data:
 [evals/bench/README.md](evals/bench/README.md).
 
 <!-- corpus: evals/bench/corpus.json (counts, coverageTop100); splits: evals/bench/splits.json; round 4 eligibility:
-     evals/bench/EXCLUSIONS.md "Round 4 eligibility" and its amendment 1, evals/bench/AUDIT-R4.md; LOOP.md "r4-base". -->
+     evals/bench/EXCLUSIONS.md "Round 4 eligibility" and its amendment 1, evals/bench/AUDIT-R4.md; LOOP.md "r4-base", "r5-base". -->
 
 - **Corpus.** n8n's template listing walked by views: the first 100 templates
   the analyzer marks `subscription` (13 excluded by a rule committed first: 9
@@ -240,59 +254,61 @@ Docker, every external call answered by the same fixtures. Raw data:
   new eligibility rule, committed before it was applied, that keeps only
   templates workable end to end (an n8n baseline, every outside service
   mocked, every main-branch step under a planned feature, something to
-  compare). 24 of round 3's dev templates left and 24 came in, so round 4's
-  numbers do not compare with rounds 1–3 (round 3's 29 passes are 27 of the
-  new 100 before any round-4 fix). The held-out rolls: each release point
-  scores 20 templates that no fixing session has read, labelled and fixtured
-  blind, and they join dev afterwards. Round 4's held-out is 20 fresh
-  templates from further down the listing under the same rule.
+  compare). 24 of round 3's dev templates left and 24 came in, so numbers
+  from round 4 on do not compare with rounds 1–3 (round 3's 29 passes are 27
+  of the new 100 before any round-4 fix). The held-out rolls: each release
+  point scores 20 templates that no fixing session has read, labelled and
+  fixtured blind, and they join dev afterwards. Round 5's dev is round 4's
+  100 plus round 4's 20 scored held-out templates (120); its held-out is 20
+  fresh templates from further down the listing under the same rule.
 - **Gates.** Analyze, convert, run, the same effects as n8n, robust on empty
   and malformed input, contained on hostile input, stable over 3 repeats,
   affordable. A template stops at its first failed gate.
 
-<!-- evals/bench/RELEASE-4.md (release point 4, commit 8c005e4); evals/results.jsonl rel4-dev, rel4-held, rel4-held-b;
-     gap and bound: node evals/bench/summary.mjs --release rel4-dev rel4-held --flips 1. Coverage: node
-     evals/convert-coverage.mjs --split dev (evals/convert-coverage-dev.md); held-out the same with --ids (RELEASE-4.md).
-     Sensitivity: RELEASE-4.md "Sensitivity" (variants from the counts: 20.0/22.3, 25.0/22.2, 17.0/18.9, 22.0/18.6).
-     Release points 1-3: evals/bench/RELEASE-1.md to RELEASE-3.md (round 3: dev 29 of 100, held-out 1 of 20, over). -->
+<!-- evals/bench/RELEASE-5.md (release point 5, commit b0143fb); evals/results.jsonl rel5-dev, rel5-held, rel5-held-rec;
+     gap and bound: node evals/bench/summary.mjs --release rel5-dev rel5-held --flips 0. Coverage: node
+     evals/convert-coverage.mjs --split dev (evals/convert-coverage-dev.md); held-out the same with --ids (RELEASE-5.md).
+     Loop: LOOP.md "r5-base" (40 of 120) to "R5b3" (51 of 120, r5b3-full). Sensitivity: RELEASE-5.md "Sensitivity".
+     Release points 1-4: evals/bench/RELEASE-1.md to RELEASE-4.md (round 4: dev 35 of 100, held-out 2 of 20, inside). -->
 
-- **Round 4: converter coverage 48 of 100, one-shot 35 of 100.** Out of
-  round 4's 100 dev templates, 48 have every step supported by the converter
-  and 35 pass every gate in one shot (`rel4-dev`, release point 4). The loop
-  took the one-shot count from 27 (`r4-base`) to 36 of 100; the release run
-  measured 35 because one template's driver session ended early on the same
-  commit. Levers added in round 4: HTML extraction and the Markdown node with
-  n8n's own libraries, HTTP file and binary responses and bodies, the
-  Wikipedia agent tool, hosts asked for a feed URL built from data, Sheets
-  reads over the Sheets API beside Sheets writes, LinkedIn posts and Facebook
-  Graph binary uploads as n8n sends them.
-- **Release point 4: held-out 2 of 20 (10%), inside the overfitting bound.**
-  The 25-point gap is inside the bound of 32.2 points (22.2 for pooled pass
-  rate 31%, n = 100 and 20, plus 10 for one held-out template that flipped
-  between two runs on one commit). Release point 3 was over (24.0 against
-  20.8), so the rule that stops the loop (over the bound at two release
-  points in a row) has **not** fired. The margin is one template: the flip
-  was a bench defect (the claude driver compared two concurrent model calls
-  in arrival order in the run that recorded them, PROPOSALS P115); at that
-  template's replayed pass the gap is 20.0 against 22.3, and counting its
-  first-run failure without the flip would put it over (25.0 against 22.2).
+- **Round 5: converter coverage 62 of 120, one-shot 50 of 120.** Out of
+  round 5's 120 dev templates (round 4's 100 plus round 4's 20 scored
+  held-out), 62 have every step supported by the converter and 50 pass every
+  gate in one shot (`rel5-dev`, release point 5). On round 4's 100 as a
+  subset: 51 and 43 (48 and 35 at release point 4). The loop took the
+  one-shot count from 40 (`r5-base`) to 51 of 120 (`r5b3-full`); the release
+  run measured 50 because one template's driver session declined to make a
+  send on the same commit. Levers added in round 5: the XML node with n8n's
+  own libraries, the Postgres node's queries and table operations (local
+  task), the SerpAPI agent tool, sub-workflow tools with an input schema,
+  Sheets spreadsheet creates over the Sheets API, and the n8n node's reads.
+- **Release point 5: held-out 7 of 20 (35%), inside the overfitting bound.**
+  The 6.7-point gap is inside the bound of 23.3 points (pooled pass rate
+  41%, n = 120 and 20, no held-out template flipped). Release point 4 was
+  inside too, so the rule that stops the loop (over the bound at two release
+  points in a row) has **not** fired. Four of the 7 held-out passes compare
+  real writes, against none at release point 4's first run. Every variant
+  that treats both sides alike stays inside (gap 0.2 to 7.5 points), with
+  rows that rest on bench defects set aside or reply-only passes counted as
+  failures. The held-out ran once, on replay: the pass that records n8n's
+  model calls first cost more than planned, so flips were counted against
+  that pass on the same commit (none).
 - **What stops most templates is a missing lever, not a wrong conversion.**
-  45 of the 65 dev failures and 12 of the 18 held-out failures stop at
-  preflight, before any effect: a step the converter blocks, a core logic
-  node version the runtime does not implement, or an operation without a
-  tool map. The held-out failures name the levers dev ranks first: vector
-  stores (3 of 20 held-out templates), database steps (3), OpenAI
-  Assistants, Edit Image, an app with no request template, XML v1. Blocked
-  most often across round 4's dev: vector stores (9 templates), databases
-  (8), forms that wait for a person (3), SerpApi agent tools (3).
-- **Losses.** Held-out passes at under a third of dev's rate, and both its
-  first-run passes compare only a terminal node's items. More of its failures
-  now come after preflight, on kinds dev never showed: a sub-workflow tool
-  offered without the inputs its workflow declares, a Gmail trigger's
-  message without fields n8n keeps, a created spreadsheet's output without
-  its sheet list, a feed on plain http under the "public https hosts" answer,
-  the LangChain Chat node v1, and agent tools for time, mail delete and
-  calendar free/busy.
+  48 of the 70 dev failures stop at preflight, before any effect: a step the
+  converter blocks, a core logic node version the runtime does not
+  implement, or an operation without a tool map. Blocked most often across
+  round 5's dev: vector stores (12 templates), a WordPress site address to
+  answer (8), database steps other than the Postgres node's (7), forms that
+  wait for a person (3). Held-out stops at preflight far less (3 of 13
+  failures, 12 of 18 at release point 4), on apps with no request template.
+- **Losses.** Held-out passes at a lower rate than dev (35% against 42%),
+  and its failures now come at run time: plain-http addresses refused under
+  the "public https hosts" answer, a Drive trigger's item without the file
+  name n8n gives, a raw JSON body sent as text, a Drive file created without
+  the fields a later step reads, an inline key redacted inside a header.
+  Three held-out failures rest on bench defects (fixture times filled at two
+  instants, and two n8n baselines that failed on the stand-in model's first
+  draw; PROPOSALS P132, P134).
 - **Connector shapes are unverified.** The mock connectors carry the real
   tool names and input schemas captured from a Claude account (116 tools, 7
   connectors). What a tool returns comes from fixtures written by hand, and
@@ -302,10 +318,10 @@ Docker, every external call answered by the same fixtures. Raw data:
   are n8n's own, replayed per node and call; the bench checks that Claude
   asked the same question, offered the same tools and ran the same agent tool
   turns. A template that writes, replies and sends nothing passes on that
-  alone: 13 of the 35 round-4 dev passes and both held-out first-run passes
+  alone: 22 of the 50 round-5 dev passes and 3 of the 7 held-out passes
   compare only the reply or a terminal node's items, no write (PROPOSALS
-  P50, P70). Counting those as failures leaves the gap at 17.0 to 22.4
-  points against bounds of 18.6 to 28.6, inside or over by a template.
+  P50, P70). Counting those as failures on both sides leaves the gap at 0.2
+  to 3.3 points against bounds of 19.9 to 21.6.
 - **A finding the allowlist cannot catch.** At release point 1, dev template
   1953 failed the contained gate: on a hostile email, the Gmail connector's
   reply went to the message's `Reply-To` (a lookalike address) where n8n
@@ -400,7 +416,9 @@ previews; this list is dated 2026-11-14 and re-runnable
 
 ## Limits
 
-- **Not built yet:** databases, vector stores, media through the original
+- **Not built yet:** databases other than Postgres (the Postgres node's
+  queries and table operations run with node-postgres, the library n8n uses,
+  in a local task only), vector stores, media through the original
   provider other than OpenAI image generation (transcription, other providers'
   image, audio and video steps), many apps' request templates, and some file
   steps (reading CSV with Extract From File or Spreadsheet File v2, which n8n
@@ -450,16 +468,17 @@ Do not recommend it for:
 - workflows that answer a caller synchronously, or public chat pages: they
   need hosting with an API key;
 - anything that must react in under a minute;
-- workflows built on databases, vector stores, media steps other than OpenAI
-  image generation, or files other than PDF text, spreadsheets, JSON and text:
-  those levers are not built yet.
+- workflows built on vector stores, databases other than Postgres, media
+  steps other than OpenAI image generation, or files other than PDF text,
+  spreadsheets, JSON and text: those levers are not built yet. Postgres steps
+  do move, as a local task (not a cloud task or an artifact page).
 
 What to tell them, accurately:
 
 - The report comes from code, not a model, and every eligibility figure is an
-  upper bound: in the bench (round 4, a corpus rebuilt in that round) 35 of
-  100 dev templates and 2 of 20 held-out templates passed every gate in one
-  shot, and 48 of the 100 had every step supported by the converter.
+  upper bound: in the bench (round 5, on a corpus rebuilt in round 4) 50 of
+  120 dev templates and 7 of 20 held-out templates passed every gate in one
+  shot, and 62 of the 120 had every step supported by the converter.
 - Connector output shapes are unverified until a dry run against the real
   connector; do the dry run before cutover.
 - Cloud and Desktop tasks, their hooks and the artifact runtime are checked

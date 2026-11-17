@@ -58,15 +58,15 @@ directory connectors, DST): PLAN.md, Phase 1, "Decisions taken here".
 
 Per folder (`SKILL/scripts/convert.mjs`, header comment):
 
-| File                                          | Holds                                                                                                                                                                                                                                           |
-| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `definition.json`                             | Steps, edges, allowed tools and hosts, secrets by name (`SKILL/references/definition.schema.json`)                                                                                                                                              |
-| `source.n8n.json`                             | The export, inline secrets redacted; its sha256 is in the definition                                                                                                                                                                            |
-| `report.json`, `MIGRATION.md`                 | The analyzer's report; what moved, what is flagged or blocked, what it needs                                                                                                                                                                    |
-| `overrides.json`                              | Translations, alert channel, host narrowing; survives `--regenerate`                                                                                                                                                                            |
-| `task.json`, `task-prompt.md`                 | Store, secrets mode, schedule; the task's prompt                                                                                                                                                                                                |
-| `artifact.html`, `artifact.capabilities.json` | The page and the capabilities to publish it with (`SKILL/references/artifact-runtime.md`)                                                                                                                                                       |
-| `runtime/`                                    | A copy of the runner, driver and hooks: the folder runs without the skill; `runtime/vendor/pdfjs/` and `runtime/vendor/xlsx/` (Apache-2.0, licence and checksums beside them, NOTICE.md) only when the definition has a PDF or spreadsheet step |
+| File                                          | Holds                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `definition.json`                             | Steps, edges, allowed tools and hosts, secrets by name (`SKILL/references/definition.schema.json`)                                                                                                                                                                                                                                                         |
+| `source.n8n.json`                             | The export, inline secrets redacted; its sha256 is in the definition                                                                                                                                                                                                                                                                                       |
+| `report.json`, `MIGRATION.md`                 | The analyzer's report; what moved, what is flagged or blocked, what it needs                                                                                                                                                                                                                                                                               |
+| `overrides.json`                              | Translations, alert channel, host narrowing; survives `--regenerate`                                                                                                                                                                                                                                                                                       |
+| `task.json`, `task-prompt.md`                 | Store, secrets mode, schedule; the task's prompt                                                                                                                                                                                                                                                                                                           |
+| `artifact.html`, `artifact.capabilities.json` | The page and the capabilities to publish it with (`SKILL/references/artifact-runtime.md`)                                                                                                                                                                                                                                                                  |
+| `runtime/`                                    | A copy of the runner, driver and hooks: the folder runs without the skill; `runtime/vendor/pdfjs/` and `runtime/vendor/xlsx/` (Apache-2.0, licence and checksums beside them, NOTICE.md) only when the definition has a PDF or spreadsheet step; `runtime/vendor/pg/` (node-postgres 8.21.0, MIT, as n8n 2.47.7 ships it) only when it has a Postgres step |
 
 Printed status per workflow: `converted`, `review` (steps flagged),
 `blocked-steps` (greyed with the reason), `refused` (not `subscription`:
@@ -126,6 +126,18 @@ step}`: that step alone may reach any public https host, which is the honest
   a binary body sends the item's binary property typed by its `mimeType`. The
   task driver hands such responses back as `bodyBase64`; a host may also give
   a string, read as one character per byte under a binary content type.
+- **Postgres.** The Postgres node v2's executeQuery and table operations
+  (select, insert, update, upsert, deleteTable) run as a step or an agent
+  tool, with the SQL n8n builds (`SKILL/runtime/src/postgres.mjs`), sent with
+  the vendored node-postgres (`pgclient.mjs`) in a local task only: a cloud
+  task's secrets reach HTTP requests only, and the artifact page has no TCP.
+  The connection is a setup answer (a `postgres://` URL without the
+  password); the password is the credential's secret. Other databases stay
+  blocked.
+- **n8n node.** Its workflow and execution reads run as an `http` step
+  against the person's own n8n over its public API (`rest.mjs` `n8nApi`),
+  the site a setup answer; they work only while that n8n runs. Writes,
+  credentials and audit stay blocked.
 - **Ledger.** `sending` before each write, `sent` after. A `sending` with no
   `sent` stops the workflow until `resolve`.
 - **Resume.** The next start continues an open run with the same id (replay
@@ -199,7 +211,7 @@ systems send. Cursor mappings checked live: Gmail only.
 ## Bench
 
 `evals/bench/README.md` (commands, gates, contract), `evals/bench/RELEASE-1.md`
-to `evals/bench/RELEASE-4.md` (release points 1–4), `evals/results.jsonl`
+to `evals/bench/RELEASE-5.md` (release points 1–5), `evals/results.jsonl`
 (one row per template and run), `evals/convert-coverage-dev.md` (converter
 coverage over the current round's dev templates), `evals/phase0/CHECKS.md`
 (compatibility checks), PLAN.md (phases, decisions, known gaps).

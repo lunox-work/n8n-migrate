@@ -22,16 +22,17 @@ Do not recommend it for:
 - workflows that answer a caller synchronously, or public chat pages: they
   need hosting with an API key;
 - anything that must react in under a minute;
-- workflows built on databases, vector stores, media steps other than OpenAI
-  image generation, or files other than PDF text, spreadsheets, JSON and text:
-  those levers are not built yet.
+- workflows built on vector stores, databases other than Postgres, media
+  steps other than OpenAI image generation, or files other than PDF text,
+  spreadsheets, JSON and text: those levers are not built yet. Postgres steps
+  do move, as a local task (not a cloud task or an artifact page).
 
 What to tell them, accurately:
 
 - The report comes from code, not a model, and every eligibility figure is an
-  upper bound: in the bench (round 4, a corpus rebuilt in that round) 35 of
-  100 dev templates and 2 of 20 held-out templates passed every gate in one
-  shot, and 48 of the 100 had every step supported by the converter.
+  upper bound: in the bench (round 5, on a corpus rebuilt in round 4) 50 of
+  120 dev templates and 7 of 20 held-out templates passed every gate in one
+  shot, and 62 of the 120 had every step supported by the converter.
 - Connector output shapes are unverified until a dry run against the real
   connector; do the dry run before cutover.
 - Cloud and Desktop tasks, their hooks and the artifact runtime are checked
