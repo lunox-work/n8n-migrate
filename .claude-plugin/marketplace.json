@@ -10,7 +10,11 @@
   "plugins": [
     {
       "name": "n8n-to-claude",
-      "source": "./",
+      "source": {
+        "source": "github",
+        "repo": "lunox-work/n8n-to-claude",
+        "ref": "claude-plugin"
+      },
       "description": "Classify every n8n workflow in an export with the reason, convert the ones that fit into folders Claude runs as scheduled tasks, skills or artifact forms, and cut over without both systems sending.",
       "version": "0.1.0",
       "category": "productivity",
