@@ -425,3 +425,26 @@ test("P137 amendment 2: drafted-write outcomes and the secondary bar", async () 
   assert.equal(low.share, 60);
   assert.equal(low.verdict, "not reliable enough");
 });
+
+test("credentialHosts from n8n 2.47.7's credential definitions: fixed or field-default hosts give a target; field-only hosts stay skipped", () => {
+  const ch = refs.toolMaps.credentialHosts;
+  for (const [type, hosts] of Object.entries(ch)) {
+    if (type === "$doc") continue;
+    assert.ok(Array.isArray(hosts), type);
+    for (const h of hosts) assert.match(h, /^[a-z0-9-]+(\.[a-z0-9-]+)+$/, `${type}: ${h} is a bare host name`);
+  }
+  const target = (type, credentials, operation, params = {}) => draftTarget(refs, { step: { n8n: { type, typeVersion: 1 }, params, credentials }, operation, reason: `no request template for ${type.split(".").pop()} ${operation} yet` });
+  // Dropbox: test baseURL api.dropboxapi.com, uploads on content.dropboxapi.com (the node's transport).
+  const dbx = target("n8n-nodes-base.dropbox", { dropboxApi: { id: "1", name: "Dropbox" } }, "file:upload");
+  assert.equal(dbx.kind, "rest-template");
+  assert.deepEqual(dbx.hosts, ["api.dropboxapi.com", "content.dropboxapi.com"]);
+  // YouTube (OAuth2, no base URL in the definition): the node's fixed host.
+  assert.deepEqual(target("n8n-nodes-base.youTube", { youTubeOAuth2Api: { id: "2", name: "YouTube" } }, "video:update").hosts, ["www.googleapis.com"]);
+  // Microsoft Graph: microsoftOAuth2Api's graphApiBaseUrl default.
+  assert.deepEqual(target("n8n-nodes-base.microsoftExcel", { microsoftExcelOAuth2Api: { id: "3", name: "Excel" } }, "worksheet:append").hosts, ["graph.microsoft.com"]);
+  // A host only the person's own credential field holds (NocoDB's host, no default): still no draft.
+  assert.match(target("n8n-nodes-base.nocoDb", { nocoDbApiToken: { id: "4", name: "NocoDB" } }, "row:create").skip, /name no host/);
+  assert.equal(ch.nocoDbApiToken, undefined);
+  assert.equal(ch.aws, undefined);
+  assert.equal(ch.s3, undefined);
+});
