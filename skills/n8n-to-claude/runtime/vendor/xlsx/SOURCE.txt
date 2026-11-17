@@ -1,0 +1,5 @@
+@e965/xlsx 0.20.3 (npm; a republish of SheetJS Community Edition 0.20.3), xlsx.mjs, unmodified.
+The version n8n-nodes-base 2.47.7 uses for Convert To File, Extract From File and Spreadsheet File, so files match n8n's byte for byte.
+Apache License 2.0 (LICENSE, from the same package). Copyright SheetJS LLC.
+sha256 xlsx.mjs 1a0fb062ee9781b13f6687371b202aaefc53b6ce55b530c027e01f9c087b77db
+Loaded only when a spreadsheet step runs (runtime/src/files.mjs); copied into a migrated folder only when its definition has one.

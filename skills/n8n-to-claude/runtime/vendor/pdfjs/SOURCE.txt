@@ -1,0 +1,6 @@
+pdfjs-dist 6.3.289 (npm), legacy/build/pdf.min.mjs and legacy/build/pdf.worker.min.mjs, unmodified.
+The version n8n-nodes-base 2.47.7 loads for Extract From File (PDF), so extracted text matches n8n's.
+Apache License 2.0 (LICENSE, from the same package). Copyright Mozilla Foundation.
+sha256 pdf.min.mjs        f401927e692efc7735e0cd528c490d0dd31b7f0972c122b7040df805be45cce4
+sha256 pdf.worker.min.mjs a33cfe728c584fdba4fcc1fd54bcdc2f9f2f13889ddbb5b2bd1d0f8cbe49b84e
+Loaded only when a PDF step runs (runtime/src/files.mjs); copied into a migrated folder only when its definition has one.
