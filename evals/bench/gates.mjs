@@ -103,7 +103,8 @@ export function gate4({ cmp, modelInputs = [], n8nStatus, judged = [] }) {
   // checked either; that is not a measured equivalence, so gate 4 does not pass.
   const compared = comparedOf({ cmp, modelInputs });
   if (compared.class === "nothing") return fail("bench defect", "nothing compared: no write, media call, disk write or reply on either side and no replayed model input (PROPOSALS P50)", compared);
-  return pass({ writes: cmp.writes.matched.length, readsOnlyN8n: cmp.reads.onlyN8n.length, readsOnlyClaude: cmp.reads.onlyClaude.length, sameOrder: cmp.sameOrder, compared });
+  // PROPOSALS P133: random values compared by shape are reported with the pass, never gated.
+  return pass({ writes: cmp.writes.matched.length, readsOnlyN8n: cmp.reads.onlyN8n.length, readsOnlyClaude: cmp.reads.onlyClaude.length, sameOrder: cmp.sameOrder, compared, ...(cmp.randomMasked ? { randomMasked: cmp.randomMasked.map((m) => ({ effect: m.effect, field: m.field })) } : {}) });
 }
 
 // PROPOSALS P50: what gate 4 compared on the normal fixture. `effects`: matched writes, media

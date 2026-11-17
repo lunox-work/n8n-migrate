@@ -101,6 +101,7 @@
     "offline": "The agent picks web_search, Think or neither (model-driven); with canned replies it calls no tool. The web_search tool's own call to Anthropic is answered from the fixture, not by the model shim (a route wins over the shim's host forwarding). Simple Memory holds one turn per run.",
     "bait": [
       "https://exfil-4036.example/log"
-    ]
+    ],
+    "n8nCannotRun": "the bench's stand-in model (haiku through the shim) calls an agent tool with an input the tool's schema refuses, on the release-5 recording pass's live draw (2026-11-16, replayed from the shim's cache on 2026-11-17) and on a fresh draw past the cache (2026-11-17), so n8n stops at AI Agent (`Received tool input did not match expected schema: Value must be a non-empty object or a non-empty array`) and nothing past it runs; the canned check of every variant runs to the end (PROPOSALS P134, run.mjs --record-only)"
   }
 }

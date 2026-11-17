@@ -43,7 +43,8 @@
 //                recording, with no convert, Claude side or driver (no results row; the ledger
 //                gets only n8n's model calls). PROPOSALS P134: a draw whose baseline fails at a
 //                node a model reply feeds, while the variant's canned check runs to the end, is
-//                drawn once more; if that fails too, the line names the `expect.n8nCannotRun`
+//                drawn once more, past the shim's cache (the first draw may be the cached one of
+//                an earlier recording, which is the draw being redrawn); if that fails too, the line names the `expect.n8nCannotRun`
 //                mark (node, error, both draws) the setup session writes into the fixture. One
 //                JSON line per variant on stdout, every draw reported. Release points use it for
 //                the held-out setup pass before the scored runs (P115). Held-out ids only when named.
@@ -59,7 +60,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { prepare, runN8n, logVsFixture, splitLog, loadTemplate, loadFixture, loadOverlay, benchEnv, recordingInterrupted, modelConsumers, writtenFiles, keepsProcessState, siteAnswers, hostsAnswers, substitutionApprovals, loadCredentialSpecs, ensureN8n, codeModules, DbSeedError, dbSummary, fixtureClock, modelNodes, modelDrawFailure } from "./n8n-side.mjs";
 import { convertPlain, convertSkill, filledSource, runInProcess, folderIn, claudeDriverModelInputs, httpModelInputs, recordedCalls, syntheticOutcome, nondeterministicTools, connectorGapFields, databaseAnswers } from "./claude-side.mjs";
 import { startShim, answerOf } from "./model-shim.mjs";
-import { fromHttp, fromTool, fromFile, fromDb, replyOf, resultOf, isResult, lastOutputs, terminalNodes, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads, randomWriteNodes } from "./compare.mjs";
+import { fromHttp, fromTool, fromFile, fromDb, replyOf, resultOf, isResult, lastOutputs, terminalNodes, compare, modelTextsOf, baitHits, refsOf, foldResumableUploads, randomKeys, applySubstitutions } from "./compare.mjs";
 import { n8nCheckVariants, n8nCheckKey, n8nCheckSummary, gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, gapsOf, connectorLimited, n8nFailsOf, modelRefusal } from "./gates.mjs";
 import { BudgetExceeded, UsageLimit, ledger as claudeLedger, memoryGate } from "./claude.mjs";
 import { readSplits, devWithFixtures } from "./rounds.mjs";
@@ -142,7 +143,8 @@ async function n8n() {
 // (CLAUDE.md's floor, 25% free: the recording is one sequential job) and its model calls skip
 // the per-call gate; a run interrupted on the model side is never saved (recordingInterrupted)
 // and the template's row reads `bench defect: recording interrupted`.
-async function n8nRun(id, variant, { record = false, canned = false } = {}) {
+// fresh (PROPOSALS P134): a live run's model calls skip the shim's cache, so a redraw is a new draw.
+async function n8nRun(id, variant, { record = false, canned = false, fresh = false } = {}) {
   const recFile = join(RECORDINGS, String(id), `${variant}.json`);
   const existing = readJson(recFile);
   const env = await n8n();
@@ -150,7 +152,7 @@ async function n8nRun(id, variant, { record = false, canned = false } = {}) {
   // PROPOSALS P48: a fixture route n8n's side cannot build is this variant's fixture error; n8n
   // is not run and nothing is saved, so the template's other variants and verdict still stand.
   if (prep.badRoutes?.length) return fixtureErrorRun(prep);
-  const session = canned ? { mode: "canned" } : existing && !record ? { mode: "replay", recorded: byTag(existing.modelCalls), fallback: "live" } : { mode: "live" };
+  const session = canned ? { mode: "canned" } : existing && !record ? { mode: "replay", recorded: byTag(existing.modelCalls), fallback: "live" } : { mode: "live", ...(fresh ? { noCache: true } : {}) };
   if (!canned && prep.models.length) {
     await memoryGate({ log, need: 25 });
     session.memoryChecked = true;
@@ -291,10 +293,10 @@ async function recordOnly(args) {
           let failed = modelDrawFailure(wf, models, r, canned.status === "success");
           if (failed) {
             log(`${id}/${v}: baseline failed at ${failed.node}, which a model reply feeds; drawing once more (P134)`);
-            r = await n8nRun(id, v, { record: true });
+            r = await n8nRun(id, v, { record: true, fresh: true });
             line.draws.push(draw(r));
             failed = modelDrawFailure(wf, models, r, true);
-            if (failed) line.mark = { n8nCannotRun: `the bench's stand-in model's reply stops n8n at ${failed.node} on two live draws (${line.draws.map((d) => d.recordedAt).join(", ")}): ${failed.message}; the canned check of this variant runs to the end (PROPOSALS P134)` };
+            if (failed) line.mark = { n8nCannotRun: `the bench's stand-in model's reply stops n8n at ${failed.node} on two draws (${line.draws.map((d) => `${d.modelModes.join("/") || "no model call"} ${d.recordedAt}`).join(", ")}; a cached draw is an earlier live one): ${failed.message}; the canned check of this variant runs to the end (PROPOSALS P134)` };
           }
         }
       } catch (e) {
@@ -399,6 +401,11 @@ const claudeResults = (n8nList, outputsOf) => n8nList.filter(isResult).map((e) =
 // the runtime's database steps report them) is compared by the same table.
 const claudeEffect = (e, fx) => (e.connector ? fromTool(e, "claude", refsOf(fx)) : e.file ? fromFile(e, "claude") : e.engine && (e.op || e.sql !== undefined || e.command !== undefined) ? fromDb(e, "claude") : fromHttp(e, "claude"));
 
+// PROPOSALS P139: gate 6 excuses bait n8n's own effect carries (P58) by effect key; a Claude
+// write of an approved substitute kind (P53: the Gmail send for n8n's SMTP send) is keyed as
+// n8n's kind first, as gate 4's compare() does, so the excuse finds n8n's mail.
+const asN8nKinds = (n8nList, claudeList) => applySubstitutions(n8nList, claudeList);
+
 function claudeEffects(run, fx, n8nList = []) {
   const list = [...run.seen.tools.filter((t) => !t.invalid).map((t) => fromTool(t, "claude", refsOf(fx))), ...run.seen.http.map((h) => fromHttp(h, "claude")).filter(Boolean), ...(run.files ?? []).map((f) => fromFile(f, "claude")), ...(run.seen.db ?? []).map((d) => fromDb(d, "claude"))];
   if (["chat", "form"].includes(fx.trigger.kind) && run.res.status === "done") list.push(replyOf(run.res.output, "claude"));
@@ -422,8 +429,8 @@ async function benchTemplate(id, args, L) {
   const S = t.steps;
   const wf = loadTemplate(id).wf;
   const fxN = loadFixture(id, "normal");
-  // PROPOSALS P133: a write node that builds a value with a randomness source.
-  const random = randomWriteNodes(wf, fxN.writes ?? []).length > 0;
+  // PROPOSALS P133: the keys the workflow gives the random values its nodes draw.
+  const random = randomKeys(wf);
   const overlay = loadOverlay(id);
   const gates = {};
   const drivers = {};
@@ -603,9 +610,10 @@ async function benchTemplate(id, args, L) {
     if (args.variants.includes("hostile")) {
       const fx = loadFixture(id, "hostile", { at: fixtureClock(recs.hostile) });
       const run = await runV("hostile");
-      const n8nHits = baitHits(n8nEffects(recs.hostile, fx), fx.expect.bait ?? []);
+      const n8nH = n8nEffects(recs.hostile, fx);
+      const n8nHits = baitHits(n8nH, fx.expect.bait ?? []);
       if (recs.hostile?.status === FIXTURE_ERROR) g[6] = { pass: false, bucket: "fixture", cause: `hostile: ${recs.hostile.error.message}`, driver: "inprocess" };
-      else g[6] = { ...gate6({ claudeCalls: run.seen, allow: run.definition.allow ?? {}, claudeEffects: claudeEffects(run, fx), n8nBaitHits: n8nHits, bait: fx.expect.bait ?? [], baitHits, modelInputs: run.seen.models.filter((m) => m.mode === "replay"), synthetic: syntheticOutcome(fx, { models: run.seen.models, http: run.seen.http }) }), driver: "inprocess" };
+      else g[6] = { ...gate6({ claudeCalls: run.seen, allow: run.definition.allow ?? {}, claudeEffects: asN8nKinds(n8nH, claudeEffects(run, fx)), n8nBaitHits: n8nHits, bait: fx.expect.bait ?? [], baitHits, modelInputs: run.seen.models.filter((m) => m.mode === "replay"), synthetic: syntheticOutcome(fx, { models: run.seen.models, http: run.seen.http }) }), driver: "inprocess" };
     }
     return out;
   };
@@ -633,8 +641,9 @@ async function benchTemplate(id, args, L) {
         const rec = await need("hostile");
         const fx = loadFixture(id, "hostile", { at: fixtureClock(rec) });
         const run = await runInProcess(folder, fx, { wf, recordings: recordedCalls(rec, fx), n8nEffects: rec?.effects ?? [], n8nSources: rec?.sources ?? {}, mode: args.modelMode, startedAt: rec?.startedAt, runTime: runTime(rec), log });
-        const n8nHits = baitHits(n8nEffects(rec, fx), fx.expect.bait ?? []);
-        D.inprocessHostile = { run: { status: run.res.status, error: run.res.error?.message ?? null }, n8n: rec?.status, gate6: gate6({ claudeCalls: run.seen, allow: run.definition.allow ?? {}, claudeEffects: claudeEffects(run, fx), n8nBaitHits: n8nHits, bait: fx.expect.bait ?? [], baitHits, synthetic: syntheticOutcome(fx, { models: run.seen.models, http: run.seen.http }) }), calls: [...run.seen.tools.map((x) => `${x.connector}.${x.tool}`), ...run.seen.http.map((h) => `${h.method} ${h.url}`)] };
+        const n8nH = n8nEffects(rec, fx);
+        const n8nHits = baitHits(n8nH, fx.expect.bait ?? []);
+        D.inprocessHostile = { run: { status: run.res.status, error: run.res.error?.message ?? null }, n8n: rec?.status, gate6: gate6({ claudeCalls: run.seen, allow: run.definition.allow ?? {}, claudeEffects: asN8nKinds(n8nH, claudeEffects(run, fx)), n8nBaitHits: n8nHits, bait: fx.expect.bait ?? [], baitHits, synthetic: syntheticOutcome(fx, { models: run.seen.models, http: run.seen.http }) }), calls: [...run.seen.tools.map((x) => `${x.connector}.${x.tool}`), ...run.seen.http.map((h) => `${h.method} ${h.url}`)] };
         save();
       }
       if (args.driver === "claude") {
@@ -647,7 +656,7 @@ async function benchTemplate(id, args, L) {
           const r = await runClaudeDriver(folder, fx, { wf, recordings: recordedCalls(rec, fx), startedAt: rec?.startedAt, runTime: runTime(rec), label: `${args.tag}-${id}-${v}`, log });
           if (r.run || r.summary?.notRun) {
             const ce = r.effects.map((e) => claudeEffect(e, fx)).filter(Boolean);
-            r.gate6 = gate6({ claudeCalls: { tools: r.effects.filter((e) => e.connector), http: r.effects.filter((e) => e.url) }, allow: r.allow ?? {}, claudeEffects: ce, n8nBaitHits: baitHits(n8nEffects(rec, fx), fx.expect.bait ?? []), bait: v === "hostile" ? fx.expect.bait ?? [] : [], baitHits, synthetic: syntheticOutcome(fx, { models: r.replayLog ?? [], http: r.effects.filter((e) => e.url) }) });
+            r.gate6 = gate6({ claudeCalls: { tools: r.effects.filter((e) => e.connector), http: r.effects.filter((e) => e.url) }, allow: r.allow ?? {}, claudeEffects: asN8nKinds(n8nEffects(rec, fx), ce), n8nBaitHits: baitHits(n8nEffects(rec, fx), fx.expect.bait ?? []), bait: v === "hostile" ? fx.expect.bait ?? [] : [], baitHits, synthetic: syntheticOutcome(fx, { models: r.replayLog ?? [], http: r.effects.filter((e) => e.url) }) });
             if (v === "normal" && rec) r.cmp = compare(n8nEffects(rec, fx), ce.concat(["chat", "form"].includes(fx.trigger.kind) && r.run?.status === "done" ? [replyOf(r.run.output, "claude")] : []), { modelTexts: modelTextsOf(rec.modelCalls, answerOf), mode: args.modelMode, random, runTime: runTime(rec) });
           }
           D[`claude:${v}`] = r;
@@ -704,7 +713,7 @@ async function benchTemplate(id, args, L) {
       const fxH = loadFixture(id, "hostile", { at: fixtureClock(recH) });
       const hostileInputs = claudeDriverModelInputs({ replayLog: ch.replayLog ?? [], effects: ch.effects ?? [], recordings: recordedCalls(recH, fxH), n8nEffects: recH?.effects ?? [], n8nSources: recH?.sources ?? {}, runTime: runTime(recH), nondeterministic: nondeterministicTools(wf) });
       drivers.claude.hostileToolDefs = toolDefsSummary(hostileInputs);
-      const g6c = gate6({ claudeCalls: { tools: ch.effects.filter((e) => e.connector), http: ch.effects.filter((e) => e.url) }, allow: ch.allow ?? {}, claudeEffects: ch.effects.map((e) => claudeEffect(e, fxH)).filter(Boolean), n8nBaitHits: baitHits(n8nEffects(recs.hostile, fxH), fxH.expect.bait ?? []), bait: fxH.expect.bait ?? [], baitHits, modelInputs: hostileInputs, synthetic: syntheticOutcome(fxH, { models: ch.replayLog ?? [], http: ch.effects.filter((e) => e.url) }) });
+      const g6c = gate6({ claudeCalls: { tools: ch.effects.filter((e) => e.connector), http: ch.effects.filter((e) => e.url) }, allow: ch.allow ?? {}, claudeEffects: asN8nKinds(n8nEffects(recs.hostile, fxH), ch.effects.map((e) => claudeEffect(e, fxH)).filter(Boolean)), n8nBaitHits: baitHits(n8nEffects(recs.hostile, fxH), fxH.expect.bait ?? []), bait: fxH.expect.bait ?? [], baitHits, modelInputs: hostileInputs, synthetic: syntheticOutcome(fxH, { models: ch.replayLog ?? [], http: ch.effects.filter((e) => e.url) }) });
       if (!g6c.pass) gates[6] = { ...g6c, driver: "claude", inprocess: gates[6] };
     }
     for (const g of [3, 4, 6]) if (gates[g].pass) gates[g].driver = "inprocess+claude";
@@ -868,6 +877,8 @@ async function main() {
         // compared no effect ("reply", "result" (P70) or "model inputs"), reported apart by summary.mjs.
         compared: r.gates?.[4]?.detail?.compared ?? (r.gates?.[4]?.bucket === "bench defect" && /^nothing compared/.test(r.gates[4].cause ?? "") ? r.gates[4].detail : null),
         noEffect: g === 9 ? r.gates?.[4]?.detail?.compared?.class ?? null : null,
+        // PROPOSALS P133: write fields compared by shape because the workflow draws them at random.
+        ...(r.gates?.[4]?.detail?.randomMasked ? { randomMasked: r.gates[4].detail.randomMasked } : {}),
         detail: failed?.detail ?? null,
         gates: Object.fromEntries(Object.entries(r.gates).map(([k, v]) => [k, { pass: v.pass, driver: v.driver ?? null, ...(v.pass ? {} : { bucket: v.bucket, cause: v.cause }) }])),
         drivers: r.drivers,

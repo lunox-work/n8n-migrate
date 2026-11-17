@@ -529,13 +529,13 @@ const plainObject = (v) => v !== null && typeof v === "object" && !Array.isArray
 // Similarity of two effects in thousandths of a field: a field that is the same counts 1000;
 // two differing object fields (a generic body) count the share of their top-level keys that
 // are the same.
-function fieldScore(a, b, runTime, random = false) {
+function fieldScore(a, b, runTime, random = null) {
   let n = 0;
   for (const f of new Set([...Object.keys(a.fields), ...Object.keys(b.fields)])) {
     const cmp = cmpFor(a, b, f);
     const x = a.fields[f];
     const y = b.fields[f];
-    if (sameField(cmp, x, y) || sameUpToRunTime(cmp, x, y, runTime) || (random && sameRandomShape(cmp, x, y))) n += 1000;
+    if (sameField(cmp, x, y) || sameUpToRunTime(cmp, x, y, runTime) || sameRandom(random, f, cmp, x, y)) n += 1000;
     else if (cmp === "exact" && plainObject(x) && plainObject(y)) {
       const keys = new Set([...Object.keys(x), ...Object.keys(y)]);
       let same = 0;
@@ -546,7 +546,7 @@ function fieldScore(a, b, runTime, random = false) {
   return n;
 }
 
-export function pairWrites(nW, cW, runTime = null, random = false) {
+export function pairWrites(nW, cW, runTime = null, random = null) {
   const out = nW.map(() => -1);
   const groups = new Map();
   nW.forEach((a, i) => {
@@ -634,32 +634,81 @@ export function maxAssignment(w) {
 
 // ---------- random values in a write (PROPOSALS P133) ----------
 //
-// A write whose own n8n node builds a value with a randomness source in an expression
-// (`{{ … Math.random() … }}`, crypto's random calls) sends a different value on every run, on
-// n8n's side as on the Claude side, so no run can match it. Decided from n8n's workflow, never
-// from a template id: randomWriteNodes() names the fixture's write nodes whose parameters hold
-// such an expression. When there is one, a field of a paired write that differs is compared by
-// type and shape (sameRandomShape: every number becomes `#`, every digit run in a string `#`,
-// every UUID `<uuid>`), and a match is listed in `randomMasked` with both values, never gated.
-// A difference in anything but those digits still fails.
-const RANDOM_EXPR = /\bMath\.random\s*\(|\bcrypto\.(?:randomUUID|randomInt|randomBytes|getRandomValues)\s*\(|\$randomString\b/;
-export function randomWriteNodes(wf, writes = []) {
-  const want = new Set(writes);
-  const expr = (v) => (typeof v === "string" ? v.startsWith("=") && RANDOM_EXPR.test(v) : Array.isArray(v) ? v.some(expr) : v && typeof v === "object" ? Object.values(v).some(expr) : false);
-  return (wf?.nodes ?? []).filter((n) => !n.disabled && want.has(n.name) && expr(n.parameters ?? {})).map((n) => n.name);
+// A value drawn from a randomness source in the workflow (`{{ … Math.random() … }}` in a node's
+// expression, or a Code node's code calling it or crypto's random calls) differs on every run,
+// on n8n's side as on the Claude side, so a write that carries it can never match. Decided from
+// n8n's workflow, never from a template id: randomKeys() reads, from every enabled node that
+// draws one, the names the template gives the drawn value: the JSON or object key written right
+// before the call (`"tag": "{{ … Math.random() … }}"`, `tag: Math.random()`), a Set assignment's
+// or a key-value row's name, or else the parameter's own name. In a paired write, a field that
+// differs is then compared leaf by leaf (sameUpToRandom): a leaf under one of those keys is
+// compared by type and shape (randomShape: every number becomes `#`, every digit run in a
+// string `#`, every UUID `<uuid>`), every other leaf exactly. A match is listed in
+// `randomMasked` with both values, never gated; any other difference still fails.
+const RANDOM_CALL = /\bMath\.random\s*\(|\bcrypto\.(?:randomUUID|randomInt|randomBytes|getRandomValues)\s*\(|\$randomString\b|\brandom\.(?:random|choice|randint|shuffle|sample)\s*\(/;
+const CODE_KEYS = ["jsCode", "code", "pythonCode", "functionCode"];
+const KEY_AT = /["']?([A-Za-z_$][\w$-]*)["']?\s*[:=](?![=>])/g;
+// The key nearest before the call on its line, with no `,` or `;` between them.
+function keyBefore(line) {
+  let k = null;
+  for (const m of line.matchAll(KEY_AT)) if (!/[,;]/.test(line.slice(m.index + m[0].length))) k = m[1];
+  return k;
 }
-const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+function keysInText(text) {
+  const out = [];
+  const re = new RegExp(RANDOM_CALL.source, "g");
+  for (let m; (m = re.exec(text)); ) {
+    const before = text.slice(Math.max(0, m.index - 200), m.index);
+    const k = keyBefore(before.split(/\n/).at(-1));
+    if (k) out.push(k);
+  }
+  return out;
+}
+export function randomKeys(wf) {
+  const keys = new Set();
+  const visit = (v, name, n) => {
+    if (typeof v === "string") {
+      const isCode = CODE_KEYS.includes(name);
+      if (!(isCode || v.startsWith("=")) || !RANDOM_CALL.test(v)) return;
+      const found = keysInText(v);
+      for (const k of found) keys.add(k);
+      if (!found.length && !isCode && name) keys.add(name);
+      return;
+    }
+    if (Array.isArray(v)) return v.forEach((x) => visit(x, name, n));
+    if (v && typeof v === "object") {
+      // A Set assignment or a key-value row: the row's name names the value.
+      const rowName = typeof v.name === "string" && !v.name.startsWith("=") ? v.name : null;
+      for (const [k, x] of Object.entries(v)) {
+        if (rowName && k === "value" && typeof x === "string" && x.startsWith("=") && RANDOM_CALL.test(x) && !keysInText(x).length) keys.add(rowName);
+        else visit(x, k, n);
+      }
+    }
+  };
+  for (const n of wf?.nodes ?? []) if (!n.disabled) visit(n.parameters ?? {}, null, n);
+  return keys;
+}
 export function randomShape(v) {
-  if (typeof v === "string") return v.replace(UUID_RE, "<uuid>").replace(/\d+(?:\.\d+)?/g, "#");
+  if (typeof v === "string") return v.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "<uuid>").replace(/\d+(?:\.\d+)?/g, "#");
   if (typeof v === "number") return "#";
   if (Array.isArray(v)) return v.map(randomShape);
   if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, randomShape(x)]));
   return v;
 }
-export function sameRandomShape(cmp, a, b) {
-  if (cmp === "id" || cmp === "set") return false;
-  return JSON.stringify(randomShape(a)) === JSON.stringify(randomShape(b));
+// a and b the same once the leaves under `keys` are compared by shape (`inKey`: this value is
+// under one already).
+export function sameUpToRandom(a, b, keys, inKey = false) {
+  if (JSON.stringify(a) === JSON.stringify(b)) return true;
+  if (inKey) return JSON.stringify(randomShape(a)) === JSON.stringify(randomShape(b));
+  if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((x, i) => sameUpToRandom(x, b[i], keys));
+  if (a && b && typeof a === "object" && typeof b === "object" && !Array.isArray(a) && !Array.isArray(b)) {
+    const ka = Object.keys(a);
+    if (ka.length !== Object.keys(b).length || !ka.every((k) => k in b)) return false;
+    return ka.every((k) => sameUpToRandom(a[k], b[k], keys, keys.has(k)));
+  }
+  return false;
 }
+const sameRandom = (keys, field, cmp, a, b) => !!keys?.size && cmp !== "id" && cmp !== "set" && sameUpToRandom(a, b, keys, keys.has(field));
 
 // mode: "replay" (model-written text must be byte-identical) or "live" (it goes to the judge).
 // runTime ({startMs, zone}): timestamps of the run itself are masked in fields that differ
@@ -733,10 +782,9 @@ export function stripAttributionAll(n8n) {
   });
 }
 
-// random (PROPOSALS P133): true when a write node of the template builds a value with a
-// randomness source (randomWriteNodes); differing fields equal by sameRandomShape go to
-// `randomMasked`.
-export function compare(n8n, claude, { modelTexts = [], mode = "replay", runTime = null, random = false } = {}) {
+// random (PROPOSALS P133): the keys the workflow gives its random values (randomKeys, a Set);
+// differing write fields equal by sameUpToRandom go to `randomMasked`.
+export function compare(n8n, claude, { modelTexts = [], mode = "replay", runTime = null, random = null } = {}) {
   n8n = stripAttributionAll(n8n);
   claude = applySubstitutions(n8n, claude);
   const nW = n8n.filter(isWrite);
@@ -763,7 +811,7 @@ export function compare(n8n, claude, { modelTexts = [], mode = "replay", runTime
         runTimeMasked.push({ effect: keyOf(a), field: f });
         continue;
       }
-      if (random && sameRandomShape(cmp, a.fields[f], b.fields[f])) {
+      if (sameRandom(random, f, cmp, a.fields[f], b.fields[f])) {
         randomMasked.push({ effect: keyOf(a), field: f, n8n: a.fields[f], claude: b.fields[f] });
         continue;
       }
