@@ -155,6 +155,23 @@ export function unwrap(data, label) {
     return [{ id: txt(t.id ?? t.workflow.id, label), name: txt(t.name ?? t.workflow.name, label), wf: t.workflow }];
   }
   if (Array.isArray(data.nodes)) return [{ id: txt(data.id, label), name: txt(data.name, label), wf: data }];
+  // MCP tool results saved as they came (SKILL.md step 1): n8n's own MCP server answers
+  // get_workflow_details with {workflow: {nodes, connections, ...}}; the n8n-mcp server
+  // answers n8n_get_workflow with {success, data: {...}}; a raw tool result wraps either in
+  // {content: [{type: "text", text: "<json>"}]} or structuredContent.
+  if (isObj(t) && Array.isArray(t.nodes)) return [{ id: txt(t.id ?? data.id, label), name: txt(t.name ?? data.name, label), wf: t }];
+  if (isObj(data.data)) return unwrap(data.data, label);
+  if (isObj(data.structuredContent)) return unwrap(data.structuredContent, label);
+  if (Array.isArray(data.content)) {
+    const out = [];
+    for (const c of data.content) {
+      if (!isObj(c) || c.type !== "text" || typeof c.text !== "string") continue;
+      try {
+        out.push(...(unwrap(JSON.parse(c.text), label) || []));
+      } catch {}
+    }
+    return out.length ? out : null;
+  }
   return null;
 }
 

@@ -80,6 +80,20 @@ export function createN8nClient({ base, key, fetch: fetchImpl = globalThis.fetch
   return {
     isPublished,
     getWorkflow: (id) => call("GET", `/workflows/${encodeURIComponent(id)}`, undefined, { allow404: true }),
+    // Every workflow the key can read, following nextCursor (scripts/pull.mjs). Archived ones
+    // are left out; `active: true` keeps only published ones.
+    async listWorkflows({ active } = {}) {
+      const out = [];
+      let cursor = null;
+      for (let page = 0; page < 1000; page++) {
+        const q = `limit=250${active ? "&active=true" : ""}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`;
+        const r = await call("GET", `/workflows?${q}`);
+        for (const wf of Array.isArray(r?.data) ? r.data : []) if (!wf?.isArchived) out.push(wf);
+        cursor = r?.nextCursor;
+        if (!cursor) break;
+      }
+      return out;
+    },
     // Replaces staticData and nothing else (the same nodes, connections and settings).
     async putStaticData(id, wf, staticData) {
       return call("PUT", `/workflows/${encodeURIComponent(id)}?publishIfActive=false`, { name: wf.name, nodes: wf.nodes, connections: wf.connections, settings: wf.settings ?? {}, staticData });
