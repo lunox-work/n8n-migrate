@@ -1,5 +1,5 @@
 <p align="center">
-  <img src=".claude-plugin/icon.png" width="112" alt="n8n-to-claude: an n8n workflow graph moving into a Claude chat bubble">
+  <img src=".claude-plugin/icon.png" width="112" alt="n8n-to-claude: a pink n8n tile handing off to an orange Claude tile">
 </p>
 
 <h1 align="center">n8n-to-claude</h1>

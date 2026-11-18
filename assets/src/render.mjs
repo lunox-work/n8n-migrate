@@ -31,7 +31,7 @@ try {
   if (!only || only === "icon") {
     const page = await browser.newPage({ viewport: { width: 1024, height: 1024 }, deviceScaleFactor: 1 });
     await page.goto(pathToFileURL(path.join(root, "assets", "icon.svg")).href);
-    await page.screenshot({ path: path.join(root, ".claude-plugin", "icon.png"), clip: { x: 0, y: 0, width: 1024, height: 1024 } });
+    await page.screenshot({ path: path.join(root, ".claude-plugin", "icon.png"), clip: { x: 0, y: 0, width: 1024, height: 1024 }, omitBackground: true });
     await page.close();
   }
 } finally {
