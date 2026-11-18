@@ -31,10 +31,10 @@
             },
             "result": {
               "items": "threads[*].messages[*]",
-              "fields": { "threadId": "^.id", "From": "sender", "To": { "join": "toRecipients" }, "Cc": { "join": "ccRecipients" }, "Bcc": { "join": "bccRecipients" }, "Subject": "subject" }
+              "fields": { "threadId": "^.id", "From": { "addressLine": "sender", "names": "addressDisplayNames" }, "To": { "addressLine": "toRecipients", "names": "addressDisplayNames" }, "Cc": { "addressLine": "ccRecipients", "names": "addressDisplayNames" }, "Bcc": { "addressLine": "bccRecipients", "names": "addressDisplayNames" }, "Subject": "subject" }
             },
-            "fidelity": "unverified",
-            "missingFields": ["historyId", "internalDate", "labels", "payload", "sizeEstimate"],
+            "fidelity": "partial",
+            "missingFields": ["labels", "payload"],
             "caveats": ["The tool returns threads with up to 5 messages each; n8n's limit counts messages."],
             "understood": ["operation", "resource", "returnAll", "limit", "simple", "filters.q", "filters.sender", "filters.readStatus", "filters.includeSpamTrash"],
             "review": [
@@ -68,7 +68,7 @@
                 }
               }
             ],
-            "fidelity": "unverified",
+            "fidelity": "partial",
             "missingFields": ["labels", "payload", "textAsHtml"],
             "understood": ["operation", "resource", "messageId", "simple"],
             "review": [{"param":"options.downloadAttachments", "reason":"attachments are not downloaded by get_message"}]
@@ -179,9 +179,9 @@
               "bcc": "options.bccList",
               "replyToMessageId": "options.threadId"
             },
-            "result": {},
-            "fidelity": "unverified",
-            "missingFields": ["id", "message"],
+            "result": { "fields": { "message.id": "messageId", "message.threadId": "threadId" } },
+            "fidelity": "adapted",
+            "missingFields": [],
             "understood": ["operation", "resource", "subject", "emailType", "message", "options.sendTo", "options.ccList", "options.bccList"],
             "review": [
               { "param": "options.threadId", "reason": "n8n threads the draft by thread id; the tool replies to a message id" },
@@ -194,8 +194,8 @@
             "effect": "read",
             "args": { "draftId": "messageId" },
             "result": {},
-            "fidelity": "unverified",
-            "missingFields": ["id", "messageId", "subject", "message"],
+            "fidelity": "partial",
+            "missingFields": ["message"],
             "understood": ["operation", "resource", "messageId", "options.format"]
           },
           "getAll": {
@@ -204,8 +204,8 @@
             "effect": "read",
             "args": {},
             "result": { "items": "drafts[*]" },
-            "fidelity": "unverified",
-            "missingFields": ["id", "message"],
+            "fidelity": "partial",
+            "missingFields": ["message"],
             "understood": ["operation", "resource", "returnAll", "limit"]
           },
           "delete": {
@@ -214,7 +214,7 @@
             "effect": "write",
             "args": { "draftId": "messageId" },
             "result": { "fields": { "success": { "const": true } } },
-            "fidelity": "unverified",
+            "fidelity": "adapted",
             "understood": ["operation", "resource", "messageId"]
           }
         },
@@ -224,9 +224,9 @@
             "tool": "list_labels",
             "effect": "read",
             "args": {},
-            "result": { "items": "labels[*]", "fields": { "id": { "first": ["id", "labelId"] } } },
-            "fidelity": "unverified",
-            "missingFields": ["type"],
+            "result": { "items": "labels[*]", "fields": { "id": { "first": ["id", "labelId"] }, "type": { "first": ["type", "labelType"] } } },
+            "fidelity": "adapted",
+            "missingFields": [],
             "understood": ["operation", "resource", "returnAll", "limit"]
           },
           "get": {
@@ -234,9 +234,9 @@
             "tool": "list_labels",
             "effect": "read",
             "args": {},
-            "result": { "items": "labels[*]", "fields": { "id": { "first": ["id", "labelId"] } } },
-            "fidelity": "unverified",
-            "missingFields": ["messagesTotal", "messagesUnread", "threadsTotal", "threadsUnread"],
+            "result": { "items": "labels[*]", "fields": { "id": { "first": ["id", "labelId"] }, "type": { "first": ["type", "labelType"] } } },
+            "fidelity": "adapted",
+            "missingFields": [],
             "understood": ["operation", "resource", "labelId"],
             "review": [{"reason":"the tool lists every label; n8n returns the one with labelId, so a Filter step is needed after it"}]
           },
@@ -267,8 +267,8 @@
             "effect": "read",
             "args": { "threadId": "threadId" },
             "result": {},
-            "fidelity": "unverified",
-            "missingFields": ["historyId", "messages"],
+            "fidelity": "adapted",
+            "missingFields": [],
             "understood": ["operation", "resource", "threadId", "simple"]
           },
           "getAll": {
@@ -281,8 +281,8 @@
               "includeTrash": { "param": "filters.includeSpamTrash" }
             },
             "result": { "items": "threads[*]", "fields": { "snippet": "messages[0].snippet" } },
-            "fidelity": "unverified",
-            "missingFields": ["historyId"],
+            "fidelity": "adapted",
+            "missingFields": [],
             "understood": ["operation", "resource", "returnAll", "limit", "filters.q", "filters.readStatus", "filters.includeSpamTrash"],
             "review": [{"param":"returnAll", "equals":true, "reason":"n8n returns every thread; the tool returns one page of at most 50"}]
           },
@@ -374,10 +374,10 @@
               "pageSize": { "const": 50 },
               "includeTrash": { "param": "filters.includeSpamTrash" }
             },
-            "result": { "items": "threads[*].messages[*]", "fields": { "threadId": "^.id", "From": "sender", "To": { "join": "toRecipients" }, "Cc": { "join": "ccRecipients" }, "Subject": "subject" } },
+            "result": { "items": "threads[*].messages[*]", "fields": { "threadId": "^.id", "From": { "addressLine": "sender", "names": "addressDisplayNames" }, "To": { "addressLine": "toRecipients", "names": "addressDisplayNames" }, "Cc": { "addressLine": "ccRecipients", "names": "addressDisplayNames" }, "Subject": "subject" } },
             "cursor": { "field": "date", "strategy": "max", "idField": "id", "arg": "query", "template": "after:{seconds}", "resolutionMs": 1000 },
-            "fidelity": "unverified",
-            "missingFields": ["historyId", "internalDate", "labels", "payload", "sizeEstimate"],
+            "fidelity": "partial",
+            "missingFields": ["labels", "payload"],
             "detail": {
               "tool": "get_message",
               "args": { "messageFormat": { "if": { "param": "simple", "equals": false, "default": true }, "then": { "const": "FULL_CONTENT" }, "else": { "const": "MINIMAL" } } },
@@ -999,10 +999,11 @@
             "connector": "notion",
             "tool": "notion-search",
             "effect": "read",
-            "args": { "query": "text" },
+            "args": { "query": "text", "page_size": { "if": { "param": "returnAll", "equals": true, "default": false }, "then": { "const": 50 }, "else": { "param": "limit", "default": 50 } } },
             "result": { "items": "results[*]", "fields": { "name": { "first": ["name", "title"] } } },
             "fidelity": "partial",
             "missingFields": ["property_*"],
+            "review": [{ "param": "returnAll", "equals": true, "reason": "n8n reads every result; the tool returns at most 50" }],
             "understood": ["operation", "resource", "text", "returnAll", "limit", "simple", "options"]
           }
         }
