@@ -205,31 +205,68 @@ blocks its trigger instead of leaving it waiting for a call that never comes.
 
 ## Install
 
+**See what fits, in one command.** Nothing is installed and nothing changes in n8n:
+
+```sh
+npx n8n-to-claude
+```
+
+It asks where your workflows are, recommending a browser sign-in to your n8n,
+then opens the report in your browser: every workflow with its verdict and the reason. Or say it up front:
+`npx n8n-to-claude you.app.n8n.cloud`, an n8n.io link, an export file, or
+`npx n8n-to-claude popular` to try it on the most-viewed templates.
+
+**Move them** with the skill, in Claude Code:
+
 ```sh
 npx skills add lunox-work/n8n-to-claude -g
 ```
 
-In Claude Code the repository is also a plugin marketplace:
+or as a plugin:
 
 ```sh
 /plugin marketplace add lunox-work/n8n-to-claude
 /plugin install n8n-to-claude@n8n-to-claude
 ```
 
-For chat or Desktop, upload the skill zip (`node scripts/skill.mjs pack`
-builds `dist-skills/n8n-to-claude-<version>.zip`).
+In the Claude app (chat, Desktop, Cowork), download
+[n8n-to-claude.zip](https://github.com/lunox-work/n8n-to-claude/releases/latest/download/n8n-to-claude.zip)
+and upload it under Customize > Skills.
 
-Then hand your agent an export: _"can these n8n workflows run on Claude?"_ or
-paste the workflow JSON. Needs Node 20 or later and nothing else: the skill's
-scripts have no dependencies. Without the skill:
+Then ask your agent _"can my n8n workflows run on Claude?"_ and give it
+whichever is easiest:
+
+| You have                             | Give it                                                                         |
+| ------------------------------------ | ------------------------------------------------------------------------------- |
+| n8n's MCP server connected to Claude | nothing: it lists your workflows and reads the ones you pick                    |
+| a template you like on n8n.io        | the link                                                                        |
+| an n8n login                         | your n8n address: it opens n8n's sign-in page and reads what you share over MCP |
+| a workflow open in the n8n editor    | select all, copy, paste into the chat                                           |
+| an n8n API key                       | `N8N_BASE_URL` and `N8N_API_KEY` in your environment: it reads every workflow   |
+| an export file                       | the file or folder (editor Download or `n8n export:workflow --all`)             |
+
+n8n's own MCP server (Settings > Instance-level MCP) and the community
+`n8n-mcp` server both work. Signing in uses n8n's OAuth, which n8n offers for
+its MCP server only, so it and n8n's MCP server read only workflows set
+"Available in MCP"; an API key reads them all. Your key stays in your environment; never paste
+it into a chat.
+
+Switching over works the same way: with the sign-in, n8n asks once more to let
+it switch the workflow off and read its executions. A key is needed only to
+roll back a workflow with a poll trigger, or to switch over one whose trigger
+polls anything but Gmail, since n8n keeps those positions where MCP cannot
+reach.
+
+Needs Node 20 or later and nothing else: the skill's scripts have no
+dependencies. Without the skill:
 
 ```sh
-node skills/n8n-to-claude/scripts/analyze.mjs workflows.json
-node skills/n8n-to-claude/scripts/convert.mjs workflows.json --out ../my-flows
+node skills/n8n-to-claude/scripts/pull.mjs https://n8n.io/workflows/<id> --out exports
+# or: pull.mjs --login https://you.app.n8n.cloud --out exports   (browser sign-in)
+# or: pull.mjs n8n --out exports                                 (N8N_BASE_URL + N8N_API_KEY)
+node skills/n8n-to-claude/scripts/analyze.mjs exports --html report.html
+node skills/n8n-to-claude/scripts/convert.mjs exports --out ../my-flows
 ```
-
-Get an export from the n8n editor (workflow menu > Download) or the n8n CLI:
-`n8n export:workflow --all --output=workflows.json`.
 
 ## How it works
 
