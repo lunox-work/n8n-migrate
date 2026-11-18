@@ -36,8 +36,8 @@ What to tell them, accurately:
 - Gmail, Slack, Google Drive and Notion reads are checked against real
   connector output (2026-11-18); connector writes other than Gmail drafts and a
   Slack post are not. Do the dry run before cutover.
-- Cloud tasks with connector calls, their hooks, local runs and the artifact
-  runtime have run on a real account. A cloud task is not offered a connector
+- Cloud tasks with connector calls, their hooks, Desktop tasks and the
+  artifact runtime have run on a real account. A cloud task is not offered a connector
   tool that is Blocked in the connector's settings on claude.ai.
 - Never create a task, publish an artifact, push a repository or run a
   cutover step without the person's go-ahead.
