@@ -3,7 +3,7 @@
 // (agentskills.io/specification), and the Claude plugin around it.
 //
 //   node scripts/skill.mjs check                     the rules below; exit 1 on any
-//   node scripts/skill.mjs sync                      write VERSION into both manifests
+//   node scripts/skill.mjs sync                      write VERSION into the manifests and package.json
 //   node scripts/skill.mjs pack                      dist-skills/<name>-<version>.zip
 //   node scripts/skill.mjs plugin-branch [--out <dir>] [--push]
 //                                                    build the claude-plugin branch's commit
@@ -49,7 +49,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SKILLS = join(ROOT, "skills");
 const NAME = "n8n-to-claude";
-const MANIFESTS = [".claude-plugin/plugin.json", ".claude-plugin/marketplace.json"];
+const MANIFESTS = [".claude-plugin/plugin.json", ".claude-plugin/marketplace.json", "package.json"];
 const MAX_FILE = 5 * 1024 * 1024;
 const PLUGIN_BRANCH = "claude-plugin";
 const PLUGIN_FILES = [".claude-plugin/icon.png", "LICENSE", "skills"];
@@ -177,6 +177,8 @@ export function check(root = ROOT) {
   const listed = market?.plugins?.find((p) => p.name === NAME);
   if (!listed) problems.push(`${MANIFESTS[1]}: no plugin named ${NAME}`);
   else if (listed.version !== undefined && listed.version !== VERSION) problems.push(`${MANIFESTS[1]}: version is not ${VERSION} (node scripts/skill.mjs sync)`);
+  const pkg = readJson(root, MANIFESTS[2]);
+  if (pkg && (pkg.name !== NAME || pkg.version !== VERSION)) problems.push(`${MANIFESTS[2]}: name and version are not ${NAME} ${VERSION} (node scripts/skill.mjs sync)`);
   const icon = join(root, ".claude-plugin", "icon.png");
   if (!existsSync(icon) || readFileSync(icon).subarray(1, 4).toString() !== "PNG") problems.push(".claude-plugin/icon.png: missing or not a PNG (node assets/src/render.mjs icon)");
   return { problems, notes };

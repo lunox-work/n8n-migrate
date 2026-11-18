@@ -1,0 +1,35 @@
+# Attaches the skill zip to the GitHub release of a version tag, under a fixed name too, so
+# https://github.com/lunox-work/n8n-to-claude/releases/latest/download/n8n-to-claude.zip always
+# serves the latest one (upload it in the Claude app: Customize > Skills). Run by hand for an
+# existing tag with "Run workflow".
+name: release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (for example v0.1.0)"
+        required: true
+permissions:
+  contents: write
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/skill.mjs check
+      - run: node scripts/skill.mjs pack
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          cp dist-skills/n8n-to-claude-*.zip dist-skills/n8n-to-claude.zip
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --generate-notes
+          gh release upload "$TAG" dist-skills/*.zip --clobber

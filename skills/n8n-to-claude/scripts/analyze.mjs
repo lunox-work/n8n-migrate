@@ -2564,10 +2564,10 @@ export function renderText(report, color = false) {
 
 // ---------- CLI ----------
 
-const USAGE = "usage: analyze.mjs <path|-> [--json] [--out file] [--answers file] [--now ISO] [--nodes path] [--capabilities path] [--hosts path]";
+const USAGE = "usage: analyze.mjs <path|-> [--json] [--out file] [--html file] [--answers file] [--now ISO] [--nodes path] [--capabilities path] [--hosts path]";
 
 function parseArgs(argv) {
-  const a = { input: null, json: false, out: null, nodes: join(REFS, "nodes.json"), capabilities: join(REFS, "capabilities.json"), hosts: join(REFS, "http-hosts.json"), answers: null, now: null };
+  const a = { input: null, json: false, out: null, html: null, nodes: join(REFS, "nodes.json"), capabilities: join(REFS, "capabilities.json"), hosts: join(REFS, "http-hosts.json"), answers: null, now: null };
   for (let i = 0; i < argv.length; i++) {
     const x = argv[i];
     const val = () => {
@@ -2576,6 +2576,7 @@ function parseArgs(argv) {
     };
     if (x === "--json") a.json = true;
     else if (x === "--out") a.out = resolve(val());
+    else if (x === "--html") a.html = resolve(val());
     else if (x === "--nodes") a.nodes = resolve(val());
     else if (x === "--capabilities") a.capabilities = resolve(val());
     else if (x === "--hosts") a.hosts = resolve(val());
@@ -2589,7 +2590,7 @@ function parseArgs(argv) {
   return a;
 }
 
-function main() {
+async function main() {
   let a;
   try {
     a = parseArgs(process.argv.slice(2));
@@ -2631,6 +2632,11 @@ function main() {
     process.exit(2);
   }
   const report = analyze(input.items, { nodes, capabilities, hosts, answers, now, inputErrors: input.errors });
+  if (a.html) {
+    const { renderHtml } = await import("./report-html.mjs");
+    writeFileSync(a.html, renderHtml(report, { generated: new Date(now).toISOString().slice(0, 16).replace("T", " ") + " UTC" }));
+    console.error(`wrote ${a.html}`);
+  }
   const text = a.json ? JSON.stringify(report, null, 2) + "\n" : renderText(report, !a.out && process.stdout.isTTY);
   if (a.out) {
     writeFileSync(a.out, text);
