@@ -81,10 +81,10 @@
         "args": { "channel_id": "C0123456789", "message": "=*{{ $('Get unread mail').item.json.Subject }}*\n{{ $json.text }}" },
         "effect": "write",
         "coerce": { "channel_id": "string", "message": "string" },
-        "result": { "fields": { "ok": { "const": true } } },
-        "fidelity": "unverified",
-        "missingFields": ["channel", "message", "message_timestamp"],
-        "caveats": ["n8n appends a link to the workflow unless the option is off; the tool does not.", "The tool reads standard markdown (**bold**); n8n sends Slack mrkdwn (*bold*)."],
+        "result": { "fields": { "ok": { "const": true }, "channel": "message_context.channel_id", "message_timestamp": "message_context.message_ts", "ts": "message_context.message_ts" } },
+        "fidelity": "partial",
+        "missingFields": ["message"],
+        "caveats": ["n8n appends a link to the workflow unless the option is off; the tool does not.", "The connector adds a \"*Sent using* Claude\" line under the message (observed 2026-11-18).", "The tool reads standard markdown (**bold**); n8n sends Slack mrkdwn (*bold*)."],
         "argsCheck": { "ok": true, "missing": [], "unknown": [] },
         "map": "n8n-nodes-base.slack@>=2 message:post"
       }

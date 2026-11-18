@@ -173,3 +173,8 @@ test("Gmail labels, drafts: n8n's type and message ids from the connector's fiel
   assert.deepEqual([draft[0].id, draft[0].message], ["r-1", { id: "m9", threadId: "t9" }]);
   assert.deepEqual(adaptResult(map("n8n-nodes-base.gmail", ">=2", "draft", "getAll").result, {}), []);
 });
+
+test("Slack post: the channel and timestamp come from message_context", () => {
+  const out = adaptResult(map("n8n-nodes-base.slack", ">=2", "message", "post").result, mcpValue([{ type: "text", text: JSON.stringify({ message_link: "https://x.slack.com/archives/D0TEST/p1794979243329779", message_context: { message_ts: "1794979243.329779", channel_id: "D0TEST" } }) }]));
+  assert.deepEqual([out[0].ok, out[0].channel, out[0].message_timestamp, out[0].ts], [true, "D0TEST", "1794979243.329779", "1794979243.329779"]);
+});

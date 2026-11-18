@@ -277,16 +277,18 @@
           "fields": {
             "ok": {
               "const": true
-            }
+            },
+            "channel": "message_context.channel_id",
+            "message_timestamp": "message_context.message_ts",
+            "ts": "message_context.message_ts"
           }
         },
-        "fidelity": "unverified",
+        "fidelity": "partial",
         "missingFields": [
-          "channel",
-          "message",
-          "message_timestamp"
+          "message"
         ],
         "caveats": [
+          "The connector adds a \"*Sent using* Claude\" line under the message (observed 2026-11-18).",
           "The tool reads standard markdown (**bold**); n8n sends Slack mrkdwn (*bold*)."
         ],
         "argsCheck": {

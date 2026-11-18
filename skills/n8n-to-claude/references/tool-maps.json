@@ -432,11 +432,12 @@
               "reply_broadcast": "otherOptions.thread_ts.replyValues.reply_broadcast",
               "unfurl_app_links": "otherOptions.unfurl_links"
             },
-            "result": { "fields": { "ok": { "const": true } } },
-            "fidelity": "unverified",
-            "missingFields": ["channel", "message", "message_timestamp"],
+            "result": { "fields": { "ok": { "const": true }, "channel": "message_context.channel_id", "message_timestamp": "message_context.message_ts", "ts": "message_context.message_ts" } },
+            "fidelity": "partial",
+            "missingFields": ["message"],
             "caveats": [
               { "text": "n8n appends a link to the workflow unless the option is off; the tool does not.", "unless": { "param": "otherOptions.includeLinkToWorkflow", "equals": false } },
+              "The connector adds a \"*Sent using* Claude\" line under the message (observed 2026-11-18).",
               "The tool reads standard markdown (**bold**); n8n sends Slack mrkdwn (*bold*)."
             ],
             "understood": [
