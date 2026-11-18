@@ -1,54 +1,123 @@
+<p align="center">
+  <img src=".claude-plugin/icon.png" width="112" alt="n8n-to-claude: an n8n workflow graph moving into a Claude chat bubble">
+</p>
+
 <h1 align="center">n8n-to-claude</h1>
 
 <p align="center">
-  <strong>Move your n8n workflows onto your Claude subscription.</strong><br>
-  Hand it an n8n export. Every workflow gets a verdict and the reason, worked out by code from the file alone.<br>
-  The ones that fit become scheduled tasks, skills or artifact pages that Claude runs step by step from code. The rest are named, with what they would need.
+  <strong>Run your n8n workflows in Claude.</strong><br>
+  <em>One command shows which of your n8n workflows run on the Claude plan you already pay for.<br>The ones that do move, and n8n switches off without sending anything twice.</em>
 </p>
 
 <p align="center">
-  <a href="#status-beta"><img src="https://img.shields.io/badge/status-beta-orange?style=flat-square" alt="status: beta"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT license"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-node_--test-2ea44f?style=flat-square" alt="tests: node --test"></a>
-  <a href="skills/n8n-to-claude/SKILL.md"><img src="https://img.shields.io/badge/node-%E2%89%A520-339933?style=flat-square" alt="Node 20 or later"></a>
-  <a href="skills/n8n-to-claude/SKILL.md"><img src="https://img.shields.io/badge/Claude_Code-skill-D97757?style=flat-square" alt="Claude Code skill"></a>
+  <a href="https://www.npmjs.com/package/n8n-to-claude"><img src="https://img.shields.io/npm/v/n8n-to-claude?style=flat-square&color=111111&label=npm" alt="npm version"></a>
+  <a href="https://github.com/lunox-work/n8n-to-claude/stargazers"><img src="https://img.shields.io/github/stars/lunox-work/n8n-to-claude?style=flat-square&color=111111&label=stars" alt="GitHub stars"></a>
+  <a href="#install"><img src="https://img.shields.io/badge/works_with-Claude_Code_·_Desktop_·_claude.ai-111111?style=flat-square" alt="Works with Claude Code, Claude Desktop and claude.ai"></a>
+  <a href="#status-beta"><img src="https://img.shields.io/badge/status-beta-111111?style=flat-square" alt="status: beta"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-111111?style=flat-square" alt="MIT license"></a>
+  <a href="https://skills.sh/lunox-work/n8n-to-claude"><img src="https://skills.sh/b/lunox-work/n8n-to-claude" alt="skills.sh"></a>
 </p>
 
 <!-- Hero figures and their sources: assets/src/index.html (comment at the top). -->
 <p align="center">
-  <img src="assets/hero.png" width="100%" alt="Move your n8n workflows onto your Claude subscription. What can move: 68 of the 100 most-viewed n8n templates run on the subscription by the analyzer's verdict; 21 need hosting, 10 stay in n8n, 1 is replaced by Claude. Moved in one shot, round 5: 50 of 120 dev templates and 7 of 20 held-out templates pass all 8 gates against the same template running in n8n; 62 of the 120 dev templates have every step supported by the converter. Sent twice at cutover: 0 of 9 items when n8n goes off before Claude goes on; with Claude on while n8n is on, 2 of 2 were sent twice.">
+  <img src="assets/hero.png" width="100%" alt="Run your n8n workflows in Claude. Sign in to n8n, and every workflow gets a verdict in a second; the ones that fit become scheduled tasks, skills and artifact pages that Claude runs step by step from code. A flow: your n8n workflow, then the command npx n8n-to-claude with real verdicts (Email summary agent to a cloud task, Suggest meeting slots using AI to a local task, AI agent chat to a skill, Flux AI image generator to an artifact form, Telegram AI chatbot needs hosting), then Claude: scheduled task, Desktop task, skill, artifact page. Stats: 1 command to get started with no API key; 100 workflows checked in 0.14 seconds against about 7 minutes asking Claude one by one; wrong move-it 0 of 19, against 6 for Claude Sonnet alone and 7 for Claude Opus alone; 0 messages sent twice at switch-over, against 2 of 2 with both systems on.">
+</p>
+
+<p align="center">
+  <strong>One command &middot; no API key &middot; 100 workflows checked in 0.14 s &middot; nothing sent twice at switch-over.</strong><br>
+  <strong>Ask Claude alone and it says "move it" to 6 of 19 workflows that can't.</strong> Opus: 7. n8n-to-claude: 0.<br>
+  <sub>68 of the 100 most-viewed n8n templates fit the subscription. Conversion is early: 7 of 20 never-seen workflows moved in one shot with the same effects as n8n. Claude alone: 40 templates with a hand label or a bench pass, the same four outcomes and the export, one answer each. Switch-over against n8n 2.47.7 in Docker. <a href="#proof">Details</a>.</sub>
 </p>
 
 <!-- 68: evals/bench/corpus.json rank 1-100, today's analyzer verdicts (current* fields, P127; refreshed 2026-11-16 after the
      n8n node's reads moved): node evals/bench/summary.mjs: subscription 68, hosted 21, keep-in-n8n 10, replaced 1 (draw day 67).
+     6 of 19, 7 of 19, 0 of 19: evals/compare-claude/results.jsonl (node evals/compare-claude/run.mjs, 2026-11-18).
+     0.14 s: analyze.mjs on those 100, median of 10 runs with Node start (assets/src/index.html).
      7 of 20 and 50 of 120: evals/results.jsonl tags rel5-held, rel5-dev (flips: rel5-held-rec);
      node evals/bench/summary.mjs --release rel5-dev rel5-held --flips 0; evals/bench/RELEASE-5.md (commit b0143fb).
      Round 5's dev = round 4's 100 + round 4's 20 scored held-out. Round 4 rebuilt the corpus (evals/bench/EXCLUSIONS.md,
      Round 4 eligibility), so rounds 4-5 do not compare with rounds 1-3.
-     0 of 9: evals/cutover/results.jsonl (items, optionA.doubleSent).
-     19 of 20 and 14 of 20: node evals/bench/summary.mjs, "refusal accuracy" (evals/bench/labels.json vs the analyzer):
-     outcome 19, everything 14; 3 of the 6 misses are only an extra hosts question, added after the labels were written. -->
-<table>
-<tr>
-<td align="center" width="25%"><h3>68 of 100</h3>popular n8n templates<br>fit the subscription<br><sub>by the verdict; 21 need hosting, 10 stay in n8n</sub></td>
-<td align="center" width="25%"><h3>7 of 20</h3>never-seen templates<br>moved in one shot<br><sub>same effects as n8n running them; 50 of 120 on the templates it was tuned on</sub></td>
-<td align="center" width="25%"><h3>0 of 9</h3>messages sent twice<br>through switch-over and back<br><sub>against live n8n; the wrong order sent 2 of 2 twice</sub></td>
-<td align="center" width="25%"><h3>19 of 20</h3>"don't move" verdicts<br>right<br><sub>templates labelled by hand as ones that should not move</sub></td>
-</tr>
-</table>
+     0 of 9: evals/cutover/results.jsonl (items, optionA.doubleSent). -->
 
 <p align="center">
-  <a href="#status-beta">Status</a> •
-  <a href="#before--after">Before/After</a> •
-  <a href="#install">Install</a> •
-  <a href="#how-it-works">How it works</a> •
-  <a href="#proof">Proof</a> •
-  <a href="#security">Security</a> •
-  <a href="#limits">Limits</a> •
+  <a href="#get-started-30-seconds">Get started</a> &middot;
+  <a href="#claude-alone-guesses-n8n-to-claude-asks">Why not just ask Claude</a> &middot;
+  <a href="#install">Install</a> &middot;
+  <a href="#how-it-works">How it works</a> &middot;
+  <a href="#proof">Proof</a> &middot;
+  <a href="#security">Security</a> &middot;
+  <a href="#limits">Limits</a> &middot;
   <a href="docs/REFERENCE.md">Reference</a>
 </p>
 
 ---
+
+## Get started (30 seconds)
+
+```sh
+npx n8n-to-claude
+```
+
+It asks where your workflows are and recommends the easiest: sign in to your
+n8n in the browser (no key to create). An n8n.io link, an export file, or
+`npx n8n-to-claude popular` to try it on the most-viewed templates work too.
+That's it. You get:
+
+```
+n8n-to-claude/
+├── report.html   every workflow, its verdict and the reason, opened in your browser
+├── report.json   the same, for your agent
+└── exports/      the workflows it read
+```
+
+<p align="center">
+  <img src="assets/report.png" width="90%" alt="The report page for the 100 most-viewed n8n templates: 68 move to your Claude subscription, 1 is replaced by Claude, 21 need hosting, 10 stay in n8n; each workflow shows why, what it needs and what to set up.">
+</p>
+
+Nothing is converted and nothing changes in n8n. To move the ones that fit,
+add the skill (`npx skills add lunox-work/n8n-to-claude -g`) and tell Claude
+Code _"convert my n8n workflows in n8n-to-claude/exports"_.
+
+## Claude alone guesses. n8n-to-claude asks.
+
+The same Telegram bot export, given to Claude Sonnet with the four outcomes,
+and to n8n-to-claude:
+
+<!-- Template 4110, evals/compare-claude/results.jsonl (claude-sonnet row, verbatim "why") and
+     analyze.mjs on evals/bench/data/wf/4110.json (2026-11-18; long lines cut at …). -->
+<table>
+<tr>
+<th width="50%">Claude Sonnet alone</th>
+<th width="50%">n8n-to-claude</th>
+</tr>
+<tr>
+<td valign="top">
+
+> **subscription.** The Telegram trigger is only the owner sending a TikTok link, so it can become a skill they chat with in Claude, and every other step (…) is an API call Claude can make.
+
+</td>
+<td valign="top">
+
+```
+Clone viral TikToks with AI avatars … — hosted
+  elsewhere (API key) · relay, script+model
+  why: people wait in a chat app for each reply,
+    which a model writes
+  ? Who messages "Trigger: Get TikTok URL via
+    Telegram" and waits for the replies: outsiders
+    (customers, other people), only you, or nobody
+    waits?
+```
+
+</td>
+</tr>
+</table>
+
+**Claude assumed only the owner messages the bot. The export can't say.**
+n8n-to-claude names the assumption and asks; answer "only you" and the bot
+moves as a local task. On 19 workflows hand-labelled as unable to move,
+Claude Sonnet alone said "move it" to 6 and Opus to 7. n8n-to-claude said it
+to none, from code, in milliseconds, the same way every time.
 
 ## Status: beta
 
@@ -205,16 +274,7 @@ blocks its trigger instead of leaving it waiting for a call that never comes.
 
 ## Install
 
-**See what fits, in one command.** Nothing is installed and nothing changes in n8n:
-
-```sh
-npx n8n-to-claude
-```
-
-It asks where your workflows are, recommending a browser sign-in to your n8n,
-then opens the report in your browser: every workflow with its verdict and the reason. Or say it up front:
-`npx n8n-to-claude you.app.n8n.cloud`, an n8n.io link, an export file, or
-`npx n8n-to-claude popular` to try it on the most-viewed templates.
+**See what fits:** `npx n8n-to-claude` ([Get started](#get-started-30-seconds)).
 
 **Move them** with the skill, in Claude Code:
 
@@ -321,6 +381,18 @@ the same result three times.
 - **Switch-over against live n8n:** 9 messages, each sent once, through
   switch-over and rollback; turning Claude on before n8n is off sent 2 of 2
   twice.
+- **Claude alone is too eager.** 40 templates: the 20 hand labels (written
+  before the analyzer was read for them) and 20 drawn with a fixed seed from
+  the templates that passed the bench. Each model got the four outcomes and
+  the export, no tools, one answer
+  ([evals/compare-claude](evals/compare-claude/)). Of the 19 that cannot move,
+  Claude Sonnet alone said "move it" to 6 and Opus to 7; n8n-to-claude to 0.
+  All three got the 21 that move right, the analyzer by construction for the
+  20 bench passes. Read it fairly: one answer per model on a small set; some
+  "can't move" labels are about what n8n-to-claude runs today (a vector
+  store, a person approving mid-run), which Claude alone could not know; and
+  on one (2462) Opus spotted an allow-list of one chat, which the label
+  overlooks.
 
 Method, every round's numbers, the losses and what has been run on a real
 account: [docs/PROOF.md](docs/PROOF.md).
@@ -387,7 +459,7 @@ account: [docs/PROOF.md](docs/PROOF.md).
   forwarder for relay workflows, Wait nodes that resume on a webhook, forms
   that wait for a person, sub-workflows missing from the export, community
   nodes beyond one-off mappings, error workflows (the runner's failure alert
-  replaces them), pulling from a live n8n instance.
+  replaces them).
 - **Runs where Claude runs.** Cloud tasks run at most hourly; local tasks
   need the app open and the computer awake. Runs share your usage window.
 - **Google REST steps** (Sheets writes, Calendar) need an access token that

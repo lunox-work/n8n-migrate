@@ -1,5 +1,8 @@
 <!doctype html>
-<!-- Source of assets/hero.png; render with `PLAYWRIGHT=<dir with node_modules/playwright> node assets/src/render.mjs hero`.
+<!-- Source of assets/hero.png; the terminal lines are real verdicts of analyze.mjs on templates of rank 1-100
+       (evals/bench/data/wf, 2026-11-18): Email summary agent cloud-task, Suggest meeting slots using AI local-task,
+       AI agent chat skill, Flux AI image generator artifact-form, Telegram AI chatbot hosted (key; the reason is shortened);
+       the n8n graph is a generic illustration. render with `PLAYWRIGHT=<dir with node_modules/playwright> node assets/src/render.mjs hero`.
      "68 of 100": evals/bench/corpus.json templates rank 1-100, today's analyzer verdict with default answers (current*
        fields, P127; refreshed 2026-11-16): node evals/bench/summary.mjs: subscription 68, hosted 21, keep-in-n8n 10,
        replaced 1 (draw day 67).
@@ -11,6 +14,13 @@
        Dev passes: 585 1747 1900 1951 1953 1954 1957 1959 1963 1980 2006 2063 2085 2090 2139 2163 2197 2299 2384 2433
        2473 2537 2552 2567 2572 2605 2612 2614 2648 2694 2695 2703 2729 2777 2799 2803 2813 2824 2859 2883 2956 3018
        3085 3086 3102 3132 3904 4573 5035 13270; held-out passes are named in RELEASE-5.md only.
+     "Claude alone 6 of 19" vs "0 of 19": evals/compare-claude/results.jsonl, node evals/compare-claude/run.mjs (2026-11-18):
+       the 19 hand-labelled templates whose label is not subscription (evals/bench/labels.json); claude-sonnet answered
+       subscription for 6 (2606 2982 3050 3066 3135 4110), the analyzer for 0; on the 21 that move both said subscription.
+       claude-opus (same file, model opus): subscription for 7 (2462 2606 2982 3050 3066 3135 4110); 21 of 21 on the rest.
+     "0.14 s": node skills/n8n-to-claude/scripts/analyze.mjs on the 100 templates of rank 1-100 (evals/bench/data/wf),
+       wall time with Node start, median of 10 runs on an M-series MacBook (min 0.13, max 0.18); Claude Sonnet alone took
+       4.1 s per workflow on average in the run above (evals/compare-claude/results.jsonl, ms).
      "0 sent twice": evals/cutover/results.jsonl (one e2e run, 2026-11-14): 9 items over 100 each sent by exactly one system
        across cutover and rollback; the rejected order (task on while n8n on) sent 2 of 2 twice (optionA.doubleSent). -->
 <html>
@@ -39,15 +49,20 @@ body { background: #000; }
 .scene::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 50% at 50% 0%, rgb(255 255 255 / 0.06), transparent); }
 .scene > * { position: relative; }
 .mark { font-family: Mono; font-size: 16px; font-weight: 500; letter-spacing: 0.02em; }
-h1 { font-family: Display; font-weight: 600; letter-spacing: -0.03em; font-size: 50px; line-height: 1.1; }
+h1 { font-family: Display; font-weight: 600; letter-spacing: -0.035em; font-size: 64px; line-height: 1.04; }
+.sub { font-size: 21px; color: var(--dim); max-width: 940px; line-height: 1.45; margin-top: -14px; }
+.sub b { color: var(--text); font-weight: 500; }
 h1 em { font-style: normal; color: var(--ok); }
-.cols { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.col { display: flex; flex-direction: column; gap: 20px; padding: 30px 32px; }
+.cols { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.col { display: flex; flex-direction: column; gap: 18px; padding: 30px 26px; }
 .col:first-child { padding-left: 0; }
 .col:last-child { padding-right: 0; }
 .col + .col { border-left: 1px solid var(--line); }
 .label { font-family: Mono; font-size: 14px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
-.num { font-family: Display; font-weight: 600; letter-spacing: -0.04em; line-height: 0.9; font-size: 84px; }
+.num { font-family: Display; font-weight: 600; letter-spacing: -0.04em; line-height: 0.9; font-size: 76px; white-space: nowrap; }
+.bad { color: var(--bad); }
+.bar { height: 12px; border-radius: 3px; background: var(--ok); box-shadow: 0 0 10px rgb(34 197 94 / 0.55); }
+.bar.slow { background: var(--mid); box-shadow: none; }
 .num small { color: var(--muted); font-size: 0.42em; letter-spacing: -0.02em; margin-left: 10px; }
 .ok { color: var(--ok); }
 .of { font-family: Mono; font-size: 15px; color: var(--muted); line-height: 1.5; }
@@ -57,64 +72,131 @@ h1 em { font-style: normal; color: var(--ok); }
 .grid u.f { background: var(--bad); opacity: 0.85; }
 .grid u.m { background: var(--mid); }
 .row { display: flex; flex-direction: column; gap: 8px; }
-.rowlabel { font-family: Mono; font-size: 13px; color: var(--dim); display: flex; justify-content: space-between; }
+.rowlabel { font-family: Mono; font-size: 13px; color: var(--dim); display: flex; justify-content: space-between; gap: 8px; white-space: nowrap; }
 .key { display: flex; flex-wrap: wrap; gap: 6px 16px; font-family: Mono; font-size: 13px; color: var(--dim); }
 .key i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 .foot { font-family: Mono; font-size: 14px; color: var(--muted); }
+
+.flow { display: grid; grid-template-columns: 1.05fr 32px 1.25fr 32px 1fr; align-items: stretch; }
+.panel { border: 1px solid var(--line); border-radius: 12px; background: rgb(255 255 255 / 0.02); padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+.ptitle { font-family: Mono; font-size: 13px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+.arrow { align-self: center; justify-self: center; color: var(--muted); font-family: Display; font-size: 26px; }
+.graph { position: relative; height: 150px; width: 300px; }
+.node { position: absolute; font-family: Mono; font-size: 12px; color: var(--dim); background: #18181b; border: 1px solid #3f3f46; border-radius: 8px; padding: 7px 10px; white-space: nowrap; }
+.graph svg { position: absolute; inset: 0; }
+.term { font-family: Mono; font-size: 13.5px; line-height: 1.75; color: var(--dim); }
+.term .cmd { color: var(--text); }
+.term .cmd b { color: var(--ok); font-weight: 500; }
+.term .ok { color: var(--ok); }
+.term .warn { color: #fbbf24; }
+.term .t { color: var(--muted); }
+.surf { display: flex; flex-direction: column; gap: 9px; }
+.surf div { display: flex; justify-content: space-between; gap: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 15px; }
+.surf div span { font-family: Mono; font-size: 12px; color: var(--muted); }
+.pnote { font-family: Mono; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+.mini { display: flex; flex-direction: column; gap: 7px; }
+.mini .rowlabel { font-size: 12.5px; }
+.dots { display: flex; gap: 4px; }
+.dots u { width: 13px; height: 13px; border-radius: 2px; background: var(--ok); }
+.dots u.f { background: var(--bad); }
 </style>
 </head>
 <body>
 
 <section class="scene" id="hero">
   <div class="mark">n8n-to-claude</div>
-  <h1>Move your n8n workflows<br><em>onto your Claude subscription.</em></h1>
-  <div class="cols">
-    <div class="col">
-      <div class="label">What can move</div>
-      <div class="num ok">68<small>of 100</small></div>
-      <div class="grid" id="top" style="grid-template-columns: repeat(20, 1fr); gap: 4px"></div>
-      <div class="key"><span><i style="background:var(--ok)"></i>68 subscription</span><span><i style="background:var(--mid)"></i>21 hosting</span><span><i style="background:var(--bad)"></i>10 stay in n8n</span><span><i style="background:var(--cell);outline:1px solid #3f3f46"></i>1 replaced</span></div>
-      <div class="of">most-viewed n8n templates, classified<br>from the export alone, no model</div>
+  <h1>Run your n8n workflows<br><em>in Claude.</em></h1>
+  <p class="sub">Sign in to n8n, and every workflow gets a verdict in a second. The ones that fit become <b>scheduled tasks, skills and artifact pages</b> that Claude runs step by step from code, and n8n switches off without sending anything twice.</p>
+  <div class="flow">
+    <div class="panel">
+      <div class="ptitle">Your n8n</div>
+      <div class="graph">
+        <svg width="300" height="150" viewBox="0 0 300 150"><g stroke="#52525b" stroke-width="1.5" fill="none"><path id="e1"/><path id="e2"/><path id="e3"/></g></svg>
+        <div class="node" id="n-sched" style="left:0;top:12px">Schedule</div>
+        <div class="node" id="n-gmail" style="left:0;top:102px">Gmail</div>
+        <div class="node" id="n-agent" style="left:112px;top:57px">AI Agent</div>
+        <div class="node" id="n-slack" style="left:236px;top:57px">Slack</div>
+      </div>
+      <div class="pnote">sign in with your browser,<br>an n8n.io link, or an export</div>
     </div>
-    <div class="col">
-      <div class="label">Moved in one shot</div>
-      <div class="num ok">50<small>of 120</small></div>
-      <div class="row">
-        <div class="rowlabel"><span>dev, round 5</span><span>50 of 120</span></div>
-        <div class="grid" id="dev" style="grid-template-columns: repeat(30, 1fr); gap: 4px"></div>
+    <div class="arrow">→</div>
+    <div class="panel">
+      <div class="ptitle">One command</div>
+      <div class="term">
+        <div class="cmd">$ <b>npx n8n-to-claude</b> you.app.n8n.cloud</div>
+        <div><span class="ok">✓</span> Email summary agent <span class="t">→ cloud task</span></div>
+        <div><span class="ok">✓</span> Suggest meeting slots using AI <span class="t">→ local task</span></div>
+        <div><span class="ok">✓</span> AI agent chat <span class="t">→ skill</span></div>
+        <div><span class="ok">✓</span> Flux AI image generator <span class="t">→ artifact form</span></div>
+        <div><span class="warn">!</span> Telegram AI chatbot <span class="t">→ needs hosting</span></div>
       </div>
-      <div class="row">
-        <div class="rowlabel"><span>held-out, never tuned on</span><span>7 of 20</span></div>
-        <div class="grid" id="held" style="grid-template-columns: repeat(30, 1fr); gap: 4px"></div>
-      </div>
-      <div class="of">pass all 8 gates against the same<br>template running in n8n itself;<br>62 of 120 fully supported</div>
     </div>
-    <div class="col">
-      <div class="label">Sent twice at cutover</div>
-      <div class="num">0<small>of 9</small></div>
-      <div class="row">
-        <div class="rowlabel"><span>n8n off, then Claude on</span><span>each once</span></div>
-        <div class="grid" id="once" style="grid-template-columns: repeat(9, 1fr); gap: 6px"></div>
+    <div class="arrow">→</div>
+    <div class="panel">
+      <div class="ptitle">In Claude</div>
+      <div class="surf">
+        <div>Scheduled task <span>cloud · computer off</span></div>
+        <div>Desktop task <span>every minute</span></div>
+        <div>Skill <span>chat with it</span></div>
+        <div>Artifact page <span>form · Run now</span></div>
       </div>
-      <div class="row">
-        <div class="rowlabel"><span>Claude on while n8n is on</span><span>2 of 2 twice</span></div>
-        <div class="grid" id="twice" style="grid-template-columns: repeat(9, 1fr); gap: 6px"></div>
-      </div>
-      <div class="of">cutover and rollback against<br>live n8n, one Gmail-poll workflow</div>
+      <div class="pnote">on the plan you already pay for</div>
     </div>
   </div>
-  <div class="foot">n8n 2.47.7 in Docker as the baseline · top 100 by views, 2026-11-14 · evals/bench/RELEASE-5.md, evals/cutover/</div>
+  <div class="cols">
+    <div class="col">
+      <div class="label">To get started</div>
+      <div class="num ok">1<small>command</small></div>
+      <div class="of">no API key, no server, nothing to install: sign in to n8n in the browser</div>
+    </div>
+    <div class="col">
+      <div class="label">Check 100 workflows</div>
+      <div class="num ok">0.14<small>s</small></div>
+      <div class="mini">
+        <div class="rowlabel"><span>n8n-to-claude</span><span>0.14 s</span></div>
+        <div class="bar" style="width: 2%"></div>
+        <div class="rowlabel"><span>Claude, one by one</span><span>~7 min</span></div>
+        <div class="bar slow" style="width: 100%"></div>
+      </div>
+      <div class="of">code, not a model: same answer every run</div>
+    </div>
+    <div class="col">
+      <div class="label">Wrong "move it"</div>
+      <div class="num ok">0<small>of 19</small></div>
+      <div class="mini">
+        <div class="rowlabel"><span>Claude Sonnet alone</span><span class="bad">6 of 19</span></div>
+        <div class="dots" id="sonnet"></div>
+        <div class="rowlabel"><span>Claude Opus alone</span><span class="bad">7 of 19</span></div>
+        <div class="dots" id="opus"></div>
+      </div>
+      <div class="of">it asks where Claude alone guesses</div>
+    </div>
+    <div class="col">
+      <div class="label">Sent twice</div>
+      <div class="num ok">0</div>
+      <div class="mini">
+        <div class="rowlabel"><span>n8n off → Claude on</span><span>9 of 9 once</span></div>
+        <div class="dots" id="once"></div>
+        <div class="rowlabel"><span>both on at once</span><span class="bad">2 of 2 twice</span></div>
+        <div class="dots" id="twice"></div>
+      </div>
+      <div class="of">switch-over and rollback against live n8n</div>
+    </div>
+  </div>
+  <div class="foot">real verdicts on the 100 most-viewed n8n templates · n8n 2.47.7 in Docker · evals/compare-claude, evals/cutover</div>
 </section>
 
 <script>
-// 100 cells, one per template, in outcome order: subscription, hosting, keep in n8n, replaced.
-const outcomes = [...Array(68).fill("s"), ...Array(21).fill("m"), ...Array(10).fill("f"), "c"];
-document.getElementById("top").innerHTML = outcomes.map((k) => `<u class="${k}"></u>`).join("");
-const cells = (pass, of) => Array.from({ length: of }, (_, i) => `<u class="${i < pass ? "s" : "f"}"></u>`).join("");
-document.getElementById("dev").innerHTML = cells(50, 120);
-document.getElementById("held").innerHTML = cells(7, 20);
-document.getElementById("once").innerHTML = cells(9, 9);
-document.getElementById("twice").innerHTML = Array.from({ length: 9 }, (_, i) => `<u class="${i < 2 ? "f" : ""}" style="${i < 2 ? "" : "visibility:hidden"}"></u>`).join("");
+// 19 workflows that cannot move: green = said so, red = said "move it".
+const wrong = (n) => Array.from({ length: 19 }, (_, i) => `<u class="${i < 19 - n ? "" : "f"}"></u>`).join("");
+document.getElementById("sonnet").innerHTML = wrong(6);
+document.getElementById("opus").innerHTML = wrong(7);
+document.getElementById("once").innerHTML = "<u></u>".repeat(9);
+document.getElementById("twice").innerHTML = '<u class="f"></u><u class="f"></u>';
+// Edges from the nodes' measured boxes: right-middle of one to left-middle of the next.
+const box = (id) => { const g = document.querySelector(".graph").getBoundingClientRect(); const r = document.getElementById(id).getBoundingClientRect(); return { l: r.left - g.left, r: r.right - g.left, y: r.top - g.top + r.height / 2 }; };
+const edge = (pid, a, b) => { const A = box(a), B = box(b), m = (A.r + B.l) / 2; document.getElementById(pid).setAttribute("d", `M${A.r} ${A.y} C ${m} ${A.y}, ${m} ${B.y}, ${B.l} ${B.y}`); };
+document.fonts.ready.then(() => { edge("e1", "n-sched", "n-agent"); edge("e2", "n-gmail", "n-agent"); edge("e3", "n-agent", "n-slack"); });
 </script>
 </body>
 </html>
