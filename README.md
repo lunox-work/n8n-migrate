@@ -41,6 +41,7 @@
 
 <p align="center">
   <a href="#get-started-30-seconds">Get started</a> &middot;
+  <a href="#where-each-workflow-lands">Where workflows land</a> &middot;
   <a href="#claude-alone-guesses-n8n-to-claude-asks">Why not just ask Claude</a> &middot;
   <a href="#install">Install</a> &middot;
   <a href="#how-it-works">How it works</a> &middot;
@@ -77,6 +78,16 @@ n8n-to-claude/
 Nothing is converted and nothing changes in n8n. To move the ones that fit,
 add the skill (`npx skills add lunox-work/n8n-to-claude -g`) and tell Claude
 Code _"convert my n8n workflows in n8n-to-claude/exports"_.
+
+## Where each workflow lands
+
+<!-- assets/mapping.gif from assets/src/mapping.html (assets/src/gif.mjs); real verdicts, sources in its top comment. -->
+<p align="center">
+  <img src="assets/mapping.gif" width="100%" alt="Animation, 5 seconds, between the n8n and Claude logos: seven kinds of n8n workflow fly through n8n-to-claude to where they run in Claude. Schedule to a cloud task, Gmail poll to a Desktop task, chat to a skill, form to an artifact form, manual to a Run now page, a Telegram bot that outsiders message to needs hosting, an MCP server to Claude's connectors.">
+</p>
+
+What wakes a workflow and who waits on it decide where it runs. A caller who
+waits for a reply needs hosting, and the report says so instead of moving it.
 
 ## Claude alone guesses. n8n-to-claude asks.
 
