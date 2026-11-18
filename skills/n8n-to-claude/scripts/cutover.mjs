@@ -22,8 +22,14 @@
 //   checklist                   the checklist, as the artifact shows it
 //   shared-moved <kind:name> [--to where]  the person moved shared n8n state out of n8n
 //
-// n8n's API is used only when N8N_BASE_URL and N8N_API_KEY are set in the environment; the key
-// is never stored or printed. Without them the steps print what to do in n8n by hand.
+// n8n is reached through its REST API when N8N_BASE_URL and N8N_API_KEY are set in the
+// environment (the key is never stored or printed), else through its MCP server after a browser
+// sign-in when the step gets --login <your n8n address> (n8n-oauth.mjs; asks for workflow:write
+// and execution:read; one Approve click on n8n's consent page per step). MCP cannot read or write a
+// workflow's static data, so over a sign-in deactivate-n8n refuses a workflow whose poll trigger
+// keeps its position only there (all but Gmail, whose position its executions carry), and
+// rollback refuses one with a poll trigger; both before changing anything. Without either, the
+// steps print what to do in n8n by hand.
 //
 // Every step that changes something is written to the folder's record store (the store the
 // task itself uses: task.json store) as cutover/<at>-<step>, and meta/cutover says who may
@@ -37,6 +43,7 @@ import { fileURLToPath } from "node:url";
 import * as core from "../runtime/src/index.mjs";
 import { paths, loadTask, openStore, command, META_DRY_RUN } from "../runtime/src/driver.mjs";
 import { n8nFromEnv, createN8nClient, cursorsFromStaticData, cursorsFromExecutions, laterCursors, staticDataFromCursors, pollSteps } from "./n8n-api.mjs";
+import { signIn, mcpN8nClient, CUTOVER_SCOPES } from "./n8n-oauth.mjs";
 
 const OPEN = "meta/open";
 const SHARED_KINDS = new Set(["data-table", "vector-memory"]);
@@ -140,9 +147,29 @@ function withFolderLock(C, fn) {
 
 function n8nClient(C, ctx) {
   if (ctx.n8n) return ctx.n8n;
-  const cfg = n8nFromEnv(ctx.env ?? process.env);
-  return cfg ? createN8nClient({ ...cfg, fetch: ctx.fetch ?? globalThis.fetch, sleep: ctx.sleep }) : null;
+  const env = ctx.env ?? process.env;
+  const cfg = n8nFromEnv(env);
+  if (cfg) return createN8nClient({ ...cfg, fetch: ctx.fetch ?? globalThis.fetch, sleep: ctx.sleep });
+  const login = ctx.flags?.login;
+  if (login) {
+    const address = typeof login === "string" ? login : String(env.N8N_BASE_URL ?? "").trim();
+    if (!address) throw new Refused("--login needs your n8n address: --login https://<your n8n>.", 2);
+    const sign = ctx.signIn ?? signIn;
+    const client = mcpN8nClient(() => sign(address, { fetch: ctx.fetch ?? globalThis.fetch, env, scopes: CUTOVER_SCOPES }), { fetch: ctx.fetch ?? globalThis.fetch, sleep: ctx.sleep });
+    (ctx.closers ??= []).push(() => client.close());
+    return client;
+  }
+  return null;
 }
+
+// Over a sign-in (MCP) n8n's static data is out of reach: the poll steps whose position only it
+// holds. Gmail's comes from its executions (fromEmitted).
+function staticOnlyPolls(C) {
+  return pollSteps(C.definition)
+    .filter(({ step, spec }) => !(spec?.fromEmitted && !spec.unsupported(step)))
+    .map(({ name }) => name);
+}
+const NEEDS_KEY = "set N8N_BASE_URL and N8N_API_KEY (n8n: Settings > n8n API) in your own terminal and run the step again without --login, or leave both out for the steps by hand";
 const n8nIdOf = (C, flags) => (typeof flags["n8n-id"] === "string" ? flags["n8n-id"] : C.store.get(core.META_CUTOVER)?.n8n?.workflowId ?? C.source?.id ?? null);
 // The runner command as the folder's task prompt has it (run from the repository root).
 const runnerCmd = (C) => {
@@ -400,6 +427,10 @@ async function deactivate(C, flags, ctx) {
   const client = n8nClient(C, ctx);
   if (client) {
     if (!id) throw new Refused("No n8n workflow id: pass --n8n-id <id>.");
+    if (client.kind === "mcp") {
+      const only = staticOnlyPolls(C);
+      if (only.length) throw new Refused(`Over a sign-in n8n does not share its saved poll position, which ${only.map((s) => `"${s}"`).join(", ")} keeps only there; without it the task could send again what n8n sent. Nothing changed in n8n. To do this step: ${NEEDS_KEY}.`);
+    }
     const wf = await client.getWorkflow(id);
     if (!wf) throw new Refused(`n8n has no workflow ${id}; pass --n8n-id <id> (the id in the workflow's URL).`);
     const wasPublished = client.isPublished(wf);
@@ -415,7 +446,7 @@ async function deactivate(C, flags, ctx) {
     let fromRuns = { cursors: {}, executions: 0 };
     let runsNote = null;
     try {
-      fromRuns = cursorsFromExecutions(C.definition, await client.recentExecutions(id));
+      fromRuns = cursorsFromExecutions(C.definition, await client.recentExecutions(id, client.kind === "mcp" ? 10 : undefined, pollSteps(C.definition).map((p) => p.name)));
     } catch (e) {
       runsNote = `could not read n8n's executions (${e.message}); the cursor is its saved static data only`;
     }
@@ -424,7 +455,7 @@ async function deactivate(C, flags, ctx) {
     mapped.missing = mapped.missing.filter((s) => !cursor[s]);
     startCutover(C);
     setOwner(C, "n8n", { workflowId: id, published: false });
-    record(C, "deactivate-n8n", { via: "api", workflowId: id, wasPublished, activeVersionId, offAt, offAtExact: wasPublished, staticData: settled.staticData, cursorFromStaticData: mapped.cursors, cursorFromExecutions: fromRuns.cursors, cursor: Object.keys(cursor).length ? cursor : null, missing: mapped.missing, unsupported: mapped.unsupported, ...(ahead.length ? { executionsAhead: ahead } : {}), ...(runsNote ? { note: runsNote } : {}), ...(wf.name !== C.definition.name ? { nameDiffers: wf.name } : {}) }, { forced });
+    record(C, "deactivate-n8n", { via: client.kind === "mcp" ? "mcp" : "api", workflowId: id, wasPublished, activeVersionId, offAt, offAtExact: wasPublished, staticData: settled.staticData, cursorFromStaticData: mapped.cursors, cursorFromExecutions: fromRuns.cursors, cursor: Object.keys(cursor).length ? cursor : null, missing: mapped.missing, unsupported: mapped.unsupported, ...(ahead.length ? { executionsAhead: ahead } : {}), ...(runsNote ? { note: runsNote } : {}), ...(wf.name !== C.definition.name ? { nameDiffers: wf.name } : {}) }, { forced });
     flush(C, "deactivate n8n");
     const lines = [`n8n workflow ${id} ${wasPublished ? "unpublished" : "was already unpublished"}; no execution of it is running. From now on neither side sends until enable; new items wait behind n8n's cursor.`];
     if (wf.name !== C.definition.name) lines.push(`Note: n8n names it "${wf.name}", the folder "${C.definition.name}". Check it is the same workflow.`);
@@ -439,7 +470,7 @@ async function deactivate(C, flags, ctx) {
     return {
       code: 3,
       text: [
-        "No n8n API access (set N8N_BASE_URL and N8N_API_KEY to do this step from here). By hand:",
+        "No n8n access (set N8N_BASE_URL and N8N_API_KEY, or pass --login <your n8n address> to sign in, to do this step from here). By hand:",
         `  1. In n8n, open the workflow "${C.definition.name}"${id ? ` (id ${id})` : ""} and switch it off (unpublish).`,
         "  2. Wait until its executions list shows none running.",
         `  3. Export it after it is off, with its static data: on the n8n host, n8n export:workflow --id=${id ?? "<id>"} --output=workflow.json`,
@@ -614,14 +645,17 @@ async function rollback(C, flags, ctx) {
     if (!wf) throw new Refused(`n8n has no workflow ${id}.`);
     if (client.isPublished(wf)) throw new Refused(`n8n's workflow ${id} is already published (someone switched it on): both sides may have sent. Nothing changed in n8n; the task is held.`);
     const mapped = staticDataFromCursors(C.definition, cursors, wf.staticData ?? deact?.detail?.staticData ?? null);
+    if (client.kind === "mcp" && (mapped.carried.length || mapped.unsupported.length)) throw new Refused(`Over a sign-in n8n's saved poll position cannot be written, and ${[...mapped.carried, ...mapped.unsupported.map((u) => u.step)].map((s) => `"${s}"`).join(", ")} would then send again what the task sent. n8n stays off and the task is held. To roll back: ${NEEDS_KEY}.`);
     if (mapped.unsupported.length) throw new Refused(`Cannot carry the cursor for ${mapped.unsupported.map((u) => `"${u.step}" (${u.reason})`).join(", ")}: n8n would send again what the task sent. n8n stays off and the task is held; set n8n's cursor by hand before switching it on. --force is refused for this step.`);
-    await client.putStaticData(id, wf, mapped.staticData);
-    const check = await client.getWorkflow(id);
-    const back = cursorsFromStaticData(C.definition, check?.staticData ?? null).cursors;
-    const want = cursorsFromStaticData(C.definition, mapped.staticData).cursors;
-    for (const step of mapped.carried) if (!sameJson(back[step], want[step])) throw new Refused(`n8n did not keep the static data written for "${step}"; n8n stays off.`);
+    if (client.kind !== "mcp") {
+      await client.putStaticData(id, wf, mapped.staticData);
+      const check = await client.getWorkflow(id);
+      const back = cursorsFromStaticData(C.definition, check?.staticData ?? null).cursors;
+      const want = cursorsFromStaticData(C.definition, mapped.staticData).cursors;
+      for (const step of mapped.carried) if (!sameJson(back[step], want[step])) throw new Refused(`n8n did not keep the static data written for "${step}"; n8n stays off.`);
+    }
     await client.publish(id, deact?.detail?.activeVersionId ?? undefined);
-    record(C, "rollback", { via: "api", workflowId: id, carried: mapped.carried, kept: mapped.kept, cursors, staticData: mapped.staticData });
+    record(C, "rollback", { via: client.kind === "mcp" ? "mcp" : "api", workflowId: id, carried: mapped.carried, kept: mapped.kept, cursors, staticData: mapped.staticData });
     flush(C, "rollback");
     return { code: 0, text: [`Rolled back: n8n workflow ${id} published again from the task's cursor (${mapped.carried.join(", ") || "no poll trigger"}${mapped.kept.length ? `; n8n's own cursor kept for ${mapped.kept.join(", ")}` : ""}). n8n sends from here; the task is held.`, disable].join("\n"), data: { carried: mapped.carried, staticData: mapped.staticData } };
   }
@@ -631,7 +665,7 @@ async function rollback(C, flags, ctx) {
     return {
       code: 3,
       text: [
-        "The task is held (it sends nothing now). No n8n API access, so in n8n by hand:",
+        "The task is held (it sends nothing now). No n8n API key (a sign-in cannot write the poll position), so in n8n by hand:",
         `  1. Keep the workflow off. On the n8n host: n8n export:workflow --id=${id ?? "<id>"} --output=workflow.json`,
         `  2. In workflow.json set "staticData" to exactly: ${JSON.stringify(mapped.staticData)}`,
         "  3. n8n import:workflow --input=workflow.json, then switch the workflow on in the editor.",
@@ -679,12 +713,15 @@ export const STEPS = {
 export async function runStep(folder, step, ctx = {}) {
   const fn = STEPS[step];
   if (!fn) return { code: 2, text: `unknown step "${step}"; steps: ${Object.keys(STEPS).join(", ")}` };
+  ctx = { ...ctx, flags: ctx.flags ?? {}, closers: [] };
   try {
     const C = openFolder(folder, { now: ctx.now });
-    return await fn(C, ctx.flags ?? {}, ctx, ctx.pos ?? []);
+    return await fn(C, ctx.flags, ctx, ctx.pos ?? []);
   } catch (e) {
     if (e instanceof Refused) return { code: e.code, text: e.message };
     return { code: 1, text: `${step} failed: ${e.message}` };
+  } finally {
+    for (const close of ctx.closers) await close().catch(() => {});
   }
 }
 
@@ -706,7 +743,7 @@ function parse(argv) {
 if (process.argv[1] && realpathSync(resolve(process.argv[1])) === realpathSync(fileURLToPath(import.meta.url))) {
   const { pos, flags } = parse(process.argv.slice(2));
   if (pos.length < 2) {
-    process.stderr.write(`usage: ${basename(process.argv[1])} <folder> <${Object.keys(STEPS).join("|")}> [--json] [--force]\n`);
+    process.stderr.write(`usage: ${basename(process.argv[1])} <folder> <${Object.keys(STEPS).join("|")}> [--json] [--force] [--login <your n8n address>]\n`);
     process.exit(2);
   }
   const r = await runStep(pos[0], pos[1], { flags, pos: pos.slice(2) });

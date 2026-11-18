@@ -155,6 +155,23 @@ export function unwrap(data, label) {
     return [{ id: txt(t.id ?? t.workflow.id, label), name: txt(t.name ?? t.workflow.name, label), wf: t.workflow }];
   }
   if (Array.isArray(data.nodes)) return [{ id: txt(data.id, label), name: txt(data.name, label), wf: data }];
+  // MCP tool results saved as they came (SKILL.md step 1): n8n's own MCP server answers
+  // get_workflow_details with {workflow: {nodes, connections, ...}}; the n8n-mcp server
+  // answers n8n_get_workflow with {success, data: {...}}; a raw tool result wraps either in
+  // {content: [{type: "text", text: "<json>"}]} or structuredContent.
+  if (isObj(t) && Array.isArray(t.nodes)) return [{ id: txt(t.id ?? data.id, label), name: txt(t.name ?? data.name, label), wf: t }];
+  if (isObj(data.data)) return unwrap(data.data, label);
+  if (isObj(data.structuredContent)) return unwrap(data.structuredContent, label);
+  if (Array.isArray(data.content)) {
+    const out = [];
+    for (const c of data.content) {
+      if (!isObj(c) || c.type !== "text" || typeof c.text !== "string") continue;
+      try {
+        out.push(...(unwrap(JSON.parse(c.text), label) || []));
+      } catch {}
+    }
+    return out.length ? out : null;
+  }
   return null;
 }
 
@@ -2547,10 +2564,10 @@ export function renderText(report, color = false) {
 
 // ---------- CLI ----------
 
-const USAGE = "usage: analyze.mjs <path|-> [--json] [--out file] [--answers file] [--now ISO] [--nodes path] [--capabilities path] [--hosts path]";
+const USAGE = "usage: analyze.mjs <path|-> [--json] [--out file] [--html file] [--answers file] [--now ISO] [--nodes path] [--capabilities path] [--hosts path]";
 
 function parseArgs(argv) {
-  const a = { input: null, json: false, out: null, nodes: join(REFS, "nodes.json"), capabilities: join(REFS, "capabilities.json"), hosts: join(REFS, "http-hosts.json"), answers: null, now: null };
+  const a = { input: null, json: false, out: null, html: null, nodes: join(REFS, "nodes.json"), capabilities: join(REFS, "capabilities.json"), hosts: join(REFS, "http-hosts.json"), answers: null, now: null };
   for (let i = 0; i < argv.length; i++) {
     const x = argv[i];
     const val = () => {
@@ -2559,6 +2576,7 @@ function parseArgs(argv) {
     };
     if (x === "--json") a.json = true;
     else if (x === "--out") a.out = resolve(val());
+    else if (x === "--html") a.html = resolve(val());
     else if (x === "--nodes") a.nodes = resolve(val());
     else if (x === "--capabilities") a.capabilities = resolve(val());
     else if (x === "--hosts") a.hosts = resolve(val());
@@ -2572,7 +2590,7 @@ function parseArgs(argv) {
   return a;
 }
 
-function main() {
+async function main() {
   let a;
   try {
     a = parseArgs(process.argv.slice(2));
@@ -2614,6 +2632,11 @@ function main() {
     process.exit(2);
   }
   const report = analyze(input.items, { nodes, capabilities, hosts, answers, now, inputErrors: input.errors });
+  if (a.html) {
+    const { renderHtml } = await import("./report-html.mjs");
+    writeFileSync(a.html, renderHtml(report, { generated: new Date(now).toISOString().slice(0, 16).replace("T", " ") + " UTC" }));
+    console.error(`wrote ${a.html}`);
+  }
   const text = a.json ? JSON.stringify(report, null, 2) + "\n" : renderText(report, !a.out && process.stdout.isTTY);
   if (a.out) {
     writeFileSync(a.out, text);
