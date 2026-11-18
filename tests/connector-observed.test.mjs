@@ -152,3 +152,24 @@ test("cloud tasks name connector tools after the routine's connection", async ()
   const { cloudPrefix } = await import("../skills/n8n-to-claude/scripts/convert.mjs");
   assert.deepEqual(["mcp__claude_ai_Notion__", "mcp__claude_ai_Google_Drive__", "mcp__claude_ai_Atlassian_MCP__"].map(cloudPrefix), ["mcp__Notion__", "mcp__Google-Drive__", "mcp__Atlassian-MCP__"]);
 });
+
+// Gmail (2026-11-18, personal account): every tool answers one JSON string; display names come
+// as a list [{displayName, emailAddress}].
+const GMAIL_MSG = { id: "m1", threadId: "t1", sender: "ann@x.test", toRecipients: ["bo@x.test"], addressDisplayNames: [{ displayName: "Ann Lee", emailAddress: "ann@x.test" }], subject: "Hello", snippet: "Hi", date: "2026-11-18T05:05:36Z", historyId: "998305", internalDate: "1794978336000", sizeEstimate: 13853, labelIds: ["UNREAD", "INBOX"], viewUrl: "https://mail.google.com/x" };
+
+test("Gmail search and get carry the sender's display name", () => {
+  const items = adaptResult(map("n8n-nodes-base.gmail", ">=2", "message", "getAll").result, mcpValue(JSON.stringify({ threads: [{ id: "t1", messageCount: 1, messages: [GMAIL_MSG] }], resultCountEstimate: "1" })));
+  assert.equal(items[0].From, '"Ann Lee" <ann@x.test>');
+  assert.equal(items[0].To, "bo@x.test");
+  assert.equal(items[0].threadId, "t1");
+  const got = adaptResult(map("n8n-nodes-base.gmail", ">=2", "message", "get").result, mcpValue(JSON.stringify({ ...GMAIL_MSG, plaintextBody: "Hi Bo" })));
+  assert.equal(got[0].From, '"Ann Lee" <ann@x.test>');
+});
+
+test("Gmail labels, drafts: n8n's type and message ids from the connector's fields", () => {
+  const labels = adaptResult(map("n8n-nodes-base.gmail", ">=2", "label", "getAll").result, { labels: [{ labelId: "INBOX", name: "INBOX", labelType: "SYSTEM", messagesTotal: 3 }] });
+  assert.deepEqual([labels[0].id, labels[0].type], ["INBOX", "SYSTEM"]);
+  const draft = adaptResult(map("n8n-nodes-base.gmail", ">=2", "draft", "create").result, { id: "r-1", messageId: "m9", threadId: "t9", viewUrl: "https://mail.google.com/d" });
+  assert.deepEqual([draft[0].id, draft[0].message], ["r-1", { id: "m9", threadId: "t9" }]);
+  assert.deepEqual(adaptResult(map("n8n-nodes-base.gmail", ">=2", "draft", "getAll").result, {}), []);
+});

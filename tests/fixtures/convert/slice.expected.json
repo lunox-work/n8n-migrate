@@ -28,10 +28,10 @@
         "coerce": { "query": "string", "pageSize": "integer" },
         "result": {
           "items": "threads[*].messages[*]",
-          "fields": { "threadId": "^.id", "From": "sender", "To": { "join": "toRecipients" }, "Cc": { "join": "ccRecipients" }, "Bcc": { "join": "bccRecipients" }, "Subject": "subject" }
+          "fields": { "threadId": "^.id", "From": { "addressLine": "sender", "names": "addressDisplayNames" }, "To": { "addressLine": "toRecipients", "names": "addressDisplayNames" }, "Cc": { "addressLine": "ccRecipients", "names": "addressDisplayNames" }, "Bcc": { "addressLine": "bccRecipients", "names": "addressDisplayNames" }, "Subject": "subject" }
         },
-        "fidelity": "unverified",
-        "missingFields": ["historyId", "internalDate", "labels", "payload", "sizeEstimate"],
+        "fidelity": "partial",
+        "missingFields": ["labels", "payload"],
         "caveats": ["The tool returns threads with up to 5 messages each; n8n's limit counts messages."],
         "argsCheck": { "ok": true, "missing": [], "unknown": [] },
         "map": "n8n-nodes-base.gmail@>=2 message:getAll"

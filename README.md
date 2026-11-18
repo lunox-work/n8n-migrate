@@ -62,12 +62,12 @@
   is for.
 - **Partly run on a real Claude account.** Cloud tasks (with HTTP steps and
   their hooks), local runs, artifact pages with a model step, and a skill in a
-  claude.ai chat have run on a real account. Slack, Google Drive and Notion
-  reads were checked against what the real connectors return; Gmail and
-  every connector write were not. A cloud task did not get Notion's core
-  tools, likely because they need approval: set each tool a workflow uses to
-  run without approval, then Run now once. Do the dry run before you switch
-  n8n off.
+  claude.ai chat have run on a real account. Gmail, Slack, Google Drive and
+  Notion reads were checked against what the real connectors return, and a
+  cloud task ran a Notion search through its hooks; connector writes other
+  than Gmail drafts were not. A cloud task only gets the connector tools that
+  are not Blocked in that connector's settings on claude.ai. Do the dry run
+  before you switch n8n off.
 
 ## Before / After
 
@@ -399,12 +399,12 @@ What to tell them, accurately:
   upper bound: in the bench (round 5, on a corpus rebuilt in round 4) 50 of
   120 dev templates and 7 of 20 held-out templates passed every gate in one
   shot, and 62 of the 120 had every step supported by the converter.
-- Slack, Google Drive and Notion reads are checked against real connector
-  output (2026-11-18); Gmail and all connector writes are not. Do the dry run
-  before cutover.
-- Cloud tasks, their hooks, local runs and the artifact runtime have run on a
-  real account. In a cloud task a connector tool that needs approval was
-  likely not offered: set the workflow's tools to run without approval.
+- Gmail, Slack, Google Drive and Notion reads are checked against real
+  connector output (2026-11-18); connector writes other than Gmail drafts are
+  not. Do the dry run before cutover.
+- Cloud tasks with connector calls, their hooks, local runs and the artifact
+  runtime have run on a real account. A cloud task is not offered a connector
+  tool that is Blocked in the connector's settings on claude.ai.
 - Never create a task, publish an artifact, push a repository or run a
   cutover step without the person's go-ahead.
 

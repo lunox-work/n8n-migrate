@@ -18,7 +18,7 @@
 //                                       {lowercase name: "Name: value"}, as n8n's parsed email),
 //                                       {addresses: spec} (a list of {address, name} to a
 //                                       parsed-email address object {value, text, html}),
-//                                       {addressLine: spec} (the same list as one header
+//                                       {addressLine: spec, names?} (the same list as one header
 //                                       string, '"Name" <a@b>, c@d'); an empty list gives none.
 //                                       outName may be a dot path ("payload.mimeType").
 //     passthrough: true,                keep the element's own fields (default true); false
@@ -151,7 +151,11 @@ function fieldValue(spec, el, root) {
     return list.length ? addressObject(list) : undefined;
   }
   if (spec.addressLine !== undefined) {
-    const list = parseAddressList(fieldValue(spec.addressLine, el, root));
+    // names: where the element keeps display names, {address: name} or the Gmail connector's
+    // [{displayName, emailAddress}] (observed 2026-11-18); they fill names the addresses lack.
+    const nv = spec.names === undefined ? undefined : fieldValue(spec.names, el, root);
+    const names = Array.isArray(nv) ? Object.fromEntries(nv.filter((x) => isObject(x) && x.emailAddress).map((x) => [x.emailAddress, x.displayName ?? ""])) : isObject(nv) ? nv : {};
+    const list = parseAddressList(fieldValue(spec.addressLine, el, root)).map((a) => ({ ...a, name: a.name || String(names[a.address] ?? "") }));
     return list.length ? list.map((a) => (a.name ? `"${a.name.replace(/"/g, '\\"')}" <${a.address}>` : a.address)).join(", ") : undefined;
   }
   if (spec.path !== undefined) {

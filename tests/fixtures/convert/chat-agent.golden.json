@@ -194,26 +194,29 @@
           "items": "threads[*].messages[*]",
           "fields": {
             "threadId": "^.id",
-            "From": "sender",
+            "From": {
+              "addressLine": "sender",
+              "names": "addressDisplayNames"
+            },
             "To": {
-              "join": "toRecipients"
+              "addressLine": "toRecipients",
+              "names": "addressDisplayNames"
             },
             "Cc": {
-              "join": "ccRecipients"
+              "addressLine": "ccRecipients",
+              "names": "addressDisplayNames"
             },
             "Bcc": {
-              "join": "bccRecipients"
+              "addressLine": "bccRecipients",
+              "names": "addressDisplayNames"
             },
             "Subject": "subject"
           }
         },
-        "fidelity": "unverified",
+        "fidelity": "partial",
         "missingFields": [
-          "historyId",
-          "internalDate",
           "labels",
-          "payload",
-          "sizeEstimate"
+          "payload"
         ],
         "caveats": [
           "The tool returns threads with up to 5 messages each; n8n's limit counts messages."

@@ -122,7 +122,10 @@ export function gmailMessage(output) {
   const restHeaders = headerList(m.payload?.headers);
   const given = restHeaders.length ? restHeaders : headerList(m.headers);
   const h = (name) => given.find((x) => x.name.toLowerCase() === name)?.value;
-  const names = isObject(m.addressDisplayNames) ? m.addressDisplayNames : {};
+  // {address: name}, or the connector's list [{displayName, emailAddress}] (observed 2026-11-18).
+  const names = Array.isArray(m.addressDisplayNames)
+    ? Object.fromEntries(m.addressDisplayNames.filter((x) => isObject(x) && x.emailAddress).map((x) => [x.emailAddress, x.displayName ?? ""]))
+    : isObject(m.addressDisplayNames) ? m.addressDisplayNames : {};
   const named = (list) => list.map((a) => ({ address: a.address, name: a.name || String(names[a.address] ?? "") }));
   const pick = (flat, header, simpleKey, parsedKey) => {
     if (m[flat] !== undefined) return named(parseAddressList(m[flat]));

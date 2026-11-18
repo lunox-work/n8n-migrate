@@ -63,12 +63,17 @@
           "items": "threads[*].messages[*]",
           "fields": {
             "threadId": "^.id",
-            "From": "sender",
+            "From": {
+              "addressLine": "sender",
+              "names": "addressDisplayNames"
+            },
             "To": {
-              "join": "toRecipients"
+              "addressLine": "toRecipients",
+              "names": "addressDisplayNames"
             },
             "Cc": {
-              "join": "ccRecipients"
+              "addressLine": "ccRecipients",
+              "names": "addressDisplayNames"
             },
             "Subject": "subject"
           }
@@ -81,7 +86,7 @@
           "template": "after:{seconds}",
           "resolutionMs": 1000
         },
-        "fidelity": "unverified",
+        "fidelity": "partial",
         "missingFields": [
           "historyId",
           "internalDate",
