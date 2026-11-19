@@ -580,7 +580,10 @@ export async function executeHttp(req, task, fetchImpl = globalThis.fetch, { che
     // Behind a cloud task's proxy, a host the environment does not allow comes back from undici
     // as "Request was cancelled." (the proxy answers CONNECT with 403); say where to fix it.
     const behindProxy = process.env.NODE_USE_ENV_PROXY && (process.env.https_proxy || process.env.HTTPS_PROXY) && e?.name !== "ContainmentViolation";
-    const message = String(e?.message ?? e) + (cause && !String(e?.message ?? "").includes(cause) ? `: ${cause}` : "") + (behindProxy ? ` (through the environment's proxy: is ${new URL(url).hostname} in its allowed domains?)` : "");
+    // Node's fetch goes through that proxy from 22.21 only; an older Node went straight out.
+    const [major, minor] = process.versions.node.split(".").map(Number);
+    const proxyNote = !behindProxy ? "" : major > 22 || (major === 22 && minor >= 21) ? ` (through the environment's proxy: is ${new URL(url).hostname} in its allowed domains?)` : ` (this environment sends requests through a proxy, which Node ${process.versions.node} does not use: it needs Node 22.21 or later)`;
+    const message = String(e?.message ?? e) + (cause && !String(e?.message ?? "").includes(cause) ? `: ${cause}` : "") + proxyNote;
     return { ok: false, error: { name: e.name ?? "Error", message: redact(message) } };
   }
 }

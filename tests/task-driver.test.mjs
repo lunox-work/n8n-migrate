@@ -472,7 +472,10 @@ test("cloud egress: fetch errors keep their cause; behind https_proxy the runner
     const script = `import("${pathToFileURL(join(ROOT, "skills/n8n-migrate/runtime/dist/driver.mjs")).href}").then(async (d) => { const r = await d.executeHttp({ method: "GET", url: "https://lunox.example/" }, { secrets: "env" }); console.log(JSON.stringify([process.env.NODE_USE_ENV_PROXY ?? null, r.error?.message])); })`;
     writeFileSync(join(dir, "probe.mjs"), script);
     const viaProxy = spawnSync(process.execPath, [join(dir, "probe.mjs")], { env: { ...process.env, https_proxy: "http://127.0.0.1:9", NODE_USE_ENV_PROXY: "1" }, encoding: "utf8" });
-    assert.match(viaProxy.stdout, /ECONNREFUSED 127\.0\.0\.1:9/, viaProxy.stderr);
+    // Node's fetch uses the proxy from 22.21; an older Node goes straight out, and the error says so.
+    const [major, minor] = process.versions.node.split(".").map(Number);
+    if (major > 22 || (major === 22 && minor >= 21)) assert.match(viaProxy.stdout, /ECONNREFUSED 127\.0\.0\.1:9/, viaProxy.stderr);
+    else assert.match(viaProxy.stdout, /which Node [\d.]+ does not use: it needs Node 22\.21 or later/, viaProxy.stderr);
     const src = readFileSync(join(ROOT, "skills/n8n-migrate/runtime/dist/runner.mjs"), "utf8");
     assert.match(src, /NODE_USE_ENV_PROXY: "1"/);
     const relaunched = spawnSync(process.execPath, [join(ROOT, "skills/n8n-migrate/runtime/dist/runner.mjs"), "status"], { cwd: dir, env: { ...process.env, https_proxy: "http://127.0.0.1:9", NODE_USE_ENV_PROXY: "" }, encoding: "utf8" });
