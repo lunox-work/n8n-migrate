@@ -193,3 +193,32 @@ test("whether n8n still runs it comes from the export's active flag", () => {
   assert.equal(plainWorkflow(wf({ activeInN8n: null })).n8n, "unknown");
   assert.equal(plainWorkflow(wf()).n8n, "unknown");
 });
+
+test("migrate.mjs: a known timezone answers the schedule's timezone question instead of asking it", () => {
+  const dir = mkdtempSync(join(tmpdir(), "n8m-tz-"));
+  try {
+    const wfJson = {
+      id: "tz1",
+      name: "Morning mail",
+      active: false,
+      settings: { executionOrder: "v1" },
+      nodes: [
+        { id: "a", name: "Every morning", type: "n8n-nodes-base.scheduleTrigger", typeVersion: 1.2, position: [0, 0], parameters: { rule: { interval: [{ triggerAtHour: 7 }] } } },
+        { id: "b", name: "Recent mail", type: "n8n-nodes-base.gmail", typeVersion: 2.1, position: [200, 0], parameters: { operation: "getAll", limit: 5, filters: { q: "newer_than:1d" } }, credentials: { gmailOAuth2: { id: "1", name: "Gmail account" } } },
+      ],
+      connections: { "Every morning": { main: [[{ node: "Recent mail", type: "main", index: 0 }]] } },
+    };
+    writeFileSync(join(dir, "wf.json"), JSON.stringify(wfJson));
+    const run = (extra) => spawnSync(process.execPath, [MIGRATE, join(dir, "wf.json"), "--out", join(dir, "m"), "--connected", "gmail", "--json", ...extra], { encoding: "utf8" });
+    const asked = run([]);
+    assert.equal(asked.status, 0, asked.stderr);
+    assert.ok(readJson(join(dir, "m", "plan.json")).groups.needs.some((w) => w.todo.some((t) => /\/timezone$/.test(t.id))), "without a timezone it is asked");
+    const known = run(["--timezone", "Asia/Singapore"]);
+    assert.equal(known.status, 0, known.stderr);
+    const plan = readJson(join(dir, "m", "plan.json"));
+    assert.deepEqual(plan.groups.ready.map((w) => [w.id, w.n8n]), [["tz1", "off"]]);
+    assert.equal(readJson(join(dir, "m", "answers.json"))["tz1/timezone"], "Asia/Singapore");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

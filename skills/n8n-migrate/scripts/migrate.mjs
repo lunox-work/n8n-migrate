@@ -116,7 +116,14 @@ export function main(argv = process.argv.slice(2)) {
     return 1;
   }
   const opts = { nodes: refs("nodes.json"), capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), now: Date.now() };
-  const report = analyze(items, { ...opts, answers: a.answers, inputErrors });
+  let report = analyze(items, { ...opts, answers: a.answers, inputErrors });
+  // A known timezone answers every schedule's timezone question; asking it offered a single
+  // option, the zone we passed (seen on a real n8n cloud export, 2026-11-20).
+  const zoneQs = a.timezone ? report.workflows.flatMap((w) => w.questions).filter((q) => /\/timezone$/.test(q.id) && q.answer == null && a.answers[q.id] === undefined) : [];
+  if (zoneQs.length) {
+    for (const q of zoneQs) a.answers[q.id] = a.timezone;
+    report = analyze(items, { ...opts, answers: a.answers, inputErrors });
+  }
   mkdirSync(a.out, { recursive: true });
   writeFileSync(join(a.out, "report.json"), JSON.stringify(report, null, 2) + "\n");
 
