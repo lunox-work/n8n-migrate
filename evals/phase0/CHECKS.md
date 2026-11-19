@@ -65,6 +65,18 @@ Two findings outside the table:
 - Jira, Confluence, ClickUp and HubSpot nodes are mapped to `http` with a secret, but the account's Atlassian, ClickUp and HubSpot connectors have tools for their common operations (issue create, get, edit, search, transition, comment; task create, get, update, delete, filter, comment; CRM search, get, create, update). Since 2026-11-14 the operations with a captured tool schema are connector steps (`capabilities.json` names each tool); the rest stay `http` with a secret, and the REST path stays in the report as `alternative`.
 - `form-artifact` targeted an artifact form while its Sheets append is `no` on the artifact surface. Since 2026-11-14 a form whose step is `no` there keeps the artifact form and adds a `task-handoff` requirement: a task runs the steps. All 7 artifact forms in the top 100 need it.
 
+## claude.ai scheduled task without a repository (2026-11-19)
+
+A web scheduled task (claude.ai > Scheduled > New task > Set up manually, no repository, trigger `trig_015fzLMsC7hTgD9pjaWhTfRT`, left paused) ran the probe prompt in `skills/n8n-migrate/references/probe-task.md` style twice by Run now (20:36 and 20:39 SGT). Picking a repository in that form makes it a Claude Code task instead.
+
+- Runs remotely in a Linux sandbox (`uname`: `Linux vm 6.18.44`, x86_64), as root, working directory `/home/claude`, Node v22.23.5, Python 3.13.18, a Bash tool.
+- **Nothing persists between runs.** Each run is a new conversation in a fresh sandbox: markers written by the first run in `/home/claude`, `/root`, `/tmp`, `/mnt/user-data` and `/mnt/user-data/outputs` were absent in the second.
+- Outbound HTTPS goes through a filtering proxy (`HTTPS_PROXY` set): `api.github.com` 200, `example.com` and `n8n.io` no response (000).
+- Skills uploaded to the account are offered (`anthropic-skills:n8n-migrate`, `anthropic-skills:n8n-color-agent-template-1963`), under `/mnt/skills/{user,plugins,...}`.
+- Connector tools are named `mcp__<display name with underscores>__<tool>`: `mcp__Gmail__…`, `mcp__Google_Drive__…`, `mcp__Notion__…`, `mcp__Slack__…` (cloud routines use hyphens, `mcp__Google-Drive__`). Every connector on the account is attached by default; the form has no per-task switch.
+- The session has `mcp__claude-code-remote__create_trigger`, `update_trigger`, `fire_trigger`, `list_triggers`, `delete_trigger`, so Claude can create a scheduled task from a conversation. Also `Artifact`, `Write`, `Skill`, `WebFetch`, `WebSearch`, `ToolSearch`, and `mcp__memory__*`; `ArtifactData` was not among the listed tools (it may be deferred behind ToolSearch; not checked).
+- Not checked: hooks, a plugin's MCP server, a Project attached to the task, ArtifactData through ToolSearch.
+
 ## Claude Code CLI 2.1.323 (`claude --help`, no prompt run)
 
 For the bench's task driver: `-p/--print`; `--output-format text|json|stream-json`; `--input-format text|stream-json`; `--json-schema <schema>` (structured output, `-p` only); `--mcp-config <configs...>` with `--strict-mcp-config` ("Only use MCP servers from --mcp-config"); `--allowedTools`, `--disallowedTools`, `--tools`; `--permission-mode acceptEdits|auto|bypassPermissions|manual|dontAsk|plan`; `--permission-prompts host|none` (with `none`, "anything that would prompt is denied automatically"); `--model`, `--fallback-model`; `--max-budget-usd` (`-p` only); `--no-session-persistence`; `--plugin-dir`; `--bare` (Anthropic auth "strictly ANTHROPIC_API_KEY or apiKeyHelper"). No `--max-turns` in the help: cap runs with `--max-budget-usd` or a timeout.

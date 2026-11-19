@@ -23,7 +23,11 @@ import { join } from "node:path";
 
 // Requirement kinds a scheduled task with only the person's connectors cannot have; each
 // needs Claude Code (a stored key, a token refresh, a database client, the computer).
+// Observed 2026-11-19 in a claude.ai scheduled task's sandbox: outbound HTTPS goes through a
+// filtering proxy (api.github.com answered, example.com and n8n.io did not), so a workflow that
+// calls web services itself (http) cannot run there either.
 const DEVELOPER_ONLY = {
+  http: "calls web services directly, which Claude's online sandbox blocks",
   secret: "signs in with a saved key, which only Claude Code can keep today",
   "google-token": "signs in to Google with its own token, which needs a setup only Claude Code has today",
   db: "uses a database, which needs Claude Code",
