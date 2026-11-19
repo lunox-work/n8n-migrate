@@ -51,6 +51,7 @@
       "name": "Weather chat",
       "file": "chat-skill.json",
       "sourceHash": "24669b7885fb7e9bab6b5f39132806f1ec8f8cc92900478ddeb0d2ed884a218f",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "chat",
         "nodes": [

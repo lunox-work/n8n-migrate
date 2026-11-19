@@ -53,6 +53,7 @@
       "name": "Learn expressions",
       "file": "tutorial-sticky.json",
       "sourceHash": "38043a6f4d467ae0dd7cb441d2dae677889b902e26f506e66fbfe9f2b14573b6",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "manual",
         "nodes": [

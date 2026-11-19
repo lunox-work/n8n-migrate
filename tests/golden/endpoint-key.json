@@ -51,6 +51,7 @@
       "name": "Ask endpoint",
       "file": "endpoint-key.json",
       "sourceHash": "af916c1117780e4a6c4d2be61ebc6999cf92c209b20f92992a43535bd6143382",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "endpoint",
         "nodes": [

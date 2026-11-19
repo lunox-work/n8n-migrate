@@ -272,6 +272,9 @@ const RESCUE = new Set(["chat-app-users", "endpoint-callers", "chat-outsiders", 
 export function plainWorkflow(w, { conv = null, steps = null, answers = {}, connected = null, timezone = null, whatIf = null } = {}) {
   const o = w.outcome;
   const out = { id: w.id, name: w.name, group: "stays", runs: null, says: "", why: null, todo: [], fix: [], developer: false, folder: conv?.folder ?? null, unverified: [] };
+  // Whether n8n runs it now, from the export: "off" skips the switch-off step, "unknown" (a
+  // paste from the editor) is asked together with the go-ahead.
+  out.n8n = w.activeInN8n === true ? "on" : w.activeInN8n === false ? "off" : "unknown";
   const connectors = [...new Set((w.requires ?? []).filter((r) => r.kind === "connector").map((r) => r.name))];
   out.apps = connectors.map(appName);
 

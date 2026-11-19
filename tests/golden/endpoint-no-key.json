@@ -51,6 +51,7 @@
       "name": "Status endpoint",
       "file": "endpoint-no-key.json",
       "sourceHash": "465663c092888c44ca46bdc93fe6e7bc6877a125f5effd16a8a25fae1f5bdbf9",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "endpoint",
         "nodes": [

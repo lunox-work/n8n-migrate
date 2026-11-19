@@ -51,6 +51,7 @@
       "name": "Contact form",
       "file": "form-public.json",
       "sourceHash": "f773d03a9d9d9c63467b64e40fab44bd3499318d45bd04a1f2303f91352d9a22",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "form",
         "nodes": [

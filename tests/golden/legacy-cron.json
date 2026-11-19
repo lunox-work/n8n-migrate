@@ -51,6 +51,7 @@
       "name": "Feed watcher (old cron node)",
       "file": "legacy-cron.json",
       "sourceHash": "047431cea351085bf5625740027bc2bb8509bbd66704a23747a0bd80ebadd808",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

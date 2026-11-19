@@ -51,6 +51,7 @@
       "name": "Nightly SQL",
       "file": "sql-effects.json",
       "sourceHash": "4486207e5ae700a8460d318eebdb5eca15303d872570cd8cd17d95118142d0ca",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

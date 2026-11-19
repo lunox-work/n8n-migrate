@@ -51,6 +51,7 @@
       "name": "Append heartbeat row",
       "file": "interval-legacy.json",
       "sourceHash": "592a04b562f5eb4f86e1a654af2af57b9c1366d008b85d356aebbb79a1841f11",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

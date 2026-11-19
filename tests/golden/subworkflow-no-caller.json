@@ -51,6 +51,7 @@
       "name": "Notify helper",
       "file": "subworkflow-no-caller.json",
       "sourceHash": "aa126ac80769bd4edd55236ba4bf6d555a0303156e71d002ff0cafbf33fc08e2",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "subworkflow",
         "nodes": [

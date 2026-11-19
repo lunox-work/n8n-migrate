@@ -51,6 +51,7 @@
       "name": "Auto-reply to support mail",
       "file": "poll-every-minute.json",
       "sourceHash": "9d381fcc3cefc2c3a83d3acfb07676d67864f796751ddbfe369d2d2007273676",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "poll",
         "nodes": [

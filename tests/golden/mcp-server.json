@@ -49,6 +49,7 @@
       "name": "Team tools MCP",
       "file": "mcp-server.json",
       "sourceHash": "1ad8afa4033ae50730a4e359d7d05813816a6ceb379818abeaeb98dfc0e797a7",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "mcp-server",
         "nodes": [

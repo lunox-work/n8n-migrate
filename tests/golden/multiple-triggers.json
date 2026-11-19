@@ -51,6 +51,7 @@
       "name": "Lead intake",
       "file": "multiple-triggers.json",
       "sourceHash": "36de1df179b60b182bcc5bce814f3f7afcc9e14b9bc37766b76f60a8a7c39f92",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "relay",
         "nodes": [

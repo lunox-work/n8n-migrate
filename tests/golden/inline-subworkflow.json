@@ -51,6 +51,7 @@
       "name": "Item lookup chat",
       "file": "inline-subworkflow.json",
       "sourceHash": "23af2dd0d73b103f73a4f8278d0120a0428f47c5fea41c15157179c77c522c8c",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "chat",
         "nodes": [

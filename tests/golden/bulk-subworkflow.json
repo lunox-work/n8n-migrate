@@ -52,6 +52,7 @@
       "name": "Daily digest",
       "file": "bulk-subworkflow.json",
       "sourceHash": "337de9fa81ccb78da8b93c206283e08ce5dff389c59bbfa7ff0ddb5fe38e598f",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [
@@ -192,6 +193,7 @@
       "name": "Summarise",
       "file": "bulk-subworkflow.json",
       "sourceHash": "7b737895513ca055557f228e1dc957a1059eab16f343c4601c974042f96ada07",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "subworkflow",
         "nodes": [

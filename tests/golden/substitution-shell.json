@@ -53,6 +53,7 @@
       "name": "Disk usage report",
       "file": "substitution-shell.json",
       "sourceHash": "a90ed3b2a4fe9fc21e9b6cc93e9d2c81fa92d6d7a949bf8bf35127c1d1f8e970",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

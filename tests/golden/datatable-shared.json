@@ -52,6 +52,7 @@
       "name": "Log signups",
       "file": "datatable-shared.json",
       "sourceHash": "d060491c7b63db584ef6782ca714d5b366c6d36c56a8043560fd246a35a85b38",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "relay",
         "nodes": [
@@ -198,6 +199,7 @@
       "name": "Weekly signup report",
       "file": "datatable-shared.json",
       "sourceHash": "9d707332d4dd34c9efd358937db148136eded93718058ecec9a7ffd68197b513",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

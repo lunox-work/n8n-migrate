@@ -51,6 +51,7 @@
       "name": "Price ticker",
       "file": "schedule-under-60s.json",
       "sourceHash": "52dcd9343a3a04976ba7ba6e965daaaad0cb1f385aa750fdb8a0c6594ea2ab91",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

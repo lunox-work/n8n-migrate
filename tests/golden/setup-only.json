@@ -55,6 +55,7 @@
       "name": "Shop · 0 Setup",
       "file": "setup-only.json",
       "sourceHash": "cc0ae735d4b594d74b148b0c8b48190465afa52209b098823cd0d8aec30e7359",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "endpoint",
         "nodes": [
@@ -310,6 +311,7 @@
       "name": "Deactivate archived workflows",
       "file": "setup-only.json",
       "sourceHash": "58fa8ef60321280e0e96eb9bcfc3fe65b3fb241df516fb8d844489e10d4d9cbf",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "manual",
         "nodes": [
@@ -489,6 +491,7 @@
       "name": "Create a table and announce it",
       "file": "setup-only.json",
       "sourceHash": "21a6907ce6c64f0b4edbadc06c894df9d99b6cd7244adb12e222fe4d5a3023b1",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "manual",
         "nodes": [

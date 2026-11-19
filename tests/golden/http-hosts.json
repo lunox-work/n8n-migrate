@@ -51,6 +51,7 @@
       "name": "Lead research pipeline",
       "file": "http-hosts.json",
       "sourceHash": "aef180a951ebbe3378b6899d24d10f747b862981bd3c686818e81f47e509b16c",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

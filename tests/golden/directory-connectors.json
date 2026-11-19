@@ -51,6 +51,7 @@
       "name": "Morning bug triage",
       "file": "directory-connectors.json",
       "sourceHash": "777d8aaf971cd850226e61c4fd07d6f2e14de9a2035e4dfc2f98413d7570bc4c",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

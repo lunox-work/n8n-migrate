@@ -54,6 +54,7 @@
       "name": "Support bot behind a webhook",
       "file": "chat-app-webhook.json",
       "sourceHash": "f55ba082a6e906c91addd10a6a75c2aa4f256f5d3fee28a2d216a0e6629f3dcc",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "relay",
         "nodes": [
@@ -302,6 +303,7 @@
       "name": "My notes bot behind a webhook",
       "file": "chat-app-webhook.json",
       "sourceHash": "eea37390ad333d1aaaf9919f1807ed117260775ce4999d4590df87af434e95c6",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "relay",
         "nodes": [
@@ -512,6 +514,7 @@
       "name": "My WhatsApp reminders behind a webhook",
       "file": "chat-app-webhook.json",
       "sourceHash": "fb0b0f8d2b1918f863ed0a03174f1a55a826f7a826d9ce2de72d64d4a0bb562a",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "relay",
         "nodes": [
@@ -723,6 +726,7 @@
       "name": "Deploy hook posts to the team chat",
       "file": "chat-app-webhook.json",
       "sourceHash": "a763eb897a6c19f6b21f400fa003ed5e6a12f59e4d0b708793ad7f36ca5c4cfc",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "relay",
         "nodes": [
@@ -878,6 +882,7 @@
       "name": "SMS assistant",
       "file": "chat-app-webhook.json",
       "sourceHash": "5135667629978703823e3388003aa486c13922189acef42b55bcac4f3ab09420",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "relay",
         "nodes": [

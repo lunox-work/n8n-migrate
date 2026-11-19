@@ -52,6 +52,7 @@
       "name": "Visits · weekly report",
       "file": "n8n2-export-all.json",
       "sourceHash": "17ff67f20961323d9a7ae5803993b6d0edf7e5d736d47e1e187fc208be92888b",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [
@@ -249,6 +250,7 @@
       "name": "Visits · intake",
       "file": "n8n2-export-all.json",
       "sourceHash": "38f63173a09568bf81cdaefb64220d0ee31ce0c093adf98f8e282446b056892c",
+      "activeInN8n": true,
       "wakeup": {
         "kind": "relay",
         "nodes": [
@@ -396,6 +398,7 @@
       "name": "Visits · cleanup",
       "file": "n8n2-export-all.json",
       "sourceHash": "325b4429117e88d5aee78c0bbd0399d8898d135a0efaedd3f0b37a3bb2d2073a",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

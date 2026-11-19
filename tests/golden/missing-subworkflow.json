@@ -51,6 +51,7 @@
       "name": "Lead enrichment",
       "file": "missing-subworkflow.json",
       "sourceHash": "449250cd9a119e86ddf4aeca8646e4bbd643cc52f97ad2a7348667ee40fe9086",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

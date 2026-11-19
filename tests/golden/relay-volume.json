@@ -53,6 +53,7 @@
       "name": "New payment to Slack",
       "file": "relay-volume.json",
       "sourceHash": "da8a2da3d97c812b9c669839c7cd9f54dd084e16fffee3d7a0bafc890d3de1f8",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "relay",
         "nodes": [
@@ -218,6 +219,7 @@
       "name": "Survey answers to Slack",
       "file": "relay-volume.json",
       "sourceHash": "f8f2ea542273178c2f95b745c34792c2b13c669bd7b452c257f6797da509f077",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "relay",
         "nodes": [
@@ -383,6 +385,7 @@
       "name": "Every order to Slack",
       "file": "relay-volume.json",
       "sourceHash": "c1621fbeac89466f6cb5a153729c8e55fac3861d3c0aef2ec5fe32e6d77dd2be",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "relay",
         "nodes": [

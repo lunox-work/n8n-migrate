@@ -51,6 +51,7 @@
       "name": "Split a list by hand",
       "file": "manual-artifact.json",
       "sourceHash": "4061e4b88eb29d518314b55a823f22e00e472bfca5abf384d037acdf5f58e7f5",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "manual",
         "nodes": [

@@ -53,6 +53,7 @@
       "name": "Daily report mail",
       "file": "substitution-smtp.json",
       "sourceHash": "cf0556ce5d7e081c93e555eaed8a67161adb09f3c224d97d63ff393c129d599b",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

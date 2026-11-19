@@ -186,3 +186,10 @@ test("migrate.mjs: one command writes report, folders, plan and page; answers mo
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("whether n8n still runs it comes from the export's active flag", () => {
+  assert.equal(plainWorkflow(wf({ activeInN8n: true })).n8n, "on");
+  assert.equal(plainWorkflow(wf({ activeInN8n: false })).n8n, "off");
+  assert.equal(plainWorkflow(wf({ activeInN8n: null })).n8n, "unknown");
+  assert.equal(plainWorkflow(wf()).n8n, "unknown");
+});

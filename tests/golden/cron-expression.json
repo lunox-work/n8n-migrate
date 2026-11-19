@@ -51,6 +51,7 @@
       "name": "Weekday standup page",
       "file": "cron-expression.json",
       "sourceHash": "76660dc704344de7885a7a9911e19f536c2e95f664c517be481b24990f9dfd73",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

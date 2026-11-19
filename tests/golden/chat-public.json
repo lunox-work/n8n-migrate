@@ -51,6 +51,7 @@
       "name": "Website help bot",
       "file": "chat-public.json",
       "sourceHash": "0536a96c5623488e3d0c1347c0abad6f19f111dc4c30c84c95f2e834690bf9c4",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "chat",
         "nodes": [

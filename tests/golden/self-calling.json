@@ -51,6 +51,7 @@
       "name": "Page reader chat",
       "file": "self-calling.json",
       "sourceHash": "4eeb16f2560c19e3c3ab24e86447be4a5877a9cb369c7b25cb405092f3983968",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "chat",
         "nodes": [

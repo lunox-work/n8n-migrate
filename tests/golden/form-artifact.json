@@ -51,6 +51,7 @@
       "name": "Expense claim form",
       "file": "form-artifact.json",
       "sourceHash": "9a6fbd334d3b8404c264745b116552652277faf31e1070b3b6b9b6eed1890cca",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "form",
         "nodes": [

@@ -51,6 +51,7 @@
       "name": "Records helper",
       "file": "subworkflow-id-self.json",
       "sourceHash": "af321e9614af1950df41a621c9d43057b6ebeefdd37c1b8d10d02504a22216d3",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "chat",
         "nodes": [

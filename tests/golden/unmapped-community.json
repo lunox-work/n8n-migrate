@@ -53,6 +53,7 @@
       "name": "Push contact to Acme CRM",
       "file": "unmapped-community.json",
       "sourceHash": "e6856ebd454d68c9ca7a1cd53f588cf2e33fcc2e51d74c880f82b54c132a4052",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "manual",
         "nodes": [

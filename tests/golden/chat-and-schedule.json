@@ -51,6 +51,7 @@
       "name": "Team helper with a morning brief",
       "file": "chat-and-schedule.json",
       "sourceHash": "cd0b1bbe40eda8b12c198e5d932a6fc55360d6634540e7bfd892d36fc3cdd67c",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "chat",
         "nodes": [

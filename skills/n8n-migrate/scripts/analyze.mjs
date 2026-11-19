@@ -2292,6 +2292,8 @@ function reportOf(W, ctx) {
     name: W.name,
     file: W.file,
     sourceHash: createHash("sha256").update(canonical(W.wf)).digest("hex"),
+    // Whether n8n still runs it decides the switch-off step (SKILL.md, without a terminal, 7).
+    activeInN8n: typeof W.wf.active === "boolean" ? W.wf.active : null,
     wakeup: W.wakeup,
     body: W.body,
     outcome: W.outcome,

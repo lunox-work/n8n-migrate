@@ -49,6 +49,7 @@
       "name": "Test data MCP",
       "file": "mcp-debug-helper.json",
       "sourceHash": "7efa2a9b7afc237b03cca7a7c2a8db67028ba9823dd52031ba2554eb9d94dc6f",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "mcp-server",
         "nodes": [

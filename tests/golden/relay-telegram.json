@@ -51,6 +51,7 @@
       "name": "Telegram assistant",
       "file": "relay-telegram.json",
       "sourceHash": "c61bb0a165f8c325aff150a48d979a738488e0191d469896dacc3b3856b4c19d",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "relay",
         "nodes": [

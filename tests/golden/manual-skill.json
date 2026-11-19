@@ -51,6 +51,7 @@
       "name": "Research to Notion",
       "file": "manual-skill.json",
       "sourceHash": "83b88d21a39593d81739873cafb8abea2e0d5a31b490d83acfc981a8573c10ae",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "manual",
         "nodes": [

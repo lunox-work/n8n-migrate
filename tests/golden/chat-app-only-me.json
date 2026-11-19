@@ -51,6 +51,7 @@
       "name": "My reading-list bot",
       "file": "chat-app-only-me.json",
       "sourceHash": "2356ef3986b9a2a40134bca52bac770a00d8cd8204eb3baa1b2ed9d3e9d3296d",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "relay",
         "nodes": [

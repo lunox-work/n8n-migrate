@@ -51,6 +51,7 @@
       "name": "Hourly inbox digest",
       "file": "schedule-cloud-prompt.json",
       "sourceHash": "7d5294b5a548806630165ecdee2cda508258f67c5d3ea8d411c78a9abc043bfc",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

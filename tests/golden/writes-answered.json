@@ -51,6 +51,7 @@
       "name": "Publish and log",
       "file": "writes-answered.json",
       "sourceHash": "f0b420ca7adf924b9c9f2126838cff28981103f744610ba0bf4296b9013b09df",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "manual",
         "nodes": [

@@ -53,6 +53,7 @@
       "name": "Classify incoming mail",
       "file": "substitution-imap.json",
       "sourceHash": "d2b3217f6eb609d1d944dce10be11f22784533d1445c6e04d7e8feed0ebf9163",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "poll",
         "nodes": [

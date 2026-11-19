@@ -58,6 +58,7 @@
       "name": "Ask endpoint (answered)",
       "file": "answers-change-outcome.json",
       "sourceHash": "08f863d88ef4564f6829bd261570e373bb7054c1111d5e1bb7f55bdf0223ca31",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "endpoint",
         "nodes": [
@@ -206,6 +207,7 @@
       "name": "Public help bot (answered)",
       "file": "answers-change-outcome.json",
       "sourceHash": "d2a5ea5f959d4b62eca74c126ebdf9674febbc99115fc3d309dafbfafe860253",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "chat",
         "nodes": [
@@ -342,6 +344,7 @@
       "name": "Nightly cleanup (answered)",
       "file": "answers-change-outcome.json",
       "sourceHash": "4c73a424e9403f6084c49e0ee94eca0c3908d33119675cd5711356f91551dd79",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [
@@ -500,6 +503,7 @@
       "name": "Child flow",
       "file": "answers-change-outcome.json",
       "sourceHash": "61180ac6dc7907124e1ac3d221051bd50f7954cf5174afcea90978836af47a62",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "subworkflow",
         "nodes": [

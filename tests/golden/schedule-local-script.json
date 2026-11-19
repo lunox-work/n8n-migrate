@@ -51,6 +51,7 @@
       "name": "Sync orders to warehouse",
       "file": "schedule-local-script.json",
       "sourceHash": "f77ef398cadf8b1a710c25639992d1f882913c4592342047e4b8b89a9d9fdb8c",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

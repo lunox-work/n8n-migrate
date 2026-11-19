@@ -53,6 +53,7 @@
       "name": "Customer datastore tutorial",
       "file": "tutorial-training.json",
       "sourceHash": "7c73f0e5de1a1362440c05cf1df9fce2c579b956d074aee19e5ac86726b84825",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "manual",
         "nodes": [

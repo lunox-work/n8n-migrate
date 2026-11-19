@@ -51,6 +51,7 @@
       "name": "Nightly workflow list",
       "file": "n8n-api-node.json",
       "sourceHash": "1fc5565397236401e5c8f64b66f6a39a3bdf131327d48a4b15bbe7a51ff15de7",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

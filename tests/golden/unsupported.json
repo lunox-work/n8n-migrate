@@ -52,6 +52,7 @@
       "name": "Disk check with approval",
       "file": "unsupported.json",
       "sourceHash": "a29adfbf98372d28238634e30cb163941705ba3143bba09f67ca7fdc2b276987",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

@@ -53,6 +53,7 @@
       "name": "Orders setup",
       "file": "datatable-identity.json",
       "sourceHash": "625e8322e2513c2dadf5287b3a8081df059f746d351daad86561bd75052f7c7c",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "manual",
         "nodes": [
@@ -208,6 +209,7 @@
       "name": "Orders report",
       "file": "datatable-identity.json",
       "sourceHash": "5ac3e776a86e5f461a5e2b57e7c634c1459e4e05800c8748a4cc497f8f7d238d",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

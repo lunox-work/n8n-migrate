@@ -51,6 +51,7 @@
       "name": "Order events",
       "file": "kafka-trigger.json",
       "sourceHash": "106b8c4462e298a5d500b71cd56c30ee11da4db7a19cab47988afdc99462d641",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "relay",
         "nodes": [

@@ -51,6 +51,7 @@
       "name": "Approve invoice in Slack",
       "file": "send-and-wait.json",
       "sourceHash": "dfa8b42a33fe07ef280af3ba3fbb3c2d921fdbb2d87c96721dc2c61a48a6d13e",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

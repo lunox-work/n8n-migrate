@@ -51,6 +51,7 @@
       "name": "Report (webhook switched off)",
       "file": "disabled-trigger.json",
       "sourceHash": "9011d796a29025af1b1bb0e580bc920b24e8909a2e5157ae6bb1d28e91daf4be",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "schedule",
         "nodes": [

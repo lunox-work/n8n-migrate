@@ -51,6 +51,7 @@
       "name": "Save notes by hand",
       "file": "inline-subworkflow-writes.json",
       "sourceHash": "97546f2b8571f31326366726ab60e0319ed932c2cab26070400d81276dff22ea",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "manual",
         "nodes": [

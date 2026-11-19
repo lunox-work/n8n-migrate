@@ -51,6 +51,7 @@
       "name": "Error alerts",
       "file": "error-trigger-only.json",
       "sourceHash": "e72c25b33dbff59b88c6759aacfc71ea6452880c4c7c156e48fccf70b46663d9",
+      "activeInN8n": false,
       "wakeup": {
         "kind": "error",
         "nodes": [
