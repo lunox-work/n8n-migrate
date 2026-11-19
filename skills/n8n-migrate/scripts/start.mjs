@@ -163,7 +163,7 @@ export function setupPlan(report, { out, repo, tools }) {
 
 // Runs the plan. `run` is sh (injected in tests); `say` prints. Returns what was done and what
 // is left, never a secret value: the keys file gets the names with empty values.
-export function goOn({ report, inputs, items, out, repo = "n8n-workflows", tools, run = sh, say = console.log, openClaude = true }) {
+export function goOn({ report, inputs, items, out, repo = "n8n-workflows", tools, run = sh, say = console.log, openClaude = true, install = true }) {
   const plan = setupPlan(report, { out, repo, tools });
   const done = { converted: 0, folders: [], committed: false, repoUrl: null, keysFile: null, left: [], prompt: null, claude: false };
   // 1. Convert every input together (sub-workflow calls resolve across them).
@@ -215,7 +215,7 @@ export function goOn({ report, inputs, items, out, repo = "n8n-workflows", tools
   }
   // 3. The skill, then Claude Code on the folder.
   if (!tools.skill) {
-    const r = run("npx", ["-y", "skills", "add", REPO, "-g"], { stdio: "inherit" });
+    const r = install ? run("npx", ["-y", "skills", "add", REPO, "-g"], { stdio: "inherit" }) : { status: 1 };
     if (r.status !== 0) done.left.push(`Add the skill to Claude Code: npx skills add ${REPO} -g`);
   }
   done.prompt = setupPrompt({ repoUrl: done.repoUrl, local: localSecrets.length > 0 });
@@ -343,15 +343,17 @@ export async function main(argv = process.argv.slice(2), { stdin = process.stdin
     // steps that stay on this computer (convert, commit) and the rest printed to run.
     const fits = report.workflows.filter((w) => w.outcome?.kind === "subscription").length;
     if (a.setup && fits && (rl || a.yes)) {
-      const tools = findTools();
-      const plan = setupPlan(report, { out: a.out, repo: a.repo, tools: a.yes ? { ...tools, gh: false, ghUser: null, claude: false, skill: true } : tools });
+      // --yes does only what stays on this computer: no repository, no install, no Claude Code.
+      const found = findTools();
+      const tools = a.yes ? { ...found, gh: false, ghUser: null, claude: false } : found;
+      const plan = setupPlan(report, { out: a.out, repo: a.repo, tools: a.yes ? { ...tools, skill: true } : tools });
       console.log(`\n${fits} of ${report.workflows.length} workflow${report.workflows.length === 1 ? "" : "s"} can run on Claude. ${a.yes ? "Going on (--yes):" : "With one go-ahead I will:"}`);
       plan.steps.forEach((t, i) => console.log(`  ${i + 1}. ${t}`));
       if (plan.secrets.length) console.log(`Left for you afterwards: typing ${plan.secrets.length === 1 ? "one key" : `${plan.secrets.length} keys`} (${plan.secrets.join(", ")}).`);
       const go = a.yes || /^(y|yes|)$/i.test(await ask(rl, "Go ahead? [Y/n] ", "y"));
       if (go) {
         rl?.close();
-        const done = goOn({ report, inputs, items, out: a.out, repo: a.repo, tools: a.yes ? { ...tools, gh: false, ghUser: null, claude: false, skill: true } : tools });
+        const done = goOn({ report, inputs, items, out: a.out, repo: a.repo, tools, install: !a.yes });
         if (done.repoUrl) console.log(`Private GitHub repository: ${done.repoUrl}`);
         if (done.left.length) console.log(`\nLeft for you:\n${done.left.map((t) => `  - ${t}`).join("\n")}`);
         return 0;

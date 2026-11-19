@@ -167,6 +167,9 @@ test("start.mjs --yes goes on with what stays on this computer and prints the re
     assert.ok(existsSync(join(out, "flows", "slice", "definition.json")) || readFileSync(join(out, "report.json"), "utf8").length > 0);
     assert.match(r.stdout, /Left for you:\n(  - .*\n)*  - Open Claude Code in .*flows and paste: Use the n8n-migrate skill\./);
     assert.match(r.stdout, /Push .*flows to a private GitHub repository \(the cloud tasks clone it\): gh repo create n8n-workflows --private/);
+    // HOME here has no skill: --yes installs nothing, and says how to add it.
+    assert.match(r.stdout, /  - Add the skill to Claude Code: npx skills add lunox-work\/n8n-migrate -g\n/);
+    assert.ok(!/2\. .*Add the n8n-migrate skill/.test(r.stdout), "the --yes plan does not list an install");
   } finally {
     rmSync(out, { recursive: true, force: true });
   }
