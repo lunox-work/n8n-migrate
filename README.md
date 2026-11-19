@@ -40,7 +40,7 @@
      0 of 9: evals/cutover/results.jsonl (items, optionA.doubleSent). -->
 
 <p align="center">
-  <a href="#get-started-30-seconds">Get started</a> &middot;
+  <a href="#get-started">Get started</a> &middot;
   <a href="#where-each-workflow-lands">Where workflows land</a> &middot;
   <a href="#claude-alone-guesses-n8n-migrate-asks">Why not just ask Claude</a> &middot;
   <a href="#install">Install</a> &middot;
@@ -53,7 +53,52 @@
 
 ---
 
-## Get started (30 seconds)
+## Get started
+
+### In Claude, with no terminal (a chat or Cowork)
+
+1. **Add the skill.** Download
+   [n8n-migrate.zip](https://github.com/lunox-work/n8n-migrate/releases/latest/download/n8n-migrate.zip)
+   and upload it under Customize > Skills.
+2. **Give Claude a workflow.** In n8n, open the workflow's `...` menu, pick
+   Export JSON, drop the file into a new chat and say _"move this to Claude"_.
+   With n8n's MCP server connected (n8n: Settings > Instance-level MCP >
+   Connect a client), say _"migrate my n8n workflows"_ and Claude reads them
+   itself.
+3. **Read one page.** Every workflow lands in one of three groups with one
+   line of reason: Ready to move, Needs one thing from you, Stays in n8n for
+   now.
+4. **Approve a test run** of the easiest one. Nothing is sent; Claude tells
+   you what it would have sent.
+5. **Say "switch it on".** n8n goes off first, then Claude creates the
+   scheduled task and runs it once. The same page then shows what runs on
+   Claude, its last run and how to undo it.
+
+<!-- assets/page.png: migrate.mjs on seven of the 100 most-viewed templates (2722, 1954, 2085, 2197, 1534, 1953, 2703) with
+     gmail, google-drive and slack connected, then status.mjs moved and ran for 2722 with the times of its switch-on on a
+     real account (2026-11-20, evals/phase0/CHECKS.md); the page link in it is a placeholder. Cut above "Stays in n8n". -->
+<p align="center">
+  <img src="assets/page.png" width="90%" alt="The page Claude shows: one workflow running on Claude with its last run and an undo line, one ready to move marked Start here, and two that need one answer each, such as whether Claude may search the web itself instead of SerpAPI.">
+</p>
+
+What moves this way today: workflows that run on a schedule (hourly or
+slower) or when you message them, and use only your connected apps (Gmail,
+Google Drive, Slack, Notion) and model steps. A workflow that calls a web
+service itself or signs in with a saved key stays in n8n on this route,
+because Claude's online sandbox blocks both; a developer can move those with
+Claude Code, below. Of the 100 most-viewed templates, 8 are ready this way, 7
+need one answer and 85 stay, 51 of them movable by a developer.
+
+Seen on a real account (2026-11-20): an email summary workflow went from an
+export file to a daily scheduled task that sent its first real email, in about
+11 minutes and three short replies; an agent chat became a saved skill in
+about 3 minutes, with one question (keep SerpAPI, or let Claude search).
+
+<!-- 8, 7, 85, 51: migrate.mjs on evals/bench/corpus.json rank 1-100 with --connected gmail,google-drive,notion,slack
+     (2026-11-20, commit 5437ff5). 11 and 3 minutes: templates 2722 and 1954, evals/phase0/CHECKS.md "Templates from n8n to
+     claude.ai", timed from attaching the export to the final reply. -->
+
+### For developers: one command
 
 ```sh
 npx n8n-migrate
@@ -62,7 +107,7 @@ npx n8n-migrate
 It asks where your workflows are and recommends the easiest: sign in to your
 n8n in the browser (no key to create). An n8n.io link, an export file, or
 `npx n8n-migrate popular` to try it on the most-viewed templates work too.
-That's it. You get:
+You get:
 
 ```
 n8n-migrate/
@@ -75,9 +120,17 @@ n8n-migrate/
   <img src="assets/report.png" width="90%" alt="The report page for the 100 most-viewed n8n templates: 68 move to your Claude subscription, 1 is replaced by Claude, 21 need hosting, 10 stay in n8n; each workflow shows why, what it needs and what to set up.">
 </p>
 
-Nothing is converted and nothing changes in n8n. To move the ones that fit,
-add the skill (`npx skills add lunox-work/n8n-migrate -g`) and tell Claude
-Code _"convert my n8n workflows in n8n-migrate/exports"_.
+Up to here nothing is converted and nothing changes in n8n. At a terminal the
+command then lists a plan and, on one go-ahead, goes on: it converts the
+workflows that fit into `n8n-migrate/flows`, commits that folder, pushes it to
+a new private GitHub repository when a workflow runs as a cloud task (with
+`gh` signed in), writes the names of the keys it needs into a file for you to
+fill, and opens Claude Code there to create the scheduled tasks. Claude Code
+asks before it creates one or switches anything off in n8n. `--no-setup`
+stops at the report.
+
+This route keeps your keys, so it also moves workflows that call web services
+or sign in to Google with their own token.
 
 ## Where each workflow lands
 
@@ -142,7 +195,12 @@ to none, from code, in milliseconds, the same way every time.
   is for.
 - **Partly run on a real Claude account.** Cloud tasks (with HTTP steps and
   their hooks), Desktop tasks, artifact pages with a model step, and a skill in a
-  claude.ai chat have run on a real account. Gmail, Slack, Google Drive and
+  claude.ai chat have run on a real account. So has the no-terminal route
+  (2026-11-20): a chat converted a scheduled workflow, held its test run,
+  created the scheduled task itself and the first run sent a real email; a
+  chat workflow was saved as a skill with one click. Not run for real yet: the
+  Telegram poll, the page's undo, and `npx n8n-migrate` going on to a GitHub
+  repository and Claude Code (each is tested against stand-ins). Gmail, Slack, Google Drive and
   Notion reads were checked against what the real connectors return, and a
   cloud task ran a Notion search through its hooks; connector writes other
   than Gmail drafts and a Slack post were not. A cloud task only gets the
@@ -285,9 +343,12 @@ minute and starts one run per message, as n8n starts one execution per message.
 
 ## Install
 
-**See what fits:** `npx n8n-migrate` ([Get started](#get-started-30-seconds)).
+In the Claude app (a chat, Desktop, Cowork), download
+[n8n-migrate.zip](https://github.com/lunox-work/n8n-migrate/releases/latest/download/n8n-migrate.zip)
+and upload it under Customize > Skills ([Get started](#get-started)).
 
-**Move them** with the skill, in Claude Code:
+In Claude Code, `npx n8n-migrate` adds the skill when it goes on from the
+report. By hand:
 
 ```sh
 npx skills add lunox-work/n8n-migrate -g
@@ -300,10 +361,6 @@ or as a plugin:
 /plugin install n8n-migrate@n8n-migrate
 ```
 
-In the Claude app (chat, Desktop, Cowork), download
-[n8n-migrate.zip](https://github.com/lunox-work/n8n-migrate/releases/latest/download/n8n-migrate.zip)
-and upload it under Customize > Skills.
-
 Then ask your agent _"can my n8n workflows run on Claude?"_ and give it
 whichever is easiest:
 
@@ -314,7 +371,7 @@ whichever is easiest:
 | an n8n login                         | your n8n address: it opens n8n's sign-in page and reads what you share over MCP |
 | a workflow open in the n8n editor    | select all, copy, paste into the chat                                           |
 | an n8n API key                       | `N8N_BASE_URL` and `N8N_API_KEY` in your environment: it reads every workflow   |
-| an export file                       | the file or folder (editor Download or `n8n export:workflow --all`)             |
+| an export file                       | the file or folder (editor Export JSON or `n8n export:workflow --all`)          |
 
 n8n's own MCP server (Settings > Instance-level MCP) and the community
 `n8n-mcp` server both work. Signing in uses n8n's OAuth, which n8n offers for
@@ -339,10 +396,12 @@ node skills/n8n-migrate/scripts/analyze.mjs exports --html report.html
 node skills/n8n-migrate/scripts/convert.mjs exports --out ../my-flows
 ```
 
-### From a claude.ai chat or Cowork, without Claude Code
+### Workflows that need a key, from a chat or Cowork without Claude Code
 
-A chat has nowhere to keep your API keys. Run the converted folders on a computer
-you control, and add it to Claude as a custom connector:
+A chat has nowhere to keep your API keys, so a workflow that needs one stays
+in n8n on the no-terminal route. To run it from a chat anyway, run the
+converted folders on a computer you control and add it to Claude as a custom
+connector:
 
 ```sh
 npx n8n-migrate convert n8n-migrate/exports --out n8n-flows
@@ -493,8 +552,18 @@ account: [docs/PROOF.md](docs/PROOF.md).
   replaces them).
 - **Runs where Claude runs.** Cloud tasks run at most hourly; local tasks
   need the app open and the computer awake. Runs share your usage window.
-- **Google REST steps** (Sheets writes, Calendar) need an access token that
-  expires after an hour; no refresh is built.
+- **Google REST steps** (Sheets row writes, Calendar) need an access token
+  that expires after an hour. A local task refreshes it from the credential's
+  refresh set or a service-account key; a cloud task and the no-terminal route
+  cannot, so those workflows run as a local task. A Sheets read on its own
+  goes through the Drive connector (first tab only) and needs no token.
+  Calendar moves to a connector once its tools are captured from a signed-in
+  account.
+- **The no-terminal route is narrow.** A chat or Cowork keeps no keys and
+  Claude's online sandbox refuses most outbound requests, so a workflow that
+  calls a web service or fetches a page stays in n8n there (85 of the 100
+  most-viewed templates). A scheduled run there also has no hooks: the model
+  saves each tool response itself, and it shortens a web search's text.
 - **No model-drafted steps.** `draft.mjs`, which asks a model to draft a
   missing app request, is experimental and never offered: in testing, drafted
   steps passed no more workflows and handed on the app's raw output where n8n
