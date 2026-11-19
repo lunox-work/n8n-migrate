@@ -8,6 +8,50 @@ import { hashHex } from "./hash.mjs";
 import { isObject } from "./util.mjs";
 
 export const RECORD_FORMAT = 1;
+
+// A document passed through a claude.ai session's tools must not hold two keys that differ only
+// in letter case in one object ("MCP request body gives the same key twice in one object (keys
+// that differ only in letter case count as the same key)", observed 2026-11-19 on a Gmail item
+// with Subject and subject). packDoc keeps each top-level field, and replaces a field whose value
+// holds such a pair with {__n8mJson: "<the value as JSON>"}; unpackDoc undoes it. Both drivers
+// unpack what they read.
+const PACKED = "__n8mJson";
+function caseClash(v) {
+  if (Array.isArray(v)) return v.some(caseClash);
+  if (!v || typeof v !== "object") return false;
+  const seen = new Set();
+  for (const k of Object.keys(v)) {
+    const l = k.toLowerCase();
+    if (seen.has(l)) return true;
+    seen.add(l);
+  }
+  return Object.values(v).some(caseClash);
+}
+export function packDoc(doc) {
+  if (!doc || typeof doc !== "object" || Array.isArray(doc) || !caseClash(doc)) return doc;
+  const out = {};
+  const seen = new Map();
+  for (const [k, v] of Object.entries(doc)) {
+    const l = k.toLowerCase();
+    // Two top-level fields that clash: the later one is packed under a field of its own.
+    if (seen.has(l)) out[`${PACKED}:${k}`] = { [PACKED]: JSON.stringify(v) };
+    else out[k] = caseClash(v) ? { [PACKED]: JSON.stringify(v) } : v;
+    seen.set(l, k);
+  }
+  return out;
+}
+export function unpackDoc(doc) {
+  if (!doc || typeof doc !== "object" || Array.isArray(doc)) return doc;
+  let changed = false;
+  const out = {};
+  for (const [k, v] of Object.entries(doc)) {
+    const packed = v && typeof v === "object" && !Array.isArray(v) && typeof v[PACKED] === "string" && Object.keys(v).length === 1;
+    const key = k.startsWith(`${PACKED}:`) ? k.slice(PACKED.length + 1) : k;
+    if (packed || key !== k) changed = true;
+    out[key] = packed ? JSON.parse(v[PACKED]) : v;
+  }
+  return changed ? out : doc;
+}
 export const COLLECTIONS = { runs: "runs", cursors: "cursors", ledger: "ledger", lock: "lock", meta: "meta", submissions: "submissions" };
 export const LOCK_PATH = "lock/run";
 export const META_CURRENT = "meta/current";

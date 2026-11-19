@@ -641,6 +641,9 @@ function toolInstruction(task, handle, req, { hooksSeen = false, repeat = 0 } = 
     "Arguments, exactly as written (JSON):",
     JSON.stringify(args),
   ];
+  // In a claude.ai session ArtifactData is often a deferred tool: a session that does not see
+  // it reached for another database tool with other result texts (observed 2026-11-19).
+  if (req.tool === "ArtifactData") lines.push("If you do not see a tool named ArtifactData, load it first with ToolSearch (query select:ArtifactData). Use exactly that tool: no other database or artifact tool, and never write its response yourself.");
   const saveYourself = [
     `After the tool returns, use the Write tool to write its full response, exactly as returned (every character), with file_path exactly ${inboxPath(handle)} . Then run: ${RUNNER_CMD} result ${handle}`,
     `If the tool returned an error, write the error text to that file and run: ${RUNNER_CMD} result ${handle} --error`,
@@ -984,7 +987,7 @@ function queuePullOf(P, task, collection, docId = null) {
 function queuePull(P, task) {
   for (const c of PULL_COLLECTIONS) queuePullOf(P, task, c);
 }
-function settlePull(P, task, store, x, result) {
+function settlePull(P, core, task, store, x, result) {
   const { pull: collection, doc, dir } = x.then;
   const text = resultText(result);
   if (!result.ok) {
@@ -1000,7 +1003,7 @@ function settlePull(P, task, store, x, result) {
     const id = f.slice(0, -5);
     const hit = listed.find((d) => d.id === id);
     if (!hit) return store.setError({ when: "pull", collection, error: `no version reported for ${collection}/${id}` });
-    store.load(`${collection}/${id}`, readJson(join(local, f)), hit.version);
+    store.load(`${collection}/${id}`, core.unpackDoc(readJson(join(local, f))), hit.version);
   }
   if (listed.length !== onDisk.length) return store.setError({ when: "pull", collection, error: `${listed.length} documents listed, ${onDisk.length} saved` });
   if (collection === "meta") {
@@ -1018,7 +1021,7 @@ function finishPull(P, store, x) {
   if (!left.length && !store.error()) store.markPulled({ versions: Object.keys(store.versions()).length });
 }
 // Queues the changed documents as batches; false when there is nothing to send.
-function queuePush(P, task, store) {
+function queuePush(P, core, task, store) {
   const pend = store.pending();
   if (!pend.length) return false;
   const outDir = join(P.n8m, "db-out", `${readExtra(P).next}`);
@@ -1043,7 +1046,7 @@ function queuePush(P, task, store) {
       if (!Number.isInteger(e.version)) return;
       w = { op: "delete", collection, doc_id, if_version: e.version };
     } else {
-      const text = JSON.stringify(e.doc ?? {});
+      const text = JSON.stringify(core.packDoc(e.doc ?? {}));
       // A batch body is at most 1 MiB; a larger document (a big open run's state) stays here.
       if (text.length > 900_000) return logEvent(P, { event: "db-too-large", path: e.path, bytes: text.length });
       const file = join(outDir, `${i}.json`);
@@ -1065,7 +1068,7 @@ function settlePush(store, x, result) {
 }
 
 function settleExtraThen(P, core, store, x, result, task = {}) {
-  if (x.then?.pull) settlePull(P, task, store, x, result);
+  if (x.then?.pull) settlePull(P, core, task, store, x, result);
   if (x.then?.push) settlePush(store, x, result);
   if (x.then?.outbox && result.ok) store.clearOutbox?.(x.then.outbox);
   if (x.then === "submissions") {
@@ -1122,7 +1125,7 @@ async function advance(P, core, task, store, state, opts = {}) {
   let prefix = "";
   // A last line: with the artifact store, the changed records go to the page first.
   const end = (text) => {
-    if (isSession(store) && queuePush(P, task, store)) {
+    if (isSession(store) && queuePush(P, core, task, store)) {
       queueExtra(P, null, { final: text });
       return null;
     }
@@ -1142,7 +1145,7 @@ async function advance(P, core, task, store, state, opts = {}) {
       return prefix + `FAILED: the run's records in the workflow's page could not be ${e.when === "pull" ? "read" : "saved"} (${e.error}). Nothing more is sent in this session. Stop now.`;
     }
     if (ex.final != null) {
-      if (isSession(store) && queuePush(P, task, store)) continue;
+      if (isSession(store) && queuePush(P, core, task, store)) continue;
       writeExtra(P, { items: [], next: ex.next, final: null });
       return prefix + ex.final;
     }
@@ -1255,8 +1258,8 @@ async function advance(P, core, task, store, state, opts = {}) {
           ledgerWrite(store, core, r, "sending", { runId: state.runId, by: "driver" });
           drv.presynced = { ...(drv.presynced ?? {}), [h]: true };
           writeJson(P.driver, drv);
-          if (queuePush(P, task, store)) continue;
-        } else if (Object.keys(store.dirty()).some((p) => p.startsWith("ledger/")) && queuePush(P, task, store)) continue;
+          if (queuePush(P, core, task, store)) continue;
+        } else if (Object.keys(store.dirty()).some((p) => p.startsWith("ledger/")) && queuePush(P, core, task, store)) continue;
       }
       drv.handed[h] = repeat + 1;
       writeJson(P.driver, drv);

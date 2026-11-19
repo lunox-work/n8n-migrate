@@ -9,6 +9,9 @@
 //       checks the definition against its hash, writes <dir> (default /tmp/n8m/<slug>) with
 //       definition.json, task.json (artifactUrl set) and runtime/, and prints the runner
 //       command. Prints FAILED and exits 1 when the page is not a converted workflow.
+//   task.mjs setup <page.html | folder> --local [--dir <dir>]
+//       In the setup conversation, for the test run: the same folder with its records kept on
+//       disk (store "file"), since a conversation has no ArtifactData (observed 2026-11-19).
 //   task.mjs prompt <page.html | folder> --artifact <url>
 //       In the setup conversation: the scheduled task's instructions for that workflow.
 //
@@ -60,14 +63,15 @@ export function readPage(html) {
 const pageOf = (p) => (existsSync(join(p, "artifact.html")) ? join(p, "artifact.html") : p);
 const URL_RE = /^https:\/\/claude\.ai\/(?:code\/)?artifact\/[A-Za-z0-9_-]+$/;
 
-export function setup(pagePath, { artifact, dir } = {}) {
-  if (!URL_RE.test(String(artifact ?? ""))) return { error: "--artifact must be the page's claude.ai/artifact/… link" };
+export function setup(pagePath, { artifact, dir, local = false } = {}) {
+  if (!local && !URL_RE.test(String(artifact ?? ""))) return { error: "--artifact must be the page's claude.ai/artifact/… link" };
   const page = readPage(readFileSync(pageOf(pagePath), "utf8"));
   if (page.error) return page;
   const out = resolve(dir ?? join("/tmp/n8m", slugOf(page.def.name)));
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, "definition.json"), JSON.stringify(page.def, null, 2) + "\n");
-  writeFileSync(join(out, "task.json"), JSON.stringify({ ...page.build.cowork, artifactUrl: artifact }, null, 2) + "\n");
+  const task = local ? { ...page.build.cowork, store: { kind: "file" }, artifactUrl: null } : { ...page.build.cowork, artifactUrl: artifact };
+  writeFileSync(join(out, "task.json"), JSON.stringify(task, null, 2) + "\n");
   writeRuntime(out, page.def);
   return { dir: out, runner: `node ${out}/runtime/runner.mjs`, name: page.def.name };
 }
@@ -96,11 +100,11 @@ function main(argv = process.argv.slice(2)) {
     return i >= 0 ? argv[i + 1] : undefined;
   };
   if (!["setup", "prompt"].includes(cmd) || !path) {
-    process.stderr.write("usage: task.mjs setup <page.html> --artifact <url> [--dir <dir>]\n       task.mjs prompt <page.html|folder> --artifact <url>\n");
+    process.stderr.write("usage: task.mjs setup <page.html> (--artifact <url> | --local) [--dir <dir>]\n       task.mjs prompt <page.html|folder> --artifact <url>\n");
     return 2;
   }
   try {
-    const r = cmd === "setup" ? setup(path, { artifact: flag("artifact"), dir: flag("dir") }) : prompt(path, { artifact: flag("artifact") });
+    const r = cmd === "setup" ? setup(path, { artifact: flag("artifact"), dir: flag("dir"), local: argv.includes("--local") }) : prompt(path, { artifact: flag("artifact") });
     if (r.error) {
       process.stdout.write(`FAILED: ${r.error}. Stop now.\n`);
       return 1;
