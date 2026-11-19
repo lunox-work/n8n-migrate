@@ -978,7 +978,8 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
       delete step.rest;
       delete step.http;
       const dropped = Object.keys(step.params?.options ?? {}).filter((k) => k !== "timeout");
-      step.tool = { connector: CLAUDE_TOOLS, name: "WebSearch", args: { query: "={{ $fromAI('input') }}" }, effect: "read", fidelity: "none", caveats: ["the results come from Claude's web search, not SerpAPI: the text the agent reads differs from n8n's", ...(dropped.length ? [`the SerpAPI options ${dropped.join(", ")} are not applied`] : [])], map: "search-with claude" };
+      // claude.ai's WebSearch requires mode (seen 2026-11-20: a call with only query was refused and the run looped)
+      step.tool = { connector: CLAUDE_TOOLS, name: "WebSearch", args: { query: "={{ $fromAI('input') }}", mode: "standard" }, effect: "read", fidelity: "none", caveats: ["the results come from Claude's web search, not SerpAPI: the text the agent reads differs from n8n's", ...(dropped.length ? [`the SerpAPI options ${dropped.join(", ")} are not applied`] : [])], map: "search-with claude" };
       step.substitution = { id: "search-to-claude", from: "SerpAPI", to: "Claude's own web search (no key)", approved: true };
       addTool(CLAUDE_TOOLS, "WebSearch");
       return;

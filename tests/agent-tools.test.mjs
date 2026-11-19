@@ -367,7 +367,7 @@ test("SerpAPI tool answered claude: Claude's web search, no secret and no outbou
   assert.equal(tool.description, "a search engine. useful for when you need to answer questions about current events. input should be a search query.");
   assert.deepEqual(tool.inputSchema, { type: "object", properties: { input: { type: "string" } } });
   const step = def.steps.SerpAPI;
-  assert.deepEqual([step.kind, step.tool.connector, step.tool.name, step.tool.args], ["tool", "claude", "WebSearch", { query: "={{ $fromAI('input') }}" }]);
+  assert.deepEqual([step.kind, step.tool.connector, step.tool.name, step.tool.args], ["tool", "claude", "WebSearch", { query: "={{ $fromAI('input') }}", mode: "standard" }]);
   assert.deepEqual(step.substitution, { id: "search-to-claude", from: "SerpAPI", to: "Claude's own web search (no key)", approved: true });
   assert.match(step.tool.caveats.join(" "), /differs from n8n's.*options gl are not applied/);
   assert.deepEqual([def.allow.http, def.secrets, def.allow.tools], [[], [], [{ connector: "claude", tool: "WebSearch" }]]);
@@ -396,7 +396,7 @@ test("SerpAPI tool answered claude: Claude's web search, no secret and no outbou
   };
   const r = await run(def, { clock: CLOCK, virtualTime: true, trigger: { node: "Start", items: [{ json: { q: "rates?" } }] }, host });
   assert.equal(r.status, "done", JSON.stringify(r.error));
-  assert.deepEqual(calls, [["claude", "WebSearch", { query: "ECB rate" }]]);
+  assert.deepEqual(calls, [["claude", "WebSearch", { query: "ECB rate", mode: "standard" }]]);
   assert.deepEqual(fed, { name: "search", ok: true, value: "ECB deposit rate: 2.00% (ecb.europa.eu)" });
 });
 
