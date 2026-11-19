@@ -50,7 +50,7 @@ const WAKEUP_RANK = ["endpoint", "mcp-server", "chat", "form", "relay", "poll", 
 const OUTCOME_RANK = ["keep-in-n8n", "hosted", "replaced", "subscription"]; // worst first
 const BLOCKING = new Set(["input-incomplete", "unsupported", "unmapped"]);
 const BLOCKER_ORDER = ["input-incomplete", "unsupported", "unmapped", "substitution", "dropped-branch", "not-an-automation"];
-const REQ_ORDER = ["connector", "model", "http", "secret", "db", "db-client", "vector", "state", "mcp-server", "poll", "relay", "task-handoff", "host-disk", "local-network", "substitution", "missing-export", "frequency", "frequency-change", "bundled-server"];
+const REQ_ORDER = ["connector", "model", "http", "web-search", "secret", "db", "db-client", "vector", "state", "mcp-server", "poll", "relay", "task-handoff", "host-disk", "local-network", "substitution", "missing-export", "frequency", "frequency-change", "bundled-server"];
 const SURFACES = ["cloudTask", "localTask", "artifact"];
 const N8N_DEFAULT_TIMEZONE = "America/New_York"; // GENERIC_TIMEZONE default in n8n
 const BRANCH_RANK = ["main", "error-output", "error-trigger", "unreached"];
@@ -1319,6 +1319,26 @@ function blockedReason(d) {
 
 export const N8N_STAYS_NOTE = "keeps calling your n8n instance through its public API (reads only), so it is useful only while n8n keeps running";
 
+// An agent's search tool that Claude has built in (the SerpAPI tool): the person chooses
+// between the same service with their own key (the assumed answer: n8n's results, a stored
+// secret and outbound HTTP) and Claude's own web search (no key; the results differ). The
+// answer "claude" swaps the step's http and secret requirements for web-search, which a task
+// has and an artifact page does not (capabilities requirements.web-search); convert.mjs
+// builds the tool from the same answer.
+export const SEARCH_TOOLS = { "@n8n/n8n-nodes-langchain.toolSerpApi": { label: "SerpAPI" } };
+function askSearch(W, ctx, d) {
+  const spec = own(SEARCH_TOOLS, d.baseType);
+  if (!spec) return false;
+  const { value } = ask(W, ctx, "search-with", d.name, {
+    text: `The agent's tool "${d.name}" searches the web through ${spec.label} with your own API key. Keep ${spec.label} (the same results as in n8n, and the key stored for the task), or let Claude search the web itself (no key to store; the results come from Claude's web search, so they differ from ${spec.label}'s)?`,
+    affects: "outcome",
+    answerType: "choice",
+    options: { keep: `${spec.label} with your key, as in n8n`, claude: "Claude's own web search, no key" },
+    assumed: "keep",
+  });
+  return value === "claude";
+}
+
 // Requirements, blockers and shared state contributed by one node.
 function processNode(W, d, ctx, br) {
   const name = d.name;
@@ -1381,7 +1401,10 @@ function processNode(W, d, ctx, br) {
       break;
     case "http":
     case "media":
-      addReq(W, "http", "outbound http", name, { surfaces: reqSurf("http") });
+      if (askSearch(W, ctx, d)) {
+        d.webSearch = true;
+        addReq(W, "web-search", "Claude web search", name, { surfaces: reqSurf("web-search") });
+      } else addReq(W, "http", "outbound http", name, { surfaces: reqSurf("http") });
       break;
     case "db":
       if (d.baseType === "n8n-nodes-base.dataTable") {
@@ -1446,7 +1469,7 @@ function processNode(W, d, ctx, br) {
     const cred = credentialNames(d)[0];
     addReq(W, "google-token", cred?.name ?? `${shortType(d.baseType)} credential`, name, { surfaces: reqSurf("google-token"), note: GOOGLE_TOKEN_NOTE });
   }
-  if (d.secrets === true) {
+  if (d.secrets === true && !d.webSearch) {
     const proto = d.kind === "db" ? "secret:db" : "secret:http";
     const creds = credentialNames(d);
     if (!creds.length) addReq(W, "secret", `${shortType(d.baseType)} (no credential named in the export)`, name, { surfaces: reqSurf(proto) });
@@ -1489,7 +1512,8 @@ function analyzeLocal(item, ctx, parent = null, prefix = "") {
   W.credentials = [];
   for (const n of order) {
     const d = infos.get(n);
-    if (d.disabled) continue;
+    // A search tool swapped for Claude's web search no longer uses its credential.
+    if (d.disabled || d.webSearch) continue;
     for (const c of credentialNames(d)) {
       let e = W.credentials.find((x) => x.type === c.type && x.name === c.name);
       if (!e) W.credentials.push((e = { type: c.type, name: c.name, nodes: [] }));
@@ -2445,6 +2469,7 @@ const SURFACE_OF = { "cloud-task": "cloudTask", "local-task": "localTask", artif
 const REQ_LABEL = {
   model: () => "Claude model",
   http: () => "outbound HTTP",
+  "web-search": () => "Claude web search",
   poll: () => "polling",
   relay: (n) => `relay (${n})`,
   "host-disk": () => "files on disk",

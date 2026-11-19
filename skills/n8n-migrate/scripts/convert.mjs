@@ -961,7 +961,24 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
 
   // SerpAPI (agent tool): LangChain's SerpAPI as n8n runs it (runtime rest.mjs serpApi): one GET
   // of serpapi.com/search with the node's options, the person's key in the query.
-  const applySerpApi = (step) => {
+  // Answered "claude" to the analyzer's search question (analyze.mjs askSearch): the tool is
+  // Claude's own web search instead, a tool of the session that runs the task (connector
+  // "claude", no prefix), so there is no key and no request of ours. The model sees the same
+  // tool name, description and input as n8n's; what comes back is Claude's search result, not
+  // LangChain's pick from SerpAPI's answer, and the node's options (country, language, device)
+  // have no counterpart.
+  const applySerpApi = (name, step) => {
+    if (searchQuestion(report, name)?.answer === "claude") {
+      step.kind = "tool";
+      delete step.auth;
+      delete step.rest;
+      delete step.http;
+      const dropped = Object.keys(step.params?.options ?? {}).filter((k) => k !== "timeout");
+      step.tool = { connector: CLAUDE_TOOLS, name: "WebSearch", args: { query: "={{ $fromAI('input') }}" }, effect: "read", fidelity: "none", caveats: ["the results come from Claude's web search, not SerpAPI: the text the agent reads differs from n8n's", ...(dropped.length ? [`the SerpAPI options ${dropped.join(", ")} are not applied`] : [])], map: "search-with claude" };
+      step.substitution = { id: "search-to-claude", from: "SerpAPI", to: "Claude's own web search (no key)", approved: true };
+      addTool(CLAUDE_TOOLS, "WebSearch");
+      return;
+    }
     step.kind = "http";
     const secretName = step.credentials?.serpApi ?? "serpApi (no credential named in the export)";
     step.auth = { credentialType: "serpApi", secret: secretName, placement: "url" };
@@ -1451,7 +1468,7 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         const found = (op != null ? findMap(refs.toolMaps, baseType, v, info.resource ?? "_", op) : null) ?? (bare ? findMap(refs.toolMaps, baseType, v, "_", "_") : null);
         if (baseType === BASE + "rssFeedRead") applyRss(name, step, params);
         else if (type === LC + "toolWikipedia") applyWikipedia(step);
-        else if (type === LC + "toolSerpApi") applySerpApi(step);
+        else if (type === LC + "toolSerpApi") applySerpApi(name, step);
         else if (found) applyMap(name, step, found, params);
         else if (type === LC + "toolHttpRequest" || type === BASE + "httpRequestTool") {
           // agent http tools are built in the agent pass
@@ -1638,7 +1655,11 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         Object.assign(t, { kind: "think", effect: "none", inputSchema: { type: "object", properties: { input: { type: "string" } } } });
       } else if (ts.kind === "tool" && ts.tool) {
         Object.assign(t, { kind: "connector", effect: ts.tool.effect === "read" ? "read" : "write" });
-        const schema = fromAiSchema(tp);
+        // A LangChain tool with a fixed description and one text input (the search tool run
+        // by Claude's web search) keeps both, as the model saw them in n8n.
+        const fixed = FIXED_TOOL_DESCRIPTIONS[ts.n8n.type];
+        const schema = fixed ? clone(DYNAMIC_TOOL_SCHEMA) : fromAiSchema(tp);
+        if (fixed) t.description = fixed;
         if (schema) t.inputSchema = schema;
       } else if (ts.n8n.type === LC + "toolWorkflow") {
         const call = buildToolWorkflow(ctx, items, report, wr, tn, ts, stack, id, allow, secrets);
@@ -1981,6 +2002,10 @@ function summarizeSpec(name, p, v, subnodesTo, steps) {
 // The hosts question for an HTTP Request step whose address comes from data (analyze.mjs
 // askHosts), and its answer: "public" -> {public: true}; host names (comma or space separated,
 // a URL's host taken) -> {hosts}; anything else -> {invalid: reason}; unanswered -> null.
+function searchQuestion(report, stepName) {
+  for (const w of report?.workflows ?? []) for (const q of w.questions ?? []) if (/\/search-with\//.test(q.id) && q.id.endsWith(`/search-with/${stepName}`)) return q;
+  return null;
+}
 function hostsQuestion(report, stepName) {
   for (const w of report?.workflows ?? []) for (const q of w.questions ?? []) if (/\/hosts\//.test(q.id) && q.id.endsWith(`/hosts/${stepName}`)) return q;
   return null;
@@ -2443,9 +2468,16 @@ export const cloudPrefix = (local) => local.replace(/^mcp__claude_ai_/, "mcp__")
 // A claude.ai scheduled task without a repository (Cowork) names it after the connector's
 // display name with underscores: mcp__Gmail__, mcp__Google_Drive__ (observed 2026-11-19).
 export const coworkPrefix = (local) => local.replace(/^mcp__claude_ai_/, "mcp__");
+// Tools of the Claude session itself (WebSearch): allow.tools names them under this connector
+// and the session calls them by their bare name on every surface.
+export const CLAUDE_TOOLS = "claude";
 export function toolPrefixes(def, refs, where) {
   const out = {};
   for (const t of [...(def.allow?.tools ?? []), ...(def.allow?.alerts ?? [])]) {
+    if (t.connector === CLAUDE_TOOLS) {
+      out[CLAUDE_TOOLS] = "";
+      continue;
+    }
     const p = refs.connectors[t.connector]?.toolPrefix ?? EXTRA_TOOL_PREFIXES[t.connector];
     if (p) out[t.connector] = where === "cloud-task" ? cloudPrefix(p) : where === "cowork" ? coworkPrefix(p) : p;
   }
@@ -2468,7 +2500,9 @@ export function taskJson(def, refs, target) {
   return { hooks: true, compactWhole: true, compactOver: 80, hideToolOutput: true, secrets: where === "cloud-task" ? "proxy" : "env", toolPrefixes: { ...toolPrefixes(def, refs, where), ...(handoff ? { "artifact-db": "" } : {}) }, store: where === "cloud-task" ? { kind: "git", fallback: "file" } : { kind: "file" }, ...(handoff ? { source: "poll-submissions", artifactDb: false, artifactUrl: null } : {}) };
 }
 const formHandoff = (def) => Object.values(def.steps).find((s) => s.kind === "trigger" && s.form?.handoff && s.settings?.disabled !== true)?.form.handoff ?? null;
-const HOOK_MATCHER = "^(mcp__.*|ArtifactData)$";
+// WebSearch: a search tool swapped for Claude's own (applySerpApi) is checked and captured
+// like a connector call; the hook refuses any search the runner did not ask for.
+const HOOK_MATCHER = "^(mcp__.*|ArtifactData|WebSearch)$";
 // A PreToolUse hook that cannot start (a missing file, no node) exits 1, a non-blocking error,
 // and the call goes ahead unchecked (observed on 2.1.323). "|| exit 2" turns any failure into a
 // block, so containment fails closed.
@@ -2480,11 +2514,13 @@ export function connectorToolNames(def, refs, where) {
   if (formHandoff(def)) names.push("ArtifactData");
   return uniq(names);
 }
+// The session's own web tools stay denied unless a step of the workflow uses one.
+const sessionDeny = (allowed) => ["WebFetch", "WebSearch"].filter((t) => !allowed.includes(t));
 // .claude/settings.json for a session opened on this folder alone (one repo per workflow).
 export function taskSettings(def, refs, target) {
   const hook = (which) => [{ matcher: HOOK_MATCHER, hooks: [{ type: "command", command: hookCommand("$CLAUDE_PROJECT_DIR/runtime/hook.mjs", which), timeout: 30 }] }];
   return {
-    permissions: { defaultMode: "dontAsk", allow: ["Bash(node runtime/runner.mjs *)", "Edit(.n8m/inbox/**)", ...connectorToolNames(def, refs, taskTarget(def, target))], deny: ["WebFetch", "WebSearch"] },
+    permissions: { defaultMode: "dontAsk", allow: ["Bash(node runtime/runner.mjs *)", "Edit(.n8m/inbox/**)", ...connectorToolNames(def, refs, taskTarget(def, target))], deny: sessionDeny(connectorToolNames(def, refs, taskTarget(def, target))) },
     hooks: { PreToolUse: hook("pre"), PostToolUse: hook("post") },
   };
 }
@@ -2520,7 +2556,7 @@ export function rootSettings(outDir) {
     }
   }
   const hook = (which) => [{ matcher: HOOK_MATCHER, hooks: [{ type: "command", command: hookCommand("$CLAUDE_PROJECT_DIR/n8m-hook.mjs", which), timeout: 30 }] }];
-  return { permissions: { defaultMode: "dontAsk", allow: uniq(allow), deny: ["WebFetch", "WebSearch"] }, hooks: { PreToolUse: hook("pre"), PostToolUse: hook("post") } };
+  return { permissions: { defaultMode: "dontAsk", allow: uniq(allow), deny: sessionDeny(allow) }, hooks: { PreToolUse: hook("pre"), PostToolUse: hook("post") } };
 }
 export function writeRootSettings(outDir) {
   const settings = rootSettings(outDir);
@@ -2621,7 +2657,8 @@ const EXTRA_TOOL_PREFIXES = { atlassian: "mcp__claude_ai_Atlassian_MCP__", click
 export function artifactServers(def, refs) {
   const out = {};
   for (const t of def.allow?.tools ?? []) {
-    if (out[t.connector]) continue;
+    // A tool of the Claude session (web search) has no counterpart in a page.
+    if (out[t.connector] || t.connector === CLAUDE_TOOLS) continue;
     const prefix = refs.connectors[t.connector]?.toolPrefix ?? EXTRA_TOOL_PREFIXES[t.connector];
     out[t.connector] = prefix ? prefix.replace(/^mcp__/, "").replace(/__$/, "").replace(/^claude_ai_/, "").replace(/_/g, " ") : t.connector;
   }
@@ -2638,6 +2675,7 @@ export function artifactCapabilities(def, refs, gateway = null) {
   const byServer = new Map();
   for (const t of def.allow?.tools ?? []) {
     const name = servers[t.connector];
+    if (name === undefined) continue;
     if (!byServer.has(name)) byServer.set(name, new Set());
     byServer.get(name).add(t.tool);
   }

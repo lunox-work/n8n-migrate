@@ -7,12 +7,22 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { convertItems, loadReferences, nodeNameToToolName, toolNameFor, fromAiSchema } from "../skills/n8n-migrate/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
+import { readFileSync } from "node:fs";
+import { convertItems, loadReferences, nodeNameToToolName, toolNameFor, fromAiSchema, validateSchema, toolPrefixes, connectorToolNames, taskSettings, artifactCapabilities } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { loadInput, analyze } from "../skills/n8n-migrate/scripts/analyze.mjs";
 import { preflight, run } from "../skills/n8n-migrate/runtime/src/api.mjs";
 import { parseXml, parseFeed } from "../skills/n8n-migrate/runtime/src/feed.mjs";
 
 const refs = loadReferences();
+const refJson = (n) => JSON.parse(readFileSync(new URL(`../skills/n8n-migrate/references/${n}`, import.meta.url), "utf8"));
+// The analyzer's items for a workflow object, as loadInput reads a file.
+function loadJson(wf) {
+  const dir = mkdtempSync(join(tmpdir(), "n8m-tools-"));
+  writeFileSync(join(dir, "wf.json"), JSON.stringify(wf));
+  const loaded = loadInput(join(dir, "wf.json"));
+  rmSync(dir, { recursive: true, force: true });
+  return loaded.items;
+}
 const CLOCK = { startedAt: "2026-11-16T09:00:00Z" };
 const LC = "@n8n/n8n-nodes-langchain.";
 
@@ -335,6 +345,59 @@ test("Wikipedia tool: LangChain's WikipediaQueryRun as n8n runs it (search, then
   const down = { ...host, http: async () => ({ status: 503, headers: {}, body: "" }) };
   await run(def, { clock: CLOCK, virtualTime: true, trigger: { node: "Start", items: [{ json: { q: "x" } }] }, host: down });
   assert.deepEqual([fed.ok, fed.error?.message], [false, "Network response was not ok"]);
+});
+
+// The search question (analyze.mjs askSearch): answered "claude", the SerpAPI tool runs on
+// Claude's own web search, with no key, no request of ours and the model-facing tool unchanged.
+test("SerpAPI tool answered claude: Claude's web search, no secret and no outbound HTTP", async () => {
+  const wf = agentWf([{ parameters: { options: { gl: "de" } }, name: "SerpAPI", type: LC + "toolSerpApi", typeVersion: 1, position: [0, 200], credentials: { serpApi: { id: "1", name: "SerpAPI account" } } }]);
+  const ask = (answers) => analyze(loadJson(wf), { nodes: refJson("nodes.json"), capabilities: refJson("capabilities.json"), hosts: refJson("http-hosts.json"), answers, now: Date.parse("2026-11-14T00:00:00Z") }).workflows[0];
+  const kept = ask({});
+  const q = kept.questions.find((x) => x.id === "tools01/search-with/SerpAPI");
+  assert.deepEqual([q.answerType, q.assumed, Object.keys(q.options)], ["choice", "keep", ["keep", "claude"]]);
+  assert.deepEqual(kept.requires.map((r) => r.kind).filter((k) => ["http", "secret", "web-search"].includes(k)).sort(), ["http", "secret"]);
+  const swapped = ask({ "tools01/search-with/SerpAPI": "claude" });
+  assert.deepEqual(swapped.requires.map((r) => r.kind).filter((k) => ["http", "secret", "web-search"].includes(k)), ["web-search"]);
+  assert.deepEqual(swapped.requires.find((r) => r.kind === "web-search").surfaces, { cloudTask: "ok", localTask: "ok", artifact: "no" });
+  assert.deepEqual(swapped.credentials.map((c) => c.type), [], "the SerpAPI credential is no longer used");
+
+  const def = convertJson(wf, { "tools01/search-with/SerpAPI": "claude" });
+  const [tool] = def.steps.Agent.agent.tools;
+  assert.deepEqual([tool.name, tool.kind, tool.effect], ["search", "connector", "read"]);
+  assert.equal(tool.description, "a search engine. useful for when you need to answer questions about current events. input should be a search query.");
+  assert.deepEqual(tool.inputSchema, { type: "object", properties: { input: { type: "string" } } });
+  const step = def.steps.SerpAPI;
+  assert.deepEqual([step.kind, step.tool.connector, step.tool.name, step.tool.args], ["tool", "claude", "WebSearch", { query: "={{ $fromAI('input') }}" }]);
+  assert.deepEqual(step.substitution, { id: "search-to-claude", from: "SerpAPI", to: "Claude's own web search (no key)", approved: true });
+  assert.match(step.tool.caveats.join(" "), /differs from n8n's.*options gl are not applied/);
+  assert.deepEqual([def.allow.http, def.secrets, def.allow.tools], [[], [], [{ connector: "claude", tool: "WebSearch" }]]);
+  assert.deepEqual(validateSchema(def, refs.schema), []);
+  assert.equal(preflight(def, {}).ok, true);
+  // The task's session calls the tool by its bare name, on every surface, and only then is
+  // web search taken off the deny list; the page gets no connector for it.
+  for (const where of ["cloud-task", "local-task", "cowork"]) assert.deepEqual(toolPrefixes(def, refs, where), { claude: "" });
+  assert.deepEqual(connectorToolNames(def, refs, "cloud-task"), ["WebSearch"]);
+  const settings = taskSettings(def, refs, "cloud-task");
+  assert.deepEqual([settings.permissions.allow.includes("WebSearch"), settings.permissions.deny], [true, ["WebFetch"]]);
+  assert.match(settings.hooks.PreToolUse[0].matcher, /WebSearch/);
+  assert.deepEqual(taskSettings(convertJson(wf), refs, "cloud-task").permissions.deny, ["WebFetch", "WebSearch"], "kept on SerpAPI: web search stays denied");
+  assert.deepEqual(artifactCapabilities(def, refs).mcp, undefined);
+  // In a run the model's input becomes the search query; what the search returns goes back to the agent.
+  const calls = [];
+  let fed;
+  const host = {
+    tool: async (p) => (calls.push([p.connector, p.tool, p.args]), "ECB deposit rate: 2.00% (ecb.europa.eu)"),
+    agent: async (p) => {
+      if (p.turn === 0) return { intent: "tool-calls", calls: [{ name: "search", args: { input: "ECB rate" } }] };
+      fed = p.transcript[0].results[0];
+      return "done";
+    },
+    http: async () => assert.fail("no request of ours"),
+  };
+  const r = await run(def, { clock: CLOCK, virtualTime: true, trigger: { node: "Start", items: [{ json: { q: "rates?" } }] }, host });
+  assert.equal(r.status, "done", JSON.stringify(r.error));
+  assert.deepEqual(calls, [["claude", "WebSearch", { query: "ECB rate" }]]);
+  assert.deepEqual(fed, { name: "search", ok: true, value: "ECB deposit rate: 2.00% (ecb.europa.eu)" });
 });
 
 // R5b3 iteration 55: the SerpAPI tool as n8n runs LangChain's SerpAPI (name "search", its fixed

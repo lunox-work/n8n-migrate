@@ -43,7 +43,7 @@ test("converted folders carry the task files: settings with the minimal allowlis
     const s = readJson(join(folder, ".claude/settings.json"));
     assert.deepEqual(s.permissions, { defaultMode: "dontAsk", allow: ["Bash(node runtime/runner.mjs *)", "Edit(.n8m/inbox/**)", GMAIL, SLACK], deny: ["WebFetch", "WebSearch"] });
     assert.deepEqual(Object.keys(s.hooks), ["PreToolUse", "PostToolUse"]);
-    assert.equal(s.hooks.PreToolUse[0].matcher, "^(mcp__.*|ArtifactData)$");
+    assert.equal(s.hooks.PreToolUse[0].matcher, "^(mcp__.*|ArtifactData|WebSearch)$");
     assert.equal(s.hooks.PreToolUse[0].hooks[0].command, 'node "$CLAUDE_PROJECT_DIR/runtime/hook.mjs" pre || exit 2');
     // A cloud task: records go to the n8m-state branch once the folder is in a checkout.
     assert.deepEqual(readJson(join(folder, "task.json")), { hooks: true, compactWhole: true, compactOver: 80, hideToolOutput: true, secrets: "proxy", toolPrefixes: { gmail: "mcp__Gmail__", slack: "mcp__Slack__" }, store: { kind: "git", fallback: "file" } });

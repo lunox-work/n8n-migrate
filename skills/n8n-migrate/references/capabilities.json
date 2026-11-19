@@ -7,6 +7,7 @@
     "connectors.<name>.alternative: the connector stands in for a node that has its own REST API (Jira, Confluence, ClickUp, HubSpot). requirement names the requirements entry for that path; the report keeps it on the connector requirement as alternative, with the nodes' credential names, so the person can choose it.",
     "requirements.task-handoff: a form whose steps an artifact cannot run. The artifact form stores each submission in its database and a task (named in the requirement) picks it up and runs the steps; an artifact cannot call a task API trigger, since its fetch reaches only its own origin.",
     "requirements.local-network: a site credential (n8n API, WordPress) whose answered address is local (localhost, a private or link-local IP, a .local or internal name, a name without a dot); only a task on the person's computer reaches it.",
+    "requirements.web-search: an agent's search tool the person chose to run on Claude's own web search instead of the service's API with a key (analyze.mjs askSearch). A task's session has the tool; an artifact page does not.",
     "requirements.frequency: a wake-up the analyzer chose that runs every minute (an owner-only Telegram bot polled with getUpdates); only a local task allows it.",
     "substitutions: blocked nodes with an approvable replacement. The outcome stays subscription; the report adds a substitution requirement and blocker.",
     "nodeRequirements: node types that add a requirement of their own, beyond their kind.",
@@ -96,6 +97,11 @@
       "artifact": { "source": "docs 2026-11-14 (artifacts: no backend, fetch only to its own origin), untested", "value": "no" },
       "cloudTask": { "source": "docs 2026-11-14 (cloud-environments: network secrets, Pro and up, the agent proxy adds the key for listed hosts), untested", "value": "needs:network-secret" },
       "localTask": { "source": "docs 2026-11-14, untested", "value": "needs:bundled-server" }
+    },
+    "web-search": {
+      "artifact": { "source": "docs 2026-11-14 (artifacts: a page calls connector tools, model sampling and its database; it has no web search), untested", "value": "no" },
+      "cloudTask": { "source": "docs 2026-11-20 (Claude Code's WebSearch tool; the task's settings allow it only when a step uses it), untested in a cloud task", "value": "ok" },
+      "localTask": { "source": "docs 2026-11-20 (Claude Code's WebSearch tool; the task's settings allow it only when a step uses it), untested in a Desktop task", "value": "ok" }
     },
     "state": {
       "artifact": { "source": "docs 2026-11-14 (support article 17153992: storage on Pro and up, 100 MB and 25,000 documents), untested", "value": "needs:artifact-db" },
