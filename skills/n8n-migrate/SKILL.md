@@ -15,10 +15,10 @@ description: >-
   object with "nodes" and "connections").
 license: MIT
 compatibility: >-
-  Node 20 or later; zero dependencies. Works in Claude Code and in Cowork or
-  Desktop where a shell with Node is available, and in the chat code sandbox if
-  it has Node (not confirmed yet). Without Node, say so: the analyzer cannot run
-  under Python only.
+  Node 20 or later; zero dependencies. Works in Claude Code, and in a claude.ai
+  chat or Cowork code sandbox with Node (a chat sandbox with Node 22 ran analyze
+  and convert, 2026-11-19). Without Node, say so: the analyzer cannot run under
+  Python only.
 ---
 
 # n8n-migrate
@@ -27,6 +27,8 @@ Scripts (run from this skill's folder, called SKILL below; Node 20+, no install)
 
 - `node SKILL/scripts/pull.mjs <source>... --out <dir>`: writes workflows as export files from a template link, the person's n8n (browser sign-in with `--login`, or an API key in the environment) or an editor link (step 1). The only script here besides cutover that uses the network.
 - `node SKILL/scripts/analyze.mjs <input> [--json] [--html report.html] [--answers a.json]`: the fit report (`--html`: the same report as a page to open). No model, no network.
+- `node SKILL/scripts/migrate.mjs <export>... --out <dir> [--connected a,b] [--timezone <zone>] [--answers a.json] [--approve id,...]`: the one command for a person without a terminal (next section): analyse, convert and sort into three plain groups; writes `plan.json` and `page.html`. Files only.
+- `node SKILL/scripts/probe.mjs`: what this session can do (Node, which folders persist, outbound HTTPS), for `references/probe-task.md`.
 - `node SKILL/scripts/start.mjs [<address|link|file>] [--out dir]`: step 1 and 2 in one go for a person at a terminal: gets the workflows, writes and opens `report.html`. Interactive without arguments; `--yes` takes the defaults.
 - `node SKILL/scripts/convert.mjs <input> --out <repo> [--answers a.json] [--approve id,...]`: one folder per workflow under `<repo>`, plus the repo-root settings. `--regenerate <repo>/<folder>` rebuilds a folder from its stored export and `overrides.json`.
 - `node SKILL/scripts/try-step.mjs <folder> <step> [--items i.json | --pin]`: dry run of one step on sample items.
@@ -47,6 +49,24 @@ First run `node --version`. No Node, or below 20: stop and tell the person the s
 ## Headless mode
 
 `N8M_HEADLESS=1`, or the person says "use defaults": ask nothing. Take every question's `assumed` value (convert does this when no answer is given), approve no substitution (a step offered one keeps its original service: an LLM API call stays an `http` step with the person's own key; anything else stays blocked), and say in the summary which answers were assumed. Everything else is the same.
+
+## Without a terminal: a claude.ai chat or Cowork
+
+Use this flow when you are in a chat or Cowork, or the person is not technical. It replaces steps 2 to 8 for them; go to those steps only where it says so.
+
+Talk in their words. Never say cloud task, local task, hosted, definition, runner, folder, JSON, cutover or surface. Say "runs on Claude every morning", "becomes a skill you message", "a page with a Run button", "stays in n8n for now". Move one workflow all the way before offering the rest.
+
+1. **Get the workflows** as in step 1: n8n's connector first (way 1). When it lists no workflow or refuses most, say once that n8n shares only workflows set "Available in MCP" and where to switch that on for a whole project (Settings > Instance-level MCP, or the project's Manage MCP access). Otherwise ask them to drop an export file or paste from the editor. Save them in `n8n-exports/`.
+2. **Sort them**: `node SKILL/scripts/migrate.mjs n8n-exports --out n8n-migrate --connected <connectors> --timezone <zone>`. `--connected` lists the connectors you have tools for, by name: gmail, google-drive, google-calendar, slack, notion, github, microsoft-365. `--timezone` is theirs when you know it.
+3. **Fix what you can yourself first.** For each `fix` in `n8n-migrate/plan.json` of kind `fetch-sub-workflow`, get that workflow by its id with the n8n connector into `n8n-exports/` and run step 2 again. Never ask the person for this.
+4. **Show the page.** Publish `n8n-migrate/page.html` as an artifact when you can; otherwise give the text the command printed. Then one short message: how many are ready, how many need one thing, how many stay, and which one to start with (`plan.easiest`).
+5. **Ask what is open.** For each workflow in `needs`, ask its `todo` items with your multiple-choice question tool, the `assumed` option first and marked as likely. Answers go to `n8n-migrate/answers.json` as `{"<id>": <value>}` for every id in the item's `ids` (a cadence item's id as given); a yes to an `approve` item goes in `--approve <id>`; a `connect` item: tell them Customize > Connectors and wait. Run step 2 again with `--answers n8n-migrate/answers.json`.
+6. **Test run the easiest one**, after their go-ahead, by `runs`:
+   - `page` or `form`: publish `n8n-migrate/flows/<folder>/artifact.html` with `artifact.capabilities.json` as its capabilities; Run now starts with dry run on.
+   - `skill`: zip `flows/<folder>/skill/` (`cd n8n-migrate/flows/<folder> && zip -r ../../<name>.zip skill`, a name without "claude" or "anthropic"), give them the zip to add under Customize > Skills, then send it a test message.
+   - `scheduled-task`: run it here with sending held: `node n8n-migrate/flows/<folder>/runtime/runner.mjs start --dry-run` from `n8n-migrate/flows/<folder>`, and follow its `task-prompt.md` (make each printed call with your own tools). Then say in plain words what it would have sent: "would draft a reply to Ana", "would post to #sales".
+7. **Switch it on** (scheduled workflows), with one go-ahead for this list and nothing else: switch off "<name>" in n8n, then create a scheduled task "<name>" that runs <cadence>. Switch n8n off with the n8n connector (`unpublish_workflow`) or, without it, ask them to switch it off in n8n and say when it is done; then record it: `node SKILL/scripts/cutover.mjs n8n-migrate/flows/<folder> deactivate-n8n --done`, `seed --from <time of n8n's last execution>` for a poll, and `enable`. Then create the task (Cowork: Scheduled > New task, or Schedule from this conversation) with the folder's `task-prompt.md` and the cadence. **Not yet confirmed on a real account** (PLAN.md Phase 0, `references/probe-task.md`): whether a Cowork scheduled task can run the plugin's runner and keep its records between runs. Until it is, say so plainly, keep n8n on, and offer the Claude Code path (step 6) to whoever can run it.
+8. **Next**: offer to move the other ready ones with one go-ahead. Workflows in `stays` with `developer: true` can move with Claude Code: say "a developer can move it" and nothing more.
 
 ## 1. Get the input
 
@@ -145,3 +165,4 @@ Follow `references/cutover.md`; `cutover.mjs <folder> status` says the next step
 - `references/report.schema.json`, `references/definition.schema.json`: the two contracts.
 - `references/cutover.md`: cutover and rollback: steps, records, gate, cursor mapping, n8n's API.
 - `references/setup-server.md`: running the folders as a custom connector for a chat or Cowork.
+- `references/probe-task.md`: the Phase 0 probe for a Cowork scheduled task.

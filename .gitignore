@@ -6,3 +6,4 @@ evals/bench/.tls/
 evals/bench/.work/
 evals/bench/recordings/
 dist-skills/
+.n8m-probe.json
