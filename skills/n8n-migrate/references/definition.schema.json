@@ -1,0 +1,560 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:n8n-migrate:definition.schema.json",
+  "title": "n8n-migrate workflow definition",
+  "description": "One neutral file per migrated workflow, read by the runner (runtime/dist/runner-core.mjs) in both drivers. Steps keep the n8n parameters verbatim; the runner evaluates n8n expressions natively. Secrets are names only.",
+  "type": "object",
+  "required": ["schemaVersion", "name", "steps", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "name": { "type": "string" },
+    "id": { "type": "string", "description": "The n8n workflow id ($workflow.id)." },
+    "source": {
+      "type": "object",
+      "description": "The n8n export this definition was made from. preflight compares sha256 with the stored export.",
+      "additionalProperties": false,
+      "properties": {
+        "file": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "canonical": { "type": "boolean", "description": "true when sha256 is over the canonical JSON (no export text was given)." },
+        "workflowId": { "type": "string" }
+      }
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "timezone": { "type": "string", "description": "IANA zone; default America/New_York (n8n's default)." },
+        "executionOrder": { "enum": ["v0", "v1"], "description": "n8n's setting. The converter writes v1 when the export has none (what n8n's editor saves on import). The runner implements v1 and warns on v0." },
+        "errorWorkflow": { "type": "string", "description": "Ignored: the runner's failure alert replaces error workflows." }
+      }
+    },
+    "vars": { "type": "object", "description": "Values for $vars." },
+    "steps": {
+      "type": "object",
+      "description": "Keyed by the n8n node name, so $('Node') references keep working.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["kind", "n8n"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": { "enum": ["tool", "http", "db", "code", "model", "agent", "state", "sleep", "subflow", "branch", "loop", "logic", "trigger", "respond", "blocked"] },
+          "n8n": {
+            "type": "object",
+            "required": ["type"],
+            "additionalProperties": false,
+            "properties": {
+              "type": { "type": "string" },
+              "typeVersion": { "type": "number" },
+              "id": { "type": "string" },
+              "position": { "type": "array", "items": { "type": "number" } },
+              "webhookId": { "type": "string" }
+            }
+          },
+          "params": { "type": "object", "description": "The n8n parameters, verbatim, expressions included." },
+          "settings": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "alwaysOutputData": { "type": "boolean" },
+              "executeOnce": { "type": "boolean" },
+              "retryOnFail": { "type": "boolean" },
+              "maxTries": { "type": "number" },
+              "waitBetweenTries": { "type": "number" },
+              "onError": { "enum": ["stopWorkflow", "continueRegularOutput", "continueErrorOutput"] },
+              "continueOnFail": { "type": "boolean" },
+              "disabled": { "type": "boolean" }
+            }
+          },
+          "review": { "type": "boolean" },
+          "reviewReasons": { "type": "array", "items": { "type": "string" } },
+          "subnode": { "type": "boolean", "description": "An ai_* sub-node (model, tool, memory, parser): consumed by its parent step's request, never run on its own." },
+          "files": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "A file step (runtime/src/files.mjs). lib: the vendored library it loads (pdfjs, xlsx), which the artifact page cannot; disk: it reads or writes the local disk through the host, which only a local task has. Preflight refuses either where it cannot run.",
+            "properties": { "lib": { "enum": ["pdfjs", "xlsx"] }, "disk": { "enum": ["read", "write"] } }
+          },
+          "notes": { "type": "string" },
+          "credentials": { "type": "object", "additionalProperties": { "type": "string" }, "description": "credential type -> credential name (never a value)." },
+          "connector": { "type": "string" },
+          "auth": {
+            "type": "object",
+            "required": ["secret"],
+            "additionalProperties": false,
+            "properties": {
+              "credentialType": { "type": "string" },
+              "secret": { "type": "string" },
+              "placement": { "enum": ["header", "url"], "description": "header (default): the host attaches the credential the way its type says; url: the host replaces the literal {{secret}} in the URL." }
+            }
+          },
+          "tool": {
+            "type": "object",
+            "required": ["connector", "name"],
+            "additionalProperties": false,
+            "properties": {
+              "connector": { "type": "string" },
+              "name": { "type": "string" },
+              "args": { "type": "object", "description": "String values may be n8n expressions, evaluated per item." },
+              "effect": { "enum": ["read", "write"] },
+              "coerce": {
+                "type": "object",
+                "additionalProperties": { "enum": ["string", "string[]", "integer", "number", "boolean", "json"] },
+                "description": "Type coercion after the args are evaluated, from the tool's input schema."
+              },
+              "result": { "$ref": "#/$defs/adapter" },
+              "fidelity": {
+                "enum": ["exact", "adapted", "partial", "none", "unverified"],
+                "description": "exact: the tool returns what n8n returns; adapted: the adapter reshapes, and the fields it lists carry n8n's names; partial: some n8n fields have no source (missingFields); none: no adapter; unverified: the tool's real output shape is not known yet, so the adapter is a best reading of the tool description, to be checked by the bench's emulation run."
+              },
+              "missingFields": { "type": "array", "items": { "type": "string" }, "description": "n8n output fields the tool cannot supply." },
+              "binary": {
+                "type": "object",
+                "description": "A download whose file n8n puts into binary data: the tool's base64 text at `content` becomes item.binary[property] with `mimeType` and the file name (fileName, else the result's `name` field), as n8n-core prepareBinaryData builds it; the item keeps its input fields.",
+                "required": ["property", "content"],
+                "additionalProperties": false,
+                "properties": { "property": { "type": "string" }, "fileName": { "type": "string" }, "content": { "type": "string" }, "mimeType": { "type": "string" }, "name": { "type": "string" } }
+              },
+              "recipients": {
+                "type": "object",
+                "description": "A reply whose recipients n8n takes from the replied-to message: before the call the runner reads that message (tool, with args[idArg]) and sets args[arg] to the addresses in its first present field of replyTo, else from, an empty list when there are none (runtime nodes2.mjs replyRecipients). The connector's own default recipients are never relied on.",
+                "required": ["tool", "idArg", "arg", "from"],
+                "additionalProperties": false,
+                "properties": {
+                  "tool": { "type": "string" },
+                  "idArg": { "type": "string" },
+                  "arg": { "type": "string" },
+                  "from": { "type": "array", "items": { "type": "string" } },
+                  "replyTo": { "type": "array", "items": { "type": "string" } }
+                }
+              },
+              "lookup": {
+                "type": "object",
+                "description": "Row filters applied to the adapted rows as n8n's Google Sheets lookupValues does (runtime nodes2.mjs applyLookup). filters may hold expressions, evaluated per item.",
+                "required": ["filters"],
+                "additionalProperties": false,
+                "properties": {
+                  "filters": { "type": "array", "items": { "type": "object" } },
+                  "combine": { "enum": ["OR", "AND"] },
+                  "returnAll": { "type": "boolean" },
+                  "stopAtFirst": { "type": "boolean", "description": "n8n 4.6+: with OR and first-match, the first match ends the whole lookup." }
+                }
+              },
+              "argsCheck": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": { "ok": { "type": "boolean" }, "missing": { "type": "array", "items": { "type": "string" } }, "unknown": { "type": "array", "items": { "type": "string" } } },
+                "description": "The converter's check of args against the tool's input JSON schema. Preflight fails on missing required fields."
+              },
+              "map": { "type": "string", "description": "The tool-maps.json entry used: <n8n type>@<version range> <resource:operation>." },
+              "caveats": { "type": "array", "items": { "type": "string" }, "description": "Known differences from what n8n does, in plain words (from tool-maps.json)." }
+            }
+          },
+          "model": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "prompt": { "type": "string" },
+              "system": { "type": "string" },
+              "messages": { "type": "array" },
+              "outputSchema": { "type": "object" },
+              "outputKey": { "type": "string" },
+              "model": { "type": "string" },
+              "outputTemplate": { "description": "n8n's output item, with the string \"$output\" where the model's result goes." },
+              "trim": { "type": "boolean" },
+              "parseJson": { "type": "boolean", "description": "The reply is read as JSON when it is valid JSON and kept as text otherwise (n8n's OpenAI node with JSON output: JSON.parse inside a try)." },
+              "passInput": { "type": "boolean", "description": "Merge the shaped result into the input item (Sentiment Analysis)." },
+              "summarize": {
+                "type": "object",
+                "required": ["method", "docs", "outputKey"],
+                "additionalProperties": false,
+                "description": "The Summarization Chain v2 as n8n runs it (runtime/src/summarize.mjs): its documents from the item's JSON or a JSON data loader, split by the text splitter, then one call (stuff, map-reduce within the chain's limit) or one per document (refine). Each call sends only the formatted prompt.",
+                "properties": {
+                  "method": { "enum": ["map_reduce", "stuff", "refine"] },
+                  "prompts": { "type": "object", "additionalProperties": false, "properties": { "prompt": { "type": "string" }, "combineMapPrompt": { "type": "string" }, "refinePrompt": { "type": "string" }, "refineQuestionPrompt": { "type": "string" } } },
+                  "docs": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "jsonMode": { "enum": ["allInputData", "expressionData"] },
+                      "jsonData": {},
+                      "pointers": { "type": "string" },
+                      "splitter": { "type": ["object", "null"] }
+                    }
+                  },
+                  "outputKey": { "enum": ["response", "output"] }
+                }
+              },
+              "route": {
+                "type": "object",
+                "required": ["mode", "outputs"],
+                "additionalProperties": false,
+                "properties": { "mode": { "enum": ["flags", "value"] }, "field": { "type": "string" }, "outputs": { "type": "array", "items": { "type": "string" } } },
+                "description": "One output per name: flags sends the input item to every output whose name is true in the result (Text Classifier); value to the output named by result[field] (Sentiment Analysis)."
+              },
+              "hint": {
+                "type": "object",
+                "description": "The original provider and model, for information only. The model always runs on Claude.",
+                "additionalProperties": false,
+                "properties": { "provider": { "type": "string" }, "model": { "type": "string" }, "node": { "type": "string" } }
+              }
+            }
+          },
+          "agent": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "promptAppend": { "type": "string", "description": "Literal text n8n adds after the evaluated prompt (a ReAct agent's output-parser format instructions)." },
+              "wrapOutput": { "type": "boolean", "description": "Agent node 1.6 and older keep the output parser's {output: ...} wrapper: the final value is wrapped once more." },
+              "prompt": { "type": "string" },
+              "system": { "type": "string" },
+              "tools": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["name"],
+                  "properties": {
+                    "name": { "type": "string" },
+                    "description": { "type": "string" },
+                    "connector": { "type": "string" },
+                    "tool": { "type": "string" },
+                    "kind": { "enum": ["connector", "http", "rest", "db", "code", "subflow", "think", "n8n"] },
+                    "url": { "type": "string" },
+                    "effect": { "enum": ["read", "write", "none"] },
+                    "inputSchema": { "type": "object" },
+                    "node": { "type": "string", "description": "The sub-node step that holds the tool's tool/http/subflow/params block." },
+                    "n8nType": { "type": "string" }
+                  },
+                  "additionalProperties": false
+                },
+                "description": "Tools the agent may call. Protocol: each turn is an `agent` request {prompt, system, tools: [{name, description, inputSchema}], memory, maxIterations, turn, transcript}; the host answers with the final output or {intent: \"tool-calls\", calls: [{name, args}]}. The runner executes each call itself (runtime/src/nodes2.mjs executeAgentTool) as an ordinary request under the allowlist and appends {calls, results} to the transcript of the next turn. The host never executes a tool."
+              },
+              "memoryKey": { "type": "string" },
+              "outputSchema": { "type": "object" },
+              "outputKey": { "type": "string" },
+              "maxIterations": { "type": "number" },
+              "memory": {
+                "type": "object",
+                "required": ["kind"],
+                "additionalProperties": false,
+                "properties": { "kind": { "const": "conversation" }, "key": { "type": "string", "description": "n8n expression for the session key" }, "window": { "type": "number" }, "node": { "type": "string" } },
+                "description": "Buffer-window memory. The host keeps the conversation by key and gives the model the last `window` exchanges."
+              },
+              "hint": {
+                "type": "object",
+                "description": "The original provider and model, for information only. The model always runs on Claude.",
+                "additionalProperties": false,
+                "properties": { "provider": { "type": "string" }, "model": { "type": "string" }, "node": { "type": "string" } }
+              }
+            }
+          },
+          "subflow": {
+            "type": "object",
+            "description": "Execute Workflow target: {self: true} for a self-reference, or an inline definition.",
+            "additionalProperties": false,
+            "properties": {
+              "self": { "type": "boolean" },
+              "definition": { "type": "object" },
+              "trigger": { "type": "string" },
+              "inputs": { "type": "object", "description": "Sub-workflow tool: the item handed to the sub-workflow; $fromAI() values come from the model's arguments." },
+              "queryArgs": { "type": "boolean", "description": "Sub-workflow tool with an input schema (Call n8n Workflow Tool v1): the model's whole argument object goes to the sub-workflow as `query`, beside `inputs`." },
+              "workflowId": { "type": "string" }
+            }
+          },
+          "blocked": {
+            "type": "object",
+            "required": ["reason"],
+            "additionalProperties": false,
+            "properties": {
+              "reason": { "type": "string" },
+              "kind": { "enum": ["no-tool", "not-captured", "substitution", "unsupported", "unmapped", "subnode", "dropped", "input-incomplete", "no-runtime", "drafted-write"] },
+              "offer": { "type": "string" },
+              "alternative": { "type": "string" }
+            }
+          },
+          "http": {
+            "type": "object",
+            "description": "A request template for an app REST API that has no connector tool: one request per item, values evaluated like n8n parameters. The credential comes from auth.",
+            "required": ["method", "url"],
+            "additionalProperties": false,
+            "properties": {
+              "method": { "type": "string" },
+              "url": { "type": "string", "description": "May hold a literal {{secret}} where auth.placement is url; never the value." },
+              "query": { "type": "object" },
+              "headers": { "type": "object" },
+              "body": {},
+              "contentType": { "type": "string" },
+              "coerce": { "type": "object" },
+              "result": { "$ref": "#/$defs/adapter" },
+              "optimize": { "type": "object", "description": "An agent HTTP tool's response trimmed as n8n's optimizeResponse does for JSON: {type: json, dataField?, fieldsToInclude: all|selected|except, fields?}." },
+              "textAs": { "type": "string", "description": "An agent HTTP tool with a text response format: the body goes to the model under this property ({data: text})." },
+              "fidelity": {
+                "enum": ["exact", "adapted", "partial", "none", "unverified"],
+                "description": "exact: the tool returns what n8n returns; adapted: the adapter reshapes, and the fields it lists carry n8n's names; partial: some n8n fields have no source (missingFields); none: no adapter; unverified: the tool's real output shape is not known yet, so the adapter is a best reading of the tool description, to be checked by the bench's emulation run."
+              },
+              "map": { "type": "string" },
+              "caveats": { "type": "array", "items": { "type": "string" }, "description": "Known differences from what n8n does, in plain words (from tool-maps.json)." }
+            }
+          },
+          "rest": {
+            "type": "object",
+            "description": "A REST program (runtime/src/rest.mjs): a node operation run against the app's own REST API with the person's stored credential (auth) when the app needs one, when one operation takes several requests (a read decides the write) or its response needs the node's own parsing (an RSS feed, image files). The n8n parameters stay in params.",
+            "required": ["program"],
+            "additionalProperties": false,
+            "properties": {
+              "program": { "type": "string" },
+              "effect": { "enum": ["read", "write"], "description": "What the operation does to the app; an agent tool built from this step takes it." },
+              "fidelity": { "enum": ["exact", "adapted", "partial", "none", "unverified"] },
+              "map": { "type": "string" },
+              "base": { "type": "string", "description": "The person's own site for a program on it (tool-maps.json site: true; the n8n node's reads): the answer to the report's site question, e.g. https://n8n.example.com/api/v1. allow.http and the secret's hosts name its host." },
+              "caveats": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "db": {
+            "type": "object",
+            "description": "A database step the runtime runs itself (runtime/src/postgres.mjs: the Postgres node v2's executeQuery, as a step or an agent tool), through a `db` host request the task driver runs with the vendored node-postgres (runtime/src/pgclient.mjs). The n8n parameters stay in params.",
+            "required": ["engine", "operation", "credential"],
+            "additionalProperties": false,
+            "properties": {
+              "engine": { "enum": ["postgres"] },
+              "operation": { "type": "string" },
+              "credential": { "type": "string", "description": "The n8n credential's name; the setup question for it gives the connection." },
+              "secret": { "type": "string", "description": "The secret holding the password (secrets[], hosts host:port)." },
+              "connection": {
+                "type": ["object", "null"],
+                "additionalProperties": false,
+                "properties": { "host": { "type": "string" }, "port": { "type": "integer" }, "database": { "type": "string" }, "user": { "type": "string" }, "ssl": { "enum": ["disable", "require", "verify-full", "no-verify"] } },
+                "description": "The answer to the credential's database question (a postgres:// URL without the password); allow.db names the same database."
+              },
+              "effect": { "enum": ["read", "write"], "description": "read when the query is literal and only SELECT statements; an agent tool built from this step takes it." },
+              "fidelity": { "enum": ["exact", "adapted", "partial", "none", "unverified"] }
+            }
+          },
+          "poll": {
+            "type": "object",
+            "required": ["tool", "cursor"],
+            "additionalProperties": false,
+            "description": "Poll trigger: the runner calls the tool with the cursor in its args and emits only items after the cursor (runtime/src/adapt.mjs). The schedule says how often.",
+            "properties": {
+              "tool": {
+                "type": "object",
+                "required": ["connector", "name"],
+                "additionalProperties": false,
+                "properties": { "connector": { "type": "string" }, "name": { "type": "string" }, "args": { "type": "object" }, "coerce": { "type": "object" } }
+              },
+              "result": { "$ref": "#/$defs/adapter" },
+              "detail": {
+                "type": "object",
+                "required": ["tool", "idArg", "idField"],
+                "additionalProperties": false,
+                "description": "The n8n trigger reads each new item again (Gmail: GET per message): after the cursor, one call per item with idArg set to the list item's idField; the item becomes the adapted detail result, with `keep` fields from the list item where it lacks them.",
+                "properties": {
+                  "tool": {
+                    "type": "object",
+                    "required": ["connector", "name"],
+                    "additionalProperties": false,
+                    "properties": { "connector": { "type": "string" }, "name": { "type": "string" }, "args": { "type": "object" }, "coerce": { "type": "object" } }
+                  },
+                  "idArg": { "type": "string" },
+                  "idField": { "type": "string" },
+                  "keep": { "type": "array", "items": { "type": "string" } },
+                  "result": { "$ref": "#/$defs/adapter" }
+                }
+              },
+              "cursor": {
+                "type": "object",
+                "required": ["field", "strategy"],
+                "additionalProperties": false,
+                "properties": {
+                  "field": { "type": "string" },
+                  "strategy": { "const": "max" },
+                  "idField": { "type": "string" },
+                  "arg": { "type": "string" },
+                  "template": { "type": "string" },
+                  "joiner": { "type": "string" },
+                  "resolutionMs": { "type": "integer", "minimum": 1, "description": "The service compares the cursor field at this resolution (Gmail: 1000); items in the cursor's unit are told apart by id." }
+                }
+              },
+              "fidelity": {
+                "enum": ["exact", "adapted", "partial", "none", "unverified"],
+                "description": "exact: the tool returns what n8n returns; adapted: the adapter reshapes, and the fields it lists carry n8n's names; partial: some n8n fields have no source (missingFields); none: no adapter; unverified: the tool's real output shape is not known yet, so the adapter is a best reading of the tool description, to be checked by the bench's emulation run."
+              },
+              "map": { "type": "string" },
+              "caveats": { "type": "array", "items": { "type": "string" }, "description": "Known differences from what n8n does, in plain words (from tool-maps.json)." },
+              "missingFields": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "schedule": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "For the task driver: when the trigger fires. The n8n rule stays in params.",
+            "properties": {
+              "cron": { "type": "array", "items": { "type": "string" }, "description": "6-field cron (seconds first), in timezone" },
+              "everySeconds": { "type": "number", "description": "A fixed rhythm n8n enforces (minutes/hours/days intervals)" },
+              "timezone": { "type": "string" },
+              "runsPerDay": { "type": ["number", "null"] },
+              "shortestIntervalSec": { "type": ["number", "null"] },
+              "fits": { "type": "string" },
+              "note": { "type": "string" }
+            }
+          },
+          "chat": { "type": "boolean", "description": "Chat trigger: the skill hands each message in as {sessionId, action: \"sendMessage\", chatInput}." },
+          "form": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "title": { "type": "string" },
+              "description": { "type": "string" },
+              "fields": { "type": "array" },
+              "handoff": {
+                "type": "object",
+                "required": ["target"],
+                "additionalProperties": false,
+                "properties": { "target": { "enum": ["cloud-task", "local-task"] }, "reason": { "type": "string" } },
+                "description": "A step cannot run in the artifact (a task-handoff requirement): the page stores each submission in db submissions/ and the scheduled task runs it (task.json source poll-submissions)."
+              }
+            },
+            "description": "Form trigger fields, for the artifact form."
+          },
+          "relay": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": { "payloadShape": { "type": "string" }, "method": { "type": "string" }, "path": { "type": "string" } },
+            "description": "An event pushed in from outside (webhook); the payload arrives as the trigger item."
+          },
+          "needsTranslation": {
+            "type": "object",
+            "required": ["kind", "reason"],
+            "additionalProperties": false,
+            "properties": { "kind": { "enum": ["python", "expression", "node", "from-ai", "code", "llm-api-body", "inline-secret", "url"] }, "original": {}, "reason": { "type": "string" } },
+            "description": "What code cannot settle. The converter never translates it; the skill writes a translation into overrides.json, and the step stays review until a dry run passes."
+          },
+          "substitution": {
+            "type": "object",
+            "required": ["id"],
+            "additionalProperties": false,
+            "properties": { "id": { "type": "string" }, "from": { "type": "string" }, "to": { "type": "string" }, "approved": { "type": "boolean" } }
+          },
+          "override": { "type": "boolean", "description": "overrides.json patched this step." },
+          "draft": {
+            "type": "object",
+            "description": "A convert-time draft from overrides.json `drafts` (references/translation.md): accepted (the step is built from it and flagged for review), reviewed (a person cleared it), write (blocked until a dry run against the real service and the person's approval), rejected or stale (blocked).",
+            "required": ["kind", "status"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": { "enum": ["rest-template", "tool-map"] },
+              "docs": { "type": "string" },
+              "status": { "enum": ["accepted", "reviewed", "write", "rejected", "stale"] },
+              "reason": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "description": "Main connections in n8n's connections order (source node, output index, then list order).",
+      "items": {
+        "type": "object",
+        "required": ["from", "fromOutput", "to", "toInput"],
+        "additionalProperties": false,
+        "properties": { "from": { "type": "string" }, "fromOutput": { "type": "integer" }, "to": { "type": "string" }, "toInput": { "type": "integer" } }
+      }
+    },
+    "subnodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "type"],
+        "additionalProperties": false,
+        "properties": { "from": { "type": "string" }, "to": { "type": "string" }, "type": { "type": "string", "pattern": "^ai_" } }
+      }
+    },
+    "allow": {
+      "type": "object",
+      "description": "The allowlist. A tool or http request outside it is never handed out (ContainmentViolation).",
+      "additionalProperties": false,
+      "properties": {
+        "tools": {
+          "type": "array",
+          "items": { "type": "object", "required": ["connector", "tool"], "additionalProperties": false, "properties": { "connector": { "type": "string" }, "tool": { "type": "string" } } }
+        },
+        "http": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["method", "host"],
+            "additionalProperties": false,
+            "properties": { "method": { "type": "string" }, "host": { "type": "string" }, "pathPrefix": { "type": "string" }, "scope": { "enum": ["public"] }, "step": { "type": "string" }, "note": { "type": "string" } },
+            "description": "host \"*\" (a URL built at run time) is refused by preflight until narrowed in overrides.json or answered at setup; with scope \"public\" and step (the person answered \"public\" for that GET or HEAD step) it allows that step any public https host, never a private, loopback, link-local or metadata address, never with a secret, each redirect hop checked."
+          }
+        },
+        "sql": { "type": "array", "items": { "type": "string" } },
+        "db": {
+          "type": "array",
+          "description": "Databases a db step may connect to (the answers to the credentials' database questions); a db request to any other is never handed out.",
+          "items": { "type": "object", "required": ["engine", "host", "database"], "additionalProperties": false, "properties": { "engine": { "enum": ["postgres"] }, "host": { "type": "string" }, "port": { "type": "integer" }, "database": { "type": "string" } } }
+        },
+        "files": {
+          "type": "array",
+          "description": "Local disk paths a file step may read or write: a directory (or one file) per operation, from the paths written in the steps. dir \"*\" (a path built at run time) is refused by preflight until narrowed in overrides.json.",
+          "items": { "type": "object", "required": ["op", "dir"], "additionalProperties": false, "properties": { "op": { "enum": ["read", "write"] }, "dir": { "type": "string" }, "note": { "type": "string" } } }
+        },
+        "alerts": {
+          "type": "array",
+          "description": "The one alert channel (definition.alerts) as its own category: an alert reaches only this target, with the fixed template of runtime/src/alerts.mjs.",
+          "items": { "$ref": "#/$defs/alertTarget" }
+        }
+      }
+    },
+    "alerts": {
+      "type": "object",
+      "description": "Where a failed run, missed runs and a write whose outcome is unknown are reported; chosen by the person at setup (overrides.json alerts). Without it the task's final message says it.",
+      "additionalProperties": false,
+      "properties": { "channel": { "$ref": "#/$defs/alertTarget" } }
+    },
+    "secrets": {
+      "type": "array",
+      "description": "Names only. A secret is attached by the host, and only for the listed hosts.",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": { "name": { "type": "string" }, "credentialType": { "type": "string" }, "hosts": { "type": "array", "items": { "type": "string" } } }
+      }
+    },
+    "notes": { "type": "array", "items": { "type": "string" } },
+    "converter": {
+      "type": "object",
+      "description": "Which converter wrote this definition (scripts/convert.mjs). The skill commit is in runtime/VERSION beside it.",
+      "additionalProperties": false,
+      "properties": { "version": { "type": "string" }, "toolMaps": { "type": "string", "description": "references/tool-maps.json version" } }
+    }
+  },
+  "$defs": {
+    "alertTarget": {
+      "type": "object",
+      "required": ["connector", "tool", "target"],
+      "additionalProperties": false,
+      "properties": { "connector": { "type": "string" }, "tool": { "type": "string" }, "target": { "type": "string", "description": "Slack user or channel id, or an email address" } }
+    },
+    "adapter": {
+      "type": "object",
+      "description": "Declarative result adapter (runtime/src/adapt.mjs): turns the tool's output into n8n-shaped items. items: path to the elements ([*] flattens); fields: {outName: \"path\" | \"$.root.path\" | \"^.parent.path\" | {path, default} | {const} | {first: [...]} | {split, sep} | {join, sep} | {headers} | {headerLines} | {addresses} | {addressLine}}; passthrough: keep the element's own fields (default true); wrap; empty: none|one. parse: csv turns the text at `text` (decode: base64 first) into one item per row keyed by the header, with rowNumber: {field, start, first} (first: the number leads the item's keys). shape: a tolerant connector-shape reader (runtime/src/shapes.mjs) applied to the raw output first; unrecognised output fails the step.",
+      "additionalProperties": false,
+      "properties": {
+        "items": { "type": "string" },
+        "fields": { "type": "object" },
+        "passthrough": { "type": "boolean" },
+        "wrap": { "type": "string" },
+        "empty": { "enum": ["none", "one"] },
+        "parse": { "const": "csv" },
+        "text": { "type": "string" },
+        "decode": { "const": "base64" },
+        "rowNumber": { "type": "object", "additionalProperties": false, "properties": { "field": { "type": "string" }, "start": { "type": "integer" }, "first": { "type": "boolean" } } },
+        "shape": { "enum": ["gmail-message", "notion-database", "notion-page", "notion-rows", "slack-messages", "slack-user"] }
+      }
+    }
+  }
+}
