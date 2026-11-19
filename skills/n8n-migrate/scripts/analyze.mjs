@@ -38,7 +38,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { openHost } from "../runtime/src/convert.mjs";
 import { localHost } from "../runtime/src/engine.mjs";
 
-export const VERSION = "0.2.0";
+export const VERSION = "0.3.0";
 const REFS = join(dirname(fileURLToPath(import.meta.url)), "..", "references");
 
 // Most demanding wake-up first. With several enabled triggers the first one in
