@@ -2600,7 +2600,10 @@ export function skillMd(def, refs, slug) {
   // then where claude.ai keeps an uploaded skill (/mnt/skills/<user|plugins|…>/<name>; observed
   // 2026-11-20: a chat runs the skill's hooks, with HOME=/root and no skill there, so the hook
   // was not found and, failing closed, refused every call of the migrated skill).
-  const find = `d="\${CLAUDE_SKILL_DIR:-}"; [ -f "$d/runtime/hook.mjs" ] || d="$CLAUDE_PROJECT_DIR/.claude/skills/${name}"; [ -f "$d/runtime/hook.mjs" ] || d="$HOME/.claude/skills/${name}"; [ -f "$d/runtime/hook.mjs" ] || for c in /mnt/skills/*/${name}; do [ -f "$c/runtime/hook.mjs" ] && d="$c" && break; done; `;
+  // No "&" anywhere in the frontmatter: claude.ai refuses a SKILL.md whose hook command holds
+  // "&&" ("could not be downloaded (SKILL.md unusable)", probe skills 2026-11-20), so the chain
+  // is "||" only. A skill saved from a chat or uploaded lives in /mnt/skills/user/<name>.
+  const find = `d="\${CLAUDE_SKILL_DIR:-}"; [ -f "$d/runtime/hook.mjs" ] || d="$CLAUDE_PROJECT_DIR/.claude/skills/${name}"; [ -f "$d/runtime/hook.mjs" ] || d="$HOME/.claude/skills/${name}"; [ -f "$d/runtime/hook.mjs" ] || d="/mnt/skills/user/${name}"; `;
   const hook = (which) => [`    - matcher: ${yamlString(HOOK_MATCHER)}`, "      hooks:", "        - type: command", `          command: ${yamlString(find + hookCommand("$d/runtime/hook.mjs", which))}`, "          timeout: 30"];
   return [
     "---",

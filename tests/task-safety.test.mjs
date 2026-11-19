@@ -425,7 +425,9 @@ test("a chat workflow gets a self-contained skill; run from a project root it pr
     // CLAUDE_SKILL_DIR and a HOME that has no skills (observed 2026-11-20): the command looks
     // there last. Run with that folder moved under a temp root: it finds the skill's hook.
     const cmd = JSON.parse(/command: ("d=.*hook\.mjs\\" pre \|\| exit 2")/.exec(md)[1]);
-    assert.ok(cmd.includes("for c in /mnt/skills/*/n8n-inbox-assistant-chat; do"));
+    assert.ok(cmd.includes('|| d="/mnt/skills/user/n8n-inbox-assistant-chat";'));
+    // claude.ai refuses a SKILL.md whose frontmatter holds "&&" (probe skills, 2026-11-20).
+    assert.ok(!md.split(/^---$/m)[1].includes("&"), "no & in the skill's frontmatter");
     const mnt = join(dir, "mnt-skills");
     mkdirSync(join(mnt, "user"), { recursive: true });
     cpSync(sk, join(mnt, "user/n8n-inbox-assistant-chat"), { recursive: true });
