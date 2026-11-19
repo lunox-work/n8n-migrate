@@ -2,7 +2,7 @@
 // popular/trending sources of pull.mjs. No network: inputs are local files or a fake fetch.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -170,6 +170,27 @@ test("start.mjs --yes goes on with what stays on this computer and prints the re
     // HOME here has no skill: --yes installs nothing, and says how to add it.
     assert.match(r.stdout, /  - Add the skill to Claude Code: npx skills add lunox-work\/n8n-migrate -g\n/);
     assert.ok(!/2\. .*Add the n8n-migrate skill/.test(r.stdout), "the --yes plan does not list an install");
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test("start.mjs --version prints the version; a path outside the current folder is printed in full, one inside it relative", () => {
+  // realpath: the temporary folder is behind a link on macOS, and the current folder is reported resolved.
+  const out = realpathSync(mkdtempSync(join(tmpdir(), "n8m-start-paths-")));
+  try {
+    const v = spawnSync(process.execPath, [START, "--version"], { encoding: "utf8" });
+    assert.equal(v.status, 0, v.stderr);
+    assert.equal(v.stdout.trim(), JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).version);
+    const fixture = join(ROOT, "tests/fixtures/convert/slice.n8n.json");
+    const run = (cwd) => spawnSync(process.execPath, [START, fixture, "--out", join(out, "report"), "--no-open", "--no-setup"], { encoding: "utf8", input: "", cwd, env: { ...process.env, HOME: out } });
+    const outside = run(out);
+    assert.equal(outside.status, 0, outside.stderr);
+    assert.ok(outside.stdout.includes(`"convert my n8n workflows in ${fixture}"`), outside.stdout);
+    assert.ok(!outside.stdout.includes("../"), "no chain of ../ to a path outside the folder");
+    assert.match(outside.stdout, /\nReport: report\/report\.html\n/);
+    const inside = run(ROOT);
+    assert.ok(inside.stdout.includes('"convert my n8n workflows in tests/fixtures/convert/slice.n8n.json"'), inside.stdout);
   } finally {
     rmSync(out, { recursive: true, force: true });
   }

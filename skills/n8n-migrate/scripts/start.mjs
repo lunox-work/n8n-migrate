@@ -22,6 +22,7 @@
 //                      report it converts and commits locally, and prints the rest to run
 //   --no-setup         stop at the report
 //   --repo <name>      the private GitHub repository's name (default n8n-workflows)
+//   --version          print the version
 //   n8n-migrate convert <exports> --out <folder> [...]   convert.mjs
 //   n8n-migrate serve <folder> [...]     the converted folders as a connector (serve.mjs)
 // Exit: 0 report written, 1 nothing to report, 2 bad usage.
@@ -32,7 +33,7 @@ import { createInterface } from "node:readline/promises";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { parseSource, pull, readEnvFile } from "./pull.mjs";
-import { analyze, loadInput, renderText } from "./analyze.mjs";
+import { analyze, loadInput, renderText, VERSION } from "./analyze.mjs";
 import { renderHtml } from "./report-html.mjs";
 import { openBrowser } from "./n8n-oauth.mjs";
 
@@ -69,6 +70,7 @@ function parseArgs(argv) {
     else if (x === "--no-setup") a.setup = false;
     else if (x === "--repo") a.repo = val();
     else if (x === "-h" || x === "--help") a.help = true;
+    else if (x === "-v" || x === "--version") a.version = true;
     else if (x.startsWith("--")) throw new Error(`unknown option ${x}`);
     else a.words.push(x);
   }
@@ -85,6 +87,7 @@ const HELP = `n8n-migrate: which of your n8n workflows can run on your Claude su
 
   --api  every workflow through N8N_BASE_URL + N8N_API_KEY   --out <dir>   --no-open   --yes
   --no-setup  stop at the report   --repo <name>  the private GitHub repository to create
+  --version
 
   After the report it offers to go on with one go-ahead: convert, a private GitHub repository
   for workflows that run in the cloud, and Claude Code opened there to create the tasks.
@@ -147,7 +150,12 @@ export function setupPrompt({ repoUrl = null, local = false } = {}) {
 
 // The plan, in the words shown before the go-ahead, and what it needs.
 //   tools: {git, gh, ghUser, claude, skill} (what is installed and signed in here)
-const short = (p) => relative(process.cwd(), p) || ".";
+// A path as printed: relative to here, in full when it lies outside this folder (a chain of
+// ../ is hard to read and wrong once the person changes folder).
+const short = (p) => {
+  const r = relative(process.cwd(), p);
+  return !r ? "." : r.startsWith("..") ? p : r;
+};
 export function setupPlan(report, { out, repo, tools }) {
   const moves = report.workflows.filter((w) => w.outcome?.kind === "subscription");
   const cloud = moves.filter((w) => w.outcome.target === "cloud-task");
@@ -251,6 +259,10 @@ export async function main(argv = process.argv.slice(2), { stdin = process.stdin
     console.log(HELP);
     return 0;
   }
+  if (a.version) {
+    console.log(VERSION);
+    return 0;
+  }
   const [major] = process.versions.node.split(".").map(Number);
   if (major < 20) {
     console.error(`n8n-migrate needs Node 20 or later; this is ${process.versions.node}.`);
@@ -324,7 +336,7 @@ export async function main(argv = process.argv.slice(2), { stdin = process.stdin
     if (!items.length) return 1;
     const refs = (n) => JSON.parse(readFileSync(join(REFS, n), "utf8"));
     const report = analyze(items, { nodes: refs("nodes.json"), capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), answers: {}, now: Date.now(), inputErrors });
-    const rel = (p) => relative(process.cwd(), p) || ".";
+    const rel = short;
     const where = inputs.map(rel).join(" ");
     const installed = skillInstalled();
     const next = [
