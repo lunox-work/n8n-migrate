@@ -100,6 +100,8 @@ Created in n8n cloud from templates, exported with the editor's `...` > Export J
 - **claude.ai's WebSearch requires `mode`.** A call with only `query` is refused by the tool.
 - After those three fixes (747a365, 4c5ef2c, 4217f5a) the 1954 skill, saved with one click and messaged from a fresh chat, ran through the runner with its hook active, searched the web and replied with sources.
 - When the hooks are off (the converting chat's own test turn), the model writes the search response itself and shortened it; with the hooks on, the post hook saves it.
+- **Light folders, scheduled (HEAD 4217f5a).** "Morning draft digest" (a renamed copy of the first test workflow): the chat published the plain status page first (1 ready), ran the held test, then on one go-ahead published the workflow page, created the task at 08:03 and ran it once. The run saved a real draft. The status page then listed it under "Running on Claude", and the chat offered "undo Morning draft digest". The chat's own wait for the fired run took about 5 minutes, although the draft existed about 2 minutes in.
+- The Gmail connector returns no `snippet` for an HTML-only message, so a summary of such a mail is from sender and subject only (true of the connector, not of the conversion).
 
 ### Web access from claude.ai (2026-11-20)
 
