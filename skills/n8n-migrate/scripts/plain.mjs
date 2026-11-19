@@ -204,6 +204,9 @@ export function plainQuestion(q, w, { timezone } = {}) {
         { value: "keep", label: "No, keep SerpAPI" },
       ],
       assumed: q.assumed,
+      // Unanswered it keeps SerpAPI (assumed); for someone moving off n8n the likely answer
+      // is the one that lets the workflow move.
+      likely: "claude",
     };
   if (kind === "timezone") {
     if ((w.schedule?.shortestIntervalSec ?? 0) < 86400) return null;

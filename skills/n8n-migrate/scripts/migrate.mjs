@@ -5,7 +5,7 @@
 // switched off here; it writes files only.
 //
 //   migrate.mjs <export file|folder>... [--out <dir>] [--answers a.json] [--approve id,...]
-//               [--connected gmail,slack] [--timezone Asia/Singapore] [--json]
+//               [--connected gmail,slack] [--timezone Asia/Singapore] [--status page.html] [--json]
 //
 //   --out        where report.json, flows/, plan.json and page.html go (default ./n8n-migrate)
 //   --answers    the person's answers: analyzer question ids, plus "<workflow id>/cadence"
@@ -14,6 +14,8 @@
 //   --connected  the connectors this session has (Claude checks its own tools); without it,
 //                apps are listed but never counted as missing
 //   --timezone   the person's timezone, offered as the answer to a schedule's timezone question
+//   --status     a saved copy of the page published before: what it shows as running on
+//                Claude is kept (without it, the page already in --out is used)
 //   --json       print plan.json instead of the text summary
 //
 // Writes <out>/report.json (analyzer), <out>/flows/ (convert.mjs, one folder per workflow),
@@ -26,13 +28,13 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { analyze, loadInput } from "./analyze.mjs";
 import { CADENCES, convertedSteps, plainReport, renderPlainText } from "./plain.mjs";
-import { renderPlainHtml } from "./report-html.mjs";
+import { readPlainPage, renderPlainHtml } from "./report-html.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const REFS = join(HERE, "..", "references");
 const refs = (n) => JSON.parse(readFileSync(join(REFS, n), "utf8"));
 
-const USAGE = "usage: migrate.mjs <export file|folder>... [--out <dir>] [--answers a.json] [--approve id,...] [--connected gmail,slack] [--timezone <IANA zone>] [--json]";
+const USAGE = "usage: migrate.mjs <export file|folder>... [--out <dir>] [--answers a.json] [--approve id,...] [--connected gmail,slack] [--timezone <IANA zone>] [--status <saved page.html>] [--json]";
 
 function parseArgs(argv) {
   const a = { inputs: [], out: resolve("n8n-migrate"), answers: {}, approve: [], connected: null, timezone: null, json: false };
@@ -55,6 +57,7 @@ function parseArgs(argv) {
         .map((s) => s.trim().toLowerCase())
         .filter(Boolean);
     else if (x === "--timezone") a.timezone = val();
+    else if (x === "--status") a.status = resolve(val());
     else if (x === "--json") a.json = true;
     else if (x === "-h" || x === "--help") a.help = true;
     else if (x.startsWith("--")) throw new Error(`unknown option ${x}`);
@@ -169,6 +172,14 @@ export function main(argv = process.argv.slice(2)) {
     reanalyze,
   });
   plan.out = a.out;
+  // What already runs on Claude (status.mjs) survives a re-run: taken from the page written
+  // here before, or with --status from a saved copy of the published page, since a later
+  // conversation starts with an empty folder. A workflow no longer in the input is dropped.
+  const before = a.status ?? join(a.out, "page.html");
+  const moved = existsSync(before) ? (readPlainPage(readFileSync(before, "utf8"))?.moved ?? {}) : {};
+  const known = new Set(report.workflows.map((w) => String(w.id)));
+  const kept = Object.fromEntries(Object.entries(moved).filter(([id]) => known.has(id)));
+  if (Object.keys(kept).length) plan.moved = kept;
   writeFileSync(join(a.out, "plan.json"), JSON.stringify(plan, null, 2) + "\n");
   writeFileSync(join(a.out, "page.html"), renderPlainHtml(plan, { generated: new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC" }));
   process.stdout.write(a.json ? JSON.stringify(plan, null, 2) + "\n" : `${renderPlainText(plan)}\nPage: ${join(a.out, "page.html")}\n`);

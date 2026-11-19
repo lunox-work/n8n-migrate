@@ -253,7 +253,8 @@ test("migrate.mjs: a SerpAPI search tool asks to use Claude's search; yes makes 
     const plan = JSON.parse(first.stdout);
     assert.deepEqual(plan.counts, { ready: 0, needs: 1, stays: 0 });
     const [todo] = plan.groups.needs[0].todo;
-    assert.deepEqual([todo.kind, todo.id, todo.ids, todo.assumed], ["question", "srch1/search-with/Search", ["srch1/search-with/Search"], "keep"]);
+    assert.deepEqual([todo.kind, todo.id, todo.ids, todo.assumed, todo.likely], ["question", "srch1/search-with/Search", ["srch1/search-with/Search"], "keep", "claude"]);
+    assert.match(readFileSync(join(dir, "out", "page.html"), "utf8"), /<li class="likely">Yes, use Claude&#39;s search <span>likely<\/span><\/li><li>No, keep SerpAPI<\/li>/);
     assert.match(todo.text, /searches the web with SerpAPI and your own key\. Let Claude search the web itself instead\?/);
     assert.deepEqual(todo.options.map((o) => o.value), ["claude", "keep"]);
     assert.equal(plan.groups.needs[0].developer, false);
