@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// PLAN Phase 6, "no template-specific rules": fails when a file under skills/ names a bench
+// docs/DESIGN.md, "No template-specific rules": fails when a file under skills/ names a bench
 // template. A rule keyed on one template would raise the pass rate without moving the skill.
 //
 //   node scripts/lint-no-template-rules.mjs [--verbose] [--dir <folder>]   (--dir: scan another folder, for tests)

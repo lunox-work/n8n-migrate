@@ -1,4 +1,4 @@
-// Round 5 setup's bench decisions (evals/bench/PROPOSALS.md P111-P119).
+// Round 5 setup's bench decisions (bench proposals P111-P119; docs/DESIGN.md "History").
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";

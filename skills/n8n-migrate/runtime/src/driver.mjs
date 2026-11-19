@@ -17,7 +17,7 @@
 //     N8M_SECRET_<NAME>; cloud: "proxy", the environment's proxy adds it), never printed.
 //   - `sleep` requests: short waits are slept here; long ones pause the run until a later
 //     `start`.
-//   - run safety (PLAN Phase 4): every write has a ledger entry ("sending" before it goes out,
+//   - run safety: every write has a ledger entry ("sending" before it goes out,
 //     written by the PreToolUse hook; "sent" after, by the PostToolUse hook) in the record
 //     store (store.mjs: file for local tasks, git for cloud tasks), and the run state is saved
 //     there after every step. A session cut off by a usage limit or a stall leaves an open run:

@@ -1,4 +1,4 @@
-// Rolling held-out (PLAN Phase 6): the seeded split in splits.json (`dev` 60, `heldOut` 40)
+// Rolling held-out (docs/DESIGN.md "Bench"): the seeded split in splits.json (`dev` 60, `heldOut` 40)
 // never changes; `rounds` says which templates are dev and which are held-out now. After a
 // release point is scored, the held-out templates it scored join dev, and the next release
 // point scores fresh held-out templates. Every bench tool reads the current round from here.
@@ -122,7 +122,7 @@ export function subsetRounds(splits, n = splits.currentRound) {
     .map((r) => ({ round: r.round, ids: roundOf(splits, r.round).dev.map((t) => t.id).filter((id) => dev.has(id)) }));
 }
 
-// PLAN Phase 6 overfitting bound: 1.96 · sqrt(p(1 − p)(1/nDev + 1/nHeld)) + 2 × flips
+// docs/DESIGN.md overfitting bound: 1.96 · sqrt(p(1 − p)(1/nDev + 1/nHeld)) + 2 × flips
 // templates (in points), p the pooled pass rate. n are the fixtured sizes of the round.
 export function overfittingBound({ passDev, nDev, passHeld, nHeld, flips = 0 }) {
   const p = (passDev + passHeld) / (nDev + nHeld);

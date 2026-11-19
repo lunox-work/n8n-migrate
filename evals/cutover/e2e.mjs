@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// PLAN Phase 7's done test: "a person can migrate a workflow, and roll it back, without any
+// The cutover done test: "a person can migrate a workflow, and roll it back, without any
 // message being sent by both systems". Runs against the local n8n container (evals/n8n,
 // n8nmigrate-bench) and a feed this script keeps; never a real n8n, connector or Claude task.
 //

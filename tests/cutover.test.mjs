@@ -1,4 +1,4 @@
-// Cutover (PLAN Phase 7, references/cutover.md): the second-resolution cursor, n8n's poll static
+// Cutover (references/cutover.md): the second-resolution cursor, n8n's poll static
 // data mapped to and from it, the task driver's dry run and cutover gate, and the cutover CLI
 // against a fake n8n public API over HTTP. No model is called; the live check is
 // evals/cutover/e2e.mjs.

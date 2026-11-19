@@ -1,4 +1,4 @@
-// Run alerts (PLAN Phase 4): a failed run, a missed run and a write whose outcome is unknown
+// Run alerts: a failed run, a missed run and a write whose outcome is unknown
 // notify the person through the one channel chosen at setup.
 //
 // definition.alerts = {channel: {connector, tool, target}}; the converter also lists the

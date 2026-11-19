@@ -1,8 +1,8 @@
-// Gate decisions (PLAN Phase 5, "Gates per template"), as pure functions of what the bench
+// Gate decisions (docs/DESIGN.md "Gates per template"), as pure functions of what the bench
 // observed, so they are tested without Docker or a model. run.mjs gathers the inputs.
 // Each gate returns {pass, cause?, bucket?, detail?}; a template stops at its first failed gate.
 //
-// Buckets (PLAN Phase 6 plus three bench-side ones): unmapped node, field map, expression
+// Buckets (docs/DESIGN.md "Improvement loop" plus three bench-side ones): unmapped node, field map, expression
 // translation, runner bug, skill instruction, flaky model step, bench defect, fixture, model
 // refusal (PROPOSALS P106: the claude driver's model declined the template's own prompt).
 

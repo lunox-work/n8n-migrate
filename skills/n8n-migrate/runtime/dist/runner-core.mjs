@@ -5751,7 +5751,7 @@ const { readShape, parseAddressList } = __m_shapes_mjs;
 // are new; the next cursor is the greatest field value seen and the ids at that value. The
 // template puts the cursor into one tool argument: {value}, {seconds} (epoch seconds),
 // {iso}. Missed runs collapse into one run that reads everything after the cursor, never
-// "since the last interval" (PLAN Phase 4).
+// "since the last interval".
 
 
 // ---------- paths ----------
@@ -24475,7 +24475,7 @@ const { concatQueries, formatQuery } = __m_pgformat_mjs;
 //   every other column comes parsed as pg's default parsers (pg-types 2.2.0) give it, which is
 //   what n8n's pg-promise sees. Timestamps are made ISO here, as n8n's per-connection type
 //   parsers do, with a timestamp without a zone read in the workflow's zone (n8n's process reads
-//   it in its own zone, which on n8n's default set-up is the same; see PLAN known gaps).
+//   it in its own zone, which on n8n's default set-up is the same; see docs/DESIGN.md known gaps).
 //
 // The host (pgclient.mjs: the task driver, or a bench host) runs the texts with node-postgres.
 // Behaviour read from n8n 2.47.7's Postgres v2 node in the bench image: per item the query
@@ -30548,7 +30548,7 @@ function lockBlocks(body, { now, holder }) {
   return Number.isFinite(exp) && exp > now;
 }
 
-// ---------- cutover (PLAN Phase 7, references/cutover.md) ----------
+// ---------- cutover (references/cutover.md) ----------
 //
 // cutover/<at>-<step>: one document per cutover step, written by scripts/cutover.mjs (by: "cli")
 // and by the artifact page (by: "artifact": its dry run and Seed), in the same shape:
@@ -30731,7 +30731,7 @@ return { DEFAULT_GRACE_MS, parseCron, expectedRuns, missedRuns, definitionSchedu
 const __m_alerts_mjs = (() => {
 const { isObject } = __m_util_mjs;
 const { hashHex } = __m_hash_mjs;
-// Run alerts (PLAN Phase 4): a failed run, a missed run and a write whose outcome is unknown
+// Run alerts: a failed run, a missed run and a write whose outcome is unknown
 // notify the person through the one channel chosen at setup.
 //
 // definition.alerts = {channel: {connector, tool, target}}; the converter also lists the

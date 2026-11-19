@@ -1,5 +1,5 @@
 // The comparer: decides whether an n8n effect and a Claude effect are the same effect, using
-// only its own table (effects.json). It never reads the converter's field map (PLAN Phase 6),
+// only its own table (effects.json). It never reads the converter's field map (docs/DESIGN.md "Bench"),
 // so a wrong mapping cannot pass on both sides.
 //
 //   canonical effect = {side, service, action, effect: read|write|media, target, fields, raw}

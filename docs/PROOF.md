@@ -11,7 +11,7 @@ Docker, every external call answered by the same fixtures. Raw data:
 [evals/bench/README.md](../evals/bench/README.md).
 
 <!-- corpus: evals/bench/corpus.json (counts, coverageTop100); splits: evals/bench/splits.json; round 4 eligibility:
-     evals/bench/EXCLUSIONS.md "Round 4 eligibility" and its amendment 1, evals/bench/AUDIT-R4.md; LOOP.md "r4-base", "r5-base". -->
+     evals/bench/EXCLUSIONS.md "Round 4 eligibility" and its amendment 1, evals/bench/AUDIT-R4.md; evals/results.jsonl r4-base, r5-base. -->
 
 - **Corpus.** n8n's template listing walked by views: the first 100 templates
   the analyzer marks `subscription` (13 excluded by a rule committed first: 9
@@ -34,7 +34,7 @@ Docker, every external call answered by the same fixtures. Raw data:
 <!-- evals/bench/RELEASE-5.md (release point 5, commit b0143fb); evals/results.jsonl rel5-dev, rel5-held, rel5-held-rec;
      gap and bound: node evals/bench/summary.mjs --release rel5-dev rel5-held --flips 0. Coverage: node
      evals/convert-coverage.mjs --split dev (evals/convert-coverage-dev.md); held-out the same with --ids (RELEASE-5.md).
-     Loop: LOOP.md "r5-base" (40 of 120) to "R5b3" (51 of 120, r5b3-full). Sensitivity: RELEASE-5.md "Sensitivity".
+     Loop: evals/results.jsonl r5-base (40 of 120) to r5b3-full (51 of 120). Sensitivity: RELEASE-5.md "Sensitivity".
      Release points 1-4: evals/bench/RELEASE-1.md to RELEASE-4.md (round 4: dev 35 of 100, held-out 2 of 20, inside). -->
 
 - **Round 5: converter coverage 62 of 120, one-shot 50 of 120.** Out of
@@ -110,7 +110,7 @@ Docker, every external call answered by the same fixtures. Raw data:
 
 ## Compatibility
 
-<!-- Rows from evals/phase0/CHECKS.md (2026-11-14) and PLAN Phases 2-7. "Observed" = run on this machine; "docs" = public docs only,
+<!-- Rows from evals/phase0/CHECKS.md (2026-11-14) and docs/DESIGN.md. "Observed" = run on this machine; "docs" = public docs only,
      untested; "needs an account" = only a run on a Pro, Max or Team account settles it. -->
 
 Scheduled tasks, artifact capabilities and the task API trigger are research
@@ -135,7 +135,7 @@ previews; this list is dated 2026-11-14 and re-runnable
 | Minimum interval                                                       | docs                                    | cloud tasks 1 hour, at most 100 scheduled runs per account per hour; local tasks 1 minute                                                                                                                                                                              |
 | Usage limit hit mid-run                                                | docs                                    | not documented mid-run; the ledger treats every run as interruptible                                                                                                                                                                                                   |
 | Share of the usage window per run                                      | not measurable                          | the usage page shows the week in whole percent, by product, not by run; `claude -p` estimates $0.006–0.014 per run on haiku at API prices                                                                                                                              |
-| Skill zip upload in chat and Desktop                                   | observed (chat): name refused           | claude.ai refuses a skill name containing "claude" (2026-11-19), so `n8n-migrate.zip` does not upload as built; renamed, it uploaded and its chat sandbox (Node 22) ran analyze and convert; Desktop not checked                                                     |
+| Skill zip upload in chat and Desktop                                   | observed (chat): name refused           | claude.ai refuses a skill name containing "claude" (2026-11-19), so `n8n-migrate.zip` does not upload as built; renamed, it uploaded and its chat sandbox (Node 22) ran analyze and convert; Desktop not checked                                                       |
 | Folders run from a claude.ai chat through the server (`serve.mjs`)     | observed (chat, artifact)               | token as a request header; an http step with the server's key, a Gmail read and a Gmail draft write (ledger sending → sent) through the person's connector, model steps (2026-11-19); an artifact page's http step through `n8m_http`; Cowork not run                  |
 | Plugin install in Claude Code and Cowork                               | docs                                    | not installed from this marketplace yet                                                                                                                                                                                                                                |
 | Current terms allow all of the above on a subscription                 | docs                                    | runs only through Anthropic's own tasks, artifacts and Claude Code; nothing scripts claude.ai                                                                                                                                                                          |

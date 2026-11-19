@@ -57,9 +57,9 @@ What the artifact page (`artifact.html`, driver `runtime/src/artifact-driver.mjs
 - Ledger: before a real write, `sending`; after, `sent` (with the result) or `failed`. On resume, `sent` replays the stored result, `sending` stops the run as `unknown: check before re-sending` until the person chooses "it was sent" (`sent`, `resolvedBy: "person"`) or "it was not sent" (`cleared`, then sent).
 - Dry run: a write gets `{dryRun: true, ok: true}` as its result and is counted only when the run reached it (`held`). Cursors are saved only after a real run ends `done`.
 
-## Differences from PLAN's assumptions
+## Differences from the design's assumptions
 
-- `http` steps cannot run from the page (CSP): "Run now" stops at them with `handoff`; PLAN Phase 4 assumed tool and model steps only, which holds.
+- `http` steps cannot run from the page (CSP): "Run now" stops at them with `handoff`; the design assumed tool and model steps only, which holds.
 - `db` has no transactions or create-if-absent. The lock is a lease (`acquire`), which an ArtifactData writer cannot take, so overlap protection against a scheduled task rests on the body protocol above.
 - `sample` has no system role and no output schema: both go into the prompt, and JSON is parsed tolerantly.
 - Every call is the viewer's: a shared page runs with whoever clicks, on their connectors and usage.

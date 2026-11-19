@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// Prints the plan's numbers (PLAN Phase 5, "Numbers reported") from evals/results.jsonl,
+// Prints the bench's headline numbers (docs/PROOF.md) from evals/results.jsonl,
 // corpus.json and the refusal labels.
 //
 //   node evals/bench/summary.mjs [--tag <bench run>] [--against <tag>] [--json]
 //   node evals/bench/summary.mjs --release <dev tag> <held-out tag> [--flips n] [--round n] [--json]
 //
-// --release: a release point's gap and overfitting bound (PLAN Phase 6) for the current round
+// --release: a release point's gap and overfitting bound (docs/DESIGN.md "Bench") for the current round
 // of the rolling held-out (rounds.mjs): dev = the round's dev templates with fixtures, held-out
 // = the round's held-out templates; only those templates' rows of each tag count, and n are
 // the fixtured sizes. --flips: templates whose verdict changed between two runs on one commit.
@@ -176,7 +176,7 @@ for (const r of mine) {
   byGate[r.gate ?? "error"] = (byGate[r.gate ?? "error"] ?? 0) + 1;
   byBucket[r.bucket ?? "?"] = (byBucket[r.bucket ?? "?"] ?? 0) + 1;
 }
-// Round 5 on (PLAN Phase 6): the round's one-shot number is out of its dev size (templates with
+// Round 5 on (docs/DESIGN.md "Bench"): the round's one-shot number is out of its dev size (templates with
 // fixtures; a dev template without a row in this tag counts as not passing), and earlier rounds'
 // dev that is still dev is reported as subsets for continuity (rounds.mjs subsetRounds; round 6:
 // round 4's 100 and round 5's 120). `subset` stays the latest earlier round, as in round 5.

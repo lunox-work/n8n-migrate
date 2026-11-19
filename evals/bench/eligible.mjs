@@ -285,7 +285,7 @@ export function checkEligibility({ wf, report, lists, nodes = {}, corpusEntry = 
   for (const a of report.outcome.alsoTargets ?? []) if (a.kind !== "subscription") add("outcome", `other trigger ${a.wakeup} is ${a.kind}`, { id: "relay-or-hosted" });
   if (report.requires.some((r) => r.kind === "relay")) add("outcome", "requires a relay", { id: "relay-or-hosted" });
 
-  // 2. PLAN "Out of scope for v1", pinned to node types and parameters.
+  // 2. docs/DESIGN.md "Out of scope for v1", pinned to node types and parameters.
   for (const rule of lists.outOfScope) {
     if (rule.rule === "interval") {
       const sec = report.schedule?.shortestIntervalSec;

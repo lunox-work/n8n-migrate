@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Real bulk export check (PLAN Phase 1 "done when"): import the author's 11
+// Real bulk export check: import the author's 11
 // sibling workflows and a fixed set of corpus templates into the bench's n8n
 // through its CLI, export them in every shape n8n offers, run the analyzer on
 // each, and diff every workflow's report against the report for the original

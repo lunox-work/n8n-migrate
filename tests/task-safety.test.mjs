@@ -1,4 +1,4 @@
-// Task driver run safety (PLAN Phase 4), driven exactly as a session would: the runner CLI and
+// Task driver run safety, driven exactly as a session would: the runner CLI and
 // the hooks as processes, fed the JSON Claude Code sends, with a scripted "model". A killed
 // session is simulated by deleting the checkout's .n8m/ (a cloud task's next checkout is new)
 // while the record store survives (a file store outside the folder, or the git branch).

@@ -323,7 +323,7 @@ export function lockBlocks(body, { now, holder }) {
   return Number.isFinite(exp) && exp > now;
 }
 
-// ---------- cutover (PLAN Phase 7, references/cutover.md) ----------
+// ---------- cutover (references/cutover.md) ----------
 //
 // cutover/<at>-<step>: one document per cutover step, written by scripts/cutover.mjs (by: "cli")
 // and by the artifact page (by: "artifact": its dry run and Seed), in the same shape:

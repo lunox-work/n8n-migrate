@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The evaluation bench (PLAN Phase 5): gates 1-8 per template, n8n in Docker as the baseline,
+// The evaluation bench (docs/DESIGN.md "Bench"): gates 1-8 per template, n8n in Docker as the baseline,
 // the migrated folder run by the runner. Contract: evals/bench/README.md.
 //
 //   node evals/bench/run.mjs [<templateId>...] [--split dev] [--limit n]

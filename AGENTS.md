@@ -51,17 +51,17 @@ What to tell them, accurately:
 - **Skill package:** `node scripts/skill.mjs check` before a commit that
   touches `skills/` or `.claude-plugin/`; `pack` builds the upload zip from
   HEAD.
-- **Bench rules** (PLAN Phase 6, `evals/bench/EXCLUSIONS.md`):
+- **Bench rules** (`docs/DESIGN.md` "Bench", `evals/bench/EXCLUSIONS.md`):
   - `held-out` never steers. A session that changes the skill, the converter
     or the runtime does not read `evals/bench/RELEASE-*.md` or run held-out
     templates; held-out runs only at release points.
   - The loop cannot loosen the bench. Changes to fixtures, mocks, gates or
-    the comparer go to `evals/bench/PROPOSALS.md` for a person to approve.
+    the comparer are proposed in their own commit or PR for a person to
+    approve.
   - The comparer keeps its own table of "same effect"
     (`evals/bench/effects.json`); never reuse the converter's field map.
   - One general fix per commit, with passes, gate sum and reached gate per
-    template before and after in the message; a discarded fix goes to
-    `evals/bench/LOOP.md`.
+    template before and after in the message.
 - **Memory:** the bench starts n8n in Docker (about 1 GB) and `claude -p`
   runs; run one template at a time.
 - **Docs:** contracts and file pointers in Markdown; how it works goes in code

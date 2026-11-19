@@ -43,7 +43,7 @@
 // `arguments`). Options the runtime refuses when the step runs, decidable from the step's own
 // parameters (kind `run-time`, `runTimeRefusals()`), count too. Refusals that depend on the
 // response cannot be seen without a run and are
-// named in LOOP.md instead.
+// named in the loop log instead (docs/DESIGN.md "History").
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync, readFileSync, statSync } from "node:fs";

@@ -124,7 +124,7 @@ const top = (map, n = 15) =>
     .map(([k, v]) => `| ${k.replace(/\|/g, "\\|")} | ${v.templates.size} | ${v.steps} |`);
 const count = (m, k) => m.counts[k] ?? 0;
 
-// Round 5 on (PLAN Phase 6): with --split dev, earlier rounds' dev that is still dev is reported
+// Round 5 on (docs/DESIGN.md "Bench"): with --split dev, earlier rounds' dev that is still dev is reported
 // as subsets for continuity (rounds.mjs subsetRounds; round 6: round 4's 100 and round 5's 120
 // of the 140). `subset` in the JSON line stays the latest earlier round.
 const curRound = split ? roundOf(readSplits()) : null;

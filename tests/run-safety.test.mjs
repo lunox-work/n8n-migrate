@@ -1,4 +1,4 @@
-// Run safety in the core and the artifact driver (PLAN Phase 4): expected and missed runs,
+// Run safety in the core and the artifact driver: expected and missed runs,
 // the fixed alert template, form items, and manual vs scheduled cursors. The task driver's side
 // (record stores, ledger, interrupted runs, alerts handed to the session) is
 // tests/task-safety.test.mjs.

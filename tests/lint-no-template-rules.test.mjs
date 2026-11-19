@@ -1,4 +1,4 @@
-// PLAN Phase 6: skill files must not carry template ids, names or fixture strings.
+// docs/DESIGN.md "No template-specific rules": skill files must not carry template ids, names or fixture strings.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";

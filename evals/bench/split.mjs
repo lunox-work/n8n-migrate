@@ -70,7 +70,7 @@ export function formatSplits(doc) {
   );
 }
 
-// Fresh held-out from round 3 on (PLAN Phase 6): the pool is corpus.json's templates outside the
+// Fresh held-out from round 3 on (docs/DESIGN.md "Bench"): the pool is corpus.json's templates outside the
 // seeded split that are eligible (fetch.mjs freshPool: round 3 = Phase 5 `overflow` and the
 // round-3 top-up's `fresh`; round 4 = the round-4 top-up's `fresh`, round-4 eligible). Same method
 // as split(): one Fisher-Yates shuffle with mulberry32(seed) over the pool sorted by id ascending;

@@ -502,7 +502,7 @@ account: [docs/PROOF.md](docs/PROOF.md).
 - **The bench is not the app.** It runs the runner against mocks, not Claude
   Desktop. Weekly checks in the real app are planned, not yet run.
 
-Known gaps in full: [PLAN.md](PLAN.md#known-gaps).
+Known gaps in full: [docs/DESIGN.md](docs/DESIGN.md#known-gaps).
 
 <!-- Keep this section and AGENTS.md's first section the same. -->
 

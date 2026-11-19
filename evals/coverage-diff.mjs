@@ -1,4 +1,4 @@
-// The Phase 6 coverage rule as code (PLAN Phase 6, rule e; PROPOSALS P32): compares two
+// The Phase 6 coverage rule as code (docs/DESIGN.md "Improvement loop"; P32): compares two
 // `convert-coverage.mjs --per-template` files and says which templates regressed.
 //
 // A regression is a template that gains a blocked step, gains a refused step, or loses its

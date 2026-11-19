@@ -149,7 +149,7 @@ test("P137 set: fixtures pinned to their hash, none for a template redrawn out",
   for (const { out } of exp.redraws ?? []) for (const id of out) assert.ok(!existsSync(join(BENCH, "fixtures", String(id))), `${id} was redrawn out but has fixtures`);
 });
 
-// Rolling held-out (PLAN Phase 6, evals/bench/rounds.mjs): the seeded split stays; held-out
+// Rolling held-out (docs/DESIGN.md "Bench", evals/bench/rounds.mjs): the seeded split stays; held-out
 // 1-20, scored at release point 1, join dev in round 2, held-out 21-40 score release point 2 and
 // join dev in round 3.
 test("rolling held-out: round 2 promotes held-out 1-20 and holds out 21-40, round 3 promotes 21-40; the seeded split is unchanged", async () => {
@@ -166,7 +166,7 @@ test("rolling held-out: round 2 promotes held-out 1-20 and holds out 21-40, roun
   assert.deepEqual(ids(r2.heldOut), ids(splits.heldOut.slice(20, 40)));
   assert.equal(new Set([...ids(r2.dev), ...ids(r2.heldOut)]).size, 100, "dev and held-out stay disjoint");
   // Round 3 (after release point 2): held-out 21-40 join dev; the seeded held-out is used up,
-  // so round 3's held-out is 20 fresh templates from outside the seeded split (PLAN Phase 6).
+  // so round 3's held-out is 20 fresh templates from outside the seeded split (docs/DESIGN.md "Bench").
   const r3 = roundOf(splits, 3);
   assert.equal(r3.round, 3);
   assert.deepEqual(ids(r3.dev), [...ids(splits.dev), ...ids(splits.heldOut)]);
@@ -187,7 +187,7 @@ test("rolling held-out: round 2 promotes held-out 1-20 and holds out 21-40, roun
   assert.deepEqual(overfittingBound({ passDev: 29, nDev: 100, passHeld: 1, nHeld: 20 }), { pooled: 25, gap: 24, bound: 20.8, flipsPoints: 0, inside: false });
 });
 
-// Round 3's fresh held-out (PLAN Phase 6; split.mjs drawFresh, fetch.mjs --top-up): drawn by
+// Round 3's fresh held-out (docs/DESIGN.md "Bench"; split.mjs drawFresh, fetch.mjs --top-up): drawn by
 // seed per wake-up stratum from corpus.json's eligible templates outside the seeded split, with
 // the seeded held-out's strata halved; reproducible from corpus.json; never in the survey folder.
 test("round 3's fresh held-out: outside the seeded split, reproducible from the seed, strata as planned", async () => {
@@ -441,7 +441,7 @@ test("round 4: dev is 100 round-4-eligible templates, held-out 20 fresh, amendme
   for (const t of fresh.templates) assert.ok(!existsSync(join(survey, `${t.id}.json`)), `${t.id} is in evals/survey/data/wf`);
 });
 
-// Round 5 (PLAN Phase 6, rolling held-out; after release point 4): round 4's 20 fresh held-out
+// Round 5 (docs/DESIGN.md "Bench", rolling held-out; after release point 4): round 4's 20 fresh held-out
 // join dev (promoted), nothing is dropped, so dev is 120 templates, all with fixtures; round 5's
 // held-out is the 20 fresh templates of heldOutFresh5 (next test). The round's numbers are out of
 // its 120, with round 4's 100 as a subset (roundTally; summary.mjs, convert-coverage.mjs).
@@ -587,7 +587,7 @@ test("P126: refill entries come after the shuffled pool, in listing order", asyn
   assert.equal(r.drawn.at(-1).id, 80, "the lowest-ranked refill entry comes in");
 });
 
-// Round 6 (PLAN Phase 6, rolling held-out; after release point 5): round 5's 20 fresh held-out
+// Round 6 (docs/DESIGN.md "Bench", rolling held-out; after release point 5): round 5's 20 fresh held-out
 // join dev (promoted), nothing is dropped, so dev is 140 templates, all with fixtures; round 6's
 // held-out is the 20 fresh templates of heldOutFresh6 ("round 6 held-out" below). The round's numbers are out of its
 // 140, with round 4's 100 and round 5's 120 as subsets (subsetRounds). An experiment's own

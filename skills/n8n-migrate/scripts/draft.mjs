@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Convert-time drafting pass (PLAN status 2026-11-17, "convert-time drafts";
+// Convert-time drafting pass (experimental, never offered: evals/bench/P137-RESULT.md;
 // references/translation.md, "Drafted request templates and tool maps").
 //
 //   draft.mjs <folder> [--model haiku] [--redraft] [--json]

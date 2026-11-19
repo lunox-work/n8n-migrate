@@ -5,7 +5,7 @@
 //
 //   judgePairs([{effect, field, n8n, claude}], {purpose}) -> [{...pair, verdict, reason}]
 //
-// Calibration (PLAN: "n8n is compared against itself to measure the judge's false-fail rate"):
+// Calibration (docs/DESIGN.md: "n8n is compared against itself to measure the judge's false-fail rate"):
 //   node evals/bench/judge.mjs --calibrate <id>[,<id>...] [--variant normal]
 // records two live n8n runs of the same template (no model cache, so two real draws), pairs
 // their model-written fields with the comparer, and judges run B against run A. Any "worse"

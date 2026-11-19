@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Bench corpus (PLAN Phase 5): walks n8n's template listing by views, applies the
+// Bench corpus (docs/DESIGN.md "Bench"): walks n8n's template listing by views, applies the
 // exclusion rules (EXCLUSIONS.md), runs the analyzer with default answers on each
 // template, and pins the corpus.
 //
@@ -378,7 +378,7 @@ async function main() {
   );
 }
 
-// ---------- top-ups: fresh held-out from round 3 on (PLAN Phase 6, rolling held-out) ----------
+// ---------- top-ups: fresh held-out from round 3 on (docs/DESIGN.md "Bench", rolling held-out) ----------
 //
 // The seeded split's held-out is used up after release point 2, so each later release point draws
 // fresh held-out templates from outside it: a top-up walk of today's listing (same sort) from the

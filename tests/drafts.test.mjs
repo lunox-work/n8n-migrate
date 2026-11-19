@@ -1,4 +1,4 @@
-// Convert-time drafts (PLAN status 2026-11-17; references/translation.md "Drafted request
+// Convert-time drafts (experimental, never offered: evals/bench/P137-RESULT.md; references/translation.md "Drafted request
 // templates and tool maps"; bench PROPOSALS P137): the validator's rules (each with a refusing
 // case), the overrides.json `drafts` format as the converter applies it, the write block, the
 // drafting pass with a stand-in model, and the bench's --arm switch (arm B+approved's default
