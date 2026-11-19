@@ -17,6 +17,38 @@ const refs = loadReferences();
 const NOW = Date.parse("2026-11-14T00:00:00Z");
 const readJson = (p) => JSON.parse(readFileSync(p, "utf8"));
 
+// Seen on a real account (2026-11-20): a search the tool refused without one argument and the
+// hook refused with it was handed out again and again. The driver gives up after MAX_HANDED.
+test("a request handed out five times with no answer ends: a read fails its step, a write stops as outcome unknown", () => {
+  const read = folderFor(join(ROOT, "tests/fixtures/convert/slice.n8n.json"));
+  const write = folderFor(join(ROOT, "tests/fixtures/convert/slice.n8n.json"));
+  try {
+    for (const f of [read.folder, write.folder]) writeFileSync(join(f, "task.json"), JSON.stringify({ ...readJson(join(f, "task.json")), hooks: false }));
+    // The read is asked for five times (start and four next), then fails with the step named.
+    assert.match(runner(read.folder, ["start"]).out, /NEXT: call one tool \(request q1, step "Get unread mail"\)/);
+    for (let k = 0; k < 4; k++) assert.match(runner(read.folder, ["next"]).out, /NEXT: call one tool \(request q1/, `hand-out ${k + 2}`);
+    const gaveUp = runner(read.folder, ["next"]);
+    assert.match(gaveUp.out, /FAILED: run run-\w+ stopped at "Get unread mail": asked for 5 times and never answered: the call was refused each time, or its response was never saved/);
+    assert.ok(readFileSync(join(read.folder, ".n8m/events.jsonl"), "utf8").includes('"event":"handed-cap"'));
+
+    // The write: whether it went out is not known, so the workflow stops for the person to settle it.
+    runner(write.folder, ["start"]);
+    mkdirSync(join(write.folder, ".n8m/inbox"), { recursive: true });
+    writeFileSync(join(write.folder, ".n8m/inbox/q1.txt"), JSON.stringify(MAIL) + "\n");
+    runner(write.folder, ["result", "q1"]);
+    assert.match(runner(write.folder, ["answer", "q2", "--text", "Summary."]).out, /NEXT: call one tool \(request q3, step "Post to Slack"\)/);
+    for (let k = 0; k < 4; k++) assert.match(runner(write.folder, ["next"]).out, /request q3/, `hand-out ${k + 2}`);
+    const stopped = runner(write.folder, ["next"]);
+    assert.match(stopped.out, /STOPPED: run (run-\w+) stopped at "Post to Slack": the write slack\.slack_send_message \(effect [^)]+\) was asked for 5 times in this session and never answered, and it is not known whether it was sent\./);
+    const runId = /STOPPED: run (run-\w+)/.exec(stopped.out)[1];
+    assert.equal(readJson(join(write.folder, ".n8m/records", `runs/${runId}.json`)).status, "needs-check");
+    assert.doesNotMatch(runner(write.folder, ["start"]).out, /NEXT: call one tool/, "nothing is handed out again until it is settled");
+  } finally {
+    rmSync(read.dir, { recursive: true, force: true });
+    rmSync(write.dir, { recursive: true, force: true });
+  }
+});
+
 function folderFor(file) {
   const dir = mkdtempSync(join(tmpdir(), "n8m-task-"));
   const [res] = convertItems(loadInput(file).items, { refs, now: NOW });

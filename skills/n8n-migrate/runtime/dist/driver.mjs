@@ -138,6 +138,8 @@ export function logEvent(P, event) {
   appendFileSync(P.events, JSON.stringify({ t: new Date().toISOString(), ...event }) + "\n");
 }
 
+// How many times one request is handed to the session before the driver gives up on it.
+export const MAX_HANDED = 5;
 export const DEFAULT_TASK = { hooks: true, compactWhole: true, compactOver: 80, hideToolOutput: true, secrets: "env", toolPrefixes: {}, store: { kind: "file" } };
 export function loadTask(P) {
   return { ...DEFAULT_TASK, ...readJson(P.task, {}) };
@@ -1110,14 +1112,14 @@ async function stepExtra(P, core, task, store, ex, x) {
   return paged(P, x.handle, toolInstruction(task, x.handle, x.req, { hooksSeen, repeat }));
 }
 
-async function needsCheck(P, core, task, store, state, req, entry) {
+async function needsCheck(P, core, task, store, state, req, entry, why = "was going out when an earlier session ended") {
   const unknown = [{ step: req.step, effectKey: req.effectKey, connector: req.connector, tool: req.tool, since: entry?.at ?? null, args: core.clip(req.args, 4_000) }];
   writeRunRecord(P, core, store, state, "needs-check", { unknown });
   store.flush(`run ${state.runId} needs-check`);
   logEvent(P, { event: "needs-check", runId: state.runId, effectKey: req.effectKey });
   const alert = core.alertRequest(state.definition, "needs-check", { runId: state.runId, step: req.step, tool: `${req.connector}.${req.tool}` });
   const how = isSession(store) ? `checks it, then opens the workflow's page (${task.artifactUrl}), finds this run in its history and presses Resume, which asks whether the write went out` : `checks it and runs, in a terminal: ${RUNNER_CMD} resolve ${req.effectKey} sent (it went out) or ${RUNNER_CMD} resolve ${req.effectKey} resend (it did not)`;
-  const text = `STOPPED: run ${state.runId} stopped at "${req.step}": the write ${req.connector}.${req.tool} (effect ${req.effectKey}) was going out when an earlier session ended, and it is not known whether it was sent. Nothing more runs until the person ${how}. ${alert ? "An alert was sent." : "No alert channel is set, so this line is the alert."} Stop now.`;
+  const text = `STOPPED: run ${state.runId} stopped at "${req.step}": the write ${req.connector}.${req.tool} (effect ${req.effectKey}) ${why}, and it is not known whether it was sent. Nothing more runs until the person ${how}. ${alert ? "An alert was sent." : "No alert channel is set, so this line is the alert."} Stop now.`;
   queueExtra(P, alert, { final: text });
 }
 
@@ -1260,6 +1262,22 @@ async function advance(P, core, task, store, state, opts = {}) {
           writeJson(P.driver, drv);
           if (queuePush(P, core, task, store)) continue;
         } else if (Object.keys(store.dirty()).some((p) => p.startsWith("ledger/")) && queuePush(P, core, task, store)) continue;
+      }
+      // A request handed out again and again with no result would loop until the session's
+      // budget ends (seen 2026-11-20: a search the tool refused for a missing argument, and
+      // the hook refused with it). After MAX_HANDED hand-outs a read or a model step gets a
+      // failed result, so the step fails as any step does (the run's record, its alert, an
+      // agent told its tool failed); a write stops the workflow as one whose outcome is
+      // unknown, since a response that was never saved does not say the call did not go out.
+      if (repeat >= MAX_HANDED) {
+        logEvent(P, { event: "handed-cap", handle: h, id: r.id, kind: r.kind, repeat });
+        if (isWrite(r)) {
+          await needsCheck(P, core, task, store, state, r, ledgerGet(store, core, r.effectKey), `was asked for ${repeat} times in this session and never answered`);
+          state = null;
+          continue;
+        }
+        saveResult(P, h, { ok: false, error: { message: `asked for ${repeat} times and never answered: the call was refused each time, or its response was never saved` }, capturedBy: "driver" });
+        continue;
       }
       drv.handed[h] = repeat + 1;
       writeJson(P.driver, drv);
