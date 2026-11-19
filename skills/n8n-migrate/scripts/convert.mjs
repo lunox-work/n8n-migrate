@@ -2602,8 +2602,10 @@ export function skillMd(def, refs, slug) {
   // was not found and, failing closed, refused every call of the migrated skill).
   // No "&" anywhere in the frontmatter: claude.ai refuses a SKILL.md whose hook command holds
   // "&&" ("could not be downloaded (SKILL.md unusable)", probe skills 2026-11-20), so the chain
-  // is "||" only. A skill saved from a chat or uploaded lives in /mnt/skills/user/<name>.
-  const find = `d="\${CLAUDE_SKILL_DIR:-}"; [ -f "$d/runtime/hook.mjs" ] || d="$CLAUDE_PROJECT_DIR/.claude/skills/${name}"; [ -f "$d/runtime/hook.mjs" ] || d="$HOME/.claude/skills/${name}"; [ -f "$d/runtime/hook.mjs" ] || d="/mnt/skills/user/${name}"; `;
+  // is "||" and "continue" only. In a claude.ai chat the skill is at
+  // $HOME/.claude/skills/synced/<id>_<id>/<name> (HOME=/root, no /mnt/skills); in a scheduled
+  // task under /mnt/skills/user/<name>. This loop form was seen to load and find it in a chat.
+  const find = `d="\${CLAUDE_SKILL_DIR:-}"; [ -f "$d/runtime/hook.mjs" ] || d="$CLAUDE_PROJECT_DIR/.claude/skills/${name}"; [ -f "$d/runtime/hook.mjs" ] || d="$HOME/.claude/skills/${name}"; [ -f "$d/runtime/hook.mjs" ] || for c in "$HOME"/.claude/skills/synced/*/${name} /mnt/skills/*/${name}; do [ -f "$c/runtime/hook.mjs" ] || continue; d="$c"; break; done; `;
   const hook = (which) => [`    - matcher: ${yamlString(HOOK_MATCHER)}`, "      hooks:", "        - type: command", `          command: ${yamlString(find + hookCommand("$d/runtime/hook.mjs", which))}`, "          timeout: 30"];
   return [
     "---",

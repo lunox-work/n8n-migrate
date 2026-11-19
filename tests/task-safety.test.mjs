@@ -425,7 +425,7 @@ test("a chat workflow gets a self-contained skill; run from a project root it pr
     // CLAUDE_SKILL_DIR and a HOME that has no skills (observed 2026-11-20): the command looks
     // there last. Run with that folder moved under a temp root: it finds the skill's hook.
     const cmd = JSON.parse(/command: ("d=.*hook\.mjs\\" pre \|\| exit 2")/.exec(md)[1]);
-    assert.ok(cmd.includes('|| d="/mnt/skills/user/n8n-inbox-assistant-chat";'));
+    assert.ok(cmd.includes('for c in "$HOME"/.claude/skills/synced/*/n8n-inbox-assistant-chat /mnt/skills/*/n8n-inbox-assistant-chat; do'));
     // claude.ai refuses a SKILL.md whose frontmatter holds "&&" (probe skills, 2026-11-20).
     assert.ok(!md.split(/^---$/m)[1].includes("&"), "no & in the skill's frontmatter");
     const mnt = join(dir, "mnt-skills");
@@ -434,6 +434,13 @@ test("a chat workflow gets a self-contained skill; run from a project root it pr
     const locate = (root) => spawnSync("sh", ["-c", `${cmd.slice(0, cmd.indexOf("node "))} printf %s "$d"`.replaceAll("/mnt/skills", root)], { encoding: "utf8", env: { PATH: process.env.PATH, HOME: join(dir, "empty-home"), CLAUDE_PROJECT_DIR: join(dir, "no-project") } }).stdout;
     assert.equal(locate(mnt), join(mnt, "user/n8n-inbox-assistant-chat"));
     assert.ok(!existsSync(join(locate(join(dir, "nowhere")), "runtime/hook.mjs")), "not installed anywhere: no hook is found, so the pre hook fails closed");
+    // A claude.ai chat keeps a saved skill under $HOME/.claude/skills/synced/<id>_<id>/<name>.
+    const home = join(dir, "chat-home");
+    const synced = join(home, ".claude/skills/synced/8ffe_e8eb/n8n-inbox-assistant-chat");
+    mkdirSync(dirname(synced), { recursive: true });
+    cpSync(sk, synced, { recursive: true });
+    const inChat = spawnSync("sh", ["-c", `${cmd.slice(0, cmd.indexOf("node "))} printf %s "$d"`.replaceAll("/mnt/skills", join(dir, "nowhere"))], { encoding: "utf8", env: { PATH: process.env.PATH, HOME: home } }).stdout;
+    assert.equal(inChat, synced);
     // The hook command, run by a shell as Claude Code does, finds the installed skill and fails closed.
     assert.match(md, /allowed-tools: "Bash\(node \*runtime\/runner\.mjs \*\), Write, Read, mcp__claude_ai_Gmail__search_threads, mcp__claude_ai_Slack__slack_send_message"/);
     assert.deepEqual(readJson(join(sk, "task.json")).store, { kind: "file" });
