@@ -137,7 +137,7 @@ export function setupPrompt({ repoUrl = null, local = false } = {}) {
     "Use the n8n-migrate skill. The n8n workflows in this folder are already converted: one folder each, with MIGRATION.md saying what moved and what is flagged.",
     "The conversion took the assumed answer to every open question; each folder's report.json lists them. Ask me those first and regenerate the folder with my answers.",
     "Then set each one up as its scheduled task (the skill's step 6: references/setup-cloud-task.md or setup-local-task.md by its target), then take it through the cutover (step 8).",
-    repoUrl ? `The folder is already pushed to the private repository ${repoUrl} for the cloud tasks to clone.` : "The folder is a git repository on this computer; a workflow that runs as a cloud task still needs it pushed to a private GitHub repository.",
+    repoUrl ? `The folder is already pushed to the private GitHub repository ${repoUrl} for the cloud tasks to clone.` : "The folder is a git repository on this computer; a workflow that runs as a cloud task still needs it pushed to a private GitHub repository.",
     local ? "The keys the local tasks need go in .claude/settings.local.json here: the names are already in it, the values are mine to type." : "",
     "List the whole plan once and wait for my go-ahead before you create a task, publish a page or switch anything off in n8n. Never ask me for a key in the chat.",
   ]
@@ -209,7 +209,7 @@ export function goOn({ report, inputs, items, out, repo = "n8n-workflows", tools
     done.committed = c.status === 0 || /nothing to commit/.test(c.stdout + c.stderr);
     if (plan.push && done.committed) {
       const r = run("gh", ["repo", "create", `${tools.ghUser}/${repo}`, "--private", "--source", plan.flows, "--remote", "origin", "--push"]);
-      if (r.status === 0) done.repoUrl = `https://github.com/${tools.ghUser}/${repo}`;
+      if (r.status === 0) done.repoUrl = `${tools.ghUser}/${repo}`;
       else say(`! The private repository was not created (${(r.stderr.trim().split("\n").at(-1) ?? "gh failed").slice(0, 200)}). Create it yourself: gh repo create ${repo} --private --source ${short(plan.flows)} --push`);
     } else if (plan.cloud.length && !plan.push) done.left.push(`Push ${short(plan.flows)} to a private GitHub repository (the cloud tasks clone it): gh repo create ${repo} --private --source ${short(plan.flows)} --push`);
   }
@@ -352,7 +352,7 @@ export async function main(argv = process.argv.slice(2), { stdin = process.stdin
       if (go) {
         rl?.close();
         const done = goOn({ report, inputs, items, out: a.out, repo: a.repo, tools: a.yes ? { ...tools, gh: false, ghUser: null, claude: false, skill: true } : tools });
-        if (done.repoUrl) console.log(`Private repository: ${done.repoUrl}`);
+        if (done.repoUrl) console.log(`Private GitHub repository: ${done.repoUrl}`);
         if (done.left.length) console.log(`\nLeft for you:\n${done.left.map((t) => `  - ${t}`).join("\n")}`);
         return 0;
       }

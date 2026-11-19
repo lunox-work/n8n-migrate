@@ -130,9 +130,9 @@ test("going on from the report: convert, a private repository for cloud tasks, t
     assert.deepEqual(ran.map((r) => r.slice(0, 3).join(" ")), ["git -C init", "git -C add", "git -C config", "git -C -c", "gh repo create", "npx -y skills", `claude ${done.prompt}`]);
     assert.deepEqual(ran[4], ["gh", "repo", "create", "ana/n8n-workflows", "--private", "--source", "--remote", "origin", "--push"]);
     assert.match(done.prompt, /took the assumed answer to every open question.*Ask me those first/);
-    assert.equal(done.repoUrl, "https://github.com/ana/n8n-workflows");
+    assert.equal(done.repoUrl, "ana/n8n-workflows");
     assert.equal(done.claude, true);
-    assert.match(done.prompt, /Use the n8n-migrate skill\..*already pushed to the private repository https:\/\/github.com\/ana\/n8n-workflows.*wait for my go-ahead before you create a task, publish a page or switch anything off in n8n\. Never ask me for a key in the chat\./);
+    assert.match(done.prompt, /Use the n8n-migrate skill\..*already pushed to the private GitHub repository ana\/n8n-workflows.*wait for my go-ahead before you create a task, publish a page or switch anything off in n8n\. Never ask me for a key in the chat\./);
     // The keys file names the key and holds no value; the person types it.
     assert.deepEqual(JSON.parse(readFileSync(done.keysFile, "utf8")), { env: { N8M_SECRET_ACCOUNTS_API_KEY: "" } });
     assert.match(readFileSync(join(out, "flows", ".gitignore"), "utf8"), /\.claude\/settings\.local\.json/);
