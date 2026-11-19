@@ -154,7 +154,7 @@ h1{font-size:28px;letter-spacing:-.02em;margin:0 0 4px}h2{font-size:17px;margin:
 .todo{border-top:1px solid var(--line);margin-top:10px;padding-top:8px}.todo ul{margin:6px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px}
 .todo li{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:14px}.todo li.likely{border-color:var(--fg)}.todo li span{color:var(--mute);font-size:12px}
 footer{color:var(--mute);font-size:12px;margin-top:48px}
-@media (max-width:560px){.tiles{grid-template-columns:1fr}}
+@media (max-width:560px){.tile{padding:10px}.tile b{font-size:24px}.tile span{font-size:12px}}
 </style></head><body><main>
 <h1>${esc(title)}</h1>
 <p class="sub">Nothing has changed in n8n. Claude moves a workflow only when you say so, and switches the n8n one off first so nothing is sent twice.</p>

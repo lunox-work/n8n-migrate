@@ -347,7 +347,8 @@ export function plainWorkflow(w, { conv = null, steps = null, answers = {}, conn
         assumed: wake === "poll" ? "hourly" : null,
       });
     }
-    out.says = `Runs on Claude ${cadence ? CADENCES[cadence].words : everyWords(every)}${out.apps.length ? `, with ${out.apps.join(" and ")}` : ""}.`;
+    const when = cadence ? CADENCES[cadence].words : wake === "poll" ? "every hour, if that is all right" : "on a schedule you pick";
+    out.says = `Runs on Claude ${when}${out.apps.length ? `, with ${out.apps.join(" and ")}` : ""}.`;
   } else if (o.target === "skill") {
     out.runs = "skill";
     out.says = wake === "chat" ? "Becomes a skill: you message Claude and it runs this workflow." : "Runs whenever you ask Claude to.";
