@@ -40,7 +40,7 @@ test("a daily workflow with only connectors is ready, and a missing connector ma
   const ready = plainWorkflow(w, { connected: ["gmail"] });
   assert.equal(ready.group, "ready");
   assert.equal(ready.runs, "scheduled-task");
-  assert.match(ready.says, /every day at 09:00, with Gmail/);
+  assert.match(ready.says, /Runs on Claude every day, with Gmail/);
   const needs = plainWorkflow(w, { connected: [] });
   assert.equal(needs.group, "needs");
   assert.deepEqual(

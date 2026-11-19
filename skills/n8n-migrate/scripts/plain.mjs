@@ -121,7 +121,7 @@ function cadenceOf(seconds) {
 function everyWords(seconds) {
   if (seconds == null) return "on its schedule";
   const c = cadenceOf(seconds);
-  if (c) return CADENCES[c].words;
+  if (c) return { hourly: "every hour", daily: "every day", weekly: "every week" }[c];
   if (seconds < 3600) return `every ${Math.round(seconds / 60)} minute${seconds === 60 ? "" : "s"}`;
   if (seconds < 86400) return `every ${Math.round(seconds / 3600)} hours`;
   return `every ${Math.round(seconds / 86400)} days`;
@@ -351,7 +351,9 @@ export function plainWorkflow(w, { conv = null, steps = null, answers = {}, conn
         assumed: wake === "poll" ? "hourly" : null,
       });
     }
-    const when = cadence ? CADENCES[cadence].words : wake === "poll" ? "every hour, if that is all right" : "on a schedule you pick";
+    // A chosen cadence names its time; the workflow's own schedule keeps its own.
+    const chosen = answers[`${w.id}/cadence`];
+    const when = chosen ? CADENCES[chosen].words : cadence ? everyWords(every) : wake === "poll" ? "every hour, if that is all right" : "on a schedule you pick";
     out.says = `Runs on Claude ${when}${out.apps.length ? `, with ${out.apps.join(" and ")}` : ""}.`;
   } else if (o.target === "skill") {
     out.runs = "skill";
