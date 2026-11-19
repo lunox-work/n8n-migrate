@@ -3341,6 +3341,12 @@ async function lib(exec, name) {
   if (libs[name]) return libs[name];
   try {
     if (name === "pdfjs") {
+      // pdf.js 6 calls Promise.withResolvers, which Node has from 22; the runtime runs on 20.
+      Promise.withResolvers ??= function withResolvers() {
+        let resolve, reject;
+        const promise = new this((res, rej) => ((resolve = res), (reject = rej)));
+        return { promise, resolve, reject };
+      };
       libs[name] = await quietly(async () => {
         globalThis.pdfjsWorker ??= await importVendor("pdfjs/pdf.worker.min.mjs");
         return importVendor("pdfjs/pdf.min.mjs");
