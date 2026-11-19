@@ -77,6 +77,22 @@ A web scheduled task (claude.ai > Scheduled > New task > Set up manually, no rep
 - The session has `mcp__claude-code-remote__create_trigger`, `update_trigger`, `fire_trigger`, `list_triggers`, `delete_trigger`, so Claude can create a scheduled task from a conversation. Also `Artifact`, `Write`, `Skill`, `WebFetch`, `WebSearch`, `ToolSearch`, and `mcp__memory__*`; `ArtifactData` was not among the listed tools (it may be deferred behind ToolSearch; not checked).
 - Not checked: hooks, a plugin's MCP server, a Project attached to the task, ArtifactData through ToolSearch.
 
+### Switch-on from a chat (2026-11-20)
+
+The chat that converted "Mail digest to a draft" (Sonnet 5.5) published the page, created the task itself (`create_trigger`, no repository) and ran it once.
+
+- **Worked end to end.** The run set itself up from the page, made a real Gmail draft in the connector's account, and saved `runs/<id>` (status done, 1 read, 1 write sent), `meta/current` and `meta/schedule` in the page's database. The ledger was empty afterwards (pruned at finish). The page's history shows the run.
+- The chat could not see the fired task's final line, so it checked the draft instead. Reading the page's `runs/` with ArtifactData is the check to use.
+- The model moved 08:00 to 07:41 "to spread runs off the hour". SKILL.md now says to keep the time, or at most 5 minutes later.
+- It asked the person to switch the workflow off in n8n when it was not there at all. The report now carries the export's `active` (`activeInN8n`), and the step is skipped when it is false.
+- The record's duration showed 0 ms (fixed: wall time for `endedAt`).
+
+### Web access from claude.ai (2026-11-20)
+
+- In the code sandbox, `curl https://hnrss.org/frontpage` is refused by the egress proxy (`connect_rejected`, exit 56).
+- `WebFetch(url, prompt, offset?)` passes the page through a small model that answers the prompt. An RSS feed came back summarised, with at most about 125 characters quoted verbatim. So it cannot stand in for an HTTP Request or RSS step, and workflows that fetch the web stay with Claude Code.
+- In a sort of the 13 most-viewed schedule templates, 12 stay for a chat user. Every one of the 12 calls the web directly; 7 also use Google Sheets with their own token.
+
 ## Claude Code CLI 2.1.323 (`claude --help`, no prompt run)
 
 For the bench's task driver: `-p/--print`; `--output-format text|json|stream-json`; `--input-format text|stream-json`; `--json-schema <schema>` (structured output, `-p` only); `--mcp-config <configs...>` with `--strict-mcp-config` ("Only use MCP servers from --mcp-config"); `--allowedTools`, `--disallowedTools`, `--tools`; `--permission-mode acceptEdits|auto|bypassPermissions|manual|dontAsk|plan`; `--permission-prompts host|none` (with `none`, "anything that would prompt is denied automatically"); `--model`, `--fallback-model`; `--max-budget-usd` (`-p` only); `--no-session-persistence`; `--plugin-dir`; `--bare` (Anthropic auth "strictly ANTHROPIC_API_KEY or apiKeyHelper"). No `--max-turns` in the help: cap runs with `--max-budget-usd` or a timeout.
