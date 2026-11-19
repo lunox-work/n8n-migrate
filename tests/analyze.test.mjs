@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { validate, schema } from "./schema-check.mjs";
-import { analyze, loadInput, parseCron, simulateCron, legacyCron, redact, findSecrets, scanSecrets, sqlEffect, renderText, httpTarget, observesDst } from "../skills/n8n-migrate/scripts/analyze.mjs";
+import { analyze, loadInput, parseCron, simulateCron, legacyCron, redact, findSecrets, scanSecrets, sqlEffect, renderText, httpTarget, observesDst, SHEETS_REST_OPS } from "../skills/n8n-migrate/scripts/analyze.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..");
@@ -330,4 +330,23 @@ test("operation key: an authentication value that hides the resource leaves the 
   assert.equal(steps["Bot default"].operation, "create");
   assert.equal(steps["Bot message"].resource, "message");
   assert.equal(steps["Bot message"].operation, "send");
+});
+
+// The Google token is asked for the steps the converter builds on Google's API, and not for a
+// Sheets read it sends through the Drive connector.
+test("a Google Sheets read on its own needs no Google token; with a row write under the same credential it does", () => {
+  const maps = JSON.parse(readFileSync(join(HERE, "../skills/n8n-migrate/references/tool-maps.json"), "utf8")).maps["n8n-nodes-base.googleSheets"][">=4"];
+  const rest = Object.entries(maps).flatMap(([res, ops]) => Object.entries(ops).filter(([, e]) => e.rest).map(([op, e]) => [`${res}:${op}`, !!e.whenSiblingRest]));
+  assert.deepEqual(rest.filter(([, sib]) => !sib).map(([k]) => k).sort(), [...SHEETS_REST_OPS.always].sort(), "the analyzer's list is tool-maps.json's row writes");
+  assert.deepEqual(rest.filter(([, sib]) => sib).map(([k]) => k).sort(), [...SHEETS_REST_OPS.withSibling].sort());
+  const sheet = (name, operation, cred = "Sheets A", x = 200) => ({ id: name, name, type: "n8n-nodes-base.googleSheets", typeVersion: 4.5, position: [x, 0], parameters: { operation, documentId: { __rl: true, mode: "list", value: "doc1" }, sheetName: { __rl: true, mode: "list", value: "gid=0" }, options: {} }, credentials: { googleSheetsOAuth2Api: { id: "c", name: cred } } });
+  const flow = (...steps) => ({ id: "gs1", name: "Sheet flow", nodes: [{ id: "t", name: "Daily", type: "n8n-nodes-base.scheduleTrigger", typeVersion: 1.2, position: [0, 0], parameters: { rule: { interval: [{ field: "days" }] } } }, ...steps], connections: Object.fromEntries([["Daily", steps[0].name], ...steps.slice(1).map((st, i) => [steps[i].name, st.name])].map(([a, b]) => [a, { main: [[{ node: b, type: "main", index: 0 }]] }])), settings: { executionOrder: "v1", timezone: "UTC" } });
+  const tokens = (wf) => {
+    const w = analyze([{ id: wf.id, name: wf.name, wf, file: "x.json" }], { nodes, capabilities, hosts, answers: {}, now: NOW }).workflows[0];
+    return [w.outcome.target, w.requires.filter((r) => r.kind === "google-token").flatMap((r) => r.nodes)];
+  };
+  assert.deepEqual(tokens(flow(sheet("Read rows", "read"))), ["cloud-task", []]);
+  assert.deepEqual(tokens(flow(sheet("Read rows", "read"), sheet("Add row", "append", "Sheets A", 400))), ["local-task", ["Read rows", "Add row"]]);
+  assert.deepEqual(tokens(flow(sheet("Read rows", "read"), sheet("Add row", "append", "Sheets B", 400))), ["local-task", ["Add row"]], "another credential's token does not serve the read");
+  assert.deepEqual(tokens(flow(sheet("Empty it", "clear")))[1], ["Empty it"], "an operation with no connector tool keeps the token");
 });

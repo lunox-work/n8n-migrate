@@ -1278,7 +1278,23 @@ function askWrites(W, ctx) {
   }
 }
 
-const GOOGLE_REST = new Set(["n8n-nodes-base.googleSheets", "n8n-nodes-base.googleCalendar"]);
+// Which Google steps need the stored Google credential: Calendar always, and Sheets from node 4
+// except where the converter goes through the Drive connector instead (tool-maps.json;
+// tests/analyze.test.mjs checks the two agree): a read or a spreadsheet create with no row
+// write (append, update, append or update) under the same credential in the workflow, and a
+// read that is an agent's tool. With such a write its stored token serves the read too
+// (convert.mjs restSibling). Every other Sheets operation has no connector tool, so its only
+// path is Google's API.
+export const SHEETS_REST_OPS = { always: ["sheet:append", "sheet:update", "sheet:appendOrUpdate"], withSibling: ["sheet:read", "spreadsheet:create"] };
+const SHEETS = "n8n-nodes-base.googleSheets";
+function googleRestStep(W, d) {
+  if (d.baseType === "n8n-nodes-base.googleCalendar") return true;
+  if (d.baseType !== SHEETS || (d.typeVersion ?? 1) < 4) return false;
+  if (!SHEETS_REST_OPS.withSibling.includes(d.opKey)) return true;
+  if (d.role === "subnode") return false;
+  const cred = (x) => credentialNames(x)[0]?.name ?? null;
+  return [...W.infos.values()].some((o) => o !== d && !o.disabled && o.baseType === SHEETS && (o.typeVersion ?? 1) >= 4 && W.branch.get(o.name) !== "unreached" && SHEETS_REST_OPS.always.includes(o.opKey) && cred(o) === cred(d));
+}
 const GOOGLE_TOKEN_NOTE = "a Google access token lasts an hour, so this runs as a local task whose secret lets the runner refresh it: the OAuth client's {client_id, client_secret, refresh_token} or a service-account key (setup-local-task.md); a cloud task cannot refresh it";
 function credentialNames(d) {
   const c = d.node.credentials;
@@ -1461,11 +1477,12 @@ function processNode(W, d, ctx, br) {
   if (d.flags.includes("calls-n8n")) addReq(W, "http", "n8n instance", name, { surfaces: reqSurf("http"), note: N8N_STAYS_NOTE });
   const extra = own(caps.nodeRequirements, d.baseType);
   if (extra) addReq(W, extra, extra === "host-disk" ? "n8n host disk" : extra, name, { surfaces: reqSurf(extra) });
-  // Google Sheets (v4+) and Calendar steps call Google's REST API with the stored credential. A
+  // Google Calendar steps and Google Sheets row writes (v4+; googleRestStep) call Google's REST
+  // API with the stored credential. A
   // Google access token lasts an hour, so only a runner that can refresh it keeps working: a
   // local task given a refresh set or a service-account key. A cloud task's proxy adds a fixed
   // header (capabilities requirements.google-token).
-  if (!d.disabled && GOOGLE_REST.has(d.baseType) && !(d.baseType === "n8n-nodes-base.googleSheets" && (d.typeVersion ?? 1) < 4)) {
+  if (!d.disabled && googleRestStep(W, d)) {
     const cred = credentialNames(d)[0];
     addReq(W, "google-token", cred?.name ?? `${shortType(d.baseType)} credential`, name, { surfaces: reqSurf("google-token"), note: GOOGLE_TOKEN_NOTE });
   }
