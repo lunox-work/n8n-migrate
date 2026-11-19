@@ -67,7 +67,7 @@ Two findings outside the table:
 
 ## claude.ai scheduled task without a repository (2026-11-19)
 
-A web scheduled task (claude.ai > Scheduled > New task > Set up manually, no repository, trigger `trig_015fzLMsC7hTgD9pjaWhTfRT`, left paused) ran the probe prompt in `skills/n8n-migrate/references/probe-task.md` style twice by Run now (20:36 and 20:39 SGT). Picking a repository in that form makes it a Claude Code task instead.
+A web scheduled task (claude.ai > Scheduled > New task > Set up manually, no repository, left paused) ran the probe prompt in `skills/n8n-migrate/references/probe-task.md` style twice by Run now (20:36 and 20:39 SGT). Picking a repository in that form makes it a Claude Code task instead.
 
 - Runs remotely in a Linux sandbox (`uname`: `Linux vm 6.18.44`, x86_64), as root, working directory `/home/claude`, Node v22.23.5, Python 3.13.18, a Bash tool.
 - **Nothing persists between runs.** Each run is a new conversation in a fresh sandbox: markers written by the first run in `/home/claude`, `/root`, `/tmp`, `/mnt/user-data` and `/mnt/user-data/outputs` were absent in the second.
