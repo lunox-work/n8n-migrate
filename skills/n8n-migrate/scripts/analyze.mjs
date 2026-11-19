@@ -1524,6 +1524,37 @@ function readCallTarget(d) {
   return { status: "id", id: v, cached: typeof cached === "string" && cached && !isExpr(cached) ? cached : null };
 }
 
+// The workflows `wf` calls by a fixed id, as [{id, name}] (name: the editor's cached one, or
+// null), read the way resolveCalls reads them, so pull.mjs can fetch them with the caller.
+// `nodes` is references/nodes.json. Ids set by an expression, files, URLs and calls to itself
+// are left out; an inline sub-workflow's own calls count. Disabled nodes call nothing.
+export function calledWorkflowIds(wf, nodes) {
+  const found = new Map();
+  const walk = (w, depth) => {
+    for (const node of Array.isArray(w?.nodes) ? w.nodes : []) {
+      if (!isObj(node)) continue;
+      const d = describeNode(nodes.nodes, node);
+      if (d.disabled || d.status !== "mapped" || d.kind !== "subworkflow") continue;
+      const t = readCallTarget(d);
+      if (t.status === "id" && !found.has(t.id)) found.set(t.id, t.cached);
+      else if (t.status === "inline" && depth < 5) {
+        let inner = isObj(t.json) ? t.json : null;
+        if (typeof t.json === "string" && !t.json.startsWith("=")) {
+          try {
+            inner = JSON.parse(t.json);
+          } catch {
+            inner = null;
+          }
+        }
+        walk(inner, depth + 1);
+      }
+    }
+  };
+  walk(wf, 0);
+  found.delete(txt(wf?.id));
+  return [...found].map(([id, name]) => ({ id, name }));
+}
+
 // Second pass: links every call to its target workflow, asks about ids the
 // run does not hold, and analyses inline sub-workflows.
 function resolveCalls(W, ctx) {

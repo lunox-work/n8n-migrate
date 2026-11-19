@@ -14,7 +14,8 @@ import { signIn, instanceBase, scopeFor, scopesForVersion, discover } from "../s
 
 const NODES = [{ name: "Start", type: "n8n-nodes-base.manualTrigger", typeVersion: 1, parameters: {} }];
 
-async function fakeN8n({ wellKnown = true, mcpOn = true, legacyDetail = false } = {}) {
+// calls: {workflow id: [ids it calls with an Execute Workflow node]}.
+async function fakeN8n({ wellKnown = true, mcpOn = true, legacyDetail = false, calls = {} } = {}) {
   const st = { registrations: [], codes: new Map(), tokens: new Set(), revoked: [], sessions: 0, calls: [] };
   const workflows = [
     { id: "a1", name: "Shared one", active: true, availableInMCP: true },
@@ -85,9 +86,11 @@ async function fakeN8n({ wellKnown = true, mcpOn = true, legacyDetail = false } 
         if (name === "get_workflow_details") {
           if (legacyDetail && "detailLevel" in args) return answer({ isError: true, content: [{ type: "text", text: "Invalid arguments: unrecognized key detailLevel" }] });
           const w = workflows.find((x) => x.id === args.workflowId);
-          if (!w?.availableInMCP) return answer({ isError: true, content: [{ type: "text", text: 'Workflow is not available in MCP. Enable "Available in MCP" in the workflow settings.' }] });
+          if (!w) return answer({ isError: true, content: [{ type: "text", text: `Workflow not found: ${args.workflowId}` }] });
+          if (!w.availableInMCP) return answer({ isError: true, content: [{ type: "text", text: 'Workflow is not available in MCP. Enable "Available in MCP" in the workflow settings.' }] });
+          const nodes = [...NODES, ...(calls[w.id] ?? []).map((id) => ({ name: `Call ${id}`, type: "n8n-nodes-base.executeWorkflow", typeVersion: 1.2, parameters: { workflowId: { __rl: true, value: id, mode: "list" } } }))];
           // Older servers send the JSON only as text.
-          return answer({ content: [{ type: "text", text: JSON.stringify({ workflow: { id: w.id, name: w.name, nodes: NODES, connections: {}, shared: [{ user: { email: "o@x" } }], activeVersion: { sameAsDraft: true } }, triggerInfo: "manual" }) }] });
+          return answer({ content: [{ type: "text", text: JSON.stringify({ workflow: { id: w.id, name: w.name, nodes, connections: {}, shared: [{ user: { email: "o@x" } }], activeVersion: { sameAsDraft: true } }, triggerInfo: "manual" }) }] });
         }
       }
       return json(200, { jsonrpc: "2.0", id: m.id, error: { code: -32601, message: "no such method" } });
@@ -156,6 +159,25 @@ test("--login behind a proxy that hides .well-known, on a server whose get_workf
     assert.deepEqual(r.written.map((w) => w.id), ["a1"]);
     assert.match(r.errors[0].error, /not on http:\/\/127\.0\.0\.1:\d+, the instance you sign in to/);
     assert.deepEqual(n8n.st.calls.filter(([n]) => n === "get_workflow_details").map(([, a]) => Object.keys(a).sort().join(",")), ["detailLevel,workflowId", "workflowId"]);
+  } finally {
+    await n8n.close();
+    rmSync(out, { recursive: true, force: true });
+    rmSync(cfg, { recursive: true, force: true });
+  }
+});
+
+test("--login follows sub-workflows by id over get_workflow_details; not shared or not found is a note", async () => {
+  const n8n = await fakeN8n({ calls: { a1: ["c3", "b2", "zz"], c3: ["a1"] } });
+  const out = mkdtempSync(join(tmpdir(), "n8m-oauth-out-"));
+  const cfg = mkdtempSync(join(tmpdir(), "n8m-oauth-cfg-"));
+  try {
+    const r = await pull([`${n8n.base}/workflow/a1`], { out, login: n8n.base, env: { N8M_CONFIG_DIR: cfg }, signIn: login });
+    assert.deepEqual(r.errors, []);
+    assert.deepEqual(r.written.map((w) => [w.id, w.calledBy]), [["a1", undefined], ["c3", "Shared one"]]);
+    assert.deepEqual(n8n.st.calls.filter(([n]) => n === "get_workflow_details").map(([, a]) => a.workflowId), ["a1", "c3", "b2", "zz"]);
+    assert.equal(r.notes.length, 2);
+    assert.match(r.notes[0], /^sub-workflow \(zz, called by "Shared one"\) is not on /);
+    assert.match(r.notes[1], /^sub-workflows not shared over MCP \(1\): \(b2, called by "Shared one"\)\. .*Available in MCP/);
   } finally {
     await n8n.close();
     rmSync(out, { recursive: true, force: true });

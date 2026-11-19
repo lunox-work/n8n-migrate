@@ -95,6 +95,71 @@ test("instance sources without the env vars, or an editor link on another host, 
   }
 });
 
+// A node that calls workflow `id` (an Execute Workflow node, or the agent's sub-workflow tool).
+const CALL = (id, { name = `Call ${id}`, type = "n8n-nodes-base.executeWorkflow", cached } = {}) => ({ name, type, typeVersion: type.endsWith("executeWorkflow") ? 1.2 : 2.2, parameters: { workflowId: { __rl: true, value: id, mode: "list", ...(cached ? { cachedResultName: cached } : {}) } } });
+const CALLER = (id, name, calls) => WF(id, name, { nodes: [...WF().nodes, ...calls] });
+// The n8n public API over a map of workflows; an id not in it is a 404.
+const fakeApi = (byId, seen) => async (url) => {
+  const path = url.replace("https://me.example/api/v1", "");
+  seen.push(path);
+  if (path.startsWith("/workflows?")) return json({ data: Object.values(byId).filter((w) => w.listed !== false), nextCursor: null });
+  const m = path.match(/^\/workflows\/([^/?]+)$/);
+  if (m && byId[decodeURIComponent(m[1])]) return json(byId[decodeURIComponent(m[1])]);
+  if (m) return json({ message: "Not Found" }, 404);
+  throw new Error(`unexpected ${url}`);
+};
+const ENV = { N8N_BASE_URL: "https://me.example", N8N_API_KEY: "sekret" };
+
+test("API route: a called sub-workflow and its own callee are fetched; an expression id is skipped; a missing one is a note", async () => {
+  const out = tmp();
+  try {
+    const byId = {
+      A: CALLER("A", "Main", [CALL("B", { cached: "Bee" }), { name: "Dynamic", type: "n8n-nodes-base.executeWorkflow", typeVersion: 1.2, parameters: { workflowId: { __rl: true, value: "={{ $json.target }}", mode: "id" } } }]),
+      B: { ...CALLER("B", "Bee", [CALL("C", { type: "@n8n/n8n-nodes-langchain.toolWorkflow" })]), listed: false },
+      C: { ...CALLER("C", "Sea", [CALL("gone", { cached: "Deleted one" })]), listed: false },
+    };
+    const seen = [];
+    const r = await pull(["n8n"], { out, fetch: fakeApi(byId, seen), env: ENV });
+    assert.deepEqual(r.errors, []);
+    assert.deepEqual(seen, ["/workflows?limit=250", "/workflows/B", "/workflows/C", "/workflows/gone"]);
+    assert.deepEqual(r.written.map((w) => [w.id, w.calledBy]), [["A", undefined], ["B", "Main"], ["C", "Bee"]]);
+    assert.deepEqual(readdirSync(out).sort(), ["bee-B.json", "main-A.json", "sea-C.json"]);
+    assert.equal(r.notes.length, 1);
+    assert.match(r.notes[0], /^sub-workflow "Deleted one" \(gone, called by "Sea"\) is not on https:\/\/me\.example/);
+    // analyze then finds every callee in the export
+    const loaded = loadInput(out);
+    assert.deepEqual(loaded.items.map((i) => i.id).sort(), ["A", "B", "C"]);
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test("sub-workflows: a cycle ends, templates are not followed, and subWorkflows: false fetches none", async () => {
+  const outs = [tmp(), tmp(), tmp()];
+  try {
+    const byId = { A: CALLER("A", "Ay", [CALL("B")]), B: CALLER("B", "Bee", [CALL("A"), CALL("B")]) };
+    const seen = [];
+    const r = await pull(["https://me.example/workflow/A"], { out: outs[0], fetch: fakeApi(byId, seen), env: ENV });
+    assert.deepEqual(r.errors, []);
+    assert.deepEqual(r.notes, []);
+    assert.deepEqual(seen, ["/workflows/A", "/workflows/B"]);
+    assert.deepEqual(r.written.map((w) => w.id), ["A", "B"]);
+    const off = [];
+    await pull(["https://me.example/workflow/A"], { out: outs[1], fetch: fakeApi(byId, off), env: ENV, subWorkflows: false });
+    assert.deepEqual(off, ["/workflows/A"]);
+    const urls = [];
+    const fetch = async (url) => {
+      urls.push(url);
+      return json({ workflow: { id: 9, name: "Template", workflow: { nodes: CALLER(9, "Template", [CALL("B")]).nodes, connections: {} } } });
+    };
+    const t = await pull(["template:9"], { out: outs[2], fetch, env: ENV });
+    assert.deepEqual(urls, ["https://api.n8n.io/api/templates/workflows/9"]);
+    assert.deepEqual(t.notes, []);
+  } finally {
+    for (const o of outs) rmSync(o, { recursive: true, force: true });
+  }
+});
+
 test("MCP tool results saved as they came are read as workflows", () => {
   const wf = WF("w1", "From MCP");
   // n8n's instance-level MCP server, get_workflow_details
