@@ -83,7 +83,7 @@ Code _"convert my n8n workflows in n8n-to-claude/exports"_.
 
 <!-- assets/mapping.gif from assets/src/mapping.html (assets/src/gif.mjs); real verdicts, sources in its top comment. -->
 <p align="center">
-  <img src="assets/mapping.gif" width="100%" alt="Animation, 5 seconds: seven n8n workflows glide one by one from the n8n panel into their places in the Claude panel, each turning from an n8n node into its Claude form on the way. Schedule becomes a cloud task, Gmail poll a Desktop task, chat a skill, form an artifact form, manual run a Run now page; a Telegram bot that outsiders message lands on needs hosting, and an MCP server on Claude's connectors.">
+  <img src="assets/mapping.gif" width="100%" alt="Animation, under 3 seconds: seven n8n workflows, in grey outline, each pick up their Claude form in one quick cascade. Schedule becomes a cloud task, Gmail a Desktop task, chat a skill, form a form page, manual run a one-click page, a Telegram message the Claude API, and an MCP server Claude's connectors.">
 </p>
 
 What wakes a workflow and who waits on it decide where it runs. A caller who

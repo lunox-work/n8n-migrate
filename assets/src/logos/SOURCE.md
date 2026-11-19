@@ -6,3 +6,7 @@ only to name the two products in `assets/mapping.gif`.
 
 `assets/icon.svg` (the project icon, `.claude-plugin/icon.png`) also uses both marks, in white on n8n pink and Claude
 orange tiles, at the owner's request (2026-11-18).
+
+Other icons in `assets/mapping.gif`, inlined in `mapping.html`: the n8n side uses Lucide outlines (ISC) and Simple Icons
+silhouettes for Gmail, Telegram and Model Context Protocol (CC0); the Claude side uses Phosphor fill icons (MIT). The
+brand marks are trademarks of their owners, used only to name the n8n trigger each row starts from.

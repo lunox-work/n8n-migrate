@@ -1,115 +1,108 @@
 <!doctype html>
-<!-- Source of assets/mapping.gif (5 s loop): each kind of n8n workflow migrates from n8n into its place in Claude. Frames
-     are drawn by render(t) and assembled by assets/src/gif.mjs; the page also plays by itself.
+<!-- Source of assets/mapping.gif (2.8 s loop): seven kinds of n8n workflow, in muted outline, each pick up their Claude
+     form in one quick cascade: the arrow draws and a filled Claude tile settles in. The full map holds, then fades for
+     the loop. Frames are drawn by render(t) and assembled by assets/src/gif.mjs; the page also plays by itself.
      The pairs are the analyzer's verdicts on popular templates of rank 1-100 (evals/bench/data/wf, 2026-11-18):
      schedule every 1 d -> cloud-task (Email summary agent); Gmail poll every 1 min -> local-task (Suggest meeting slots
      using AI); chat -> skill (AI agent chat); form -> artifact-form (Flux AI image generator); manual -> artifact
-     (Joining different datasets); Telegram, outsiders wait -> hosted (Telegram AI chatbot); MCP server -> replaced
-     (Build an MCP server with Google Calendar and custom functions).
-     Icons: Lucide (ISC licence, lucide.dev); the n8n and Claude marks: assets/src/logos/SOURCE.md. -->
+     (Joining different datasets); Telegram, outsiders wait -> hosted with an API key, shown as the Claude API
+     (Telegram AI chatbot); MCP server -> replaced by connectors (Build an MCP server with Google Calendar and custom
+     functions).
+     Icons: n8n side Lucide outlines (ISC, lucide.dev) and Simple Icons silhouettes for Gmail, Telegram and MCP (CC0);
+     Claude side Phosphor fill (MIT, phosphoricons.com); the n8n and Claude marks: assets/src/logos/SOURCE.md. -->
 <html>
 <head>
 <meta charset="utf-8">
 <style>
 @font-face { font-family: Sans; src: url(fonts/dm-sans-latin-500-normal.woff2); font-weight: 500; }
-@font-face { font-family: Display; src: url(fonts/space-grotesk-latin-600-normal.woff2); font-weight: 600; }
 * { box-sizing: border-box; margin: 0; }
 body { background: #000; }
-#scene { position: relative; width: 960px; height: 540px; background: #08080b; color: #f4f4f5; font-family: Sans; overflow: hidden; }
-.panel { position: absolute; top: 84px; width: 300px; height: 430px; border-radius: 22px; background: #0f0f13; border: 1px solid #202026; }
-.pill { position: absolute; top: 26px; height: 38px; padding: 0 16px 0 12px; border-radius: 999px; display: flex; align-items: center; gap: 10px; font-family: Display; font-size: 18px; background: #141418; border: 1px solid #25252b; }
-#bridge { position: absolute; left: 444px; top: 22px; width: 72px; height: 46px; display: flex; align-items: center; justify-content: center; }
-#bridge img { width: 46px; height: 46px; }
-.track { position: absolute; height: 2px; background-image: linear-gradient(90deg, #26262c 50%, transparent 50%); background-size: 10px 2px; }
-.row { position: absolute; height: 52px; display: flex; align-items: center; gap: 14px; font-size: 15px; }
-.row.l { left: 40px; width: 240px; flex-direction: row-reverse; justify-content: flex-start; color: #d4d4d8; }
-.row.r { left: 682px; width: 240px; color: #71717a; }
-.chip { width: 52px; height: 52px; border-radius: 15px; display: grid; place-items: center; position: relative; flex: none; }
-.chip svg { width: 24px; height: 24px; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; position: absolute; left: 50%; top: 50%; margin: -12px 0 0 -12px; }
-.n8nchip { background: #f4f4f5; }
-.slot { border: 1.5px dashed #34343c; }
-.slot svg { stroke: #4b4b54; }
-#movers .chip { position: absolute; z-index: 3; }
+#scene { position: relative; width: 960px; height: 540px; background: #000; color: #f5f5f7; font-family: Sans; font-weight: 500; overflow: hidden; -webkit-font-smoothing: antialiased; }
+.head { position: absolute; top: 36px; height: 28px; display: flex; align-items: center; gap: 10px; font-size: 16px; letter-spacing: -0.01em; }
+.row { position: absolute; left: 0; width: 960px; height: 56px; }
+.tile { position: absolute; top: 10px; width: 36px; height: 36px; border-radius: 10px; }
+.tile svg { position: absolute; left: 8px; top: 8px; width: 20px; height: 20px; }
+.n8n { border: 1.5px solid #2c2c2e; }
+.n8n svg { fill: none; stroke: #8e8e93; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.n8n svg.si { fill: #8e8e93; stroke: none; left: 9px; top: 9px; width: 18px; height: 18px; }
+.claude { background: #d97757; }
+.claude svg { left: 7px; top: 7px; width: 22px; height: 22px; color: #fff; }
+.label { position: absolute; top: 0; line-height: 56px; font-size: 18px; letter-spacing: -0.015em; white-space: nowrap; }
+.arrow { position: absolute; left: 420px; top: 23px; width: 120px; height: 10px; }
+.arrow svg { display: block; width: 120px; height: 10px; overflow: visible; }
 </style>
 </head>
 <body>
 <div id="scene">
-  <div class="panel" style="left:22px"></div>
-  <div class="panel" style="left:638px"></div>
-  <div class="pill" style="left:22px"><svg viewBox="0 0 240 96" width="34" height="14"><path fill="#EA4B71" d="M48 96C52.5 96 54 94.5 54 90V78C54 60 60 54 78 54H90C108 54 114 60 114 78V90C114 94.5 115.5 96 120 96C124.5 96 126 94.5 126 90V78C126 60 132 54 150 54H162C180 54 186 60 186 78V90C186 94.5 187.5 96 192 96C196.5 96 198 94.5 198 90V78C198 60 204 54 222 54H234C238.5 54 240 52.5 240 48C240 43.5 238.5 42 234 42H222C204 42 198 36 198 18V6C198 1.5 196.5 0 192 0C187.5 0 186 1.5 186 6V18C186 36 180 42 162 42H150C132 42 126 36 126 18V6C126 1.5 124.5 0 120 0C115.5 0 114 1.5 114 6V18C114 36 108 42 90 42H78C60 42 54 36 54 18V6C54 1.5 52.5 0 48 0C43.5 0 42 1.5 42 6V18C42 36 36 42 18 42H6C1.5 42 0 43.5 0 48C0 52.5 1.5 54 6 54H18C36 54 42 60 42 78V90C42 94.5 43.5 96 48 96Z"/></svg>n8n</div>
-  <div class="pill" style="left:638px"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="#D97757" d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg>Claude</div>
-  <div id="bridge"><img src="../icon.svg" alt=""></div>
-  <div id="tracks"></div>
-  <div id="left"></div>
-  <div id="right"></div>
-  <div id="movers"></div>
+  <div class="head" style="left:185px;color:#8e8e93"><svg viewBox="0 0 240 96" width="30" height="12"><path fill="#8e8e93" d="M48 96C52.5 96 54 94.5 54 90V78C54 60 60 54 78 54H90C108 54 114 60 114 78V90C114 94.5 115.5 96 120 96C124.5 96 126 94.5 126 90V78C126 60 132 54 150 54H162C180 54 186 60 186 78V90C186 94.5 187.5 96 192 96C196.5 96 198 94.5 198 90V78C198 60 204 54 222 54H234C238.5 54 240 52.5 240 48C240 43.5 238.5 42 234 42H222C204 42 198 36 198 18V6C198 1.5 196.5 0 192 0C187.5 0 186 1.5 186 6V18C186 36 180 42 162 42H150C132 42 126 36 126 18V6C126 1.5 124.5 0 120 0C115.5 0 114 1.5 114 6V18C114 36 108 42 90 42H78C60 42 54 36 54 18V6C54 1.5 52.5 0 48 0C43.5 0 42 1.5 42 6V18C42 36 36 42 18 42H6C1.5 42 0 43.5 0 48C0 52.5 1.5 54 6 54H18C36 54 42 60 42 78V90C42 94.5 43.5 96 48 96Z"/></svg><span>n8n</span></div>
+  <div class="head" style="left:580px"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="#D97757" d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><span>Claude</span></div>
+  <div id="list"></div>
 </div>
 <script>
-const L = {
+const LUCIDE = {
   clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
-  mail: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
   chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
   form: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
   play: '<circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>',
-  send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
-  plug: '<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>',
-  cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
-  monitor: '<rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>',
-  sparkles: '<path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.14 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/>',
-  window: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 9h20"/><path d="M7 13h5"/><path d="M7 16h8"/>',
-  chart: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
-  server: '<rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/>',
-  link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
 };
+const ICONS = {"ph":{"cloud":"<path fill=\"currentColor\" d=\"M160.06 40a88.1 88.1 0 0 0-78.77 48.67A87.5 87.5 0 0 0 72 127.73a8.18 8.18 0 0 1-7.43 8.27a8 8 0 0 1-8.57-8a103.7 103.7 0 0 1 5.34-32.92a4 4 0 0 0-4.75-5.18A64.09 64.09 0 0 0 8 152c0 35.19 29.75 64 65 64h87a88.09 88.09 0 0 0 87.93-91.48C246.11 77.54 207.07 40 160.06 40\"/>","desktop":"<path fill=\"currentColor\" d=\"M208 40H48a24 24 0 0 0-24 24v112a24 24 0 0 0 24 24h72v16H96a8 8 0 0 0 0 16h64a8 8 0 0 0 0-16h-24v-16h72a24 24 0 0 0 24-24V64a24 24 0 0 0-24-24m0 144H48a8 8 0 0 1-8-8v-16h176v16a8 8 0 0 1-8 8\"/>","sparkle":"<path fill=\"currentColor\" d=\"M208 144a15.78 15.78 0 0 1-10.42 14.94L146 178l-19 51.62a15.92 15.92 0 0 1-29.88 0L78 178l-51.62-19a15.92 15.92 0 0 1 0-29.88L78 110l19-51.62a15.92 15.92 0 0 1 29.88 0L146 110l51.62 19A15.78 15.78 0 0 1 208 144m-56-96h16v16a8 8 0 0 0 16 0V48h16a8 8 0 0 0 0-16h-16V16a8 8 0 0 0-16 0v16h-16a8 8 0 0 0 0 16m88 32h-8v-8a8 8 0 0 0-16 0v8h-8a8 8 0 0 0 0 16h8v8a8 8 0 0 0 16 0v-8h8a8 8 0 0 0 0-16\"/>","window":"<path fill=\"currentColor\" d=\"M216 40H40a16 16 0 0 0-16 16v144a16 16 0 0 0 16 16h176a16 16 0 0 0 16-16V56a16 16 0 0 0-16-16M68 96a12 12 0 1 1 12-12a12 12 0 0 1-12 12m40 0a12 12 0 1 1 12-12a12 12 0 0 1-12 12\"/>","click":"<path fill=\"currentColor\" d=\"M220.49 190.83a12 12 0 0 1 0 17l-12.69 12.66a12 12 0 0 1-17 0l-56.56-56.57L115 214.09c0 .1-.08.21-.13.32a15.83 15.83 0 0 1-14.6 9.59h-.79a15.83 15.83 0 0 1-14.41-11L32.8 52.92A16 16 0 0 1 52.92 32.8L213 85.07a16 16 0 0 1 1.41 29.8l-.32.13l-50.17 19.27ZM96 32a8 8 0 0 0 8-8v-8a8 8 0 0 0-16 0v8a8 8 0 0 0 8 8m-80 72h8a8 8 0 0 0 0-16h-8a8 8 0 0 0 0 16m108.42-64.84a8 8 0 0 0 10.74-3.58l8-16a8 8 0 0 0-14.31-7.16l-8 16a8 8 0 0 0 3.57 10.74m-96 81.69l-16 8a8 8 0 0 0 7.16 14.31l16-8a8 8 0 1 0-7.16-14.31\"/>","key":"<path fill=\"currentColor\" d=\"M216.57 39.43a80 80 0 0 0-132.66 81.35L28.69 176A15.86 15.86 0 0 0 24 187.31V216a16 16 0 0 0 16 16h32a8 8 0 0 0 8-8v-16h16a8 8 0 0 0 8-8v-16h16a8 8 0 0 0 5.66-2.34l9.56-9.57A79.7 79.7 0 0 0 160 176h.1a80 80 0 0 0 56.47-136.57M180 92a16 16 0 1 1 16-16a16 16 0 0 1-16 16\"/>","plugs":"<path fill=\"currentColor\" d=\"M88.57 35a8 8 0 0 1 14.86-6l8 20a8 8 0 0 1-14.86 6ZM29 103.43l20 8a8 8 0 1 0 6-14.86l-20-8a8 8 0 0 0-6 14.86m198 49.14l-20-8a8 8 0 1 0-6 14.86l20 8a8 8 0 0 0 6-14.86M159.43 201a8 8 0 0 0-14.86 6l8 20a8 8 0 1 0 14.86-6Zm78.48-182.48a8 8 0 0 0-11.5-.18L174 70.75l-5.38-5.38a32 32 0 0 0-45.28 0l-17.2 17.17a4 4 0 0 0 0 5.66l61.7 61.66a4 4 0 0 0 5.66 0l16.74-16.74a32.76 32.76 0 0 0 9.81-22.52a31.82 31.82 0 0 0-9.37-23.17l-5.38-5.37l52.2-52.17a8.22 8.22 0 0 0 .41-11.37M85.64 90.34a8 8 0 0 0-11.49.18a8.22 8.22 0 0 0 .41 11.37l6.11 6.11l-15.33 15.31A31.82 31.82 0 0 0 56 146.47A32.75 32.75 0 0 0 65.77 169l5 4.94l-52.28 52.19a8.21 8.21 0 0 0-.61 11.1a8 8 0 0 0 11.72.43L82 185.25l5.37 5.38a32.1 32.1 0 0 0 45.29 0L148 175.31l6.34 6.35a8 8 0 0 0 11.32-11.32Z\"/>"},"brand":{"gmail":"M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z","telegram":"M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z","mcp":"M13.85 0a4.16 4.16 0 0 0-2.95 1.217L1.456 10.66a.835.835 0 0 0 0 1.18.835.835 0 0 0 1.18 0l9.442-9.442a2.49 2.49 0 0 1 3.541 0 2.49 2.49 0 0 1 0 3.541L8.59 12.97l-.1.1a.835.835 0 0 0 0 1.18.835.835 0 0 0 1.18 0l.1-.098 7.03-7.034a2.49 2.49 0 0 1 3.542 0l.049.05a2.49 2.49 0 0 1 0 3.54l-8.54 8.54a1.96 1.96 0 0 0 0 2.755l1.753 1.753a.835.835 0 0 0 1.18 0 .835.835 0 0 0 0-1.18l-1.753-1.753a.266.266 0 0 1 0-.394l8.54-8.54a4.185 4.185 0 0 0 0-5.9l-.05-.05a4.16 4.16 0 0 0-2.95-1.218c-.2 0-.401.02-.6.048a4.17 4.17 0 0 0-1.17-3.552A4.16 4.16 0 0 0 13.85 0m0 3.333a.84.84 0 0 0-.59.245L6.275 10.56a4.186 4.186 0 0 0 0 5.902 4.186 4.186 0 0 0 5.902 0L19.16 9.48a.835.835 0 0 0 0-1.18.835.835 0 0 0-1.18 0l-6.985 6.984a2.49 2.49 0 0 1-3.54 0 2.49 2.49 0 0 1 0-3.54l6.983-6.985a.835.835 0 0 0 0-1.18.84.84 0 0 0-.59-.245"}}; // { ph: Phosphor fill bodies (viewBox 256), brand: Simple Icons paths (viewBox 24) }
 const ROWS = [
-  { from: ["clock", "Schedule", [249, 115, 22]], to: ["cloud", "Cloud task"], tone: "ok" },
-  { from: ["mail", "Gmail poll", [239, 68, 68]], to: ["monitor", "Desktop task"], tone: "ok" },
-  { from: ["chat", "Chat", [139, 92, 246]], to: ["sparkles", "Skill"], tone: "ok" },
-  { from: ["form", "Form", [20, 184, 166]], to: ["window", "Artifact form"], tone: "ok" },
-  { from: ["play", "Manual run", [82, 82, 91]], to: ["chart", "Run now page"], tone: "ok" },
-  { from: ["send", "Telegram bot", [14, 165, 233]], to: ["server", "Needs hosting"], tone: "warn" },
-  { from: ["plug", "MCP server", [99, 102, 241]], to: ["link", "Connectors"], tone: "info" },
+  ["clock", "Schedule", "cloud", "Cloud task"],
+  ["gmail", "Gmail", "desktop", "Desktop task"],
+  ["chat", "Chat", "sparkle", "Skill"],
+  ["form", "Form", "window", "Form page"],
+  ["play", "Manual run", "click", "One-click page"],
+  ["telegram", "Telegram message", "key", "Claude API"],
+  ["mcp", "MCP server", "plugs", "Connectors"],
 ];
-const TONE = { ok: [16, 185, 129], warn: [245, 158, 11], info: [59, 130, 246] };
-const WHITE = [244, 244, 245];
-const rgb = (c, a = 1) => `rgb(${c[0]} ${c[1]} ${c[2]} / ${a})`;
+const outline = (k) => ICONS.brand[k]
+  ? `<svg class="si" viewBox="0 0 24 24"><path d="${ICONS.brand[k]}"/></svg>`
+  : `<svg viewBox="0 0 24 24">${LUCIDE[k]}</svg>`;
+const filled = (k) => `<svg viewBox="0 0 256 256">${ICONS.ph[k]}</svg>`;
+const TOP = 96, H = 56;
+document.getElementById("list").innerHTML = ROWS.map(([fi, fl, ti, tl], i) => `<div class="row" style="top:${TOP + i * H}px">
+  <div class="tile n8n" id="f${i}" style="left:185px">${outline(fi)}</div>
+  <div class="label" id="fl${i}" style="left:237px;color:#8e8e93">${fl}</div>
+  <div class="arrow"><svg viewBox="0 0 120 10"><path id="a${i}" d="M0 5H118M113 1l5 4-5 4" fill="none" stroke="#3a3a3c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1"/></svg></div>
+  <div class="tile claude" id="t${i}" style="left:580px">${filled(ti)}</div>
+  <div class="label" id="l${i}" style="left:632px">${tl}</div>
+</div>`).join("");
+const $ = (id) => document.getElementById(id);
+const els = ROWS.map((_, i) => ({ a: $(`a${i}`), t: $(`t${i}`), l: $(`l${i}`), f: $(`f${i}`), fl: $(`fl${i}`), fi: $(`f${i}`).querySelector("svg") }));
+const rgb = (c) => `rgb(${c[0]} ${c[1]} ${c[2]})`;
 const mix = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
-const svg = (k, stroke, op = 1) => `<svg viewBox="0 0 24 24" style="stroke:${stroke};opacity:${op}">${L[k]}</svg>`;
-const Y = (i) => 108 + i * 57, LCX = 228, RCX = 682;
-document.getElementById("tracks").innerHTML = ROWS.map((_, i) => `<div class="track" style="left:${LCX + 64}px;width:${RCX - LCX - 76}px;top:${Y(i) + 25}px"></div>`).join("");
-document.getElementById("left").innerHTML = ROWS.map((r, i) => `<div class="row l" style="top:${Y(i)}px"><div class="chip n8nchip" id="lc${i}">${svg(r.from[0], rgb(r.from[2]))}</div><span id="ll${i}">${r.from[1]}</span></div>`).join("");
-document.getElementById("right").innerHTML = ROWS.map((r, i) => `<div class="row r" style="top:${Y(i)}px"><div class="chip slot" id="rc${i}">${svg(r.to[0], "#4b4b54")}</div><span id="rl${i}">${r.to[1]}</span></div>`).join("");
-document.getElementById("movers").innerHTML = ROWS.map((r, i) => `<div class="chip" id="m${i}"><span class="a">${svg(r.from[0], rgb(r.from[2]))}</span><span class="b">${svg(r.to[0], "#ffffff", 0)}</span></div>`).join("");
 
-const DURATION = 5, START = 0.35, GAP = 0.3, TRAVEL = 1.5, BACK = 4.45;
+// One quick cascade on the iOS sheet curve: each arrow draws, then its Claude tile settles in from slightly small and
+// soft, and the n8n row it came from dims. Rows start 80 ms apart; the full map holds, then everything fades together for the loop.
+const DURATION = 2.8, START = 0.12, STAGGER = 0.08, HOLD = 2.3, FADE = 0.4;
 const clamp = (x) => Math.max(0, Math.min(1, x));
-const smooth = (x) => x * x * x * (x * (x * 6 - 15) + 10); // smootherstep: no overshoot, no jerk
+const bezier = (x1, y1, x2, y2) => (x) => { // CSS cubic-bezier, solved by bisection
+  let lo = 0, hi = 1, u = x;
+  for (let n = 0; n < 24; n++) { const v = 3 * (1 - u) ** 2 * u * x1 + 3 * (1 - u) * u * u * x2 + u ** 3; if (v < x) lo = u; else hi = u; u = (lo + hi) / 2; }
+  return 3 * (1 - u) ** 2 * u * y1 + 3 * (1 - u) * u * u * y2 + u ** 3;
+};
+const spring = bezier(0.32, 0.72, 0, 1);
+const ease = bezier(0.25, 0.1, 0.25, 1);
+const ramp = (t, t0, len, f = ease) => f(clamp((t - t0) / len));
+
 window.render = (t) => {
-  const back = smooth(clamp((t - BACK) / (DURATION - BACK))); // quietly return to the start for the loop
-  ROWS.forEach((r, i) => {
-    const k = clamp((t - START - i * GAP) / TRAVEL), e = smooth(k);
-    const m = document.getElementById(`m${i}`), lc = document.getElementById(`lc${i}`), rc = document.getElementById(`rc${i}`);
-    const ll = document.getElementById(`ll${i}`), rl = document.getElementById(`rl${i}`);
-    const arrived = k >= 1;
-    // the travelling chip: glides on a shallow arc and turns from its n8n form into its Claude form on the way
-    const flying = k > 0 && !arrived;
-    m.style.display = flying ? "grid" : "none";
-    if (flying) {
-      const x = LCX + (RCX - LCX) * e, y = Y(i) - Math.sin(Math.PI * e) * 14;
-      m.style.left = `${x}px`; m.style.top = `${y}px`;
-      const c = smooth(clamp((e - 0.25) / 0.5));
-      m.style.background = rgb(mix(WHITE, TONE[r.tone], c));
-      m.querySelector(".a svg").style.opacity = 1 - c;
-      m.querySelector(".b svg").style.opacity = c;
-    }
-    // what it leaves behind, and the slot it settles into
-    const gone = k > 0 ? 1 - back : 0;
-    lc.style.opacity = 1 - 0.75 * gone; ll.style.opacity = 1 - 0.6 * gone;
-    const fill = arrived ? 1 - back : 0;
-    rc.style.background = fill ? rgb(TONE[r.tone], fill) : "";
-    rc.style.borderColor = fill ? rgb(TONE[r.tone], fill) : "";
-    rc.querySelector("svg").style.stroke = fill ? rgb(mix([75, 75, 84], [255, 255, 255], fill)) : "";
-    rl.style.color = rgb(mix([113, 113, 122], [244, 244, 245], fill));
+  const keep = 1 - ramp(t, HOLD, FADE);
+  els.forEach((E, i) => {
+    const t0 = START + i * STAGGER;
+    E.a.style.strokeDashoffset = 1 - ramp(t, t0, 0.38, spring);
+    E.a.parentNode.style.opacity = keep;
+    const s = ramp(t, t0 + 0.14, 0.5, spring) * keep;
+    E.t.style.opacity = s;
+    E.t.style.transform = `scale(${0.72 + 0.28 * s})`;
+    E.t.style.filter = s < 0.995 ? `blur(${(1 - s) * 4}px)` : "none";
+    const l = ramp(t, t0 + 0.2, 0.45, spring) * keep;
+    E.l.style.opacity = l;
+    E.l.style.transform = `translateX(${(1 - l) * -8}px)`;
+    // once its Claude form is in place, the n8n row steps back
+    const m = ramp(t, t0 + 0.3, 0.5) * keep, grey = rgb(mix([142, 142, 147], [72, 72, 74], m));
+    E.fl.style.color = grey;
+    E.fi.style[E.fi.classList.contains("si") ? "fill" : "stroke"] = grey;
+    E.f.style.borderColor = rgb(mix([44, 44, 46], [28, 28, 30], m));
   });
 };
 window.DURATION = DURATION;

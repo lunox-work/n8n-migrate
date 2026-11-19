@@ -1,7 +1,7 @@
 // Renders assets/mapping.gif from assets/src/mapping.html, frame by frame through its render(t).
 // Needs Playwright and gifenc + pngjs, none installed here:
 //   PLAYWRIGHT=<dir with node_modules/playwright> GIFDEPS=<dir with node_modules/{gifenc,pngjs}> \
-//     [PW_CHANNEL=chrome] node assets/src/gif.mjs [--fps 20]
+//     [PW_CHANNEL=chrome] node assets/src/gif.mjs [--fps 50]
 // One palette for the whole GIF; a pixel that did not change since the previous frame is written
 // transparent (frames are kept, not disposed), and identical frames merge into one longer frame.
 import { createRequire } from "node:module";
@@ -16,7 +16,7 @@ const deps = createRequire(path.resolve(process.env.GIFDEPS ?? process.cwd(), "p
 const { PNG } = deps("pngjs");
 const gifenc = await import(pathToFileURL(deps.resolve("gifenc")).href);
 const { GIFEncoder, quantize, applyPalette } = gifenc.quantize ? gifenc : gifenc.default;
-const fps = Number(process.argv[process.argv.indexOf("--fps") + 1]) || 20;
+const fps = Number(process.argv[process.argv.indexOf("--fps") + 1]) || 50;
 
 const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
 const page = await browser.newPage({ viewport: { width: 960, height: 540 }, deviceScaleFactor: 1 });
@@ -25,18 +25,19 @@ await page.goto(pathToFileURL(path.join(here, "mapping.html")).href);
 await page.evaluate(() => document.fonts.ready);
 const duration = await page.evaluate(() => window.DURATION);
 const n = Math.round(duration * fps);
-const frames = [];
-for (let f = 0; f < n; f++) {
-  await page.evaluate((t) => window.render(t), f / fps);
-  const png = PNG.sync.read(await page.locator("#scene").screenshot());
-  frames.push(new Uint8Array(png.data.buffer, png.data.byteOffset, png.data.length));
-}
-await browser.close();
 const width = 960;
 const height = 540;
+const grab = async (t) => {
+  await page.evaluate((t) => window.render(t), t);
+  const png = PNG.sync.read(await page.locator("#scene").screenshot());
+  return new Uint8Array(png.data.buffer, png.data.byteOffset, png.data.length);
+};
 
-// Palette from a spread of frames; index 255 is kept free for transparency.
-const sample = frames.filter((_, i) => i % Math.max(1, Math.floor(n / 24)) === 0);
+// Palette from a spread of frames; index 255 is kept free for transparency. Frames are then rendered and encoded
+// one at a time, so a long loop never holds every raw frame in memory.
+const step = Math.max(1, Math.floor(n / 32));
+const sample = [];
+for (let f = 0; f < n; f += step) sample.push(await grab(f / fps));
 const joined = new Uint8Array(sample.reduce((a, f) => a + f.length, 0));
 let o = 0;
 for (const f of sample) joined.set(f, (o += f.length) - f.length);
@@ -49,7 +50,7 @@ let prev = null;
 let pending = null;
 const flush = () => pending && gif.writeFrame(pending.index, width, height, { palette: pending.first ? palette : undefined, delay: pending.delay, transparent: !pending.first, transparentIndex: T, dispose: 1 });
 for (let f = 0; f < n; f++) {
-  const idx = applyPalette(frames[f], palette.slice(0, T));
+  const idx = applyPalette(await grab(f / fps), palette.slice(0, T));
   if (prev && idx.every((v, i) => v === prev[i])) {
     pending.delay += 1000 / fps;
     continue;
@@ -64,6 +65,7 @@ for (let f = 0; f < n; f++) {
   prev = idx;
 }
 flush();
+await browser.close();
 gif.finish();
 const file = path.join(root, "assets", "mapping.gif");
 writeFileSync(file, gif.bytes());
