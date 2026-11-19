@@ -333,10 +333,27 @@
           },
           "poll": {
             "type": "object",
-            "required": ["tool", "cursor"],
+            "required": ["cursor"],
             "additionalProperties": false,
-            "description": "Poll trigger: the runner calls the tool with the cursor in its args and emits only items after the cursor (runtime/src/adapt.mjs). The schedule says how often.",
+            "description": "Poll trigger: the runner calls the tool (or makes the http request, never both) with the cursor in its args and emits only items after the cursor (runtime/src/adapt.mjs). The schedule says how often.",
             "properties": {
+              "http": {
+                "type": "object",
+                "required": ["method", "url"],
+                "additionalProperties": false,
+                "description": "The read as one HTTP request (a request template as step.http; the step's auth is its credential); the cursor goes into its query.",
+                "properties": { "method": { "enum": ["GET", "POST"] }, "url": { "type": "string" }, "query": { "type": "object" }, "headers": { "type": "object" } }
+              },
+              "where": {
+                "type": "array",
+                "description": "What the n8n trigger drops before it starts a run; every condition must hold or the item is passed over (runtime/src/nodes2.mjs pollPasses).",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": { "firstDefined": { "type": "array", "items": { "type": "string" } }, "firstKey": { "type": "array", "items": { "type": "string" } }, "in": { "type": "array", "items": { "type": "string" } }, "path": { "type": "string" }, "notPrefix": { "type": "string" } }
+                }
+              },
+              "batch": { "type": "integer", "minimum": 1, "description": "At most this many new items start a run; the rest stay unread until the next run (n8n starts one execution per event)." },
               "tool": {
                 "type": "object",
                 "required": ["connector", "name"],
@@ -373,6 +390,7 @@
                   "arg": { "type": "string" },
                   "template": { "type": "string" },
                   "joiner": { "type": "string" },
+                  "seed": { "description": "The cursor when the first read finds nothing (a counter's start), so the first item after setup is not taken for history." },
                   "resolutionMs": { "type": "integer", "minimum": 1, "description": "The service compares the cursor field at this resolution (Gmail: 1000); items in the cursor's unit are told apart by id." }
                 }
               },

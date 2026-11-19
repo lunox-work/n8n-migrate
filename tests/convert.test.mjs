@@ -9,7 +9,7 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { convertItems, writeFolder, regenerate, loadReferences, checkFolder, fromAiSchema } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { convertItems, writeFolder, regenerate, loadReferences, checkFolder, fromAiSchema, validateSchema } from "../skills/n8n-migrate/scripts/convert.mjs";
 import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
 import { run, preflight } from "../skills/n8n-migrate/runtime/src/api.mjs";
 import { validate } from "./schema-check.mjs";
@@ -698,21 +698,88 @@ test("Call n8n Workflow Tool v1 with an input schema: the schema offered, the ar
   assert.deepEqual(handed, [{ json: { query: { videoId: "v1" } } }]);
 });
 
-test("an owner-only Telegram bot moves to a local task, but its trigger is blocked until a getUpdates poll exists", () => {
-  const flow = {
+test("an owner-only Telegram bot moves to a local task that polls getUpdates: one update a run, n8n's restrictions kept", async () => {
+  const flow = (v, parameters) => ({
     id: "tg1",
     name: "tg bot",
     nodes: [
-      { id: "1", name: "Telegram Trigger", type: "n8n-nodes-base.telegramTrigger", typeVersion: 1.1, position: [0, 0], parameters: { updates: ["message"], additionalFields: {} }, credentials: { telegramApi: { id: "t", name: "Bot" } } },
+      { id: "1", name: "Telegram Trigger", type: "n8n-nodes-base.telegramTrigger", typeVersion: v, position: [0, 0], parameters, credentials: { telegramApi: { id: "t", name: "Bot" } } },
       { id: "2", name: "Reply", type: "n8n-nodes-base.telegram", typeVersion: 1.2, position: [200, 0], parameters: { chatId: "={{ $json.message.chat.id }}", text: "ok", additionalFields: {} }, credentials: { telegramApi: { id: "t", name: "Bot" } } },
     ],
     connections: link("Telegram Trigger", "Reply"),
     settings: { executionOrder: "v1" },
-  };
-  const out = convertJson(flow, { answers: { "tg1/chat-app-users/Telegram Trigger": "only-me" } });
+  });
+  const answers = { "tg1/chat-app-users/Telegram Trigger": "only-me" };
+  const out = convertJson(flow(1.2, { updates: ["message"], additionalFields: { chatIds: "7, 8" } }), { answers });
   assert.equal(out.report.workflows[0].outcome.target, "local-task");
-  const trig = out.definition.steps["Telegram Trigger"];
-  assert.equal(trig.blocked?.kind, "unsupported");
-  assert.match(trig.blocked.reason, /polling Telegram getUpdates is not built yet/);
+  const def = out.definition;
+  const trig = def.steps["Telegram Trigger"];
+  assert.equal(trig.kind, "trigger");
   assert.equal(trig.relay, undefined, "not left waiting for a webhook");
+  assert.deepEqual(trig.poll.http, { method: "GET", url: "https://api.telegram.org/bot{{secret}}/getUpdates", query: { timeout: 0, limit: 100, allowed_updates: '["message"]' } });
+  assert.deepEqual(trig.poll.cursor, { field: "update_id", strategy: "max", arg: "offset", template: "{next}", seed: 0 });
+  assert.deepEqual(trig.poll.where, [{ path: "callback_query.data", notPrefix: "nhitl1|" }, { firstKey: ["message", "edited_message", "channel_post", "edited_channel_post", "callback_query", "inline_query", "pre_checkout_query", "shipping_query", "poll"], in: ["message"] }, { firstDefined: ["message.chat.id"], in: ["7", "8"] }]);
+  assert.equal(trig.poll.batch, 1);
+  assert.deepEqual(trig.auth, { credentialType: "telegramApi", secret: "Bot", placement: "url" });
+  assert.equal(trig.schedule.shortestIntervalSec, 60);
+  assert.ok(def.allow.http.some((a) => a.method === "GET" && a.host === "api.telegram.org"), "the poll's host is allowed");
+  assert.deepEqual(def.secrets.map((x) => [x.name, x.hosts]), [["Bot", ["api.telegram.org"]]]);
+  assert.deepEqual(validateSchema(def, loadReferences().schema), []);
+
+  // A fake Telegram: updates wait until an offset above their id confirms them.
+  const queue = [];
+  const reads = [];
+  const sent = [];
+  const host = {
+    http: async (q) => {
+      if (/getUpdates$/.test(q.url)) {
+        reads.push(q.query);
+        const from = Number(q.query.offset ?? 0);
+        return { status: 200, headers: { "content-type": "application/json" }, body: JSON.stringify({ ok: true, result: queue.filter((u) => u.update_id >= from) }) };
+      }
+      sent.push(q.body);
+      return { status: 200, headers: { "content-type": "application/json" }, body: JSON.stringify({ ok: true, result: { message_id: sent.length } }) };
+    },
+  };
+  const msg = (update_id, chat, text) => ({ update_id, message: { message_id: update_id, chat: { id: chat }, from: { id: chat }, text } });
+  // First run, nothing waiting: the cursor starts at the seed, so the first message is not taken for history.
+  const r0 = await run(def, { clock: CLOCK, virtualTime: true, host });
+  assert.equal(r0.status, "done", JSON.stringify(r0.error));
+  assert.deepEqual(r0.cursors, { "Telegram Trigger": { value: 0 } });
+  assert.equal(r0.runData.Reply, undefined);
+  // Three updates arrive: one from a chat n8n would drop, then two from allowed chats.
+  queue.push(msg(41, 99, "stranger"), msg(42, 7, "first"), msg(43, 8, "second"));
+  const r1 = await run(def, { clock: CLOCK, virtualTime: true, host, cursors: r0.cursors });
+  assert.equal(r1.status, "done", JSON.stringify(r1.error));
+  assert.deepEqual(r1.runData["Telegram Trigger"][0].data.main[0].map((i) => i.json), [msg(42, 7, "first")], "one update starts the run, as one n8n execution");
+  assert.deepEqual(r1.cursors, { "Telegram Trigger": { value: 42 } }, "the cursor stops at the update that ran");
+  assert.equal(reads.at(-1).offset, "1");
+  const r2 = await run(def, { clock: CLOCK, virtualTime: true, host, cursors: r1.cursors });
+  assert.deepEqual(r2.runData["Telegram Trigger"][0].data.main[0].map((i) => i.json), [msg(43, 8, "second")]);
+  assert.equal(reads.at(-1).offset, "43");
+  assert.deepEqual(sent.map((b) => [b.chat_id, b.text]), [["7", "ok"], ["8", "ok"]]);
+  // Only dropped updates: nothing runs and they are not read again.
+  queue.push(msg(44, 99, "stranger again"));
+  const r3 = await run(def, { clock: CLOCK, virtualTime: true, host, cursors: r2.cursors });
+  assert.equal(r3.runData.Reply, undefined);
+  assert.deepEqual(r3.cursors, { "Telegram Trigger": { value: 44 } });
+  // The first run with updates waiting starts after them (n8n drops pending updates on activation).
+  const fresh = await run(def, { clock: CLOCK, virtualTime: true, host });
+  assert.equal(fresh.runData.Reply, undefined);
+  assert.deepEqual(fresh.cursors, { "Telegram Trigger": { value: 44 } });
+  // Telegram's refusal while n8n's webhook is still set fails the run with its words.
+  const conflict = await run(def, { clock: CLOCK, virtualTime: true, cursors: r3.cursors, host: { http: async () => ({ status: 409, headers: {}, body: '{"ok":false,"error_code":409,"description":"Conflict: can\'t use getUpdates method while webhook is active"}' }) } });
+  assert.equal(conflict.status, "failed");
+  assert.match(conflict.error.message, /409 - .*webhook is active/);
+
+  // From 1.4 the restrictions read the chat and user from every update type; all types ticked asks Telegram for all.
+  const wide = convertJson(flow(1.4, { updates: ["*"], additionalFields: { userIds: "5" } }), { answers }).definition.steps["Telegram Trigger"].poll;
+  assert.equal(wide.http.query.allowed_updates, "[]");
+  assert.deepEqual(wide.where, [{ path: "callback_query.data", notPrefix: "nhitl1|" }, { firstDefined: ["message.from.id", "edited_message.from.id", "channel_post.from.id", "edited_channel_post.from.id", "callback_query.from.id", "inline_query.from.id", "pre_checkout_query.from.id", "shipping_query.from.id"], in: ["5"] }]);
+  // Version 1 has no restrictions and no approval-button forward.
+  assert.equal(convertJson(flow(1, { updates: ["*"], additionalFields: { chatIds: "7" } }), { answers }).definition.steps["Telegram Trigger"].poll.where, undefined);
+  // The file download is not built: blocked with its reason, never a silent difference.
+  const dl = convertJson(flow(1.2, { updates: ["message"], additionalFields: { download: true } }), { answers }).definition.steps["Telegram Trigger"];
+  assert.equal(dl.blocked?.kind, "unsupported");
+  assert.match(dl.blocked.reason, /downloads each message's file/);
 });

@@ -151,7 +151,7 @@ to none, from code, in milliseconds, the same way every time.
 
 ## Before / After
 
-<!-- Real output, 2026-11-17 (commit b0143fb; re-run in the L7 clean-install check after 3f54a83, which blocks the unbuilt Telegram poll), on three of the 100 most-viewed templates saved in
+<!-- Real output, 2026-11-17 (commit b0143fb; re-run in the L7 clean-install check after 3f54a83; the Telegram poll is built since 2026-11-20), on three of the 100 most-viewed templates saved in
      export shape ({name, nodes, connections, settings}): 2197 as gmail-labels.json, 1934 as telegram-bot.json,
      1534 as n8n-backup.json. Long lines wrapped at 54 columns; the first panel keeps the backup's "n8n" note and
      drops its timezone note, the Telegram bot's needs line and the question text (marked …); the last panel shortens the
@@ -280,8 +280,8 @@ n8n stay blocked). 18 of its 23 steps convert as they are; the n8n step
 waits for your n8n's address and its three GitHub file steps have no tool
 map yet, so it converts with blocked steps. Once you say only you talk to the
 Telegram bot, the report moves it to a local task that polls Telegram instead
-of waiting for a webhook. That poll is not built yet, so the converted folder
-blocks its trigger instead of leaving it waiting for a call that never comes.
+of waiting for a webhook: its trigger reads Telegram's getUpdates every
+minute and starts one run per message, as n8n starts one execution per message.
 
 ## Install
 

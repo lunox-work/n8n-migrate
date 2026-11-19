@@ -970,6 +970,51 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
     addSecret(secretName, "serpApi", "serpapi.com");
   };
 
+  // Telegram Trigger as a poll (an owner-only bot, analyze.mjs chat-app relays): one GET of
+  // getUpdates with the bot's token in the URL, the cursor as its offset. n8n starts one
+  // execution per update its webhook receives, so one update starts a run (batch 1) and the
+  // rest wait for the next run. `where` is what TelegramTrigger.webhook() drops before it
+  // starts the workflow (n8n-nodes-base 2.47.7): approval-button taps of n8n's own send-and-
+  // wait (node above 1), update types not ticked (checked in the webhook from 1.5; Telegram
+  // sends only the ticked ones either way), and from 1.2 the chat and user restrictions,
+  // which read the id from message updates only before 1.4. The first run reads nothing and
+  // starts after what is waiting, as n8n's activation drops pending updates from 1.3.
+  const TELEGRAM_UPDATE_KEYS = ["message", "edited_message", "channel_post", "edited_channel_post", "callback_query", "inline_query", "pre_checkout_query", "shipping_query", "poll"];
+  const applyTelegramPoll = (name, step, params, v) => {
+    const add = isObj(params.additionalFields) ? params.additionalFields : {};
+    if (allStrings({ updates: params.updates ?? [], add }).some(isExpr)) return void block(step, "unsupported", "the trigger's updates or restrictions are set by an expression, which the getUpdates poll cannot read ahead of a run");
+    if (add.download === true) return void block(step, "unsupported", "the trigger downloads each message's file into binary data, which the getUpdates poll does not do yet");
+    const updates = Array.isArray(params.updates) ? params.updates.map(String) : [];
+    const every = !updates.length || updates.includes("*");
+    const ids = (text) => String(text).split(",").map((x) => x.trim());
+    const where = [];
+    if (v > 1) where.push({ path: "callback_query.data", notPrefix: "nhitl1|" });
+    if (!every) where.push({ firstKey: TELEGRAM_UPDATE_KEYS, in: updates });
+    if (v >= 1.2 && add.chatIds) where.push({ firstDefined: v >= 1.4 ? ["message.chat.id", "edited_message.chat.id", "channel_post.chat.id", "edited_channel_post.chat.id", "callback_query.message.chat.id"] : ["message.chat.id"], in: ids(add.chatIds) });
+    if (v >= 1.2 && add.userIds) where.push({ firstDefined: v >= 1.4 ? ["message.from.id", "edited_message.from.id", "channel_post.from.id", "edited_channel_post.from.id", "callback_query.from.id", "inline_query.from.id", "pre_checkout_query.from.id", "shipping_query.from.id"] : ["message.from.id"], in: ids(add.userIds) });
+    const secretName = step.credentials?.telegramApi ?? "telegramApi (no credential named in the export)";
+    const url = "https://api.telegram.org/bot{{secret}}/getUpdates";
+    step.auth = { credentialType: "telegramApi", secret: secretName, placement: "url" };
+    step.poll = {
+      http: { method: "GET", url, query: { timeout: 0, limit: 100, allowed_updates: JSON.stringify(every ? [] : updates) } },
+      result: { items: "result[*]" },
+      cursor: { field: "update_id", strategy: "max", arg: "offset", template: "{next}", seed: 0 },
+      ...(where.length ? { where } : {}),
+      batch: 1,
+      fidelity: "exact",
+      caveats: [
+        "one message starts one run, as in n8n; messages sent within the same minute are answered one run apart",
+        "Telegram refuses getUpdates (409) while the bot still has a webhook: switch the n8n workflow off first, which removes it",
+        "messages sent before the first run are not answered",
+      ],
+      map: "telegram getUpdates",
+    };
+    step.schedule = scheduleFor(step, wr, ctx.now);
+    const target = staticTarget(url);
+    addHttp("GET", target.host, target.pathPrefix);
+    addSecret(secretName, "telegramApi", target.host);
+  };
+
   // Applies a tool map entry (connector tool or REST template) to a step.
   const applyMap = (name, step, found, params) => {
     const { entry, key } = found;
@@ -1352,11 +1397,11 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
           else step.relay = { payloadShape: `the event as n8n's ${shortType(type)} gives it` };
         }
       } else if (wake === "relay" || wake === "endpoint" || /Trigger$/.test(type)) {
-        // The analyzer can move an owner-only chat bot to a provider's polling API (Telegram
-        // getUpdates); the runtime has no HTTP poll yet, so the trigger would wait for a webhook
-        // that never comes. Block it rather than convert it (L7, 2026-11-17).
-        const unbuiltPoll = (wr.requires ?? []).find((r) => r.kind === "poll" && (r.nodes ?? []).includes(name) && /getUpdates/.test(String(r.name)));
-        if (unbuiltPoll) block(step, "unsupported", `polling ${unbuiltPoll.name} is not built yet: as a relay this trigger would wait for a webhook that never comes`);
+        // The analyzer moves an owner-only chat bot to the provider's polling API: the
+        // trigger reads Telegram getUpdates instead of waiting for a webhook that never comes.
+        const httpPoll = (wr.requires ?? []).find((r) => r.kind === "poll" && (r.nodes ?? []).includes(name));
+        if (httpPoll && type === BASE + "telegramTrigger") applyTelegramPoll(name, step, params, v);
+        else if (httpPoll) block(step, "unsupported", `polling ${httpPoll.name} is not built yet: as a relay this trigger would wait for a webhook that never comes`);
         else if (![BASE + "manualTrigger", BASE + "executeWorkflowTrigger", BASE + "start"].includes(type)) step.relay = { payloadShape: `the event as n8n's ${shortType(type)} gives it` };
       }
       continue;

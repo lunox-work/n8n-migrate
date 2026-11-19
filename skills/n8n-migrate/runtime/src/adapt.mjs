@@ -48,8 +48,10 @@
 // Items whose field is greater than the cursor (or equal with an id not seen at that value)
 // are new; the next cursor is the greatest field value seen and the ids at that value. The
 // template puts the cursor into one tool argument: {value}, {seconds} (epoch seconds),
-// {iso}. Missed runs collapse into one run that reads everything after the cursor, never
-// "since the last interval".
+// {iso}, {next} (a whole-number cursor plus one: Telegram's offset is the first update id
+// wanted). Missed runs collapse into one run that reads everything after the cursor, never
+// "since the last interval". `seed` is the cursor a first read that finds nothing starts
+// from (a counter that begins at 0), so the first item after setup is not taken for history.
 
 import { isObject, deepCopy, NodeError } from "./util.mjs";
 import { readShape, parseAddressList } from "./shapes.mjs";
@@ -347,11 +349,13 @@ const cmp = (a, b) => {
   return String(x) < String(y) ? -1 : String(x) > String(y) ? 1 : 0;
 };
 
+export const compareCursorValues = cmp;
+
 export function applyCursorArg(cursorSpec, args, cursor) {
   if (!cursorSpec?.arg || !cursor || cursor.value === undefined) return args;
   const ms = comparable(cursor.value);
-  const values = { value: String(cursor.value), seconds: typeof ms === "number" ? String(Math.floor(ms / 1000)) : String(cursor.value), iso: typeof ms === "number" ? new Date(ms).toISOString() : String(cursor.value) };
-  const piece = String(cursorSpec.template ?? "{value}").replace(/\{(value|seconds|iso)\}/g, (_, k) => values[k]);
+  const values = { value: String(cursor.value), seconds: typeof ms === "number" ? String(Math.floor(ms / 1000)) : String(cursor.value), iso: typeof ms === "number" ? new Date(ms).toISOString() : String(cursor.value), next: Number.isSafeInteger(ms) ? String(ms + 1) : String(cursor.value) };
+  const piece = String(cursorSpec.template ?? "{value}").replace(/\{(value|seconds|iso|next)\}/g, (_, k) => values[k]);
   const prev = args[cursorSpec.arg];
   return { ...args, [cursorSpec.arg]: prev === undefined || prev === "" ? piece : `${prev}${cursorSpec.joiner ?? " "}${piece}` };
 }
