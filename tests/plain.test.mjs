@@ -270,3 +270,28 @@ test("migrate.mjs: a SerpAPI search tool asks to use Claude's search; yes makes 
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("migrate.mjs: several export files are converted together, each to its own folder", () => {
+  const dir = mkdtempSync(join(tmpdir(), "n8m-multi-"));
+  try {
+    const one = (id, name) => ({
+      id,
+      name,
+      active: false,
+      settings: { executionOrder: "v1", timezone: "Asia/Singapore" },
+      nodes: [
+        { id: "a", name: "Every morning", type: "n8n-nodes-base.scheduleTrigger", typeVersion: 1.2, position: [0, 0], parameters: { rule: { interval: [{ triggerAtHour: 7 }] } } },
+        { id: "b", name: "Recent mail", type: "n8n-nodes-base.gmail", typeVersion: 2.1, position: [200, 0], parameters: { operation: "getAll", limit: 5, filters: { q: "newer_than:1d" } }, credentials: { gmailOAuth2: { id: "1", name: "Gmail account" } } },
+      ],
+      connections: { "Every morning": { main: [[{ node: "Recent mail", type: "main", index: 0 }]] } },
+    });
+    writeFileSync(join(dir, "a.json"), JSON.stringify(one("m1", "Morning one")));
+    writeFileSync(join(dir, "b.json"), JSON.stringify(one("m2", "Morning two")));
+    const r = spawnSync(process.execPath, [MIGRATE, join(dir, "a.json"), join(dir, "b.json"), "--out", join(dir, "m"), "--connected", "gmail", "--json"], { encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+    const plan = readJson(join(dir, "m", "plan.json"));
+    assert.deepEqual(plan.groups.ready.map((w) => [w.id, !!w.folder]).sort(), [["m1", true], ["m2", true]]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

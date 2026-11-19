@@ -135,7 +135,8 @@ export function main(argv = process.argv.slice(2)) {
   let input = a.inputs[0];
   if (a.inputs.length > 1) {
     input = join(a.out, "input.json");
-    writeFileSync(input, JSON.stringify(items.map(({ file, ...w }) => w)) + "\n");
+    // A bulk export: the workflow objects themselves (an {id, name, wf} item holds no nodes).
+    writeFileSync(input, JSON.stringify(items.map((it) => ({ ...it.wf, id: it.wf.id ?? it.id, name: it.wf.name ?? it.name }))) + "\n");
   }
   const conv = spawnSync(process.execPath, [join(HERE, "convert.mjs"), input, "--out", flows, "--answers", answersPath, ...(a.approve.length ? ["--approve", a.approve.join(",")] : [])], {
     encoding: "utf8",
