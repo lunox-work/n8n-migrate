@@ -355,9 +355,9 @@ over. To keep it running: `serve --service` (launchd or systemd) with a
 Cloudflare tunnel, or `serve --docker` on a small server. Steps, safety and
 limits: [setup-server.md](skills/n8n-to-claude/references/setup-server.md).
 Run from a real claude.ai chat so far: an HTTP step that needs a key, a Gmail
-read through your own connector, and model steps. Not yet a connector write.
-Scheduled workflows still need a task, because the server starts nothing by
-itself.
+read and a Gmail draft through your own connector, and model steps; an
+artifact page's HTTP step through the server too. Scheduled workflows still
+need a task, because the server starts nothing by itself.
 
 ## How it works
 

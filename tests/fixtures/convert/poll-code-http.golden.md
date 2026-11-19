@@ -41,7 +41,7 @@ Store each under its n8n credential name. The value is never written to these fi
 - Secrets on a local task: set `N2C_SECRET_<NAME>` (the credential name in capitals, other characters as `_`). On a cloud task, add them as network secrets for the hosts above.
 - On a cloud task, attach gmail to the task, and check that `search_threads`, `get_message` are not Blocked in the connector's settings on claude.ai: a cloud task is not offered blocked tools (observed 2026-11-18). Then Run now and check the step.
 - A cloud task reaches only the domains its environment allows. Add api.accounts.example.com to the allowed domains of the environment it runs in (a dedicated one for these workflows, not Default), or its HTTP steps fail.
-- `artifact.html` is the artifact page: the graph, Run now (dry run on by default: reads run, writes are shown and not sent) and the run history. Publish it with the capabilities in `artifact.capabilities.json`. Its HTTP steps run only in the scheduled task: a run from the page stops there.
+- `artifact.html` is the artifact page: the graph, Run now (dry run on by default: reads run, writes are shown and not sent) and the run history. Publish it with the capabilities in `artifact.capabilities.json`. Its HTTP steps run only in the scheduled task (a run from the page stops there), or on your own server when convert --server names its connector (setup-server.md).
 
 ## Questions
 

@@ -433,7 +433,7 @@ test("npx n8n-to-claude serve: help without a folder, setup prints the connector
   }
 });
 
-test("the report says 'from a claude.ai chat … through a server' only for what has run that way: by hand, model + http + key, no connector", async () => {
+test("the report says 'from a claude.ai chat … through a server' only for what has run that way: by hand or by chat, model, http, key, connector; not a poll", async () => {
   const { analyze, serverFit, renderText } = await import("../skills/n8n-to-claude/scripts/analyze.mjs");
   const manual = {
     name: "Key check",
@@ -453,7 +453,8 @@ test("the report says 'from a claude.ai chat … through a server' only for what
   const report = analyze(items, { nodes: ref("nodes.json"), capabilities: ref("capabilities.json"), hosts: ref("http-hosts.json"), now: NOW });
   const fit = Object.fromEntries(report.workflows.map((w) => [w.name, serverFit(w)]));
   assert.equal(fit["Key check"], true);
-  assert.equal(Object.values(fit).filter(Boolean).length, 1, "a connector workflow and a poll workflow get no such line yet");
+  assert.deepEqual(Object.entries(fit).filter(([, v]) => !v).map(([k]) => k).length, 1, "only the poll workflow gets no such line");
+  assert.equal(Object.values(fit).filter(Boolean).length, 2, "the chat workflow with connector tools gets it too");
   assert.match(renderText(report), /Key check — [^\n]*\n(?:  [^\n]*\n)*?  also: from a claude\.ai chat or Cowork without Claude Code, through a server you run/);
 });
 

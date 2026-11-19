@@ -2,8 +2,10 @@
 // n8n-to-claude converter: an n8n export -> one self-contained folder per workflow.
 //
 //   convert.mjs <export|-> --out <dir> [--workflow <id|name>] [--answers answers.json]
-//               [--approve <id>[,<id>...]] [--force-convert]
+//               [--approve <id>[,<id>...]] [--server <connector name>] [--force-convert]
 //   convert.mjs --regenerate <folder>
+//   --server: the name the person's own server (serve.mjs) is added under as a claude.ai
+//   connector; the artifact page then sends its http steps to that connector's n2c_http tool.
 //
 // Per workflow, <out>/<slug>/ holds:
 //   definition.json  the workflow definition (references/definition.schema.json), steps keyed
@@ -2285,7 +2287,7 @@ export function migrationMd(wr, def, { refused, overrides } = {}) {
     const cTools = (def.allow.tools ?? []).map((t) => `\`${t.tool}\``);
     if (cTools.length) L.push(`- On a cloud task, attach ${[...new Set(def.allow.tools.map((t) => t.connector))].join(", ")} to the task, and check that ${[...new Set(cTools)].join(", ")} are not Blocked in the connector's settings on claude.ai: a cloud task is not offered blocked tools (observed 2026-11-18). Then Run now and check the step.`);
     if (def.allow.http.length) L.push(`- A cloud task reaches only the domains its environment allows. Add ${def.allow.http.some((h) => h.scope === "public" || h.host === "*") ? 'every host this workflow may reach (a step answered "public" needs the environment\'s full network access)' : [...new Set(def.allow.http.map((h) => h.host))].join(", ")} to the allowed domains of the environment it runs in (a dedicated one for these workflows, not Default), or its HTTP steps fail.`);
-    L.push(`- \`artifact.html\` is the artifact page: the graph, Run now (dry run on by default: reads run, writes are shown and not sent) and the run history. Publish it with the capabilities in \`artifact.capabilities.json\`.${Object.values(def.steps).some((st) => st.kind === "http") ? " Its HTTP steps run only in the scheduled task: a run from the page stops there." : ""}`);
+    L.push(`- \`artifact.html\` is the artifact page: the graph, Run now (dry run on by default: reads run, writes are shown and not sent) and the run history. Publish it with the capabilities in \`artifact.capabilities.json\`.${Object.values(def.steps).some((st) => st.kind === "http") ? " Its HTTP steps run only in the scheduled task (a run from the page stops there), or on your own server when convert --server names its connector (setup-server.md)." : ""}`);
     L.push("");
   }
   if (wr.questions?.length) {
@@ -2572,7 +2574,10 @@ export function artifactServers(def, refs) {
 // The capabilities the page declares at publish: only the connector tools the definition allows,
 // `sample` when a step asks Claude, and `db` readable and writable by the owner and editors only,
 // because run records hold connector data.
-export function artifactCapabilities(def, refs) {
+// gateway: {server, workflow} when the folders also run on the person's server (serve.mjs) and
+// overrides.json names its connector ("server"): the page then sends its http steps to that
+// connector's n2c_http tool instead of stopping at them.
+export function artifactCapabilities(def, refs, gateway = null) {
   const servers = artifactServers(def, refs);
   const byServer = new Map();
   for (const t of def.allow?.tools ?? []) {
@@ -2581,6 +2586,10 @@ export function artifactCapabilities(def, refs) {
     byServer.get(name).add(t.tool);
   }
   const caps = {};
+  if (gateway?.server && Object.values(def.steps).some((st) => st.kind === "http")) {
+    if (!byServer.has(gateway.server)) byServer.set(gateway.server, new Set());
+    byServer.get(gateway.server).add("n2c_http");
+  }
   if (byServer.size) caps.mcp = { servers: [...byServer].map(([server, tools]) => ({ server, tools: [...tools].sort() })) };
   if (Object.values(def.steps).some((st) => (st.kind === "model" || st.kind === "agent") && !st.subnode)) caps.sample = {};
   caps.db = { rules: [{ path: "", read: "admin", write: "admin" }] };
@@ -2596,11 +2605,11 @@ const htmlEscape = (v) => String(v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "
 const scriptJson = (v) => JSON.stringify(v).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
 // artifact.html from references/artifact.html: the definition, its hash and the skill commit
 // embedded, the runtime inlined (no CDN), and artifact.capabilities.json beside it.
-export function artifactHtml(def, refs, commit = skillCommit()) {
+export function artifactHtml(def, refs, commit = skillCommit(), gateway = null) {
   const tpl = readFileSync(join(REFS, "artifact.html"), "utf8");
   const runtime = readFileSync(join(SKILL, "runtime", "dist", "artifact-runtime.js"), "utf8");
   const hash = definitionHash(def);
-  const build = { definitionHash: hash, commit, runtime: RUNTIME_VERSION, converter: CONVERTER_VERSION, servers: artifactServers(def, refs) };
+  const build = { definitionHash: hash, commit, runtime: RUNTIME_VERSION, converter: CONVERTER_VERSION, servers: artifactServers(def, refs), ...(gateway?.server && Object.values(def.steps).some((st) => st.kind === "http") ? { gateway } : {}) };
   const fill = { __N2C_TITLE__: htmlEscape(def.name), __N2C_HASH__: hash, __N2C_COMMIT__: htmlEscape(commit), __N2C_DEFINITION__: scriptJson(def), __N2C_BUILD__: scriptJson(build), __N2C_RUNTIME__: runtime };
   let html = tpl;
   for (const [marker, value] of Object.entries(fill)) {
@@ -2609,13 +2618,13 @@ export function artifactHtml(def, refs, commit = skillCommit()) {
   }
   return html;
 }
-export function writeArtifact(dir, def, refs) {
-  writeFileSync(join(dir, "artifact.html"), artifactHtml(def, refs));
-  writeJson(join(dir, "artifact.capabilities.json"), artifactCapabilities(def, refs));
+export function writeArtifact(dir, def, refs, gateway = null) {
+  writeFileSync(join(dir, "artifact.html"), artifactHtml(def, refs, undefined, gateway));
+  writeJson(join(dir, "artifact.capabilities.json"), artifactCapabilities(def, refs, gateway));
 }
 
 // Writes one result folder. overrides.json is created when missing and never rewritten.
-export function writeFolder(outDir, res, { overrides, refs } = {}) {
+export function writeFolder(outDir, res, { overrides, refs, server } = {}) {
   const dir = join(outDir, res.slug);
   mkdirSync(dir, { recursive: true });
   writeJson(join(dir, "report.json"), res.report);
@@ -2623,6 +2632,9 @@ export function writeFolder(outDir, res, { overrides, refs } = {}) {
   const ovPath = join(dir, "overrides.json");
   if (!existsSync(ovPath)) writeJson(ovPath, overrides ?? emptyOverrides());
   const ov = readJson(ovPath);
+  // --server names the connector the person's server is added as (setup-server.md); kept in
+  // overrides.json so a regenerate keeps it.
+  if (server && ov.server !== server) writeJson(ovPath, Object.assign(ov, { server }));
   if (res.definition) {
     const def = applyOverrides(res.definition, ov);
     const errs = validateSchema(def, (refs ?? loadReferences()).schema);
@@ -2630,7 +2642,7 @@ export function writeFolder(outDir, res, { overrides, refs } = {}) {
     writeJson(join(dir, "definition.json"), def);
     writeRuntime(dir, def);
     writeTaskFiles(dir, def, refs ?? loadReferences(), res.report.workflows[0].outcome?.target);
-    writeArtifact(dir, def, refs ?? loadReferences());
+    writeArtifact(dir, def, refs ?? loadReferences(), typeof ov.server === "string" && ov.server ? { server: ov.server, workflow: res.slug } : null);
     writeSkill(dir, def, refs ?? loadReferences(), res.slug);
   } else {
     for (const f of ["definition.json", "task.json", "task-prompt.md", ".claude/settings.json", "artifact.html", "artifact.capabilities.json"]) if (existsSync(join(dir, f))) rmSync(join(dir, f));
@@ -2688,7 +2700,7 @@ function parseArgs(argv) {
   return { pos, flags };
 }
 
-const USAGE = "usage: convert.mjs <export|-> --out <dir> [--workflow <id|name>] [--answers answers.json] [--approve id,id] [--force-convert] [--now ISO]\n       convert.mjs --regenerate <folder>";
+const USAGE = "usage: convert.mjs <export|-> --out <dir> [--workflow <id|name>] [--answers answers.json] [--approve id,id] [--server <connector name>] [--force-convert] [--now ISO]\n       convert.mjs --regenerate <folder>";
 
 export function main(argv = process.argv.slice(2)) {
   const { pos, flags } = parseArgs(argv);
@@ -2715,7 +2727,7 @@ export function main(argv = process.argv.slice(2)) {
   const summary = [];
   for (const res of results) {
     const ov = { ...emptyOverrides(), approve, answers: Object.fromEntries(Object.entries(answers).filter(([k]) => k.startsWith(`${res.id}/`))) };
-    writeFolder(outDir, res, { overrides: ov });
+    writeFolder(outDir, res, { overrides: ov, server: flags.server && flags.server !== true ? String(flags.server) : undefined });
     const steps = res.definition ? Object.values(res.definition.steps) : [];
     summary.push({ id: res.id, name: res.name, folder: res.slug, status: res.refused ? "refused" : steps.some((s) => s.kind === "blocked") ? "blocked-steps" : steps.some((s) => s.review) ? "review" : "converted", outcome: res.report.workflows[0].outcome.kind, review: steps.filter((s) => s.review).length, blocked: steps.filter((s) => s.kind === "blocked").length });
   }

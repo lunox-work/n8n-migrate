@@ -299,7 +299,7 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
   </main>
 
   <footer class="foot">
-    <p>Reads run in a dry run, so you see real data flow. Writes are shown with their exact arguments and are not sent. HTTP steps and long waits run only in the scheduled task, because this page can reach Claude and your connectors but no other site.</p>
+    <p id="foot-how">Reads run in a dry run, so you see real data flow. Writes are shown with their exact arguments and are not sent. HTTP steps and long waits run only in the scheduled task, because this page can reach Claude and your connectors but no other site.</p>
     <p id="foot-build"></p>
   </footer>
 </div>
@@ -378,7 +378,10 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
     else if (s.kind === "subflow") d.service = "Sub-workflow";
     else d.service = shortType(s.n8n.type);
     if (s.kind === "tool" && s.tool?.effect === "write") d.flags.push("writes");
-    if (s.kind === "http") {
+    if (s.kind === "http" && build.gateway) {
+      d.flags.push("on your server");
+      d.reason = `Runs on your server (the ${build.gateway.server} connector), with the keys it holds: this page cannot reach ${hostOf(s) || "other sites"} itself. A key the site sends back shows here as [secret].`;
+    } else if (s.kind === "http") {
       d.taskOnly = true;
       d.flags.push("task only");
       d.reason = `Runs in the scheduled task. This page can reach Claude and your connectors but not ${hostOf(s) || "other sites"}, so a run from here stops at this step.`;
@@ -410,6 +413,7 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
   }
   meta.append(el("span", {}, `${plural(Object.keys(steps).filter((n) => !parentOf[n]).length, "step")}`));
   meta.append(el("span", {}, "Definition ", el("code", { id: "def-hash", title: build.definitionHash }, short(build.definitionHash))));
+  if (build.gateway) $("foot-how").textContent = `Reads run in a dry run, so you see real data flow. Writes are shown with their exact arguments and are not sent. HTTP steps run on your server through the ${build.gateway.server} connector; long waits run only in the scheduled task.`;
   $("foot-build").textContent = `Built from skill commit ${short(build.commit) || "unknown"}, runtime ${build.runtime}. Definition sha256 ${build.definitionHash}.`;
   if (trig && steps[trig].chat) $("chat-row").hidden = false;
   const dry = $("dry-run");
@@ -812,7 +816,7 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
     if (!perms) return [];
     const names = [];
     if (Object.values(steps).some((st) => (st.kind === "model" || st.kind === "agent") && !st.settings?.disabled)) names.push("sample");
-    for (const server of new Set(Object.values(servers))) names.push(`mcp:${server}`);
+    for (const server of new Set([...Object.values(servers), ...(build.gateway?.server ? [build.gateway.server] : [])])) names.push(`mcp:${server}`);
     if (!names.length) return [];
     let states;
     try { states = await perms.request(names); } catch { return []; }
@@ -937,7 +941,7 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
       banner("info", "Read-only here", [formDef ? "The form works when this page is open in Claude as a published artifact with storage access." : "Run now works when this page is open in Claude as a published artifact with connector, Claude and storage access."]);
       return;
     }
-    driver = artifact.createArtifactDriver({ core, definition: def, embeddedHash: build.definitionHash, commit: build.commit, servers, rt: { mcp, sample, db }, onUpdate });
+    driver = artifact.createArtifactDriver({ core, definition: def, embeddedHash: build.definitionHash, commit: build.commit, servers, rt: { mcp, sample, db }, onUpdate, gateway: build.gateway || null });
     setBusy(false);
     // A hand-off form runs nothing here: it only stores submissions.
     const pf = formDef?.handoff ? { issues: db ? [] : [{ level: "error", message: "This view has no storage, so submissions cannot be kept." }] } : await driver.preflight();

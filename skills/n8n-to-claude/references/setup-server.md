@@ -19,7 +19,7 @@ No terminal? Upload the skill in claude.ai (Customize > Skills) and ask _"conver
 n8n-to-claude serve n8n-flows --tunnel            # needs cloudflared (macOS: brew install cloudflared)
 ```
 
-It writes `n8n-flows/.n2c/secrets.env`. Put each key there (never in a chat), stop the server with Ctrl+C and start it again. It prints a public address and the connector settings. The address changes every time it restarts, so use it for trying the server out only.
+It writes `n8n-flows/.n2c/secrets.env`. Put each key there (never in a chat), stop the server with Ctrl+C and start it again. It prints a public address and the connector settings. The address changes every time it restarts, and claude.ai cannot edit a connector's address (only remove and re-add it), so use it for trying the server out only.
 
 ## 3. Add it to Claude
 
@@ -75,7 +75,7 @@ Copy the `n8n-flows` folder to the server, including `.n2c/server.env` and `.n2c
 
 - The token is the only thing standing between the internet and your workflows, and that includes their writes. Keep it in the connector's request header (claude.ai stores it and never shows it), not in the URL, and never in a chat.
 - `.n2c/` holds the token, the keys (mode 600) and the records. `convert` git-ignores it, so never commit it.
-- A service that sends a key back has it replaced with `[secret]` in records and replies. Model and connector steps see what the workflow gives them, as in n8n.
+- A service that sends a key back has it replaced with `[secret]` in records and replies. A run on the server keeps the real value for its later steps; on an artifact page those steps see `[secret]` (the key never reaches the browser). Model and connector steps see what the workflow gives them, as in n8n.
 - Nothing is sent twice. A write handed to a chat that ended before answering stops the workflow until you check the service and tell Claude which happened (`n2c_resolve`).
 
 ## Contract
@@ -95,7 +95,7 @@ Copy the `n8n-flows` folder to the server, including `.n2c/server.env` and `.n2c
 ## Not yet
 
 - Scheduled and poll workflows: nothing on the server starts a run by itself, so they still need a cloud or local task (or Cowork's scheduler, unconfirmed).
-- Not yet run from a chat: a connector write through the server, Cowork, an artifact page calling `n2c_http`, converting in the chat's code sandbox. The systemd unit is checked by tests only, not on a Linux machine.
+- Not yet run: Cowork (it starts only in the desktop app), converting in the chat's code sandbox.
 
 ## Observed (2026-11-19)
 
@@ -105,3 +105,7 @@ Copy the `n8n-flows` folder to the server, including `.n2c/server.env` and `.n2c
 - claude.ai checks a server before its request headers are filled in. A 401 at that point is taken as OAuth: it tries to register a client and fails. So the handshake on `/mcp` needs no token, and `tools/call` does.
 - With the token as a request header (every claude.ai request carried it), a chat (Sonnet 5.5) ran a manual workflow that reads Gmail through the person's Gmail connector, plus two model steps, and reached `DONE` (run g-mwn9zgk4-sfbp). The server parsed the response the chat passed back into the two messages' subjects.
 - `serve --service` on macOS: launchd started the server, restarted it after a kill and after `kickstart -k`, and the printed stop commands removed it. `serve --docker`: the image (built from a local pack) served with the header token, keys from `--env-file` and records on a volume across a restart, with nothing from `.n2c/` in the image.
+- A chat ran a connector write through the server: a dry run held Gmail `create_draft` with its exact arguments, then the real run handed it out once and the ledger went sending → sent with the draft's id (run g-mwnb8ohm-t5lx).
+- An artifact page converted with `--server` sent its http step to `n2c_http` (with the connector's tools still on "Needs approval"), got httpbin's answer with the echoed key as `[secret]`, and ended `done` with the cutover's "Dry run clean" ticked; its record in the page's db holds no key and shows nothing at `view` level.
+- `serve --service` on Linux: in a systemd container (Debian, Node 22) the user unit started, came back after a kill and was removed by the printed commands.
+- claude.ai cannot edit a connector's address, only remove and re-add it; `claude.ai/cowork` on the web leads to the product page, so Cowork could not be driven from a browser.

@@ -2459,10 +2459,10 @@ function setupLine(w) {
 
 // Whether a workflow runs from a chat through the person's own server (scripts/serve.mjs) as far
 // as has been seen working (references/setup-server.md, Observed): started by hand, a chat
-// message or a form, and nothing but model, http, secret and Postgres steps. Connector steps
-// through the server, file steps (the person's disk) and anything scheduled are left out until
-// they have run from a real chat.
-const SERVER_OK = new Set(["model", "http", "secret", "db", "substitution", "frequency", "bundled-server"]);
+// message or a form, and nothing but model, http, secret, Postgres and connector steps (a
+// connector read and a write ran from a chat, 2026-11-19). File steps (the person's disk) and
+// anything scheduled are left out.
+const SERVER_OK = new Set(["model", "http", "secret", "db", "connector", "substitution", "frequency", "bundled-server"]);
 export function serverFit(w) {
   if (w.outcome?.kind !== "subscription" || !["manual", "chat", "form"].includes(w.wakeup?.kind)) return false;
   if ((w.requires ?? []).some((r) => !SERVER_OK.has(r.kind) || (r.kind === "db" && !/postgres/i.test(String(r.name))))) return false;

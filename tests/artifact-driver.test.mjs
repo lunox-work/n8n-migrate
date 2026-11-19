@@ -253,3 +253,48 @@ test("convert writes artifact.html with the definition, its hash and the runtime
   assert.deepEqual(artifactCapabilities(defOf("subflow-merge"), refs), { db: { rules: [{ path: "", read: "admin", write: "admin" }] } });
   rmSync(dir, { recursive: true, force: true });
 });
+
+test("with the person's server (gateway), an http step goes to its n2c_http instead of a handoff; a dry run holds the write", async () => {
+  const { createGateway, loadFolders } = await import("../skills/n8n-to-claude/scripts/gateway.mjs");
+  const { handleRpc } = await import("../skills/n8n-to-claude/scripts/serve.mjs");
+  const dir = mkdtempSync(join(tmpdir(), "n2c-art-gw-"));
+  try {
+    const [res] = convertItems(loadInput(join(FIX, "poll-code-http.n8n.json")).items, { refs, now: NOW });
+    const slug = writeFolder(dir, res, { refs, server: "n8n workflows" }).split("/").pop();
+    const def = JSON.parse(readFileSync(join(dir, slug, "definition.json"), "utf8"));
+    const caps = JSON.parse(readFileSync(join(dir, slug, "artifact.capabilities.json"), "utf8"));
+    assert.deepEqual(caps.mcp.servers.find((s) => s.server === "n8n workflows"), { server: "n8n workflows", tools: ["n2c_http"] });
+    assert.match(readFileSync(join(dir, slug, "artifact.html"), "utf8"), /"gateway":\{"server":"n8n workflows","workflow":"[\w-]+"\}/);
+    const fetched = [];
+    const fetch = async (url, init = {}) => {
+      fetched.push({ url: String(url), auth: init.headers?.authorization });
+      return new Response(JSON.stringify({ id: "inv-9" }), { status: 201, headers: { "content-type": "application/json" } });
+    };
+    const gw = createGateway({ core, folders: loadFolders(dir), secrets: (n) => (n === "Accounts API key" ? "sk-art-0123456789" : undefined), fetch, resolveHost: async () => ["93.184.216.34"], stateRoot: join(dir, ".n2c", "gateway") });
+    const fake = fakeRuntime(def);
+    const inner = fake.rt.mcp.callTool;
+    let id = 0;
+    fake.rt.mcp.callTool = async (server, tool, input, o) => {
+      if (server !== "n8n workflows") return inner(server, tool, input, o);
+      fake.log.tools.push({ connector: "gateway", tool, args: input });
+      return (await handleRpc(gw, { jsonrpc: "2.0", id: ++id, method: "tools/call", params: { name: tool, arguments: input } })).result;
+    };
+    const gateway = { server: "n8n workflows", workflow: slug };
+    const driver = driverFor(def, fake, { gateway });
+    const dry = await driver.runNow({ dryRun: true });
+    assert.equal(dry.status, "done", JSON.stringify(dry.record?.error));
+    assert.equal(fetched.length, 0, "a dry run sends no http write");
+    assert.equal(dry.record.effects.wouldSend, 1);
+    const real = await driver.runNow({ dryRun: false });
+    assert.equal(real.status, "done", JSON.stringify(real.record?.error));
+    assert.equal(fetched.length, 1);
+    assert.equal(fetched[0].auth, "Bearer sk-art-0123456789", "the server added its key");
+    assert.equal(new URL(fetched[0].url).hostname, "api.accounts.example.com");
+    const call = fake.log.tools.find((t) => t.connector === "gateway");
+    assert.equal(call.tool, "n2c_http");
+    assert.equal(call.args.definitionHash, core.definitionHash(def));
+    assert.equal(JSON.stringify(call.args).includes("sk-art"), false, "the page never sees the key");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

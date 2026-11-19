@@ -39060,8 +39060,11 @@ const __artifact = (() => {
 //   model         -> sample(prompt) or sample.json(prompt) when the step has an output schema
 //   agent         -> sample.json: the reply is the final output or a tool-calls intent; the
 //                    runner executes the calls itself, so containment and the ledger apply
-//   http          -> cannot run here (the page's CSP allows only its own origin): the run
-//                    stops with status "handoff" and records the pending request
+//   http          -> cannot run here (the page's CSP allows only its own origin): with
+//                    `gateway` ({server, workflow}: the person's own server, serve.mjs, added
+//                    as a connector) it goes to that connector's n2c_http tool, which runs it
+//                    with the server's keys and containment check; without it the run stops
+//                    with status "handoff" and records the pending request
 //   sleep         -> the runner asks only for waits of 65 s or more: handoff as well
 // Dry run (default on): a write is not sent; its evaluated arguments are recorded as
 // would-send and the runner gets {dryRun: true, ok: true} so the run goes on. Reads run.
@@ -39155,7 +39158,7 @@ const errText = (e) => (isObj(e) ? `${e.code ? e.code + ": " : ""}${e.message ??
 // ---------- the driver ----------
 
 function createArtifactDriver(opts) {
-  const { core, definition, embeddedHash, commit = null, servers = {}, rt = {}, onUpdate = () => {} } = opts;
+  const { core, definition, embeddedHash, commit = null, servers = {}, rt = {}, onUpdate = () => {}, gateway = null } = opts;
   const now = opts.now ?? (() => Date.now());
   const holder = opts.holder ?? `tab-${Math.random().toString(36).slice(2, 10)}`;
   const workflow = definition?.name ?? null;
@@ -39211,6 +39214,7 @@ function createArtifactDriver(opts) {
         add("warning", `Could not list your connectors (${errText(e)}); the first failed connector call stops the run.`);
       }
     }
+    if (gateway?.server && steps.some((s) => s.kind === "http") && !rt.mcp) add("error", `This view cannot call connectors, so the HTTP steps cannot reach ${gateway.server}.`);
     const pf = core.preflight(definition, { availableTools: available, surface: "artifact" });
     for (const i of pf.issues) add(i.level, i.message);
     try {
@@ -39255,6 +39259,17 @@ function createArtifactDriver(opts) {
   async function callTool(req, signal) {
     const result = await rt.mcp.callTool(serverFor(req.connector), req.tool, req.args ?? {}, { cache: false });
     return mcpPayload(result);
+  }
+  // An http request through the person's server: its n2c_http answers with the runner's result
+  // shape ({ok, value} | {ok: false, error}); anything else fails the step.
+  async function viaGateway(req) {
+    try {
+      const out = mcpPayload(await rt.mcp.callTool(gateway.server, "n2c_http", { workflow: gateway.workflow, definitionHash: embeddedHash, request: req }, { cache: false }));
+      if (isObj(out) && typeof out.ok === "boolean") return out.ok ? { ok: true, value: out.value ?? null } : { ok: false, error: { name: out.error?.name ?? "Error", message: String(out.error?.message ?? "the server refused the request") } };
+      return { ok: false, error: { name: "GatewayError", message: typeof out === "string" ? out.slice(0, 500) : `${gateway.server} answered without a result` } };
+    } catch (e) {
+      return { ok: false, error: { name: isObj(e) && e.code ? e.code : "Error", message: errText(e) } };
+    }
   }
   async function answerModel(req) {
     if (!rt.sample) throw { code: "not_granted", message: "Claude is not available to this page" };
@@ -39338,6 +39353,13 @@ function createArtifactDriver(opts) {
       emit({ phase: "running", ...snapshot(ctx, res, { active: res.requests }) });
       const results = {};
       for (const req of res.requests) {
+        if (req.kind === "http" && gateway?.server && rt.mcp) {
+          if (ctx.dryRun && core.requestEffect(req) === "write") {
+            if (req.effectKey) ctx.held[req.effectKey] = true;
+            results[req.id] = { ok: true, value: { status: 200, statusMessage: "OK (dry run)", headers: {}, body: { dryRun: true, ok: true } } };
+          } else results[req.id] = await viaGateway(req);
+          continue;
+        }
         if (req.kind === "http" || req.kind === "sleep") {
           const handoff = { step: req.step, kind: req.kind, request: requestSummary(req) };
           const out = await writeRecord(ctx, res, "handoff", { handoff });
