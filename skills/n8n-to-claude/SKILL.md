@@ -32,6 +32,7 @@ Scripts (run from this skill's folder, called SKILL below; Node 20+, no install)
 - `node SKILL/scripts/try-step.mjs <folder> <step> [--items i.json | --pin]`: dry run of one step on sample items.
 - `node SKILL/scripts/draft.mjs <folder>`: experimental, not part of the steps below; never offer it. Run it only when the person asks for model-drafted request templates by name, and tell them first that in testing drafted steps did not hand on n8n's output and caused wrong effects (`references/translation.md`, "Drafted request templates and tool maps").
 - `node SKILL/scripts/cutover.mjs <folder> <step> [--login <their n8n address>]`: cutover and rollback (step 8).
+- `node SKILL/scripts/serve.mjs <repo> [--tunnel | --setup | --service | --docker]`: the converted folders as a remote MCP server (a custom connector) for Claude without Claude Code (step 6, `references/setup-server.md`).
 
 First run `node --version`. No Node, or below 20: stop and tell the person the skill needs Node 20 (Claude Code, or Desktop/Cowork with Node installed); in a chat sandbox with Python only, it cannot run.
 
@@ -112,6 +113,14 @@ Per workflow, by `outcome.target`. Give the exact steps; do nothing irreversible
 
 Every subscription folder also has `artifact.html` (graph, Run now, history, cutover checklist): offer to publish it for any target.
 
+**No Claude Code** (you are in a claude.ai chat or Cowork, or the person has no Claude Code): the folders run on a server the person owns, added as a custom connector (`references/setup-server.md`, which is written for the person: point them to it).
+
+- Convert as in step 4 (in a chat, in the code sandbox), then zip `<repo>` and give it to the person: `cd <repo>/.. && zip -r n8n-flows.zip <repo name> -x '*/.n2c/*'`. Never put secrets in it; there are none in the folders.
+- Give them the commands, in order: `n8n-to-claude serve <folder> --tunnel` (or `node SKILL/scripts/start.mjs serve …`) to try it (needs cloudflared); `--setup` then filling in `.n2c/secrets.env` themselves; `--service` and a Cloudflare tunnel, or `--docker` on a small server, to keep it running. They run every command; you run none of them for them.
+- The connector: claude.ai > Customize > Connectors > Add custom connector, URL `https://<address>/mcp`, No sign-in, request header `Authorization: Bearer <token>`. They type the token; never ask for it in the chat.
+- Once the connector is connected (its tools `n2c_list`, `n2c_run`, … are yours), run workflows through it: `n2c_list`, `n2c_run` with `dryRun` left on first, then do each NEXT exactly and call `n2c_continue`, as `task-prompt.md` says for the runner. Show the person what the dry run would send before a real run. Never call `n2c_resolve` unless the person checked the service and told you which happened.
+- Scheduled and poll workflows still need a task; the server starts nothing by itself.
+
 Alerts: ask once where a failed or missed run should be reported (a Slack DM to themselves, or a Gmail draft or email to themselves), write it to `overrides.json` `alerts` and regenerate (`references/alerts.md`). Headless or no answer: none; the task's final message states failures.
 
 ## 7. Not on the subscription
@@ -135,3 +144,4 @@ Follow `references/cutover.md`; `cutover.mjs <folder> status` says the next step
 - `references/artifact-runtime.md`: the artifact runtime contract and record shapes.
 - `references/report.schema.json`, `references/definition.schema.json`: the two contracts.
 - `references/cutover.md`: cutover and rollback: steps, records, gate, cursor mapping, n8n's API.
+- `references/setup-server.md`: running the folders as a custom connector for a chat or Cowork.

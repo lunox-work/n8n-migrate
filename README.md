@@ -339,6 +339,26 @@ node skills/n8n-to-claude/scripts/analyze.mjs exports --html report.html
 node skills/n8n-to-claude/scripts/convert.mjs exports --out ../my-flows
 ```
 
+### From a claude.ai chat or Cowork, without Claude Code
+
+A chat has nowhere to keep your API keys. Run the converted folders on a computer
+you control, and add it to Claude as a custom connector:
+
+```sh
+npx n8n-to-claude convert n8n-to-claude/exports --out n8n-flows
+npx n8n-to-claude serve n8n-flows --tunnel     # try it: prints a temporary address and the connector settings
+```
+
+The server runs each workflow step by step and keeps your keys and the
+"already sent" ledger. Claude does only the model and connector steps it hands
+over. To keep it running: `serve --service` (launchd or systemd) with a
+Cloudflare tunnel, or `serve --docker` on a small server. Steps, safety and
+limits: [setup-server.md](skills/n8n-to-claude/references/setup-server.md).
+Run from a real claude.ai chat so far: an HTTP step that needs a key, a Gmail
+read through your own connector, and model steps. Not yet a connector write.
+Scheduled workflows still need a task, because the server starts nothing by
+itself.
+
 ## How it works
 
 1. **Verdict** (`analyze.mjs`). Reads the export and works out, per workflow,

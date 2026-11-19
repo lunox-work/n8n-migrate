@@ -14,6 +14,8 @@
 //   --env-file <file>  read N8N_BASE_URL / N8N_API_KEY from a file
 //   --no-open          do not open the report in the browser
 //   --yes              take the recommended answer to every question (no prompts)
+//   n8n-to-claude convert <exports> --out <folder> [...]   convert.mjs
+//   n8n-to-claude serve <folder> [...]     the converted folders as a connector (serve.mjs)
 // Exit: 0 report written, 1 nothing to report, 2 bad usage.
 
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
@@ -71,7 +73,10 @@ const HELP = `n8n-to-claude: which of your n8n workflows can run on your Claude 
   npx n8n-to-claude workflows.json       an export file or folder
   npx n8n-to-claude popular              try it on the most-viewed n8n.io templates (or: trending)
 
-  --api  every workflow through N8N_BASE_URL + N8N_API_KEY   --out <dir>   --no-open   --yes`;
+  --api  every workflow through N8N_BASE_URL + N8N_API_KEY   --out <dir>   --no-open   --yes
+
+  npx n8n-to-claude convert <exports> --out <folder>   convert the ones that fit (one folder per workflow)
+  npx n8n-to-claude serve <folder>                     run them for a claude.ai chat or Cowork (serve --help)`;
 
 async function ask(rl, question, fallback) {
   if (!rl) return fallback;
@@ -103,6 +108,12 @@ function skillInstalled() {
 }
 
 export async function main(argv = process.argv.slice(2), { stdin = process.stdin, stdout = process.stdout } = {}) {
+  // `n8n-to-claude serve <folder>`: the converted folders as a connector (serve.mjs); it keeps
+  // running, so it returns null instead of an exit code.
+  if (argv[0] === "serve") return (await import("./serve.mjs")).main(argv.slice(1));
+  // `n8n-to-claude convert <exports> --out <folder> [...]`: convert.mjs as it is, for a person
+  // with a terminal but no Claude Code (the server runs what it writes).
+  if (argv[0] === "convert") return spawnSync(process.execPath, [join(HERE, "convert.mjs"), ...argv.slice(1)], { stdio: "inherit" }).status ?? 1;
   let a;
   try {
     a = parseArgs(argv);
@@ -216,4 +227,7 @@ export async function main(argv = process.argv.slice(2), { stdin = process.stdin
 }
 
 // realpath on both sides: npx runs the bin through a link.
-if (process.argv[1] && realpathSync(fileURLToPath(import.meta.url)) === realpathSync(resolve(process.argv[1]))) process.exit(await main());
+if (process.argv[1] && realpathSync(fileURLToPath(import.meta.url)) === realpathSync(resolve(process.argv[1]))) {
+  const code = await main();
+  if (code !== null) process.exit(code);
+}

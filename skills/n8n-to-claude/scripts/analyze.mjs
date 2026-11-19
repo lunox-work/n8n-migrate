@@ -2457,6 +2457,18 @@ function setupLine(w) {
   return parts.length ? parts.join("; ") : null;
 }
 
+// Whether a workflow runs from a chat through the person's own server (scripts/serve.mjs) as far
+// as has been seen working (references/setup-server.md, Observed): started by hand, a chat
+// message or a form, and nothing but model, http, secret and Postgres steps. Connector steps
+// through the server, file steps (the person's disk) and anything scheduled are left out until
+// they have run from a real chat.
+const SERVER_OK = new Set(["model", "http", "secret", "db", "substitution", "frequency", "bundled-server"]);
+export function serverFit(w) {
+  if (w.outcome?.kind !== "subscription" || !["manual", "chat", "form"].includes(w.wakeup?.kind)) return false;
+  if ((w.requires ?? []).some((r) => !SERVER_OK.has(r.kind) || (r.kind === "db" && !/postgres/i.test(String(r.name))))) return false;
+  return !(w.steps ?? []).some((st) => st.kind === "file");
+}
+
 export function renderText(report, color = false) {
   const c = (code, s) => (color ? `\x1b[${code}m${s}\x1b[0m` : s);
   const lines = [];
@@ -2488,6 +2500,7 @@ export function renderText(report, color = false) {
     // The reason ends with what to do: "…: recreate the storage in the target, nothing to schedule".
     if (w.setupOnly) lines.push(`  setup only: ${clean(w.setupOnlyReason.slice(w.setupOnlyReason.lastIndexOf(": ") + 2))}`);
     for (const a of o.alsoTargets) lines.push(`  also: ${a.wakeup} (${a.nodes.map(clean).join(", ")}) → ${a.kind === "subscription" ? TARGET_LABEL[a.target] ?? a.target : a.kind === "hosted" ? `hosted elsewhere (${a.target === "key" ? "API key" : "no model"})` : a.kind}`);
+    if (serverFit(w)) lines.push("  also: from a claude.ai chat or Cowork without Claude Code, through a server you run (n8n-to-claude serve; setup-server.md)");
     const needs = needsLine(w);
     if (needs) lines.push(`  needs: ${needs}`);
     const setup = setupLine(w);
