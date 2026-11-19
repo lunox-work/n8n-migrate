@@ -796,7 +796,7 @@ function writeRunRecord(P, core, store, state, status, extra = {}) {
   const dryRun = !!state.n8m?.dryRun;
   const held = dryRun ? state.n8m.held ?? {} : undefined;
   const steps = core.stepStatuses(state.definition, { runData: res.runData ?? {}, effects: state.effects ?? [], final, error: res.error, sent, dryRun, held, unknown: (extra.unknown ?? []).map((u) => u.step), active: final ? [] : state.requests ?? [] });
-  const rec = core.runRecord({ runId: state.runId, workflow: state.definition?.name, trigger: state.n8m?.trigger ?? "scheduled", driver: state.n8m?.driver ?? "task", status, dryRun, held, startedAt: state.startedAt, endedAt: final ? res.endedAt ?? new Date().toISOString() : null, definitionHash: state.definitionHash, commit: commitOf(P), effects: state.effects, sent, steps, runData: res.runData, error: res.error, cursorsSaved: !!extra.cursorsSaved, resumable: !final });
+  const rec = core.runRecord({ runId: state.runId, workflow: state.definition?.name, trigger: state.n8m?.trigger ?? "scheduled", driver: state.n8m?.driver ?? "task", status, dryRun, held, startedAt: state.startedAt, endedAt: final ? new Date().toISOString() : null /* wall time: the run's virtual clock moves only on waits, so it showed 0 ms (seen 2026-11-20) */, definitionHash: state.definitionHash, commit: commitOf(P), effects: state.effects, sent, steps, runData: res.runData, error: res.error, cursorsSaved: !!extra.cursorsSaved, resumable: !final });
   // The cursor a dry run reached, kept in its record as the artifact does (never saved).
   if (dryRun && final && res.cursors && Object.keys(res.cursors).length) rec.cursors = core.clip(res.cursors, 8_000);
   if (extra.unknown?.length) rec.unknown = extra.unknown;

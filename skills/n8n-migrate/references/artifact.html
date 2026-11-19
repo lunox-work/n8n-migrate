@@ -12,6 +12,8 @@
 -->
 <style>
 /* Layout: a header band with the controls, then the canvas (left) beside history and cutover (right); one column under 1100 px, list view under 600 px. */
+/* display rules below (.input-row, .form-panel) would otherwise show hidden rows: a schedule page showed the chat box and an empty form (2026-11-20). */
+[hidden] { display: none !important; }
 :root {
   --bg: #f5f6f7;
   --surface: #ffffff;
@@ -862,6 +864,7 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
   // ---------- history and cutover ----------
   let interruptedIds = new Set();
   let missedInfo = null;
+  let accessChecked = false; // until window.claude answers, the history is loading, not missing
   function showRecord(r) {
     view = { source: "record", runId: r.runId, statuses: r.steps || {}, runData: {}, effects: [], dryRun: r.dryRun, record: r, handoff: r.handoff, unknown: r.unknown || [] };
     paint();
@@ -876,7 +879,7 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
       ol.append(el("li", { class: "hmissed", "data-missed": missedInfo.count }, el("span", {}, el("span", { class: "pill", "data-s": "missed" }, "missed"), " ", `${plural(missedInfo.count, "scheduled run")}${missedInfo.capped ? " or more" : ""} did not happen`), el("span", { class: "facts" }, `since ${fmtTime(missedInfo.since)}; the first was due ${fmtTime(missedInfo.first)}. Check the scheduled task is on.`)));
     }
     if (!runs.length) {
-      ol.append(el("li", {}, el("p", { class: "empty" }, driver ? "No runs yet. Run now records each run here; scheduled runs appear here too." : "Run history appears here when the page runs inside Claude with storage access.")));
+      ol.append(el("li", {}, el("p", { class: "empty" }, driver ? "No runs yet. Run now records each run here; scheduled runs appear here too." : !accessChecked ? "Loading run history…" : "Run history appears here when the page runs inside Claude with storage access.")));
       return;
     }
     for (const r of runs) {
@@ -937,7 +940,9 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
   };
   Promise.all([use("mcp"), use("sample"), use("db"), use("permissions")]).then(async ([mcp, sample, db, permissions]) => {
     perms = permissions;
+    accessChecked = true;
     if (!mcp && !sample && !db) {
+      renderHistory();
       banner("info", "Read-only here", [formDef ? "The form works when this page is open in Claude as a published artifact with storage access." : "Run now works when this page is open in Claude as a published artifact with connector, Claude and storage access."]);
       return;
     }
