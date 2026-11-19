@@ -18,6 +18,10 @@ for (const c of ["gmail", "google-drive", "slack", "notion"]) {
   for (const t of doc.tools) schemas[`${c}.${t.name}`] = t.inputSchema;
 }
 
+// A search for recent mail (newer_than:) is answered with mail from the last hour, as Gmail
+// would answer it: the runtime drops thread messages outside the query's dates (tool.window).
+// Any other query gets fixed dates, so the cursors the tests compare do not move.
+const mailDate = (args, fixed, minutesAgo) => (/(^|\s)newer_than:/.test(args?.query ?? "") ? new Date(Date.now() - minutesAgo * 60000).toISOString() : fixed);
 export const CANNED = {
   "gmail.search_threads": (args) => ({
     threads: [
@@ -26,8 +30,8 @@ export const CANNED = {
         messageCount: 2,
         viewUrl: "https://mail.google.com/mail/u/0/#all/t1",
         messages: [
-          { id: "m1", snippet: "Invoice 42: total $250.00 due on 1 Dec", subject: "Invoice 42", sender: "ann@example.com", toRecipients: ["me@example.com"], ccRecipients: [], date: "2026-11-14T02:30:00Z", labelIds: ["INBOX", "UNREAD"] },
-          { id: "m2", snippet: "Small invoice: $40 for the domain", subject: "Re: Invoice 42", sender: "bo@example.com", toRecipients: ["me@example.com", "ann@example.com"], ccRecipients: [], date: "2026-11-14T02:45:00Z", labelIds: ["INBOX"] },
+          { id: "m1", snippet: "Invoice 42: total $250.00 due on 1 Dec", subject: "Invoice 42", sender: "ann@example.com", toRecipients: ["me@example.com"], ccRecipients: [], date: mailDate(args, "2026-11-14T02:30:00Z", 30), labelIds: ["INBOX", "UNREAD"] },
+          { id: "m2", snippet: "Small invoice: $40 for the domain", subject: "Re: Invoice 42", sender: "bo@example.com", toRecipients: ["me@example.com", "ann@example.com"], ccRecipients: [], date: mailDate(args, "2026-11-14T02:45:00Z", 15), labelIds: ["INBOX"] },
         ],
       },
     ],

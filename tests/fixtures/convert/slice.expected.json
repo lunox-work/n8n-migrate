@@ -30,6 +30,7 @@
           "items": "threads[*].messages[*]",
           "fields": { "threadId": "^.id", "From": { "addressLine": "sender", "names": "addressDisplayNames" }, "To": { "addressLine": "toRecipients", "names": "addressDisplayNames" }, "Cc": { "addressLine": "ccRecipients", "names": "addressDisplayNames" }, "Bcc": { "addressLine": "bccRecipients", "names": "addressDisplayNames" }, "Subject": "subject" }
         },
+        "window": { "arg": "query", "field": "date", "syntax": "gmail" },
         "fidelity": "partial",
         "missingFields": ["labels", "payload"],
         "caveats": ["The tool returns threads with up to 5 messages each; n8n's limit counts messages."],

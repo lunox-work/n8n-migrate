@@ -331,6 +331,58 @@ function coerceValue(want, v) {
   }
 }
 
+// ---------- query window ----------
+// A search tool that answers with whole threads where n8n's node answers with single messages
+// (Gmail: the connector's search_threads against n8n's messages.list) hands back messages the
+// query's dates exclude: an old message of a thread that got a reply yesterday. A tool with
+// `window: {arg, field, syntax: "gmail"}` drops the adapted items whose `field` (a date) falls
+// outside the dates written in the argument `arg`, so the step emits what n8n would.
+//
+// Gmail's date terms: after: / newer: and before: / older: with a date (year/month/day, with
+// slashes or dashes) or epoch seconds, newer_than: / older_than: with a number and h, d, m or y. A calendar date
+// is a day in the mailbox's own timezone, which the query does not carry, so its bound is
+// widened by the widest offset (after: 14 h earlier, before: 12 h later); m and y count 31 and
+// 366 days. Both widenings keep a message n8n might return. A query with OR, braces,
+// brackets or a negated date term is left alone: -> null (no filtering).
+export function queryWindow(syntax, query, nowMs) {
+  if (syntax !== "gmail" || typeof query !== "string") return null;
+  if (/\bOR\b|[{}()]/.test(query) || /(^|\s)-(after|before|newer|older|newer_than|older_than):/i.test(query)) return null;
+  let from = -Infinity;
+  let to = Infinity;
+  const day = 86400000;
+  const instant = (v, slack) => {
+    if (/^\d{9,}$/.test(v)) return Number(v) * 1000;
+    const m = /^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/.exec(v);
+    return m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) + slack : null;
+  };
+  const span = (v) => {
+    const m = /^(\d+)([hdmy])$/i.exec(v);
+    return m ? Number(m[1]) * { h: 3600000, d: day, m: 31 * day, y: 366 * day }[m[2].toLowerCase()] : null;
+  };
+  for (const m of query.matchAll(/(?:^|\s)(after|newer|before|older|newer_than|older_than):(\S+)/gi)) {
+    const k = m[1].toLowerCase();
+    if (k === "after" || k === "newer") {
+      const t = instant(m[2], -14 * 3600000);
+      if (t !== null) from = Math.max(from, t);
+    } else if (k === "before" || k === "older") {
+      const t = instant(m[2], 12 * 3600000);
+      if (t !== null) to = Math.min(to, t);
+    } else {
+      const d = span(m[2]);
+      if (d === null) continue;
+      if (k === "newer_than") from = Math.max(from, nowMs - d);
+      else to = Math.min(to, nowMs - d);
+    }
+  }
+  return from === -Infinity && to === Infinity ? null : { from, to };
+}
+// Whether an item's date is inside the window; an item without a readable date is kept.
+export function insideWindow(win, value) {
+  if (!win) return true;
+  const t = comparable(value);
+  return typeof t !== "number" ? true : t >= win.from && t <= win.to;
+}
+
 // ---------- poll cursor ----------
 
 function comparable(v) {

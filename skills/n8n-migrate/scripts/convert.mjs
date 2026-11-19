@@ -1145,6 +1145,9 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         // A download whose file n8n puts into binary data: the tool's base64 content becomes
         // item.binary[property] (runtime/src/files.mjs binaryFromTool).
         ...(entry.binary ? { binary: { property: getParam(params, entry.binary.propertyParam) || entry.binary.propertyDefault || "data", ...(getParam(params, entry.binary.fileNameParam) !== undefined ? { fileName: getParam(params, entry.binary.fileNameParam) } : {}), content: entry.binary.content, mimeType: entry.binary.mimeType, name: entry.binary.name } } : {}),
+        // A thread search standing in for n8n's message search: the runtime drops the messages
+        // the query's dates exclude (runtime/src/adapt.mjs queryWindow).
+        ...(entry.window ? { window: { ...entry.window } } : {}),
         fidelity: entry.fidelity ?? "unverified",
         ...(entry.missingFields?.length ? { missingFields: entry.missingFields } : {}),
         ...(caveatsFor(params, entry.caveats).length ? { caveats: caveatsFor(params, entry.caveats) } : {}),

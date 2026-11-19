@@ -12,7 +12,7 @@ import { API_STATUS_MESSAGES, NodeError, UnsupportedNode, deepCopy, getPath, set
 import { hashHex, hmacBytes, digestBytes, bytesToBase64, base64ToBytes, utf8Bytes, toHex } from "./hash.mjs";
 import { tryToParseDateTime } from "./extensions.mjs";
 import { DateTime } from "../vendor/luxon.mjs";
-import { adaptResult, coerceArgs, applyCursorArg, advanceCursor, compareCursorValues, getAt } from "./adapt.mjs";
+import { adaptResult, coerceArgs, applyCursorArg, advanceCursor, compareCursorValues, getAt, queryWindow, insideWindow } from "./adapt.mjs";
 import { resolveParameter, compileCode } from "./expression.mjs";
 import { createLookup } from "./proxy.mjs";
 import { binaryFromTool, binaryOf, prepareBinary } from "./files.mjs";
@@ -1268,7 +1268,12 @@ const toolStep = {
     const results = await exec.request(reqs);
     if (t.binary) return [binaryFromTool(exec, results, items, t.binary)];
     if (!t.result) return [toItems(exec, results, items, "tool")];
-    const adapted = adaptedItems(exec, results, t.result, "tool");
+    let adapted = adaptedItems(exec, results, t.result, "tool");
+    // tool.window: drop what the query's dates exclude (adapt.mjs queryWindow).
+    if (t.window) {
+      const wins = argsList.map((a) => queryWindow(t.window.syntax, a?.[t.window.arg], exec.run.clock.now));
+      adapted = adapted.filter((it) => it.json.error !== undefined || insideWindow(wins[it.pairedItem?.item ?? 0], getAt(it.json, t.window.field)));
+    }
     if (!t.lookup) return [adapted];
     // Row filters per input item, on that item's rows (n8n reads once per item from 4.2).
     const out = [];
@@ -1832,7 +1837,12 @@ export async function executeAgentTool(exec, tools, call, itemIndex) {
       const toolArgsValue = sub?.tool ? await replyRecipients(exec, t, toolArgs(exec, t, itemIndex, locals), itemIndex) : args;
       const [r] = await exec.request([{ kind: "tool", itemIndex, connector: t.connector, tool: t.name, args: toolArgsValue, effect: t.effect }]);
       if (!r.ok) return { ok: false, error: { message: r.error?.message ?? "tool call failed" } };
-      return { ok: true, value: t.result ? toolValue(t.result, r.value) : r.value };
+      let value = t.result ? toolValue(t.result, r.value) : r.value;
+      if (t.window && t.result && Array.isArray(value)) {
+        const win = queryWindow(t.window.syntax, toolArgsValue?.[t.window.arg], exec.run.clock.now);
+        value = value.filter((j) => insideWindow(win, getAt(j, t.window.field)));
+      }
+      return { ok: true, value };
     }
     if (kind === "http") {
       const h = sub?.http;

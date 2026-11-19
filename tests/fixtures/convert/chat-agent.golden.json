@@ -213,6 +213,11 @@
             "Subject": "subject"
           }
         },
+        "window": {
+          "arg": "query",
+          "field": "date",
+          "syntax": "gmail"
+        },
         "fidelity": "partial",
         "missingFields": [
           "labels",

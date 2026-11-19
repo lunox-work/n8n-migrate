@@ -109,6 +109,13 @@
                 "description": "exact: the tool returns what n8n returns; adapted: the adapter reshapes, and the fields it lists carry n8n's names; partial: some n8n fields have no source (missingFields); none: no adapter; unverified: the tool's real output shape is not known yet, so the adapter is a best reading of the tool description, to be checked by the bench's emulation run."
               },
               "missingFields": { "type": "array", "items": { "type": "string" }, "description": "n8n output fields the tool cannot supply." },
+              "window": {
+                "type": "object",
+                "required": ["arg", "field", "syntax"],
+                "additionalProperties": false,
+                "description": "The tool answers with whole threads where n8n answers with single messages: adapted items whose `field` (a date) falls outside the dates written in the argument `arg` are dropped (runtime/src/adapt.mjs queryWindow).",
+                "properties": { "arg": { "type": "string" }, "field": { "type": "string" }, "syntax": { "enum": ["gmail"] } }
+              },
               "binary": {
                 "type": "object",
                 "description": "A download whose file n8n puts into binary data: the tool's base64 text at `content` becomes item.binary[property] with `mimeType` and the file name (fileName, else the result's `name` field), as n8n-core prepareBinaryData builds it; the item keeps its input fields.",

@@ -2,7 +2,7 @@
 // protocol and poll cursors in the runner core.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { adaptResult, coerceArgs, advanceCursor, applyCursorArg } from "../skills/n8n-migrate/runtime/src/adapt.mjs";
+import { adaptResult, coerceArgs, advanceCursor, applyCursorArg, queryWindow, insideWindow } from "../skills/n8n-migrate/runtime/src/adapt.mjs";
 import { start as stepStart, resume, preflight } from "../skills/n8n-migrate/runtime/src/api.mjs";
 import { wf, node, start, run, out, CLOCK } from "./runtime-helpers.mjs";
 
@@ -202,4 +202,33 @@ test("adaptResult: the Drive trigger's poll rows carry n8n's name and webViewLin
     ["f1", "Q4 deck.pdf", "https://drive.example/f1"],
     ["f2", "kept.pdf", "https://drive.example/f2"],
   ]);
+});
+
+// Observed on a real account (2026-11-20): Gmail's connector answers a search with whole
+// threads, so "newer_than:1d" brought a four-day-old message along with yesterday's reply in
+// the same thread; n8n's node lists single messages and returns only the reply.
+test("tool.window: a thread search keeps only the messages inside the query's dates", async () => {
+  const now = Date.parse(CLOCK.startedAt); // 2026-11-14T03:00:00Z
+  const day = 86400000;
+  assert.deepEqual(queryWindow("gmail", "from:ann newer_than:1d", now), { from: now - day, to: Infinity });
+  assert.deepEqual(queryWindow("gmail", "older_than:2h newer_than:1y", now), { from: now - 366 * day, to: now - 7200000 });
+  assert.deepEqual(queryWindow("gmail", "after:1763100000 before:1763200000", now), { from: 1763100000000, to: 1763200000000 });
+  // A calendar date is a day in the mailbox's timezone: widened so nothing n8n may return is dropped.
+  assert.deepEqual(queryWindow("gmail", "after:2026/11/13 before:2026-11-15", now), { from: Date.UTC(2026, 10, 13) - 14 * 3600000, to: Date.UTC(2026, 10, 15) + 12 * 3600000 });
+  for (const q of ["is:unread", "subject:after:hours", "newer_than:soon", "{after:2026/11/13 from:ann}", "from:ann OR newer_than:1d", "-newer_than:1d", undefined]) assert.equal(queryWindow("gmail", q, now), null, String(q));
+  assert.equal(queryWindow("other", "newer_than:1d", now), null);
+  const win = { from: 10, to: 20 };
+  assert.deepEqual([9, 10, 20, 21, undefined, "not a date"].map((v) => insideWindow(win, v)), [false, true, true, false, true, true]);
+
+  const read = (query) => node("Read mail", "n8n-nodes-base.gmail", {}, { kind: "tool", pos: [200, 0], tool: { connector: "gmail", name: "search_threads", args: { query }, effect: "read", result: { items: "threads[*].messages[*]", fields: { threadId: "^.id" } }, window: { arg: "query", field: "date", syntax: "gmail" } } });
+  const threads = { threads: [{ id: "t1", messages: [{ id: "old", date: "2026-11-10T09:00:00Z" }, { id: "reply", date: "2026-11-13T20:00:00Z" }] }, { id: "t2", messages: [{ id: "undated" }, { id: "ms", date: String(now - 3600000) }] }] };
+  const go = async (query) => {
+    const def = wf([node("Go", "n8n-nodes-base.manualTrigger", {}, { kind: "trigger" }), read(query)], [["Go", "Read mail"]], { allow: { tools: [{ connector: "gmail", tool: "search_threads" }], http: [] } });
+    const r = await run(def, { host: { tool: async () => threads } });
+    assert.equal(r.status, "done", JSON.stringify(r.error));
+    return out(r, "Read mail").map((j) => j.id);
+  };
+  assert.deepEqual(await go("newer_than:1d"), ["reply", "undated", "ms"], "the old message of the replied-to thread is dropped");
+  assert.deepEqual(await go("is:unread"), ["old", "reply", "undated", "ms"], "no dates in the query: every message");
+  assert.deepEqual(await go("={{ 'before:' + '2026/11/12' }}"), ["old", "undated"], "the evaluated argument is read");
 });
