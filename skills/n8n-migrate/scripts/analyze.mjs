@@ -2483,7 +2483,12 @@ function setupLine(w) {
   const needs = uniq(vals.filter((v) => v.startsWith("needs:")).map((v) => v.slice(6)));
   const no = uniq(w.requires.filter((r) => r.surfaces[surf] === "no").map((r) => `${r.kind} ${clean(r.name)}`));
   const parts = [];
-  if (needs.length) parts.push(`to set up: ${needs.join(", ")}`);
+  // On a local task the runner itself holds the keys (N8M_SECRET_<NAME>) and runs the steps a
+  // "bundled server" was once planned for; nothing ships under those names (the plugin is
+  // skill-only), so the line names what the person actually sets up.
+  const words = (n) => (surf === "localTask" && n === "bundled-server" ? "secrets in .claude/settings.local.json" : surf === "localTask" && n === "plugin-mcp-server" ? null : n);
+  const shown = uniq(needs.map(words).filter(Boolean));
+  if (shown.length) parts.push(`to set up: ${shown.join(", ")}`);
   if (no.length) parts.push(`not possible there: ${listCut(no)}`);
   return parts.length ? parts.join("; ") : null;
 }

@@ -217,7 +217,7 @@ Telegram AI chatbot — moves: local task (computer
   needs: Claude model · outbound HTTP · secrets
     openAiApi Credential, telegramApi Credential ·
     polling · runs every 1 min
-  to set up: bundled-server, plugin-mcp-server
+  to set up: secrets in .claude/settings.local.json
 
 1 workflows: subscription 1 (local-task 1) ·
   replaced 0 · hosted 0 · keep in n8n 0
