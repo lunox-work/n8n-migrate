@@ -1342,7 +1342,33 @@ function unknownWrite(core, store, state) {
   return null;
 }
 
-export async function command(cmd, pos, flags, { core, dir, stdin, fetch, isTTY = !!process.stdin.isTTY, cwd } = {}) {
+// Plain JavaScript dates in expressions and Code steps (new Date().toLocaleDateString(), getDate)
+// read the process timezone, which n8n sets to the instance's; a claude.ai task's sandbox is in
+// UTC, so a 07:00 Singapore run titled its email with yesterday's date (2026-11-20). For the
+// length of a command the process takes the workflow's timezone.
+function workflowZone(P) {
+  try {
+    const zone = readJson(P.definition, null)?.settings?.timezone;
+    return typeof zone === "string" && zone && Intl.DateTimeFormat(undefined, { timeZone: zone }) ? zone : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function command(cmd, pos, flags, opts = {}) {
+  const zone = workflowZone(paths(folderOf(opts.dir), opts.cwd));
+  if (!zone) return commandIn(cmd, pos, flags, opts);
+  const before = process.env.TZ;
+  process.env.TZ = zone;
+  try {
+    return await commandIn(cmd, pos, flags, opts);
+  } finally {
+    if (before === undefined) delete process.env.TZ;
+    else process.env.TZ = before;
+  }
+}
+
+async function commandIn(cmd, pos, flags, { core, dir, stdin, fetch, isTTY = !!process.stdin.isTTY, cwd } = {}) {
   const P = paths(folderOf(dir), cwd);
   STATE_DIR = P.n8m;
   setRunner(P.dir, cwd);

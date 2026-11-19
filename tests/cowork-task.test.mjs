@@ -294,3 +294,30 @@ test("records pack a value whose keys differ only in case, and unpack it as it w
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("plain JavaScript dates in a run use the workflow's timezone, not the sandbox's UTC", () => {
+  const dir = mkdtempSync(join(tmpdir(), "n8m-cowork-tz-"));
+  try {
+    const wf = {
+      id: "tz2",
+      name: "Zone check",
+      active: false,
+      settings: { executionOrder: "v1", timezone: "Asia/Singapore" },
+      nodes: [
+        { id: "a", name: "Every morning", type: "n8n-nodes-base.scheduleTrigger", typeVersion: 1.2, position: [0, 0], parameters: { rule: { interval: [{ triggerAtHour: 7 }] } } },
+        { id: "b", name: "Stamp", type: "n8n-nodes-base.set", typeVersion: 3.4, position: [200, 0], parameters: { assignments: { assignments: [{ id: "x", name: "offset", value: "={{ new Date().getTimezoneOffset() }}", type: "number" }] }, options: {} } },
+      ],
+      connections: { "Every morning": { main: [[{ node: "Stamp", type: "main", index: 0 }]] } },
+    };
+    writeFileSync(join(dir, "tz.json"), JSON.stringify(wf));
+    const run = (args, env = {}) => spawnSync(process.execPath, args, { encoding: "utf8", env: { ...process.env, ...env } });
+    assert.equal(run([join(SKILL, "scripts/convert.mjs"), join(dir, "tz.json"), "--out", join(dir, "flows")]).status, 0);
+    assert.equal(run([join(SKILL, "scripts/task.mjs"), "setup", join(dir, "flows", "zone-check"), "--local", "--dir", join(dir, "try")]).status, 0);
+    const r = run([join(dir, "try", "runtime", "runner.mjs"), "start", "--dry-run"], { TZ: "UTC" });
+    assert.match(r.stdout, /^DONE/m, r.stdout + r.stderr);
+    const records = spawnSync("grep", ["-rho", '"offset": *-\\?[0-9]*', join(dir, "try", ".n8m")], { encoding: "utf8" }).stdout;
+    assert.match(records, /"offset": -480/, "Singapore is UTC+8: offset -480 minutes");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
