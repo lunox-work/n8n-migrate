@@ -2592,8 +2592,11 @@ export function skillMd(def, refs, slug) {
   const title = cleanTitle(def.name);
   const tools = connectorToolNames(def, refs);
   // The skill's folder: CLAUDE_SKILL_DIR is not set for a skill's hook command (observed on
-  // 2.1.323: node got "/runtime/hook.mjs"), so look in the project's and the user's skills.
-  const find = `d="\${CLAUDE_SKILL_DIR:-}"; [ -f "$d/runtime/hook.mjs" ] || d="$CLAUDE_PROJECT_DIR/.claude/skills/${name}"; [ -f "$d/runtime/hook.mjs" ] || d="$HOME/.claude/skills/${name}"; `;
+  // 2.1.323: node got "/runtime/hook.mjs"), so look in the project's and the user's skills,
+  // then where claude.ai keeps an uploaded skill (/mnt/skills/<user|plugins|…>/<name>; observed
+  // 2026-11-20: a chat runs the skill's hooks, with HOME=/root and no skill there, so the hook
+  // was not found and, failing closed, refused every call of the migrated skill).
+  const find = `d="\${CLAUDE_SKILL_DIR:-}"; [ -f "$d/runtime/hook.mjs" ] || d="$CLAUDE_PROJECT_DIR/.claude/skills/${name}"; [ -f "$d/runtime/hook.mjs" ] || d="$HOME/.claude/skills/${name}"; [ -f "$d/runtime/hook.mjs" ] || for c in /mnt/skills/*/${name}; do [ -f "$c/runtime/hook.mjs" ] && d="$c" && break; done; `;
   const hook = (which) => [`    - matcher: ${yamlString(HOOK_MATCHER)}`, "      hooks:", "        - type: command", `          command: ${yamlString(find + hookCommand("$d/runtime/hook.mjs", which))}`, "          timeout: 30"];
   return [
     "---",

@@ -421,6 +421,17 @@ test("a chat workflow gets a self-contained skill; run from a project root it pr
     const md = readFileSync(join(sk, "SKILL.md"), "utf8");
     assert.match(md, /^---\nname: n8n-inbox-assistant-chat\ndescription: "Runs the migrated n8n chat workflow \\"Inbox assistant chat\\" on Claude/);
     assert.match(md, /command: "d=\\"\$\{CLAUDE_SKILL_DIR:-\}\\"; .*\$CLAUDE_PROJECT_DIR\/\.claude\/skills\/n8n-inbox-assistant-chat.*node \\"\$d\/runtime\/hook\.mjs\\" pre \|\| exit 2"/);
+    // claude.ai keeps an uploaded skill under /mnt/skills/<user|plugins|…>/<name>, with no
+    // CLAUDE_SKILL_DIR and a HOME that has no skills (observed 2026-11-20): the command looks
+    // there last. Run with that folder moved under a temp root: it finds the skill's hook.
+    const cmd = JSON.parse(/command: ("d=.*hook\.mjs\\" pre \|\| exit 2")/.exec(md)[1]);
+    assert.ok(cmd.includes("for c in /mnt/skills/*/n8n-inbox-assistant-chat; do"));
+    const mnt = join(dir, "mnt-skills");
+    mkdirSync(join(mnt, "user"), { recursive: true });
+    cpSync(sk, join(mnt, "user/n8n-inbox-assistant-chat"), { recursive: true });
+    const locate = (root) => spawnSync("sh", ["-c", `${cmd.slice(0, cmd.indexOf("node "))} printf %s "$d"`.replaceAll("/mnt/skills", root)], { encoding: "utf8", env: { PATH: process.env.PATH, HOME: join(dir, "empty-home"), CLAUDE_PROJECT_DIR: join(dir, "no-project") } }).stdout;
+    assert.equal(locate(mnt), join(mnt, "user/n8n-inbox-assistant-chat"));
+    assert.ok(!existsSync(join(locate(join(dir, "nowhere")), "runtime/hook.mjs")), "not installed anywhere: no hook is found, so the pre hook fails closed");
     // The hook command, run by a shell as Claude Code does, finds the installed skill and fails closed.
     assert.match(md, /allowed-tools: "Bash\(node \*runtime\/runner\.mjs \*\), Write, Read, mcp__claude_ai_Gmail__search_threads, mcp__claude_ai_Slack__slack_send_message"/);
     assert.deepEqual(readJson(join(sk, "task.json")).store, { kind: "file" });
