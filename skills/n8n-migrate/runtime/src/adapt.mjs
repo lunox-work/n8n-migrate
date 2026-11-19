@@ -49,7 +49,7 @@
 // are new; the next cursor is the greatest field value seen and the ids at that value. The
 // template puts the cursor into one tool argument: {value}, {seconds} (epoch seconds),
 // {iso}. Missed runs collapse into one run that reads everything after the cursor, never
-// "since the last interval" (PLAN Phase 4).
+// "since the last interval".
 
 import { isObject, deepCopy, NodeError } from "./util.mjs";
 import { readShape, parseAddressList } from "./shapes.mjs";

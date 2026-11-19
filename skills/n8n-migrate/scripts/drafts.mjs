@@ -1,4 +1,4 @@
-// Convert-time drafts (PLAN status 2026-11-17, "convert-time drafts"; references/translation.md
+// Convert-time drafts (experimental, never offered: evals/bench/P137-RESULT.md; references/translation.md
 // "Drafted request templates and tool maps"): the rules a drafted app REST request template or
 // connector tool map must meet before it goes into a folder's overrides.json `drafts`, checked
 // in code. Shared by convert.mjs (which re-checks every stored draft each time it converts, so a

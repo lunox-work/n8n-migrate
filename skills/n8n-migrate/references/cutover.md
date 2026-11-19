@@ -1,6 +1,6 @@
 # Cutover
 
-Moving one converted workflow from n8n to its Claude target, and back (PLAN Phase 7). Files: `scripts/cutover.mjs` (the steps), `scripts/n8n-api.mjs` (n8n's API and static data), `runtime/src/records.mjs` (log, checklist), `runtime/src/driver.mjs` (dry run, gate), `evals/cutover/e2e.mjs` (the done test, in the repo).
+Moving one converted workflow from n8n to its Claude target, and back. Files: `scripts/cutover.mjs` (the steps), `scripts/n8n-api.mjs` (n8n's API and static data), `runtime/src/records.mjs` (log, checklist), `runtime/src/driver.mjs` (dry run, gate), `evals/cutover/e2e.mjs` (the done test, in the repo).
 
 ## Rule
 

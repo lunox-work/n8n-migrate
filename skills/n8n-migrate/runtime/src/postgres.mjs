@@ -17,7 +17,7 @@
 //   every other column comes parsed as pg's default parsers (pg-types 2.2.0) give it, which is
 //   what n8n's pg-promise sees. Timestamps are made ISO here, as n8n's per-connection type
 //   parsers do, with a timestamp without a zone read in the workflow's zone (n8n's process reads
-//   it in its own zone, which on n8n's default set-up is the same; see PLAN known gaps).
+//   it in its own zone, which on n8n's default set-up is the same; see docs/DESIGN.md known gaps).
 //
 // The host (pgclient.mjs: the task driver, or a bench host) runs the texts with node-postgres.
 // Behaviour read from n8n 2.47.7's Postgres v2 node in the bench image: per item the query

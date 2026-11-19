@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Cutover and rollback for one converted workflow folder (PLAN Phase 7; the contract is
+// Cutover and rollback for one converted workflow folder (the contract is
 // references/cutover.md). Zero dependencies.
 //
 //   cutover.mjs <folder> <step> [--json] [--force] [step flags]

@@ -41,7 +41,7 @@
 //
 // --regenerate rebuilds definition.json, runtime/, report.json and MIGRATION.md from the
 // stored source.n8n.json and overrides.json with the current skill, so a runner or converter
-// fix reaches workflows that were already migrated (PLAN Phase 3).
+// fix reaches workflows that were already migrated.
 //
 // Rules this file follows:
 // - No model. Node operations are translated from references/tool-maps.json and
