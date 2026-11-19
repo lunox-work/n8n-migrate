@@ -222,3 +222,51 @@ test("migrate.mjs: a known timezone answers the schedule's timezone question ins
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// A search service with a key is the only thing Claude Code would be needed for: the person is
+// asked whether Claude may search itself, and the answer moves the workflow (plain.mjs SWAP).
+test("migrate.mjs: a SerpAPI search tool asks to use Claude's search; yes makes the workflow ready", () => {
+  const LC = "@n8n/n8n-nodes-langchain.";
+  const flow = {
+    id: "srch1",
+    name: "Research chat",
+    active: false,
+    nodes: [
+      { parameters: {}, name: "Chat", type: LC + "chatTrigger", typeVersion: 1.1, position: [0, 0] },
+      { parameters: { options: {} }, name: "Agent", type: LC + "agent", typeVersion: 1.7, position: [200, 0] },
+      { parameters: { model: "gpt-4o", options: {} }, name: "Model", type: LC + "lmChatOpenAi", typeVersion: 1, position: [100, 200] },
+      { parameters: { options: {} }, name: "Search", type: LC + "toolSerpApi", typeVersion: 1, position: [300, 200], credentials: { serpApi: { id: "1", name: "SerpAPI account" } } },
+    ],
+    connections: {
+      Chat: { main: [[{ node: "Agent", type: "main", index: 0 }]] },
+      Model: { ai_languageModel: [[{ node: "Agent", type: "ai_languageModel", index: 0 }]] },
+      Search: { ai_tool: [[{ node: "Agent", type: "ai_tool", index: 0 }]] },
+    },
+    settings: { executionOrder: "v1" },
+  };
+  const dir = mkdtempSync(join(tmpdir(), "n8m-plain-search-"));
+  try {
+    writeFileSync(join(dir, "flow.json"), JSON.stringify(flow));
+    const go = (...extra) => spawnSync(process.execPath, [MIGRATE, join(dir, "flow.json"), "--out", join(dir, "out"), "--json", ...extra], { encoding: "utf8" });
+    const first = go();
+    assert.equal(first.status, 0, first.stderr);
+    const plan = JSON.parse(first.stdout);
+    assert.deepEqual(plan.counts, { ready: 0, needs: 1, stays: 0 });
+    const [todo] = plan.groups.needs[0].todo;
+    assert.deepEqual([todo.kind, todo.id, todo.ids, todo.assumed], ["question", "srch1/search-with/Search", ["srch1/search-with/Search"], "keep"]);
+    assert.match(todo.text, /searches the web with SerpAPI and your own key\. Let Claude search the web itself instead\?/);
+    assert.deepEqual(todo.options.map((o) => o.value), ["claude", "keep"]);
+    assert.equal(plan.groups.needs[0].developer, false);
+    // No: it stays, as something a developer can move. Yes: ready, with no key and no request of ours.
+    writeFileSync(join(dir, "a.json"), JSON.stringify({ "srch1/search-with/Search": "keep" }));
+    const kept = JSON.parse(go("--answers", join(dir, "a.json")).stdout);
+    assert.deepEqual([kept.counts, kept.groups.stays[0].developer], [{ ready: 0, needs: 0, stays: 1 }, true]);
+    writeFileSync(join(dir, "a.json"), JSON.stringify({ "srch1/search-with/Search": "claude" }));
+    const yes = JSON.parse(go("--answers", join(dir, "a.json")).stdout);
+    assert.deepEqual(yes.counts, { ready: 1, needs: 0, stays: 0 });
+    const def = readJson(join(dir, "out", "flows", yes.groups.ready[0].folder, "definition.json"));
+    assert.deepEqual([def.secrets, def.allow.http, def.allow.tools], [[], [], [{ connector: "claude", tool: "WebSearch" }]]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

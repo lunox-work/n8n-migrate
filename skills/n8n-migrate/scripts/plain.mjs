@@ -195,6 +195,16 @@ export function plainQuestion(q, w, { timezone } = {}) {
       ],
       assumed: null,
     };
+  if (kind === "search-with")
+    return {
+      ...base,
+      text: `The step ${q1(node)} searches the web with SerpAPI and your own key. Let Claude search the web itself instead? Its results can differ a little.`,
+      options: [
+        { value: "claude", label: "Yes, use Claude's search" },
+        { value: "keep", label: "No, keep SerpAPI" },
+      ],
+      assumed: q.assumed,
+    };
   if (kind === "timezone") {
     if ((w.schedule?.shortestIntervalSec ?? 0) < 86400) return null;
     return { ...base, text: `Which timezone should ${q1(w.name)} run in?`, options: [{ value: timezone ?? q.assumed, label: timezone ?? q.assumed }], assumed: timezone ?? q.assumed, free: true };
@@ -269,6 +279,7 @@ function stayWhy(w) {
 //   whatIf(w, {id: value}): whether that answer would let a person without Claude Code move it
 //   (plainReport builds it from a re-analysis); without it every rescue question is shown.
 const RESCUE = new Set(["chat-app-users", "endpoint-callers", "chat-outsiders", "form-outsiders", "mcp-only-client"]);
+const SWAP = new Set(["search-with"]);
 export function plainWorkflow(w, { conv = null, steps = null, answers = {}, connected = null, timezone = null, whatIf = null } = {}) {
   const o = w.outcome;
   const out = { id: w.id, name: w.name, group: "stays", runs: null, says: "", why: null, todo: [], fix: [], developer: false, folder: conv?.folder ?? null, unverified: [] };
@@ -325,6 +336,14 @@ export function plainWorkflow(w, { conv = null, steps = null, answers = {}, conn
   const wake = w.wakeup?.kind;
   const every = w.schedule?.shortestIntervalSec ?? null;
   if (devKinds.length) {
+    // A swap to something Claude has built in (its own web search for a search service with a
+    // key) that would let it move: ask that, instead of sending the person to a developer.
+    const swaps = shown.filter((q) => SWAP.has(q.id.split("/")[1]) && whatIf && q.options.some((op) => op.value !== q.assumed && whatIf(w, Object.fromEntries(q.ids.map((id) => [id, op.value])))));
+    if (swaps.length) {
+      out.group = "needs";
+      out.todo.push(...swaps.map((q) => ({ kind: "question", ...q })));
+      return out;
+    }
     out.developer = true;
     const typeOf = new Map((w.credentials ?? []).map((c) => [c.name, c.type]));
     const apps = [...new Set((w.requires ?? []).filter((r) => r.kind === "secret").map((r) => credentialApp(r.name, typeOf.get(r.name))))];
