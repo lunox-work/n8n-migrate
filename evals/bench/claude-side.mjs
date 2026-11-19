@@ -9,7 +9,7 @@
 //   approveDraftedWrites(f)    PROPOSALS P137 amendment 2, arm B+approved: the bench's default
 //                              answer `approve: drafted-write:<step>` for each drafted write
 //   reuseDrafts(other, f, tag) arm B+approved on arm B's drafts (--drafts-from), no model call
-//   convertSkill(id, out)      one headless skill run (claude -p sonnet, N2C_HEADLESS=1) on the
+//   convertSkill(id, out)      one headless skill run (claude -p sonnet, N8M_HEADLESS=1) on the
 //                              raw template: no retry, no hand edit; its folder is under test
 //   runInProcess(folder, ...)  the definition through the runner, every request answered by the
 //                              bench: connector calls by the fixture (schema-checked like the
@@ -27,7 +27,7 @@ import { checkSchema, schemaFile } from "../mocks/mcp-server.mjs";
 import { connectorDefault, connectorRefusal, countsAsSend, limitErrors, pageResult } from "../mocks/limits.mjs";
 import { answerOf, callsByIndex, formatOf, liveAnswer, normalize, normalizeRunnerRequest, pairRecorded, providerResponse, runnerValue } from "./model-shim.mjs";
 import { claudeP } from "./claude.mjs";
-import { redactSecrets } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
+import { redactSecrets } from "../../skills/n8n-migrate/scripts/analyze.mjs";
 import { modelConsumers, containerPath, N8N_HOME } from "./n8n-side.mjs";
 import { maskRunTime, fromTool, fromHttp, keyOf, table } from "./compare.mjs";
 import { CLAUDE_PG, claudeConnectionUrl, collectClaudeRun, dbPlan, ensureClaudeDatabase, seedClaudeRun } from "../n8n/databases.mjs";
@@ -35,7 +35,7 @@ import { ENV as N8N_ENV } from "../n8n/container.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
-const SKILL = join(ROOT, "skills", "n8n-to-claude");
+const SKILL = join(ROOT, "skills", "n8n-migrate");
 const templatePath = (id) => join(HERE, "data", "wf", `${id}.json`);
 
 // The workflow folder convert wrote (the one with report.json), or null.
@@ -169,27 +169,27 @@ function mergeFill(target, patch) {
 export async function convertSkill(id, out, { model = "sonnet", budgetUsd = 4, log = console.error } = {}) {
   // The session runs in a temp folder with no .claude above it (as evals/task-driver does);
   // the result is copied to <out>/project afterwards.
-  const proj = join(mkdtempSync(join(tmpdir(), "n2c-bench-skill-")), "project");
+  const proj = join(mkdtempSync(join(tmpdir(), "n8m-bench-skill-")), "project");
   rmSync(out, { recursive: true, force: true });
   mkdirSync(join(proj, ".claude", "skills"), { recursive: true });
-  cpSync(SKILL, join(proj, ".claude", "skills", "n8n-to-claude"), { recursive: true });
+  cpSync(SKILL, join(proj, ".claude", "skills", "n8n-migrate"), { recursive: true });
   cpSync(templatePath(id), join(proj, "workflow.json"));
   const settings = {
     permissions: {
       defaultMode: "dontAsk",
-      allow: ["Skill(n8n-to-claude)", "Bash(node *)", "Bash(ls *)", "Bash(cat *)", "Bash(mkdir *)", "Read", "Write", "Edit", "Glob", "Grep"],
+      allow: ["Skill(n8n-migrate)", "Bash(node *)", "Bash(ls *)", "Bash(cat *)", "Bash(mkdir *)", "Read", "Write", "Edit", "Glob", "Grep"],
       deny: ["WebFetch", "WebSearch"],
     },
   };
   mkdirSync(out, { recursive: true });
   const settingsFile = join(out, "settings.json");
   writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
-  const prompt = "Use the n8n-to-claude skill to migrate the n8n workflow in workflow.json (in this folder) to Claude. Write the migrated repository to the folder ./repo. Headless mode is on (N2C_HEADLESS=1): ask nothing and take the defaults. Finish with a short summary.\n\nThis sandbox allows Bash only for plain node, ls, cat and mkdir commands: run each script as its own command (node .claude/skills/n8n-to-claude/scripts/<script> ...), with no cd, no variables, no && or ;.";
+  const prompt = "Use the n8n-migrate skill to migrate the n8n workflow in workflow.json (in this folder) to Claude. Write the migrated repository to the folder ./repo. Headless mode is on (N8M_HEADLESS=1): ask nothing and take the defaults. Finish with a short summary.\n\nThis sandbox allows Bash only for plain node, ls, cat and mkdir commands: run each script as its own command (node .claude/skills/n8n-migrate/scripts/<script> ...), with no cd, no variables, no && or ;.";
   const t0 = Date.now();
   let r;
   let error = null;
   try {
-    r = await claudeP({ prompt, model, purpose: `skill-convert ${id}`, cwd: proj, budgetUsd, timeoutMs: 1_500_000, env: { N2C_HEADLESS: "1" }, args: ["--settings", settingsFile, "--setting-sources", "project", "--allowedTools", ...settings.permissions.allow], log });
+    r = await claudeP({ prompt, model, purpose: `skill-convert ${id}`, cwd: proj, budgetUsd, timeoutMs: 1_500_000, env: { N8M_HEADLESS: "1" }, args: ["--settings", settingsFile, "--setting-sources", "project", "--allowedTools", ...settings.permissions.allow], log });
   } catch (e) {
     if (e.constructor?.name === "BudgetExceeded" || e.constructor?.name === "UsageLimit") throw e;
     error = e.message;
@@ -1022,7 +1022,7 @@ export const CODE_NODE_TZ = "UTC";
 // PROPOSALS P140: a native Date in an expression runs in n8n's main process, whose zone is the
 // container's TZ (America/New_York), not the task runner's. The runtime gives expressions a Date
 // in that zone (engine.mjs expressionZone, runtime/src/zoneddate.mjs): runInProcess() passes it,
-// the claude driver's session gets it as N2C_EXPRESSION_TZ (sessionEnv). Code nodes keep
+// the claude driver's session gets it as N8M_EXPRESSION_TZ (sessionEnv). Code nodes keep
 // CODE_NODE_TZ, Luxon the workflow's zone.
 export const EXPRESSION_TZ = N8N_ENV.TZ;
 

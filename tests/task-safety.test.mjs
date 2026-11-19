@@ -1,6 +1,6 @@
 // Task driver run safety (PLAN Phase 4), driven exactly as a session would: the runner CLI and
 // the hooks as processes, fed the JSON Claude Code sends, with a scripted "model". A killed
-// session is simulated by deleting the checkout's .n2c/ (a cloud task's next checkout is new)
+// session is simulated by deleting the checkout's .n8m/ (a cloud task's next checkout is new)
 // while the record store survives (a file store outside the folder, or the git branch).
 // No model is called.
 import { test } from "node:test";
@@ -10,8 +10,8 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync, execFileSync } from "node:child_process";
-import { convertItems, writeFolder, loadReferences } from "../skills/n8n-to-claude/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
+import { convertItems, writeFolder, loadReferences } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
 import { CANNED } from "./convert-mocks.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -22,7 +22,7 @@ const writeJson = (p, v) => writeFileSync(p, JSON.stringify(v, null, 2) + "\n");
 const GIT_ENV = { GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.com", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.com", GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_GLOBAL: "/dev/null" };
 
 function folderFor(file, { mutate, task } = {}) {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-safe-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-safe-"));
   const [res] = convertItems(loadInput(join(ROOT, file)).items, { refs, now: NOW });
   if (mutate) mutate(res.definition);
   const folder = writeFolder(dir, res, { refs });
@@ -95,7 +95,7 @@ function session(folder, { tools = {}, answer = () => "Summary: ok" } = {}) {
   };
   return s;
 }
-const wipeCheckout = (folder) => rmSync(join(folder, ".n2c"), { recursive: true, force: true });
+const wipeCheckout = (folder) => rmSync(join(folder, ".n8m"), { recursive: true, force: true });
 const slackWrites = (s) => s.sent.filter((c) => c.tool === "slack_send_message" && c.args.channel_id === "C0123456789");
 const alerts = (s) => s.sent.filter((c) => c.tool === "slack_send_message" && c.args.channel_id === "U0ME");
 
@@ -106,7 +106,7 @@ test("an interrupted run is resumed first with the same run id, nothing is sent 
     let out = runner(folder, ["start", "--clock", "2026-11-14T00:00:00Z"]).out;
     // Run up to the second Slack write: the first went out and is in the ledger as sent.
     out = s.until(out, (o) => /^NEXT: call one tool/m.test(o) && slackWrites(s).length === 1);
-    const runId = readJson(join(folder, ".n2c/run.json")).runId;
+    const runId = readJson(join(folder, ".n8m/run.json")).runId;
     const ledger = readdirSync(join(dir, "state/ledger")).map((f) => readJson(join(dir, "state/ledger", f)));
     assert.deepEqual(ledger.map((e) => e.status), ["sent"]);
     assert.ok(existsSync(join(dir, "state", `runs/${runId}/state/current.json`)), "the open run's state is in the store");
@@ -124,7 +124,7 @@ test("an interrupted run is resumed first with the same run id, nothing is sent 
     assert.equal(existsSync(join(dir, "state", `runs/${runId}/state/current.json`)), false, "the open state is dropped when the run ends");
     // The new run follows in the same session, with a new run id.
     assert.match(out, /NEXT: call one tool \(request q1, step "Get unread mail"\)/);
-    assert.notEqual(readJson(join(folder, ".n2c/run.json")).runId, runId);
+    assert.notEqual(readJson(join(folder, ".n8m/run.json")).runId, runId);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -153,7 +153,7 @@ test("a write cut off between sending and sent stops the run: alert once, never 
     const again = runner(folder, ["start"]).out;
     assert.match(again, /STOPPED/);
     assert.doesNotMatch(again, /NEXT/);
-    const run = readJson(join(folder, ".n2c/run.json"));
+    const run = readJson(join(folder, ".n8m/run.json"));
     assert.equal(readJson(join(dir, "state", `runs/${run.runId}.json`)).status, "needs-check");
     // A session cannot resolve it (no terminal); the person can.
     assert.match(runner(folder, ["resolve", key, "resend"]).out, /in a terminal/);
@@ -181,7 +181,7 @@ test("a failed run hands out the fixed-template alert before FAILED; missed runs
     assert.match(out, /^FAILED: run \S+ stopped at "Get unread mail": the tool answered with text/);
     assert.match(out, /An alert was sent\./);
     assert.equal(alerts(s).length, 1);
-    assert.equal(alerts(s)[0].args.message, `n8n-to-claude: run ${readJson(join(folder, ".n2c/run.json")).runId} of "Morning mail digest" failed at step "Get unread mail" (NodeError). The run record has the details; nothing after that step ran.`);
+    assert.equal(alerts(s)[0].args.message, `n8n-migrate: run ${readJson(join(folder, ".n8m/run.json")).runId} of "Morning mail digest" failed at step "Get unread mail" (NodeError). The run record has the details; nothing after that step ran.`);
     assert.doesNotMatch(JSON.stringify(s.sent), /C0GENERAL"/, "no call outside the definition");
     // Three days later: the daily 08:00 SGT schedule missed two runs.
     const s2 = session(folder);
@@ -192,7 +192,7 @@ test("a failed run hands out the fixed-template alert before FAILED; missed runs
     assert.match(out, /NEXT: call one tool \(request q1, step "Get unread mail"\)/, "the run goes ahead after the alert");
     out = s2.until(out);
     assert.match(out, /^DONE: .*Before it, 2 scheduled run\(s\) since 2026-11-14T00:00:00.000Z were missed\./);
-    const rec = readJson(join(folder, ".n2c/records/runs", `${readJson(join(folder, ".n2c/run.json")).runId}.json`));
+    const rec = readJson(join(folder, ".n8m/records/runs", `${readJson(join(folder, ".n8m/run.json")).runId}.json`));
     assert.equal(rec.missed.count, 2);
     // Without a channel, the final line is the alert.
     const plain = folderFor("tests/fixtures/convert/slice.n8n.json");
@@ -204,8 +204,8 @@ test("a failed run hands out the fixed-template alert before FAILED; missed runs
   }
 });
 
-test("git store: state, ledger and cursors go to the n2c-state branch; a fresh clone resumes the run", () => {
-  const base = mkdtempSync(join(tmpdir(), "n2c-git-"));
+test("git store: state, ledger and cursors go to the n8m-state branch; a fresh clone resumes the run", () => {
+  const base = mkdtempSync(join(tmpdir(), "n8m-git-"));
   try {
     const git = (cwd, ...a) => execFileSync("git", a, { cwd, encoding: "utf8", env: { ...process.env, ...GIT_ENV }, stdio: ["ignore", "pipe", "pipe"] }).trim();
     git(base, "init", "--quiet", "--bare", "-b", "main", "origin.git");
@@ -222,7 +222,7 @@ test("git store: state, ledger and cursors go to the n2c-state branch; a fresh c
     let out = runner(f1, ["start", "--clock", "2026-11-14T00:00:00Z"]).out;
     out = s.until(out, (o) => /^NEXT: call one tool/m.test(o) && slackWrites(s).length === 1);
     git(work1, "fetch", "--quiet", "origin");
-    const tree = git(work1, "ls-tree", "-r", "--name-only", "origin/n2c-state").split("\n");
+    const tree = git(work1, "ls-tree", "-r", "--name-only", "origin/n8m-state").split("\n");
     assert.ok(tree.some((f) => /^digest\/ledger\/.+\.json$/.test(f)), tree.join(","));
     assert.ok(tree.some((f) => /^digest\/runs\/[^/]+\/state\/current\.json$/.test(f)));
     assert.ok(tree.includes("digest/meta/open.json"));
@@ -237,7 +237,7 @@ test("git store: state, ledger and cursors go to the n2c-state branch; a fresh c
     out = s2.until(out, (o) => /Now the new run/.test(o));
     assert.equal(slackWrites(s2).length, 1);
     git(join(base, "work2"), "fetch", "--quiet", "origin");
-    const after = git(join(base, "work2"), "ls-tree", "-r", "--name-only", "origin/n2c-state").split("\n");
+    const after = git(join(base, "work2"), "ls-tree", "-r", "--name-only", "origin/n8m-state").split("\n");
     assert.equal(after.filter((f) => /\/state\/current\.json$/.test(f)).length, 1, "only the new run is open");
     assert.ok(after.includes("digest/meta/schedule.json"));
   } finally {
@@ -245,8 +245,8 @@ test("git store: state, ledger and cursors go to the n2c-state branch; a fresh c
   }
 });
 
-test("git store with artifactDb: records stay on n2c-state and the finished run is mirrored to the artifact in one batch", () => {
-  const base = mkdtempSync(join(tmpdir(), "n2c-git-mirror-"));
+test("git store with artifactDb: records stay on n8m-state and the finished run is mirrored to the artifact in one batch", () => {
+  const base = mkdtempSync(join(tmpdir(), "n8m-git-mirror-"));
   try {
     const git = (cwd, ...a) => execFileSync("git", a, { cwd, encoding: "utf8", env: { ...process.env, ...GIT_ENV }, stdio: ["ignore", "pipe", "pipe"] }).trim();
     git(base, "init", "--quiet", "--bare", "-b", "main", "origin.git");
@@ -265,7 +265,7 @@ test("git store with artifactDb: records stay on n2c-state and the finished run 
     const printed = [];
     const out = s.until(runner(f, ["start", "--clock", "2026-11-14T00:00:00Z"]).out, (o) => (printed.push(o), false));
     assert.match(out, /^DONE/m);
-    assert.ok(printed.some((o) => /Tool: ArtifactData\nArguments, exactly as written \(JSON\):\n\{"n2c":"a\d+"\}/.test(o)), "the mirror batch is printed as a placeholder from the first call");
+    assert.ok(printed.some((o) => /Tool: ArtifactData\nArguments, exactly as written \(JSON\):\n\{"n8m":"a\d+"\}/.test(o)), "the mirror batch is printed as a placeholder from the first call");
     const batches = s.sent.filter((c) => c.tool === "ArtifactData");
     assert.equal(batches.length, 1);
     assert.equal(batches[0].args.action, "batch");
@@ -273,7 +273,7 @@ test("git store with artifactDb: records stay on n2c-state and the finished run 
     const runId = /run (\S+) finished/.exec(out)[1];
     assert.deepEqual(batches[0].args.writes.map((w) => [w.op, w.collection, w.doc_id, w.data.status]), [["set", "runs", runId, "done"]]);
     git(work, "fetch", "--quiet", "origin");
-    const tree = git(work, "ls-tree", "-r", "--name-only", "origin/n2c-state").split("\n");
+    const tree = git(work, "ls-tree", "-r", "--name-only", "origin/n8m-state").split("\n");
     assert.ok(tree.includes(`digest/runs/${runId}.json`), "the record itself stays in the git store");
     assert.ok(tree.some((x) => /^digest\/ledger\/.+\.json$/.test(x)), "so does the ledger");
   } finally {
@@ -292,10 +292,10 @@ test("a scheduled poll run works from the scheduled cursor in the store and save
   try {
     const s = session(folder);
     s.until(runner(folder, ["start", "--clock", "2026-11-14T00:00:00Z"]).out);
-    const cursors = readdirSync(join(folder, ".n2c/records/cursors"));
+    const cursors = readdirSync(join(folder, ".n8m/records/cursors"));
     assert.equal(cursors.length, 1);
     assert.match(cursors[0], /^c-/, "the scheduled cursor document");
-    const doc = readJson(join(folder, ".n2c/records/cursors", cursors[0]));
+    const doc = readJson(join(folder, ".n8m/records/cursors", cursors[0]));
     assert.equal(doc.kind, "scheduled");
     s.until(runner(folder, ["start", "--force", "--clock", "2026-11-14T01:00:00Z"]).out);
     const queries = s.sent.filter((c) => c.tool === "search_threads").map((c) => c.args.query);
@@ -318,25 +318,25 @@ test("chat: one message runs the chat trigger with a session id; the reply is pr
         return JSON.stringify({ intent: "tool-calls", calls: [{ name: "Search_mail", args: { query: "from:ann" } }] });
       },
     });
-    mkdirSync(join(folder, ".n2c/inbox"), { recursive: true });
-    writeFileSync(join(folder, ".n2c/inbox/chat.txt"), "What did Ann send?");
+    mkdirSync(join(folder, ".n8m/inbox"), { recursive: true });
+    writeFileSync(join(folder, ".n8m/inbox/chat.txt"), "What did Ann send?");
     let out = runner(folder, ["chat", "--new-session"]).out;
     out = s.until(out);
     assert.match(out, /^DONE: run \S+ finished \(0 write\(s\)\)\.\nGive the person the workflow's reply below/);
     assert.match(out, /----- REPLY -----\nAnn wrote about Invoice 42\.\n----- END REPLY -----/);
-    const session1 = readJson(join(folder, ".n2c/chat-session.json")).id;
-    const state = readJson(join(folder, ".n2c/run.json"));
+    const session1 = readJson(join(folder, ".n8m/chat-session.json")).id;
+    const state = readJson(join(folder, ".n8m/run.json"));
     assert.equal(state.trigger.items[0].json?.sessionId ?? state.trigger.items[0].sessionId, session1);
-    assert.equal(state.n2c.trigger, "chat");
-    assert.ok(readdirSync(join(folder, ".n2c/memory")).some((f) => f.includes(session1)), "memory keyed by the session");
+    assert.equal(state.n8m.trigger, "chat");
+    assert.ok(readdirSync(join(folder, ".n8m/memory")).some((f) => f.includes(session1)), "memory keyed by the session");
     assert.deepEqual(s.sent.map((c) => c.tool), ["search_threads"]);
     // The next message keeps the session; a message while one is in flight is refused.
-    writeFileSync(join(folder, ".n2c/inbox/chat.txt"), "And Bo?");
+    writeFileSync(join(folder, ".n8m/inbox/chat.txt"), "And Bo?");
     out = runner(folder, ["chat"]).out;
     assert.match(out, /NEXT: take one agent turn yourself/);
     assert.match(out, /EARLIER CONVERSATION/);
     assert.match(runner(folder, ["chat", "--text", "third"]).out, /still being handled/);
-    assert.equal(readJson(join(folder, ".n2c/chat-session.json")).id, session1);
+    assert.equal(readJson(join(folder, ".n8m/chat-session.json")).id, session1);
     assert.ok(turn >= 2);
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -373,8 +373,8 @@ test("poll-submissions: refused without the artifact-db flag; with it, each subm
   }
 });
 
-test("several workflow folders in one repo: root settings are the union, n2c-hook.mjs routes each call to its folder", () => {
-  const out = mkdtempSync(join(tmpdir(), "n2c-repo-"));
+test("several workflow folders in one repo: root settings are the union, n8m-hook.mjs routes each call to its folder", () => {
+  const out = mkdtempSync(join(tmpdir(), "n8m-repo-"));
   try {
     const items = [...loadInput(join(ROOT, "tests/fixtures/convert/slice.n8n.json")).items, ...loadInput(join(ROOT, "tests/fixtures/form-public.json")).items];
     const results = convertItems(items, { refs, now: NOW });
@@ -383,7 +383,7 @@ test("several workflow folders in one repo: root settings are the union, n2c-hoo
     const root = readJson(join(out, ".claude/settings.json"));
     for (const s of slugs) {
       assert.ok(root.permissions.allow.includes(`Bash(node ${s}/runtime/runner.mjs *)`));
-      assert.ok(root.permissions.allow.includes(`Edit(${s}/.n2c/inbox/**)`));
+      assert.ok(root.permissions.allow.includes(`Edit(${s}/.n8m/inbox/**)`));
     }
     assert.ok(root.permissions.allow.includes("mcp__claude_ai_Gmail__send_message") && root.permissions.allow.includes("mcp__Slack__slack_send_message"));
     // A session started at the repo root: commands are printed with the folder path.
@@ -391,14 +391,14 @@ test("several workflow folders in one repo: root settings are the union, n2c-hoo
     const r = spawnSync(process.execPath, [join(digest, "runtime/runner.mjs"), "start"], { cwd: out, encoding: "utf8" });
     assert.match(r.stdout, new RegExp(`run: node ${slugs[0]}/runtime/runner.mjs next`));
     const dispatch = (which, input) => {
-      const x = spawnSync(process.execPath, [join(out, "n2c-hook.mjs"), which], { cwd: out, encoding: "utf8", input: JSON.stringify({ cwd: out, ...input }) });
+      const x = spawnSync(process.execPath, [join(out, "n8m-hook.mjs"), which], { cwd: out, encoding: "utf8", input: JSON.stringify({ cwd: out, ...input }) });
       assert.equal(x.status, 0, x.stderr);
       return x.stdout.trim() ? JSON.parse(x.stdout) : null;
     };
     // The outstanding Gmail read of the digest run is allowed (no decision: the allowlist decides).
-    const req = readJson(join(digest, ".n2c/run.json")).requests[0];
+    const req = readJson(join(digest, ".n8m/run.json")).requests[0];
     assert.equal(dispatch("pre", { tool_name: "mcp__Gmail__search_threads", tool_input: req.args, tool_use_id: "u1" }), null);
-    assert.ok(existsSync(join(digest, ".n2c/calls/u1.json")), "routed to the digest folder's hook");
+    assert.ok(existsSync(join(digest, ".n8m/calls/u1.json")), "routed to the digest folder's hook");
     // A call no run asked for is denied; so is the right tool with other arguments.
     assert.equal(dispatch("pre", { tool_name: "mcp__Gmail__send_message", tool_input: { to: ["x@example.com"] }, tool_use_id: "u2" }).hookSpecificOutput.permissionDecision, "deny");
     assert.equal(dispatch("pre", { tool_name: "mcp__Gmail__search_threads", tool_input: { query: "in:anywhere" }, tool_use_id: "u3" }).hookSpecificOutput.permissionDecision, "deny");
@@ -406,7 +406,7 @@ test("several workflow folders in one repo: root settings are the union, n2c-hoo
     const post = dispatch("post", { tool_name: "mcp__Gmail__search_threads", tool_input: req.args, tool_use_id: "u1", tool_response: [{ type: "text", text: JSON.stringify(CANNED["gmail.search_threads"](req.args)) }] });
     assert.match(post.hookSpecificOutput.updatedMCPToolOutput[0].text, new RegExp(`Saved as result q1 .*Now run: node ${slugs[0]}/runtime/runner.mjs next`));
     // With no run in progress anywhere, every call is denied.
-    rmSync(join(digest, ".n2c"), { recursive: true, force: true });
+    rmSync(join(digest, ".n8m"), { recursive: true, force: true });
     assert.equal(dispatch("pre", { tool_name: "mcp__Slack__slack_send_message", tool_input: { channel_id: "C1", message: "hi" } }).hookSpecificOutput.permissionDecision, "deny");
   } finally {
     rmSync(out, { recursive: true, force: true });

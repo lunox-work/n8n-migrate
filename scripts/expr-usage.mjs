@@ -25,7 +25,7 @@ const dirs = args.length ? args : [join(ROOT, "evals/survey/data/wf"), ...siblin
 function siblingDirs() {
   const up = resolve(ROOT, "..");
   return readdirSync(up)
-    .filter((d) => d.startsWith("n8n-") && d !== "n8n-to-claude")
+    .filter((d) => d.startsWith("n8n-") && d !== "n8n-migrate")
     .map((d) => join(up, d, "workflows"))
     .filter((d) => existsSync(d) && statSync(d).isDirectory());
 }
@@ -115,7 +115,7 @@ for (const dir of dirs) {
 async function classify() {
   let rt = null;
   try {
-    rt = await import(join(ROOT, "skills/n8n-to-claude/runtime/dist/runner-core.mjs"));
+    rt = await import(join(ROOT, "skills/n8n-migrate/runtime/dist/runner-core.mjs"));
   } catch {}
   const support = rt?.expressionSupport?.();
   const sortObj = (o) => Object.fromEntries(Object.entries(o).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)));

@@ -5,13 +5,13 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { convertItems, loadReferences } from "../skills/n8n-to-claude/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
-import { run } from "../skills/n8n-to-claude/runtime/src/api.mjs";
+import { convertItems, loadReferences } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
+import { run } from "../skills/n8n-migrate/runtime/src/api.mjs";
 
 const LC = "@n8n/n8n-nodes-langchain.";
 function convert(nodes, connections) {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-react-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-react-"));
   const p = join(dir, "wf.json");
   writeFileSync(p, JSON.stringify({ id: "w1", name: "react", nodes, connections, settings: { executionOrder: "v1" } }));
   const res = convertItems(loadInput(p).items, { refs: loadReferences(), now: Date.parse("2026-11-14T00:00:00Z"), forceConvert: true })[0];

@@ -3,9 +3,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { wf, node, start, run, out, CLOCK } from "./runtime-helpers.mjs";
-import { start as startRun, resume, preflight } from "../skills/n8n-to-claude/runtime/src/api.mjs";
-import { BadInput } from "../skills/n8n-to-claude/runtime/src/util.mjs";
-import { hashHex } from "../skills/n8n-to-claude/runtime/src/hash.mjs";
+import { start as startRun, resume, preflight } from "../skills/n8n-migrate/runtime/src/api.mjs";
+import { BadInput } from "../skills/n8n-migrate/runtime/src/util.mjs";
+import { hashHex } from "../skills/n8n-migrate/runtime/src/hash.mjs";
 
 const assign = (...list) => ({ assignments: list.map(([name, type, value]) => ({ id: name, name, type, value })) });
 const setNode = (name, fields, o = {}) => node(name, "set", { assignments: assign(...fields), includeOtherFields: o.keep ?? false, options: {} }, { v: 3.4, ...o });

@@ -51,15 +51,15 @@ const content = new Map(files.map((f) => [f, readFileSync(f, "utf8")]));
 const read = (f) => content.get(f) ?? (existsSync(f) ? readFileSync(f, "utf8") : "");
 
 // Vendor vocabulary: generated or captured files, not written by the loop.
-const VENDOR = [join(SKILLS, "n8n-to-claude", "references", "nodes.json"), ...walk(join(SKILLS, "n8n-to-claude", "references", "connectors"))];
-const NO_ID_CHECK = [join(SKILLS, "n8n-to-claude", "runtime", "vendor"), join(SKILLS, "n8n-to-claude", "runtime", "dist")];
+const VENDOR = [join(SKILLS, "n8n-migrate", "references", "nodes.json"), ...walk(join(SKILLS, "n8n-migrate", "references", "connectors"))];
+const NO_ID_CHECK = [join(SKILLS, "n8n-migrate", "runtime", "vendor"), join(SKILLS, "n8n-migrate", "runtime", "dist")];
 const vendorText = VENDOR.map(read).join("\n");
 // Third-party libraries vendored unmodified (runtime/vendor/<lib>/, files.mjs): a file counts
 // as one only when its SHA-256 is the one its folder's SOURCE.txt records ("sha256 <file>
 // <hex>"), so nothing the loop writes can hide there. They are skipped for ids and fixture
 // strings (SheetJS carries MIME header lines that also occur in fixtures); names stay checked.
 const THIRD_PARTY = new Set();
-const VENDOR_DIR = join(SKILLS, "n8n-to-claude", "runtime", "vendor");
+const VENDOR_DIR = join(SKILLS, "n8n-migrate", "runtime", "vendor");
 if (existsSync(VENDOR_DIR))
   for (const d of readdirSync(VENDOR_DIR).filter((x) => statSync(join(VENDOR_DIR, x)).isDirectory())) {
     const src = join(VENDOR_DIR, d, "SOURCE.txt");

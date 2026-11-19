@@ -1,8 +1,8 @@
 <p align="center">
-  <img src=".claude-plugin/icon.png" width="112" alt="n8n-to-claude: a pink n8n tile handing off to an orange Claude tile">
+  <img src=".claude-plugin/icon.png" width="112" alt="n8n-migrate: a pink n8n tile handing off to an orange Claude tile">
 </p>
 
-<h1 align="center">n8n-to-claude</h1>
+<h1 align="center">n8n-migrate</h1>
 
 <p align="center">
   <strong>Run your n8n workflows in Claude.</strong><br>
@@ -10,22 +10,22 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/n8n-to-claude"><img src="https://img.shields.io/npm/v/n8n-to-claude?style=flat-square&color=111111&label=npm" alt="npm version"></a>
-  <a href="https://github.com/lunox-work/n8n-to-claude/stargazers"><img src="https://img.shields.io/github/stars/lunox-work/n8n-to-claude?style=flat-square&color=111111&label=stars" alt="GitHub stars"></a>
+  <a href="https://www.npmjs.com/package/n8n-migrate"><img src="https://img.shields.io/npm/v/n8n-migrate?style=flat-square&color=111111&label=npm" alt="npm version"></a>
+  <a href="https://github.com/lunox-work/n8n-migrate/stargazers"><img src="https://img.shields.io/github/stars/lunox-work/n8n-migrate?style=flat-square&color=111111&label=stars" alt="GitHub stars"></a>
   <a href="#install"><img src="https://img.shields.io/badge/works_with-Claude_Code_·_Desktop_·_claude.ai-111111?style=flat-square" alt="Works with Claude Code, Claude Desktop and claude.ai"></a>
   <a href="#status-beta"><img src="https://img.shields.io/badge/status-beta-111111?style=flat-square" alt="status: beta"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-111111?style=flat-square" alt="MIT license"></a>
-  <a href="https://skills.sh/lunox-work/n8n-to-claude"><img src="https://skills.sh/b/lunox-work/n8n-to-claude" alt="skills.sh"></a>
+  <a href="https://skills.sh/lunox-work/n8n-migrate"><img src="https://skills.sh/b/lunox-work/n8n-migrate" alt="skills.sh"></a>
 </p>
 
 <!-- Hero figures and their sources: assets/src/index.html (comment at the top). -->
 <p align="center">
-  <img src="assets/hero.png" width="100%" alt="Run your n8n workflows in Claude. Sign in to n8n, and every workflow gets a verdict in a second; the ones that fit become scheduled tasks, skills and artifact pages that Claude runs step by step from code. A flow: your n8n workflow, then the command npx n8n-to-claude with real verdicts (Email summary agent to a cloud task, Suggest meeting slots using AI to a local task, AI agent chat to a skill, Flux AI image generator to an artifact form, Telegram AI chatbot needs hosting), then Claude: scheduled task, Desktop task, skill, artifact page. Stats: 1 command to get started with no API key; 100 workflows checked in 0.14 seconds against about 7 minutes asking Claude one by one; wrong move-it 0 of 19, against 6 for Claude Sonnet alone and 7 for Claude Opus alone; 0 messages sent twice at switch-over, against 2 of 2 with both systems on.">
+  <img src="assets/hero.png" width="100%" alt="Run your n8n workflows in Claude. Sign in to n8n, and every workflow gets a verdict in a second; the ones that fit become scheduled tasks, skills and artifact pages that Claude runs step by step from code. A flow: your n8n workflow, then the command npx n8n-migrate with real verdicts (Email summary agent to a cloud task, Suggest meeting slots using AI to a local task, AI agent chat to a skill, Flux AI image generator to an artifact form, Telegram AI chatbot needs hosting), then Claude: scheduled task, Desktop task, skill, artifact page. Stats: 1 command to get started with no API key; 100 workflows checked in 0.14 seconds against about 7 minutes asking Claude one by one; wrong move-it 0 of 19, against 6 for Claude Sonnet alone and 7 for Claude Opus alone; 0 messages sent twice at switch-over, against 2 of 2 with both systems on.">
 </p>
 
 <p align="center">
   <strong>One command &middot; no API key &middot; 100 workflows checked in 0.14 s &middot; nothing sent twice at switch-over.</strong><br>
-  <strong>Ask Claude alone and it says "move it" to 6 of 19 workflows that can't.</strong> Opus: 7. n8n-to-claude: 0.<br>
+  <strong>Ask Claude alone and it says "move it" to 6 of 19 workflows that can't.</strong> Opus: 7. n8n-migrate: 0.<br>
   <sub>68 of the 100 most-viewed n8n templates fit the subscription. Conversion is early: 7 of 20 never-seen workflows moved in one shot with the same effects as n8n. Claude alone: 40 templates with a hand label or a bench pass, the same four outcomes and the export, one answer each. Switch-over against n8n 2.47.7 in Docker. <a href="#proof">Details</a>.</sub>
 </p>
 
@@ -42,7 +42,7 @@
 <p align="center">
   <a href="#get-started-30-seconds">Get started</a> &middot;
   <a href="#where-each-workflow-lands">Where workflows land</a> &middot;
-  <a href="#claude-alone-guesses-n8n-to-claude-asks">Why not just ask Claude</a> &middot;
+  <a href="#claude-alone-guesses-n8n-migrate-asks">Why not just ask Claude</a> &middot;
   <a href="#install">Install</a> &middot;
   <a href="#how-it-works">How it works</a> &middot;
   <a href="#proof">Proof</a> &middot;
@@ -56,16 +56,16 @@
 ## Get started (30 seconds)
 
 ```sh
-npx n8n-to-claude
+npx n8n-migrate
 ```
 
 It asks where your workflows are and recommends the easiest: sign in to your
 n8n in the browser (no key to create). An n8n.io link, an export file, or
-`npx n8n-to-claude popular` to try it on the most-viewed templates work too.
+`npx n8n-migrate popular` to try it on the most-viewed templates work too.
 That's it. You get:
 
 ```
-n8n-to-claude/
+n8n-migrate/
 ├── report.html   every workflow, its verdict and the reason, opened in your browser
 ├── report.json   the same, for your agent
 └── exports/      the workflows it read
@@ -76,8 +76,8 @@ n8n-to-claude/
 </p>
 
 Nothing is converted and nothing changes in n8n. To move the ones that fit,
-add the skill (`npx skills add lunox-work/n8n-to-claude -g`) and tell Claude
-Code _"convert my n8n workflows in n8n-to-claude/exports"_.
+add the skill (`npx skills add lunox-work/n8n-migrate -g`) and tell Claude
+Code _"convert my n8n workflows in n8n-migrate/exports"_.
 
 ## Where each workflow lands
 
@@ -89,17 +89,17 @@ Code _"convert my n8n workflows in n8n-to-claude/exports"_.
 What wakes a workflow and who waits on it decide where it runs. A caller who
 waits for a reply needs hosting, and the report says so instead of moving it.
 
-## Claude alone guesses. n8n-to-claude asks.
+## Claude alone guesses. n8n-migrate asks.
 
 The same Telegram bot export, given to Claude Sonnet with the four outcomes,
-and to n8n-to-claude:
+and to n8n-migrate:
 
 <!-- Template 4110, evals/compare-claude/results.jsonl (claude-sonnet row, verbatim "why") and
      analyze.mjs on evals/bench/data/wf/4110.json (2026-11-18; long lines cut at …). -->
 <table>
 <tr>
 <th width="50%">Claude Sonnet alone</th>
-<th width="50%">n8n-to-claude</th>
+<th width="50%">n8n-migrate</th>
 </tr>
 <tr>
 <td valign="top">
@@ -125,9 +125,9 @@ Clone viral TikToks with AI avatars … — hosted
 </table>
 
 **Claude assumed only the owner messages the bot. The export can't say.**
-n8n-to-claude names the assumption and asks; answer "only you" and the bot
+n8n-migrate names the assumption and asks; answer "only you" and the bot
 moves as a local task. On 19 workflows hand-labelled as unable to move,
-Claude Sonnet alone said "move it" to 6 and Opus to 7. n8n-to-claude said it
+Claude Sonnet alone said "move it" to 6 and Opus to 7. n8n-migrate said it
 to none, from code, in milliseconds, the same way every time.
 
 ## Status: beta
@@ -163,7 +163,7 @@ to none, from code, in milliseconds, the same way every time.
 ### Before: three n8n exports
 
 ```
-$ node n8n-to-claude/scripts/analyze.mjs exports/
+$ node n8n-migrate/scripts/analyze.mjs exports/
 Auto-label incoming Gmail messages with AI nodes —
   moves: local task (computer on) · poll every 1 min,
   script+model
@@ -206,7 +206,7 @@ Telegram AI chatbot — hosted elsewhere (API key) ·
 $ cat answers.json
 {"telegram-bot/chat-app-users/Telegram Trigger":
  "only-me"}
-$ node n8n-to-claude/scripts/analyze.mjs \
+$ node n8n-migrate/scripts/analyze.mjs \
     exports/telegram-bot.json --answers answers.json
 Telegram AI chatbot — moves: local task (computer
   on) · relay, script+model
@@ -231,7 +231,7 @@ Telegram AI chatbot — moves: local task (computer
 ### After: one folder per workflow
 
 ```
-$ node n8n-to-claude/scripts/convert.mjs exports/ \
+$ node n8n-migrate/scripts/convert.mjs exports/ \
     --out my-flows --answers answers.json \
     | jq -r '.workflows[] | "\(.status)  \(.name)"'
 converted  Auto-label incoming Gmail messages with
@@ -259,7 +259,7 @@ task.json
 
 ```
 $ cd my-flows
-$ node ../n8n-to-claude/scripts/cutover.mjs \
+$ node ../n8n-migrate/scripts/cutover.mjs \
     auto-label-…-ai-nodes enable
 Deactivate the n8n workflow first (cutover.mjs
   ~/my-flows/auto-label-…-ai-nodes deactivate-n8n):
@@ -285,23 +285,23 @@ blocks its trigger instead of leaving it waiting for a call that never comes.
 
 ## Install
 
-**See what fits:** `npx n8n-to-claude` ([Get started](#get-started-30-seconds)).
+**See what fits:** `npx n8n-migrate` ([Get started](#get-started-30-seconds)).
 
 **Move them** with the skill, in Claude Code:
 
 ```sh
-npx skills add lunox-work/n8n-to-claude -g
+npx skills add lunox-work/n8n-migrate -g
 ```
 
 or as a plugin:
 
 ```sh
-/plugin marketplace add lunox-work/n8n-to-claude
-/plugin install n8n-to-claude@n8n-to-claude
+/plugin marketplace add lunox-work/n8n-migrate
+/plugin install n8n-migrate@n8n-migrate
 ```
 
 In the Claude app (chat, Desktop, Cowork), download
-[n8n-to-claude.zip](https://github.com/lunox-work/n8n-to-claude/releases/latest/download/n8n-to-claude.zip)
+[n8n-migrate.zip](https://github.com/lunox-work/n8n-migrate/releases/latest/download/n8n-migrate.zip)
 and upload it under Customize > Skills.
 
 Then ask your agent _"can my n8n workflows run on Claude?"_ and give it
@@ -332,11 +332,11 @@ Needs Node 20 or later and nothing else: the skill's scripts have no
 dependencies. Without the skill:
 
 ```sh
-node skills/n8n-to-claude/scripts/pull.mjs https://n8n.io/workflows/<id> --out exports
+node skills/n8n-migrate/scripts/pull.mjs https://n8n.io/workflows/<id> --out exports
 # or: pull.mjs --login https://you.app.n8n.cloud --out exports   (browser sign-in)
 # or: pull.mjs n8n --out exports                                 (N8N_BASE_URL + N8N_API_KEY)
-node skills/n8n-to-claude/scripts/analyze.mjs exports --html report.html
-node skills/n8n-to-claude/scripts/convert.mjs exports --out ../my-flows
+node skills/n8n-migrate/scripts/analyze.mjs exports --html report.html
+node skills/n8n-migrate/scripts/convert.mjs exports --out ../my-flows
 ```
 
 ### From a claude.ai chat or Cowork, without Claude Code
@@ -345,15 +345,15 @@ A chat has nowhere to keep your API keys. Run the converted folders on a compute
 you control, and add it to Claude as a custom connector:
 
 ```sh
-npx n8n-to-claude convert n8n-to-claude/exports --out n8n-flows
-npx n8n-to-claude serve n8n-flows --tunnel     # try it: prints a temporary address and the connector settings
+npx n8n-migrate convert n8n-migrate/exports --out n8n-flows
+npx n8n-migrate serve n8n-flows --tunnel     # try it: prints a temporary address and the connector settings
 ```
 
 The server runs each workflow step by step and keeps your keys and the
 "already sent" ledger. Claude does only the model and connector steps it hands
 over. To keep it running: `serve --service` (launchd or systemd) with a
 Cloudflare tunnel, or `serve --docker` on a small server. Steps, safety and
-limits: [setup-server.md](skills/n8n-to-claude/references/setup-server.md).
+limits: [setup-server.md](skills/n8n-migrate/references/setup-server.md).
 Run from a real claude.ai chat so far: an HTTP step that needs a key, a Gmail
 read and a Gmail draft through your own connector, and model steps; an
 artifact page's HTTP step through the server too. Scheduled workflows still
@@ -417,10 +417,10 @@ the same result three times.
   the templates that passed the bench. Each model got the four outcomes and
   the export, no tools, one answer
   ([evals/compare-claude](evals/compare-claude/)). Of the 19 that cannot move,
-  Claude Sonnet alone said "move it" to 6 and Opus to 7; n8n-to-claude to 0.
+  Claude Sonnet alone said "move it" to 6 and Opus to 7; n8n-migrate to 0.
   All three got the 21 that move right, the analyzer by construction for the
   20 bench passes. Read it fairly: one answer per model on a small set; some
-  "can't move" labels are about what n8n-to-claude runs today (a vector
+  "can't move" labels are about what n8n-migrate runs today (a vector
   store, a person approving mid-run), which Claude alone could not know; and
   on one (2462) Opus spotted an allow-list of one chat, which the label
   overlooks.
@@ -460,7 +460,7 @@ account: [docs/PROOF.md](docs/PROOF.md).
 - **Secrets stay with you.** The skill reads credential names only, redacts
   inline keys before writing anything, and never asks for a value. Cloud
   tasks get secrets as network secrets for listed hosts; local tasks read
-  `N2C_SECRET_<NAME>` from your git-ignored `.claude/settings.local.json`.
+  `N8M_SECRET_<NAME>` from your git-ignored `.claude/settings.local.json`.
 - **Code nodes run in the runner's process.** They see n8n's expression
   scope, with `require`, `fetch`, `Function` and other globals denied and
   `process` stubbed, modelled on n8n's expression sandbox; that is not an

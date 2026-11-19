@@ -3,13 +3,13 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatFString, jsonStrings, splitText, documentsOf, summarizeItem, DEFAULT_PROMPT } from "../skills/n8n-to-claude/runtime/src/summarize.mjs";
+import { formatFString, jsonStrings, splitText, documentsOf, summarizeItem, DEFAULT_PROMPT } from "../skills/n8n-migrate/runtime/src/summarize.mjs";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { convertItems, loadReferences } from "../skills/n8n-to-claude/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
-import { run } from "../skills/n8n-to-claude/runtime/src/api.mjs";
+import { convertItems, loadReferences } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
+import { run } from "../skills/n8n-migrate/runtime/src/api.mjs";
 
 const refuse = (what) => Object.assign(new Error(`unsupported: ${what}`), { name: "UnsupportedNode" });
 
@@ -69,7 +69,7 @@ test("convert + run: a v2 chain on the item's JSON with an expression prompt sen
     connections: { Start: { main: [[{ node: "Sum", type: "main", index: 0 }]] }, Model: { ai_languageModel: [[{ node: "Sum", type: "ai_languageModel", index: 0 }]] } },
     settings: { executionOrder: "v1" },
   };
-  const dir = mkdtempSync(join(tmpdir(), "n2c-sum-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-sum-"));
   writeFileSync(join(dir, "wf.json"), JSON.stringify(wf));
   const loaded = loadInput(join(dir, "wf.json"));
   rmSync(dir, { recursive: true, force: true });

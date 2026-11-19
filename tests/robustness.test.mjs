@@ -10,11 +10,11 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { analyze, loadInput, renderText, findSecrets, sqlEffect, parseCron, txt } from "../skills/n8n-to-claude/scripts/analyze.mjs";
+import { analyze, loadInput, renderText, findSecrets, sqlEffect, parseCron, txt } from "../skills/n8n-migrate/scripts/analyze.mjs";
 import { validate, schema } from "./schema-check.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const REFS = join(HERE, "..", "skills/n8n-to-claude/references");
+const REFS = join(HERE, "..", "skills/n8n-migrate/references");
 const FIXTURES = join(HERE, "fixtures");
 const nodes = JSON.parse(readFileSync(join(REFS, "nodes.json"), "utf8"));
 const capabilities = JSON.parse(readFileSync(join(REFS, "capabilities.json"), "utf8"));

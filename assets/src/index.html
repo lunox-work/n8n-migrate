@@ -18,7 +18,7 @@
        the 19 hand-labelled templates whose label is not subscription (evals/bench/labels.json); claude-sonnet answered
        subscription for 6 (2606 2982 3050 3066 3135 4110), the analyzer for 0; on the 21 that move both said subscription.
        claude-opus (same file, model opus): subscription for 7 (2462 2606 2982 3050 3066 3135 4110); 21 of 21 on the rest.
-     "0.14 s": node skills/n8n-to-claude/scripts/analyze.mjs on the 100 templates of rank 1-100 (evals/bench/data/wf),
+     "0.14 s": node skills/n8n-migrate/scripts/analyze.mjs on the 100 templates of rank 1-100 (evals/bench/data/wf),
        wall time with Node start, median of 10 runs on an M-series MacBook (min 0.13, max 0.18); Claude Sonnet alone took
        4.1 s per workflow on average in the run above (evals/compare-claude/results.jsonl, ms).
      "0 sent twice": evals/cutover/results.jsonl (one e2e run, 2026-11-14): 9 items over 100 each sent by exactly one system
@@ -104,7 +104,7 @@ h1 em { font-style: normal; color: var(--ok); }
 <body>
 
 <section class="scene" id="hero">
-  <div class="mark">n8n-to-claude</div>
+  <div class="mark">n8n-migrate</div>
   <h1>Run your n8n workflows<br><em>in Claude.</em></h1>
   <p class="sub">Sign in to n8n, and every workflow gets a verdict in a second. The ones that fit become <b>scheduled tasks, skills and artifact pages</b> that Claude runs step by step from code, and n8n switches off without sending anything twice.</p>
   <div class="flow">
@@ -123,7 +123,7 @@ h1 em { font-style: normal; color: var(--ok); }
     <div class="panel">
       <div class="ptitle">One command</div>
       <div class="term">
-        <div class="cmd">$ <b>npx n8n-to-claude</b> you.app.n8n.cloud</div>
+        <div class="cmd">$ <b>npx n8n-migrate</b> you.app.n8n.cloud</div>
         <div><span class="ok">✓</span> Email summary agent <span class="t">→ cloud task</span></div>
         <div><span class="ok">✓</span> Suggest meeting slots using AI <span class="t">→ local task</span></div>
         <div><span class="ok">✓</span> AI agent chat <span class="t">→ skill</span></div>
@@ -153,7 +153,7 @@ h1 em { font-style: normal; color: var(--ok); }
       <div class="label">Check 100 workflows</div>
       <div class="num ok">0.14<small>s</small></div>
       <div class="mini">
-        <div class="rowlabel"><span>n8n-to-claude</span><span>0.14 s</span></div>
+        <div class="rowlabel"><span>n8n-migrate</span><span>0.14 s</span></div>
         <div class="bar" style="width: 2%"></div>
         <div class="rowlabel"><span>Claude, one by one</span><span>~7 min</span></div>
         <div class="bar slow" style="width: 100%"></div>

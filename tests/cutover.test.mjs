@@ -9,23 +9,23 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
-import { convertItems, writeFolder, loadReferences } from "../skills/n8n-to-claude/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
-import { runStep } from "../skills/n8n-to-claude/scripts/cutover.mjs";
-import { cursorsFromStaticData, staticDataFromCursors, cursorsFromExecutions, laterCursors, createN8nClient } from "../skills/n8n-to-claude/scripts/n8n-api.mjs";
-import { advanceCursor } from "../skills/n8n-to-claude/runtime/src/adapt.mjs";
-import * as core from "../skills/n8n-to-claude/runtime/src/index.mjs";
-import { command } from "../skills/n8n-to-claude/runtime/src/driver.mjs";
+import { convertItems, writeFolder, loadReferences } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
+import { runStep } from "../skills/n8n-migrate/scripts/cutover.mjs";
+import { cursorsFromStaticData, staticDataFromCursors, cursorsFromExecutions, laterCursors, createN8nClient } from "../skills/n8n-migrate/scripts/n8n-api.mjs";
+import { advanceCursor } from "../skills/n8n-migrate/runtime/src/adapt.mjs";
+import * as core from "../skills/n8n-migrate/runtime/src/index.mjs";
+import { command } from "../skills/n8n-migrate/runtime/src/driver.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const refs = loadReferences();
 const NOW = Date.parse("2026-11-14T00:00:00Z");
 const readJson = (p) => JSON.parse(readFileSync(p, "utf8"));
 const POLL = "New invoice email";
-process.env.N2C_SECRET_ACCOUNTS_API_KEY = "test-secret"; // a local task's secret source (env)
+process.env.N8M_SECRET_ACCOUNTS_API_KEY = "test-secret"; // a local task's secret source (env)
 
 function folderFor(file, { task = {}, mutate } = {}) {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-cut-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-cut-"));
   const items = loadInput(join(ROOT, file)).items;
   if (mutate) mutate(items);
   const results = convertItems(items, { refs, now: NOW });
@@ -142,7 +142,7 @@ test("task driver dry run: reads go out, connector and http writes are held with
     assert.match(text, /^DONE: dry run \S+ finished: 1 write\(s\) held and recorded, nothing sent/);
     assert.equal(s.posts.length, 0);
     assert.deepEqual(s.calls.map((c) => c.tool), ["search_threads", "get_message", "get_message"], "manual mode with no cursor: it shows every message read");
-    const recs = join(folder, ".n2c/records");
+    const recs = join(folder, ".n8m/records");
     const meta = readJson(join(recs, "meta/dry-run.json"));
     assert.equal(meta.status, "done");
     const rec = readJson(join(recs, `runs/${meta.runId}.json`));
@@ -164,7 +164,7 @@ test("task driver dry run: reads go out, connector and http writes are held with
 test("cutover gate: once a cutover starts, scheduled runs are HELD (nothing read) until enable, and again after rollback", async () => {
   const { dir: d2, folder: f2 } = folderFor("tests/fixtures/convert/poll-code-http.n8n.json");
   try {
-    const { openStore, loadTask, paths } = await import("../skills/n8n-to-claude/runtime/src/driver.mjs");
+    const { openStore, loadTask, paths } = await import("../skills/n8n-migrate/runtime/src/driver.mjs");
     const P = paths(f2, f2);
     const store = openStore(P, loadTask(P));
     store.set(core.META_CUTOVER, core.cutoverMeta({ owner: "n8n", at: "2026-11-14T00:00:00.000Z" }));
@@ -208,7 +208,7 @@ test("cutover CLI: order and --force rules, deactivate through n8n's API, seed f
     assert.deepEqual(deact.data.cursor, { [POLL]: { value: "2026-11-14T00:01:00.000Z", ids: ["m1"] } });
     assert.equal(api.wf.activeVersionId, null, "unpublished");
     assert.ok(api.log.every((r) => r.key === "test-key"));
-    assert.equal(JSON.stringify(readdirSync(join(folder, ".n2c/records/cutover")).map((f) => readFileSync(join(folder, ".n2c/records/cutover", f), "utf8"))).includes("test-key"), false, "the key is never stored");
+    assert.equal(JSON.stringify(readdirSync(join(folder, ".n8m/records/cutover")).map((f) => readFileSync(join(folder, ".n8m/records/cutover", f), "utf8"))).includes("test-key"), false, "the key is never stored");
     assert.equal((await step("seed", { from: "dry-run" })).code, 1);
     assert.equal((await step("enable")).code, 1, "enable wants the seed first");
     assert.equal((await step("seed")).code, 0);
@@ -317,7 +317,7 @@ test("the n8n client never prints its key and falls back to the deprecated activ
 });
 
 test("schedule times between deactivate-n8n and enable are reported as run by neither side; run-now says how, finds the run, or records --skip", async () => {
-  const { paths, loadTask, openStore } = await import("../skills/n8n-to-claude/runtime/src/driver.mjs");
+  const { paths, loadTask, openStore } = await import("../skills/n8n-migrate/runtime/src/driver.mjs");
   // slice: a Schedule Trigger daily at 08:00 Asia/Singapore (00:00 UTC), Gmail -> model -> Slack.
   const { dir, folder } = folderFor("tests/fixtures/convert/slice.n8n.json", { task: { store: { kind: "file" } } });
   let clock = "2026-11-14T23:30:00.000Z";
@@ -348,7 +348,7 @@ test("schedule times between deactivate-n8n and enable are reported as run by ne
     assert.equal(en.code, 0, en.text);
     assert.deepEqual(en.data.missedWhileOff, { from: "2026-11-14T23:30:00.000Z", to: "2026-11-16T02:00:00.000Z", exact: true, count: 2, capped: false, times: ["2026-11-15T00:00:00.000Z", "2026-11-16T00:00:00.000Z"] });
     assert.match(en.text, /Missed while neither side ran: 2 schedule time\(s\).*Neither n8n nor the task ran them, and nothing runs them by itself\. To run the workflow once now: cutover\.mjs .* run-now/s);
-    assert.deepEqual(readdirSync(join(folder, ".n2c/records/runs")), ["run-dry.json"], "enable ran nothing");
+    assert.deepEqual(readdirSync(join(folder, ".n8m/records/runs")), ["run-dry.json"], "enable ran nothing");
     const list = (await step("checklist")).data;
     assert.deepEqual([list.checklist.at(-1).id, list.checklist.at(-1).state, list.next], ["missed-in-gap", "todo", "run-now"]);
     // run-now: how, for this target (exit 3: the person runs it).
@@ -410,7 +410,7 @@ test("missed schedule times: none when enable follows at once, --skip records th
     clock = "2026-11-15T03:00:00.000Z";
     const d = await step(poll.folder, "deactivate-n8n", { force: true }, { env: { N8N_BASE_URL: api.base, N8N_API_KEY: "test-key" }, sleep: async () => {} });
     assert.equal(d.code, 0, d.text);
-    const entry = readdirSync(join(poll.folder, ".n2c/records/cutover")).map((f) => readJson(join(poll.folder, ".n2c/records/cutover", f))).find((e) => e.step === "deactivate-n8n");
+    const entry = readdirSync(join(poll.folder, ".n8m/records/cutover")).map((f) => readJson(join(poll.folder, ".n8m/records/cutover", f))).find((e) => e.step === "deactivate-n8n");
     assert.deepEqual([entry.detail.offAtExact, entry.detail.offAt < entry.at], [true, true]);
     assert.equal((await step(poll.folder, "checklist")).data.checklist.some((c) => c.id === "missed-in-gap"), false);
   } finally {

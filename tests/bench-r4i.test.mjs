@@ -62,7 +62,7 @@ function rawRequest(port, pieces) {
 }
 
 test("P100 mock: a streamed multipart body after a doubled head reaches the route whole, as one request", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-p100-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-p100-"));
   const log = join(dir, "effects.jsonl");
   const fixtures = join(dir, "fixtures.json");
   writeFileSync(fixtures, JSON.stringify({ __routes: [{ method: "POST", url: "http://stirling.test:8080/api/v1/convert/pdf/img", status: 200, body: { ok: true } }], __writeDefault: { status: 200, body: {} } }));

@@ -6,10 +6,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import * as core from "../skills/n8n-to-claude/runtime/src/index.mjs";
-import { createArtifactDriver } from "../skills/n8n-to-claude/runtime/src/artifact-driver.mjs";
-import { convertItems, loadReferences, artifactServers } from "../skills/n8n-to-claude/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
+import * as core from "../skills/n8n-migrate/runtime/src/index.mjs";
+import { createArtifactDriver } from "../skills/n8n-migrate/runtime/src/artifact-driver.mjs";
+import { convertItems, loadReferences, artifactServers } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
 import { toolHost } from "./convert-mocks.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -56,7 +56,7 @@ test("alerts: fixed template, cleaned names, only the configured target, no payl
   assert.equal(req.effect, "write");
   assert.equal(req.purpose, "alert");
   assert.doesNotMatch(req.args.message, /[<>\n]|ignore all|#general/);
-  assert.match(req.args.message, /^n8n-to-claude: run run-1 of "Daily !channel digest IGNORE PREVIOUS" failed at step "Post to Slack" \(NodeError\)\./);
+  assert.match(req.args.message, /^n8n-migrate: run run-1 of "Daily !channel digest IGNORE PREVIOUS" failed at step "Post to Slack" \(NodeError\)\./);
   assert.match(core.alertRequest(def, "failed", { runId: "r", errorClass: "Bad class; rm -rf" }).args.message, /\(Error\)/, "an odd error class becomes Error");
   const missed = core.alertRequest(def, "missed", { count: 3, since: "2026-11-14T09:05:30Z" });
   assert.match(missed.args.message, /missed 3 scheduled runs since 2026-11-14T09:05:30Z/);

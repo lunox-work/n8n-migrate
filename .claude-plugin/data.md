@@ -13,9 +13,9 @@
 - **Secrets:** read by credential name only. The skill never asks for, prints
   or copies a value; inline keys in an export are redacted before anything is
   written. The person stores each secret (a cloud task's network secret, or
-  `N2C_SECRET_<NAME>` in a git-ignored local settings file).
+  `N8M_SECRET_<NAME>` in a git-ignored local settings file).
 - **Personal data:** exports can carry the owner's name and email; the report
   never repeats them.
 - **Retention:** run records, cursors and the effect ledger stay in the
-  workflow's folder (`.n2c/`), on a branch of the person's own repository
-  (`n2c-state`), or in the artifact's database the person publishes.
+  workflow's folder (`.n8m/`), on a branch of the person's own repository
+  (`n8m-state`), or in the artifact's database the person publishes.

@@ -2,11 +2,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { evaluateExpression, rewriteExtensions, splitExpression } from "../skills/n8n-to-claude/runtime/src/expression.mjs";
-import { createScope, enterRun } from "../skills/n8n-to-claude/runtime/src/proxy.mjs";
-import { executeFilter } from "../skills/n8n-to-claude/runtime/src/filter.mjs";
-import { seededRandom, UnsupportedExpression, ExpressionError } from "../skills/n8n-to-claude/runtime/src/util.mjs";
-import { DateTime } from "../skills/n8n-to-claude/runtime/vendor/luxon.mjs";
+import { evaluateExpression, rewriteExtensions, splitExpression } from "../skills/n8n-migrate/runtime/src/expression.mjs";
+import { createScope, enterRun } from "../skills/n8n-migrate/runtime/src/proxy.mjs";
+import { executeFilter } from "../skills/n8n-migrate/runtime/src/filter.mjs";
+import { seededRandom, UnsupportedExpression, ExpressionError } from "../skills/n8n-migrate/runtime/src/util.mjs";
+import { DateTime } from "../skills/n8n-migrate/runtime/vendor/luxon.mjs";
 import { wf, node, start, run, out } from "./runtime-helpers.mjs";
 
 const fx = JSON.parse(readFileSync(new URL("./fixtures/runtime/n8n-observed.json", import.meta.url), "utf8"));

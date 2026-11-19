@@ -9,14 +9,14 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const SKILL = join(ROOT, "skills/n8n-to-claude");
+const SKILL = join(ROOT, "skills/n8n-migrate");
 const run = (args, opts = {}) => spawnSync(process.execPath, args, { encoding: "utf8", ...opts });
 
 test("scripts run when the skill folder is reached through a symlink (skills installers link it)", () => {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-link-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-link-"));
   try {
-    symlinkSync(SKILL, join(dir, "n8n-to-claude"));
-    const linked = join(dir, "n8n-to-claude", "scripts");
+    symlinkSync(SKILL, join(dir, "n8n-migrate"));
+    const linked = join(dir, "n8n-migrate", "scripts");
     const report = run([join(linked, "analyze.mjs"), join(ROOT, "tests/fixtures/convert/poll-code-http.n8n.json")]);
     assert.equal(report.status, 0, report.stderr);
     assert.match(report.stdout, /1 workflows: /);
@@ -32,7 +32,7 @@ test("scripts run when the skill folder is reached through a symlink (skills ins
 test("skill.mjs check: the repository passes (manifests, links, sizes, frontmatter, scanner wording)", () => {
   const r = run([join(ROOT, "scripts/skill.mjs"), "check"]);
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, /skills: n8n-to-claude \d+\.\d+\.\d+ ok/);
+  assert.match(r.stdout, /skills: n8n-migrate \d+\.\d+\.\d+ ok/);
 });
 
 test("skill.mjs scanner wording: a line starting with pass, and fetch/eval beside a module loaded from a URL", async () => {

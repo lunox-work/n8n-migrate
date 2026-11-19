@@ -5,10 +5,10 @@
 // in the report and MIGRATION.md.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { analyze, unwrap, renderText, N8N_STAYS_NOTE } from "../skills/n8n-to-claude/scripts/analyze.mjs";
-import { convertItems, loadReferences, migrationMd } from "../skills/n8n-to-claude/scripts/convert.mjs";
-import { localHost } from "../skills/n8n-to-claude/runtime/src/engine.mjs";
-import { run } from "../skills/n8n-to-claude/runtime/src/api.mjs";
+import { analyze, unwrap, renderText, N8N_STAYS_NOTE } from "../skills/n8n-migrate/scripts/analyze.mjs";
+import { convertItems, loadReferences, migrationMd } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { localHost } from "../skills/n8n-migrate/runtime/src/engine.mjs";
+import { run } from "../skills/n8n-migrate/runtime/src/api.mjs";
 
 const refs = loadReferences();
 const NOW = Date.parse("2026-11-16T00:00:00Z");

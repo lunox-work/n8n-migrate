@@ -26,15 +26,15 @@ import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import assert from "node:assert/strict";
 import { toolHost, modelHost } from "../../tests/convert-mocks.mjs";
-import { run } from "../../skills/n8n-to-claude/runtime/src/api.mjs";
-import { missedRuns, definitionSchedule } from "../../skills/n8n-to-claude/runtime/src/schedule.mjs";
+import { run } from "../../skills/n8n-migrate/runtime/src/api.mjs";
+import { missedRuns, definitionSchedule } from "../../skills/n8n-migrate/runtime/src/schedule.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const args = process.argv.slice(2);
 const flag = (k, d) => (args.includes(k) ? args[args.indexOf(k) + 1] : d);
-const OUT = resolve(flag("--out", join(tmpdir(), "n2c-artifact-check")));
-// Playwright is borrowed from a sibling checkout by default; pass --playwright or N2C_PLAYWRIGHT to point elsewhere.
-const PW = flag("--playwright", process.env.N2C_PLAYWRIGHT ?? resolve(ROOT, "../sandbox-factory/node_modules/playwright/index.mjs"));
+const OUT = resolve(flag("--out", join(tmpdir(), "n8m-artifact-check")));
+// Playwright is borrowed from a sibling checkout by default; pass --playwright or N8M_PLAYWRIGHT to point elsewhere.
+const PW = flag("--playwright", process.env.N8M_PLAYWRIGHT ?? resolve(ROOT, "../sandbox-factory/node_modules/playwright/index.mjs"));
 const { chromium } = await import(pathToFileURL(PW).href);
 const SHIM = readFileSync(join(ROOT, "evals/artifact/shim.js"), "utf8");
 const CLOCK = { startedAt: "2026-11-14T03:00:00Z" };
@@ -83,7 +83,7 @@ const SOURCES = {
   "poll-slack": join(OUT, "folders", "poll-slack.n8n.json"),
 };
 for (const [name, file] of Object.entries(SOURCES)) {
-  const res = JSON.parse(execFileSync("node", [join(ROOT, "skills/n8n-to-claude/scripts/convert.mjs"), file, "--out", join(OUT, "folders", name)], { encoding: "utf8" }));
+  const res = JSON.parse(execFileSync("node", [join(ROOT, "skills/n8n-migrate/scripts/convert.mjs"), file, "--out", join(OUT, "folders", name)], { encoding: "utf8" }));
   folders[name] = join(res.out, res.workflows[0].folder);
 }
 const load = (name) => ({
@@ -92,9 +92,9 @@ const load = (name) => ({
   caps: JSON.parse(readFileSync(join(folders[name], "artifact.capabilities.json"), "utf8")),
 });
 const pages = { pollSlack: load("poll-slack"), slice: load("slice"), poll: load("poll-code-http"), agent: load("chat-agent"), form: load("form-public"), formHandoff: load("form-artifact"), formAll: load("form-all") };
-const buildOf = (html) => JSON.parse(/<script type="application\/json" id="n2c-build">([^<]*)<\/script>/.exec(html)[1]);
+const buildOf = (html) => JSON.parse(/<script type="application\/json" id="n8m-build">([^<]*)<\/script>/.exec(html)[1]);
 // A tampered copy: the Slack channel changed inside the embedded definition only.
-const tamperedHtml = pages.slice.html.replace(/(<script type="application\/json" id="n2c-definition">[^<]*?)C0123456789/, "$1C0ATTACKER1");
+const tamperedHtml = pages.slice.html.replace(/(<script type="application\/json" id="n8m-definition">[^<]*?)C0123456789/, "$1C0ATTACKER1");
 assert.notEqual(tamperedHtml, pages.slice.html);
 
 // ---------- what the in-process runner computes for the same fixtures ----------
@@ -254,8 +254,8 @@ async function check(name, fn) {
   }
 }
 
-// N2C_CHROMIUM: a browser binary to use when the Playwright copy expects a build that is not installed.
-const browser = await chromium.launch({ headless: true, ...(process.env.N2C_CHROMIUM ? { executablePath: process.env.N2C_CHROMIUM } : {}) });
+// N8M_CHROMIUM: a browser binary to use when the Playwright copy expects a build that is not installed.
+const browser = await chromium.launch({ headless: true, ...(process.env.N8M_CHROMIUM ? { executablePath: process.env.N8M_CHROMIUM } : {}) });
 const consoleErrors = [];
 async function context(which, { colorScheme = "light", deny, permDeny } = {}) {
   const page0 = pages[which] ?? pages.slice;
@@ -263,11 +263,11 @@ async function context(which, { colorScheme = "light", deny, permDeny } = {}) {
   const ctx = await browser.newContext({ colorScheme, viewport: { width: 1440, height: 900 } });
   let seq = 0;
   const ids = new WeakMap();
-  await ctx.exposeBinding("__n2cShimCall", (source, op, a) => {
+  await ctx.exposeBinding("__n8mShimCall", (source, op, a) => {
     if (!ids.has(source.page)) ids.set(source.page, ++seq);
     return be.handle(op, a, ids.get(source.page));
   });
-  await ctx.addInitScript(`window.__n2cShimConfig = ${JSON.stringify({ deny: deny ?? [], permDeny: permDeny ?? [] })};\n${SHIM}`);
+  await ctx.addInitScript(`window.__n8mShimConfig = ${JSON.stringify({ deny: deny ?? [], permDeny: permDeny ?? [] })};\n${SHIM}`);
   return { ctx, be };
 }
 async function open(ctx, name, { ready = true } = {}) {
@@ -275,7 +275,7 @@ async function open(ctx, name, { ready = true } = {}) {
   page.on("pageerror", (e) => consoleErrors.push(`${name}: ${e.message}`));
   page.on("console", (m) => m.type() === "error" && consoleErrors.push(`${name}: ${m.text()}`));
   await page.goto(`${BASE}/page/${name}`);
-  if (ready) await page.waitForFunction(() => window.n2cApp?.driver && !document.getElementById("run-now").disabled, null, { timeout: 10000 });
+  if (ready) await page.waitForFunction(() => window.n8mApp?.driver && !document.getElementById("run-now").disabled, null, { timeout: 10000 });
   return page;
 }
 async function runAndWait(page, { dry = true, message } = {}) {
@@ -283,7 +283,7 @@ async function runAndWait(page, { dry = true, message } = {}) {
   if (message !== undefined) await page.fill("#chat-input", message);
   await page.click("#run-now");
   await page.waitForFunction(() => document.getElementById("run-now").textContent === "Run now", null, { timeout: 20000 });
-  return page.evaluate(() => ({ statuses: Object.fromEntries(Object.entries(window.n2cApp.view.statuses).map(([k, v]) => [k, v.status])), full: window.n2cApp.view.statuses, effects: window.n2cApp.view.effects, summary: document.getElementById("run-summary").textContent, banner: document.getElementById("banner").hidden ? "" : document.getElementById("banner").textContent }));
+  return page.evaluate(() => ({ statuses: Object.fromEntries(Object.entries(window.n8mApp.view.statuses).map(([k, v]) => [k, v.status])), full: window.n8mApp.view.statuses, effects: window.n8mApp.view.effects, summary: document.getElementById("run-summary").textContent, banner: document.getElementById("banner").hidden ? "" : document.getElementById("banner").textContent }));
 }
 const slackArgs = (effects) => effects.filter((e) => e.effect === "write" && e.request.tool === "slack_send_message").map((e) => e.request.args);
 
@@ -363,7 +363,7 @@ await check("a second Run now during a running run is refused by the lock", asyn
   await a.click("#run-now");
   await a.waitForFunction(() => document.getElementById("run-now").textContent === "Running…");
   await sleep(400);
-  const same = await a.evaluate(() => window.n2cApp.runNow());
+  const same = await a.evaluate(() => window.n8mApp.runNow());
   assert.equal(same.refused, true);
   const other = await runAndWait(b, { dry: true });
   assert.match(other.banner, /refused/i);
@@ -440,7 +440,7 @@ await check("a send cut off mid-call is shown as unknown on resume and never res
   const b = await open(ctx, "slice");
   await b.waitForFunction(() => [...document.querySelectorAll("#history .pill")].some((p) => p.textContent === "interrupted"), null, { timeout: 5000 });
   await b.click("#history .actions button");
-  await b.waitForFunction(() => document.getElementById("run-now").textContent === "Run now" && window.n2cApp.view.unknown?.length, null, { timeout: 10000 });
+  await b.waitForFunction(() => document.getElementById("run-now").textContent === "Run now" && window.n8mApp.view.unknown?.length, null, { timeout: 10000 });
   const detail = await b.$eval("#detail", (d) => d.textContent);
   assert.match(detail, /Unknown: check before re-sending/);
   assert.equal(be.log.tools.filter((t) => t.tool === "slack_send_message").length, 1, "the unknown write was resent");
@@ -470,9 +470,9 @@ await check("chat agent: sample answers turns, tool-call intents run through the
   assert.deepEqual(refWrite, [{ channel_id: "C0123456789", message: "Ann wrote: Invoice 42" }]);
   assert.equal(be.log.samples.length, 3);
   assert.ok(be.log.samples.every((s) => s.json && !s.input.includes("slack_send_message") && !s.input.includes("search_threads")), "the model saw connector tool names");
-  const output = await page.evaluate(() => window.n2cApp.view.runData["AI Agent"][0].data.main[0][0].json);
+  const output = await page.evaluate(() => window.n8mApp.view.runData["AI Agent"][0].data.main[0][0].json);
   assert.deepEqual(output, { output: "Posted. Last tool said ok=true" });
-  const asked = await page.evaluate(() => window.__n2cPermRequests);
+  const asked = await page.evaluate(() => window.__n8mPermRequests);
   assert.equal(asked.length, 1, "one batched permission request per run");
   assert.ok(asked[0].includes("sample") && asked[0].some((n) => n.startsWith("mcp:")), `asked up front for Claude and the connectors: ${JSON.stringify(asked[0])}`);
   await ctx.close();
@@ -517,7 +517,7 @@ await check("form: fields per type, validation, submit runs with the form item; 
     await page.check('.field[data-label="Agree"] input[type=checkbox]');
     await page.click("#form-submit");
     await page.waitForFunction(() => /Dry run done/.test(document.getElementById("form-note").textContent), null, { timeout: 15000 });
-    const item = await page.evaluate(() => window.n2cApp.view.runData.Tag[0].data.main[0][0].json);
+    const item = await page.evaluate(() => window.n8mApp.view.runData.Tag[0].data.main[0][0].json);
     const { submittedAt, ...rest } = item;
     assert.deepEqual(rest, { Name: "Ann", Seats: 3, Email: "ann@example.com", Start: "2026-12-01", Team: "Sales", Notes: "Window seat", Agree: ["Yes"], formMode: "production", source: "form" });
     assert.ok(Number.isFinite(Date.parse(submittedAt)));
@@ -643,7 +643,7 @@ await check("screenshots at 375, 768, 1440, 1915 px in light and dark; no horizo
     const { ctx } = await context("slice", { colorScheme: scheme });
     const page = await open(ctx, "slice");
     await runAndWait(page, { dry: true });
-    await page.evaluate(() => window.n2cApp.select("Post to Slack"));
+    await page.evaluate(() => window.n8mApp.select("Post to Slack"));
     for (const width of [375, 768, 1440, 1915]) {
       await page.setViewportSize({ width, height: 900 });
       await sleep(150);

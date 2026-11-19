@@ -7,9 +7,9 @@
 //        [--timeout <s>] [--settings <variant>] [--prompt-file <f>] [--keep]
 //
 // Isolation, checked on every run:
-//   - a fresh working directory under the scratch folder (N2C_SCRATCH, default <tmpdir>/n2c-task-driver),
+//   - a fresh working directory under the scratch folder (N8M_SCRATCH, default <tmpdir>/n8m-task-driver),
 //     laid out as convert.mjs writes a repo: the folder copied into it, the root
-//     .claude/settings.json and n2c-hook.mjs beside it; the session starts at that root;
+//     .claude/settings.json and n8m-hook.mjs beside it; the session starts at that root;
 //     nothing above it has a .claude folder or CLAUDE.md;
 //   - --strict-mcp-config with our mock config only, plus ENABLE_CLAUDEAI_MCP_SERVERS=false;
 //     the run is killed before its first model turn if the init message lists any MCP server
@@ -37,7 +37,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
 const SERVER = join(ROOT, "evals/mocks/mcp-server.mjs");
 const RESULTS = join(HERE, "results.jsonl");
-const SCRATCH = process.env.N2C_SCRATCH ?? join(tmpdir(), "n2c-task-driver");
+const SCRATCH = process.env.N8M_SCRATCH ?? join(tmpdir(), "n8m-task-driver");
 
 function parseArgs(argv) {
   const pos = [];
@@ -171,8 +171,8 @@ async function main() {
   const repo = join(runDir, "work");
   const work = join(repo, basename(folder));
   mkdirSync(runDir, { recursive: true });
-  cpSync(folder, work, { recursive: true, filter: (src) => !src.includes(`${folder}/.n2c`) && !src.includes(`${folder}/skill`) });
-  const { writeRootSettings } = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/scripts/convert.mjs")).href);
+  cpSync(folder, work, { recursive: true, filter: (src) => !src.includes(`${folder}/.n8m`) && !src.includes(`${folder}/skill`) });
+  const { writeRootSettings } = await import(pathToFileURL(join(ROOT, "skills/n8n-migrate/scripts/convert.mjs")).href);
   writeRootSettings(repo);
 
   // Hooks on/off and the settings variant.
@@ -219,7 +219,7 @@ async function main() {
     args.push("--settings", flagSettings);
   }
   const env = { ...process.env, ENABLE_CLAUDEAI_MCP_SERVERS: "false", CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1", DISABLE_AUTOUPDATER: "1", NODE_OPTIONS: "--max-old-space-size=512" };
-  for (const k of Object.keys(env)) if (k.startsWith("N2C_SECRET_") || k === "ANTHROPIC_API_KEY") delete env[k];
+  for (const k of Object.keys(env)) if (k.startsWith("N8M_SECRET_") || k === "ANTHROPIC_API_KEY") delete env[k];
   if (flags.debug) args.push("--debug-file", join(runDir, "debug.log"));
 
   const transcript = join(runDir, "stream.jsonl");
@@ -278,11 +278,11 @@ async function main() {
     return 0;
   }
   // Collect.
-  const n2c = join(work, ".n2c");
-  let state = readJson(join(n2c, "run.json"), null);
-  if (state && state.status !== "needs") state = readJson(join(n2c, "runs", `${state.runId}.json`), state);
+  const n8m = join(work, ".n8m");
+  let state = readJson(join(n8m, "run.json"), null);
+  if (state && state.status !== "needs") state = readJson(join(n8m, "runs", `${state.runId}.json`), state);
   const effects = existsSync(effectsLog) ? readFileSync(effectsLog, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
-  const events = existsSync(join(n2c, "events.jsonl")) ? readFileSync(join(n2c, "events.jsonl"), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
+  const events = existsSync(join(n8m, "events.jsonl")) ? readFileSync(join(n8m, "events.jsonl"), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
   const allowedTools = new Set((state?.definition?.allow?.tools ?? []).map((t) => `${t.connector}.${t.tool}`));
   const validCalls = effects.filter((e) => e.valid);
   const outside = effects.filter((e) => !allowedTools.has(`${e.connector}.${e.tool}`));

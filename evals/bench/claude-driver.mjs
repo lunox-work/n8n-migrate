@@ -10,7 +10,7 @@
 //     Poll triggers therefore get the fixture's items here instead of polling (the in-process
 //     driver exercises the poll).
 //   - replay hook: a PreToolUse hook on Write replaces the model's answer for a model or agent
-//     request (.n2c/inbox/<q>.txt) with n8n's recorded reply for the same model node and call
+//     request (.n8m/inbox/<q>.txt) with n8n's recorded reply for the same model node and call
 //     index (the session still writes and submits it). A miss leaves the model's own answer and
 //     is marked live. The hook keeps each replayed request and its time (replayLog), so the
 //     bench checks the question and each agent turn's tools as in process (PROPOSALS P16).
@@ -18,7 +18,7 @@
 //     starts a host mock-server.mjs with the fixture's http routes (the routes the in-process
 //     driver answers from) and preloads http-preload.mjs into the session's node processes,
 //     which sends the runner's fetch to that mock; the mock's log is the http half of the
-//     effects. Each secret the definition names gets a dummy N2C_SECRET_<NAME> (the person
+//     effects. Each secret the definition names gets a dummy N8M_SECRET_<NAME> (the person
 //     stores the real one at setup).
 
 import { spawn, spawnSync } from "node:child_process";
@@ -53,8 +53,8 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   const name = basename(folder);
   const work = join(repo, name);
   mkdirSync(repo, { recursive: true });
-  cpSync(folder, work, { recursive: true, filter: (src) => !src.includes(`${folder}/.n2c`) && !src.includes(`${folder}/skill`) });
-  const { writeRootSettings } = await import(pathToFileURL(join(ROOT, "skills", "n8n-to-claude", "scripts", "convert.mjs")).href);
+  cpSync(folder, work, { recursive: true, filter: (src) => !src.includes(`${folder}/.n8m`) && !src.includes(`${folder}/skill`) });
+  const { writeRootSettings } = await import(pathToFileURL(join(ROOT, "skills", "n8n-migrate", "scripts", "convert.mjs")).href);
   writeRootSettings(repo);
 
   // Mock connectors, fixtures in the mock server's format (replies in fixture order per tool;
@@ -185,11 +185,11 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   appendFileSync(LEDGER, JSON.stringify(entry) + "\n");
   if (!entry.ok && /usage limit|rate limit/i.test(JSON.stringify(r.result ?? ""))) throw new UsageLimit(String(r.result).slice(0, 200));
 
-  const n2c = join(work, ".n2c");
-  let state = readJson(join(n2c, "run.json"));
-  if (state && state.status !== "needs") state = readJson(join(n2c, "runs", `${state.runId}.json`), state);
+  const n8m = join(work, ".n8m");
+  let state = readJson(join(n8m, "run.json"));
+  if (state && state.status !== "needs") state = readJson(join(n8m, "runs", `${state.runId}.json`), state);
   const effects = existsSync(effectsLog) ? readFileSync(effectsLog, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
-  const events = existsSync(join(n2c, "events.jsonl")) ? readFileSync(join(n2c, "events.jsonl"), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
+  const events = existsSync(join(n8m, "events.jsonl")) ? readFileSync(join(n8m, "events.jsonl"), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
   const replayState = readJson(join(runDir, "replay-state.json"), { ids: {}, counts: {}, log: [] });
   const replays = replayState.log;
   // PROPOSALS P40: a session that stopped while the run waited on a model answer it could have
@@ -270,24 +270,24 @@ function notRunResult(def, reason) {
 }
 
 // The session's environment: no foreign keys or session ids, the runner processes' heap cap,
-// the http preload (P5) when the folder has http steps (with a dummy N2C_SECRET_<NAME> per
+// the http preload (P5) when the folder has http steps (with a dummy N8M_SECRET_<NAME> per
 // declared secret), and the disk preload (P44) when allow.files names absolute directories.
 // Exported for the self-test that runs a runner process with it (PROPOSALS P47).
 export function sessionEnv({ base = process.env, httpMockUrl = null, secrets = [], diskRoot = null, absDirs = [] } = {}) {
   // TZ: PROPOSALS P123 (claude-side.mjs CODE_NODE_TZ), the zone of a Code node's native Date in n8n's task runner.
-  // N2C_EXPRESSION_TZ: P140 (EXPRESSION_TZ), the zone of an expression's native Date in n8n's main process.
-  const env = { ...base, ENABLE_CLAUDEAI_MCP_SERVERS: "false", CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1", DISABLE_AUTOUPDATER: "1", NODE_OPTIONS: "--max-old-space-size=512", TZ: CODE_NODE_TZ, N2C_EXPRESSION_TZ: EXPRESSION_TZ };
-  for (const k of Object.keys(env)) if (k === "ANTHROPIC_API_KEY" || k.startsWith("N2C_SECRET_") || k === "CLAUDECODE" || k.startsWith("CLAUDE_CODE_MESSAGING") || k === "CLAUDE_CODE_SESSION_ID" || k === "CLAUDE_CODE_CHILD_SESSION") delete env[k];
+  // N8M_EXPRESSION_TZ: P140 (EXPRESSION_TZ), the zone of an expression's native Date in n8n's main process.
+  const env = { ...base, ENABLE_CLAUDEAI_MCP_SERVERS: "false", CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1", DISABLE_AUTOUPDATER: "1", NODE_OPTIONS: "--max-old-space-size=512", TZ: CODE_NODE_TZ, N8M_EXPRESSION_TZ: EXPRESSION_TZ };
+  for (const k of Object.keys(env)) if (k === "ANTHROPIC_API_KEY" || k.startsWith("N8M_SECRET_") || k === "CLAUDECODE" || k.startsWith("CLAUDE_CODE_MESSAGING") || k === "CLAUDE_CODE_SESSION_ID" || k === "CLAUDE_CODE_CHILD_SESSION") delete env[k];
   if (httpMockUrl) {
-    env.N2C_BENCH_HTTP_MOCK = httpMockUrl;
+    env.N8M_BENCH_HTTP_MOCK = httpMockUrl;
     env.NODE_OPTIONS = `${env.NODE_OPTIONS} --import=${pathToFileURL(join(HERE, "http-preload.mjs")).href}`;
   }
   // A dummy per declared secret where a bench stand-in reads it: the http mock, and the
   // Claude-side database (PROPOSALS P129), whose role password is bench-secret-postgres.
-  for (const sec of secrets) if (httpMockUrl || sec.credentialType === "postgres") env[`N2C_SECRET_${String(sec.name).toUpperCase().replace(/[^A-Z0-9]+/g, "_")}`] = `bench-secret-${String(sec.credentialType ?? sec.name).replace(/[^\w-]+/g, "-")}`;
+  for (const sec of secrets) if (httpMockUrl || sec.credentialType === "postgres") env[`N8M_SECRET_${String(sec.name).toUpperCase().replace(/[^A-Z0-9]+/g, "_")}`] = `bench-secret-${String(sec.credentialType ?? sec.name).replace(/[^\w-]+/g, "-")}`;
   if (absDirs.length) {
-    env.N2C_BENCH_DISK_ROOT = diskRoot;
-    env.N2C_BENCH_DISK_DIRS = JSON.stringify(absDirs);
+    env.N8M_BENCH_DISK_ROOT = diskRoot;
+    env.N8M_BENCH_DISK_DIRS = JSON.stringify(absDirs);
     env.NODE_OPTIONS = `${env.NODE_OPTIONS} --import=${pathToFileURL(join(HERE, "disk-preload.mjs")).href}`;
   }
   return env;

@@ -31,7 +31,7 @@ test("P109: the REST send and the connector's send_message answer the same sent 
 });
 
 test("P109: the mock answers an unrouted Gmail send per run, and a route still wins", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-p109-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-p109-"));
   const fixtures = join(dir, "fixtures.json");
   writeFileSync(fixtures, JSON.stringify({ __routes: [], __writeDefault: { status: 200, body: {} } }));
   const mock = await startMock({ port: 0, host: "127.0.0.1", fixtures });

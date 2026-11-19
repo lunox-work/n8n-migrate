@@ -35,9 +35,9 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
-// N2C_BENCH_SPLITS: another splits file (tests only: a round with a held-out to skip while the
+// N8M_BENCH_SPLITS: another splits file (tests only: a round with a held-out to skip while the
 // committed current round has none drawn yet).
-export function readSplits(file = process.env.N2C_BENCH_SPLITS || join(HERE, "splits.json")) {
+export function readSplits(file = process.env.N8M_BENCH_SPLITS || join(HERE, "splits.json")) {
   return JSON.parse(readFileSync(file, "utf8"));
 }
 

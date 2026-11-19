@@ -22,7 +22,7 @@ test("skills/ carries no template id, name or fixture string", () => {
 });
 
 test("the lint catches a planted id and a planted fixture string", () => {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-lint-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-lint-"));
   try {
     const id = JSON.parse(readFileSync(join(ROOT, "evals/bench/corpus.json"), "utf8")).templates[0].id;
     writeFileSync(join(dir, "a.mjs"), `if (template === ${id}) fix();\nconst v = "1.${id}"; // a version is not an id\n`);
@@ -44,7 +44,7 @@ test("an HTTP status code beside its reason phrase is not a template id", async 
   const ids = JSON.parse(readFileSync(join(ROOT, "evals/bench/corpus.json"), "utf8")).templates.filter((t) => !outsideBench(t)).map((t) => t.id);
   const code = ids.find((id) => STATUS_CODES[id]);
   if (!code) return; // no corpus id is a status code
-  const dir = mkdtempSync(join(tmpdir(), "n2c-lint-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-lint-"));
   try {
     writeFileSync(join(dir, "a.mjs"), `const REASONS = { ${code}: "${STATUS_CODES[code].toUpperCase()}" };\nif (template === ${code}) fix();\n`);
     const r = run("--dir", dir);
@@ -64,7 +64,7 @@ test("a round-5 walk entry outside the bench is not an id hit; a candidate is", 
   const out = t.find((x) => outsideBench(x) && String(x.id).length >= 3 && !all.has(x.id));
   const cand = t.find((x) => x.topUp >= 5 && !outsideBench(x) && String(x.id).length >= 3);
   if (!out || !cand) return;
-  const dir = mkdtempSync(join(tmpdir(), "n2c-lint-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-lint-"));
   try {
     writeFileSync(join(dir, "a.mjs"), `const n = ${out.id};\nif (template === ${cand.id}) fix();\n`);
     const r = run("--dir", dir);

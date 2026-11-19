@@ -9,8 +9,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { zonedDateClass } from "../skills/n8n-to-claude/runtime/src/zoneddate.mjs";
-import { run } from "../skills/n8n-to-claude/runtime/src/index.mjs";
+import { zonedDateClass } from "../skills/n8n-migrate/runtime/src/zoneddate.mjs";
+import { run } from "../skills/n8n-migrate/runtime/src/index.mjs";
 
 // Times around DST changes in both hemispheres, a leap day, year edges and plain days.
 const TIMES = ["2026-03-08T06:59:59.500Z", "2026-03-08T07:00:00Z", "2026-11-01T05:30:00Z", "2026-11-01T06:30:00Z", "2026-11-17T00:51:00Z", "2026-11-17T04:59:00Z", "2026-11-17T05:00:00Z", "2024-02-29T12:00:00Z", "2025-12-31T23:59:59.999Z", "2026-04-05T15:59:59Z", "2026-10-04T16:30:00Z", "1969-07-20T20:17:40Z"].map(Date.parse);
@@ -91,13 +91,13 @@ test("P140: an expression's native Date takes n8n's main-process zone, a Code no
     const laterUtc = await run(def, { ...opts, clock: { startedAt: "2026-11-17T01:02:00Z" } });
     assert.equal(laterUtc.runData.Code[0].data.main[0][0].json.startDate, "2026-08-19");
     // The environment names the zone where no option does (a task's runner process).
-    process.env.N2C_EXPRESSION_TZ = "America/New_York";
+    process.env.N8M_EXPRESSION_TZ = "America/New_York";
     const env = await run(def, opts);
     assert.equal(env.runData.Code[0].data.main[0][0].json.startDate, "2026-08-18");
-    delete process.env.N2C_EXPRESSION_TZ;
+    delete process.env.N8M_EXPRESSION_TZ;
     await assert.rejects(async () => run(def, { ...opts, expressionZone: "Mars/Olympus" }), /expression zone Mars\/Olympus is not an IANA time zone/);
   } finally {
-    delete process.env.N2C_EXPRESSION_TZ;
+    delete process.env.N8M_EXPRESSION_TZ;
     if (tz === undefined) delete process.env.TZ;
     else process.env.TZ = tz;
   }
@@ -111,5 +111,5 @@ test("P140 on the bench: the Claude side's expressions take the bench n8n's main
   assert.equal(EXPRESSION_TZ, "America/New_York");
   const env = sessionEnv({ base: { TZ: "Asia/Singapore" } });
   assert.equal(env.TZ, CODE_NODE_TZ);
-  assert.equal(env.N2C_EXPRESSION_TZ, "America/New_York");
+  assert.equal(env.N8M_EXPRESSION_TZ, "America/New_York");
 });

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // PreToolUse hook (matcher ^Write$) the claude driver adds beside the folder's own hooks:
-// when the session writes the answer to a model or agent request (.n2c/inbox/<q>.txt), the
+// when the session writes the answer to a model or agent request (.n8m/inbox/<q>.txt), the
 // content is replaced with n8n's recorded reply for the same model node and call index (or the
 // node's unused call asked the same thing, PROPOSALS P76), so
 // branches driven by model output run as they did in n8n. Anything else passes untouched.
@@ -30,11 +30,11 @@ process.stdin.on("end", () => {
 
 function handle(h) {
   const fp = h.tool_input?.file_path ?? "";
-  const m = /\.n2c\/inbox\/(q\d+)\.txt$/.exec(fp);
+  const m = /\.n8m\/inbox\/(q\d+)\.txt$/.exec(fp);
   if (!m) return null;
   const { recordings, workflow, folder, runTime = null } = JSON.parse(readFileSync(recFile, "utf8"));
-  const driver = JSON.parse(readFileSync(join(folder, ".n2c", "driver.json"), "utf8"));
-  const run = JSON.parse(readFileSync(join(folder, ".n2c", "run.json"), "utf8"));
+  const driver = JSON.parse(readFileSync(join(folder, ".n8m", "driver.json"), "utf8"));
+  const run = JSON.parse(readFileSync(join(folder, ".n8m", "run.json"), "utf8"));
   const reqId = driver.handles?.[m[1]];
   const req = (run.requests ?? []).find((r) => r.id === reqId);
   if (!req || !["model", "agent"].includes(req.kind)) return null;

@@ -5,7 +5,7 @@
 The author's 11 workflows in `n8n-hvac-runtime-reminders`, `n8n-job-leases` and `n8n-telegram-class-booking` (`workflows/`). Analyzer at the commit that adds this file, run per repo as a bulk export and across all three:
 
 ```
-node skills/n8n-to-claude/scripts/analyze.mjs ../<repo>/workflows --now 2026-11-16T00:00:00Z
+node skills/n8n-migrate/scripts/analyze.mjs ../<repo>/workflows --now 2026-11-16T00:00:00Z
 ```
 
 The cross-repo run gives the same report for each workflow (no ids cross repos). Totals: subscription 3 (local task 3), hosted 7, keep in n8n 1; setup only 2; 15 open questions. "Bundled server" is left out of the requires column: it is derived from the secret and state rows.

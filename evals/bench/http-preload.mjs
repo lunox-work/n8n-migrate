@@ -1,6 +1,6 @@
 // Preloaded into the claude driver's node processes (NODE_OPTIONS --import, PROPOSALS P5).
 // In a process that runs a folder's runtime/runner.mjs, and only there, global fetch is
-// replaced by one that sends every request to the bench mock (N2C_BENCH_HTTP_MOCK, a host
+// replaced by one that sends every request to the bench mock (N8M_BENCH_HTTP_MOCK, a host
 // mock-server.mjs) in absolute form, so the mock logs and answers it as a proxied request
 // (origin https://host), as it does for n8n. The Claude Code binary does not read
 // NODE_OPTIONS, so the session's own traffic is untouched; hooks and other scripts keep the
@@ -12,7 +12,7 @@
 
 import { request } from "node:http";
 
-const mock = process.env.N2C_BENCH_HTTP_MOCK;
+const mock = process.env.N8M_BENCH_HTTP_MOCK;
 if (mock && /[\\/]runtime[\\/]runner\.mjs$/.test(process.argv[1] ?? "")) {
   const m = new URL(mock);
   globalThis.fetch = (input, init = {}) =>

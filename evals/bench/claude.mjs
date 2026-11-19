@@ -2,7 +2,7 @@
 // the usage-limit stop live in one place.
 //
 // Ledger: evals/bench/.work/claude-runs.jsonl (git-ignored), one line per run:
-// {t, purpose, model, ok, costUsd, ms, error?}. The budget (N2C_BENCH_CLAUDE_MAX, default 60)
+// {t, purpose, model, ok, costUsd, ms, error?}. The budget (N8M_BENCH_CLAUDE_MAX, default 60)
 // counts every line, failed runs included, across bench invocations, so a resumed bench
 // keeps counting. Over budget -> BudgetExceeded; a usage-limit message -> UsageLimit. Both
 // stop the bench with the ledger intact, so the next invocation resumes.
@@ -26,7 +26,7 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const WORK = join(HERE, ".work");
 export const LEDGER = join(WORK, "claude-runs.jsonl");
-export const MAX_RUNS = Number(process.env.N2C_BENCH_CLAUDE_MAX || 60);
+export const MAX_RUNS = Number(process.env.N8M_BENCH_CLAUDE_MAX || 60);
 
 export class BudgetExceeded extends Error {}
 export class UsageLimit extends Error {}
@@ -59,7 +59,7 @@ export function memoryFree() {
 }
 
 export function containerUp() {
-  const r = spawnSync("docker", ["inspect", "-f", "{{.State.Running}}", "n8n2claude-bench"], { encoding: "utf8" });
+  const r = spawnSync("docker", ["inspect", "-f", "{{.State.Running}}", "n8nmigrate-bench"], { encoding: "utf8" });
   return r.stdout?.trim() === "true";
 }
 
@@ -97,9 +97,9 @@ export async function claudeP({ prompt, model = "haiku", args = [], purpose, cwd
   const used = ledger().length;
   if (used >= MAX_RUNS) throw new BudgetExceeded(`claude -p budget of ${MAX_RUNS} runs used (${used}); see ${LEDGER}`);
   if (!memoryChecked) await memoryGate({ log });
-  const dir = cwd ?? mkdtempSync(join(tmpdir(), "n2c-bench-claude-"));
+  const dir = cwd ?? mkdtempSync(join(tmpdir(), "n8m-bench-claude-"));
   const env = { ...process.env, ENABLE_CLAUDEAI_MCP_SERVERS: "false", CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1", DISABLE_AUTOUPDATER: "1", NODE_OPTIONS: "--max-old-space-size=512", ...extraEnv };
-  for (const k of Object.keys(env)) if (k === "ANTHROPIC_API_KEY" || k.startsWith("N2C_SECRET_") || k === "CLAUDECODE" || k.startsWith("CLAUDE_CODE_MESSAGING") || k === "CLAUDE_CODE_SESSION_ID" || k === "CLAUDE_CODE_CHILD_SESSION") delete env[k];
+  for (const k of Object.keys(env)) if (k === "ANTHROPIC_API_KEY" || k.startsWith("N8M_SECRET_") || k === "CLAUDECODE" || k.startsWith("CLAUDE_CODE_MESSAGING") || k === "CLAUDE_CODE_SESSION_ID" || k === "CLAUDE_CODE_CHILD_SESSION") delete env[k];
   const full = claudeArgv({ model, budgetUsd, args });
   const t0 = Date.now();
   const out = await new Promise((resolveP) => {

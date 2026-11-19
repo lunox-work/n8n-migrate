@@ -623,7 +623,7 @@ export function startSmtp({ port, host = "0.0.0.0", name = "mock", onMessage }) 
     let env = { from: null, to: [] };
     let auth = null;
     const say = (l) => sock.write(`${l}\r\n`);
-    say(`220 ${name} ESMTP n8n2claude bench sink`);
+    say(`220 ${name} ESMTP n8nmigrate bench sink`);
     sock.setEncoding("latin1");
     sock.on("data", (chunk) => {
       buf += chunk;

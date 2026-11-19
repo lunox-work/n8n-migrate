@@ -7,11 +7,11 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { convertItems, loadReferences } from "../skills/n8n-to-claude/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
-import { preflight, start as startRun, resume } from "../skills/n8n-to-claude/runtime/src/api.mjs";
+import { convertItems, loadReferences } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
+import { preflight, start as startRun, resume } from "../skills/n8n-migrate/runtime/src/api.mjs";
 import { node, wf, run, out, start } from "./runtime-helpers.mjs";
-import { restPrograms } from "../skills/n8n-to-claude/runtime/src/rest.mjs";
+import { restPrograms } from "../skills/n8n-migrate/runtime/src/rest.mjs";
 
 const SHEET = "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789";
 const HOST = "sheets.googleapis.com";
@@ -110,7 +110,7 @@ test("a REST program step outside allow.http is refused before any request", asy
 });
 
 function convertWorkflow(nodes, connections) {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-rest-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-rest-"));
   const p = join(dir, "wf.json");
   writeFileSync(p, JSON.stringify({ id: "w1", name: "rest", nodes, connections, settings: { executionOrder: "v1" } }));
   const res = convertItems(loadInput(p).items, { refs: loadReferences(), now: Date.parse("2026-11-14T00:00:00Z"), forceConvert: true })[0];
@@ -146,7 +146,7 @@ test("convert: an LLM API call over HTTP stays an http step with the person's ke
 });
 
 test("Sheets read row filters follow n8n's lookupValues: first match per filter, OR order, AND, 4.6 stop", async () => {
-  const { applyLookup } = await import("../skills/n8n-to-claude/runtime/src/nodes2.mjs");
+  const { applyLookup } = await import("../skills/n8n-migrate/runtime/src/nodes2.mjs");
   const rows = [
     { row_number: 2, q: "a", status: "false" },
     { row_number: 3, q: "b", status: "" },

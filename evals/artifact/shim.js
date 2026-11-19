@@ -1,7 +1,7 @@
 // Artifact runtime shim for local checks (evals/artifact/check.mjs). Not shipped.
 //
 // Implements, in the page, the call shapes of the artifact runtime contract 0.2.96 as written
-// down in skills/n8n-to-claude/references/artifact-runtime.md: `window.claude.use(name)`
+// down in skills/n8n-migrate/references/artifact-runtime.md: `window.claude.use(name)`
 // resolving frozen namespaces after a tick, `mcp` (callTool / listTools / server / watchTool /
 // invalidate / describeTool, CallToolResult with `payload`, rejections {code, message}),
 // `sample` (sample(input, opts) -> {text, truncated, modelTierApplied}, sample.json,
@@ -9,16 +9,16 @@
 // update / delete / acquire / onSnapshot, where / orderBy / limit).
 //
 // The answers and the store live in Node behind one exposed function,
-// window.__n2cShimCall(op, args), so two pages share one db (the lock check) and the tool
+// window.__n8mShimCall(op, args), so two pages share one db (the lock check) and the tool
 // answers come from the same canned outputs the in-process runner uses
-// (tests/convert-mocks.mjs). window.__n2cShimConfig = {deny: ["sample", ...]} makes use()
+// (tests/convert-mocks.mjs). window.__n8mShimConfig = {deny: ["sample", ...]} makes use()
 // resolve null for those names.
 (() => {
   "use strict";
-  const cfg = window.__n2cShimConfig || {};
+  const cfg = window.__n8mShimConfig || {};
   const clone = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
   async function call(op, args) {
-    const r = await window.__n2cShimCall(op, clone(args ?? null));
+    const r = await window.__n8mShimCall(op, clone(args ?? null));
     if (r && r.__error) throw Object.freeze({ ...r.__error });
     return r;
   }
@@ -141,13 +141,13 @@
   const db = Object.freeze({ doc: docRef, collection: collRef });
 
   // ---------- permissions (built in) ----------
-  // cfg.permDeny: names the viewer declines; every request is logged on window.__n2cPermRequests.
+  // cfg.permDeny: names the viewer declines; every request is logged on window.__n8mPermRequests.
   const permDeny = new Set(cfg.permDeny || []);
-  window.__n2cPermRequests = [];
+  window.__n8mPermRequests = [];
   const permissions = Object.freeze({
     state: async (name) => (name === undefined ? {} : permDeny.has(name) ? "denied" : "granted"),
     request: async (names = []) => {
-      window.__n2cPermRequests.push([...names]);
+      window.__n8mPermRequests.push([...names]);
       return Object.fromEntries(names.map((n) => [n, permDeny.has(n) ? "denied" : "granted"]));
     },
     manage: async () => {},

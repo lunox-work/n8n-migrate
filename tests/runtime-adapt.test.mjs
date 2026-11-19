@@ -2,8 +2,8 @@
 // protocol and poll cursors in the runner core.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { adaptResult, coerceArgs, advanceCursor, applyCursorArg } from "../skills/n8n-to-claude/runtime/src/adapt.mjs";
-import { start as stepStart, resume, preflight } from "../skills/n8n-to-claude/runtime/src/api.mjs";
+import { adaptResult, coerceArgs, advanceCursor, applyCursorArg } from "../skills/n8n-migrate/runtime/src/adapt.mjs";
+import { start as stepStart, resume, preflight } from "../skills/n8n-migrate/runtime/src/api.mjs";
 import { wf, node, start, run, out, CLOCK } from "./runtime-helpers.mjs";
 
 test("adaptResult: paths, flattening with parents, field specs, passthrough and empty", () => {
@@ -27,7 +27,7 @@ test("coerceArgs: lists from comma text, numbers, booleans, json; undefined drop
 });
 
 test("coerceArgs: a date coerced to a string is its ISO text, as n8n's request body carries it (never quoted JSON)", async () => {
-  const { DateTime } = await import("../skills/n8n-to-claude/runtime/vendor/luxon.mjs");
+  const { DateTime } = await import("../skills/n8n-migrate/runtime/vendor/luxon.mjs");
   const today = DateTime.fromISO("2026-11-15T00:00:00.000-05:00", { setZone: true });
   assert.deepEqual(coerceArgs({ title: "string", at: "string", o: "string" }, { title: today, at: new Date("2026-11-15T05:00:00Z"), o: { a: 1 } }), { title: "2026-11-15T00:00:00.000-05:00", at: "2026-11-15T05:00:00.000Z", o: '{"a":1}' });
 });
@@ -195,7 +195,7 @@ test("adaptResult: a text answer where JSON is read fails the step instead of em
 // carries both names, the connector's own name first when it is there.
 test("adaptResult: the Drive trigger's poll rows carry n8n's name and webViewLink", async () => {
   const { readFileSync } = await import("node:fs");
-  const maps = JSON.parse(readFileSync(new URL("../skills/n8n-to-claude/references/tool-maps.json", import.meta.url), "utf8"));
+  const maps = JSON.parse(readFileSync(new URL("../skills/n8n-migrate/references/tool-maps.json", import.meta.url), "utf8"));
   const poll = maps.nodes?.["n8n-nodes-base.googleDriveTrigger"]?.[">=1"]?._.poll ?? Object.values(maps).find((m) => m?.["n8n-nodes-base.googleDriveTrigger"])?.["n8n-nodes-base.googleDriveTrigger"][">=1"]._.poll;
   const rows = adaptResult(poll.result, { files: [{ id: "f1", title: "Q4 deck.pdf", viewUrl: "https://drive.example/f1" }, { id: "f2", name: "kept.pdf", title: "other", webViewLink: "https://drive.example/f2" }] });
   assert.deepEqual(rows.map((r) => [r.id, r.name, r.webViewLink]), [

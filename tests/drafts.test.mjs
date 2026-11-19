@@ -8,10 +8,10 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { convertItems, writeFolder, loadReferences, convertFolder, applyOverrides, regenerate } from "../skills/n8n-to-claude/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
-import { draftTarget, validateDraft, checkAllowDiff, compileUrl, compileReply, draftEffect, WRITE_BLOCK_REASON, writeApproval, draftFor } from "../skills/n8n-to-claude/scripts/drafts.mjs";
-import { draftFolder, draftableSteps, draftPrompt, syntheticItems } from "../skills/n8n-to-claude/scripts/draft.mjs";
+import { convertItems, writeFolder, loadReferences, convertFolder, applyOverrides, regenerate } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
+import { draftTarget, validateDraft, checkAllowDiff, compileUrl, compileReply, draftEffect, WRITE_BLOCK_REASON, writeApproval, draftFor } from "../skills/n8n-migrate/scripts/drafts.mjs";
+import { draftFolder, draftableSteps, draftPrompt, syntheticItems } from "../skills/n8n-migrate/scripts/draft.mjs";
 import { validate } from "./schema-check.mjs";
 
 const refs = loadReferences();
@@ -37,7 +37,7 @@ const WF = {
 };
 
 function folderOf(wf = WF) {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-drafts-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-drafts-"));
   const file = join(dir, "wf.json");
   writeFileSync(file, JSON.stringify(wf));
   const [res] = convertItems(loadInput(file).items, { refs, now: NOW });
@@ -135,7 +135,7 @@ test("validator: lists in a body and keys with spaces pass; a list element is ch
 });
 
 test("a list body reaches the request as written (try-step)", async () => {
-  const { tryDefinition } = await import("../skills/n8n-to-claude/scripts/try-step.mjs");
+  const { tryDefinition } = await import("../skills/n8n-migrate/scripts/try-step.mjs");
   const { dir, folder } = folderOf();
   const t = targets(folder);
   const ov = readJson(join(folder, "overrides.json"));

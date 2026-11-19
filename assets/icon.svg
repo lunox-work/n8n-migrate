@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-<!-- n8n-to-claude: an n8n tile (pink, the n8n mark) handing off to a Claude tile (orange, the Claude mark), like an
+<!-- n8n-migrate: an n8n tile (pink, the n8n mark) handing off to a Claude tile (orange, the Claude mark), like an
      integration icon. Marks: assets/src/logos/SOURCE.md. Render: node assets/src/render.mjs icon -->
 <defs>
 <linearGradient id="pk" x1="40" y1="40" x2="560" y2="560" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#F0607F"/><stop offset="1" stop-color="#EA4B71"/></linearGradient>

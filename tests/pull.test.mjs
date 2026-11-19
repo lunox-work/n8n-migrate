@@ -5,12 +5,12 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { parseSource, readEnvFile, pull } from "../skills/n8n-to-claude/scripts/pull.mjs";
-import { loadInput, unwrap } from "../skills/n8n-to-claude/scripts/analyze.mjs";
+import { parseSource, readEnvFile, pull } from "../skills/n8n-migrate/scripts/pull.mjs";
+import { loadInput, unwrap } from "../skills/n8n-migrate/scripts/analyze.mjs";
 
 const WF = (id, name, extra = {}) => ({ id, name, nodes: [{ name: "Start", type: "n8n-nodes-base.manualTrigger", typeVersion: 1, parameters: {} }], connections: {}, settings: {}, ...extra });
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
-const tmp = () => mkdtempSync(join(tmpdir(), "n2c-pull-"));
+const tmp = () => mkdtempSync(join(tmpdir(), "n8m-pull-"));
 
 test("parseSource: template links, template:<id>, n8n, editor links; anything else is refused", () => {
   assert.deepEqual(parseSource("https://n8n.io/workflows/42-some-slug"), { kind: "template", id: "42" });

@@ -404,7 +404,7 @@ export function formatOf(path) {
 // provider client retries, so n8n's node fails with it and the baseline reads as the template's
 // loop. Mode `capped`: not a shim error, so the recording is kept (a failed baseline). The
 // largest count in the recordings so far is 10 calls of one node in one run.
-export const MODEL_CALL_CAP = Number(process.env.N2C_BENCH_MODEL_CALL_CAP || 30);
+export const MODEL_CALL_CAP = Number(process.env.N8M_BENCH_MODEL_CALL_CAP || 30);
 export const capMessage = (tag, cap) => `model call cap reached: ${cap} calls to model node ${tag} in one run (the workflow keeps asking the model, e.g. a loop until the reply has some form; PROPOSALS P65)`;
 
 // PROPOSALS P76: which recorded call answers a request. n8n sends a node's per-item requests

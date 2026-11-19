@@ -7,14 +7,14 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { routeOf } from "../skills/n8n-to-claude/scripts/start.mjs";
-import { renderHtml, workflowBlocks } from "../skills/n8n-to-claude/scripts/report-html.mjs";
-import { analyze, loadInput, renderText } from "../skills/n8n-to-claude/scripts/analyze.mjs";
-import { parseSource, pull } from "../skills/n8n-to-claude/scripts/pull.mjs";
+import { routeOf } from "../skills/n8n-migrate/scripts/start.mjs";
+import { renderHtml, workflowBlocks } from "../skills/n8n-migrate/scripts/report-html.mjs";
+import { analyze, loadInput, renderText } from "../skills/n8n-migrate/scripts/analyze.mjs";
+import { parseSource, pull } from "../skills/n8n-migrate/scripts/pull.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const START = join(ROOT, "skills/n8n-to-claude/scripts/start.mjs");
-const REFS = join(ROOT, "skills/n8n-to-claude/references");
+const START = join(ROOT, "skills/n8n-migrate/scripts/start.mjs");
+const REFS = join(ROOT, "skills/n8n-migrate/references");
 const ref = (n) => JSON.parse(readFileSync(join(REFS, n), "utf8"));
 const report = (file) => analyze(loadInput(join(ROOT, file)).items, { nodes: ref("nodes.json"), capabilities: ref("capabilities.json"), hosts: ref("http-hosts.json"), now: Date.parse("2026-11-16T00:00:00Z") });
 
@@ -32,13 +32,13 @@ test("routeOf: files, template links, popular/trending, editor links and bare ad
 });
 
 test("start.mjs on an export file writes report.html and report.json and prints the next step; no prompt without a terminal", () => {
-  const out = mkdtempSync(join(tmpdir(), "n2c-start-"));
+  const out = mkdtempSync(join(tmpdir(), "n8m-start-"));
   try {
     const r = spawnSync(process.execPath, [START, join(ROOT, "tests/fixtures/convert/slice.n8n.json"), "--out", out, "--no-open"], { encoding: "utf8", input: "", env: { ...process.env, HOME: out } });
     assert.equal(r.status, 0, r.stderr);
     assert.ok(existsSync(join(out, "report.html")) && existsSync(join(out, "report.json")));
     assert.match(r.stdout, /1 workflows: subscription 1/);
-    assert.match(r.stdout, /npx skills add lunox-work\/n8n-to-claude -g/);
+    assert.match(r.stdout, /npx skills add lunox-work\/n8n-migrate -g/);
     const html = readFileSync(join(out, "report.html"), "utf8");
     assert.match(html, /Add the skill to Claude Code/);
     assert.ok(!/<script/i.test(html), "no script in the page");
@@ -76,7 +76,7 @@ test("the HTML report groups by outcome, keeps the text report's wording, and es
 test("popular and trending pull the listed templates", async () => {
   assert.deepEqual(parseSource("popular"), { kind: "trending", sort: "views:desc", count: 5 });
   assert.deepEqual(parseSource("trending:50"), { kind: "trending", sort: "trendingScore:desc", count: 20 });
-  const out = mkdtempSync(join(tmpdir(), "n2c-pop-"));
+  const out = mkdtempSync(join(tmpdir(), "n8m-pop-"));
   try {
     const seen = [];
     const fetch = async (url) => {

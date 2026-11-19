@@ -1,4 +1,4 @@
-// Golden tests for skills/n8n-to-claude/scripts/analyze.mjs, plus unit tests
+// Golden tests for skills/n8n-migrate/scripts/analyze.mjs, plus unit tests
 // for the cron expander, SQL parse and secret redaction.
 //
 //   node --test                  compare every fixture with its golden report
@@ -17,18 +17,18 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { validate, schema } from "./schema-check.mjs";
-import { analyze, loadInput, parseCron, simulateCron, legacyCron, redact, findSecrets, scanSecrets, sqlEffect, renderText, httpTarget, observesDst } from "../skills/n8n-to-claude/scripts/analyze.mjs";
+import { analyze, loadInput, parseCron, simulateCron, legacyCron, redact, findSecrets, scanSecrets, sqlEffect, renderText, httpTarget, observesDst } from "../skills/n8n-migrate/scripts/analyze.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..");
-const SCRIPT = join(ROOT, "skills/n8n-to-claude/scripts/analyze.mjs");
+const SCRIPT = join(ROOT, "skills/n8n-migrate/scripts/analyze.mjs");
 const FIXTURES = join(HERE, "fixtures");
 const GOLDEN = join(HERE, "golden");
 const NOW_ISO = "2026-11-16T00:00:00Z"; // a Monday
 const NOW = Date.parse(NOW_ISO);
-const nodes = JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references/nodes.json"), "utf8"));
-const capabilities = JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references/capabilities.json"), "utf8"));
-const hosts = JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references/http-hosts.json"), "utf8"));
+const nodes = JSON.parse(readFileSync(join(ROOT, "skills/n8n-migrate/references/nodes.json"), "utf8"));
+const capabilities = JSON.parse(readFileSync(join(ROOT, "skills/n8n-migrate/references/capabilities.json"), "utf8"));
+const hosts = JSON.parse(readFileSync(join(ROOT, "skills/n8n-migrate/references/http-hosts.json"), "utf8"));
 
 const strip = (r) => {
   const { version, ...analyzer } = r.analyzer;
@@ -119,7 +119,7 @@ test("cli: --json matches the golden; text summary; exit codes", () => {
 });
 
 test("cli: --out writes the file; template wrapper and folder with a bad file", () => {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-"));
   const wf = JSON.parse(readFileSync(join(FIXTURES, "chat-skill.json"), "utf8"));
   writeFileSync(join(dir, "t.json"), JSON.stringify({ workflow: { id: 77, name: "Template name", workflow: { nodes: wf.nodes, connections: wf.connections } } }));
   writeFileSync(join(dir, "broken.json"), "{");
@@ -320,7 +320,7 @@ test("operation key: an authentication value that hides the resource leaves the 
     ],
     connections: { Start: { main: [[{ node: "Webhook send", type: "main", index: 0 }, { node: "Bot default", type: "main", index: 0 }, { node: "Bot message", type: "main", index: 0 }]] } },
   };
-  const dir = mkdtempSync(join(tmpdir(), "n2c-discord-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-discord-"));
   writeFileSync(join(dir, "wf.json"), JSON.stringify(wf));
   const steps = Object.fromEntries(analyze(loadInput(join(dir, "wf.json")).items, { nodes, capabilities, hosts, now: NOW }).workflows[0].steps.map((s) => [s.node, s]));
   assert.equal(steps["Webhook send"].resource ?? null, null);

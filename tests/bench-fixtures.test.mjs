@@ -239,8 +239,8 @@ test("P51: convert-coverage without --ids skips the current round's held-out", a
   const held = heldOutIds(splits);
   assert.ok(held.length > 0);
   assert.deepEqual(withoutHeldOut([String(held[0]), "99999991", held[1]], splits), { kept: ["99999991"], skipped: [String(held[0]), held[1]] });
-  const dir = mkdtempSync(join(tmpdir(), "n2c-p51-"));
-  const splitsDir = mkdtempSync(join(tmpdir(), "n2c-p51-splits-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-p51-"));
+  const splitsDir = mkdtempSync(join(tmpdir(), "n8m-p51-splits-"));
   const splitsFile = join(splitsDir, "splits.json");
   writeFileSync(splitsFile, JSON.stringify(splits));
   try {
@@ -248,7 +248,7 @@ test("P51: convert-coverage without --ids skips the current round's held-out", a
     for (const id of [held[0], 99999991]) writeFileSync(join(dir, `${id}.json`), JSON.stringify(wf));
     const run = (extra) => {
       const out = join(dir, `out${extra.length}.md`);
-      const r = spawnSync(process.execPath, [join(BENCH, "..", "convert-coverage.mjs"), "--corpus", dir, "--out", out, ...extra], { encoding: "utf8", env: { ...process.env, N2C_BENCH_SPLITS: splitsFile } });
+      const r = spawnSync(process.execPath, [join(BENCH, "..", "convert-coverage.mjs"), "--corpus", dir, "--out", out, ...extra], { encoding: "utf8", env: { ...process.env, N8M_BENCH_SPLITS: splitsFile } });
       assert.equal(r.status, 0, r.stderr);
       return readFileSync(out, "utf8");
     };
@@ -302,9 +302,9 @@ test("top-ups: each round's pool, candidates and start page", async () => {
   assert.equal(walkPool({ r4: "eligible" }, TOP_UPS[5]), "fresh");
   assert.equal(walkPool({ r4: "ineligible" }, TOP_UPS[4]), "fresh-other");
   // r4Verdict: the round-4 rule on a workflow the analyzer has read.
-  const { analyze, unwrap } = await import("../skills/n8n-to-claude/scripts/analyze.mjs");
+  const { analyze, unwrap } = await import("../skills/n8n-migrate/scripts/analyze.mjs");
   const ROOT = join(BENCH, "..", "..");
-  const refs = (f) => JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references", f), "utf8"));
+  const refs = (f) => JSON.parse(readFileSync(join(ROOT, "skills/n8n-migrate/references", f), "utf8"));
   const opts = { nodes: refs("nodes.json"), capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), now: Date.parse("2026-11-16T00:00:00Z") };
   const elig = { lists: JSON.parse(readFileSync(join(BENCH, "eligibility.json"), "utf8")), nodes: opts.nodes.nodes };
   const verdict = (wf) => r4Verdict(wf, analyze(unwrap({ workflow: { id: "t", name: "t", workflow: wf } }, "t"), opts).workflows[0], {}, elig);

@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-export const schema = JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references/report.schema.json"), "utf8"));
+export const schema = JSON.parse(readFileSync(join(ROOT, "skills/n8n-migrate/references/report.schema.json"), "utf8"));
 
 // root: the schema $refs resolve against (default: s itself when it has an $id, else the
 // report schema).

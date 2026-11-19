@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // PLAN Phase 7's done test: "a person can migrate a workflow, and roll it back, without any
 // message being sent by both systems". Runs against the local n8n container (evals/n8n,
-// n8n2claude-bench) and a feed this script keeps; never a real n8n, connector or Claude task.
+// n8nmigrate-bench) and a feed this script keeps; never a real n8n, connector or Claude task.
 //
 //   node evals/cutover/e2e.mjs [--keep] [--out <file.jsonl>]
 //
@@ -38,9 +38,9 @@ import { spawnSync } from "node:child_process";
 import assert from "node:assert/strict";
 import { up, down, rest, BASE, WORK, MODEL_SHIM_PORT, memoryFree, waitForMemory, docker, MOCK_NAME } from "../n8n/container.mjs";
 import { ensureLeaf } from "../bench/tls.mjs";
-import { convertItems, writeFolder, loadReferences } from "../../skills/n8n-to-claude/scripts/convert.mjs";
-import { loadInput } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
-import { runStep } from "../../skills/n8n-to-claude/scripts/cutover.mjs";
+import { convertItems, writeFolder, loadReferences } from "../../skills/n8n-migrate/scripts/convert.mjs";
+import { loadInput } from "../../skills/n8n-migrate/scripts/analyze.mjs";
+import { runStep } from "../../skills/n8n-migrate/scripts/cutover.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "../..");
@@ -221,7 +221,7 @@ for (let i = 0; i < 30; i++) {
 const result = { at: new Date().toISOString(), ok: false, steps: [] };
 let n8n;
 let folder;
-const work = mkdtempSync(join(tmpdir(), "n2c-cutover-e2e-"));
+const work = mkdtempSync(join(tmpdir(), "n8m-cutover-e2e-"));
 try {
   const wf = workflowJson();
   n8n = await n8nSetup(wf);
@@ -237,7 +237,7 @@ try {
   writeFileSync(join(work, "wf.json"), JSON.stringify(wf));
   const [res] = convertItems(loadInput(join(work, "wf.json")).items, { refs: loadReferences(), now: Date.now() });
   folder = writeFolder(join(work, "repo"), res, { refs: loadReferences() });
-  process.env.N2C_SECRET_ACCOUNTS_API_KEY = "e2e-claude-key"; // a local task's secret source
+  process.env.N8M_SECRET_ACCOUNTS_API_KEY = "e2e-claude-key"; // a local task's secret source
   // The rejected order, for contrast: a copy enabled while n8n is still on (no cutover log).
   const optionA = join(work, "repo-option-a");
   cpSync(join(work, "repo"), optionA, { recursive: true });

@@ -9,9 +9,9 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { convertItems, writeFolder, regenerate, loadReferences, checkFolder, fromAiSchema } from "../skills/n8n-to-claude/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
-import { run, preflight } from "../skills/n8n-to-claude/runtime/src/api.mjs";
+import { convertItems, writeFolder, regenerate, loadReferences, checkFolder, fromAiSchema } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
+import { run, preflight } from "../skills/n8n-migrate/runtime/src/api.mjs";
 import { validate } from "./schema-check.mjs";
 import { toolHost, modelHost } from "./convert-mocks.mjs";
 
@@ -29,7 +29,7 @@ function convertFile(file, opts = {}) {
   return convertItems(loaded.items, { refs, now: NOW, ...opts });
 }
 function toFolder(file, opts = {}) {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-convert-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-convert-"));
   const results = convertFile(file, opts);
   const folders = results.map((res) => writeFolder(dir, res, { refs, overrides: opts.overrides }));
   return { dir, results, folders };
@@ -63,7 +63,7 @@ test("golden definitions for the fixtures; each folder is complete and passes pr
     assert.deepEqual(validate(def, defSchema), [], name);
     assert.deepEqual(checkFolder(f), { ok: true, issues: [] }, name);
     assert.deepEqual(readJson(join(f, "overrides.json")), { schemaVersion: 1, approve: [], answers: {}, steps: {}, allow: { http: [] }, secrets: {} });
-    assert.equal(readFileSync(join(f, "runtime/runner-core.mjs"), "utf8"), readFileSync(join(ROOT, "skills/n8n-to-claude/runtime/dist/runner-core.mjs"), "utf8"));
+    assert.equal(readFileSync(join(f, "runtime/runner-core.mjs"), "utf8"), readFileSync(join(ROOT, "skills/n8n-migrate/runtime/dist/runner-core.mjs"), "utf8"));
     golden(name, def);
     golden(name, readFileSync(join(f, "MIGRATION.md"), "utf8"), "md");
     rmSync(dir, { recursive: true, force: true });
@@ -172,7 +172,7 @@ test("a workflow whose outcome is not subscription is refused (report only) unle
 
 const tiny = (nodes, connections = {}) => ({ id: "w1", name: "tiny", nodes, connections, settings: { executionOrder: "v1" } });
 function convertJson(wf, opts = {}) {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-convert-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-convert-"));
   const p = join(dir, "wf.json");
   writeFileSync(p, JSON.stringify(wf));
   const out = convertFile(p, { forceConvert: true, ...opts });
@@ -251,14 +251,14 @@ test("regenerate keeps overrides.json and the overrides it holds, and refreshes 
   assert.equal(def.steps["Extract amount"].params.jsCode, "return { json: { amount: 1 } };");
   assert.equal(def.steps["Extract amount"].override, true);
   assert.deepEqual(def.secrets[0].hosts, ["api.accounts.example.com", "backup.accounts.example.com"]);
-  assert.equal(readFileSync(join(f, "runtime/runner-core.mjs"), "utf8"), readFileSync(join(ROOT, "skills/n8n-to-claude/runtime/dist/runner-core.mjs"), "utf8"));
+  assert.equal(readFileSync(join(f, "runtime/runner-core.mjs"), "utf8"), readFileSync(join(ROOT, "skills/n8n-migrate/runtime/dist/runner-core.mjs"), "utf8"));
   assert.deepEqual(checkFolder(f), { ok: true, issues: [] });
   rmSync(dir, { recursive: true, force: true });
 });
 
 test("CLI: convert writes the folders and regenerate rebuilds one", () => {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-cli-"));
-  const cli = join(ROOT, "skills/n8n-to-claude/scripts/convert.mjs");
+  const dir = mkdtempSync(join(tmpdir(), "n8m-cli-"));
+  const cli = join(ROOT, "skills/n8n-migrate/scripts/convert.mjs");
   const r = spawnSync(process.execPath, [cli, join(FIX, "slice.n8n.json"), "--out", dir, "--now", "2026-11-14T00:00:00Z"], { encoding: "utf8" });
   assert.equal(r.status, 0, r.stderr);
   const out = JSON.parse(r.stdout);
@@ -422,7 +422,7 @@ test("Basic LLM Chain on a text-completion model sends only the prompt, as n8n's
 });
 
 test("a URL built at run time that writes its own address may reach only that address; an open host stays refused", async () => {
-  const { writtenTargets } = await import("../skills/n8n-to-claude/scripts/convert.mjs");
+  const { writtenTargets } = await import("../skills/n8n-migrate/scripts/convert.mjs");
   assert.deepEqual(writtenTargets("={{ (function (r) { return 'https://api.github.com/repos/' + r.owner + '/' + r.repo; })($json) }}"), [{ host: "api.github.com", pathPrefix: "/repos/" }]);
   assert.deepEqual(writtenTargets("={{ $json.url }}"), []);
   assert.deepEqual(writtenTargets("={{ 'https://' + $json.domain + '/x' }}"), []);
@@ -498,7 +498,7 @@ test("answers keyed by the first report's workflow id still apply after a regene
     connections: link("Start", "Post"),
     settings: { executionOrder: "v1" },
   };
-  const src = mkdtempSync(join(tmpdir(), "n2c-wrap-"));
+  const src = mkdtempSync(join(tmpdir(), "n8m-wrap-"));
   const file = join(src, "wrapped.json");
   writeFileSync(file, JSON.stringify({ workflow: { id: "outer9", name: "Wrapped WordPress", workflow: inner } }));
   const { dir, results, folders } = toFolder(file);
@@ -514,7 +514,7 @@ test("answers keyed by the first report's workflow id still apply after a regene
 });
 
 test("an HTTP step whose host comes from data asks for its hosts at setup: named hosts, or any public https host", async () => {
-  const { parseHostsAnswer } = await import("../skills/n8n-to-claude/scripts/convert.mjs");
+  const { parseHostsAnswer } = await import("../skills/n8n-migrate/scripts/convert.mjs");
   assert.deepEqual(parseHostsAnswer("public"), { public: true });
   assert.deepEqual(parseHostsAnswer("api.example.com, https://cdn.example.com/x"), { hosts: ["api.example.com", "cdn.example.com"] });
   assert.match(parseHostsAnswer("*.example.com").invalid, /wildcard/);
@@ -558,7 +558,7 @@ test("an HTTP step whose host comes from data asks for its hosts at setup: named
     assert.equal(preflight(d).ok, false);
   }
   // Another step cannot use the public entry: it belongs to "Fetch" only.
-  const { checkContainment } = await import("../skills/n8n-to-claude/runtime/src/engine.mjs");
+  const { checkContainment } = await import("../skills/n8n-migrate/runtime/src/engine.mjs");
   assert.throws(() => checkContainment(pub, { kind: "http", method: "GET", url: "https://any-site.example/", id: "Other#0#0", step: "Other" }), /not in the definition's allowlist/);
   assert.doesNotThrow(() => checkContainment(pub, { kind: "http", method: "GET", url: "https://any-site.example/", id: "Fetch#0#0", step: "Fetch" }));
   // A URL with an address written in it is not asked about.
@@ -690,7 +690,7 @@ test("Call n8n Workflow Tool v1 with an input schema: the schema offered, the ar
   const t = def.steps.Agent.agent.tools.find((x) => x.name === "lookup");
   assert.deepEqual(t.inputSchema, { type: "object", properties: { videoId: { type: "string" } } });
   assert.deepEqual(def.steps.Tool.subflow, { self: true, inputs: {}, queryArgs: true });
-  const { executeAgentTool } = await import("../skills/n8n-to-claude/runtime/src/nodes2.mjs");
+  const { executeAgentTool } = await import("../skills/n8n-migrate/runtime/src/nodes2.mjs");
   let handed;
   const exec = { run: { definition: def, api: { runSubflow: async (_e, _s, items) => ((handed = items), { output: [[{ json: { ok: 1 } }]] }) } }, scope: () => ({}), name: "Agent", runIndex: 0 };
   const r = await executeAgentTool(exec, def.steps.Agent.agent.tools, { name: "lookup", args: { videoId: "v1" } }, 0);

@@ -9,13 +9,13 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const SKILL = join(ROOT, "skills/n8n-to-claude");
+const SKILL = join(ROOT, "skills/n8n-migrate");
 
 test("SKILL.md: frontmatter, triggers, compact body, every reference it names exists", () => {
   const md = readFileSync(join(SKILL, "SKILL.md"), "utf8");
   const fm = /^---\n([\s\S]*?)\n---\n/.exec(md)?.[1];
   assert.ok(fm, "frontmatter");
-  for (const k of ["name: n8n-to-claude", "description:", "license:", "compatibility:"]) assert.ok(fm.includes(k), k);
+  for (const k of ["name: n8n-migrate", "description:", "license:", "compatibility:"]) assert.ok(fm.includes(k), k);
   const desc = fm.slice(fm.indexOf("description:"), fm.indexOf("license:")).replace(/\s+/g, " ");
   for (const phrase of ["move, migrate or port n8n workflows to Claude", "whether an n8n workflow can run on Claude", "pastes n8n workflow JSON"]) assert.ok(desc.includes(phrase), phrase);
   assert.ok(desc.length <= 1024, `description is ${desc.length} characters`);
@@ -25,7 +25,7 @@ test("SKILL.md: frontmatter, triggers, compact body, every reference it names ex
 });
 
 test("try-step: runs one step alone on sample items; requests are recorded, nothing is sent", () => {
-  const out = mkdtempSync(join(tmpdir(), "n2c-try-"));
+  const out = mkdtempSync(join(tmpdir(), "n8m-try-"));
   try {
     const r = JSON.parse(spawnSync(process.execPath, [join(SKILL, "scripts/convert.mjs"), join(ROOT, "tests/fixtures/convert/poll-code-http.n8n.json"), "--out", out], { encoding: "utf8" }).stdout);
     const folder = join(out, r.workflows[0].folder);

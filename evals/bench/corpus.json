@@ -3,7 +3,7 @@
   "fetched": "2026-11-14",
   "listingTotal": 14216,
   "hash": "sha256 of .workflow.workflow serialised with sorted keys (evals/fetch-survey.mjs canonical())",
-  "analyzer": "skills/n8n-to-claude/scripts/analyze.mjs, default answers, one template per run, --now 2026-11-16T00:00:00Z",
+  "analyzer": "skills/n8n-migrate/scripts/analyze.mjs, default answers, one template per run, --now 2026-11-16T00:00:00Z",
   "rules": "evals/bench/EXCLUSIONS.md",
   "quotas": {
     "chat": 25,
@@ -306,7 +306,7 @@
     }
   },
   "current": {
-    "analyzer": "skills/n8n-to-claude/scripts/analyze.mjs of the checkout, default answers, one template per run, --now 2026-11-16T00:00:00Z",
+    "analyzer": "skills/n8n-migrate/scripts/analyze.mjs of the checkout, default answers, one template per run, --now 2026-11-16T00:00:00Z",
     "refreshed": "2026-11-16",
     "rule": "PROPOSALS P127: current* fields are today's analyzer verdict where it differs from the frozen draw-day outcome/target/wakeup; reports read them, eligibility and draws never do",
     "counts": {

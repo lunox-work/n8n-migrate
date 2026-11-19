@@ -4,16 +4,16 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { fromN8n, urlTarget } from "../skills/n8n-to-claude/runtime/src/convert.mjs";
-import { run, preflight } from "../skills/n8n-to-claude/runtime/src/api.mjs";
-import { hashHex } from "../skills/n8n-to-claude/runtime/src/hash.mjs";
+import { fromN8n, urlTarget } from "../skills/n8n-migrate/runtime/src/convert.mjs";
+import { run, preflight } from "../skills/n8n-migrate/runtime/src/api.mjs";
+import { hashHex } from "../skills/n8n-migrate/runtime/src/hash.mjs";
 import { validate } from "./schema-check.mjs";
 import { CLOCK } from "./runtime-helpers.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const WF = join(ROOT, "evals/n8n/workflows");
-const nodes = JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references/nodes.json"), "utf8"));
-const defSchema = JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references/definition.schema.json"), "utf8"));
+const nodes = JSON.parse(readFileSync(join(ROOT, "skills/n8n-migrate/references/nodes.json"), "utf8"));
+const defSchema = JSON.parse(readFileSync(join(ROOT, "skills/n8n-migrate/references/definition.schema.json"), "utf8"));
 const load = (f) => {
   const text = readFileSync(join(WF, f), "utf8");
   return { text, def: fromN8n(JSON.parse(text), { nodes, sourceText: text, file: f }) };

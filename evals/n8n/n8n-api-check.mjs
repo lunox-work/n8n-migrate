@@ -9,7 +9,7 @@
 // a tagged list without Return All, a workflow get per item, an execution list per workflow
 // with filters, an execution get with its data and a Return All execution list).
 //
-// 1. Seed the bench's n8n (container.mjs up) with three workflows tagged `n2c-api-check`, one
+// 1. Seed the bench's n8n (container.mjs up) with three workflows tagged `n8m-api-check`, one
 //    successful and one failed execution, and an API key with every scope.
 // 2. n8n side: run the workflow in that n8n (run-workflow.mjs, kept until the end) with its
 //    n8nApi credential pointed at the instance itself (http://localhost:5678/api/v1, which
@@ -32,10 +32,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { up, rest, BASE } from "./container.mjs";
 import { runWorkflow, scheduleItem } from "./run-workflow.mjs";
-import { convertItems, loadReferences } from "../../skills/n8n-to-claude/scripts/convert.mjs";
-import { unwrap } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
-import { run } from "../../skills/n8n-to-claude/runtime/src/api.mjs";
-import { executeHttp } from "../../skills/n8n-to-claude/runtime/src/driver.mjs";
+import { convertItems, loadReferences } from "../../skills/n8n-migrate/scripts/convert.mjs";
+import { unwrap } from "../../skills/n8n-migrate/scripts/analyze.mjs";
+import { run } from "../../skills/n8n-migrate/runtime/src/api.mjs";
+import { executeHttp } from "../../skills/n8n-migrate/runtime/src/driver.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -43,7 +43,7 @@ const opt = (k, d) => (args.includes(k) ? args[args.indexOf(k) + 1] : d);
 const WORKFLOW = resolve(opt("--workflow", join(HERE, "workflows", "n8n-api-backup.json")));
 const OUT = opt("--out", null);
 const KEEP = args.includes("--keep");
-const TAG = "n2c-api-check";
+const TAG = "n8m-api-check";
 const NOW = "2026-11-16T09:00:00Z";
 const INSIDE = "http://localhost:5678/api/v1"; // the instance as its own nodes reach it
 
@@ -72,9 +72,9 @@ async function main() {
     const tag = await rest("POST", "/tags", { name: `${TAG}` }).catch(async () => (await rest("GET", "/tags")).find((t) => t.name === TAG));
     made.tag = tag.id;
     const seeds = [
-      ["n2c api check: alpha", [manual, setNode], link("Start", "Note"), "run"],
-      ["n2c api check: beta", [manual, failNode], link("Start", "Fail"), "run"],
-      ["n2c api check: gamma", [manual, setNode], link("Start", "Note"), null],
+      ["n8m api check: alpha", [manual, setNode], link("Start", "Note"), "run"],
+      ["n8m api check: beta", [manual, failNode], link("Start", "Fail"), "run"],
+      ["n8m api check: gamma", [manual, setNode], link("Start", "Note"), null],
     ];
     for (const [name, nodes, connections, runIt] of seeds) {
       if (runIt) {

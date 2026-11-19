@@ -47,7 +47,7 @@ function client(args) {
 }
 
 test("mock MCP server: handshake, captured tools, fixtures in order, schema check, effects log", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-mcp-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-mcp-"));
   try {
     const fixtures = join(dir, "fixtures.json");
     const log = join(dir, "effects.jsonl");
@@ -115,7 +115,7 @@ test("mock MCP server: handshake, captured tools, fixtures in order, schema chec
 });
 
 test("mock MCP server (P11): rows with args are matched by args; a read reuses them, a write does not", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-mcp-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-mcp-"));
   try {
     const fixtures = join(dir, "fixtures.json");
     writeFileSync(
@@ -150,7 +150,7 @@ test("mock MCP server names itself like the real connector", async () => {
 });
 
 test("mock MCP server enforces known real limits: Slack text length, Gmail page size", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-mcp-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-mcp-"));
   try {
     const fixtures = join(dir, "fixtures.json");
     const log = join(dir, "effects.jsonl");

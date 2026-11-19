@@ -100,7 +100,7 @@ test("P94: the bench image carries the pinned community packages; the image name
   const { benchImage, communityPackages, IMAGE } = await import("../evals/n8n/container.mjs");
   const pkgs = communityPackages();
   assert.ok(pkgs.every((p) => /^sha512-/.test(p.integrity) && /^\d+\.\d+\.\d+$/.test(p.version)), "every package pinned by version and integrity");
-  assert.match(benchImage(), /^n8n2claude-n8n:2\.47\.7-[0-9a-f]{12}$/);
+  assert.match(benchImage(), /^n8nmigrate-n8n:2\.47\.7-[0-9a-f]{12}$/);
   assert.equal(benchImage([]), IMAGE, "no package: n8n's own image");
   assert.notEqual(benchImage([{ ...pkgs[0], version: "9.9.9" }]), benchImage(), "another pin, another image");
 });

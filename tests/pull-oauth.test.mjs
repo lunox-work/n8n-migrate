@@ -9,8 +9,8 @@ import { createHash } from "node:crypto";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { pull } from "../skills/n8n-to-claude/scripts/pull.mjs";
-import { signIn, instanceBase, scopeFor, scopesForVersion, discover } from "../skills/n8n-to-claude/scripts/n8n-oauth.mjs";
+import { pull } from "../skills/n8n-migrate/scripts/pull.mjs";
+import { signIn, instanceBase, scopeFor, scopesForVersion, discover } from "../skills/n8n-migrate/scripts/n8n-oauth.mjs";
 
 const NODES = [{ name: "Start", type: "n8n-nodes-base.manualTrigger", typeVersion: 1, parameters: {} }];
 
@@ -109,10 +109,10 @@ const login = (b, o) => signIn(b, { ...o, open: (u) => void browser(u), log: () 
 
 test("--login: browser sign-in, every shared workflow read over MCP, the private one named, nothing secret on disk", async () => {
   const n8n = await fakeN8n();
-  const out = mkdtempSync(join(tmpdir(), "n2c-oauth-out-"));
-  const cfg = mkdtempSync(join(tmpdir(), "n2c-oauth-cfg-"));
+  const out = mkdtempSync(join(tmpdir(), "n8m-oauth-out-"));
+  const cfg = mkdtempSync(join(tmpdir(), "n8m-oauth-cfg-"));
   try {
-    const r = await pull([], { out, login: `${n8n.base}/home/workflows`, env: { N2C_CONFIG_DIR: cfg }, signIn: login });
+    const r = await pull([], { out, login: `${n8n.base}/home/workflows`, env: { N8M_CONFIG_DIR: cfg }, signIn: login });
     assert.deepEqual(r.written.map((w) => w.file).sort(), ["draft-c3.json", "shared-one-a1.json"]);
     assert.equal(r.errors.length, 1);
     assert.match(r.errors[0].error, /not shared over MCP \(1\): Private one\. .*Available in MCP/);
@@ -131,11 +131,11 @@ test("--login: browser sign-in, every shared workflow read over MCP, the private
     assert.ok(!/access-|refresh-/.test(stored), "no token is stored");
     for (const f of readdirSync(out)) assert.ok(!readFileSync(join(out, f), "utf8").includes("access-1"));
     // a second run reuses the registration and its port; --active keeps published ones
-    const again = await pull(["n8n"], { out, active: true, login: n8n.base, env: { N2C_CONFIG_DIR: cfg }, signIn: login });
+    const again = await pull(["n8n"], { out, active: true, login: n8n.base, env: { N8M_CONFIG_DIR: cfg }, signIn: login });
     assert.equal(n8n.st.registrations.length, 1);
     assert.deepEqual(again.written.map((w) => w.id), ["a1"]);
     // --register-again makes a new client
-    await pull([`${n8n.base}/workflow/a1`], { out, login: n8n.base, registerAgain: true, env: { N2C_CONFIG_DIR: cfg }, signIn: login });
+    await pull([`${n8n.base}/workflow/a1`], { out, login: n8n.base, registerAgain: true, env: { N8M_CONFIG_DIR: cfg }, signIn: login });
     assert.equal(n8n.st.registrations.length, 2);
   } finally {
     await n8n.close();
@@ -146,13 +146,13 @@ test("--login: browser sign-in, every shared workflow read over MCP, the private
 
 test("--login behind a proxy that hides .well-known, on a server whose get_workflow_details takes no detailLevel", async () => {
   const n8n = await fakeN8n({ wellKnown: false, legacyDetail: true });
-  const out = mkdtempSync(join(tmpdir(), "n2c-oauth-out-"));
-  const cfg = mkdtempSync(join(tmpdir(), "n2c-oauth-cfg-"));
+  const out = mkdtempSync(join(tmpdir(), "n8m-oauth-out-"));
+  const cfg = mkdtempSync(join(tmpdir(), "n8m-oauth-cfg-"));
   try {
     const m = await discover(n8n.base);
     assert.equal(m.source, "synthesized");
     assert.equal(m.authorization_endpoint, `${n8n.base}/mcp-oauth/authorize`);
-    const r = await pull([`${n8n.base}/workflow/a1`, "https://elsewhere.example/workflow/z"], { out, login: n8n.base, env: { N2C_CONFIG_DIR: cfg }, signIn: login });
+    const r = await pull([`${n8n.base}/workflow/a1`, "https://elsewhere.example/workflow/z"], { out, login: n8n.base, env: { N8M_CONFIG_DIR: cfg }, signIn: login });
     assert.deepEqual(r.written.map((w) => w.id), ["a1"]);
     assert.match(r.errors[0].error, /not on http:\/\/127\.0\.0\.1:\d+, the instance you sign in to/);
     assert.deepEqual(n8n.st.calls.filter(([n]) => n === "get_workflow_details").map(([, a]) => Object.keys(a).sort().join(",")), ["detailLevel,workflowId", "workflowId"]);
@@ -165,9 +165,9 @@ test("--login behind a proxy that hides .well-known, on a server whose get_workf
 
 test("--login with n8n's MCP server switched off says where to switch it on", async () => {
   const n8n = await fakeN8n({ mcpOn: false });
-  const cfg = mkdtempSync(join(tmpdir(), "n2c-oauth-cfg-"));
+  const cfg = mkdtempSync(join(tmpdir(), "n8m-oauth-cfg-"));
   try {
-    const r = await pull([], { out: join(cfg, "out"), login: n8n.base, env: { N2C_CONFIG_DIR: cfg }, signIn: login });
+    const r = await pull([], { out: join(cfg, "out"), login: n8n.base, env: { N8M_CONFIG_DIR: cfg }, signIn: login });
     assert.equal(r.written.length, 0);
     assert.match(r.errors[0].error, /Settings > Instance-level MCP > Enable MCP access/);
   } finally {

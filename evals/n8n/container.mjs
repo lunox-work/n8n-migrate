@@ -10,13 +10,13 @@
 //                                                 (`n8n ...` gets its own task-broker port)
 //
 // Layout (see HEADLESS.md):
-//   n8n2claude-bench  n8nio/n8n:2.47.7, 1 GB RAM and swap, network n8n2claude-net
-//                     (--internal: no route out), volume n8n2claude-bench-data.
-//   n8n2claude-postgres, n8n2claude-mongo  database sidecars (databases.mjs, PROPOSALS P66) on
-//                     n8n2claude-net as hosts `postgres` and `mongo`, only while a template whose
+//   n8nmigrate-bench  n8nio/n8n:2.47.7, 1 GB RAM and swap, network n8nmigrate-net
+//                     (--internal: no route out), volume n8nmigrate-bench-data.
+//   n8nmigrate-postgres, n8nmigrate-mongo  database sidecars (databases.mjs, PROPOSALS P66) on
+//                     n8nmigrate-net as hosts `postgres` and `mongo`, only while a template whose
 //                     fixture seeds that engine runs (ensureDatabases).
-//   n8n2claude-mock   node:22-alpine running mock-server.mjs (HTTP on 8080, an SMTP sink on 2525). On n8n2claude-net as
-//                     host `mock` (port 8080) and on n8n2claude-edge, which publishes
+//   n8nmigrate-mock   node:22-alpine running mock-server.mjs (HTTP on 8080, an SMTP sink on 2525). On n8nmigrate-net as
+//                     host `mock` (port 8080) and on n8nmigrate-edge, which publishes
 //                     127.0.0.1:5690 and relays it to n8n:5678. n8n can reach the mock
 //                     and nothing else. The mock reads <work>/fixtures.json and appends
 //                     <work>/effects.jsonl; <work> is not mounted into n8n.
@@ -36,7 +36,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 export const IMAGE = "n8nio/n8n:2.47.7";
 export const SIDECAR_IMAGE = "node:22-alpine";
 // PROPOSALS P94: the image the bench runs: n8nio/n8n with the pinned community packages of
-// community-packages.json built in (`n8n2claude-n8n:<version>-<hash>`), or n8nio/n8n itself when
+// community-packages.json built in (`n8nmigrate-n8n:<version>-<hash>`), or n8nio/n8n itself when
 // the list is empty. The packages sit at /home/node/.n8n/nodes/node_modules, where n8n 2.x scans
 // for community nodes; that path is a second volume, named by the same hash, so Docker fills it
 // from the image on first use while the database volume above it stays as it is.
@@ -46,9 +46,9 @@ export function communityPackages() {
 export function benchImage(pkgs = communityPackages()) {
   if (!pkgs.length) return IMAGE;
   const h = createHash("sha256").update(JSON.stringify({ IMAGE, pkgs: pkgs.map(({ name, version, integrity }) => ({ name, version, integrity })) })).digest("hex").slice(0, 12);
-  return `n8n2claude-n8n:${IMAGE.split(":")[1]}-${h}`;
+  return `n8nmigrate-n8n:${IMAGE.split(":")[1]}-${h}`;
 }
-const nodesVolume = (image) => (image === IMAGE ? null : `n8n2claude-bench-nodes-${image.split("-").at(-1)}`);
+const nodesVolume = (image) => (image === IMAGE ? null : `n8nmigrate-bench-nodes-${image.split("-").at(-1)}`);
 // A file-name-safe name of the n8n image in use (caches keyed by image: node descriptions).
 export const imageTag = () => benchImage().replace(/[^\w.-]+/g, "_");
 
@@ -77,17 +77,17 @@ export async function ensureBenchImage({ log = console.error } = {}) {
   }
   writeFileSync(join(dir, "Dockerfile"), `FROM ${IMAGE}\nCOPY --chown=node:node nodes/ /home/node/.n8n/nodes/\n`);
   log(`building ${image} (${communityPackages().map((p) => `${p.name}@${p.version}`).join(", ")})`);
-  docker(["build", "-q", "-t", image, "--label", "n8n2claude.community=1", dir]);
+  docker(["build", "-q", "-t", image, "--label", "n8nmigrate.community=1", dir]);
   rmSync(dir, { recursive: true, force: true });
   return image;
 }
-export const NAME = "n8n2claude-bench";
-export const MOCK_NAME = "n8n2claude-mock";
-export const RUNNERS_NAME = "n8n2claude-runners"; // PROPOSALS P92, only while a template needs it
+export const NAME = "n8nmigrate-bench";
+export const MOCK_NAME = "n8nmigrate-mock";
+export const RUNNERS_NAME = "n8nmigrate-runners"; // PROPOSALS P92, only while a template needs it
 export const RUNNERS_IMAGE = "n8nio/runners:2.47.7";
-export const NET = "n8n2claude-net"; // internal
-export const EDGE = "n8n2claude-edge"; // publishes the host port
-export const VOLUME = "n8n2claude-bench-data";
+export const NET = "n8nmigrate-net"; // internal
+export const EDGE = "n8nmigrate-edge"; // publishes the host port
+export const VOLUME = "n8nmigrate-bench-data";
 export const HOST_PORT = 5690;
 export const BASE = `http://127.0.0.1:${HOST_PORT}`;
 export const MOCK_URL = "http://mock:8080"; // as n8n sees it
@@ -97,11 +97,11 @@ export const OWNER_EMAIL = "bench@example.com";
 export const OWNER_PASSWORD = "Bench-only-pass-1";
 const OWNER_HASH = "$2a$10$0d25sQavlnXIlqc9ULyWquYP6.jOU47UnxfMHrI86M8oZ9jVcRCsa"; // bcrypt of OWNER_PASSWORD
 // TLS interception (evals/bench/tls.mjs): the mock gets the leaves, n8n trusts only the CA.
-export const TLS_DIR = resolve(process.env.N2C_BENCH_TLS || join(HERE, "..", "bench", ".tls"));
+export const TLS_DIR = resolve(process.env.N8M_BENCH_TLS || join(HERE, "..", "bench", ".tls"));
 // The bench's model shim runs on the host (evals/bench/model-shim.mjs); the mock forwards to
 // it over the edge network. n8n itself still reaches nothing but the mock.
-export const MODEL_SHIM_PORT = Number(process.env.N2C_MODEL_SHIM_PORT || 5691);
-export const ENCRYPTION_KEY = "n8n2claude-bench-key-not-a-secret";
+export const MODEL_SHIM_PORT = Number(process.env.N8M_MODEL_SHIM_PORT || 5691);
+export const ENCRYPTION_KEY = "n8nmigrate-bench-key-not-a-secret";
 const CLI_BROKER_PORT = "5681"; // `n8n execute` and friends start a second task broker
 
 export const ENV = {
@@ -199,13 +199,13 @@ export function configHash({ extraEnv = {}, image = benchImage(), runners = fals
   const sorted = Object.keys(env).sort().map((k) => `${k}=${env[k]}`);
   return createHash("sha256").update(JSON.stringify({ image, env: sorted, runners: runners || false })).digest("hex").slice(0, 16);
 }
-export const configLabel = () => label(NAME, "n8n2claude.config");
+export const configLabel = () => label(NAME, "n8nmigrate.config");
 const label = (name, key) => docker(["inspect", "-f", `{{index .Config.Labels "${key}"}}`, name], { allowFail: true }).stdout?.trim() ?? "";
 
 export async function up({ fresh = false, extraEnv = {}, runners = false, image = null, log = console.error } = {}) {
   image ??= await ensureBenchImage({ log });
   const want = configHash({ extraEnv, image, runners });
-  if (running(NAME) && !fresh && label(NAME, "n8n2claude.config") !== want) {
+  if (running(NAME) && !fresh && label(NAME, "n8nmigrate.config") !== want) {
     log(`n8n container runs another configuration (env, image or runners): recreating it`);
     docker(["rm", "-f", NAME], { allowFail: true });
   }
@@ -213,8 +213,8 @@ export async function up({ fresh = false, extraEnv = {}, runners = false, image 
   if (!runners && exists("container", RUNNERS_NAME)) docker(["rm", "-f", RUNNERS_NAME], { allowFail: true });
   if (runners && running(NAME) && !running(RUNNERS_NAME)) docker(["rm", "-f", NAME], { allowFail: true });
   // The mock runs the checkout's mock-server.mjs as it was when the sidecar started: a sidecar
-  // started from other code (label n8n2claude.code) is recreated, so a mock change reaches it.
-  if (running(MOCK_NAME) && docker(["inspect", "-f", '{{index .Config.Labels "n8n2claude.code"}}', MOCK_NAME], { allowFail: true }).stdout?.trim() !== mockCodeHash()) {
+  // started from other code (label n8nmigrate.code) is recreated, so a mock change reaches it.
+  if (running(MOCK_NAME) && docker(["inspect", "-f", '{{index .Config.Labels "n8nmigrate.code"}}', MOCK_NAME], { allowFail: true }).stdout?.trim() !== mockCodeHash()) {
     log("mock sidecar runs other mock code: recreating it");
     docker(["rm", "-f", MOCK_NAME], { allowFail: true });
   }
@@ -238,7 +238,7 @@ export async function up({ fresh = false, extraEnv = {}, runners = false, image 
   if (!running(MOCK_NAME)) {
     docker(["rm", "-f", MOCK_NAME], { allowFail: true });
     docker([
-      "run", "-d", "--name", MOCK_NAME, "--label", `n8n2claude.code=${mockCodeHash()}`,
+      "run", "-d", "--name", MOCK_NAME, "--label", `n8nmigrate.code=${mockCodeHash()}`,
       "--memory=128m", "--memory-swap=128m",
       "--network", EDGE, "-p", `127.0.0.1:${HOST_PORT}:${HOST_PORT}`,
       "-v", `${HERE}:/bench:ro`, "-v", `${WORK}:/work`, "-v", `${TLS_DIR}:/tls:ro`,
@@ -255,7 +255,7 @@ export async function up({ fresh = false, extraEnv = {}, runners = false, image 
     docker(["rm", "-f", NAME], { allowFail: true });
     const env = Object.entries({ ...ENV, ...extraEnv, ...(runners ? RUNNERS_ENV : {}) }).flatMap(([k, v]) => ["-e", `${k}=${v}`]);
     docker([
-      "run", "-d", "--name", NAME, "--label", `n8n2claude.config=${want}`,
+      "run", "-d", "--name", NAME, "--label", `n8nmigrate.config=${want}`,
       "--memory=1g", "--memory-swap=1g",
       "--network", NET,
       "-v", `${VOLUME}:/home/node/.n8n`, ...(nodesVolume(image) ? ["-v", `${nodesVolume(image)}:/home/node/.n8n/nodes`] : []), "-v", `${join(TLS_DIR, "ca.pem")}:/bench-ca/ca.pem:ro`,
@@ -285,7 +285,7 @@ export function mockCodeHash() {
 // allowed, as a person would configure their runners (`runners: {stdlib, external}`), never `*`;
 // the JS runner's allow lists are emptied to match internal mode's defaults. No package is
 // installed: the image has only the standard library.
-const RUNNERS_TOKEN = "n8n2claude-bench-runners-not-a-secret";
+const RUNNERS_TOKEN = "n8nmigrate-bench-runners-not-a-secret";
 const RUNNERS_ENV = {
   N8N_RUNNERS_MODE: "external",
   N8N_RUNNERS_AUTH_TOKEN: RUNNERS_TOKEN,
@@ -368,7 +368,7 @@ export function down({ purge = false } = {}) {
   for (const n of [NET, EDGE]) docker(["network", "rm", n], { allowFail: true });
   if (purge) {
     docker(["volume", "rm", VOLUME], { allowFail: true });
-    const vols = docker(["volume", "ls", "-q", "--filter", "name=n8n2claude-bench-nodes-"], { allowFail: true }).stdout?.trim().split("\n").filter(Boolean) ?? [];
+    const vols = docker(["volume", "ls", "-q", "--filter", "name=n8nmigrate-bench-nodes-"], { allowFail: true }).stdout?.trim().split("\n").filter(Boolean) ?? [];
     for (const v of vols) docker(["volume", "rm", v], { allowFail: true });
   }
 }
@@ -440,7 +440,7 @@ export function n8nCli(args, opts) {
 // ---------- REST (internal API, as the owner) ----------
 
 let cookie = null;
-const BROWSER_ID = "n8n2claude-bench";
+const BROWSER_ID = "n8nmigrate-bench";
 
 export async function login() {
   const r = await fetch(`${BASE}/rest/login`, {

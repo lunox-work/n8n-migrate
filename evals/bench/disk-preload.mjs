@@ -3,7 +3,7 @@
 // real disk (runtime/src/driver.mjs executeFile); in the bench it must never reach it. A
 // relative path already lands in the session's copy of the folder (a scratch directory under
 // .work); an absolute one is redirected here: every path inside an absolute `allow.files`
-// entry (N2C_BENCH_DISK_DIRS, a JSON list) is moved under N2C_BENCH_DISK_ROOT (/tmp/x.xlsx ->
+// entry (N8M_BENCH_DISK_DIRS, a JSON list) is moved under N8M_BENCH_DISK_ROOT (/tmp/x.xlsx ->
 // <root>/tmp/x.xlsx), where the bench put the fixture's `file` sources first. Only the fs
 // calls executeFile makes are wrapped; node:fs's ESM bindings are refreshed with
 // syncBuiltinESMExports() so driver.mjs, loaded after this module, sees the wrapped ones.
@@ -13,10 +13,10 @@ import { syncBuiltinESMExports } from "node:module";
 import { isAbsolute, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = process.env.N2C_BENCH_DISK_ROOT;
+const root = process.env.N8M_BENCH_DISK_ROOT;
 let dirs = [];
 try {
-  dirs = JSON.parse(process.env.N2C_BENCH_DISK_DIRS || "[]").filter((d) => typeof d === "string" && isAbsolute(d)).map((d) => normalize(d).replace(/\/+$/, "") || "/");
+  dirs = JSON.parse(process.env.N8M_BENCH_DISK_DIRS || "[]").filter((d) => typeof d === "string" && isAbsolute(d)).map((d) => normalize(d).replace(/\/+$/, "") || "/");
 } catch {}
 
 export function redirect(p, { base = root, within = dirs } = {}) {

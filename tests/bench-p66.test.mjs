@@ -130,7 +130,7 @@ test("P66: the run's credentials point n8n at the sidecars; templateEnv starts o
   assert.ok(t.needs.some((n) => /^P66: database sidecars postgres, mongodb/.test(n)));
   assert.equal(templateEnv({ routes: [], wf: { nodes: [] }, db: null }).databases, undefined);
   for (const s of Object.values(D.SIDECARS)) {
-    assert.match(s.name, /^n8n2claude-/);
+    assert.match(s.name, /^n8nmigrate-/);
     assert.match(s.image, /:\d+\.\d+(\.\d+)?(-alpine)?@sha256:[0-9a-f]{64}$/, "pinned by exact tag and digest");
     assert.match(s.memory, /^\d+m$/);
   }

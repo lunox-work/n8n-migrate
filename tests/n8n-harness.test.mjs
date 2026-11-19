@@ -93,7 +93,7 @@ test("mock: fixture precedence and reply lists", () => {
 });
 
 test("mock: records method, path, query, headers and body in order", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-mock-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-mock-"));
   const log = join(dir, "effects.jsonl");
   const fixtures = join(dir, "fixtures.json");
   writeFileSync(fixtures, JSON.stringify({ "POST /v1/x": [{ status: 201, body: { n: 1 } }, { body: { n: 2 } }] }));

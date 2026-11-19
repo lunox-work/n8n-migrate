@@ -16,7 +16,7 @@ test("P122: a verified third-party module body is skipped for ids; a changed one
   const id = JSON.parse(readFileSync(join(ROOT, "evals/bench/corpus.json"), "utf8")).templates.find((t) => String(t.id).length >= 3 && !t.topUp).id;
   const body = `var TABLE = { 'Alpha': ${id} };\nmodule.exports = TABLE;`;
   const table = (b) => `const M = {\n  "lib/table": function (module, exports, require) {\n${b}\n  },\n};\nconst after = ${id};\n`;
-  const dir = mkdtempSync(join(tmpdir(), "n2c-lint-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-lint-"));
   try {
     writeFileSync(join(dir, "lib.SOURCE.txt"), `sha256 lib/table ${createHash("sha256").update(body).digest("hex")} lib@1.0.0/table.js\n`);
     writeFileSync(join(dir, "lib.mjs"), table(body));

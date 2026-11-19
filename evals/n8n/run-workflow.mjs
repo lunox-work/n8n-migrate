@@ -38,7 +38,7 @@ import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { rest, n8nCli, waitHealthy, WORK, BASE, NAME } from "./container.mjs";
-import { unwrap } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
+import { unwrap } from "../../skills/n8n-migrate/scripts/analyze.mjs";
 
 // ---------- flatted (n8n's REST encoding of execution data) ----------
 
@@ -425,7 +425,7 @@ export const waitingExecutionId = (url) => /\/form-waiting\/([^/?#]+)/.exec(Stri
 // serves fails the run with a named reason ("form not served", "form page not served") instead
 // of waiting out the bench's timeout.
 export const BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
-export const FORM_PAGE_WAIT_S = Number(process.env.N2C_BENCH_FORM_PAGE_WAIT_S || 60);
+export const FORM_PAGE_WAIT_S = Number(process.env.N8M_BENCH_FORM_PAGE_WAIT_S || 60);
 const browserHeaders = { "user-agent": BROWSER_UA, accept: "text/html,application/json;q=0.9,*/*;q=0.8" };
 
 async function submitForm(t, item, timeoutS, { pages = [], wf = null } = {}) {

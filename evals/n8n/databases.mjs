@@ -19,7 +19,7 @@
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 
-export const NET = "n8n2claude-net";
+export const NET = "n8nmigrate-net";
 export const DB_USER = "bench";
 export const DB_PASSWORD = "bench-db-not-a-secret";
 const SUPER_PASSWORD = "bench-db-super-not-a-secret";
@@ -30,7 +30,7 @@ const SUPER_PASSWORD = "bench-db-super-not-a-secret";
 // MongoDB 234 MiB (WiredTiger cache 0.25 GB, the smallest it takes).
 export const SIDECARS = {
   postgres: {
-    name: "n8n2claude-postgres",
+    name: "n8nmigrate-postgres",
     image: "postgres:17.11-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24",
     alias: "postgres",
     port: 5432,
@@ -38,7 +38,7 @@ export const SIDECARS = {
     credentialType: "postgres",
   },
   mongodb: {
-    name: "n8n2claude-mongo",
+    name: "n8nmigrate-mongo",
     image: "mongo:7.0.48@sha256:9896df581dfd0718b7abe112f4c37598d0986c54060e4ec1384997e6503c8c71",
     alias: "mongo",
     port: 27017,
@@ -372,7 +372,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function runArgs(engine) {
   const s = SIDECARS[engine];
-  const base = ["run", "-d", "--name", s.name, "--label", `n8n2claude.db=${engine}`, `--memory=${s.memory}`, `--memory-swap=${s.memory}`, "--network", NET, "--network-alias", s.alias];
+  const base = ["run", "-d", "--name", s.name, "--label", `n8nmigrate.db=${engine}`, `--memory=${s.memory}`, `--memory-swap=${s.memory}`, "--network", NET, "--network-alias", s.alias];
   if (engine === "postgres") {
     return [
       ...base, "-e", `POSTGRES_PASSWORD=${SUPER_PASSWORD}`, s.image,
@@ -457,7 +457,7 @@ export function removeDatabases() {
 // password is the value the claude driver hands the task as the step's secret
 // (claude-driver.mjs sessionEnv: bench-secret-<credential type>), so the folder's secret
 // handling is exercised as written.
-export const CLAUDE_PG = { name: "n8n2claude-claude-postgres", image: SIDECARS.postgres.image, port: 5432, hostPort: 5692, host: "127.0.0.1", memory: "256m", password: "bench-secret-postgres" };
+export const CLAUDE_PG = { name: "n8nmigrate-claude-postgres", image: SIDECARS.postgres.image, port: 5432, hostPort: 5692, host: "127.0.0.1", memory: "256m", password: "bench-secret-postgres" };
 export const claudeDatabaseName = (id) => `bench_claude_${String(id).replace(/\W+/g, "")}`.toLowerCase().slice(0, 63);
 export function claudeConnectionUrl(id) {
   return `postgres://${DB_USER}@${CLAUDE_PG.host}:${CLAUDE_PG.hostPort}/${claudeDatabaseName(id)}`;
@@ -466,7 +466,7 @@ export async function ensureClaudeDatabase({ log = console.error } = {}) {
   if (running(CLAUDE_PG.name)) return false;
   docker(["rm", "-f", "-v", CLAUDE_PG.name], { allowFail: true });
   docker([
-    "run", "-d", "--name", CLAUDE_PG.name, "--label", "n8n2claude.db=postgres-claude", `--memory=${CLAUDE_PG.memory}`, `--memory-swap=${CLAUDE_PG.memory}`, "-p", `${CLAUDE_PG.host}:${CLAUDE_PG.hostPort}:${CLAUDE_PG.port}`, "-e", `POSTGRES_PASSWORD=${SUPER_PASSWORD}`, CLAUDE_PG.image,
+    "run", "-d", "--name", CLAUDE_PG.name, "--label", "n8nmigrate.db=postgres-claude", `--memory=${CLAUDE_PG.memory}`, `--memory-swap=${CLAUDE_PG.memory}`, "-p", `${CLAUDE_PG.host}:${CLAUDE_PG.hostPort}:${CLAUDE_PG.port}`, "-e", `POSTGRES_PASSWORD=${SUPER_PASSWORD}`, CLAUDE_PG.image,
     "-c", "shared_buffers=32MB", "-c", "max_connections=40", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off", "-c", "timezone=UTC",
     "-c", "log_statement=all", "-c", "logging_collector=on", "-c", "log_destination=jsonlog", "-c", "log_directory=log", "-c", "log_filename=bench.log", "-c", "log_rotation_age=0", "-c", "log_rotation_size=0",
   ]);

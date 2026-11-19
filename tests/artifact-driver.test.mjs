@@ -7,10 +7,10 @@ import { readFileSync, mkdtempSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import * as core from "../skills/n8n-to-claude/runtime/src/index.mjs";
-import { createArtifactDriver, composeModelInput, agentValue, mcpPayload } from "../skills/n8n-to-claude/runtime/src/artifact-driver.mjs";
-import { convertItems, writeFolder, loadReferences, artifactCapabilities, artifactServers } from "../skills/n8n-to-claude/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
+import * as core from "../skills/n8n-migrate/runtime/src/index.mjs";
+import { createArtifactDriver, composeModelInput, agentValue, mcpPayload } from "../skills/n8n-migrate/runtime/src/artifact-driver.mjs";
+import { convertItems, writeFolder, loadReferences, artifactCapabilities, artifactServers } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
 import { toolHost, modelHost } from "./convert-mocks.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -232,19 +232,19 @@ test("records: ids fit the db path grammar, documents stay under the size limit,
 });
 
 test("convert writes artifact.html with the definition, its hash and the runtime inlined, and the capabilities beside it", () => {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-artifact-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-artifact-"));
   for (const name of ["slice", "chat-agent", "poll-code-http", "subflow-merge"]) {
     const [res] = convertItems(loadInput(join(FIX, `${name}.n8n.json`)).items, { refs, now: NOW });
     const folder = writeFolder(dir, res, { refs });
     const html = readFileSync(join(folder, "artifact.html"), "utf8");
     const def = JSON.parse(readFileSync(join(folder, "definition.json"), "utf8"));
-    const embedded = JSON.parse(/<script type="application\/json" id="n2c-definition">([^<]*)<\/script>/.exec(html)[1]);
-    const build = JSON.parse(/<script type="application\/json" id="n2c-build">([^<]*)<\/script>/.exec(html)[1]);
+    const embedded = JSON.parse(/<script type="application\/json" id="n8m-definition">([^<]*)<\/script>/.exec(html)[1]);
+    const build = JSON.parse(/<script type="application\/json" id="n8m-build">([^<]*)<\/script>/.exec(html)[1]);
     assert.deepEqual(embedded, def, name);
     assert.equal(build.definitionHash, core.definitionHash(def));
-    assert.equal(html.includes("__N2C_"), false, `${name}: an unfilled marker`);
+    assert.equal(html.includes("__N8M_"), false, `${name}: an unfilled marker`);
     assert.equal(/<script[^>]+src=/i.test(html), false, `${name}: an external script`);
-    assert.ok(html.includes(readFileSync(join(ROOT, "skills/n8n-to-claude/runtime/dist/artifact-runtime.js"), "utf8")));
+    assert.ok(html.includes(readFileSync(join(ROOT, "skills/n8n-migrate/runtime/dist/artifact-runtime.js"), "utf8")));
     assert.match(html.slice(0, 8192), /<title>[^<]+<\/title>/);
     assert.deepEqual(JSON.parse(readFileSync(join(folder, "artifact.capabilities.json"), "utf8")), artifactCapabilities(def, refs));
   }
@@ -254,23 +254,23 @@ test("convert writes artifact.html with the definition, its hash and the runtime
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("with the person's server (gateway), an http step goes to its n2c_http instead of a handoff; a dry run holds the write", async () => {
-  const { createGateway, loadFolders } = await import("../skills/n8n-to-claude/scripts/gateway.mjs");
-  const { handleRpc } = await import("../skills/n8n-to-claude/scripts/serve.mjs");
-  const dir = mkdtempSync(join(tmpdir(), "n2c-art-gw-"));
+test("with the person's server (gateway), an http step goes to its n8m_http instead of a handoff; a dry run holds the write", async () => {
+  const { createGateway, loadFolders } = await import("../skills/n8n-migrate/scripts/gateway.mjs");
+  const { handleRpc } = await import("../skills/n8n-migrate/scripts/serve.mjs");
+  const dir = mkdtempSync(join(tmpdir(), "n8m-art-gw-"));
   try {
     const [res] = convertItems(loadInput(join(FIX, "poll-code-http.n8n.json")).items, { refs, now: NOW });
     const slug = writeFolder(dir, res, { refs, server: "n8n workflows" }).split("/").pop();
     const def = JSON.parse(readFileSync(join(dir, slug, "definition.json"), "utf8"));
     const caps = JSON.parse(readFileSync(join(dir, slug, "artifact.capabilities.json"), "utf8"));
-    assert.deepEqual(caps.mcp.servers.find((s) => s.server === "n8n workflows"), { server: "n8n workflows", tools: ["n2c_http"] });
+    assert.deepEqual(caps.mcp.servers.find((s) => s.server === "n8n workflows"), { server: "n8n workflows", tools: ["n8m_http"] });
     assert.match(readFileSync(join(dir, slug, "artifact.html"), "utf8"), /"gateway":\{"server":"n8n workflows","workflow":"[\w-]+"\}/);
     const fetched = [];
     const fetch = async (url, init = {}) => {
       fetched.push({ url: String(url), auth: init.headers?.authorization });
       return new Response(JSON.stringify({ id: "inv-9" }), { status: 201, headers: { "content-type": "application/json" } });
     };
-    const gw = createGateway({ core, folders: loadFolders(dir), secrets: (n) => (n === "Accounts API key" ? "sk-art-0123456789" : undefined), fetch, resolveHost: async () => ["93.184.216.34"], stateRoot: join(dir, ".n2c", "gateway") });
+    const gw = createGateway({ core, folders: loadFolders(dir), secrets: (n) => (n === "Accounts API key" ? "sk-art-0123456789" : undefined), fetch, resolveHost: async () => ["93.184.216.34"], stateRoot: join(dir, ".n8m", "gateway") });
     const fake = fakeRuntime(def);
     const inner = fake.rt.mcp.callTool;
     let id = 0;
@@ -291,7 +291,7 @@ test("with the person's server (gateway), an http step goes to its n2c_http inst
     assert.equal(fetched[0].auth, "Bearer sk-art-0123456789", "the server added its key");
     assert.equal(new URL(fetched[0].url).hostname, "api.accounts.example.com");
     const call = fake.log.tools.find((t) => t.connector === "gateway");
-    assert.equal(call.tool, "n2c_http");
+    assert.equal(call.tool, "n8m_http");
     assert.equal(call.args.definitionHash, core.definitionHash(def));
     assert.equal(JSON.stringify(call.args).includes("sk-art"), false, "the page never sees the key");
   } finally {

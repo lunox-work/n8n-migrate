@@ -12,10 +12,10 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { analyze, unwrap } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
+import { analyze, unwrap } from "../../skills/n8n-migrate/scripts/analyze.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const REFS = join(HERE, "..", "..", "skills", "n8n-to-claude", "references");
+const REFS = join(HERE, "..", "..", "skills", "n8n-migrate", "references");
 const refs = (f) => JSON.parse(readFileSync(join(REFS, f), "utf8"));
 const opts = { nodes: refs("nodes.json"), capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), now: Date.parse("2026-11-16T00:00:00Z") };
 const labelsArg = process.argv.includes("--labels") ? process.argv[process.argv.indexOf("--labels") + 1] : join(HERE, "labels.json");

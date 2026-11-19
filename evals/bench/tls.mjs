@@ -18,7 +18,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-export const TLS_DIR = resolve(process.env.N2C_BENCH_TLS || join(HERE, ".tls"));
+export const TLS_DIR = resolve(process.env.N8M_BENCH_TLS || join(HERE, ".tls"));
 
 function openssl(args, cwd) {
   const r = spawnSync("openssl", args, { cwd, encoding: "utf8" });
@@ -37,7 +37,7 @@ export function safeHost(h) {
 export function ensureCa(dir = TLS_DIR) {
   mkdirSync(join(dir, "hosts"), { recursive: true });
   if (existsSync(join(dir, "ca.pem")) && existsSync(join(dir, "ca.key"))) return join(dir, "ca.pem");
-  openssl(["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", "ca.key", "-out", "ca.pem", "-days", "3650", "-subj", "/CN=n8n2claude bench CA (test only)", "-addext", "basicConstraints=critical,CA:TRUE", "-addext", "keyUsage=critical,keyCertSign,cRLSign"], dir);
+  openssl(["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", "ca.key", "-out", "ca.pem", "-days", "3650", "-subj", "/CN=n8nmigrate bench CA (test only)", "-addext", "basicConstraints=critical,CA:TRUE", "-addext", "keyUsage=critical,keyCertSign,cRLSign"], dir);
   return join(dir, "ca.pem");
 }
 

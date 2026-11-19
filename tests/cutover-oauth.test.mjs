@@ -10,10 +10,10 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { convertItems, writeFolder, loadReferences } from "../skills/n8n-to-claude/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
-import { runStep } from "../skills/n8n-to-claude/scripts/cutover.mjs";
-import { mcpN8nClient, CUTOVER_SCOPES } from "../skills/n8n-to-claude/scripts/n8n-oauth.mjs";
+import { convertItems, writeFolder, loadReferences } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
+import { runStep } from "../skills/n8n-migrate/scripts/cutover.mjs";
+import { mcpN8nClient, CUTOVER_SCOPES } from "../skills/n8n-migrate/scripts/n8n-oauth.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const refs = loadReferences();
@@ -21,7 +21,7 @@ const NOW = Date.parse("2026-11-14T00:00:00Z");
 const readJson = (p) => JSON.parse(readFileSync(p, "utf8"));
 
 function folderFor(file, mutate) {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-cut-mcp-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-cut-mcp-"));
   const items = loadInput(join(ROOT, file)).items;
   if (mutate) mutate(items);
   const folders = convertItems(items, { refs, now: NOW }).map((res) => writeFolder(dir, res, { refs }));
@@ -77,7 +77,7 @@ test("over a sign-in, a scheduled workflow cuts over and rolls back through publ
     assert.equal(de.code, 0, de.text);
     assert.equal(n8n.wf.activeVersionId, null);
     assert.ok(n8n.log.some(([t, a]) => t === "search_workflow_executions" && a.status?.includes("running")), "waited for running executions");
-    assert.equal(readJson(join(folder, ".n2c/records/meta/cutover.json")).n8n.workflowId, "sl1");
+    assert.equal(readJson(join(folder, ".n8m/records/meta/cutover.json")).n8n.workflowId, "sl1");
     assert.equal((await step("seed")).code, 0);
     const en = await step("enable", { force: true });
     assert.equal(en.code, 0, en.text);
@@ -122,7 +122,7 @@ test("over a sign-in, a poll trigger whose position only static data holds is re
   const n8n = await fakeMcp({ id: "poll01", name: "x", active: true, activeVersionId: "v1", nodes: [], connections: {} });
   try {
     // Gmail without its executions mapping stands in for Drive/Sheets: drop fromEmitted.
-    const api = await import("../skills/n8n-to-claude/scripts/n8n-api.mjs");
+    const api = await import("../skills/n8n-migrate/scripts/n8n-api.mjs");
     const spec = api.POLL_STATE["n8n-nodes-base.gmailTrigger"];
     const saved = spec.fromEmitted;
     delete spec.fromEmitted;

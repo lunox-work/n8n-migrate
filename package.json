@@ -1,21 +1,33 @@
 {
-  "name": "n8n-to-claude",
-  "version": "0.1.0",
+  "name": "n8n-migrate",
+  "version": "0.2.0",
   "description": "Which of your n8n workflows can run on your Claude subscription: sign in to n8n (or give a template, file or API key) and get a per-workflow report; the Claude Code skill then converts the ones that fit and cuts over without double sends.",
   "license": "MIT",
   "author": "Charlie Angriawan (https://github.com/lunox-work)",
-  "homepage": "https://github.com/lunox-work/n8n-to-claude#readme",
+  "homepage": "https://github.com/lunox-work/n8n-migrate#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lunox-work/n8n-to-claude.git"
+    "url": "git+https://github.com/lunox-work/n8n-migrate.git"
   },
-  "bugs": "https://github.com/lunox-work/n8n-to-claude/issues",
-  "keywords": ["n8n", "claude", "claude-code", "workflow-automation", "migration", "agent-skill"],
+  "bugs": "https://github.com/lunox-work/n8n-migrate/issues",
+  "keywords": [
+    "n8n",
+    "claude",
+    "claude-code",
+    "workflow-automation",
+    "migration",
+    "agent-skill"
+  ],
   "type": "module",
   "bin": {
-    "n8n-to-claude": "skills/n8n-to-claude/scripts/start.mjs"
+    "n8n-migrate": "skills/n8n-migrate/scripts/start.mjs"
   },
-  "files": ["skills/n8n-to-claude", "LICENSE", "NOTICE.md", "PRIVACY.md"],
+  "files": [
+    "skills/n8n-migrate",
+    "LICENSE",
+    "NOTICE.md",
+    "PRIVACY.md"
+  ],
   "engines": {
     "node": ">=20"
   }

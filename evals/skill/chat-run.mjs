@@ -24,7 +24,7 @@ import { claudeBin, freeMemoryPercent } from "../task-driver/run.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
 const SERVER = join(ROOT, "evals/mocks/mcp-server.mjs");
-const SCRATCH = process.env.N2C_SCRATCH ?? join(tmpdir(), "n2c-skill");
+const SCRATCH = process.env.N8M_SCRATCH ?? join(tmpdir(), "n8m-skill");
 const args = process.argv.slice(2);
 const flag = (k, d) => (args.includes(`--${k}`) ? args[args.indexOf(`--${k}`) + 1] : d);
 const readJson = (p, d) => (existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : d);
@@ -43,7 +43,7 @@ const project = join(runDir, "project");
 mkdirSync(project, { recursive: true });
 
 // Convert, then install the skill folder the way a person would.
-const conv = JSON.parse(execFileSync(process.execPath, [join(ROOT, "skills/n8n-to-claude/scripts/convert.mjs"), fixture, "--out", join(runDir, "converted")], { encoding: "utf8" }));
+const conv = JSON.parse(execFileSync(process.execPath, [join(ROOT, "skills/n8n-migrate/scripts/convert.mjs"), fixture, "--out", join(runDir, "converted")], { encoding: "utf8" }));
 const folder = join(conv.out, conv.workflows[0].folder);
 const md = readFileSync(join(folder, "skill/SKILL.md"), "utf8");
 const name = /^name: (\S+)$/m.exec(md)[1];
@@ -66,13 +66,13 @@ for (const c of Object.keys(task.toolPrefixes)) mcpServers[serverName(readJson(s
 writeFileSync(join(runDir, "mcp.json"), JSON.stringify({ mcpServers }, null, 2));
 
 // Permissions only: the Skill tool (dontAsk denies it otherwise: run 1), the runner (relative and
-// absolute spellings), the inbox in the project (<cwd>/.n2c/<skill>/inbox: Claude Code refused
+// absolute spellings), the inbox in the project (<cwd>/.n8m/<skill>/inbox: Claude Code refused
 // a Write under .claude/skills/ even with an allow rule, runs 2 and 3), the tools.
 const tools = Object.entries(task.toolPrefixes).flatMap(([c, p]) => (readJson(schemaFile(c)).tools ?? []).filter((t) => md.includes(p + t.name)).map((t) => p + t.name));
 const settings = {
   permissions: {
     defaultMode: "dontAsk",
-    allow: [`Skill(${name})`, `Bash(node .claude/skills/${name}/runtime/runner.mjs *)`, `Bash(node ${skillDir}/runtime/runner.mjs *)`, `Edit(.n2c/${name}/inbox/**)`, ...tools],
+    allow: [`Skill(${name})`, `Bash(node .claude/skills/${name}/runtime/runner.mjs *)`, `Bash(node ${skillDir}/runtime/runner.mjs *)`, `Edit(.n8m/${name}/inbox/**)`, ...tools],
     deny: ["WebFetch", "WebSearch"],
   },
 };
@@ -84,7 +84,7 @@ const version = execFileSync(bin, ["--version"], { encoding: "utf8" }).trim();
 const cli = ["-p", prompt, "--model", model, "--output-format", "stream-json", "--verbose", "--strict-mcp-config", "--mcp-config", join(runDir, "mcp.json"), "--setting-sources", "project", "--settings", join(runDir, "settings.json"), "--no-session-persistence", "--max-budget-usd", String(flag("budget", "1.5"))];
 if (args.includes("--debug")) cli.push("--debug-file", join(runDir, "debug.log"));
 const env = { ...process.env, ENABLE_CLAUDEAI_MCP_SERVERS: "false", CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1", DISABLE_AUTOUPDATER: "1", NODE_OPTIONS: "--max-old-space-size=512" };
-for (const k of Object.keys(env)) if (k.startsWith("N2C_SECRET_") || k === "ANTHROPIC_API_KEY") delete env[k];
+for (const k of Object.keys(env)) if (k.startsWith("N8M_SECRET_") || k === "ANTHROPIC_API_KEY") delete env[k];
 
 const transcript = join(runDir, "stream.jsonl");
 writeFileSync(transcript, "");
@@ -126,9 +126,9 @@ const exitCode = await new Promise((r) => child.on("exit", (code, sig) => r(code
 clearTimeout(timer);
 
 const effects = readFileSync(effectsLog, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
-const n2c = join(project, ".n2c", name);
-const events = existsSync(join(n2c, "events.jsonl")) ? readFileSync(join(n2c, "events.jsonl"), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
-const state = readJson(join(n2c, "run.json"), null);
+const n8m = join(project, ".n8m", name);
+const events = existsSync(join(n8m, "events.jsonl")) ? readFileSync(join(n8m, "events.jsonl"), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
+const state = readJson(join(n8m, "run.json"), null);
 const r = s.result ?? {};
 const reply = state?.result?.output?.[0]?.output ?? null;
 const record = {

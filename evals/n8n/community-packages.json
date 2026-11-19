@@ -1,5 +1,5 @@
 {
-  "$doc": "PROPOSALS P94: community node packages built into the bench's n8n image (container.mjs benchImage), each pinned by version and the registry's sha512 integrity, checked on download. Only packages whose node type has a one-off mapping in skills/n8n-to-claude/references/mappings.json and that a round's dev template uses. The tarball is unpacked as published (no install scripts, no dependencies: a peer dependency on n8n-workflow resolves to n8n's own). Their HTTP goes through the mock like every node's.",
+  "$doc": "PROPOSALS P94: community node packages built into the bench's n8n image (container.mjs benchImage), each pinned by version and the registry's sha512 integrity, checked on download. Only packages whose node type has a one-off mapping in skills/n8n-migrate/references/mappings.json and that a round's dev template uses. The tarball is unpacked as published (no install scripts, no dependencies: a peer dependency on n8n-workflow resolves to n8n's own). Their HTTP goes through the mock like every node's.",
   "packages": [
     {
       "name": "@blotato/n8n-nodes-blotato",

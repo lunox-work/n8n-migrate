@@ -41,14 +41,14 @@ import { runWorkflow, pickTrigger, scheduleItem } from "../n8n/run-workflow.mjs"
 import { startMock } from "../n8n/mock-server.mjs";
 // DIFF_RUNTIME_SRC points at another copy of runtime/src (e.g. an older commit's, for a
 // before/after count); default: this checkout's.
-const RUNTIME_SRC = resolve(process.env.DIFF_RUNTIME_SRC || join(dirname(fileURLToPath(import.meta.url)), "../../skills/n8n-to-claude/runtime/src"));
+const RUNTIME_SRC = resolve(process.env.DIFF_RUNTIME_SRC || join(dirname(fileURLToPath(import.meta.url)), "../../skills/n8n-migrate/runtime/src"));
 const { fromN8n } = await import(pathToFileURL(join(RUNTIME_SRC, "convert.mjs")).href);
 const { run: runnerRun, preflight } = await import(pathToFileURL(join(RUNTIME_SRC, "api.mjs")).href);
 import { makePins } from "./pins.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "../..");
-export const CATALOGUE = JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references/nodes.json"), "utf8"));
+export const CATALOGUE = JSON.parse(readFileSync(join(ROOT, "skills/n8n-migrate/references/nodes.json"), "utf8"));
 export const DIFF_WORK = resolve(process.env.DIFF_WORK || join(HERE, ".work"));
 export const TIME_TOLERANCE_MS = 120_000;
 export const DEFAULT_FIXTURES = { default: { status: 200, body: { ok: true, id: "mock-1", data: [{ id: 1, name: "one" }, { id: 2, name: "two" }] } } };

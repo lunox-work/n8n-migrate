@@ -48,7 +48,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SKILLS = join(ROOT, "skills");
-const NAME = "n8n-to-claude";
+const NAME = "n8n-migrate";
 const MANIFESTS = [".claude-plugin/plugin.json", ".claude-plugin/marketplace.json", "package.json"];
 const MAX_FILE = 5 * 1024 * 1024;
 const PLUGIN_BRANCH = "claude-plugin";

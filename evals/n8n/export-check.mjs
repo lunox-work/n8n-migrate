@@ -19,7 +19,7 @@ import { up, exec, copyIn, copyOut, n8nCli, docker, WORK, IMAGE, NAME, down } fr
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "../..");
-const ANALYZE = join(ROOT, "skills/n8n-to-claude/scripts/analyze.mjs");
+const ANALYZE = join(ROOT, "skills/n8n-migrate/scripts/analyze.mjs");
 const CORPUS = join(ROOT, "evals/survey/data/wf");
 const SIBLINGS = ["n8n-hvac-runtime-reminders", "n8n-job-leases", "n8n-telegram-class-booking"].map((r) => join(ROOT, "..", r, "workflows"));
 const NOW = "2026-11-16T00:00:00Z";

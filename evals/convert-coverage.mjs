@@ -21,9 +21,9 @@
 import { readdirSync, writeFileSync, readFileSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { convertItems, loadReferences, validateSchema } from "../skills/n8n-to-claude/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
-import { preflight } from "../skills/n8n-to-claude/runtime/src/api.mjs";
+import { convertItems, loadReferences, validateSchema } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
+import { preflight } from "../skills/n8n-migrate/runtime/src/api.mjs";
 import { readSplits, roundOf, withoutHeldOut, subsetRounds } from "./bench/rounds.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");

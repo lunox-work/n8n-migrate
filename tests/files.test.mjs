@@ -7,18 +7,18 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, readFileSync, rmSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { convertItems, loadReferences, writeFolder } from "../skills/n8n-to-claude/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
-import { preflight, run } from "../skills/n8n-to-claude/runtime/src/api.mjs";
-import { prettyBytes, mimeLookup, mimeExtension, prepareBinary, normalizePath, flattenObject } from "../skills/n8n-to-claude/runtime/src/files.mjs";
-import { executeFile, taskSurface } from "../skills/n8n-to-claude/runtime/src/driver.mjs";
+import { convertItems, loadReferences, writeFolder } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
+import { preflight, run } from "../skills/n8n-migrate/runtime/src/api.mjs";
+import { prettyBytes, mimeLookup, mimeExtension, prepareBinary, normalizePath, flattenObject } from "../skills/n8n-migrate/runtime/src/files.mjs";
+import { executeFile, taskSurface } from "../skills/n8n-migrate/runtime/src/driver.mjs";
 
 const refs = loadReferences();
 const CLOCK = { startedAt: "2026-11-16T09:00:00Z" };
 const B = "n8n-nodes-base.";
 
 function convertJson(wf) {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-files-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-files-"));
   const p = join(dir, "wf.json");
   writeFileSync(p, JSON.stringify(wf));
   const loaded = loadInput(p);
@@ -200,7 +200,7 @@ test("disk steps: local tasks only, paths limited to the directories written in 
 });
 
 test("the task driver reads and writes the disk on a local task and refuses on a cloud task", () => {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-disk-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-disk-"));
   try {
     const local = { secrets: "env", store: { kind: "file" } };
     assert.deepEqual([taskSurface(local), taskSurface({ secrets: "proxy" }), taskSurface({ store: { kind: "git" } })], ["local-task", "cloud-task", "cloud-task"]);
@@ -253,7 +253,7 @@ test("file steps the runtime does not carry stay blocked with their reason; libr
   assert.match(r.Zip, /Compression/);
   assert.match(r.ICS, /Convert To File iCal is not implemented yet/);
   // writeFolder copies runtime/vendor/<lib> only for a definition that loads it.
-  const dir = mkdtempSync(join(tmpdir(), "n2c-vendor-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-vendor-"));
   try {
     const withPdf = convertJson(chain([{ parameters: { operation: "pdf", options: {} }, name: "Extract", type: B + "extractFromFile", typeVersion: 1 }]));
     const folder = writeFolder(dir, withPdf, { refs });

@@ -8,15 +8,15 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { convertItems, loadReferences } from "../skills/n8n-to-claude/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
-import { preflight, run } from "../skills/n8n-to-claude/runtime/src/api.mjs";
+import { convertItems, loadReferences } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
+import { preflight, run } from "../skills/n8n-migrate/runtime/src/api.mjs";
 
 const refs = loadReferences();
 const CLOCK = { startedAt: "2026-11-16T09:00:00Z" };
 
 function convertJson(wf) {
-  const dir = mkdtempSync(join(tmpdir(), "n2c-reply-"));
+  const dir = mkdtempSync(join(tmpdir(), "n8m-reply-"));
   const p = join(dir, "wf.json");
   writeFileSync(p, JSON.stringify(wf));
   const loaded = loadInput(p);
