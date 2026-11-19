@@ -2,6 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { gate1, gate2, gate3, gate4, gate5, gate6, gate7, gate8, robustness, reached, runFailureCause, BUCKETS, gapsOf, gapPatterns, connectorLimited, failedStep } from "../evals/bench/gates.mjs";
 import { credentialTypeFor, credentialData, modelNodes, recordingInterrupted } from "../evals/bench/n8n-side.mjs";
 import { compare, fromTool, baitHits } from "../evals/bench/compare.mjs";
@@ -1368,7 +1369,10 @@ test("P79: parallel calls LangChain splits into separate assistant messages are 
   assert.equal(sameToolTurn({ n8nPrev: later, n8nCall, claudeTurn: { calls: [{ name: "Get_a_File" }], results: [{ ok: true, value: { data: "ref" } }], reads: [] } }).same, true);
 });
 
-test("P78: the overlay's placeholder fills reach the export the Claude side converts", async () => {
+// The template itself is fetched, not committed (evals/bench/fetch.mjs writes evals/bench/data/),
+// so a fresh clone skips this one.
+const P78_TEMPLATE = new URL("../evals/bench/data/wf/2813.json", import.meta.url);
+test("P78: the overlay's placeholder fills reach the export the Claude side converts", { skip: !existsSync(P78_TEMPLATE) && "the bench templates are not fetched (node evals/bench/fetch.mjs)" }, async () => {
   const { filledSource } = await import("../evals/bench/claude-side.mjs");
   assert.equal(filledSource(2813, null), null);
   assert.equal(filledSource(2813, { claude: { overrides: { steps: { "No such step": { patch: { params: { x: 1 } } } } } } }), null);
