@@ -7,9 +7,18 @@
   already used, through the person's connectors or the workflow's own HTTP
   requests, limited to the tools and hosts its definition allows. Connector
   results and model-step inputs pass through the person's own Claude session.
-- **n8n:** the cutover steps call the person's n8n instance through its public
-  API only when `N8N_BASE_URL` and `N8N_API_KEY` are set in the environment;
-  otherwise they print the steps to do by hand.
+- **Reading workflows:** from an export file, from n8n.io (a template, fetched
+  by its id), or from the person's own n8n, after a browser sign-in whose
+  tokens stay in memory for that run, or with `N8N_BASE_URL` and `N8N_API_KEY`
+  from the environment.
+- **n8n:** the cutover steps call the person's n8n instance with that sign-in
+  or that key; without either they print the steps to do by hand.
+- **GitHub:** `npx n8n-migrate`, on the person's go-ahead, pushes the converted
+  folders (redacted exports, never a key) to a new private repository on their
+  own account when a workflow runs as a cloud task.
+- **`serve`:** runs converted folders on a computer the person controls as a
+  connector they add themselves; `--tunnel` passes that traffic through a
+  temporary Cloudflare tunnel.
 - **Secrets:** read by credential name only. The skill never asks for, prints
   or copies a value; inline keys in an export are redacted before anything is
   written. The person stores each secret (a cloud task's network secret, or
@@ -18,4 +27,6 @@
   never repeats them.
 - **Retention:** run records, cursors and the effect ledger stay in the
   workflow's folder (`.n8m/`), on a branch of the person's own repository
-  (`n8m-state`), or in the artifact's database the person publishes.
+  (`n8m-state`), or in the artifact's database the person publishes. `serve`
+  keeps its records, its token and the keys the person types in the folder's
+  `.n8m/`, git-ignored.
