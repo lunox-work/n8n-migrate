@@ -15,7 +15,7 @@ The decisions the analyzer, converter and bench are built on, the scope of v1 an
   - Artifact driver: graph, "Run now", run history.
   - Task driver: a cloud task or a local Desktop task. The model only executes the call the runner hands it and returns the result.
 - **No model in the analyzer.** The report comes from code. Unknown nodes are reported as unmapped, never guessed. What the file cannot settle becomes a question for the person.
-- **Generated workflows are self-contained.** They keep running if the skill is removed.
+- **Generated workflows are self-contained.** They keep running if the skill is removed. The exception is a chat or Cowork, where the skill is installed and carries the runtime once: `migrate.mjs` writes light folders (definition and report, a few KB), a scheduled task sets itself up from the workflow's page with the skill's runtime, and the page, a chat skill or a task's files are built from the definition when needed (`convert.mjs --build`). A chat skill and a published page still carry their own runtime.
 - **The subscription token is never read, copied or passed to anything we ship.**
 - **Third-party MCP servers are named as options, never installed for the person.**
 - **The unattended path is what the bench grades.** The artifact path comes second.

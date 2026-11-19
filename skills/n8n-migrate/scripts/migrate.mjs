@@ -18,7 +18,9 @@
 //                Claude is kept (without it, the page already in --out is used)
 //   --json       print plan.json instead of the text summary
 //
-// Writes <out>/report.json (analyzer), <out>/flows/ (convert.mjs, one folder per workflow),
+// Writes <out>/report.json (analyzer), <out>/flows/ (convert.mjs --light, one folder per
+// workflow with its definition and report only: the page, a chat skill and a task's files are
+// built from it on demand, convert.mjs --build),
 // <out>/convert.json (its summary), <out>/plan.json (plain.mjs) and <out>/page.html.
 // Exit: 0 written, 1 no workflow, 2 bad usage.
 
@@ -141,7 +143,7 @@ export function main(argv = process.argv.slice(2)) {
     // A bulk export: the workflow objects themselves (an {id, name, wf} item holds no nodes).
     writeFileSync(input, JSON.stringify(items.map((it) => ({ ...it.wf, id: it.wf.id ?? it.id, name: it.wf.name ?? it.name }))) + "\n");
   }
-  const conv = spawnSync(process.execPath, [join(HERE, "convert.mjs"), input, "--out", flows, "--answers", answersPath, ...(a.approve.length ? ["--approve", a.approve.join(",")] : [])], {
+  const conv = spawnSync(process.execPath, [join(HERE, "convert.mjs"), input, "--out", flows, "--light", "--answers", answersPath, ...(a.approve.length ? ["--approve", a.approve.join(",")] : [])], {
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
   });

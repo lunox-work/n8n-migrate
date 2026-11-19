@@ -20,7 +20,7 @@
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { writeRuntime } from "./convert.mjs";
+import { artifactHtml, loadReferences, writeRuntime } from "./convert.mjs";
 import { definitionHash } from "../runtime/src/api.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
@@ -60,12 +60,19 @@ export function readPage(html) {
   return { def, build };
 }
 
-const pageOf = (p) => (existsSync(join(p, "artifact.html")) ? join(p, "artifact.html") : p);
+// The page of a converted folder, or a saved page file. A light folder (convert.mjs --light,
+// as migrate.mjs writes them) has no page file: its page is built here from the definition,
+// the same text `convert.mjs --build page` writes.
+function pageHtml(p) {
+  if (existsSync(join(p, "artifact.html"))) return readFileSync(join(p, "artifact.html"), "utf8");
+  if (existsSync(join(p, "definition.json"))) return artifactHtml(JSON.parse(readFileSync(join(p, "definition.json"), "utf8")), loadReferences());
+  return readFileSync(p, "utf8");
+}
 const URL_RE = /^https:\/\/claude\.ai\/(?:code\/)?artifact\/[A-Za-z0-9_-]+$/;
 
 export function setup(pagePath, { artifact, dir, local = false } = {}) {
   if (!local && !URL_RE.test(String(artifact ?? ""))) return { error: "--artifact must be the page's claude.ai/artifact/… link" };
-  const page = readPage(readFileSync(pageOf(pagePath), "utf8"));
+  const page = readPage(pageHtml(pagePath));
   if (page.error) return page;
   const out = resolve(dir ?? join("/tmp/n8m", slugOf(page.def.name)));
   mkdirSync(out, { recursive: true });
@@ -78,7 +85,7 @@ export function setup(pagePath, { artifact, dir, local = false } = {}) {
 
 export function prompt(pagePath, { artifact } = {}) {
   if (!URL_RE.test(String(artifact ?? ""))) return { error: "--artifact must be the page's claude.ai/artifact/… link" };
-  const page = readPage(readFileSync(pageOf(pagePath), "utf8"));
+  const page = readPage(pageHtml(pagePath));
   if (page.error) return page;
   const slug = slugOf(page.def.name);
   const runner = `node /tmp/n8m/${slug}/runtime/runner.mjs`;

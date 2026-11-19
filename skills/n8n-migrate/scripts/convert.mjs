@@ -39,6 +39,10 @@
 // folder gets report.json and MIGRATION.md only, unless --force-convert, which converts it
 // with the steps that cannot run kept as greyed `blocked` steps.
 //
+// --light writes only definition.json, source.n8n.json, report.json, overrides.json and
+// MIGRATION.md (a few KB instead of several MB a folder); --build <page|skill|task|all>
+// <folder> then writes a part from the definition when it is needed. For a chat or Cowork,
+// where this skill is installed and carries the runtime once (writeFolder, buildPart).
 // --regenerate rebuilds definition.json, runtime/, report.json and MIGRATION.md from the
 // stored source.n8n.json and overrides.json with the current skill, so a runner or converter
 // fix reaches workflows that were already migrated.
@@ -2723,8 +2727,44 @@ export function writeArtifact(dir, def, refs, gateway = null) {
   writeJson(join(dir, "artifact.capabilities.json"), artifactCapabilities(def, refs, gateway));
 }
 
+// The parts of a folder that carry a copy of the runtime (about 4 MB together, 7 with a chat
+// skill): what a task, a page and a chat skill need to run without this skill installed.
+const BUILT = ["task.json", "task-prompt.md", ".claude/settings.json", "artifact.html", "artifact.capabilities.json"];
+// A light folder (convert --light; migrate.mjs for a chat or Cowork) leaves them out: the
+// definition, its source, report, overrides and MIGRATION.md only, a few KB. There the runtime
+// ships once, in this skill: a scheduled task sets itself up from it (scripts/task.mjs), and
+// `convert.mjs --build page|skill|task <folder>` writes a part when it is about to be
+// published, packaged or run. A folder stays light on regenerate until a part is built.
+export const isLight = (dir) => existsSync(join(dir, "definition.json")) && !existsSync(join(dir, "runtime"));
+export function buildPart(folder, part, refs = loadReferences()) {
+  const dir = resolve(folder);
+  const defPath = join(dir, "definition.json");
+  if (!existsSync(defPath)) throw new Error(`${folder} has no definition.json: the workflow was not converted (its MIGRATION.md says why)`);
+  const def = readJson(defPath);
+  const ov = existsSync(join(dir, "overrides.json")) ? readJson(join(dir, "overrides.json")) : {};
+  const report = existsSync(join(dir, "report.json")) ? readJson(join(dir, "report.json")) : null;
+  const out = [];
+  if (part === "page" || part === "all") {
+    writeArtifact(dir, def, refs, typeof ov.server === "string" && ov.server ? { server: ov.server, workflow: basename(dir) } : null);
+    out.push("artifact.html", "artifact.capabilities.json");
+  }
+  if (part === "skill" || part === "all") {
+    const sk = writeSkill(dir, def, refs, basename(dir));
+    if (sk) out.push("skill/");
+    else if (part === "skill") throw new Error(`${folder} is not a chat workflow: it has no skill to build`);
+  }
+  if (part === "task" || part === "all") {
+    writeRuntime(dir, def);
+    writeTaskFiles(dir, def, refs, report?.workflows?.[0]?.outcome?.target);
+    writeRootSettings(dirname(dir));
+    out.push("runtime/", "task.json", "task-prompt.md", ".claude/settings.json");
+  }
+  if (!out.length) throw new Error(`--build takes page, skill, task or all, not ${part}`);
+  return out;
+}
+
 // Writes one result folder. overrides.json is created when missing and never rewritten.
-export function writeFolder(outDir, res, { overrides, refs, server } = {}) {
+export function writeFolder(outDir, res, { overrides, refs, server, light = false } = {}) {
   const dir = join(outDir, res.slug);
   mkdirSync(dir, { recursive: true });
   writeJson(join(dir, "report.json"), res.report);
@@ -2740,12 +2780,18 @@ export function writeFolder(outDir, res, { overrides, refs, server } = {}) {
     const errs = validateSchema(def, (refs ?? loadReferences()).schema);
     if (errs.length) throw new Error(`definition for "${res.name}" is not valid against the schema: ${errs.slice(0, 5).join("; ")}`);
     writeJson(join(dir, "definition.json"), def);
-    writeRuntime(dir, def);
-    writeTaskFiles(dir, def, refs ?? loadReferences(), res.report.workflows[0].outcome?.target);
-    writeArtifact(dir, def, refs ?? loadReferences(), typeof ov.server === "string" && ov.server ? { server: ov.server, workflow: res.slug } : null);
-    writeSkill(dir, def, refs ?? loadReferences(), res.slug);
+    if (light) {
+      // Parts built from an older definition would no longer match it: removed, built again on demand.
+      for (const f of BUILT) if (existsSync(join(dir, f))) rmSync(join(dir, f));
+      for (const d of ["runtime", "skill"]) if (existsSync(join(dir, d))) rmSync(join(dir, d), { recursive: true, force: true });
+    } else {
+      writeRuntime(dir, def);
+      writeTaskFiles(dir, def, refs ?? loadReferences(), res.report.workflows[0].outcome?.target);
+      writeArtifact(dir, def, refs ?? loadReferences(), typeof ov.server === "string" && ov.server ? { server: ov.server, workflow: res.slug } : null);
+      writeSkill(dir, def, refs ?? loadReferences(), res.slug);
+    }
   } else {
-    for (const f of ["definition.json", "task.json", "task-prompt.md", ".claude/settings.json", "artifact.html", "artifact.capabilities.json"]) if (existsSync(join(dir, f))) rmSync(join(dir, f));
+    for (const f of ["definition.json", ...BUILT]) if (existsSync(join(dir, f))) rmSync(join(dir, f));
     if (existsSync(join(dir, "skill"))) rmSync(join(dir, "skill"), { recursive: true, force: true });
   }
   writeFileSync(join(dir, "MIGRATION.md"), migrationMd(res.report.workflows[0], res.definition, { refused: res.refused, overrides: ov }));
@@ -2755,8 +2801,9 @@ export function writeFolder(outDir, res, { overrides, refs, server } = {}) {
 
 export function regenerate(folder, opts = {}) {
   const refs = opts.refs ?? loadReferences();
+  const light = opts.light ?? isLight(resolve(folder));
   const res = convertFolder(folder, { ...opts, refs });
-  writeFolder(dirname(resolve(folder)), res, { refs });
+  writeFolder(dirname(resolve(folder)), res, { refs, light });
   return res;
 }
 
@@ -2793,14 +2840,14 @@ function parseArgs(argv) {
     if (a.startsWith("--")) {
       const k = a.slice(2);
       const n = argv[i + 1];
-      if (["force-convert", "json"].includes(k) || n === undefined || n.startsWith("--")) flags[k] = true;
+      if (["force-convert", "json", "light"].includes(k) || n === undefined || n.startsWith("--")) flags[k] = true;
       else (flags[k] = n), i++;
     } else pos.push(a);
   }
   return { pos, flags };
 }
 
-const USAGE = "usage: convert.mjs <export|-> --out <dir> [--workflow <id|name>] [--answers answers.json] [--approve id,id] [--server <connector name>] [--force-convert] [--now ISO]\n       convert.mjs --regenerate <folder>";
+const USAGE = "usage: convert.mjs <export|-> --out <dir> [--workflow <id|name>] [--answers answers.json] [--approve id,id] [--server <connector name>] [--force-convert] [--light] [--now ISO]\n       convert.mjs --regenerate <folder>\n       convert.mjs --build <page|skill|task|all> <folder>";
 
 export function main(argv = process.argv.slice(2)) {
   const { pos, flags } = parseArgs(argv);
@@ -2808,6 +2855,15 @@ export function main(argv = process.argv.slice(2)) {
   if (flags.regenerate) {
     const res = regenerate(String(flags.regenerate), { now, forceConvert: flags["force-convert"] === true ? true : undefined });
     process.stdout.write(JSON.stringify({ status: res.refused ? "refused" : "regenerated", folder: flags.regenerate, steps: res.definition ? Object.keys(res.definition.steps).length : 0 }) + "\n");
+    return 0;
+  }
+  if (flags.build) {
+    if (flags.build === true || !pos[0]) {
+      process.stderr.write(USAGE + "\n");
+      return 2;
+    }
+    const built = buildPart(pos[0], String(flags.build));
+    process.stdout.write(JSON.stringify({ status: "built", folder: pos[0], files: built }) + "\n");
     return 0;
   }
   if (!pos[0] || !flags.out || flags.out === true) {
@@ -2827,7 +2883,7 @@ export function main(argv = process.argv.slice(2)) {
   const summary = [];
   for (const res of results) {
     const ov = { ...emptyOverrides(), approve, answers: Object.fromEntries(Object.entries(answers).filter(([k]) => k.startsWith(`${res.id}/`))) };
-    writeFolder(outDir, res, { overrides: ov, server: flags.server && flags.server !== true ? String(flags.server) : undefined });
+    writeFolder(outDir, res, { overrides: ov, server: flags.server && flags.server !== true ? String(flags.server) : undefined, light: flags.light === true });
     const steps = res.definition ? Object.values(res.definition.steps) : [];
     summary.push({ id: res.id, name: res.name, folder: res.slug, status: res.refused ? "refused" : steps.some((s) => s.kind === "blocked") ? "blocked-steps" : steps.some((s) => s.review) ? "review" : "converted", outcome: res.report.workflows[0].outcome.kind, review: steps.filter((s) => s.review).length, blocked: steps.filter((s) => s.kind === "blocked").length });
   }
