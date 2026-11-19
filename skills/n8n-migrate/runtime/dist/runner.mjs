@@ -20,6 +20,8 @@
 //   runner.mjs status                                 JSON summary of the current run
 //   runner.mjs chat [--new-session] [--file f|--text t]  one chat message (the skill's
 //                                                     entry point; default .n8m/inbox/chat.txt)
+//   runner.mjs sync                                   artifact store: load the records from the
+//                                                     workflow's page, then save local changes there
 //   runner.mjs resolve <effectKey> sent|resend        the person's answer for a write whose
 //                                                     outcome is unknown (terminal only)
 //
@@ -137,7 +139,7 @@ async function main() {
     } else print(def);
     return 0;
   }
-  if (["start", "next", "show", "answer", "result", "status", "chat", "resolve"].includes(cmd)) {
+  if (["start", "next", "show", "answer", "result", "status", "chat", "resolve", "sync"].includes(cmd)) {
     const r = await driverCommand(cmd, pos, flags, { core, stdin: () => readFileSync(0, "utf8") });
     process.stdout.write(r.text + "\n");
     return r.code;

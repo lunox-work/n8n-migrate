@@ -184,6 +184,83 @@ function gitBackend(P, opts) {
   };
 }
 
+// ---------- artifact (a claude.ai scheduled task, Cowork) ----------
+//
+// {kind: "artifact"}: a claude.ai scheduled task starts each run in a fresh sandbox that keeps
+// nothing (observed 2026-11-19, evals/phase0/CHECKS.md), and only the session can reach the
+// workflow's artifact database (ArtifactData). The documents live there, at the same paths the
+// artifact page uses, so the page and the task share runs, ledger, cursors and cutover state.
+// This backend is the sandbox's copy: the driver loads it once per sandbox (pull: ArtifactData
+// list/get with out_dir, so the model never retypes a document) and hands the changed documents
+// back as ArtifactData batches whose entries point at files it wrote (push: file_path). Every
+// overwrite is pinned to the version the database last reported (if_version), so a concurrent
+// write by the page fails the batch instead of being overwritten.
+//
+// Files under .n8m/: records/ (the copy), db-versions.json {path: version}, db-dirty.json
+// {path: {op, h}} (h: hash of the document when it changed), db-pulled.json (loaded this
+// sandbox), db-error.json (a failed push or pull: the run stops).
+function sessionBackend(P) {
+  const files = fileBackend(join(P.n8m, "records"));
+  const vPath = join(P.n8m, "db-versions.json");
+  const dPath = join(P.n8m, "db-dirty.json");
+  const hash = (doc) => {
+    const s = JSON.stringify(doc ?? null);
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (Math.imul(h, 31) + s.charCodeAt(i)) | 0;
+    return `${s.length}:${h}`;
+  };
+  const mark = (path, op, doc) => writeJson(dPath, { ...readJson(dPath, {}), [path]: { op, h: op === "set" ? hash(doc) : null } });
+  return {
+    kind: "artifact",
+    ...files,
+    set(path, doc) {
+      files.set(path, doc);
+      mark(path, "set", doc);
+    },
+    delete(path) {
+      files.delete(path);
+      if (readJson(vPath, {})[path] === undefined) {
+        // Never in the database: nothing to delete there.
+        const d = readJson(dPath, {});
+        delete d[path];
+        writeJson(dPath, d);
+      } else mark(path, "delete");
+    },
+    refresh: () => ({}),
+    flush: () => ({ pushed: false }),
+    pulled: () => existsSync(join(P.n8m, "db-pulled.json")),
+    markPulled: (info = {}) => writeJson(join(P.n8m, "db-pulled.json"), { at: new Date().toISOString(), ...info }),
+    error: () => readJson(join(P.n8m, "db-error.json"), null),
+    setError: (e) => (e ? writeJson(join(P.n8m, "db-error.json"), e) : rmSync(join(P.n8m, "db-error.json"), { force: true })),
+    // A document read from the database: kept as the copy, with its version, not dirty.
+    load(path, doc, version) {
+      files.set(path, doc);
+      if (Number.isInteger(version)) writeJson(vPath, { ...readJson(vPath, {}), [path]: version });
+    },
+    versions: () => readJson(vPath, {}),
+    dirty: () => readJson(dPath, {}),
+    // The documents to push now: [{path, op, doc, version, h}] (doc null for a delete).
+    pending() {
+      const v = readJson(vPath, {});
+      return Object.entries(readJson(dPath, {})).map(([path, d]) => ({ path, op: d.op, h: d.h, doc: d.op === "set" ? files.get(path) : null, version: v[path] }));
+    },
+    // A push committed: record the new versions; a document changed again since stays dirty.
+    pushed(entries, newVersions) {
+      const v = readJson(vPath, {});
+      const d = readJson(dPath, {});
+      for (const e of entries) {
+        if (e.op === "delete") delete v[e.path];
+        else if (Number.isInteger(newVersions[e.path])) v[e.path] = newVersions[e.path];
+        else if (Number.isInteger(e.version)) v[e.path] = e.version + 1;
+        else v[e.path] = 1;
+        if (d[e.path] && d[e.path].op === e.op && d[e.path].h === e.h) delete d[e.path];
+      }
+      writeJson(vPath, v);
+      writeJson(dPath, d);
+    },
+  };
+}
+
 // ---------- the store ----------
 
 // With task.json artifactDb: true and an artifactUrl, any store also mirrors finished run
@@ -244,6 +321,7 @@ function baseStore(P, task = {}, opts = {}) {
     if (!task.artifactDb) throw new Error('store "artifact-db" needs task.json artifactDb: true');
     return withOutbox(P, { kind, ...files, refresh: () => ({}), flush: () => ({ pushed: false }) });
   }
-  if (kind !== "file") throw new Error(`unknown store kind "${kind}" (file, git, artifact-db)`);
+  if (kind === "artifact") return sessionBackend(P, task);
+  if (kind !== "file") throw new Error(`unknown store kind "${kind}" (file, git, artifact-db, artifact)`);
   return { kind, ...files, refresh: () => ({}), flush: () => ({ pushed: false }) };
 }

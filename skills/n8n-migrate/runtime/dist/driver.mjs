@@ -420,7 +420,7 @@ export function multipartBody(fields, boundary = "--------------------------" + 
 
 // Where this task runs: a cloud task gets its secrets through the proxy and keeps its records
 // on a git branch; anything else (a local task, a skill) runs on the person's computer.
-export const taskSurface = (task) => (task.secrets === "proxy" || task.store?.kind === "git" ? "cloud-task" : "local-task");
+export const taskSurface = (task) => (task.secrets === "proxy" || task.store?.kind === "git" || task.store?.kind === "artifact" ? "cloud-task" : "local-task");
 
 // A `file` request (runtime/src/files.mjs: Read/Write Files from Disk, Read/Write Binary File):
 // read or write the local disk, on a local task only. The runner already checked the path
@@ -902,6 +902,8 @@ function finishRun(P, core, task, store, state) {
   }
   writeRunRecord(P, core, store, state, state.status, { cursorsSaved });
   store.delete(core.statePath(state.runId));
+  // The artifact store keeps the ledger small: a finished run's entries are not needed again.
+  if (isSession(store)) for (const d of store.list(core.COLLECTIONS.ledger)) if (d.data?.runId === state.runId) store.delete(`${core.COLLECTIONS.ledger}/${d.id}`);
   if (store.get(OPEN)?.runId === state.runId) store.delete(OPEN);
   store.flush(`run ${state.runId} ${state.status}`);
   state.n8m = { ...(state.n8m ?? {}), finished: true };
@@ -952,7 +954,119 @@ export function submissionsFrom(value) {
     .filter((d) => d.docId && d.data?.status === "new" && isObj(d.data.item))
     .sort((a, b) => String(a.data.submittedAt).localeCompare(String(b.data.submittedAt)));
 }
-function settleExtraThen(P, core, store, x, result) {
+// ---------- the artifact store: pull and push (store.mjs sessionBackend) ----------
+//
+// Pull: one ArtifactData list per collection the driver reads (meta, cursors, ledger), with
+// out_dir, so each document lands in a file and the model only passes the result text back;
+// the open run's saved state follows once meta/open is known. Push: the changed documents as
+// ArtifactData batches whose entries name files the driver wrote (file_path), each overwrite
+// pinned to the version the database reported (if_version). Result texts, as observed
+// 2026-11-19: a read lists `- "<id>"  <n> bytes  version <v>  "<file>"` per document; a batch
+// lists `- set "<collection>"/"<id>" (version <v>)` and `- delete "<collection>"/"<id>"`.
+// A run's ledger entries are deleted when it finishes, so the ledger stays small.
+const isSession = (store) => store?.kind === "artifact";
+const PULL_COLLECTIONS = ["meta", "cursors", "ledger"];
+export function savedDocs(text) {
+  return [...String(text ?? "").matchAll(/^\s*-\s*"([^"]+)"\s+\d+\s*bytes\s+version\s+(\d+)\s+"([^"]+)"/gm)].map((m) => ({ id: m[1], version: Number(m[2]), file: m[3] }));
+}
+export function batchVersions(text) {
+  const v = {};
+  for (const m of String(text ?? "").matchAll(/^\s*-\s*(?:set|update)\s+"([^"]+)"\/"([^"]+)"\s+\(version\s+(\d+)\)/gm)) v[`${m[1]}/${m[2]}`] = Number(m[3]);
+  return v;
+}
+const resultText = (result) => (!result.ok && result.error?.message ? String(result.error.message) : typeof result.value === "string" ? result.value : JSON.stringify(result.value ?? result.error ?? null));
+function queuePullOf(P, task, collection, docId = null) {
+  const dir = join(P.n8m, "db-in", `${readExtra(P).next}`);
+  rmSync(dir, { recursive: true, force: true });
+  const body = docId ? { collection, doc_id: docId, out_dir: dir } : { collection, query: { limit: 1000 }, out_dir: dir };
+  queueExtra(P, artifactDbRequest(task, docId ? "get" : "list", body), { then: { pull: collection, doc: docId, dir } });
+}
+function queuePull(P, task) {
+  for (const c of PULL_COLLECTIONS) queuePullOf(P, task, c);
+}
+function settlePull(P, task, store, x, result) {
+  const { pull: collection, doc, dir } = x.then;
+  const text = resultText(result);
+  if (!result.ok) {
+    // An open run's state that is not there: nothing to continue.
+    if (doc && /not\s+found|no\s+document|does\s+not\s+exist/i.test(text)) return finishPull(P, store, x);
+    return store.setError({ when: "pull", collection, error: text.slice(0, 300) });
+  }
+  if (/next_cursor/.test(text)) return store.setError({ when: "pull", collection, error: "more than 1000 documents in one collection" });
+  const listed = savedDocs(text);
+  const local = join(dir, ...collection.split("/"));
+  const onDisk = existsSync(local) ? readdirSync(local).filter((f) => f.endsWith(".json")) : [];
+  for (const f of onDisk) {
+    const id = f.slice(0, -5);
+    const hit = listed.find((d) => d.id === id);
+    if (!hit) return store.setError({ when: "pull", collection, error: `no version reported for ${collection}/${id}` });
+    store.load(`${collection}/${id}`, readJson(join(local, f)), hit.version);
+  }
+  if (listed.length !== onDisk.length) return store.setError({ when: "pull", collection, error: `${listed.length} documents listed, ${onDisk.length} saved` });
+  if (collection === "meta") {
+    const open = store.get(OPEN);
+    // The open run's record and saved state: the run that continues overwrites both.
+    if (open?.runId) {
+      queuePullOf(P, task, "runs", open.runId);
+      queuePullOf(P, task, `runs/${open.runId}/state`, "current");
+    }
+  }
+  finishPull(P, store, x);
+}
+function finishPull(P, store, x) {
+  const left = readExtra(P).items.filter((i) => !i.done && i.then?.pull && i.handle !== x.handle);
+  if (!left.length && !store.error()) store.markPulled({ versions: Object.keys(store.versions()).length });
+}
+// Queues the changed documents as batches; false when there is nothing to send.
+function queuePush(P, task, store) {
+  const pend = store.pending();
+  if (!pend.length) return false;
+  const outDir = join(P.n8m, "db-out", `${readExtra(P).next}`);
+  mkdirSync(outDir, { recursive: true });
+  let batch = [];
+  let size = 0;
+  let queued = false;
+  const send = () => {
+    if (!batch.length) return;
+    queueExtra(P, artifactDbRequest(task, "batch", { writes: batch.map((b) => b.w) }), { then: { push: batch.map((b) => b.e) } });
+    queued = true;
+    batch = [];
+    size = 0;
+  };
+  pend.forEach((e, i) => {
+    const parts = e.path.split("/");
+    const collection = parts.slice(0, -1).join("/");
+    const doc_id = parts.at(-1);
+    let w;
+    let len = 0;
+    if (e.op === "delete") {
+      if (!Number.isInteger(e.version)) return;
+      w = { op: "delete", collection, doc_id, if_version: e.version };
+    } else {
+      const text = JSON.stringify(e.doc ?? {});
+      // A batch body is at most 1 MiB; a larger document (a big open run's state) stays here.
+      if (text.length > 900_000) return logEvent(P, { event: "db-too-large", path: e.path, bytes: text.length });
+      const file = join(outDir, `${i}.json`);
+      writeFileSync(file, text);
+      w = { op: "set", collection, doc_id, file_path: file, ...(Number.isInteger(e.version) ? { if_version: e.version } : {}) };
+      len = text.length;
+    }
+    if (batch.length >= 50 || size + len > 900_000) send();
+    batch.push({ w, e: { path: e.path, op: e.op, h: e.h, version: e.version } });
+    size += len;
+  });
+  send();
+  return queued;
+}
+function settlePush(store, x, result) {
+  const text = resultText(result);
+  if (!result.ok || !/committed/i.test(text)) return store.setError({ when: "push", error: text.slice(0, 300) });
+  store.pushed(x.then.push, batchVersions(text));
+}
+
+function settleExtraThen(P, core, store, x, result, task = {}) {
+  if (x.then?.pull) settlePull(P, task, store, x, result);
+  if (x.then?.push) settlePush(store, x, result);
   if (x.then?.outbox && result.ok) store.clearOutbox?.(x.then.outbox);
   if (x.then === "submissions") {
     const subs = result.ok ? submissionsFrom(result.value) : [];
@@ -966,10 +1080,13 @@ async function stepExtra(P, core, task, store, ex, x) {
   if (hasResult(P, x.handle)) {
     const { capturedBy, ...result } = readJson(resultPath(P, x.handle));
     if (isWrite(x.req) && !["sent", "failed"].includes(ledgerGet(store, core, x.req.effectKey)?.status)) ledgerWrite(store, core, x.req, result.ok ? "sent" : "failed", { result: result.value, error: result.error });
-    settleExtraThen(P, core, store, x, result);
-    x.done = true;
+    settleExtraThen(P, core, store, x, result, task);
+    // Re-read: a then-handler may have queued more requests (the artifact store's pull).
+    const fresh = readExtra(P);
+    const fx = fresh.items.find((i) => i.handle === x.handle);
+    if (fx) fx.done = true;
     rmSync(resultPath(P, x.handle), { force: true });
-    writeExtra(P, ex);
+    writeExtra(P, fresh);
     logEvent(P, { event: "extra-done", handle: x.handle, purpose: x.req.purpose, ok: result.ok });
     return null;
   }
@@ -996,12 +1113,21 @@ async function needsCheck(P, core, task, store, state, req, entry) {
   store.flush(`run ${state.runId} needs-check`);
   logEvent(P, { event: "needs-check", runId: state.runId, effectKey: req.effectKey });
   const alert = core.alertRequest(state.definition, "needs-check", { runId: state.runId, step: req.step, tool: `${req.connector}.${req.tool}` });
-  const text = `STOPPED: run ${state.runId} stopped at "${req.step}": the write ${req.connector}.${req.tool} (effect ${req.effectKey}) was going out when an earlier session ended, and it is not known whether it was sent. Nothing more runs until the person checks it and runs, in a terminal: ${RUNNER_CMD} resolve ${req.effectKey} sent (it went out) or ${RUNNER_CMD} resolve ${req.effectKey} resend (it did not). ${alert ? "An alert was sent." : "No alert channel is set, so this line is the alert."} Stop now.`;
+  const how = isSession(store) ? `checks it, then opens the workflow's page (${task.artifactUrl}), finds this run in its history and presses Resume, which asks whether the write went out` : `checks it and runs, in a terminal: ${RUNNER_CMD} resolve ${req.effectKey} sent (it went out) or ${RUNNER_CMD} resolve ${req.effectKey} resend (it did not)`;
+  const text = `STOPPED: run ${state.runId} stopped at "${req.step}": the write ${req.connector}.${req.tool} (effect ${req.effectKey}) was going out when an earlier session ended, and it is not known whether it was sent. Nothing more runs until the person ${how}. ${alert ? "An alert was sent." : "No alert channel is set, so this line is the alert."} Stop now.`;
   queueExtra(P, alert, { final: text });
 }
 
 async function advance(P, core, task, store, state, opts = {}) {
   let prefix = "";
+  // A last line: with the artifact store, the changed records go to the page first.
+  const end = (text) => {
+    if (isSession(store) && queuePush(P, task, store)) {
+      queueExtra(P, null, { final: text });
+      return null;
+    }
+    return prefix + text;
+  };
   for (let guard = 0; guard < 10_000; guard++) {
     // 1. Driver-level requests first (a missed-run alert before the run, a failure alert after).
     const ex = readExtra(P);
@@ -1011,7 +1137,12 @@ async function advance(P, core, task, store, state, opts = {}) {
       if (text) return prefix + text;
       continue;
     }
+    if (isSession(store) && store.error()) {
+      const e = store.error();
+      return prefix + `FAILED: the run's records in the workflow's page could not be ${e.when === "pull" ? "read" : "saved"} (${e.error}). Nothing more is sent in this session. Stop now.`;
+    }
     if (ex.final != null) {
+      if (isSession(store) && queuePush(P, task, store)) continue;
       writeExtra(P, { items: [], next: ex.next, final: null });
       return prefix + ex.final;
     }
@@ -1028,9 +1159,13 @@ async function advance(P, core, task, store, state, opts = {}) {
       }
       if (sq && !sq.reported) {
         writeJson(join(P.n8m, "submissions.json"), { ...sq, reported: true });
-        return prefix + (sq.error ? `FAILED: could not read the form submissions (${sq.error}). Stop now.` : `DONE: ${sq.read ?? 0} form submission(s) read, ${sq.done} processed, ${sq.failed} failed. Stop now.`);
+        const t = end(sq.error ? `FAILED: could not read the form submissions (${sq.error}). Stop now.` : `DONE: ${sq.read ?? 0} form submission(s) read, ${sq.done} processed, ${sq.failed} failed. Stop now.`);
+        if (t) return t;
+        continue;
       }
-      return prefix + (state ? finalText(state) : "DONE: nothing to run. Stop now.");
+      const t = end(state ? finalText(state) : "DONE: nothing to run. Stop now.");
+      if (t) return t;
+      continue;
     }
     // 3. The run ended: records, cursors, alert; a continued run is followed by the new one.
     if (state.status !== "needs") {
@@ -1088,7 +1223,10 @@ async function advance(P, core, task, store, state, opts = {}) {
         const wait = Date.parse(r.until) - Date.now();
         if (wait > INLINE_SLEEP_MS) {
           logEvent(P, { event: "paused", handle: handles[i], until: r.until });
-          return prefix + `PAUSED: the run waits until ${r.until}. Stop now; a later start continues it.`;
+          const t = end(`PAUSED: the run waits until ${r.until}. Stop now; a later start continues it.`);
+          if (t) return t;
+          state = null;
+          break;
         }
         if (wait > 0) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, wait);
         saveResult(P, handles[i], { ok: true, value: { resumedAt: r.until } });
@@ -1098,7 +1236,7 @@ async function advance(P, core, task, store, state, opts = {}) {
         if (entry?.status === "sent") {
           saveResult(P, handles[i], { ok: true, value: entry.result ?? null, capturedBy: "ledger" });
           logEvent(P, { event: "ledger-replay", handle: handles[i], effectKey: r.effectKey });
-        } else if (entry?.status === "sending" && !((drv.handed[handles[i]] ?? 0) > 0 && entry.by === "driver")) {
+        } else if (entry?.status === "sending" && !((drv.handed[handles[i]] ?? 0) > 0 && entry.by === "driver") && !drv.presynced?.[handles[i]]) {
           await needsCheck(P, core, task, store, state, r, entry);
           state = null;
           break;
@@ -1110,14 +1248,27 @@ async function advance(P, core, task, store, state, opts = {}) {
     if (waiting.length) {
       const { r, h } = waiting[0];
       const repeat = drv.handed[h] ?? 0;
+      if (isSession(store)) {
+        // A write goes out only once its "sending" mark (and the run's state) is in the page;
+        // a write's "sent" goes there before anything else is handed out.
+        if (isWrite(r) && repeat === 0 && !drv.presynced?.[h]) {
+          ledgerWrite(store, core, r, "sending", { runId: state.runId, by: "driver" });
+          drv.presynced = { ...(drv.presynced ?? {}), [h]: true };
+          writeJson(P.driver, drv);
+          if (queuePush(P, task, store)) continue;
+        } else if (Object.keys(store.dirty()).some((p) => p.startsWith("ledger/")) && queuePush(P, task, store)) continue;
+      }
       drv.handed[h] = repeat + 1;
       writeJson(P.driver, drv);
       logEvent(P, { event: "handed", handle: h, id: r.id, kind: r.kind, repeat, tool: r.kind === "tool" ? toolName(task, r) : undefined });
-      if (isWrite(r) && driverMarks(task, hooksActive(P, drv), repeat)) ledgerWrite(store, core, r, "sending", { runId: state.runId, by: "driver" });
+      if (isWrite(r) && driverMarks(task, hooksActive(P, drv), repeat) && !drv.presynced?.[h]) ledgerWrite(store, core, r, "sending", { runId: state.runId, by: "driver" });
       if (r.kind === "tool") return prefix + paged(P, h, toolInstruction(task, h, r, { hooksSeen: hooksActive(P, drv), repeat }));
       if (r.kind === "model") return prefix + paged(P, h, modelInstruction(h, r));
       if (r.kind === "agent") return prefix + paged(P, h, agentInstruction(h, r, r.memory ? readJson(join(P.n8m, "memory", `${safe(r.memory.key)}.json`), []).slice(-2 * (r.memory.window ?? 5)) : undefined));
-      return prefix + `FAILED: the runner asked for a "${r.kind}" request, which this driver cannot run. Stop now.`;
+      const t = end(`FAILED: the runner asked for a "${r.kind}" request, which this driver cannot run. Stop now.`);
+      if (t) return t;
+      state = null;
+      continue;
     }
     // Every outstanding request has a result: resume the runner.
     const results = {};
@@ -1198,6 +1349,26 @@ export async function command(cmd, pos, flags, { core, dir, stdin, fetch, isTTY 
   return withLockAsync(P, async () => {
     const store = openStore(P, task);
     if (cmd === "start" || cmd === "chat") store.refresh?.();
+    // The artifact store: load the records from the page once per sandbox, then run the same
+    // command again (the gate and an open run are read from what was loaded).
+    if (isSession(store) && (cmd === "start" || cmd === "sync")) {
+      if (!task.artifactUrl) return { code: 1, text: "FAILED: task.json has no artifactUrl, so the run's records have nowhere to go. Stop now." };
+      if (!store.pulled()) {
+        const ex = readExtra(P);
+        if (!ex.items.some((x) => !x.done && x.then?.pull)) {
+          store.setError(null);
+          writeExtra(P, { items: [], next: ex.next, final: null });
+          queuePull(P, task);
+          queueExtra(P, null, { final: `NEXT: run this command exactly: ${RUNNER_CMD} ${cmd}${flags["dry-run"] === true ? " --dry-run" : ""}\n(The records were loaded from the workflow's page.)` });
+        }
+        return { code: 0, text: await advance(P, core, task, store, null, { fetch }) };
+      }
+      if (cmd === "sync") {
+        writeExtra(P, { items: [], next: readExtra(P).next, final: null });
+        queueExtra(P, null, { final: "SYNCED: the records are in the workflow's page. Stop now." });
+        return { code: 0, text: await advance(P, core, task, store, null, { fetch }) };
+      }
+    }
     if (cmd === "start") {
       const dry = flags["dry-run"] === true;
       // The cutover gate comes first: not even an open run continues while n8n owns the

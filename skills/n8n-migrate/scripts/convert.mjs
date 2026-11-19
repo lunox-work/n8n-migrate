@@ -2395,13 +2395,23 @@ export function writeRuntime(dir, def) {
 // hyphens: mcp__Notion__notion-search, mcp__Google-Drive__search_files (observed 2026-11-18;
 // mcp__claude_ai_Notion__ is "No such tool available" there).
 export const cloudPrefix = (local) => local.replace(/^mcp__claude_ai_/, "mcp__").replace(/__$/, "").replace(/^mcp__(.*)$/, (_, n) => `mcp__${n.replace(/_/g, "-")}__`);
+// A claude.ai scheduled task without a repository (Cowork) names it after the connector's
+// display name with underscores: mcp__Gmail__, mcp__Google_Drive__ (observed 2026-11-19).
+export const coworkPrefix = (local) => local.replace(/^mcp__claude_ai_/, "mcp__");
 export function toolPrefixes(def, refs, where) {
   const out = {};
   for (const t of [...(def.allow?.tools ?? []), ...(def.allow?.alerts ?? [])]) {
     const p = refs.connectors[t.connector]?.toolPrefix ?? EXTRA_TOOL_PREFIXES[t.connector];
-    if (p) out[t.connector] = where === "cloud-task" ? cloudPrefix(p) : p;
+    if (p) out[t.connector] = where === "cloud-task" ? cloudPrefix(p) : where === "cowork" ? coworkPrefix(p) : p;
   }
   return out;
+}
+// task.json for a claude.ai scheduled task (Cowork): its sandbox keeps nothing between runs,
+// so the records live in the workflow's artifact database (store "artifact", artifactUrl set by
+// scripts/task.mjs setup); no hooks run there, so the model saves each tool response itself.
+// Carried in the artifact page's build JSON, which is all the task has to set itself up from.
+export function coworkTaskJson(def, refs) {
+  return { hooks: false, secrets: "env", toolPrefixes: { ...toolPrefixes(def, refs, "cowork"), "artifact-db": "" }, store: { kind: "artifact" }, artifactUrl: null };
 }
 const taskTarget = (def, target) => formHandoff(def)?.target ?? target;
 // The record store follows the target: a cloud task's checkout is new each run, so its state
@@ -2610,7 +2620,7 @@ export function artifactHtml(def, refs, commit = skillCommit(), gateway = null) 
   const tpl = readFileSync(join(REFS, "artifact.html"), "utf8");
   const runtime = readFileSync(join(SKILL, "runtime", "dist", "artifact-runtime.js"), "utf8");
   const hash = definitionHash(def);
-  const build = { definitionHash: hash, commit, runtime: RUNTIME_VERSION, converter: CONVERTER_VERSION, servers: artifactServers(def, refs), ...(gateway?.server && Object.values(def.steps).some((st) => st.kind === "http") ? { gateway } : {}) };
+  const build = { definitionHash: hash, commit, runtime: RUNTIME_VERSION, converter: CONVERTER_VERSION, servers: artifactServers(def, refs), cowork: coworkTaskJson(def, refs), ...(gateway?.server && Object.values(def.steps).some((st) => st.kind === "http") ? { gateway } : {}) };
   const fill = { __N8M_TITLE__: htmlEscape(def.name), __N8M_HASH__: hash, __N8M_COMMIT__: htmlEscape(commit), __N8M_DEFINITION__: scriptJson(def), __N8M_BUILD__: scriptJson(build), __N8M_RUNTIME__: runtime };
   let html = tpl;
   for (const [marker, value] of Object.entries(fill)) {
