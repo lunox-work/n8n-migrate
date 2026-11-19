@@ -59,7 +59,7 @@ import { createHash } from "node:crypto";
 import { dirname, join, resolve, basename } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { execFileSync } from "node:child_process";
-import { analyze, loadInput, unwrap, redactSecrets, legacyCron, simulateCron, parseCron, httpTarget, SITE_CREDENTIALS, DB_RUNTIME_OPS, dbConnection } from "./analyze.mjs";
+import { analyze, loadInput, unwrap, redactSecrets, legacyCron, simulateCron, parseCron, httpTarget, SITE_CREDENTIALS, DB_RUNTIME_OPS, dbConnection, VERSION } from "./analyze.mjs";
 import { fromN8n, urlTarget, writtenTargets } from "../runtime/src/convert.mjs";
 import { preflight, expressionSupport, nodeImplFor, definitionHash, RUNTIME_VERSION } from "../runtime/src/api.mjs";
 import { isSelectQuery } from "../runtime/src/postgres.mjs";
@@ -68,7 +68,8 @@ import { draftTarget, validateDraft, sameFor, draftEffect, draftFor, WRITE_BLOCK
 
 const ALERT_TOOL_KEYS = Object.keys(ALERT_TOOLS);
 
-export const CONVERTER_VERSION = "0.1.0";
+// The skill's version (analyze.mjs VERSION, kept in step by scripts/skill.mjs sync).
+export const CONVERTER_VERSION = VERSION;
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SKILL = join(HERE, "..");
 const REFS = join(SKILL, "references");

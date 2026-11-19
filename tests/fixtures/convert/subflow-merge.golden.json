@@ -3,7 +3,7 @@
   "name": "Price orders with a sub-workflow",
   "id": "sub01",
   "converter": {
-    "version": "0.1.0",
+    "version": "0.2.0",
     "toolMaps": "1"
   },
   "source": {
