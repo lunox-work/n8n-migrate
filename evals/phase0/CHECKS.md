@@ -87,6 +87,15 @@ The chat that converted "Mail digest to a draft" (Sonnet 5.5) published the page
 - It asked the person to switch the workflow off in n8n when it was not there at all. The report now carries the export's `active` (`activeInN8n`), and the step is skipped when it is false.
 - The record's duration showed 0 ms (fixed: wall time for `endedAt`).
 
+### Templates from n8n to claude.ai (2026-11-20)
+
+Created in n8n cloud from templates, exported with the editor's `...` > Export JSON (the menu item once called Download), attached to a new chat with nothing else said. Fable 5.2, skill at HEAD.
+
+- **2722 Email summary agent** (schedule, Gmail read, OpenAI, Gmail send). Ready with no question: `--timezone` answers the schedule's zone, and the export's `active: false` skipped the n8n step. Held test read 17 real threads; switch-on was three steps; task set at 07:03 (within 5 minutes of 07:00); first run done in 130 s, one real email sent to the connector's own address. Found: the subject's `new Date()` dates read the sandbox's UTC (fixed: TZ from the workflow); Gmail search returns whole threads, so older messages in a thread slipped into "past 24 hours" (fixed: dates filtered to the query's window).
+- **1954 AI agent chat** (chat trigger, agent, OpenAI, Simple Memory, SerpAPI tool). The chat asked one two-option question ("Keep SerpAPI" / "Use Claude's search"), converted to a skill and handed it over as a zip.
+- A file named `<name>.skill` gets a **Save skill** button on the chat's file card (one click; a warning that the skill runs code, then saved). A `.zip` only offers Download, then Customize > Skills > Upload.
+- **Skill frontmatter hooks run in claude.ai chats.** The migrated skill's PreToolUse hook fired on its WebSearch call and refused it: the command looked for `hook.mjs` under `$CLAUDE_SKILL_DIR` (unset), the project's and `$HOME/.claude/skills` (`/root/...`), while claude.ai installs skills under `/mnt/skills/<kind>/<name>`.
+
 ### Web access from claude.ai (2026-11-20)
 
 - In the code sandbox, `curl https://hnrss.org/frontpage` is refused by the egress proxy (`connect_rejected`, exit 56).
