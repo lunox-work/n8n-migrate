@@ -50,6 +50,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SKILLS = join(ROOT, "skills");
 const NAME = "n8n-migrate";
 const MANIFESTS = [".claude-plugin/plugin.json", ".claude-plugin/marketplace.json", "package.json"];
+// The npm package under the old name: it depends on this one and runs it, so it moves with VERSION.
+const ALIAS = "aliases/n8n-to-claude/package.json";
 const MAX_FILE = 5 * 1024 * 1024;
 const PLUGIN_BRANCH = "claude-plugin";
 const PLUGIN_FILES = [".claude-plugin/icon.png", "LICENSE", "skills"];
@@ -179,6 +181,8 @@ export function check(root = ROOT) {
   else if (listed.version !== undefined && listed.version !== VERSION) problems.push(`${MANIFESTS[1]}: version is not ${VERSION} (node scripts/skill.mjs sync)`);
   const pkg = readJson(root, MANIFESTS[2]);
   if (pkg && (pkg.name !== NAME || pkg.version !== VERSION)) problems.push(`${MANIFESTS[2]}: name and version are not ${NAME} ${VERSION} (node scripts/skill.mjs sync)`);
+  const alias = readJson(root, ALIAS);
+  if (alias && (alias.version !== VERSION || alias.dependencies?.[NAME] !== `^${VERSION}`)) problems.push(`${ALIAS}: version and its ${NAME} dependency are not ${VERSION} (node scripts/skill.mjs sync)`);
   const icon = join(root, ".claude-plugin", "icon.png");
   if (!existsSync(icon) || readFileSync(icon).subarray(1, 4).toString() !== "PNG") problems.push(".claude-plugin/icon.png: missing or not a PNG (node assets/src/render.mjs icon)");
   return { problems, notes };
@@ -198,6 +202,12 @@ function sync() {
     if (json.version !== undefined) json.version = VERSION;
     for (const plugin of json.plugins ?? []) if (plugin.name === NAME) plugin.version = VERSION;
     writeFileSync(full, `${JSON.stringify(json, null, 2)}\n`);
+  }
+  const alias = readJson(ROOT, ALIAS);
+  if (alias) {
+    alias.version = VERSION;
+    alias.dependencies = { ...alias.dependencies, [NAME]: `^${VERSION}` };
+    writeFileSync(join(ROOT, ALIAS), `${JSON.stringify(alias, null, 2)}\n`);
   }
 }
 
