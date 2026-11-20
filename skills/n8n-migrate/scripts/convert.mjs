@@ -39,6 +39,10 @@
 // folder gets report.json and MIGRATION.md only, unless --force-convert, which converts it
 // with the steps that cannot run kept as greyed `blocked` steps.
 //
+// --light writes only definition.json, source.n8n.json, report.json, overrides.json and
+// MIGRATION.md (a few KB instead of several MB a folder); --build <page|skill|task|all>
+// <folder> then writes a part from the definition when it is needed. For a chat or Cowork,
+// where this skill is installed and carries the runtime once (writeFolder, buildPart).
 // --regenerate rebuilds definition.json, runtime/, report.json and MIGRATION.md from the
 // stored source.n8n.json and overrides.json with the current skill, so a runner or converter
 // fix reaches workflows that were already migrated.
@@ -59,7 +63,7 @@ import { createHash } from "node:crypto";
 import { dirname, join, resolve, basename } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { execFileSync } from "node:child_process";
-import { analyze, loadInput, unwrap, redactSecrets, legacyCron, simulateCron, parseCron, httpTarget, SITE_CREDENTIALS, DB_RUNTIME_OPS, dbConnection } from "./analyze.mjs";
+import { analyze, loadInput, unwrap, redactSecrets, legacyCron, simulateCron, parseCron, httpTarget, SITE_CREDENTIALS, DB_RUNTIME_OPS, dbConnection, VERSION } from "./analyze.mjs";
 import { fromN8n, urlTarget, writtenTargets } from "../runtime/src/convert.mjs";
 import { preflight, expressionSupport, nodeImplFor, definitionHash, RUNTIME_VERSION } from "../runtime/src/api.mjs";
 import { isSelectQuery } from "../runtime/src/postgres.mjs";
@@ -68,7 +72,8 @@ import { draftTarget, validateDraft, sameFor, draftEffect, draftFor, WRITE_BLOCK
 
 const ALERT_TOOL_KEYS = Object.keys(ALERT_TOOLS);
 
-export const CONVERTER_VERSION = "0.1.0";
+// The skill's version (analyze.mjs VERSION, kept in step by scripts/skill.mjs sync).
+export const CONVERTER_VERSION = VERSION;
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SKILL = join(HERE, "..");
 const REFS = join(SKILL, "references");
@@ -960,13 +965,76 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
 
   // SerpAPI (agent tool): LangChain's SerpAPI as n8n runs it (runtime rest.mjs serpApi): one GET
   // of serpapi.com/search with the node's options, the person's key in the query.
-  const applySerpApi = (step) => {
+  // Answered "claude" to the analyzer's search question (analyze.mjs askSearch): the tool is
+  // Claude's own web search instead, a tool of the session that runs the task (connector
+  // "claude", no prefix), so there is no key and no request of ours. The model sees the same
+  // tool name, description and input as n8n's; what comes back is Claude's search result, not
+  // LangChain's pick from SerpAPI's answer, and the node's options (country, language, device)
+  // have no counterpart.
+  const applySerpApi = (name, step) => {
+    if (searchQuestion(report, name)?.answer === "claude") {
+      step.kind = "tool";
+      delete step.auth;
+      delete step.rest;
+      delete step.http;
+      const dropped = Object.keys(step.params?.options ?? {}).filter((k) => k !== "timeout");
+      // claude.ai's WebSearch requires mode (seen 2026-11-20: a call with only query was refused and the run looped)
+      step.tool = { connector: CLAUDE_TOOLS, name: "WebSearch", args: { query: "={{ $fromAI('input') }}", mode: "standard" }, effect: "read", fidelity: "none", caveats: ["the results come from Claude's web search, not SerpAPI: the text the agent reads differs from n8n's", ...(dropped.length ? [`the SerpAPI options ${dropped.join(", ")} are not applied`] : [])], map: "search-with claude" };
+      step.substitution = { id: "search-to-claude", from: "SerpAPI", to: "Claude's own web search (no key)", approved: true };
+      addTool(CLAUDE_TOOLS, "WebSearch");
+      return;
+    }
     step.kind = "http";
     const secretName = step.credentials?.serpApi ?? "serpApi (no credential named in the export)";
     step.auth = { credentialType: "serpApi", secret: secretName, placement: "url" };
     step.rest = { program: "serpApi", effect: "read", fidelity: "exact", map: LC + "toolSerpApi" };
     addHttp("GET", "serpapi.com", "/search");
     addSecret(secretName, "serpApi", "serpapi.com");
+  };
+
+  // Telegram Trigger as a poll (an owner-only bot, analyze.mjs chat-app relays): one GET of
+  // getUpdates with the bot's token in the URL, the cursor as its offset. n8n starts one
+  // execution per update its webhook receives, so one update starts a run (batch 1) and the
+  // rest wait for the next run. `where` is what TelegramTrigger.webhook() drops before it
+  // starts the workflow (n8n-nodes-base 2.47.7): approval-button taps of n8n's own send-and-
+  // wait (node above 1), update types not ticked (checked in the webhook from 1.5; Telegram
+  // sends only the ticked ones either way), and from 1.2 the chat and user restrictions,
+  // which read the id from message updates only before 1.4. The first run reads nothing and
+  // starts after what is waiting, as n8n's activation drops pending updates from 1.3.
+  const TELEGRAM_UPDATE_KEYS = ["message", "edited_message", "channel_post", "edited_channel_post", "callback_query", "inline_query", "pre_checkout_query", "shipping_query", "poll"];
+  const applyTelegramPoll = (name, step, params, v) => {
+    const add = isObj(params.additionalFields) ? params.additionalFields : {};
+    if (allStrings({ updates: params.updates ?? [], add }).some(isExpr)) return void block(step, "unsupported", "the trigger's updates or restrictions are set by an expression, which the getUpdates poll cannot read ahead of a run");
+    if (add.download === true) return void block(step, "unsupported", "the trigger downloads each message's file into binary data, which the getUpdates poll does not do yet");
+    const updates = Array.isArray(params.updates) ? params.updates.map(String) : [];
+    const every = !updates.length || updates.includes("*");
+    const ids = (text) => String(text).split(",").map((x) => x.trim());
+    const where = [];
+    if (v > 1) where.push({ path: "callback_query.data", notPrefix: "nhitl1|" });
+    if (!every) where.push({ firstKey: TELEGRAM_UPDATE_KEYS, in: updates });
+    if (v >= 1.2 && add.chatIds) where.push({ firstDefined: v >= 1.4 ? ["message.chat.id", "edited_message.chat.id", "channel_post.chat.id", "edited_channel_post.chat.id", "callback_query.message.chat.id"] : ["message.chat.id"], in: ids(add.chatIds) });
+    if (v >= 1.2 && add.userIds) where.push({ firstDefined: v >= 1.4 ? ["message.from.id", "edited_message.from.id", "channel_post.from.id", "edited_channel_post.from.id", "callback_query.from.id", "inline_query.from.id", "pre_checkout_query.from.id", "shipping_query.from.id"] : ["message.from.id"], in: ids(add.userIds) });
+    const secretName = step.credentials?.telegramApi ?? "telegramApi (no credential named in the export)";
+    const url = "https://api.telegram.org/bot{{secret}}/getUpdates";
+    step.auth = { credentialType: "telegramApi", secret: secretName, placement: "url" };
+    step.poll = {
+      http: { method: "GET", url, query: { timeout: 0, limit: 100, allowed_updates: JSON.stringify(every ? [] : updates) } },
+      result: { items: "result[*]" },
+      cursor: { field: "update_id", strategy: "max", arg: "offset", template: "{next}", seed: 0 },
+      ...(where.length ? { where } : {}),
+      batch: 1,
+      fidelity: "exact",
+      caveats: [
+        "one message starts one run, as in n8n; messages sent within the same minute are answered one run apart",
+        "Telegram refuses getUpdates (409) while the bot still has a webhook: switch the n8n workflow off first, which removes it",
+        "messages sent before the first run are not answered",
+      ],
+      map: "telegram getUpdates",
+    };
+    step.schedule = scheduleFor(step, wr, ctx.now);
+    const target = staticTarget(url);
+    addHttp("GET", target.host, target.pathPrefix);
+    addSecret(secretName, "telegramApi", target.host);
   };
 
   // Applies a tool map entry (connector tool or REST template) to a step.
@@ -1082,6 +1150,9 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         // A download whose file n8n puts into binary data: the tool's base64 content becomes
         // item.binary[property] (runtime/src/files.mjs binaryFromTool).
         ...(entry.binary ? { binary: { property: getParam(params, entry.binary.propertyParam) || entry.binary.propertyDefault || "data", ...(getParam(params, entry.binary.fileNameParam) !== undefined ? { fileName: getParam(params, entry.binary.fileNameParam) } : {}), content: entry.binary.content, mimeType: entry.binary.mimeType, name: entry.binary.name } } : {}),
+        // A thread search standing in for n8n's message search: the runtime drops the messages
+        // the query's dates exclude (runtime/src/adapt.mjs queryWindow).
+        ...(entry.window ? { window: { ...entry.window } } : {}),
         fidelity: entry.fidelity ?? "unverified",
         ...(entry.missingFields?.length ? { missingFields: entry.missingFields } : {}),
         ...(caveatsFor(params, entry.caveats).length ? { caveats: caveatsFor(params, entry.caveats) } : {}),
@@ -1351,11 +1422,11 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
           else step.relay = { payloadShape: `the event as n8n's ${shortType(type)} gives it` };
         }
       } else if (wake === "relay" || wake === "endpoint" || /Trigger$/.test(type)) {
-        // The analyzer can move an owner-only chat bot to a provider's polling API (Telegram
-        // getUpdates); the runtime has no HTTP poll yet, so the trigger would wait for a webhook
-        // that never comes. Block it rather than convert it (L7, 2026-11-17).
-        const unbuiltPoll = (wr.requires ?? []).find((r) => r.kind === "poll" && (r.nodes ?? []).includes(name) && /getUpdates/.test(String(r.name)));
-        if (unbuiltPoll) block(step, "unsupported", `polling ${unbuiltPoll.name} is not built yet: as a relay this trigger would wait for a webhook that never comes`);
+        // The analyzer moves an owner-only chat bot to the provider's polling API: the
+        // trigger reads Telegram getUpdates instead of waiting for a webhook that never comes.
+        const httpPoll = (wr.requires ?? []).find((r) => r.kind === "poll" && (r.nodes ?? []).includes(name));
+        if (httpPoll && type === BASE + "telegramTrigger") applyTelegramPoll(name, step, params, v);
+        else if (httpPoll) block(step, "unsupported", `polling ${httpPoll.name} is not built yet: as a relay this trigger would wait for a webhook that never comes`);
         else if (![BASE + "manualTrigger", BASE + "executeWorkflowTrigger", BASE + "start"].includes(type)) step.relay = { payloadShape: `the event as n8n's ${shortType(type)} gives it` };
       }
       continue;
@@ -1405,7 +1476,7 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         const found = (op != null ? findMap(refs.toolMaps, baseType, v, info.resource ?? "_", op) : null) ?? (bare ? findMap(refs.toolMaps, baseType, v, "_", "_") : null);
         if (baseType === BASE + "rssFeedRead") applyRss(name, step, params);
         else if (type === LC + "toolWikipedia") applyWikipedia(step);
-        else if (type === LC + "toolSerpApi") applySerpApi(step);
+        else if (type === LC + "toolSerpApi") applySerpApi(name, step);
         else if (found) applyMap(name, step, found, params);
         else if (type === LC + "toolHttpRequest" || type === BASE + "httpRequestTool") {
           // agent http tools are built in the agent pass
@@ -1592,7 +1663,11 @@ export function buildDefinition(ctx, items, report, id, { stack = [], file = "so
         Object.assign(t, { kind: "think", effect: "none", inputSchema: { type: "object", properties: { input: { type: "string" } } } });
       } else if (ts.kind === "tool" && ts.tool) {
         Object.assign(t, { kind: "connector", effect: ts.tool.effect === "read" ? "read" : "write" });
-        const schema = fromAiSchema(tp);
+        // A LangChain tool with a fixed description and one text input (the search tool run
+        // by Claude's web search) keeps both, as the model saw them in n8n.
+        const fixed = FIXED_TOOL_DESCRIPTIONS[ts.n8n.type];
+        const schema = fixed ? clone(DYNAMIC_TOOL_SCHEMA) : fromAiSchema(tp);
+        if (fixed) t.description = fixed;
         if (schema) t.inputSchema = schema;
       } else if (ts.n8n.type === LC + "toolWorkflow") {
         const call = buildToolWorkflow(ctx, items, report, wr, tn, ts, stack, id, allow, secrets);
@@ -1935,6 +2010,10 @@ function summarizeSpec(name, p, v, subnodesTo, steps) {
 // The hosts question for an HTTP Request step whose address comes from data (analyze.mjs
 // askHosts), and its answer: "public" -> {public: true}; host names (comma or space separated,
 // a URL's host taken) -> {hosts}; anything else -> {invalid: reason}; unanswered -> null.
+function searchQuestion(report, stepName) {
+  for (const w of report?.workflows ?? []) for (const q of w.questions ?? []) if (/\/search-with\//.test(q.id) && q.id.endsWith(`/search-with/${stepName}`)) return q;
+  return null;
+}
 function hostsQuestion(report, stepName) {
   for (const w of report?.workflows ?? []) for (const q of w.questions ?? []) if (/\/hosts\//.test(q.id) && q.id.endsWith(`/hosts/${stepName}`)) return q;
   return null;
@@ -2394,13 +2473,30 @@ export function writeRuntime(dir, def) {
 // hyphens: mcp__Notion__notion-search, mcp__Google-Drive__search_files (observed 2026-11-18;
 // mcp__claude_ai_Notion__ is "No such tool available" there).
 export const cloudPrefix = (local) => local.replace(/^mcp__claude_ai_/, "mcp__").replace(/__$/, "").replace(/^mcp__(.*)$/, (_, n) => `mcp__${n.replace(/_/g, "-")}__`);
+// A claude.ai scheduled task without a repository (Cowork) names it after the connector's
+// display name with underscores: mcp__Gmail__, mcp__Google_Drive__ (observed 2026-11-19).
+export const coworkPrefix = (local) => local.replace(/^mcp__claude_ai_/, "mcp__");
+// Tools of the Claude session itself (WebSearch): allow.tools names them under this connector
+// and the session calls them by their bare name on every surface.
+export const CLAUDE_TOOLS = "claude";
 export function toolPrefixes(def, refs, where) {
   const out = {};
   for (const t of [...(def.allow?.tools ?? []), ...(def.allow?.alerts ?? [])]) {
+    if (t.connector === CLAUDE_TOOLS) {
+      out[CLAUDE_TOOLS] = "";
+      continue;
+    }
     const p = refs.connectors[t.connector]?.toolPrefix ?? EXTRA_TOOL_PREFIXES[t.connector];
-    if (p) out[t.connector] = where === "cloud-task" ? cloudPrefix(p) : p;
+    if (p) out[t.connector] = where === "cloud-task" ? cloudPrefix(p) : where === "cowork" ? coworkPrefix(p) : p;
   }
   return out;
+}
+// task.json for a claude.ai scheduled task (Cowork): its sandbox keeps nothing between runs,
+// so the records live in the workflow's artifact database (store "artifact", artifactUrl set by
+// scripts/task.mjs setup); no hooks run there, so the model saves each tool response itself.
+// Carried in the artifact page's build JSON, which is all the task has to set itself up from.
+export function coworkTaskJson(def, refs) {
+  return { hooks: false, secrets: "env", toolPrefixes: { ...toolPrefixes(def, refs, "cowork"), "artifact-db": "" }, store: { kind: "artifact" }, artifactUrl: null };
 }
 const taskTarget = (def, target) => formHandoff(def)?.target ?? target;
 // The record store follows the target: a cloud task's checkout is new each run, so its state
@@ -2412,7 +2508,9 @@ export function taskJson(def, refs, target) {
   return { hooks: true, compactWhole: true, compactOver: 80, hideToolOutput: true, secrets: where === "cloud-task" ? "proxy" : "env", toolPrefixes: { ...toolPrefixes(def, refs, where), ...(handoff ? { "artifact-db": "" } : {}) }, store: where === "cloud-task" ? { kind: "git", fallback: "file" } : { kind: "file" }, ...(handoff ? { source: "poll-submissions", artifactDb: false, artifactUrl: null } : {}) };
 }
 const formHandoff = (def) => Object.values(def.steps).find((s) => s.kind === "trigger" && s.form?.handoff && s.settings?.disabled !== true)?.form.handoff ?? null;
-const HOOK_MATCHER = "^(mcp__.*|ArtifactData)$";
+// WebSearch: a search tool swapped for Claude's own (applySerpApi) is checked and captured
+// like a connector call; the hook refuses any search the runner did not ask for.
+const HOOK_MATCHER = "^(mcp__.*|ArtifactData|WebSearch)$";
 // A PreToolUse hook that cannot start (a missing file, no node) exits 1, a non-blocking error,
 // and the call goes ahead unchecked (observed on 2.1.323). "|| exit 2" turns any failure into a
 // block, so containment fails closed.
@@ -2424,11 +2522,13 @@ export function connectorToolNames(def, refs, where) {
   if (formHandoff(def)) names.push("ArtifactData");
   return uniq(names);
 }
+// The session's own web tools stay denied unless a step of the workflow uses one.
+const sessionDeny = (allowed) => ["WebFetch", "WebSearch"].filter((t) => !allowed.includes(t));
 // .claude/settings.json for a session opened on this folder alone (one repo per workflow).
 export function taskSettings(def, refs, target) {
   const hook = (which) => [{ matcher: HOOK_MATCHER, hooks: [{ type: "command", command: hookCommand("$CLAUDE_PROJECT_DIR/runtime/hook.mjs", which), timeout: 30 }] }];
   return {
-    permissions: { defaultMode: "dontAsk", allow: ["Bash(node runtime/runner.mjs *)", "Edit(.n8m/inbox/**)", ...connectorToolNames(def, refs, taskTarget(def, target))], deny: ["WebFetch", "WebSearch"] },
+    permissions: { defaultMode: "dontAsk", allow: ["Bash(node runtime/runner.mjs *)", "Edit(.n8m/inbox/**)", ...connectorToolNames(def, refs, taskTarget(def, target))], deny: sessionDeny(connectorToolNames(def, refs, taskTarget(def, target))) },
     hooks: { PreToolUse: hook("pre"), PostToolUse: hook("post") },
   };
 }
@@ -2464,7 +2564,7 @@ export function rootSettings(outDir) {
     }
   }
   const hook = (which) => [{ matcher: HOOK_MATCHER, hooks: [{ type: "command", command: hookCommand("$CLAUDE_PROJECT_DIR/n8m-hook.mjs", which), timeout: 30 }] }];
-  return { permissions: { defaultMode: "dontAsk", allow: uniq(allow), deny: ["WebFetch", "WebSearch"] }, hooks: { PreToolUse: hook("pre"), PostToolUse: hook("post") } };
+  return { permissions: { defaultMode: "dontAsk", allow: uniq(allow), deny: sessionDeny(allow) }, hooks: { PreToolUse: hook("pre"), PostToolUse: hook("post") } };
 }
 export function writeRootSettings(outDir) {
   const settings = rootSettings(outDir);
@@ -2497,8 +2597,16 @@ export function skillMd(def, refs, slug) {
   const title = cleanTitle(def.name);
   const tools = connectorToolNames(def, refs);
   // The skill's folder: CLAUDE_SKILL_DIR is not set for a skill's hook command (observed on
-  // 2.1.323: node got "/runtime/hook.mjs"), so look in the project's and the user's skills.
-  const find = `d="\${CLAUDE_SKILL_DIR:-}"; [ -f "$d/runtime/hook.mjs" ] || d="$CLAUDE_PROJECT_DIR/.claude/skills/${name}"; [ -f "$d/runtime/hook.mjs" ] || d="$HOME/.claude/skills/${name}"; `;
+  // 2.1.323: node got "/runtime/hook.mjs"), so look in the project's and the user's skills,
+  // then where claude.ai keeps an uploaded skill (/mnt/skills/<user|plugins|…>/<name>; observed
+  // 2026-11-20: a chat runs the skill's hooks, with HOME=/root and no skill there, so the hook
+  // was not found and, failing closed, refused every call of the migrated skill).
+  // No "&" anywhere in the frontmatter: claude.ai refuses a SKILL.md whose hook command holds
+  // "&&" ("could not be downloaded (SKILL.md unusable)", probe skills 2026-11-20), so the chain
+  // is "||" and "continue" only. In a claude.ai chat the skill is at
+  // $HOME/.claude/skills/synced/<id>_<id>/<name> (HOME=/root, no /mnt/skills); in a scheduled
+  // task under /mnt/skills/user/<name>. This loop form was seen to load and find it in a chat.
+  const find = `d="\${CLAUDE_SKILL_DIR:-}"; [ -f "$d/runtime/hook.mjs" ] || d="$CLAUDE_PROJECT_DIR/.claude/skills/${name}"; [ -f "$d/runtime/hook.mjs" ] || d="$HOME/.claude/skills/${name}"; [ -f "$d/runtime/hook.mjs" ] || for c in "$HOME"/.claude/skills/synced/*/${name} /mnt/skills/*/${name}; do [ -f "$c/runtime/hook.mjs" ] || continue; d="$c"; break; done; `;
   const hook = (which) => [`    - matcher: ${yamlString(HOOK_MATCHER)}`, "      hooks:", "        - type: command", `          command: ${yamlString(find + hookCommand("$d/runtime/hook.mjs", which))}`, "          timeout: 30"];
   return [
     "---",
@@ -2565,7 +2673,8 @@ const EXTRA_TOOL_PREFIXES = { atlassian: "mcp__claude_ai_Atlassian_MCP__", click
 export function artifactServers(def, refs) {
   const out = {};
   for (const t of def.allow?.tools ?? []) {
-    if (out[t.connector]) continue;
+    // A tool of the Claude session (web search) has no counterpart in a page.
+    if (out[t.connector] || t.connector === CLAUDE_TOOLS) continue;
     const prefix = refs.connectors[t.connector]?.toolPrefix ?? EXTRA_TOOL_PREFIXES[t.connector];
     out[t.connector] = prefix ? prefix.replace(/^mcp__/, "").replace(/__$/, "").replace(/^claude_ai_/, "").replace(/_/g, " ") : t.connector;
   }
@@ -2582,6 +2691,7 @@ export function artifactCapabilities(def, refs, gateway = null) {
   const byServer = new Map();
   for (const t of def.allow?.tools ?? []) {
     const name = servers[t.connector];
+    if (name === undefined) continue;
     if (!byServer.has(name)) byServer.set(name, new Set());
     byServer.get(name).add(t.tool);
   }
@@ -2609,7 +2719,7 @@ export function artifactHtml(def, refs, commit = skillCommit(), gateway = null) 
   const tpl = readFileSync(join(REFS, "artifact.html"), "utf8");
   const runtime = readFileSync(join(SKILL, "runtime", "dist", "artifact-runtime.js"), "utf8");
   const hash = definitionHash(def);
-  const build = { definitionHash: hash, commit, runtime: RUNTIME_VERSION, converter: CONVERTER_VERSION, servers: artifactServers(def, refs), ...(gateway?.server && Object.values(def.steps).some((st) => st.kind === "http") ? { gateway } : {}) };
+  const build = { definitionHash: hash, commit, runtime: RUNTIME_VERSION, converter: CONVERTER_VERSION, servers: artifactServers(def, refs), cowork: coworkTaskJson(def, refs), ...(gateway?.server && Object.values(def.steps).some((st) => st.kind === "http") ? { gateway } : {}) };
   const fill = { __N8M_TITLE__: htmlEscape(def.name), __N8M_HASH__: hash, __N8M_COMMIT__: htmlEscape(commit), __N8M_DEFINITION__: scriptJson(def), __N8M_BUILD__: scriptJson(build), __N8M_RUNTIME__: runtime };
   let html = tpl;
   for (const [marker, value] of Object.entries(fill)) {
@@ -2623,8 +2733,44 @@ export function writeArtifact(dir, def, refs, gateway = null) {
   writeJson(join(dir, "artifact.capabilities.json"), artifactCapabilities(def, refs, gateway));
 }
 
+// The parts of a folder that carry a copy of the runtime (about 4 MB together, 7 with a chat
+// skill): what a task, a page and a chat skill need to run without this skill installed.
+const BUILT = ["task.json", "task-prompt.md", ".claude/settings.json", "artifact.html", "artifact.capabilities.json"];
+// A light folder (convert --light; migrate.mjs for a chat or Cowork) leaves them out: the
+// definition, its source, report, overrides and MIGRATION.md only, a few KB. There the runtime
+// ships once, in this skill: a scheduled task sets itself up from it (scripts/task.mjs), and
+// `convert.mjs --build page|skill|task <folder>` writes a part when it is about to be
+// published, packaged or run. A folder stays light on regenerate until a part is built.
+export const isLight = (dir) => existsSync(join(dir, "definition.json")) && !existsSync(join(dir, "runtime"));
+export function buildPart(folder, part, refs = loadReferences()) {
+  const dir = resolve(folder);
+  const defPath = join(dir, "definition.json");
+  if (!existsSync(defPath)) throw new Error(`${folder} has no definition.json: the workflow was not converted (its MIGRATION.md says why)`);
+  const def = readJson(defPath);
+  const ov = existsSync(join(dir, "overrides.json")) ? readJson(join(dir, "overrides.json")) : {};
+  const report = existsSync(join(dir, "report.json")) ? readJson(join(dir, "report.json")) : null;
+  const out = [];
+  if (part === "page" || part === "all") {
+    writeArtifact(dir, def, refs, typeof ov.server === "string" && ov.server ? { server: ov.server, workflow: basename(dir) } : null);
+    out.push("artifact.html", "artifact.capabilities.json");
+  }
+  if (part === "skill" || part === "all") {
+    const sk = writeSkill(dir, def, refs, basename(dir));
+    if (sk) out.push("skill/");
+    else if (part === "skill") throw new Error(`${folder} is not a chat workflow: it has no skill to build`);
+  }
+  if (part === "task" || part === "all") {
+    writeRuntime(dir, def);
+    writeTaskFiles(dir, def, refs, report?.workflows?.[0]?.outcome?.target);
+    writeRootSettings(dirname(dir));
+    out.push("runtime/", "task.json", "task-prompt.md", ".claude/settings.json");
+  }
+  if (!out.length) throw new Error(`--build takes page, skill, task or all, not ${part}`);
+  return out;
+}
+
 // Writes one result folder. overrides.json is created when missing and never rewritten.
-export function writeFolder(outDir, res, { overrides, refs, server } = {}) {
+export function writeFolder(outDir, res, { overrides, refs, server, light = false } = {}) {
   const dir = join(outDir, res.slug);
   mkdirSync(dir, { recursive: true });
   writeJson(join(dir, "report.json"), res.report);
@@ -2640,12 +2786,18 @@ export function writeFolder(outDir, res, { overrides, refs, server } = {}) {
     const errs = validateSchema(def, (refs ?? loadReferences()).schema);
     if (errs.length) throw new Error(`definition for "${res.name}" is not valid against the schema: ${errs.slice(0, 5).join("; ")}`);
     writeJson(join(dir, "definition.json"), def);
-    writeRuntime(dir, def);
-    writeTaskFiles(dir, def, refs ?? loadReferences(), res.report.workflows[0].outcome?.target);
-    writeArtifact(dir, def, refs ?? loadReferences(), typeof ov.server === "string" && ov.server ? { server: ov.server, workflow: res.slug } : null);
-    writeSkill(dir, def, refs ?? loadReferences(), res.slug);
+    if (light) {
+      // Parts built from an older definition would no longer match it: removed, built again on demand.
+      for (const f of BUILT) if (existsSync(join(dir, f))) rmSync(join(dir, f));
+      for (const d of ["runtime", "skill"]) if (existsSync(join(dir, d))) rmSync(join(dir, d), { recursive: true, force: true });
+    } else {
+      writeRuntime(dir, def);
+      writeTaskFiles(dir, def, refs ?? loadReferences(), res.report.workflows[0].outcome?.target);
+      writeArtifact(dir, def, refs ?? loadReferences(), typeof ov.server === "string" && ov.server ? { server: ov.server, workflow: res.slug } : null);
+      writeSkill(dir, def, refs ?? loadReferences(), res.slug);
+    }
   } else {
-    for (const f of ["definition.json", "task.json", "task-prompt.md", ".claude/settings.json", "artifact.html", "artifact.capabilities.json"]) if (existsSync(join(dir, f))) rmSync(join(dir, f));
+    for (const f of ["definition.json", ...BUILT]) if (existsSync(join(dir, f))) rmSync(join(dir, f));
     if (existsSync(join(dir, "skill"))) rmSync(join(dir, "skill"), { recursive: true, force: true });
   }
   writeFileSync(join(dir, "MIGRATION.md"), migrationMd(res.report.workflows[0], res.definition, { refused: res.refused, overrides: ov }));
@@ -2655,8 +2807,9 @@ export function writeFolder(outDir, res, { overrides, refs, server } = {}) {
 
 export function regenerate(folder, opts = {}) {
   const refs = opts.refs ?? loadReferences();
+  const light = opts.light ?? isLight(resolve(folder));
   const res = convertFolder(folder, { ...opts, refs });
-  writeFolder(dirname(resolve(folder)), res, { refs });
+  writeFolder(dirname(resolve(folder)), res, { refs, light });
   return res;
 }
 
@@ -2693,14 +2846,14 @@ function parseArgs(argv) {
     if (a.startsWith("--")) {
       const k = a.slice(2);
       const n = argv[i + 1];
-      if (["force-convert", "json"].includes(k) || n === undefined || n.startsWith("--")) flags[k] = true;
+      if (["force-convert", "json", "light"].includes(k) || n === undefined || n.startsWith("--")) flags[k] = true;
       else (flags[k] = n), i++;
     } else pos.push(a);
   }
   return { pos, flags };
 }
 
-const USAGE = "usage: convert.mjs <export|-> --out <dir> [--workflow <id|name>] [--answers answers.json] [--approve id,id] [--server <connector name>] [--force-convert] [--now ISO]\n       convert.mjs --regenerate <folder>";
+const USAGE = "usage: convert.mjs <export|-> --out <dir> [--workflow <id|name>] [--answers answers.json] [--approve id,id] [--server <connector name>] [--force-convert] [--light] [--now ISO]\n       convert.mjs --regenerate <folder>\n       convert.mjs --build <page|skill|task|all> <folder>";
 
 export function main(argv = process.argv.slice(2)) {
   const { pos, flags } = parseArgs(argv);
@@ -2708,6 +2861,15 @@ export function main(argv = process.argv.slice(2)) {
   if (flags.regenerate) {
     const res = regenerate(String(flags.regenerate), { now, forceConvert: flags["force-convert"] === true ? true : undefined });
     process.stdout.write(JSON.stringify({ status: res.refused ? "refused" : "regenerated", folder: flags.regenerate, steps: res.definition ? Object.keys(res.definition.steps).length : 0 }) + "\n");
+    return 0;
+  }
+  if (flags.build) {
+    if (flags.build === true || !pos[0]) {
+      process.stderr.write(USAGE + "\n");
+      return 2;
+    }
+    const built = buildPart(pos[0], String(flags.build));
+    process.stdout.write(JSON.stringify({ status: "built", folder: pos[0], files: built }) + "\n");
     return 0;
   }
   if (!pos[0] || !flags.out || flags.out === true) {
@@ -2727,7 +2889,7 @@ export function main(argv = process.argv.slice(2)) {
   const summary = [];
   for (const res of results) {
     const ov = { ...emptyOverrides(), approve, answers: Object.fromEntries(Object.entries(answers).filter(([k]) => k.startsWith(`${res.id}/`))) };
-    writeFolder(outDir, res, { overrides: ov, server: flags.server && flags.server !== true ? String(flags.server) : undefined });
+    writeFolder(outDir, res, { overrides: ov, server: flags.server && flags.server !== true ? String(flags.server) : undefined, light: flags.light === true });
     const steps = res.definition ? Object.values(res.definition.steps) : [];
     summary.push({ id: res.id, name: res.name, folder: res.slug, status: res.refused ? "refused" : steps.some((s) => s.kind === "blocked") ? "blocked-steps" : steps.some((s) => s.review) ? "review" : "converted", outcome: res.report.workflows[0].outcome.kind, review: steps.filter((s) => s.review).length, blocked: steps.filter((s) => s.kind === "blocked").length });
   }

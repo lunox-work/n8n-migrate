@@ -2,7 +2,7 @@
 // download them from the n8n editor first. The only script besides cutover.mjs that uses the
 // network; analyze.mjs and convert.mjs stay offline.
 //
-//   node pull.mjs <source>... [--out dir] [--active] [--env-file f] [--json]
+//   node pull.mjs <source>... [--out dir] [--active] [--no-sub-workflows] [--env-file f] [--json]
 //
 // Sources, any number in one call:
 //   n8n.io/workflows/<id>[-slug]   a public template (api.n8n.io; no account, no key). Also
@@ -24,19 +24,30 @@
 //                                  another host is refused, never sent the key.
 // No key or token is ever written or printed.
 //
+// Sub-workflows: from your instance (either way), the workflows the pulled ones call by a fixed
+// id (Execute Workflow, sub-workflow tool and retriever nodes; analyze.mjs calledWorkflowIds) are
+// fetched too, by id over the same route, and what those call, up to 3 levels and 50 extra
+// workflows, so analyze.mjs does not stop at "sub-workflow X is not in the export". One it cannot
+// get (not found, not Available in MCP) is a note, not a failure. --no-sub-workflows turns it off.
+// Templates have no instance behind them, so their calls are not followed.
+//
 // Each workflow is written to <out>/<name>-<id>.json in the editor's Download shape, without
 // `shared` (owner names and emails) and, for templates, without the author's profile.
 // Exit: 0 all written, 1 some failed, 2 bad usage or nothing written.
 
 import { mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { calledWorkflowIds } from "./analyze.mjs";
 import { createN8nClient } from "./n8n-api.mjs";
 import { instanceBase, mcpClient, MCP_PATH, signIn as oauthSignIn } from "./n8n-oauth.mjs";
 
 const TEMPLATES_API = "https://api.n8n.io/api/templates/workflows/";
-const USAGE = "usage: pull.mjs <n8n.io/workflows/<id> | template:<id> | popular[:N] | trending[:N] | n8n | <your n8n>/workflow/<id>>... [--login <your n8n address> [--register-again]] [--out dir] [--active] [--env-file f] [--json]";
-const ENABLE_MCP = "n8n shares a workflow over MCP only when it is set Available in MCP: Settings > Instance-level MCP > Workflows enabled, a project's or folder's Manage MCP access, or the workflow's Settings";
+const NODES_JSON = join(dirname(fileURLToPath(import.meta.url)), "..", "references", "nodes.json");
+const SUB_DEPTH = 3;
+const SUB_CAP = 50;
+const USAGE = "usage: pull.mjs <n8n.io/workflows/<id> | template:<id> | popular[:N] | trending[:N] | n8n | <your n8n>/workflow/<id>>... [--login <your n8n address> [--register-again]] [--out dir] [--active] [--no-sub-workflows] [--env-file f] [--json]";
+const ENABLE_MCP ="n8n shares a workflow over MCP only when it is set Available in MCP: Settings > Instance-level MCP > Workflows enabled, a project's or folder's Manage MCP access, or the workflow's Settings";
 
 // One command-line source as {kind, ...}, or {kind: "bad", error}.
 export function parseSource(arg) {
@@ -121,28 +132,27 @@ async function getTemplate(id, fetchImpl) {
   return { id: String(t.id ?? id), name: t.name ?? `template ${id}`, ...t.workflow };
 }
 
-// Resolves every source and writes the files. Returns {written: [{file, id, name, source}],
-// errors: [{source, error}]}. `env` holds N8N_BASE_URL / N8N_API_KEY.
-export async function pull(sources, { out, active = false, env = process.env, fetch: fetchImpl = globalThis.fetch, login = null, registerAgain = false, signIn = oauthSignIn, log } = {}) {
+// Resolves every source and writes the files. Returns {written: [{file, id, name, source,
+// calledBy?}], errors: [{source, error}], notes}. `env` holds N8N_BASE_URL / N8N_API_KEY.
+// `subWorkflows: false` does not fetch the workflows the pulled ones call.
+export async function pull(sources, { out, active = false, env = process.env, fetch: fetchImpl = globalThis.fetch, login = null, registerAgain = false, signIn = oauthSignIn, log, subWorkflows = true } = {}) {
   const written = [];
   const errors = [];
   const notes = [];
-  if (login) return pullSignedIn(sources, { out, active, env, fetchImpl, login, registerAgain, signIn, log, written, errors, notes });
+  if (login) return pullSignedIn(sources, { out, active, env, fetchImpl, login, registerAgain, signIn, log, subWorkflows, written, errors, notes });
   const base = String(env.N8N_BASE_URL ?? "").trim().replace(/\/+$/, "").replace(/\/api\/v1$/, "");
   const key = String(env.N8N_API_KEY ?? "").trim();
+  const clean = (m) => (key ? String(m).split(key).join("[key]") : String(m));
   let client = null;
   const instance = (source) => {
     if (!base || !key) throw new Error(`${source}: set N8N_BASE_URL and N8N_API_KEY first (n8n: Settings > n8n API > Create an API key), in your own terminal or an --env-file; never paste the key into a chat`);
     return (client ??= createN8nClient({ base, key, fetch: fetchImpl }));
   };
-  const seen = new Set();
-  const save = (wf, source) => {
-    const file = fileName(wf.name, wf.id);
-    if (seen.has(file)) return;
-    seen.add(file);
-    mkdirSync(out, { recursive: true });
-    writeFileSync(join(out, file), JSON.stringify(wf, null, 2) + "\n");
-    written.push({ file, id: String(wf.id ?? ""), name: String(wf.name ?? ""), source });
+  const saveAny = saver(out, written);
+  // Workflows from the instance, whose calls are followed afterwards.
+  const roots = [];
+  const save = (wf, source, fromInstance = false) => {
+    if (saveAny(wf, source) && fromInstance) roots.push(wf);
   };
   for (const raw of sources) {
     const src = parseSource(raw);
@@ -155,34 +165,80 @@ export async function pull(sources, { out, active = false, env = process.env, fe
         if (!base) throw new Error(`${raw}: set N8N_BASE_URL=${src.base} and N8N_API_KEY first (n8n: Settings > n8n API), in your own terminal or an --env-file; never paste the key into a chat`);
         const wf = await instance(raw).getWorkflow(src.id);
         if (!wf) throw new Error(`${raw}: no workflow ${src.id} on ${base}`);
-        save(exportShape(wf), raw);
+        save(exportShape(wf), raw, true);
       } else {
         const c = instance(raw);
         const list = await c.listWorkflows({ active });
         if (!list.length) throw new Error(`${raw}: the key reads no ${active ? "published " : ""}workflows on ${base}`);
-        for (const wf of list) save(exportShape(Array.isArray(wf.nodes) ? wf : ((await c.getWorkflow(wf.id)) ?? wf)), raw);
+        for (const wf of list) save(exportShape(Array.isArray(wf.nodes) ? wf : ((await c.getWorkflow(wf.id)) ?? wf)), raw, true);
       }
     } catch (e) {
-      errors.push({ source: String(raw), error: key ? String(e.message).split(key).join("[key]") : String(e.message) });
+      errors.push({ source: String(raw), error: clean(e.message) });
     }
   }
+  if (subWorkflows && client && roots.length) await followCalls(roots, (id) => client.getWorkflow(id), { save: saveAny, notes, where: base, clean });
   return { written, errors, notes };
 }
 
+// Writes one workflow file unless that file is already written; true when it wrote.
 function saver(out, written) {
   const seen = new Set();
-  return (wf, source) => {
+  return (wf, source, calledBy = null) => {
     const file = fileName(wf.name, wf.id);
-    if (seen.has(file)) return;
+    if (seen.has(file)) return false;
     seen.add(file);
     mkdirSync(out, { recursive: true });
     writeFileSync(join(out, file), JSON.stringify(wf, null, 2) + "\n");
-    written.push({ file, id: String(wf.id ?? ""), name: String(wf.name ?? ""), source });
+    written.push({ file, id: String(wf.id ?? ""), name: String(wf.name ?? ""), source, ...(calledBy !== null ? { calledBy } : {}) });
+    return true;
   };
 }
 
+// Sub-workflows (top comment): fetches what `roots` call by a fixed id with get(id), which gives
+// the workflow, null when the instance has no such id, or throws (code "not_in_mcp" when n8n does
+// not share it over MCP); then what those call, breadth first. Each one fetched is saved with
+// `calledBy` (the caller's name); each one not fetched becomes a note, never an error.
+async function followCalls(roots, get, { save, notes, where, clean }) {
+  const nodes = JSON.parse(readFileSync(NODES_JSON, "utf8"));
+  const have = new Set(roots.map((w) => String(w.id)));
+  const notShared = [];
+  const left = [];
+  let tries = 0;
+  let level = roots;
+  for (let depth = 1; level.length; depth++) {
+    const next = [];
+    for (const caller of level) {
+      const callerName = String(caller.name ?? caller.id);
+      for (const { id, name } of calledWorkflowIds(caller, nodes)) {
+        if (have.has(id)) continue;
+        have.add(id);
+        const label = `${name ? `"${name}" ` : ""}(${id}, called by "${callerName}")`;
+        if (depth > SUB_DEPTH || tries >= SUB_CAP) {
+          left.push(label);
+          continue;
+        }
+        tries++;
+        try {
+          const wf = await get(id);
+          if (!wf) notes.push(`sub-workflow ${label} is not on ${where}, so the caller will report it missing`);
+          else {
+            const sub = exportShape(wf);
+            if (save(sub, "sub-workflow", callerName)) next.push(sub);
+          }
+        } catch (e) {
+          if (e.code === "not_in_mcp") notShared.push(label);
+          else notes.push(`sub-workflow ${label} could not be fetched: ${clean(e.message)}`);
+        }
+      }
+    }
+    level = next;
+  }
+  if (notShared.length) notes.push(`sub-workflows not shared over MCP (${notShared.length}): ${notShared.join(", ")}. ${ENABLE_MCP}; or use an API key, which reads every workflow`);
+  if (left.length) notes.push(`sub-workflows past ${SUB_DEPTH} levels or ${SUB_CAP} fetched were not fetched (${left.length}): ${left.join(", ")}; pull them by their editor links`);
+}
+
 // --login: one browser sign-in, then every instance source reads over MCP with that token.
-async function pullSignedIn(sources, { out, active, env, fetchImpl, login, registerAgain, signIn, log, written, errors, notes }) {
+async function pullSignedIn(sources, { out, active, env, fetchImpl, login, registerAgain, signIn, log, subWorkflows, written, errors, notes }) {
   let base;
   try {
     base = instanceBase(login);
@@ -215,9 +271,11 @@ async function pullSignedIn(sources, { out, active, env, fetchImpl, login, regis
   }
   const mcp = mcpClient({ url: `${base}${MCP_PATH}`, token: session.token, fetch: fetchImpl });
   const notShared = [];
+  const roots = [];
   const one = async (id, raw, name) => {
     try {
-      save(exportShape(await mcp.workflow(id)), raw);
+      const wf = exportShape(await mcp.workflow(id));
+      if (save(wf, raw)) roots.push(wf);
     } catch (e) {
       if (e.code === "not_in_mcp") notShared.push(name ?? id);
       else throw e;
@@ -241,6 +299,16 @@ async function pullSignedIn(sources, { out, active, env, fetchImpl, login, regis
         errors.push({ source: String(raw), error: String(e.message).split(session.token).join("[token]") });
       }
     }
+    // get_workflow_details takes the id; n8n answers "not found" for an id it does not have.
+    const get = async (id) => {
+      try {
+        return await mcp.workflow(id);
+      } catch (e) {
+        if (e.code !== "not_in_mcp" && /not found/i.test(e.message)) return null;
+        throw e;
+      }
+    };
+    if (subWorkflows && roots.length) await followCalls(roots, get, { save, notes, where: base, clean: (m) => String(m).split(session.token).join("[token]") });
   } finally {
     await session.done?.();
   }
@@ -249,7 +317,7 @@ async function pullSignedIn(sources, { out, active, env, fetchImpl, login, regis
 }
 
 function parseArgs(argv) {
-  const a = { sources: [], out: resolve("n8n-exports"), active: false, envFile: null, json: false, login: null, registerAgain: false };
+  const a = { sources: [], out: resolve("n8n-exports"), active: false, envFile: null, json: false, login: null, registerAgain: false, subWorkflows: true };
   for (let i = 0; i < argv.length; i++) {
     const x = argv[i];
     const val = () => {
@@ -258,6 +326,7 @@ function parseArgs(argv) {
     };
     if (x === "--out") a.out = resolve(val());
     else if (x === "--active") a.active = true;
+    else if (x === "--no-sub-workflows") a.subWorkflows = false;
     else if (x === "--login") a.login = val();
     else if (x === "--register-again") a.registerAgain = true;
     else if (x === "--env-file") a.envFile = resolve(val());
@@ -291,10 +360,10 @@ async function main() {
       process.exit(2);
     }
   }
-  const r = await pull(a.sources, { out: a.out, active: a.active, env, login: a.login, registerAgain: a.registerAgain });
+  const r = await pull(a.sources, { out: a.out, active: a.active, env, login: a.login, registerAgain: a.registerAgain, subWorkflows: a.subWorkflows });
   if (a.json) process.stdout.write(JSON.stringify({ out: a.out, ...r }, null, 2) + "\n");
   else {
-    for (const w of r.written) console.log(`wrote ${join(a.out, w.file)}  ${w.name}`);
+    for (const w of r.written) console.log(`wrote ${join(a.out, w.file)}  ${w.name}${w.calledBy !== undefined ? `  (sub-workflow called by "${w.calledBy}")` : ""}`);
     for (const e of r.errors) console.error(`failed ${e.error}`);
     for (const n of r.notes) console.error(`note: ${n}`);
     if (r.written.length) console.log(`\n${r.written.length} workflow${r.written.length === 1 ? "" : "s"} in ${a.out}. Next: node ${join(fileURLToPath(new URL(".", import.meta.url)), "analyze.mjs")} ${a.out}`);

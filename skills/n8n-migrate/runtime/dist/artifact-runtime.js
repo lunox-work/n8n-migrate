@@ -11490,6 +11490,12 @@ async function lib(exec, name) {
   if (libs[name]) return libs[name];
   try {
     if (name === "pdfjs") {
+      // pdf.js 6 calls Promise.withResolvers, which Node has from 22; the runtime runs on 20.
+      Promise.withResolvers ??= function withResolvers() {
+        let resolve, reject;
+        const promise = new this((res, rej) => ((resolve = res), (reject = rej)));
+        return { promise, resolve, reject };
+      };
       libs[name] = await quietly(async () => {
         globalThis.pdfjsWorker ??= await importVendor("pdfjs/pdf.worker.min.mjs");
         return importVendor("pdfjs/pdf.min.mjs");
@@ -13899,8 +13905,10 @@ const { readShape, parseAddressList } = __m_shapes_mjs;
 // Items whose field is greater than the cursor (or equal with an id not seen at that value)
 // are new; the next cursor is the greatest field value seen and the ids at that value. The
 // template puts the cursor into one tool argument: {value}, {seconds} (epoch seconds),
-// {iso}. Missed runs collapse into one run that reads everything after the cursor, never
-// "since the last interval".
+// {iso}, {next} (a whole-number cursor plus one: Telegram's offset is the first update id
+// wanted). Missed runs collapse into one run that reads everything after the cursor, never
+// "since the last interval". `seed` is the cursor a first read that finds nothing starts
+// from (a counter that begins at 0), so the first item after setup is not taken for history.
 
 
 // ---------- paths ----------
@@ -14178,6 +14186,58 @@ function coerceValue(want, v) {
   }
 }
 
+// ---------- query window ----------
+// A search tool that answers with whole threads where n8n's node answers with single messages
+// (Gmail: the connector's search_threads against n8n's messages.list) hands back messages the
+// query's dates exclude: an old message of a thread that got a reply yesterday. A tool with
+// `window: {arg, field, syntax: "gmail"}` drops the adapted items whose `field` (a date) falls
+// outside the dates written in the argument `arg`, so the step emits what n8n would.
+//
+// Gmail's date terms: after: / newer: and before: / older: with a date (year/month/day, with
+// slashes or dashes) or epoch seconds, newer_than: / older_than: with a number and h, d, m or y. A calendar date
+// is a day in the mailbox's own timezone, which the query does not carry, so its bound is
+// widened by the widest offset (after: 14 h earlier, before: 12 h later); m and y count 31 and
+// 366 days. Both widenings keep a message n8n might return. A query with OR, braces,
+// brackets or a negated date term is left alone: -> null (no filtering).
+function queryWindow(syntax, query, nowMs) {
+  if (syntax !== "gmail" || typeof query !== "string") return null;
+  if (/\bOR\b|[{}()]/.test(query) || /(^|\s)-(after|before|newer|older|newer_than|older_than):/i.test(query)) return null;
+  let from = -Infinity;
+  let to = Infinity;
+  const day = 86400000;
+  const instant = (v, slack) => {
+    if (/^\d{9,}$/.test(v)) return Number(v) * 1000;
+    const m = /^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/.exec(v);
+    return m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) + slack : null;
+  };
+  const span = (v) => {
+    const m = /^(\d+)([hdmy])$/i.exec(v);
+    return m ? Number(m[1]) * { h: 3600000, d: day, m: 31 * day, y: 366 * day }[m[2].toLowerCase()] : null;
+  };
+  for (const m of query.matchAll(/(?:^|\s)(after|newer|before|older|newer_than|older_than):(\S+)/gi)) {
+    const k = m[1].toLowerCase();
+    if (k === "after" || k === "newer") {
+      const t = instant(m[2], -14 * 3600000);
+      if (t !== null) from = Math.max(from, t);
+    } else if (k === "before" || k === "older") {
+      const t = instant(m[2], 12 * 3600000);
+      if (t !== null) to = Math.min(to, t);
+    } else {
+      const d = span(m[2]);
+      if (d === null) continue;
+      if (k === "newer_than") from = Math.max(from, nowMs - d);
+      else to = Math.min(to, nowMs - d);
+    }
+  }
+  return from === -Infinity && to === Infinity ? null : { from, to };
+}
+// Whether an item's date is inside the window; an item without a readable date is kept.
+function insideWindow(win, value) {
+  if (!win) return true;
+  const t = comparable(value);
+  return typeof t !== "number" ? true : t >= win.from && t <= win.to;
+}
+
 // ---------- poll cursor ----------
 
 function comparable(v) {
@@ -14196,11 +14256,13 @@ const cmp = (a, b) => {
   return String(x) < String(y) ? -1 : String(x) > String(y) ? 1 : 0;
 };
 
+const compareCursorValues = cmp;
+
 function applyCursorArg(cursorSpec, args, cursor) {
   if (!cursorSpec?.arg || !cursor || cursor.value === undefined) return args;
   const ms = comparable(cursor.value);
-  const values = { value: String(cursor.value), seconds: typeof ms === "number" ? String(Math.floor(ms / 1000)) : String(cursor.value), iso: typeof ms === "number" ? new Date(ms).toISOString() : String(cursor.value) };
-  const piece = String(cursorSpec.template ?? "{value}").replace(/\{(value|seconds|iso)\}/g, (_, k) => values[k]);
+  const values = { value: String(cursor.value), seconds: typeof ms === "number" ? String(Math.floor(ms / 1000)) : String(cursor.value), iso: typeof ms === "number" ? new Date(ms).toISOString() : String(cursor.value), next: Number.isSafeInteger(ms) ? String(ms + 1) : String(cursor.value) };
+  const piece = String(cursorSpec.template ?? "{value}").replace(/\{(value|seconds|iso|next)\}/g, (_, k) => values[k]);
   const prev = args[cursorSpec.arg];
   return { ...args, [cursorSpec.arg]: prev === undefined || prev === "" ? piece : `${prev}${cursorSpec.joiner ?? " "}${piece}` };
 }
@@ -14245,7 +14307,7 @@ function advanceCursor(cursorSpec, items, cursor) {
   return { items: fresh, cursor: max === undefined ? cursor ?? null : next };
 }
 
-return { getAt, parseToolOutput, parseCsv, adaptResult, coerceArgs, applyCursorArg, advanceCursor };
+return { getAt, parseToolOutput, parseCsv, adaptResult, coerceArgs, queryWindow, insideWindow, compareCursorValues, applyCursorArg, advanceCursor };
 })();
 
 // ---- src/htmlentities.mjs ----
@@ -33382,7 +33444,7 @@ const { restPrograms } = __m_rest_mjs;
 const { API_STATUS_MESSAGES, NodeError, UnsupportedNode, deepCopy, getPath, setPath, unsetPath, isEqual, isObject } = __m_util_mjs;
 const { hashHex, hmacBytes, digestBytes, bytesToBase64, base64ToBytes, utf8Bytes, toHex } = __m_hash_mjs;
 const { tryToParseDateTime } = __m_extensions_mjs;
-const { adaptResult, coerceArgs, applyCursorArg, advanceCursor, getAt } = __m_adapt_mjs;
+const { adaptResult, coerceArgs, applyCursorArg, advanceCursor, compareCursorValues, getAt, queryWindow, insideWindow } = __m_adapt_mjs;
 const { resolveParameter, compileCode } = __m_expression_mjs;
 const { createLookup } = __m_proxy_mjs;
 const { binaryFromTool, binaryOf, prepareBinary } = __m_files_mjs;
@@ -34647,7 +34709,12 @@ const toolStep = {
     const results = await exec.request(reqs);
     if (t.binary) return [binaryFromTool(exec, results, items, t.binary)];
     if (!t.result) return [toItems(exec, results, items, "tool")];
-    const adapted = adaptedItems(exec, results, t.result, "tool");
+    let adapted = adaptedItems(exec, results, t.result, "tool");
+    // tool.window: drop what the query's dates exclude (adapt.mjs queryWindow).
+    if (t.window) {
+      const wins = argsList.map((a) => queryWindow(t.window.syntax, a?.[t.window.arg], exec.run.clock.now));
+      adapted = adapted.filter((it) => it.json.error !== undefined || insideWindow(wins[it.pairedItem?.item ?? 0], getAt(it.json, t.window.field)));
+    }
     if (!t.lookup) return [adapted];
     // Row filters per input item, on that item's rows (n8n reads once per item from 4.2).
     const out = [];
@@ -35211,7 +35278,12 @@ async function executeAgentTool(exec, tools, call, itemIndex) {
       const toolArgsValue = sub?.tool ? await replyRecipients(exec, t, toolArgs(exec, t, itemIndex, locals), itemIndex) : args;
       const [r] = await exec.request([{ kind: "tool", itemIndex, connector: t.connector, tool: t.name, args: toolArgsValue, effect: t.effect }]);
       if (!r.ok) return { ok: false, error: { message: r.error?.message ?? "tool call failed" } };
-      return { ok: true, value: t.result ? toolValue(t.result, r.value) : r.value };
+      let value = t.result ? toolValue(t.result, r.value) : r.value;
+      if (t.window && t.result && Array.isArray(value)) {
+        const win = queryWindow(t.window.syntax, toolArgsValue?.[t.window.arg], exec.run.clock.now);
+        value = value.filter((j) => insideWindow(win, getAt(j, t.window.field)));
+      }
+      return { ok: true, value };
     }
     if (kind === "http") {
       const h = sub?.http;
@@ -35400,6 +35472,37 @@ const agentStep = {
 // (run result `cursors`). With no cursor yet, a production run emits nothing and seeds the
 // cursor (the first run never replays history); a manual run emits what it read. With
 // `poll.detail`, each item to emit is read again (see below).
+//
+// `poll.http` instead of `poll.tool`: the read is one HTTP request (a request template as
+// step.http, with step.auth as its credential) and the cursor goes into its query. For an app
+// whose events n8n receives by webhook and that also has a polling API (Telegram getUpdates):
+//   poll.where  what n8n's trigger drops before it starts a run (pollPasses below); a dropped
+//               item is passed over and never read again.
+//   poll.batch  at most this many items start a run; the rest stay unread until the next run,
+//               as n8n starts one execution per event. The cursor stops at the last one emitted.
+//   cursor.seed the cursor when the first read finds nothing.
+
+// One condition of poll.where on a new item; all must hold.
+//   {firstDefined: [path...], in: [text...]}   the first path with a value, as text, is listed
+//                                              (none has a value: "undefined", as n8n compares)
+//   {firstKey: [key...], in: [key...]}         the first of these keys the item has is listed;
+//                                              an item with none passes
+//   {path, notPrefix}                          the text at path does not start with notPrefix
+function pollPasses(where, json) {
+  for (const c of where ?? []) {
+    if (Array.isArray(c.firstDefined)) {
+      const v = c.firstDefined.map((p) => getAt(json, p)).find((x) => x !== undefined && x !== null);
+      if (!(c.in ?? []).includes(String(v))) return false;
+    } else if (Array.isArray(c.firstKey)) {
+      const k = c.firstKey.find((key) => json?.[key] !== undefined);
+      if (k !== undefined && !(c.in ?? []).includes(k)) return false;
+    } else if (typeof c.path === "string" && c.notPrefix !== undefined) {
+      const v = getAt(json, c.path);
+      if (typeof v === "string" && v.startsWith(String(c.notPrefix))) return false;
+    }
+  }
+  return true;
+}
 
 const pollTrigger = {
   versions: () => true,
@@ -35409,14 +35512,44 @@ const pollTrigger = {
     if (ed.triggerProvided) return [(ed.data.main[0] ?? []).map((it) => ({ json: it.json, ...(it.binary ? { binary: it.binary } : {}) }))];
     const run = exec.run;
     const cursor = run.cursorsIn?.[exec.name] ?? null;
-    const t = p.tool;
-    const args = applyCursorArg(p.cursor, coerceArgs(t.coerce, exec.evaluate(t.args ?? {}, 0)), cursor);
-    const [r] = await exec.request([{ kind: "tool", itemIndex: 0, connector: t.connector, tool: t.name, args, effect: "read" }]);
-    if (!r.ok) throw err(exec, r.error?.message ?? "poll failed");
-    const all = adaptResult(p.result, r.value);
-    const { items, cursor: next } = advanceCursor(p.cursor ?? {}, all, cursor);
+    let all;
+    if (isObject(p.http)) {
+      const req = templateRequest(exec, p.http, 0);
+      req.query = applyCursorArg(p.cursor, req.query ?? {}, cursor);
+      const [r] = await exec.request([req]);
+      const { status, body } = r.ok ? templateValue(r) : { status: 0 };
+      if (!r.ok || status >= 400) throw err(exec, r.ok ? `${status} - ${typeof body === "string" ? body : JSON.stringify(body)}` : r.error?.message ?? "poll failed", { httpCode: r.ok ? String(status) : undefined });
+      all = adaptResult(p.result, body ?? {});
+    } else {
+      const t = p.tool;
+      const args = applyCursorArg(p.cursor, coerceArgs(t.coerce, exec.evaluate(t.args ?? {}, 0)), cursor);
+      const [r] = await exec.request([{ kind: "tool", itemIndex: 0, connector: t.connector, tool: t.name, args, effect: "read" }]);
+      if (!r.ok) throw err(exec, r.error?.message ?? "poll failed");
+      all = adaptResult(p.result, r.value);
+    }
+    const spec = p.cursor ?? {};
+    let { items, cursor: next } = advanceCursor(spec, all, cursor);
+    if (!next && spec.seed !== undefined) next = { value: spec.seed };
+    const starts = !!cursor || run.mode === "manual";
+    // where and batch: in cursor order, pass over what n8n's trigger drops and stop after
+    // `batch` items; the cursor then ends at the last item emitted, so the rest are read again.
+    if (starts && (Array.isArray(p.where) || Number(p.batch) > 0)) {
+      const ordered = [...items].sort((a, b) => compareCursorValues(getAt(a, spec.field), getAt(b, spec.field)));
+      const kept = [];
+      let stop = null;
+      for (const j of ordered) {
+        if (!pollPasses(p.where, j)) continue;
+        kept.push(j);
+        if (Number(p.batch) > 0 && kept.length >= Number(p.batch)) {
+          stop = j;
+          break;
+        }
+      }
+      items = kept;
+      if (stop && ordered.at(-1) !== stop) next = { value: getAt(stop, spec.field) };
+    }
     run.cursorsOut[exec.name] = next;
-    let emit = cursor || run.mode === "manual" ? items : [];
+    let emit = starts ? items : [];
     // poll.detail: n8n's trigger reads each new item again (Gmail: GET per message), so the
     // item carries what the list does not (display names, bodies). One call per emitted item,
     // after the cursor; the item is the detail result adapted by its own spec, with `keep`
@@ -38382,6 +38515,50 @@ const { isObject } = __m_util_mjs;
 
 
 const RECORD_FORMAT = 1;
+
+// A document passed through a claude.ai session's tools must not hold two keys that differ only
+// in letter case in one object ("MCP request body gives the same key twice in one object (keys
+// that differ only in letter case count as the same key)", observed 2026-11-19 on a Gmail item
+// with Subject and subject). packDoc keeps each top-level field, and replaces a field whose value
+// holds such a pair with {__n8mJson: "<the value as JSON>"}; unpackDoc undoes it. Both drivers
+// unpack what they read.
+const PACKED = "__n8mJson";
+function caseClash(v) {
+  if (Array.isArray(v)) return v.some(caseClash);
+  if (!v || typeof v !== "object") return false;
+  const seen = new Set();
+  for (const k of Object.keys(v)) {
+    const l = k.toLowerCase();
+    if (seen.has(l)) return true;
+    seen.add(l);
+  }
+  return Object.values(v).some(caseClash);
+}
+function packDoc(doc) {
+  if (!doc || typeof doc !== "object" || Array.isArray(doc) || !caseClash(doc)) return doc;
+  const out = {};
+  const seen = new Map();
+  for (const [k, v] of Object.entries(doc)) {
+    const l = k.toLowerCase();
+    // Two top-level fields that clash: the later one is packed under a field of its own.
+    if (seen.has(l)) out[`${PACKED}:${k}`] = { [PACKED]: JSON.stringify(v) };
+    else out[k] = caseClash(v) ? { [PACKED]: JSON.stringify(v) } : v;
+    seen.set(l, k);
+  }
+  return out;
+}
+function unpackDoc(doc) {
+  if (!doc || typeof doc !== "object" || Array.isArray(doc)) return doc;
+  let changed = false;
+  const out = {};
+  for (const [k, v] of Object.entries(doc)) {
+    const packed = v && typeof v === "object" && !Array.isArray(v) && typeof v[PACKED] === "string" && Object.keys(v).length === 1;
+    const key = k.startsWith(`${PACKED}:`) ? k.slice(PACKED.length + 1) : k;
+    if (packed || key !== k) changed = true;
+    out[key] = packed ? JSON.parse(v[PACKED]) : v;
+  }
+  return changed ? out : doc;
+}
 const COLLECTIONS = { runs: "runs", cursors: "cursors", ledger: "ledger", lock: "lock", meta: "meta", submissions: "submissions" };
 const LOCK_PATH = "lock/run";
 const META_CURRENT = "meta/current";
@@ -38759,7 +38936,7 @@ function cutoverChecklist({ definition, definitionHash, runs = [], cursors = {},
   return items;
 }
 
-return { RECORD_FORMAT, COLLECTIONS, LOCK_PATH, META_CURRENT, META_CUTOVER, META_SCHEDULE, LOCK_TTL_MS, HISTORY_LIMIT, CURSOR_KINDS, cursorId, runPath, statePath, ledgerPath, cursorPath, submissionPath, clip, stepStatuses, stepItems, runRecord, ledgerEntry, cursorRecord, cursorsFromDocs, startCursors, seedCursorRecord, SUBMISSION_STATUS, submissionRecord, FORM_TYPES, formFields, formErrors, formItem, lockBody, lockBlocks, CUTOVER_COLLECTION, CUTOVER_STEPS, cutoverPath, cutoverEntry, cutoverMeta, cutoverOwner, cutoverLog, cutoverRound, cutoverChecklist };
+return { RECORD_FORMAT, packDoc, unpackDoc, COLLECTIONS, LOCK_PATH, META_CURRENT, META_CUTOVER, META_SCHEDULE, LOCK_TTL_MS, HISTORY_LIMIT, CURSOR_KINDS, cursorId, runPath, statePath, ledgerPath, cursorPath, submissionPath, clip, stepStatuses, stepItems, runRecord, ledgerEntry, cursorRecord, cursorsFromDocs, startCursors, seedCursorRecord, SUBMISSION_STATUS, submissionRecord, FORM_TYPES, formFields, formErrors, formItem, lockBody, lockBlocks, CUTOVER_COLLECTION, CUTOVER_STEPS, cutoverPath, cutoverEntry, cutoverMeta, cutoverOwner, cutoverLog, cutoverRound, cutoverChecklist };
 })();
 
 // ---- src/schedule.mjs ----
@@ -38998,6 +39175,8 @@ const ContainmentViolation = __m_util_mjs.ContainmentViolation;
 const NodeError = __m_util_mjs.NodeError;
 const BadInput = __m_util_mjs.BadInput;
 const RECORD_FORMAT = __m_records_mjs.RECORD_FORMAT;
+const packDoc = __m_records_mjs.packDoc;
+const unpackDoc = __m_records_mjs.unpackDoc;
 const COLLECTIONS = __m_records_mjs.COLLECTIONS;
 const LOCK_PATH = __m_records_mjs.LOCK_PATH;
 const META_CURRENT = __m_records_mjs.META_CURRENT;
@@ -39050,7 +39229,7 @@ const alertChannel = __m_alerts_mjs.alertChannel;
 const alertRequest = __m_alerts_mjs.alertRequest;
 const isAllowedAlert = __m_alerts_mjs.isAllowedAlert;
 const cleanName = __m_alerts_mjs.cleanName;
-return { run, start, resume, preflight, validateDefinition, definitionHash, resolveTrigger, expressionSupport, RUNTIME_VERSION, DEFINITION_SCHEMA_VERSION, SUPPORTED_TYPES, fromN8n, unwrapWorkflow, urlTarget, checkContainment, requestEffect, publicHttpsUrl, publicAddress, adaptResult, coerceArgs, applyCursorArg, advanceCursor, executeAgentTool, evaluateExpression, isExpression, RunnerError, ExpressionError, UnsupportedExpression, UnsupportedNode, ContainmentViolation, NodeError, BadInput, RECORD_FORMAT, COLLECTIONS, LOCK_PATH, META_CURRENT, META_CUTOVER, META_SCHEDULE, LOCK_TTL_MS, HISTORY_LIMIT, CURSOR_KINDS, cursorId, runPath, statePath, ledgerPath, cursorPath, submissionPath, clip, stepStatuses, stepItems, runRecord, ledgerEntry, cursorRecord, cursorsFromDocs, startCursors, seedCursorRecord, submissionRecord, SUBMISSION_STATUS, FORM_TYPES, formFields, formErrors, formItem, lockBody, lockBlocks, cutoverChecklist, CUTOVER_COLLECTION, CUTOVER_STEPS, cutoverPath, cutoverEntry, cutoverMeta, cutoverOwner, cutoverLog, cutoverRound, parseCron, expectedRuns, missedRuns, definitionSchedule, DEFAULT_GRACE_MS, ALERT_TOOLS, ALERT_KINDS, alertMessage, alertChannel, alertRequest, isAllowedAlert, cleanName };
+return { run, start, resume, preflight, validateDefinition, definitionHash, resolveTrigger, expressionSupport, RUNTIME_VERSION, DEFINITION_SCHEMA_VERSION, SUPPORTED_TYPES, fromN8n, unwrapWorkflow, urlTarget, checkContainment, requestEffect, publicHttpsUrl, publicAddress, adaptResult, coerceArgs, applyCursorArg, advanceCursor, executeAgentTool, evaluateExpression, isExpression, RunnerError, ExpressionError, UnsupportedExpression, UnsupportedNode, ContainmentViolation, NodeError, BadInput, RECORD_FORMAT, packDoc, unpackDoc, COLLECTIONS, LOCK_PATH, META_CURRENT, META_CUTOVER, META_SCHEDULE, LOCK_TTL_MS, HISTORY_LIMIT, CURSOR_KINDS, cursorId, runPath, statePath, ledgerPath, cursorPath, submissionPath, clip, stepStatuses, stepItems, runRecord, ledgerEntry, cursorRecord, cursorsFromDocs, startCursors, seedCursorRecord, submissionRecord, SUBMISSION_STATUS, FORM_TYPES, formFields, formErrors, formItem, lockBody, lockBlocks, cutoverChecklist, CUTOVER_COLLECTION, CUTOVER_STEPS, cutoverPath, cutoverEntry, cutoverMeta, cutoverOwner, cutoverLog, cutoverRound, parseCron, expectedRuns, missedRuns, definitionSchedule, DEFAULT_GRACE_MS, ALERT_TOOLS, ALERT_KINDS, alertMessage, alertChannel, alertRequest, isAllowedAlert, cleanName };
 })();
 const __artifact = (() => {
 // Artifact driver (browser-safe): runs a definition from the artifact page's "Run now" on the
@@ -39178,7 +39357,8 @@ function createArtifactDriver(opts) {
     const d = db();
     if (!d) return null;
     const snap = await d.doc(path).get();
-    return snap.exists ? snap.data() : null;
+    // A task's records are packed where a value held keys that differ only in case.
+    return snap.exists ? core.unpackDoc(snap.data()) : null;
   }
   async function setDoc(path, data) {
     const d = db();

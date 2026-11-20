@@ -12,6 +12,8 @@
 -->
 <style>
 /* Layout: a header band with the controls, then the canvas (left) beside history and cutover (right); one column under 1100 px, list view under 600 px. */
+/* display rules below (.input-row, .form-panel) would otherwise show hidden rows: a schedule page showed the chat box and an empty form (2026-11-20). */
+[hidden] { display: none !important; }
 :root {
   --bg: #f5f6f7;
   --surface: #ffffff;
@@ -292,7 +294,7 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
         <ol class="history" id="history"></ol>
       </section>
       <section class="panel" aria-labelledby="cutover-title">
-        <div class="panel-head"><h2 id="cutover-title">Cutover</h2><p class="summary">From n8n to Claude</p></div>
+        <div class="panel-head"><h2 id="cutover-title">Moving from n8n</h2><p class="summary">to Claude</p></div>
         <ol class="cutover" id="cutover"></ol>
       </section>
     </aside>
@@ -862,6 +864,7 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
   // ---------- history and cutover ----------
   let interruptedIds = new Set();
   let missedInfo = null;
+  let accessChecked = false; // until window.claude answers, the history is loading, not missing
   function showRecord(r) {
     view = { source: "record", runId: r.runId, statuses: r.steps || {}, runData: {}, effects: [], dryRun: r.dryRun, record: r, handoff: r.handoff, unknown: r.unknown || [] };
     paint();
@@ -876,7 +879,7 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
       ol.append(el("li", { class: "hmissed", "data-missed": missedInfo.count }, el("span", {}, el("span", { class: "pill", "data-s": "missed" }, "missed"), " ", `${plural(missedInfo.count, "scheduled run")}${missedInfo.capped ? " or more" : ""} did not happen`), el("span", { class: "facts" }, `since ${fmtTime(missedInfo.since)}; the first was due ${fmtTime(missedInfo.first)}. Check the scheduled task is on.`)));
     }
     if (!runs.length) {
-      ol.append(el("li", {}, el("p", { class: "empty" }, driver ? "No runs yet. Run now records each run here; scheduled runs appear here too." : "Run history appears here when the page runs inside Claude with storage access.")));
+      ol.append(el("li", {}, el("p", { class: "empty" }, driver ? "No runs yet. Run now records each run here; scheduled runs appear here too." : !accessChecked ? "Loading run history…" : "Run history appears here when the page runs inside Claude with storage access.")));
       return;
     }
     for (const r of runs) {
@@ -896,12 +899,25 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
       ol.append(item);
     }
   }
+  const CUTOVER_LABEL = { "dry-run": "Test run with sending held", "deactivate-n8n": "Switched off in n8n", "seed-cursor": "Starts after what n8n already handled", "enable-schedule": "Runs on its schedule" };
+  const CUTOVER_TODO = {
+    "dry-run": "Turn Dry run on and press Run now: what it would send is shown, nothing is sent.",
+    "deactivate-n8n": "Switch the workflow off in n8n before the schedule starts, so nothing is sent twice. Skip this if it was never on in n8n.",
+    "enable-schedule": "The chat that moved it creates the scheduled task (Scheduled in the sidebar).",
+  };
   async function renderCutover() {
     const list = driver ? await driver.cutover(runs).catch(() => null) : core.cutoverChecklist({ definition: def, definitionHash: build.definitionHash, runs: [] });
     const ol = $("cutover");
     ol.textContent = "";
+    // In plain words for whoever opens the page (often not a developer, 2026-11-20): once the
+    // schedule runs only that row shows; before, optional and not-needed rows are hidden and
+    // command hints become what to do. Rows stay in the list (hidden) for checks that count them.
+    const live = (list || []).some((c) => c.id === "enable-schedule" && c.state === "done");
     for (const c of list || []) {
-      const li = el("li", { "data-state": c.state, "data-id": c.id }, el("span", { class: "mark", "aria-hidden": "true" }), el("span", { class: "clabel" }, c.label), el("span", { class: "cdetail" }, c.state === "n/a" ? `Not needed: ${c.detail}` : c.at ? `${c.detail}, ${fmtTime(c.at)}` : c.detail));
+      const cli = c.state === "todo" && /\.mjs|\.md\b/.test(c.detail || "");
+      const detail = cli ? CUTOVER_TODO[c.id] ?? c.detail : c.state === "n/a" ? `Not needed: ${c.detail}` : c.at ? `${c.detail}, ${fmtTime(c.at)}` : c.detail;
+      const li = el("li", { "data-state": c.state, "data-id": c.id }, el("span", { class: "mark", "aria-hidden": "true" }), el("span", { class: "clabel" }, CUTOVER_LABEL[c.id] ?? c.label), el("span", { class: "cdetail" }, detail));
+      if ((live && c.id !== "enable-schedule") || c.state === "n/a" || c.state === "optional") li.hidden = true;
       if (c.id === "seed-cursor" && c.state === "todo" && driver) li.append(el("div", { class: "cact" }, el("button", { type: "button", class: "btn small", id: "seed-cursor", onclick: seed }, "Seed from the last clean run")));
       ol.append(li);
     }
@@ -937,7 +953,9 @@ pre { margin: 0; padding: 10px; overflow: auto; max-height: 360px; font: 12px/1.
   };
   Promise.all([use("mcp"), use("sample"), use("db"), use("permissions")]).then(async ([mcp, sample, db, permissions]) => {
     perms = permissions;
+    accessChecked = true;
     if (!mcp && !sample && !db) {
+      renderHistory();
       banner("info", "Read-only here", [formDef ? "The form works when this page is open in Claude as a published artifact with storage access." : "Run now works when this page is open in Claude as a published artifact with connector, Claude and storage access."]);
       return;
     }

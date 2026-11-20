@@ -12,7 +12,7 @@ import { API_STATUS_MESSAGES, NodeError, UnsupportedNode, deepCopy, getPath, set
 import { hashHex, hmacBytes, digestBytes, bytesToBase64, base64ToBytes, utf8Bytes, toHex } from "./hash.mjs";
 import { tryToParseDateTime } from "./extensions.mjs";
 import { DateTime } from "../vendor/luxon.mjs";
-import { adaptResult, coerceArgs, applyCursorArg, advanceCursor, getAt } from "./adapt.mjs";
+import { adaptResult, coerceArgs, applyCursorArg, advanceCursor, compareCursorValues, getAt, queryWindow, insideWindow } from "./adapt.mjs";
 import { resolveParameter, compileCode } from "./expression.mjs";
 import { createLookup } from "./proxy.mjs";
 import { binaryFromTool, binaryOf, prepareBinary } from "./files.mjs";
@@ -1268,7 +1268,12 @@ const toolStep = {
     const results = await exec.request(reqs);
     if (t.binary) return [binaryFromTool(exec, results, items, t.binary)];
     if (!t.result) return [toItems(exec, results, items, "tool")];
-    const adapted = adaptedItems(exec, results, t.result, "tool");
+    let adapted = adaptedItems(exec, results, t.result, "tool");
+    // tool.window: drop what the query's dates exclude (adapt.mjs queryWindow).
+    if (t.window) {
+      const wins = argsList.map((a) => queryWindow(t.window.syntax, a?.[t.window.arg], exec.run.clock.now));
+      adapted = adapted.filter((it) => it.json.error !== undefined || insideWindow(wins[it.pairedItem?.item ?? 0], getAt(it.json, t.window.field)));
+    }
     if (!t.lookup) return [adapted];
     // Row filters per input item, on that item's rows (n8n reads once per item from 4.2).
     const out = [];
@@ -1832,7 +1837,12 @@ export async function executeAgentTool(exec, tools, call, itemIndex) {
       const toolArgsValue = sub?.tool ? await replyRecipients(exec, t, toolArgs(exec, t, itemIndex, locals), itemIndex) : args;
       const [r] = await exec.request([{ kind: "tool", itemIndex, connector: t.connector, tool: t.name, args: toolArgsValue, effect: t.effect }]);
       if (!r.ok) return { ok: false, error: { message: r.error?.message ?? "tool call failed" } };
-      return { ok: true, value: t.result ? toolValue(t.result, r.value) : r.value };
+      let value = t.result ? toolValue(t.result, r.value) : r.value;
+      if (t.window && t.result && Array.isArray(value)) {
+        const win = queryWindow(t.window.syntax, toolArgsValue?.[t.window.arg], exec.run.clock.now);
+        value = value.filter((j) => insideWindow(win, getAt(j, t.window.field)));
+      }
+      return { ok: true, value };
     }
     if (kind === "http") {
       const h = sub?.http;
@@ -2021,6 +2031,37 @@ const agentStep = {
 // (run result `cursors`). With no cursor yet, a production run emits nothing and seeds the
 // cursor (the first run never replays history); a manual run emits what it read. With
 // `poll.detail`, each item to emit is read again (see below).
+//
+// `poll.http` instead of `poll.tool`: the read is one HTTP request (a request template as
+// step.http, with step.auth as its credential) and the cursor goes into its query. For an app
+// whose events n8n receives by webhook and that also has a polling API (Telegram getUpdates):
+//   poll.where  what n8n's trigger drops before it starts a run (pollPasses below); a dropped
+//               item is passed over and never read again.
+//   poll.batch  at most this many items start a run; the rest stay unread until the next run,
+//               as n8n starts one execution per event. The cursor stops at the last one emitted.
+//   cursor.seed the cursor when the first read finds nothing.
+
+// One condition of poll.where on a new item; all must hold.
+//   {firstDefined: [path...], in: [text...]}   the first path with a value, as text, is listed
+//                                              (none has a value: "undefined", as n8n compares)
+//   {firstKey: [key...], in: [key...]}         the first of these keys the item has is listed;
+//                                              an item with none passes
+//   {path, notPrefix}                          the text at path does not start with notPrefix
+function pollPasses(where, json) {
+  for (const c of where ?? []) {
+    if (Array.isArray(c.firstDefined)) {
+      const v = c.firstDefined.map((p) => getAt(json, p)).find((x) => x !== undefined && x !== null);
+      if (!(c.in ?? []).includes(String(v))) return false;
+    } else if (Array.isArray(c.firstKey)) {
+      const k = c.firstKey.find((key) => json?.[key] !== undefined);
+      if (k !== undefined && !(c.in ?? []).includes(k)) return false;
+    } else if (typeof c.path === "string" && c.notPrefix !== undefined) {
+      const v = getAt(json, c.path);
+      if (typeof v === "string" && v.startsWith(String(c.notPrefix))) return false;
+    }
+  }
+  return true;
+}
 
 const pollTrigger = {
   versions: () => true,
@@ -2030,14 +2071,44 @@ const pollTrigger = {
     if (ed.triggerProvided) return [(ed.data.main[0] ?? []).map((it) => ({ json: it.json, ...(it.binary ? { binary: it.binary } : {}) }))];
     const run = exec.run;
     const cursor = run.cursorsIn?.[exec.name] ?? null;
-    const t = p.tool;
-    const args = applyCursorArg(p.cursor, coerceArgs(t.coerce, exec.evaluate(t.args ?? {}, 0)), cursor);
-    const [r] = await exec.request([{ kind: "tool", itemIndex: 0, connector: t.connector, tool: t.name, args, effect: "read" }]);
-    if (!r.ok) throw err(exec, r.error?.message ?? "poll failed");
-    const all = adaptResult(p.result, r.value);
-    const { items, cursor: next } = advanceCursor(p.cursor ?? {}, all, cursor);
+    let all;
+    if (isObject(p.http)) {
+      const req = templateRequest(exec, p.http, 0);
+      req.query = applyCursorArg(p.cursor, req.query ?? {}, cursor);
+      const [r] = await exec.request([req]);
+      const { status, body } = r.ok ? templateValue(r) : { status: 0 };
+      if (!r.ok || status >= 400) throw err(exec, r.ok ? `${status} - ${typeof body === "string" ? body : JSON.stringify(body)}` : r.error?.message ?? "poll failed", { httpCode: r.ok ? String(status) : undefined });
+      all = adaptResult(p.result, body ?? {});
+    } else {
+      const t = p.tool;
+      const args = applyCursorArg(p.cursor, coerceArgs(t.coerce, exec.evaluate(t.args ?? {}, 0)), cursor);
+      const [r] = await exec.request([{ kind: "tool", itemIndex: 0, connector: t.connector, tool: t.name, args, effect: "read" }]);
+      if (!r.ok) throw err(exec, r.error?.message ?? "poll failed");
+      all = adaptResult(p.result, r.value);
+    }
+    const spec = p.cursor ?? {};
+    let { items, cursor: next } = advanceCursor(spec, all, cursor);
+    if (!next && spec.seed !== undefined) next = { value: spec.seed };
+    const starts = !!cursor || run.mode === "manual";
+    // where and batch: in cursor order, pass over what n8n's trigger drops and stop after
+    // `batch` items; the cursor then ends at the last item emitted, so the rest are read again.
+    if (starts && (Array.isArray(p.where) || Number(p.batch) > 0)) {
+      const ordered = [...items].sort((a, b) => compareCursorValues(getAt(a, spec.field), getAt(b, spec.field)));
+      const kept = [];
+      let stop = null;
+      for (const j of ordered) {
+        if (!pollPasses(p.where, j)) continue;
+        kept.push(j);
+        if (Number(p.batch) > 0 && kept.length >= Number(p.batch)) {
+          stop = j;
+          break;
+        }
+      }
+      items = kept;
+      if (stop && ordered.at(-1) !== stop) next = { value: getAt(stop, spec.field) };
+    }
     run.cursorsOut[exec.name] = next;
-    let emit = cursor || run.mode === "manual" ? items : [];
+    let emit = starts ? items : [];
     // poll.detail: n8n's trigger reads each new item again (Gmail: GET per message), so the
     // item carries what the list does not (display names, bodies). One call per emitted item,
     // after the cursor; the item is the detail result adapted by its own spec, with `keep`

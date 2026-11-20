@@ -38,7 +38,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { openHost } from "../runtime/src/convert.mjs";
 import { localHost } from "../runtime/src/engine.mjs";
 
-export const VERSION = "0.2.0";
+export const VERSION = "0.3.0";
 const REFS = join(dirname(fileURLToPath(import.meta.url)), "..", "references");
 
 // Most demanding wake-up first. With several enabled triggers the first one in
@@ -50,7 +50,7 @@ const WAKEUP_RANK = ["endpoint", "mcp-server", "chat", "form", "relay", "poll", 
 const OUTCOME_RANK = ["keep-in-n8n", "hosted", "replaced", "subscription"]; // worst first
 const BLOCKING = new Set(["input-incomplete", "unsupported", "unmapped"]);
 const BLOCKER_ORDER = ["input-incomplete", "unsupported", "unmapped", "substitution", "dropped-branch", "not-an-automation"];
-const REQ_ORDER = ["connector", "model", "http", "secret", "db", "db-client", "vector", "state", "mcp-server", "poll", "relay", "task-handoff", "host-disk", "local-network", "substitution", "missing-export", "frequency", "frequency-change", "bundled-server"];
+const REQ_ORDER = ["connector", "model", "http", "web-search", "secret", "db", "db-client", "vector", "state", "mcp-server", "poll", "relay", "task-handoff", "host-disk", "local-network", "substitution", "missing-export", "frequency", "frequency-change", "bundled-server"];
 const SURFACES = ["cloudTask", "localTask", "artifact"];
 const N8N_DEFAULT_TIMEZONE = "America/New_York"; // GENERIC_TIMEZONE default in n8n
 const BRANCH_RANK = ["main", "error-output", "error-trigger", "unreached"];
@@ -1278,7 +1278,23 @@ function askWrites(W, ctx) {
   }
 }
 
-const GOOGLE_REST = new Set(["n8n-nodes-base.googleSheets", "n8n-nodes-base.googleCalendar"]);
+// Which Google steps need the stored Google credential: Calendar always, and Sheets from node 4
+// except where the converter goes through the Drive connector instead (tool-maps.json;
+// tests/analyze.test.mjs checks the two agree): a read or a spreadsheet create with no row
+// write (append, update, append or update) under the same credential in the workflow, and a
+// read that is an agent's tool. With such a write its stored token serves the read too
+// (convert.mjs restSibling). Every other Sheets operation has no connector tool, so its only
+// path is Google's API.
+export const SHEETS_REST_OPS = { always: ["sheet:append", "sheet:update", "sheet:appendOrUpdate"], withSibling: ["sheet:read", "spreadsheet:create"] };
+const SHEETS = "n8n-nodes-base.googleSheets";
+function googleRestStep(W, d) {
+  if (d.baseType === "n8n-nodes-base.googleCalendar") return true;
+  if (d.baseType !== SHEETS || (d.typeVersion ?? 1) < 4) return false;
+  if (!SHEETS_REST_OPS.withSibling.includes(d.opKey)) return true;
+  if (d.role === "subnode") return false;
+  const cred = (x) => credentialNames(x)[0]?.name ?? null;
+  return [...W.infos.values()].some((o) => o !== d && !o.disabled && o.baseType === SHEETS && (o.typeVersion ?? 1) >= 4 && W.branch.get(o.name) !== "unreached" && SHEETS_REST_OPS.always.includes(o.opKey) && cred(o) === cred(d));
+}
 const GOOGLE_TOKEN_NOTE = "a Google access token lasts an hour, so this runs as a local task whose secret lets the runner refresh it: the OAuth client's {client_id, client_secret, refresh_token} or a service-account key (setup-local-task.md); a cloud task cannot refresh it";
 function credentialNames(d) {
   const c = d.node.credentials;
@@ -1318,6 +1334,26 @@ function blockedReason(d) {
 }
 
 export const N8N_STAYS_NOTE = "keeps calling your n8n instance through its public API (reads only), so it is useful only while n8n keeps running";
+
+// An agent's search tool that Claude has built in (the SerpAPI tool): the person chooses
+// between the same service with their own key (the assumed answer: n8n's results, a stored
+// secret and outbound HTTP) and Claude's own web search (no key; the results differ). The
+// answer "claude" swaps the step's http and secret requirements for web-search, which a task
+// has and an artifact page does not (capabilities requirements.web-search); convert.mjs
+// builds the tool from the same answer.
+export const SEARCH_TOOLS = { "@n8n/n8n-nodes-langchain.toolSerpApi": { label: "SerpAPI" } };
+function askSearch(W, ctx, d) {
+  const spec = own(SEARCH_TOOLS, d.baseType);
+  if (!spec) return false;
+  const { value } = ask(W, ctx, "search-with", d.name, {
+    text: `The agent's tool "${d.name}" searches the web through ${spec.label} with your own API key. Keep ${spec.label} (the same results as in n8n, and the key stored for the task), or let Claude search the web itself (no key to store; the results come from Claude's web search, so they differ from ${spec.label}'s)?`,
+    affects: "outcome",
+    answerType: "choice",
+    options: { keep: `${spec.label} with your key, as in n8n`, claude: "Claude's own web search, no key" },
+    assumed: "keep",
+  });
+  return value === "claude";
+}
 
 // Requirements, blockers and shared state contributed by one node.
 function processNode(W, d, ctx, br) {
@@ -1381,7 +1417,10 @@ function processNode(W, d, ctx, br) {
       break;
     case "http":
     case "media":
-      addReq(W, "http", "outbound http", name, { surfaces: reqSurf("http") });
+      if (askSearch(W, ctx, d)) {
+        d.webSearch = true;
+        addReq(W, "web-search", "Claude web search", name, { surfaces: reqSurf("web-search") });
+      } else addReq(W, "http", "outbound http", name, { surfaces: reqSurf("http") });
       break;
     case "db":
       if (d.baseType === "n8n-nodes-base.dataTable") {
@@ -1438,15 +1477,16 @@ function processNode(W, d, ctx, br) {
   if (d.flags.includes("calls-n8n")) addReq(W, "http", "n8n instance", name, { surfaces: reqSurf("http"), note: N8N_STAYS_NOTE });
   const extra = own(caps.nodeRequirements, d.baseType);
   if (extra) addReq(W, extra, extra === "host-disk" ? "n8n host disk" : extra, name, { surfaces: reqSurf(extra) });
-  // Google Sheets (v4+) and Calendar steps call Google's REST API with the stored credential. A
+  // Google Calendar steps and Google Sheets row writes (v4+; googleRestStep) call Google's REST
+  // API with the stored credential. A
   // Google access token lasts an hour, so only a runner that can refresh it keeps working: a
   // local task given a refresh set or a service-account key. A cloud task's proxy adds a fixed
   // header (capabilities requirements.google-token).
-  if (!d.disabled && GOOGLE_REST.has(d.baseType) && !(d.baseType === "n8n-nodes-base.googleSheets" && (d.typeVersion ?? 1) < 4)) {
+  if (!d.disabled && googleRestStep(W, d)) {
     const cred = credentialNames(d)[0];
     addReq(W, "google-token", cred?.name ?? `${shortType(d.baseType)} credential`, name, { surfaces: reqSurf("google-token"), note: GOOGLE_TOKEN_NOTE });
   }
-  if (d.secrets === true) {
+  if (d.secrets === true && !d.webSearch) {
     const proto = d.kind === "db" ? "secret:db" : "secret:http";
     const creds = credentialNames(d);
     if (!creds.length) addReq(W, "secret", `${shortType(d.baseType)} (no credential named in the export)`, name, { surfaces: reqSurf(proto) });
@@ -1489,7 +1529,8 @@ function analyzeLocal(item, ctx, parent = null, prefix = "") {
   W.credentials = [];
   for (const n of order) {
     const d = infos.get(n);
-    if (d.disabled) continue;
+    // A search tool swapped for Claude's web search no longer uses its credential.
+    if (d.disabled || d.webSearch) continue;
     for (const c of credentialNames(d)) {
       let e = W.credentials.find((x) => x.type === c.type && x.name === c.name);
       if (!e) W.credentials.push((e = { type: c.type, name: c.name, nodes: [] }));
@@ -1522,6 +1563,37 @@ function readCallTarget(d) {
     if (m) v = m[1];
   }
   return { status: "id", id: v, cached: typeof cached === "string" && cached && !isExpr(cached) ? cached : null };
+}
+
+// The workflows `wf` calls by a fixed id, as [{id, name}] (name: the editor's cached one, or
+// null), read the way resolveCalls reads them, so pull.mjs can fetch them with the caller.
+// `nodes` is references/nodes.json. Ids set by an expression, files, URLs and calls to itself
+// are left out; an inline sub-workflow's own calls count. Disabled nodes call nothing.
+export function calledWorkflowIds(wf, nodes) {
+  const found = new Map();
+  const walk = (w, depth) => {
+    for (const node of Array.isArray(w?.nodes) ? w.nodes : []) {
+      if (!isObj(node)) continue;
+      const d = describeNode(nodes.nodes, node);
+      if (d.disabled || d.status !== "mapped" || d.kind !== "subworkflow") continue;
+      const t = readCallTarget(d);
+      if (t.status === "id" && !found.has(t.id)) found.set(t.id, t.cached);
+      else if (t.status === "inline" && depth < 5) {
+        let inner = isObj(t.json) ? t.json : null;
+        if (typeof t.json === "string" && !t.json.startsWith("=")) {
+          try {
+            inner = JSON.parse(t.json);
+          } catch {
+            inner = null;
+          }
+        }
+        walk(inner, depth + 1);
+      }
+    }
+  };
+  walk(wf, 0);
+  found.delete(txt(wf?.id));
+  return [...found].map(([id, name]) => ({ id, name }));
 }
 
 // Second pass: links every call to its target workflow, asks about ids the
@@ -2261,6 +2333,8 @@ function reportOf(W, ctx) {
     name: W.name,
     file: W.file,
     sourceHash: createHash("sha256").update(canonical(W.wf)).digest("hex"),
+    // Whether n8n still runs it decides the switch-off step (SKILL.md, without a terminal, 7).
+    activeInN8n: typeof W.wf.active === "boolean" ? W.wf.active : null,
     wakeup: W.wakeup,
     body: W.body,
     outcome: W.outcome,
@@ -2412,6 +2486,7 @@ const SURFACE_OF = { "cloud-task": "cloudTask", "local-task": "localTask", artif
 const REQ_LABEL = {
   model: () => "Claude model",
   http: () => "outbound HTTP",
+  "web-search": () => "Claude web search",
   poll: () => "polling",
   relay: (n) => `relay (${n})`,
   "host-disk": () => "files on disk",
@@ -2452,7 +2527,12 @@ function setupLine(w) {
   const needs = uniq(vals.filter((v) => v.startsWith("needs:")).map((v) => v.slice(6)));
   const no = uniq(w.requires.filter((r) => r.surfaces[surf] === "no").map((r) => `${r.kind} ${clean(r.name)}`));
   const parts = [];
-  if (needs.length) parts.push(`to set up: ${needs.join(", ")}`);
+  // On a local task the runner itself holds the keys (N8M_SECRET_<NAME>) and runs the steps a
+  // "bundled server" was once planned for; nothing ships under those names (the plugin is
+  // skill-only), so the line names what the person actually sets up.
+  const words = (n) => (surf === "localTask" && n === "bundled-server" ? "secrets in .claude/settings.local.json" : surf === "localTask" && n === "plugin-mcp-server" ? null : n);
+  const shown = uniq(needs.map(words).filter(Boolean));
+  if (shown.length) parts.push(`to set up: ${shown.join(", ")}`);
   if (no.length) parts.push(`not possible there: ${listCut(no)}`);
   return parts.length ? parts.join("; ") : null;
 }

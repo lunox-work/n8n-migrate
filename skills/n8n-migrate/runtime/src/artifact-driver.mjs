@@ -123,7 +123,8 @@ export function createArtifactDriver(opts) {
     const d = db();
     if (!d) return null;
     const snap = await d.doc(path).get();
-    return snap.exists ? snap.data() : null;
+    // A task's records are packed where a value held keys that differ only in case.
+    return snap.exists ? core.unpackDoc(snap.data()) : null;
   }
   async function setDoc(path, data) {
     const d = db();
