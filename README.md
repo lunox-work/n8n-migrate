@@ -6,6 +6,18 @@ Move n8n workflows onto Claude. A fit report classifies every workflow in an exp
 
 - **n8n-migrate**: Move n8n workflows off n8n and onto Claude. Reads an n8n export (pasted JSON, a file, a folder or a bulk `n8n export:workflow --all`), classifies every workflow with the reason (runs on the Claude subscription as a cloud task, a local task, a skill or an artifact form; replaced by Claude; needs hosting; stays in n8n), asks what the file cannot settle, then converts each workflow into a self-contained folder: a definition a code runner executes step by step, the scheduled-task prompt and permissions, an artifact page with the graph and Run now, and for chat workflows a skill. Use when someone wants to move, migrate or port n8n workflows to Claude, asks whether an n8n workflow can run on Claude (or on their Claude subscription instead of n8n), wants an n8n automation as a Claude scheduled task, or pastes n8n workflow JSON (an object with "nodes" and "connections").
 
+## Examples
+
+- "Here's my n8n export, `workflows.json`. Which of these workflows can run on
+  my Claude subscription instead of n8n?" The skill runs the fit report and
+  gives each workflow's outcome with its reason.
+- "Move my daily sales digest workflow to a Claude scheduled task, and show me
+  a dry run before anything is sent." The skill converts the workflow, sets
+  up a copy with sending held, and says what it would have sent.
+- "Cut over the Slack alert workflow: switch it off in n8n and on in Claude
+  without anything being sent twice." The skill walks the cutover steps in
+  order, with a rollback.
+
 ## Install
 
 ```sh
@@ -20,6 +32,7 @@ claude plugin install n8n-migrate@n8n-migrate
 ## Links
 
 - [Privacy](https://github.com/lunox-work/n8n-migrate/blob/main/PRIVACY.md)
+- [Terms](https://lunox.work/terms)
 - [Documentation](https://github.com/lunox-work/n8n-migrate/blob/main/docs/REFERENCE.md)
 - [Support](https://github.com/lunox-work/n8n-migrate/issues)
 
