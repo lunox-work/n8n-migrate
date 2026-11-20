@@ -17,6 +17,12 @@ claude plugin install n8n-migrate@n8n-migrate
 
 - **n8n-migrate**: Node 20 or later; zero dependencies. Works in Claude Code, and in a claude.ai chat or Cowork code sandbox with Node (a chat sandbox with Node 22 ran analyze and convert, 2026-11-19). Without Node, say so: the analyzer cannot run under Python only.
 
+## Links
+
+- [Privacy](https://github.com/lunox-work/n8n-migrate/blob/main/PRIVACY.md)
+- [Documentation](https://github.com/lunox-work/n8n-migrate/blob/main/docs/REFERENCE.md)
+- [Support](https://github.com/lunox-work/n8n-migrate/issues)
+
 ## Data
 
 - **Sent off the machine by the skill:** nothing of its own. The analyzer and
@@ -51,12 +57,6 @@ claude plugin install n8n-migrate@n8n-migrate
   (`n8m-state`), or in the artifact's database the person publishes. `serve`
   keeps its records, its token and the keys the person types in the folder's
   `.n8m/`, git-ignored.
-
-## Links
-
-- [Privacy](https://github.com/lunox-work/n8n-migrate/blob/main/PRIVACY.md)
-- [Documentation](https://github.com/lunox-work/n8n-migrate/blob/main/docs/REFERENCE.md)
-- [Support](https://github.com/lunox-work/n8n-migrate/issues)
 
 ## Source
 

@@ -534,8 +534,10 @@ export function scanSecrets(root, path) {
   const walk = (v, p) => {
     if (typeof v === "string") {
       for (const f of findSecrets(v)) out.push({ path: p, kind: f.kind, redacted: f.redacted ?? redact(f.value) });
-    } else if (Array.isArray(v)) v.forEach((x, i) => walk(x, `${p}[${i}]`));
-    else if (isObj(v)) {
+    } else if (Array.isArray(v)) {
+      // A loop, not forEach: one stack frame per level, so a deeply nested export cannot overflow it.
+      for (let i = 0; i < v.length; i++) walk(v[i], `${p}[${i}]`);
+    } else if (isObj(v)) {
       if (typeof v.name === "string" && typeof v.value === "string" && SECRET_NAME.test(v.name.trim()) && !v.value.startsWith("=")) {
         const val = v.value.trim();
         if (val.length >= 16 && !isPlaceholder(val) && !findSecrets(v.value).length) out.push({ path: `${p}.value`, kind: "named-param", redacted: redact(val) });
@@ -563,7 +565,12 @@ export function redactSecrets(root, path = "") {
       }
       return s;
     }
-    if (Array.isArray(v)) return v.map((x, i) => walk(x, `${p}[${i}]`));
+    if (Array.isArray(v)) {
+      // A loop, not map: one stack frame per level, as in scanSecrets.
+      const out = new Array(v.length);
+      for (let i = 0; i < v.length; i++) out[i] = walk(v[i], `${p}[${i}]`);
+      return out;
+    }
     if (isObj(v)) {
       const out = {};
       for (const [k, x] of Object.entries(v)) out[k] = walk(x, `${p}.${k}`);

@@ -9,6 +9,9 @@
   },
   "homepage": "https://github.com/lunox-work/n8n-migrate#readme",
   "repository": "https://github.com/lunox-work/n8n-migrate",
+  "documentationUrl": "https://github.com/lunox-work/n8n-migrate/blob/main/docs/REFERENCE.md",
+  "supportUrl": "https://github.com/lunox-work/n8n-migrate/issues",
+  "privacyPolicyUrl": "https://github.com/lunox-work/n8n-migrate/blob/main/PRIVACY.md",
   "license": "MIT",
   "keywords": [
     "n8n",
