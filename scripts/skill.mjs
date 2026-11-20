@@ -55,8 +55,9 @@ const ALIAS = "aliases/n8n-to-claude/package.json";
 const MAX_FILE = 5 * 1024 * 1024;
 const PLUGIN_BRANCH = "claude-plugin";
 const PLUGIN_FILES = [".claude-plugin/icon.png", "LICENSE", "skills"];
-// plugin.json fields only the directory's listing reads. Claude Code warns on them as unknown
-// keys, so the branch's plugin.json drops them and its README carries them as links.
+// plugin.json fields the directory's listing reads. Claude Code accepts them (2.1.329's
+// `claude plugin validate` checks only that each is https:// or mailto:), so the branch's
+// plugin.json keeps them, and its README repeats them as links for readers.
 const LISTING_LINKS = { privacyPolicyUrl: "Privacy", documentationUrl: "Documentation", supportUrl: "Support" };
 
 export function version(root = ROOT) {
@@ -246,9 +247,10 @@ function pluginReadme(show) {
   lines.push("## Install", "", "```sh", `claude plugin marketplace add ${plugin.repository.replace(/^https:\/\/github\.com\//, "")}`);
   lines.push(`claude plugin install ${plugin.name}@${market.name}`, "```", "");
   if (needs.length > 0) lines.push("## Requirements", "", ...needs);
-  lines.push("## Data", "", show(".claude-plugin/data.md").trim(), "");
+  // Links before Data: the directory takes the first privacy link in the README as the plugin's policy.
   const links = Object.entries(LISTING_LINKS).filter(([key]) => plugin[key]);
   if (links.length > 0) lines.push("## Links", "", ...links.map(([key, label]) => `- [${label}](${plugin[key]})`), "");
+  lines.push("## Data", "", show(".claude-plugin/data.md").trim(), "");
   lines.push("## Source", "", "This branch holds only the plugin's files. The evaluation bench, tests and");
   lines.push(`documentation are on the main branch of ${plugin.repository}. License: ${plugin.license}.`, "");
   return lines.join("\n");
@@ -274,7 +276,6 @@ function pluginBranch({ push, out }) {
       else git(["update-index", "--add", "--cacheinfo", `${mode},${object},${path}`], env);
     }
     const manifest = JSON.parse(show(".claude-plugin/plugin.json"));
-    for (const key of Object.keys(LISTING_LINKS)) delete manifest[key];
     const json = git(["hash-object", "-w", "--stdin"], env, `${JSON.stringify(manifest, null, 2)}\n`);
     git(["update-index", "--add", "--cacheinfo", `100644,${json},.claude-plugin/plugin.json`], env);
     const readme = git(["hash-object", "-w", "--stdin"], env, pluginReadme(show));
