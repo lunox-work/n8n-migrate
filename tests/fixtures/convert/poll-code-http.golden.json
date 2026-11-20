@@ -3,7 +3,7 @@
   "name": "Invoice mail to accounts",
   "id": "poll01",
   "converter": {
-    "version": "0.3.0",
+    "version": "0.3.1",
     "toolMaps": "1"
   },
   "source": {

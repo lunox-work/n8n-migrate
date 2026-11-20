@@ -16,7 +16,7 @@
         "ref": "claude-plugin"
       },
       "description": "Classify every n8n workflow in an export with the reason, convert the ones that fit into folders Claude runs as scheduled tasks, skills or artifact forms, and cut over without both systems sending.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "category": "productivity",
       "license": "MIT"
     }
