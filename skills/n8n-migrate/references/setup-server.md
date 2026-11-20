@@ -2,7 +2,7 @@
 
 Without Claude Code, Claude has nowhere to keep your API keys and no runner of its own. The server fills that gap. It is a small program you run on a computer you control, and Claude reaches it as a custom connector. It runs each workflow step by step and keeps your keys, its records and the "already sent" ledger on that computer. Claude does only what the server asks for: the workflow's model steps, and its connector steps (Gmail, Slack, …) with exact arguments. How it works: `scripts/gateway.mjs` and `scripts/serve.mjs`, top comments.
 
-You need Node 20 or later on the computer that runs the server, and a terminal there once. `n8n-migrate` below is the package's command (the repository README, Install), or `node <this skill's folder>/scripts/start.mjs`, which is the same thing.
+You need Node 20 or later on the computer that runs the server, and a terminal there once. `n8n-migrate` below is the package's command (the repository README, Install), or `npx n8n-migrate@0.3.1`, which is the same thing.
 
 ## 1. Convert
 
@@ -109,4 +109,4 @@ Copy the `n8n-flows` folder to the server, including `.n8m/server.env` and `.n8m
 - An artifact page converted with `--server` sent its http step to `n8m_http` (with the connector's tools still on "Needs approval"), got httpbin's answer with the echoed key as `[secret]`, and ended `done` with the cutover's "Dry run clean" ticked; its record in the page's db holds no key and shows nothing at `view` level.
 - `serve --service` on Linux: in a systemd container (Debian, Node 22) the user unit started, came back after a kill and was removed by the printed commands.
 - claude.ai cannot edit a connector's address, only remove and re-add it; `claude.ai/cowork` on the web leads to the product page, so Cowork could not be driven from a browser.
-- A claude.ai chat with the skill uploaded ran `analyze.mjs` and `convert.mjs --server` in its code sandbox (Node v22.23.5) and handed over the folder as a zip. claude.ai refuses to upload a skill whose name contains "claude", so this ran with the name changed in the zip's SKILL.md.
+- A claude.ai chat with the skill uploaded ran `n8n-migrate analyze` and `n8n-migrate convert --server` in its code sandbox (Node v22.23.5) and handed over the folder as a zip. claude.ai refuses to upload a skill whose name contains "claude", so this ran with the name changed in the zip's SKILL.md.

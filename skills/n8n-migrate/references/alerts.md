@@ -4,7 +4,7 @@ A failed run, missed scheduled runs and a write whose outcome is unknown notify 
 
 ## Channel
 
-Chosen by the person at setup, written to the folder's `overrides.json`, then `convert.mjs --regenerate <folder>`:
+Chosen by the person at setup, written to the folder's `overrides.json`, then `n8n-migrate convert --regenerate <folder>`:
 
 ```json
 { "alerts": { "channel": { "connector": "slack", "tool": "slack_send_message", "target": "<their Slack user id>" } } }

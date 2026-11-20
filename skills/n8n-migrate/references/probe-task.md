@@ -12,8 +12,8 @@ Answers the open questions in PLAN.md Phase 0 on a real account in a few minutes
 ## Prompt
 
 ```
-Use the n8n-migrate skill. Find its folder (the one with SKILL.md and scripts/probe.mjs).
-1. Run: node <that folder>/scripts/probe.mjs
+Use the n8n-migrate skill.
+1. Run: npx n8n-migrate@0.3.1 probe
 2. List the names of the tools you have whose names start with mcp__, and say whether you have tools named ArtifactData, Artifact, Bash, Write and Skill.
 3. Reply with exactly two lines and nothing else:
 PROBE <the JSON line the script printed, unchanged>

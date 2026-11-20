@@ -15,7 +15,7 @@ claude plugin install n8n-migrate@n8n-migrate
 
 ## Requirements
 
-- **n8n-migrate**: Node 20 or later; zero dependencies. Works in Claude Code, and in a claude.ai chat or Cowork code sandbox with Node (a chat sandbox with Node 22 ran analyze and convert, 2026-11-19). Without Node, say so: the analyzer cannot run under Python only.
+- **n8n-migrate**: Node 20 or later and npm. Runs the n8n-migrate@0.3.1 CLI from npm (npx), which downloads it from registry.npmjs.org on first use. Works in Claude Code, and in Cowork with Node.
 
 ## Links
 
@@ -25,6 +25,10 @@ claude plugin install n8n-migrate@n8n-migrate
 
 ## Data
 
+- **The plugin runs the CLI from npm:** the plugin's copy of the skill ships
+  no scripts; it runs each command as `npx n8n-migrate@<version> <command>`,
+  which downloads that package from registry.npmjs.org on first use. Nothing
+  of the person's goes with that download.
 - **Sent off the machine by the skill:** nothing of its own. The analyzer and
   the converter make no network call and call no model. There is no telemetry
   and nothing reaches the author. The optional drafting pass (`draft.mjs`), run

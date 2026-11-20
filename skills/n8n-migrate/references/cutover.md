@@ -8,7 +8,7 @@ At any moment one system may send. n8n goes off before the task goes on. Items t
 
 ## Steps
 
-`node SKILL/scripts/cutover.mjs <folder> <step> [--json]`. Steps refuse to run out of order; `--force` overrides only an order that cannot make both systems send. Exit codes: 0 done, 1 refused or failed, 2 bad usage, 3 waiting for the person.
+`npx n8n-migrate@0.3.1 cutover <folder> <step> [--json]`. Steps refuse to run out of order; `--force` overrides only an order that cannot make both systems send. Exit codes: 0 done, 1 refused or failed, 2 bad usage, 3 waiting for the person.
 
 | Step             | Does                                                                                                                                                                                                                                    | Needs                                    | `--force`                                         |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------- |
