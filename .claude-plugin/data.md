@@ -1,3 +1,7 @@
+- **The plugin runs the CLI from npm:** the plugin's copy of the skill ships
+  no scripts; it runs each command as `npx n8n-migrate@<version> <command>`,
+  which downloads that package from registry.npmjs.org on first use. Nothing
+  of the person's goes with that download.
 - **Sent off the machine by the skill:** nothing of its own. The analyzer and
   the converter make no network call and call no model. There is no telemetry
   and nothing reaches the author. The optional drafting pass (`draft.mjs`), run

@@ -44,8 +44,10 @@ runs no service and sends no telemetry. Nothing it handles reaches its author.
 - **`serve`:** runs the converted folders on a computer you control, and a
   chat reaches it at the address you add as a connector. `--tunnel` passes
   that traffic through a temporary Cloudflare tunnel.
-- **Other requests:** `npx n8n-migrate` offers to add the skill with
-  `npx skills add`, a download from GitHub. The account check (`probe.mjs`)
+- **Other requests:** the Claude plugin's copy of the skill runs each command
+  as `npx n8n-migrate@<version> <command>`, a download of this package from
+  registry.npmjs.org on first use, with nothing of yours in it. `npx n8n-migrate`
+  offers to add the skill with `npx skills add`, a download from GitHub. The account check (`probe.mjs`)
   asks three public hosts whether they answer and sends nothing else.
 - **Convert-time drafts (optional):** with your go-ahead, `draft.mjs` sends a
   blocked step's node type, operation and redacted parameters to the model in

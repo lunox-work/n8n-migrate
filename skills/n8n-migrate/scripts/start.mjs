@@ -25,6 +25,10 @@
 //   --version          print the version
 //   n8n-migrate convert <exports> --out <folder> [...]   convert.mjs
 //   n8n-migrate serve <folder> [...]     the converted folders as a connector (serve.mjs)
+//   n8n-migrate <command> [...]          any script the skill names (COMMANDS: analyze,
+//                                          migrate, pull, status, task, try-step, cutover, …),
+//                                          as `node <skill>/scripts/<command>.mjs` would run it;
+//                                          the Claude plugin's skill runs them this way, from npm
 // Exit: 0 report written, 1 nothing to report, 2 bad usage.
 
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
@@ -38,6 +42,10 @@ import { renderHtml } from "./report-html.mjs";
 import { openBrowser } from "./n8n-oauth.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
+// The scripts `n8n-migrate <command>` runs as they are: the skill names each as
+// `node SKILL/scripts/<command>.mjs`, and the Claude plugin's copy of the skill, which ships no
+// scripts, as `npx n8n-migrate@<version> <command>`. serve is imported instead (it keeps running).
+export const COMMANDS = ["analyze", "convert", "cutover", "draft", "migrate", "probe", "pull", "status", "task", "try-step"];
 const REFS = join(HERE, "..", "references");
 const REPO = "lunox-work/n8n-migrate";
 
@@ -93,7 +101,8 @@ const HELP = `n8n-migrate: which of your n8n workflows can run on your Claude su
   for workflows that run in the cloud, and Claude Code opened there to create the tasks.
 
   npx n8n-migrate convert <exports> --out <folder>   convert the ones that fit (one folder per workflow)
-  npx n8n-migrate serve <folder>                     run them for a claude.ai chat or Cowork (serve --help)`;
+  npx n8n-migrate serve <folder>                     run them for a claude.ai chat or Cowork (serve --help)
+  npx n8n-migrate <command> [...]                    any other script the skill runs: analyze, migrate, pull, status, task, try-step, cutover, draft, probe`;
 
 async function ask(rl, question, fallback) {
   if (!rl) return fallback;
@@ -245,9 +254,9 @@ export async function main(argv = process.argv.slice(2), { stdin = process.stdin
   // `n8n-migrate serve <folder>`: the converted folders as a connector (serve.mjs); it keeps
   // running, so it returns null instead of an exit code.
   if (argv[0] === "serve") return (await import("./serve.mjs")).main(argv.slice(1));
-  // `n8n-migrate convert <exports> --out <folder> [...]`: convert.mjs as it is, for a person
-  // with a terminal but no Claude Code (the server runs what it writes).
-  if (argv[0] === "convert") return spawnSync(process.execPath, [join(HERE, "convert.mjs"), ...argv.slice(1)], { stdio: "inherit" }).status ?? 1;
+  // `n8n-migrate <command> [...]`: that script as it is (convert for a person with a terminal
+  // but no Claude Code, every command for the plugin's skill), with its own exit code.
+  if (COMMANDS.includes(argv[0])) return spawnSync(process.execPath, [join(HERE, `${argv[0]}.mjs`), ...argv.slice(1)], { stdio: "inherit" }).status ?? 1;
   let a;
   try {
     a = parseArgs(argv);

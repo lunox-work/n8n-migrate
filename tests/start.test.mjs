@@ -195,3 +195,16 @@ test("start.mjs --version prints the version; a path outside the current folder 
     rmSync(out, { recursive: true, force: true });
   }
 });
+
+test("n8n-migrate <command> runs that script with its own exit code (the plugin's skill runs every command this way)", async () => {
+  const { COMMANDS } = await import("../skills/n8n-migrate/scripts/start.mjs");
+  const bin = fileURLToPath(new URL("../skills/n8n-migrate/scripts/start.mjs", import.meta.url));
+  for (const command of COMMANDS) {
+    assert.ok(existsSync(join(dirname(bin), `${command}.mjs`)), `${command}.mjs`);
+  }
+  // No arguments: each script prints its usage and exits 2, as `node scripts/<command>.mjs` would.
+  const r = spawnSync(process.execPath, [bin, "status"], { encoding: "utf8" });
+  const direct = spawnSync(process.execPath, [join(dirname(bin), "status.mjs")], { encoding: "utf8" });
+  assert.equal(r.status, direct.status);
+  assert.match(r.stderr + r.stdout, /usage: status\.mjs/);
+});

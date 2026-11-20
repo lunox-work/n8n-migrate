@@ -21,6 +21,7 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { artifactHtml, loadReferences, writeRuntime } from "./convert.mjs";
+import { VERSION } from "./analyze.mjs";
 import { definitionHash } from "../runtime/src/api.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
@@ -96,7 +97,9 @@ export function prompt(pagePath, { artifact } = {}) {
     .split("__N8M_URL__")
     .join(artifact)
     .split("__N8M_SLUG__")
-    .join(slug);
+    .join(slug)
+    .split("__N8M_VERSION__")
+    .join(VERSION);
   return { text: `${head.trimEnd()}\n\n${body}` };
 }
 

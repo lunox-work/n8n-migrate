@@ -9,8 +9,10 @@
 //                                                    build the claude-plugin branch's commit
 //
 // VERSION is analyze.mjs's `export const VERSION`, the version the converter stamps into
-// every folder it writes. The skill is self-contained (Node scripts, no install), so there
-// is no npm pin to keep in step; check refuses an `npx` or `npm install` line in the skill.
+// every folder it writes. The skill on main is self-contained (Node scripts, no install), so
+// check refuses an `npx` or `npm install` line in it, but for the scheduled-task prompt's
+// fallback to `npx n8n-migrate@__N8M_VERSION__`. The plugin's copy (pluginText) runs every script
+// as `npx n8n-migrate@VERSION <command>` instead: plugin-branch --push needs that version on npm.
 //
 // check: `name` matches its folder (lowercase, digits, single hyphens, at most 64);
 // `description` 1 to 1024 characters without < or >, written as `description: >-` when it
@@ -31,14 +33,16 @@
 //
 // plugin-branch: the plugin directory scans every file in the plugin folder, and on main
 // that folder is the whole repository (evals, tests, PLAN). The directory tracks the
-// claude-plugin branch instead: PLUGIN_FILES as of HEAD, plugin.json less LISTING_LINKS,
-// and a README.md written from plugin.json, the skill's frontmatter and
+// claude-plugin branch instead: PLUGIN_FILES as of HEAD, the plugin's copy of the skill
+// (pluginSkillFiles: the directory takes only Markdown, text, JSON, YAML and images from a
+// publisher that is not Verified, so it ships SKILL.md, the references Claude reads and the two
+// schemas, and runs every script from npm, pinned; see pluginText), plugin.json, and a README.md written from plugin.json, the skill's frontmatter and
 // .claude-plugin/data.md (what is sent where; the directory requires a README). The commit
 // is built with a private index, never touching the working tree or index. Without --push
 // its objects go to a scratch object store (the repository's objects as alternates), so a
 // dry run leaves nothing behind; --out <dir> writes the branch's files there to inspect.
 // --push writes the objects into the repository, fetches origin's branch as the parent, and
-// pushes; nothing else here talks to a remote.
+// pushes, and refuses while npm does not serve n8n-migrate@VERSION (the plugin's skill runs it).
 
 import { spawnSync } from "node:child_process";
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
@@ -54,7 +58,61 @@ const MANIFESTS = [".claude-plugin/plugin.json", ".claude-plugin/marketplace.jso
 const ALIAS = "aliases/n8n-to-claude/package.json";
 const MAX_FILE = 5 * 1024 * 1024;
 const PLUGIN_BRANCH = "claude-plugin";
-const PLUGIN_FILES = [".claude-plugin/icon.png", "LICENSE", "skills"];
+const PLUGIN_FILES = [".claude-plugin/icon.png", "LICENSE"];
+const SKILL_MD = `skills/${NAME}/SKILL.md`;
+// References the scripts read as templates, not Claude: the npm package has them.
+const SCRIPT_ONLY_REFERENCES = new Set(["cowork-task-prompt.md"]);
+// The JSON references SKILL.md names for Claude to read; the rest (nodes, mappings, tool maps,
+// capabilities, hosts, connectors) is the scripts' data and ships in the npm package.
+const PLUGIN_JSON_REFERENCES = new Set(["definition.schema.json", "report.schema.json"]);
+const PLUGIN_COMMANDS = ["analyze", "convert", "cutover", "draft", "migrate", "probe", "pull", "serve", "start", "status", "task", "try-step"];
+
+/**
+ * The plugin's text of a skill file: every `node <skill folder>/scripts/<command>.mjs` becomes
+ * `npx n8n-migrate@<version> <command>` (start.mjs is the bare command), the line that says
+ * where the scripts are says npm instead, the compatibility names npm, and a Markdown link into
+ * scripts/ or runtime/ becomes plain text, since the plugin ships neither.
+ */
+export function pluginText(text, version) {
+  const npx = `npx n8n-migrate@${version}`;
+  const folder = String.raw`(?:SKILL|<this skill's folder>|<that folder>)`;
+  return text
+    .replace(new RegExp(String.raw`node ${folder}/scripts/start\.mjs`, "g"), npx)
+    .replace(new RegExp(String.raw`node ${folder}/scripts/([a-z][a-z-]*)\.mjs`, "g"), `${npx} $1`)
+    .replace(new RegExp(String.raw`\x60(${PLUGIN_COMMANDS.join("|")})\.mjs\b`, "g"), "\x60n8n-migrate $1")
+    .replace(/\[([^\]]+)\]\(\.\.\/(?:scripts|runtime)\/[^)]+\)/g, "$1 (in the n8n-migrate npm package)")
+    .replace(" Find its folder (the one with SKILL.md and scripts/probe.mjs).", "")
+    .replace(
+      "Scripts (run from this skill's folder, called SKILL below; Node 20+, no install):",
+      `Commands (the n8n-migrate CLI from npm, pinned to this skill's version: \x60${npx} <command>\x60; Node 20+; the first run downloads the package from npm):`,
+    )
+    .replace(
+      /^compatibility: >-\n(?: {2}.*\n)+/m,
+      `compatibility: >-\n  Node 20 or later and npm. Runs the n8n-migrate@${version} CLI from npm (npx),\n  which downloads it from registry.npmjs.org on first use. Works in Claude Code,\n  and in Cowork with Node.\n`,
+    );
+}
+
+/** [path, text] for each file of the plugin's copy of the skill, as of `show` (HEAD). */
+export function pluginSkillFiles(show, version, refs = git(["ls-tree", "-r", "--name-only", "HEAD", `skills/${NAME}/references`]).split("\n").filter(Boolean)) {
+  const files = [[SKILL_MD, pluginText(show(SKILL_MD), version)]];
+  for (const path of refs) {
+    const base = path.slice(`skills/${NAME}/references/`.length);
+    if (base.endsWith(".md") && !base.includes("/") && !SCRIPT_ONLY_REFERENCES.has(base)) files.push([path, pluginText(show(path), version)]);
+    else if (PLUGIN_JSON_REFERENCES.has(base)) files.push([path, show(path)]);
+  }
+  return files;
+}
+
+/** Lines of the plugin's skill files that still run a script from the skill's folder. */
+export function pluginLeftovers(files) {
+  const out = [];
+  for (const [path, text] of files) {
+    text.split("\n").forEach((line, i) => {
+      if (/\bnode\s+\S*scripts\//.test(line) || /\bSKILL\//.test(line)) out.push(`${path}:${i + 1}: ${line.trim().slice(0, 120)}`);
+    });
+  }
+  return out;
+}
 // plugin.json fields the directory's listing reads. Claude Code accepts them (2.1.329's
 // `claude plugin validate` checks only that each is https:// or mailto:), so the branch's
 // plugin.json keeps them, and its README repeats them as links for readers.
@@ -162,7 +220,9 @@ export function check(root = ROOT) {
           else if (!existsSync(to)) problems.push(`${rel}: link ${target} does not exist`);
         }
         content.split("\n").forEach((l, i) => {
-          if (/\bnpx\s|\bnpm\s+(?:i|install|ci)\b/.test(l)) problems.push(`${rel}:${i + 1}: an npx or npm install line; the skill ships self-contained`);
+          // One exception: the scheduled-task prompt's fallback for a skill installed with the
+          // plugin (no scripts folder), which runs this package at the skill's own version.
+          if (/\bnpx\s|\bnpm\s+(?:i|install|ci)\b/.test(l) && !/npx n8n-migrate@__N8M_VERSION__ /.test(l)) problems.push(`${rel}:${i + 1}: an npx or npm install line; the skill ships self-contained`);
         });
       }
       if (/https?:\/\/(?:[\w-]+\.)*github\.com\b/.test(content) && /credential|password|secret|api[ _-]?key/i.test(content)) {
@@ -186,6 +246,11 @@ export function check(root = ROOT) {
   if (alias && (alias.version !== VERSION || alias.dependencies?.[NAME] !== `^${VERSION}`)) problems.push(`${ALIAS}: version and its ${NAME} dependency are not ${VERSION} (node scripts/skill.mjs sync)`);
   const icon = join(root, ".claude-plugin", "icon.png");
   if (!existsSync(icon) || readFileSync(icon).subarray(1, 4).toString() !== "PNG") problems.push(".claude-plugin/icon.png: missing or not a PNG (node assets/src/render.mjs icon)");
+  // The plugin's copy of the skill must run nothing from the skill's folder: it ships no scripts.
+  if (root === ROOT) {
+    const show = (path) => readFileSync(join(root, path), "utf8");
+    for (const line of pluginLeftovers(pluginSkillFiles(show, VERSION, readdirSync(join(root, "skills", NAME, "references")).map((f) => `skills/${NAME}/references/${f}`)))) problems.push(`plugin copy still runs a script from the skill's folder: ${line} (scripts/skill.mjs pluginText)`);
+  }
   return { problems, notes };
 }
 
@@ -275,10 +340,24 @@ function pluginBranch({ push, out }) {
       if (type === "tree") git(["read-tree", `--prefix=${path}/`, object], env);
       else git(["update-index", "--add", "--cacheinfo", `${mode},${object},${path}`], env);
     }
+    const VERSION = version();
+    if (push) {
+      const served = spawnSync("npm", ["view", `${NAME}@${VERSION}`, "version"], { encoding: "utf8" });
+      if (served.status !== 0 || served.stdout.trim() !== VERSION) return [`npm does not serve ${NAME}@${VERSION} yet, and the plugin's skill runs it: publish first`];
+    }
+    const skillFiles = pluginSkillFiles(show, VERSION);
+    const leftovers = pluginLeftovers(skillFiles);
+    if (leftovers.length > 0) return leftovers.map((line) => `plugin copy still runs a script from the skill's folder: ${line}`);
+    for (const [path, text] of skillFiles) {
+      const blob = git(["hash-object", "-w", "--stdin"], env, text);
+      git(["update-index", "--add", "--cacheinfo", `100644,${blob},${path}`], env);
+    }
+    const plugged = new Map(skillFiles);
+    const showPlugin = (path) => plugged.get(path) ?? show(path);
     const manifest = JSON.parse(show(".claude-plugin/plugin.json"));
     const json = git(["hash-object", "-w", "--stdin"], env, `${JSON.stringify(manifest, null, 2)}\n`);
     git(["update-index", "--add", "--cacheinfo", `100644,${json},.claude-plugin/plugin.json`], env);
-    const readme = git(["hash-object", "-w", "--stdin"], env, pluginReadme(show));
+    const readme = git(["hash-object", "-w", "--stdin"], env, pluginReadme(showPlugin));
     git(["update-index", "--add", "--cacheinfo", `100644,${readme},README.md`], env);
     const tree = git(["write-tree"], env);
     let parent = null;
@@ -292,7 +371,7 @@ function pluginBranch({ push, out }) {
       return [];
     }
     const head = git(["rev-parse", "--short", "HEAD"]);
-    const message = `Plugin files from main ${head}\n\n${PLUGIN_FILES.join(", ")}; built by scripts/skill.mjs plugin-branch.`;
+    const message = `Plugin files from main ${head}\n\n${PLUGIN_FILES.join(", ")} and the skill's plugin copy (SKILL.md and references, scripts run as npx ${NAME}@${VERSION}); built by scripts/skill.mjs plugin-branch.`;
     const commit = git(["commit-tree", tree, ...(parent ? ["-p", parent] : []), "-m", message], env);
     if (out) {
       mkdirSync(out, { recursive: true });
