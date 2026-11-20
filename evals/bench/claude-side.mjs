@@ -33,6 +33,13 @@ import { maskRunTime, fromTool, fromHttp, keyOf, table } from "./compare.mjs";
 import { CLAUDE_PG, claudeConnectionUrl, collectClaudeRun, dbPlan, ensureClaudeDatabase, seedClaudeRun } from "../n8n/databases.mjs";
 import { ENV as N8N_ENV } from "../n8n/container.mjs";
 
+// Object.groupBy for Node 20, which the tests run on (it is in Node from 21).
+const groupBy = (items, key) => {
+  const groups = Object.create(null);
+  for (const [i, x] of items.entries()) (groups[key(x, i)] ??= []).push(x);
+  return groups;
+};
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
 const SKILL = join(ROOT, "skills", "n8n-migrate");
@@ -746,7 +753,7 @@ export function sameToolTurn({ n8nPrev, n8nCall, n8nEffects = [], n8nSources = {
 // reads taken from the driver's effects (MCP mock log and host http log, both timed) between
 // the previous agent turn's answer and this one's. Returns modelInputs in gate4's shape.
 export function claudeDriverModelInputs({ replayLog = [], effects = [], recordings = [], n8nEffects = [], n8nSources = {}, runTime = null, nondeterministic = new Set(), gapFields = [] }) {
-  const byKey = Object.fromEntries(Object.entries(Object.groupBy(recordings, (c) => c.node)).map(([k, v]) => [k, callsByIndex(v)]));
+  const byKey = Object.fromEntries(Object.entries(groupBy(recordings, (c) => c.node)).map(([k, v]) => [k, callsByIndex(v)]));
   const lastTurn = new Map();
   const out = [];
   const seen = new Set();
@@ -1057,7 +1064,7 @@ export async function runInProcess(folder, fx, { wf, recordings = [], n8nEffects
   // P109: default answers given to sends so far, per transport (each mock counts its own).
   const defaultSends = { http: 0, tool: 0 };
   // PROPOSALS P115: each node's calls by call index, as the claude driver's replay reads them.
-  const byKey = Object.fromEntries(Object.entries(Object.groupBy(recordings, (c) => c.node)).map(([k, v]) => [k, callsByIndex(v)]));
+  const byKey = Object.fromEntries(Object.entries(groupBy(recordings, (c) => c.node)).map(([k, v]) => [k, callsByIndex(v)]));
   const modelCount = new Map();
   const modelUsed = new Map();
   // PROPOSALS P76: the recorded call that answers a request, by index or else by content.

@@ -80,6 +80,13 @@ import { n8nCheckVariants, n8nCheckKey, n8nCheckSummary, draftedWriteOutcomes, g
 import { BudgetExceeded, UsageLimit, ledger as claudeLedger, memoryGate } from "./claude.mjs";
 import { readSplits, devWithFixtures } from "./rounds.mjs";
 
+// Object.groupBy for Node 20, which the tests run on (it is in Node from 21).
+const groupBy = (items, key) => {
+  const groups = Object.create(null);
+  for (const [i, x] of items.entries()) (groups[key(x, i)] ??= []).push(x);
+  return groups;
+};
+
 // Bench folders sit inside this checkout: keep run records local, never push an n8m-state branch.
 process.env.N8M_STORE = "file";
 
@@ -271,7 +278,7 @@ async function n8nRun(id, variant, { record = false, canned = false, fresh = fal
     // PROPOSALS P115: saved by tag and call index, not in the order replies came back (a live
     // recording of concurrent calls completes out of order); every reader keys on `index` anyway.
     modelCalls: r.modelCalls.filter((c) => c.mode !== "capped").toSorted((a, b) => (a.tag === b.tag ? a.index - b.index : 0)).map(({ tag, node, index, format, request, response, mode, costUsd }) => ({ tag, node, index, format, request, response, mode, costUsd, seq: modelSeq[tag]?.[index] ?? null })),
-    ...(r.modelCalls.some((c) => c.mode === "capped") ? { modelCallCap: Object.values(Object.groupBy(r.modelCalls.filter((c) => c.mode === "capped"), (c) => c.tag)).map((xs) => ({ tag: xs[0].tag, node: xs[0].node, refused: xs.length, message: xs[0].error })) } : {}),
+    ...(r.modelCalls.some((c) => c.mode === "capped") ? { modelCallCap: Object.values(groupBy(r.modelCalls.filter((c) => c.mode === "capped"), (c) => c.tag)).map((xs) => ({ tag: xs[0].tag, node: xs[0].node, refused: xs.length, message: xs[0].error })) } : {}),
     modelModes: [...new Set(r.modelCalls.map((c) => c.mode))],
     sources: prep.sources,
     overlay: prep.overlayApplied,
