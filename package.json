@@ -1,6 +1,6 @@
 {
   "name": "n8n-to-claude",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Which of your n8n workflows can run on your Claude subscription: sign in to n8n (or give a template, file or API key) and get a per-workflow report; the Claude Code skill then converts the ones that fit and cuts over without double sends.",
   "license": "MIT",
   "author": "Charlie Angriawan (https://github.com/lunox-work)",

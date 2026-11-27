@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "name": "Morning mail digest",
   "id": "slice01",
-  "converter": { "version": "0.3.1", "toolMaps": "1" },
+  "converter": { "version": "0.4.0", "toolMaps": "1" },
   "source": { "file": "source.n8n.json", "sha256": "2b1a24edadef84bd81bf707044ccb53841fd8523cff96721a2dd5cf36f3f6264", "workflowId": "slice01" },
   "settings": { "timezone": "Asia/Singapore", "executionOrder": "v1" },
   "steps": {

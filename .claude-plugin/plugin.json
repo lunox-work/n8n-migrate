@@ -1,7 +1,7 @@
 {
   "name": "n8n-to-claude",
   "displayName": "n8n-to-claude",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Move n8n workflows onto Claude. A fit report classifies every workflow in an export with the reason (scheduled task, skill, artifact form, hosting, or stays in n8n), then each one that fits becomes a self-contained folder: a definition a code runner executes step by step, the task prompt and permissions, and an artifact page with the graph and Run now. Cutover turns n8n off before Claude goes on.",
   "author": {
     "name": "Lunox",
