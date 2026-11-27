@@ -2,13 +2,13 @@
 
 Without Claude Code, Claude has nowhere to keep your API keys and no runner of its own. The server fills that gap. It is a small program you run on a computer you control, and Claude reaches it as a custom connector. It runs each workflow step by step and keeps your keys, its records and the "already sent" ledger on that computer. Claude does only what the server asks for: the workflow's model steps, and its connector steps (Gmail, Slack, …) with exact arguments. How it works: `scripts/gateway.mjs` and `scripts/serve.mjs`, top comments.
 
-You need Node 20 or later on the computer that runs the server, and a terminal there once. `n8n-migrate` below is the package's command (the repository README, Install), or `npx n8n-migrate@0.3.1`, which is the same thing.
+You need Node 20 or later on the computer that runs the server, and a terminal there once. `n8n-to-claude` below is the package's command (the repository README, Install), or `npx n8n-to-claude@0.4.0`, which is the same thing.
 
 ## 1. Convert
 
 ```sh
-n8n-migrate you.app.n8n.cloud                  # or a file, a template link: the report
-n8n-migrate convert n8n-migrate/exports --out n8n-flows
+n8n-to-claude you.app.n8n.cloud                  # or a file, a template link: the report
+n8n-to-claude convert n8n-to-claude/exports --out n8n-flows
 ```
 
 No terminal? Upload the skill in claude.ai (Customize > Skills) and ask _"convert my n8n workflows for the server"_. Claude converts them in the chat's code sandbox and gives you `n8n-flows` as a zip (observed: the sandbox had Node 22). You still run the server on a computer you control.
@@ -16,7 +16,7 @@ No terminal? Upload the skill in claude.ai (Customize > Skills) and ask _"conver
 ## 2. Try it (10 minutes, temporary address)
 
 ```sh
-n8n-migrate serve n8n-flows --tunnel            # needs cloudflared (macOS: brew install cloudflared)
+n8n-to-claude serve n8n-flows --tunnel            # needs cloudflared (macOS: brew install cloudflared)
 ```
 
 It writes `n8n-flows/.n8m/secrets.env`. Put each key there (never in a chat), stop the server with Ctrl+C and start it again. It prints a public address and the connector settings. The address changes every time it restarts, and claude.ai cannot edit a connector's address (only remove and re-add it), so use it for trying the server out only.
@@ -39,8 +39,8 @@ Type the token yourself. Then, in a chat: _"list my n8n workflows"_, _"dry run <
 Install the command for good first (not a one-off copy from npx's cache, which can be cleared): README, Install.
 
 ```sh
-n8n-migrate serve n8n-flows --setup             # token + secrets files; fill in secrets.env
-n8n-migrate serve n8n-flows --service           # writes a launchd (macOS) or systemd (Linux) unit
+n8n-to-claude serve n8n-flows --setup             # token + secrets files; fill in secrets.env
+n8n-to-claude serve n8n-flows --service           # writes a launchd (macOS) or systemd (Linux) unit
 ```
 
 Run the two or three commands `--service` prints. They start the server now and at every login, and restart it if it stops. Then give it a lasting address. You need a free Cloudflare account and a domain on Cloudflare:
@@ -59,8 +59,8 @@ A laptop that sleeps stops every run until it wakes. Use a computer that stays o
 ## 5. Or: a small server with Docker
 
 ```sh
-n8n-migrate serve n8n-flows --setup             # then fill in .n8m/secrets.env
-n8n-migrate serve n8n-flows --docker            # writes Dockerfile + .dockerignore
+n8n-to-claude serve n8n-flows --setup             # then fill in .n8m/secrets.env
+n8n-to-claude serve n8n-flows --docker            # writes Dockerfile + .dockerignore
 ```
 
 Copy the `n8n-flows` folder to the server, including `.n8m/server.env` and `.n8m/secrets.env`. Then run the `docker build` and `docker run` commands `--docker` printed. Keys and the token are passed when the container starts and never go into the image, and records live on a volume. Put HTTPS on port 443 in front of `127.0.0.1:8787` with a Cloudflare tunnel (above) or Caddy (`caddy reverse-proxy --from n8n.<your-domain> --to 127.0.0.1:8787`). The image installs the published package, so it needs a release that includes `serve` (later than 0.1.0).
@@ -109,4 +109,4 @@ Copy the `n8n-flows` folder to the server, including `.n8m/server.env` and `.n8m
 - An artifact page converted with `--server` sent its http step to `n8m_http` (with the connector's tools still on "Needs approval"), got httpbin's answer with the echoed key as `[secret]`, and ended `done` with the cutover's "Dry run clean" ticked; its record in the page's db holds no key and shows nothing at `view` level.
 - `serve --service` on Linux: in a systemd container (Debian, Node 22) the user unit started, came back after a kill and was removed by the printed commands.
 - claude.ai cannot edit a connector's address, only remove and re-add it; `claude.ai/cowork` on the web leads to the product page, so Cowork could not be driven from a browser.
-- A claude.ai chat with the skill uploaded ran `n8n-migrate analyze` and `n8n-migrate convert --server` in its code sandbox (Node v22.23.5) and handed over the folder as a zip. claude.ai refuses to upload a skill whose name contains "claude", so this ran with the name changed in the zip's SKILL.md.
+- A claude.ai chat with the skill uploaded ran `n8n-to-claude analyze` and `n8n-to-claude convert --server` in its code sandbox (Node v22.23.5) and handed over the folder as a zip. claude.ai refuses to upload a skill whose name contains "claude", so this ran with the name changed in the zip's SKILL.md.

@@ -1,6 +1,6 @@
 # Cloud task setup
 
-For a workflow with `outcome.target: cloud-task`. A cloud task (a routine) runs on Anthropic's VM with the computer off, cloning a repository each run. Facts and their status: `evals/phase0/CHECKS.md` in the n8n-migrate repo; items marked unconfirmed need a run on a real account.
+For a workflow with `outcome.target: cloud-task`. A cloud task (a routine) runs on Anthropic's VM with the computer off, cloning a repository each run. Facts and their status: `evals/phase0/CHECKS.md` in the n8n-to-claude repo; items marked unconfirmed need a run on a real account.
 
 ## Contract
 

@@ -1,17 +1,17 @@
 {
-  "name": "n8n-migrate",
-  "displayName": "n8n-migrate",
-  "version": "0.3.1",
+  "name": "n8n-to-claude",
+  "displayName": "n8n-to-claude",
+  "version": "0.4.0",
   "description": "Move n8n workflows onto Claude. A fit report classifies every workflow in an export with the reason (scheduled task, skill, artifact form, hosting, or stays in n8n), then each one that fits becomes a self-contained folder: a definition a code runner executes step by step, the task prompt and permissions, and an artifact page with the graph and Run now. Cutover turns n8n off before Claude goes on.",
   "author": {
     "name": "Lunox",
     "url": "https://lunox.work"
   },
-  "homepage": "https://github.com/lunox-work/n8n-migrate#readme",
-  "repository": "https://github.com/lunox-work/n8n-migrate",
-  "documentationUrl": "https://github.com/lunox-work/n8n-migrate/blob/main/docs/REFERENCE.md",
-  "supportUrl": "https://github.com/lunox-work/n8n-migrate/issues",
-  "privacyPolicyUrl": "https://github.com/lunox-work/n8n-migrate/blob/main/PRIVACY.md",
+  "homepage": "https://github.com/lunox-work/n8n-to-claude#readme",
+  "repository": "https://github.com/lunox-work/n8n-to-claude",
+  "documentationUrl": "https://github.com/lunox-work/n8n-to-claude/blob/main/docs/REFERENCE.md",
+  "supportUrl": "https://github.com/lunox-work/n8n-to-claude/issues",
+  "privacyPolicyUrl": "https://github.com/lunox-work/n8n-to-claude/blob/main/PRIVACY.md",
   "termsOfServiceUrl": "https://lunox.work/terms",
   "license": "MIT",
   "keywords": [

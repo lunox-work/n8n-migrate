@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "n8n-migrate analyzer report",
+  "title": "n8n-to-claude analyzer report",
   "description": "Output of scripts/analyze.mjs --json. schemaVersion 1: fields may be added; none are renamed or removed without a new version.",
   "type": "object",
   "required": ["schemaVersion", "analyzer", "summary", "workflows"],

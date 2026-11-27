@@ -4,16 +4,16 @@ Answers the open questions in PLAN.md Phase 0 on a real account in a few minutes
 
 ## Steps for the person
 
-1. Install the plugin in Cowork (Customize > Plugins > Add marketplace, `lunox-work/n8n-migrate`, then add n8n-migrate).
-2. In Cowork: Scheduled > New task (or ask Claude in a conversation to schedule it). Name: `n8n-migrate probe`. Frequency: Manual (or hourly). No folder. Paste the prompt below.
+1. Install the plugin in Cowork (Customize > Plugins > Add marketplace, `lunox-work/n8n-to-claude`, then add n8n-to-claude).
+2. In Cowork: Scheduled > New task (or ask Claude in a conversation to schedule it). Name: `n8n-to-claude probe`. Frequency: Manual (or hourly). No folder. Paste the prompt below.
 3. Run it now, wait for it to finish, then run it now a second time.
 4. Copy the last message of both runs back to Claude.
 
 ## Prompt
 
 ```
-Use the n8n-migrate skill.
-1. Run: npx n8n-migrate@0.3.1 probe
+Use the n8n-to-claude skill.
+1. Run: npx n8n-to-claude@0.4.0 probe
 2. List the names of the tools you have whose names start with mcp__, and say whether you have tools named ArtifactData, Artifact, Bash, Write and Skill.
 3. Reply with exactly two lines and nothing else:
 PROBE <the JSON line the script printed, unchanged>
