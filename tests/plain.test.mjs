@@ -7,11 +7,11 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { plainWorkflow, plainReport, credentialApp, easiest, renderPlainText } from "../skills/n8n-migrate/scripts/plain.mjs";
-import { renderPlainHtml } from "../skills/n8n-migrate/scripts/report-html.mjs";
+import { plainWorkflow, plainReport, credentialApp, easiest, renderPlainText } from "../skills/n8n-to-claude/scripts/plain.mjs";
+import { renderPlainHtml } from "../skills/n8n-to-claude/scripts/report-html.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const MIGRATE = join(ROOT, "skills/n8n-migrate/scripts/migrate.mjs");
+const MIGRATE = join(ROOT, "skills/n8n-to-claude/scripts/migrate.mjs");
 const FIX = join(ROOT, "tests/fixtures/convert");
 const readJson = (p) => JSON.parse(readFileSync(p, "utf8"));
 

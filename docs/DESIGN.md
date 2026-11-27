@@ -4,7 +4,7 @@ The decisions the analyzer, converter and bench are built on, the scope of v1 an
 
 ## Principles
 
-- **Form:** one skill (`skills/n8n-migrate/`) wrapped in a plugin. The same folder zips into an uploadable skill for chat-only users.
+- **Form:** one skill (`skills/n8n-to-claude/`) wrapped in a plugin. The same folder zips into an uploadable skill for chat-only users.
 - **Every workflow is classified.** The goal is 100% classified with a reason, not 100% migrated.
 - **Classification:** wake-up, body and outcome per workflow, plus what it requires.
   - Wake-up: `manual`, `schedule`, `poll`, `chat`, `form`, `relay` (an event pushed in with no reply expected), `endpoint` (the caller waits for the reply), `mcp-server`.

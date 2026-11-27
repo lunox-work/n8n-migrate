@@ -6,12 +6,12 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { adaptResult } from "../skills/n8n-migrate/runtime/src/adapt.mjs";
-import { mcpValue } from "../skills/n8n-migrate/runtime/src/driver.mjs";
-import { mcpPayload } from "../skills/n8n-migrate/runtime/src/artifact-driver.mjs";
-import { slackMessages, slackUser, notionPage, notionRows, notionDatabase } from "../skills/n8n-migrate/runtime/src/shapes.mjs";
-import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
-import { convertItems, loadReferences } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { adaptResult } from "../skills/n8n-to-claude/runtime/src/adapt.mjs";
+import { mcpValue } from "../skills/n8n-to-claude/runtime/src/driver.mjs";
+import { mcpPayload } from "../skills/n8n-to-claude/runtime/src/artifact-driver.mjs";
+import { slackMessages, slackUser, notionPage, notionRows, notionDatabase } from "../skills/n8n-to-claude/runtime/src/shapes.mjs";
+import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
+import { convertItems, loadReferences } from "../skills/n8n-to-claude/scripts/convert.mjs";
 
 const refs = loadReferences();
 const map = (node, ver, res, op) => refs.toolMaps.maps[node][ver][res][op];
@@ -143,13 +143,13 @@ test("Notion: search titles, fetched pages, query rows and fetched data sources"
 });
 
 test("a session without the step's tool: the failure names the fix", async () => {
-  const { missingToolHint } = await import("../skills/n8n-migrate/runtime/src/driver.mjs");
+  const { missingToolHint } = await import("../skills/n8n-to-claude/runtime/src/driver.mjs");
   assert.match(missingToolHint("Error: No such tool available: mcp__Notion__notion-search"), /^Error: No such tool available: mcp__Notion__notion-search \(the session has no such tool: check that the connector is attached/);
   assert.equal(missingToolHint("rate limited"), "rate limited");
 });
 
 test("cloud tasks name connector tools after the routine's connection", async () => {
-  const { cloudPrefix } = await import("../skills/n8n-migrate/scripts/convert.mjs");
+  const { cloudPrefix } = await import("../skills/n8n-to-claude/scripts/convert.mjs");
   assert.deepEqual(["mcp__claude_ai_Notion__", "mcp__claude_ai_Google_Drive__", "mcp__claude_ai_Atlassian_MCP__"].map(cloudPrefix), ["mcp__Notion__", "mcp__Google-Drive__", "mcp__Atlassian-MCP__"]);
 });
 

@@ -1,5 +1,5 @@
 # Attaches the skill zip to the GitHub release of a version tag, under a fixed name too, so
-# https://github.com/lunox-work/n8n-migrate/releases/latest/download/n8n-migrate.zip always
+# https://github.com/lunox-work/n8n-to-claude/releases/latest/download/n8n-to-claude.zip always
 # serves the latest one (upload it in the Claude app: Customize > Skills). Run by hand for an
 # existing tag with "Run workflow".
 name: release
@@ -30,6 +30,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag || github.ref_name }}
         run: |
-          cp dist-skills/n8n-migrate-*.zip dist-skills/n8n-migrate.zip
+          cp dist-skills/n8n-to-claude-*.zip dist-skills/n8n-to-claude.zip
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --generate-notes
           gh release upload "$TAG" dist-skills/*.zip --clobber

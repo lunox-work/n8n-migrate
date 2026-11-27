@@ -8,13 +8,13 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { readFileSync } from "node:fs";
-import { convertItems, loadReferences, nodeNameToToolName, toolNameFor, fromAiSchema, validateSchema, toolPrefixes, connectorToolNames, taskSettings, artifactCapabilities } from "../skills/n8n-migrate/scripts/convert.mjs";
-import { loadInput, analyze } from "../skills/n8n-migrate/scripts/analyze.mjs";
-import { preflight, run } from "../skills/n8n-migrate/runtime/src/api.mjs";
-import { parseXml, parseFeed } from "../skills/n8n-migrate/runtime/src/feed.mjs";
+import { convertItems, loadReferences, nodeNameToToolName, toolNameFor, fromAiSchema, validateSchema, toolPrefixes, connectorToolNames, taskSettings, artifactCapabilities } from "../skills/n8n-to-claude/scripts/convert.mjs";
+import { loadInput, analyze } from "../skills/n8n-to-claude/scripts/analyze.mjs";
+import { preflight, run } from "../skills/n8n-to-claude/runtime/src/api.mjs";
+import { parseXml, parseFeed } from "../skills/n8n-to-claude/runtime/src/feed.mjs";
 
 const refs = loadReferences();
-const refJson = (n) => JSON.parse(readFileSync(new URL(`../skills/n8n-migrate/references/${n}`, import.meta.url), "utf8"));
+const refJson = (n) => JSON.parse(readFileSync(new URL(`../skills/n8n-to-claude/references/${n}`, import.meta.url), "utf8"));
 // The analyzer's items for a workflow object, as loadInput reads a file.
 function loadJson(wf) {
   const dir = mkdtempSync(join(tmpdir(), "n8m-tools-"));
@@ -268,7 +268,7 @@ test("a workflow tool without $fromAI() is n8n's DynamicTool: one optional `inpu
 });
 
 test("an HTTP Request tool's response reaches the agent as n8n 2.47.7 hands it: JSON optimizer fields, text under its property", async () => {
-  const { convertItems, loadReferences } = await import("../skills/n8n-migrate/scripts/convert.mjs");
+  const { convertItems, loadReferences } = await import("../skills/n8n-to-claude/scripts/convert.mjs");
   const tool = (name, parameters) => ({ name, type: "n8n-nodes-base.httpRequestTool", typeVersion: 4.2, position: [0, 0], parameters: { method: "GET", toolDescription: name, ...parameters } });
   const wf = {
     id: "ht01",
@@ -286,7 +286,7 @@ test("an HTTP Request tool's response reaches the agent as n8n 2.47.7 hands it: 
   const def = res.definition;
   assert.deepEqual(def.steps.List.http.optimize, { type: "json", fieldsToInclude: "selected", fields: "name,meta.size" });
   assert.equal(def.steps.Read.http.textAs, "data");
-  const { run } = await import("../skills/n8n-migrate/runtime/src/api.mjs");
+  const { run } = await import("../skills/n8n-to-claude/runtime/src/api.mjs");
   let turn = 0;
   const fed = [];
   const host = {

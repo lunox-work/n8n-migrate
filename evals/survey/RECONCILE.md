@@ -3,7 +3,7 @@
 The PLAN survey tables, recomputed by the analyzer, and every template where the two disagree. Reproduce:
 
 ```
-node skills/n8n-migrate/scripts/analyze.mjs evals/survey/data/wf --json --now 2026-11-16T00:00:00Z --out /tmp/r.json
+node skills/n8n-to-claude/scripts/analyze.mjs evals/survey/data/wf --json --now 2026-11-16T00:00:00Z --out /tmp/r.json
 node evals/survey/reconcile.mjs /tmp/r.json evals/survey/data/wf --markdown
 ```
 

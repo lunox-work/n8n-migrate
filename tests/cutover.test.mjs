@@ -9,13 +9,13 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
-import { convertItems, writeFolder, loadReferences } from "../skills/n8n-migrate/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
-import { runStep } from "../skills/n8n-migrate/scripts/cutover.mjs";
-import { cursorsFromStaticData, staticDataFromCursors, cursorsFromExecutions, laterCursors, createN8nClient } from "../skills/n8n-migrate/scripts/n8n-api.mjs";
-import { advanceCursor } from "../skills/n8n-migrate/runtime/src/adapt.mjs";
-import * as core from "../skills/n8n-migrate/runtime/src/index.mjs";
-import { command } from "../skills/n8n-migrate/runtime/src/driver.mjs";
+import { convertItems, writeFolder, loadReferences } from "../skills/n8n-to-claude/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
+import { runStep } from "../skills/n8n-to-claude/scripts/cutover.mjs";
+import { cursorsFromStaticData, staticDataFromCursors, cursorsFromExecutions, laterCursors, createN8nClient } from "../skills/n8n-to-claude/scripts/n8n-api.mjs";
+import { advanceCursor } from "../skills/n8n-to-claude/runtime/src/adapt.mjs";
+import * as core from "../skills/n8n-to-claude/runtime/src/index.mjs";
+import { command } from "../skills/n8n-to-claude/runtime/src/driver.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const refs = loadReferences();
@@ -164,7 +164,7 @@ test("task driver dry run: reads go out, connector and http writes are held with
 test("cutover gate: once a cutover starts, scheduled runs are HELD (nothing read) until enable, and again after rollback", async () => {
   const { dir: d2, folder: f2 } = folderFor("tests/fixtures/convert/poll-code-http.n8n.json");
   try {
-    const { openStore, loadTask, paths } = await import("../skills/n8n-migrate/runtime/src/driver.mjs");
+    const { openStore, loadTask, paths } = await import("../skills/n8n-to-claude/runtime/src/driver.mjs");
     const P = paths(f2, f2);
     const store = openStore(P, loadTask(P));
     store.set(core.META_CUTOVER, core.cutoverMeta({ owner: "n8n", at: "2026-11-14T00:00:00.000Z" }));
@@ -317,7 +317,7 @@ test("the n8n client never prints its key and falls back to the deprecated activ
 });
 
 test("schedule times between deactivate-n8n and enable are reported as run by neither side; run-now says how, finds the run, or records --skip", async () => {
-  const { paths, loadTask, openStore } = await import("../skills/n8n-migrate/runtime/src/driver.mjs");
+  const { paths, loadTask, openStore } = await import("../skills/n8n-to-claude/runtime/src/driver.mjs");
   // slice: a Schedule Trigger daily at 08:00 Asia/Singapore (00:00 UTC), Gmail -> model -> Slack.
   const { dir, folder } = folderFor("tests/fixtures/convert/slice.n8n.json", { task: { store: { kind: "file" } } });
   let clock = "2026-11-14T23:30:00.000Z";

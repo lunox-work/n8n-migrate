@@ -3,9 +3,9 @@
 // the n8n-shaped prompts of classifier steps.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { adaptResult } from "../skills/n8n-migrate/runtime/src/adapt.mjs";
-import { gmailMessage, notionDatabase, parseAddressList } from "../skills/n8n-migrate/runtime/src/shapes.mjs";
-import { convertItems, loadReferences } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { adaptResult } from "../skills/n8n-to-claude/runtime/src/adapt.mjs";
+import { gmailMessage, notionDatabase, parseAddressList } from "../skills/n8n-to-claude/runtime/src/shapes.mjs";
+import { convertItems, loadReferences } from "../skills/n8n-to-claude/scripts/convert.mjs";
 
 const refs = loadReferences();
 const gmailGet = refs.toolMaps.maps["n8n-nodes-base.gmail"][">=2"].message.get;

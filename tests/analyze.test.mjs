@@ -1,4 +1,4 @@
-// Golden tests for skills/n8n-migrate/scripts/analyze.mjs, plus unit tests
+// Golden tests for skills/n8n-to-claude/scripts/analyze.mjs, plus unit tests
 // for the cron expander, SQL parse and secret redaction.
 //
 //   node --test                  compare every fixture with its golden report
@@ -17,18 +17,18 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { validate, schema } from "./schema-check.mjs";
-import { analyze, loadInput, parseCron, simulateCron, legacyCron, redact, findSecrets, scanSecrets, sqlEffect, renderText, httpTarget, observesDst, SHEETS_REST_OPS } from "../skills/n8n-migrate/scripts/analyze.mjs";
+import { analyze, loadInput, parseCron, simulateCron, legacyCron, redact, findSecrets, scanSecrets, sqlEffect, renderText, httpTarget, observesDst, SHEETS_REST_OPS } from "../skills/n8n-to-claude/scripts/analyze.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..");
-const SCRIPT = join(ROOT, "skills/n8n-migrate/scripts/analyze.mjs");
+const SCRIPT = join(ROOT, "skills/n8n-to-claude/scripts/analyze.mjs");
 const FIXTURES = join(HERE, "fixtures");
 const GOLDEN = join(HERE, "golden");
 const NOW_ISO = "2026-11-16T00:00:00Z"; // a Monday
 const NOW = Date.parse(NOW_ISO);
-const nodes = JSON.parse(readFileSync(join(ROOT, "skills/n8n-migrate/references/nodes.json"), "utf8"));
-const capabilities = JSON.parse(readFileSync(join(ROOT, "skills/n8n-migrate/references/capabilities.json"), "utf8"));
-const hosts = JSON.parse(readFileSync(join(ROOT, "skills/n8n-migrate/references/http-hosts.json"), "utf8"));
+const nodes = JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references/nodes.json"), "utf8"));
+const capabilities = JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references/capabilities.json"), "utf8"));
+const hosts = JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references/http-hosts.json"), "utf8"));
 
 const strip = (r) => {
   const { version, ...analyzer } = r.analyzer;
@@ -335,7 +335,7 @@ test("operation key: an authentication value that hides the resource leaves the 
 // The Google token is asked for the steps the converter builds on Google's API, and not for a
 // Sheets read it sends through the Drive connector.
 test("a Google Sheets read on its own needs no Google token; with a row write under the same credential it does", () => {
-  const maps = JSON.parse(readFileSync(join(HERE, "../skills/n8n-migrate/references/tool-maps.json"), "utf8")).maps["n8n-nodes-base.googleSheets"][">=4"];
+  const maps = JSON.parse(readFileSync(join(HERE, "../skills/n8n-to-claude/references/tool-maps.json"), "utf8")).maps["n8n-nodes-base.googleSheets"][">=4"];
   const rest = Object.entries(maps).flatMap(([res, ops]) => Object.entries(ops).filter(([, e]) => e.rest).map(([op, e]) => [`${res}:${op}`, !!e.whenSiblingRest]));
   assert.deepEqual(rest.filter(([, sib]) => !sib).map(([k]) => k).sort(), [...SHEETS_REST_OPS.always].sort(), "the analyzer's list is tool-maps.json's row writes");
   assert.deepEqual(rest.filter(([, sib]) => sib).map(([k]) => k).sort(), [...SHEETS_REST_OPS.withSibling].sort());

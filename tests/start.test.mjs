@@ -7,14 +7,14 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { routeOf, goOn, setupPlan, setupPrompt } from "../skills/n8n-migrate/scripts/start.mjs";
-import { renderHtml, workflowBlocks } from "../skills/n8n-migrate/scripts/report-html.mjs";
-import { analyze, loadInput, renderText } from "../skills/n8n-migrate/scripts/analyze.mjs";
-import { parseSource, pull } from "../skills/n8n-migrate/scripts/pull.mjs";
+import { routeOf, goOn, setupPlan, setupPrompt } from "../skills/n8n-to-claude/scripts/start.mjs";
+import { renderHtml, workflowBlocks } from "../skills/n8n-to-claude/scripts/report-html.mjs";
+import { analyze, loadInput, renderText } from "../skills/n8n-to-claude/scripts/analyze.mjs";
+import { parseSource, pull } from "../skills/n8n-to-claude/scripts/pull.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const START = join(ROOT, "skills/n8n-migrate/scripts/start.mjs");
-const REFS = join(ROOT, "skills/n8n-migrate/references");
+const START = join(ROOT, "skills/n8n-to-claude/scripts/start.mjs");
+const REFS = join(ROOT, "skills/n8n-to-claude/references");
 const ref = (n) => JSON.parse(readFileSync(join(REFS, n), "utf8"));
 const report = (file) => analyze(loadInput(join(ROOT, file)).items, { nodes: ref("nodes.json"), capabilities: ref("capabilities.json"), hosts: ref("http-hosts.json"), now: Date.parse("2026-11-16T00:00:00Z") });
 
@@ -38,7 +38,7 @@ test("start.mjs on an export file writes report.html and report.json and prints 
     assert.equal(r.status, 0, r.stderr);
     assert.ok(existsSync(join(out, "report.html")) && existsSync(join(out, "report.json")));
     assert.match(r.stdout, /1 workflows: subscription 1/);
-    assert.match(r.stdout, /npx skills add lunox-work\/n8n-migrate -g/);
+    assert.match(r.stdout, /npx skills add lunox-work\/n8n-to-claude -g/);
     const html = readFileSync(join(out, "report.html"), "utf8");
     assert.match(html, /Add the skill to Claude Code/);
     assert.ok(!/<script/i.test(html), "no script in the page");
@@ -132,7 +132,7 @@ test("going on from the report: convert, a private repository for cloud tasks, t
     assert.match(done.prompt, /took the assumed answer to every open question.*Ask me those first/);
     assert.equal(done.repoUrl, "ana/n8n-workflows");
     assert.equal(done.claude, true);
-    assert.match(done.prompt, /Use the n8n-migrate skill\..*already pushed to the private GitHub repository ana\/n8n-workflows.*wait for my go-ahead before you create a task, publish a page or switch anything off in n8n\. Never ask me for a key in the chat\./);
+    assert.match(done.prompt, /Use the n8n-to-claude skill\..*already pushed to the private GitHub repository ana\/n8n-workflows.*wait for my go-ahead before you create a task, publish a page or switch anything off in n8n\. Never ask me for a key in the chat\./);
     // The keys file names the key and holds no value; the person types it.
     assert.deepEqual(JSON.parse(readFileSync(done.keysFile, "utf8")), { env: { N8M_SECRET_ACCOUNTS_API_KEY: "" } });
     assert.match(readFileSync(join(out, "flows", ".gitignore"), "utf8"), /\.claude\/settings\.local\.json/);
@@ -165,11 +165,11 @@ test("start.mjs --yes goes on with what stays on this computer and prints the re
     assert.match(r.stdout, /1 of 1 workflow can run on Claude\. Going on \(--yes\):\n  1\. Convert it into /);
     assert.ok(!/GitHub repository [a-z]/.test(r.stdout.split("Left for you")[0]), "--yes never creates a repository");
     assert.ok(existsSync(join(out, "flows", "slice", "definition.json")) || readFileSync(join(out, "report.json"), "utf8").length > 0);
-    assert.match(r.stdout, /Left for you:\n(  - .*\n)*  - Open Claude Code in .*flows and paste: Use the n8n-migrate skill\./);
+    assert.match(r.stdout, /Left for you:\n(  - .*\n)*  - Open Claude Code in .*flows and paste: Use the n8n-to-claude skill\./);
     assert.match(r.stdout, /Push .*flows to a private GitHub repository \(the cloud tasks clone it\): gh repo create n8n-workflows --private/);
     // HOME here has no skill: --yes installs nothing, and says how to add it.
-    assert.match(r.stdout, /  - Add the skill to Claude Code: npx skills add lunox-work\/n8n-migrate -g\n/);
-    assert.ok(!/2\. .*Add the n8n-migrate skill/.test(r.stdout), "the --yes plan does not list an install");
+    assert.match(r.stdout, /  - Add the skill to Claude Code: npx skills add lunox-work\/n8n-to-claude -g\n/);
+    assert.ok(!/2\. .*Add the n8n-to-claude skill/.test(r.stdout), "the --yes plan does not list an install");
   } finally {
     rmSync(out, { recursive: true, force: true });
   }
@@ -196,9 +196,9 @@ test("start.mjs --version prints the version; a path outside the current folder 
   }
 });
 
-test("n8n-migrate <command> runs that script with its own exit code (the plugin's skill runs every command this way)", async () => {
-  const { COMMANDS } = await import("../skills/n8n-migrate/scripts/start.mjs");
-  const bin = fileURLToPath(new URL("../skills/n8n-migrate/scripts/start.mjs", import.meta.url));
+test("n8n-to-claude <command> runs that script with its own exit code (the plugin's skill runs every command this way)", async () => {
+  const { COMMANDS } = await import("../skills/n8n-to-claude/scripts/start.mjs");
+  const bin = fileURLToPath(new URL("../skills/n8n-to-claude/scripts/start.mjs", import.meta.url));
   for (const command of COMMANDS) {
     assert.ok(existsSync(join(dirname(bin), `${command}.mjs`)), `${command}.mjs`);
   }

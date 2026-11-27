@@ -7,10 +7,10 @@ import { readFileSync, mkdtempSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import * as core from "../skills/n8n-migrate/runtime/src/index.mjs";
-import { createArtifactDriver, composeModelInput, agentValue, mcpPayload } from "../skills/n8n-migrate/runtime/src/artifact-driver.mjs";
-import { convertItems, writeFolder, loadReferences, artifactCapabilities, artifactServers } from "../skills/n8n-migrate/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
+import * as core from "../skills/n8n-to-claude/runtime/src/index.mjs";
+import { createArtifactDriver, composeModelInput, agentValue, mcpPayload } from "../skills/n8n-to-claude/runtime/src/artifact-driver.mjs";
+import { convertItems, writeFolder, loadReferences, artifactCapabilities, artifactServers } from "../skills/n8n-to-claude/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
 import { toolHost, modelHost } from "./convert-mocks.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -244,7 +244,7 @@ test("convert writes artifact.html with the definition, its hash and the runtime
     assert.equal(build.definitionHash, core.definitionHash(def));
     assert.equal(html.includes("__N8M_"), false, `${name}: an unfilled marker`);
     assert.equal(/<script[^>]+src=/i.test(html), false, `${name}: an external script`);
-    assert.ok(html.includes(readFileSync(join(ROOT, "skills/n8n-migrate/runtime/dist/artifact-runtime.js"), "utf8")));
+    assert.ok(html.includes(readFileSync(join(ROOT, "skills/n8n-to-claude/runtime/dist/artifact-runtime.js"), "utf8")));
     assert.match(html.slice(0, 8192), /<title>[^<]+<\/title>/);
     assert.deepEqual(JSON.parse(readFileSync(join(folder, "artifact.capabilities.json"), "utf8")), artifactCapabilities(def, refs));
   }
@@ -255,8 +255,8 @@ test("convert writes artifact.html with the definition, its hash and the runtime
 });
 
 test("with the person's server (gateway), an http step goes to its n8m_http instead of a handoff; a dry run holds the write", async () => {
-  const { createGateway, loadFolders } = await import("../skills/n8n-migrate/scripts/gateway.mjs");
-  const { handleRpc } = await import("../skills/n8n-migrate/scripts/serve.mjs");
+  const { createGateway, loadFolders } = await import("../skills/n8n-to-claude/scripts/gateway.mjs");
+  const { handleRpc } = await import("../skills/n8n-to-claude/scripts/serve.mjs");
   const dir = mkdtempSync(join(tmpdir(), "n8m-art-gw-"));
   try {
     const [res] = convertItems(loadInput(join(FIX, "poll-code-http.n8n.json")).items, { refs, now: NOW });

@@ -10,11 +10,11 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { createServer } from "node:http";
-import { convertItems, writeFolder, loadReferences } from "../skills/n8n-migrate/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
-import * as core from "../skills/n8n-migrate/runtime/src/index.mjs";
-import { createGateway, loadFolders } from "../skills/n8n-migrate/scripts/gateway.mjs";
-import { handleRpc, createHandler, TOOLS, prepare, serviceUnit, dockerFiles, readEnvFile } from "../skills/n8n-migrate/scripts/serve.mjs";
+import { convertItems, writeFolder, loadReferences } from "../skills/n8n-to-claude/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
+import * as core from "../skills/n8n-to-claude/runtime/src/index.mjs";
+import { createGateway, loadFolders } from "../skills/n8n-to-claude/scripts/gateway.mjs";
+import { handleRpc, createHandler, TOOLS, prepare, serviceUnit, dockerFiles, readEnvFile } from "../skills/n8n-to-claude/scripts/serve.mjs";
 import { statSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { CANNED } from "./convert-mocks.mjs";
@@ -397,29 +397,29 @@ test("serve setup: token and secrets files (mode 600) are created once; a value 
 
 test("serve --service writes a launchd plist on macOS and a systemd user unit on Linux, both restarting the server", () => {
   const mac = serviceUnit("/srv/my flows", { os: "darwin", node: "/usr/bin/node", script: "/opt/n8m/serve.mjs", port: 9000 });
-  assert.match(mac.text, /<key>Label<\/key><string>work\.lunox\.n8n-migrate\.my-flows<\/string>/);
+  assert.match(mac.text, /<key>Label<\/key><string>work\.lunox\.n8n-to-claude\.my-flows<\/string>/);
   assert.match(mac.text, /<string>\/srv\/my flows<\/string>\n    <string>--port<\/string>\n    <string>9000<\/string>/);
   assert.match(mac.text, /<key>KeepAlive<\/key><true\/>/);
   assert.match(mac.load[1], /^launchctl load -w /);
   const linux = serviceUnit("/srv/my flows", { os: "linux", node: "/usr/bin/node", script: "/opt/n8m/serve.mjs", port: 9000 });
   assert.match(linux.text, /^ExecStart=\/usr\/bin\/node \/opt\/n8m\/serve\.mjs "\/srv\/my flows" --port 9000$/m);
   assert.match(linux.text, /^Restart=always$/m);
-  assert.match(linux.load.join("\n"), /systemctl --user enable --now n8n-migrate-my-flows/);
+  assert.match(linux.load.join("\n"), /systemctl --user enable --now n8n-to-claude-my-flows/);
 });
 
 test("serve --docker pins the package version and keeps secrets and records out of the image", () => {
   const d = dockerFiles("9.9.9");
-  assert.match(d.Dockerfile, /^RUN npm install -g n8n-migrate@9\.9\.9$/m);
+  assert.match(d.Dockerfile, /^RUN npm install -g n8n-to-claude@9\.9\.9$/m);
   assert.match(d.Dockerfile, /--env-file \.n8m\/secrets\.env/);
   assert.match(d.Dockerfile, /-p 127\.0\.0\.1:8787:8787/, "published on loopback only: HTTPS goes in front");
   assert.match(d[".dockerignore"], /^\.n8m\/$/m);
 });
 
-test("npx n8n-migrate serve: help without a folder, setup prints the connector steps", () => {
-  const start = join(ROOT, "skills/n8n-migrate/scripts/start.mjs");
+test("npx n8n-to-claude serve: help without a folder, setup prints the connector steps", () => {
+  const start = join(ROOT, "skills/n8n-to-claude/scripts/start.mjs");
   const help = spawnSync(process.execPath, [start, "serve", "--help"], { encoding: "utf8" });
   assert.equal(help.status, 0);
-  assert.match(help.stdout, /^n8n-migrate serve <folder>/);
+  assert.match(help.stdout, /^n8n-to-claude serve <folder>/);
   const { dir } = repoWith("tests/fixtures/convert/poll-code-http.n8n.json");
   try {
     const r = spawnSync(process.execPath, [start, "serve", dir, "--setup"], { encoding: "utf8" });
@@ -434,7 +434,7 @@ test("npx n8n-migrate serve: help without a folder, setup prints the connector s
 });
 
 test("the report says 'from a claude.ai chat … through a server' only for what has run that way: by hand or by chat, model, http, key, connector; not a poll", async () => {
-  const { analyze, serverFit, renderText } = await import("../skills/n8n-migrate/scripts/analyze.mjs");
+  const { analyze, serverFit, renderText } = await import("../skills/n8n-to-claude/scripts/analyze.mjs");
   const manual = {
     name: "Key check",
     nodes: [
@@ -449,7 +449,7 @@ test("the report says 'from a claude.ai chat … through a server' only for what
   writeFileSync(join(tmp, "manual.json"), JSON.stringify(manual));
   const items = [join(tmp, "manual.json"), ...["chat-agent", "poll-code-http"].map((f) => join(ROOT, `tests/fixtures/convert/${f}.n8n.json`))].flatMap((f) => loadInput(f).items);
   rmSync(tmp, { recursive: true, force: true });
-  const ref = (f) => JSON.parse(readFileSync(join(ROOT, "skills/n8n-migrate/references", f), "utf8"));
+  const ref = (f) => JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references", f), "utf8"));
   const report = analyze(items, { nodes: ref("nodes.json"), capabilities: ref("capabilities.json"), hosts: ref("http-hosts.json"), now: NOW });
   const fit = Object.fromEntries(report.workflows.map((w) => [w.name, serverFit(w)]));
   assert.equal(fit["Key check"], true);
@@ -462,7 +462,7 @@ test("a token given in the environment (a container, a service) is used, never p
   const { dir } = repoWith("tests/fixtures/convert/poll-code-http.n8n.json");
   try {
     const given = "g".repeat(32);
-    const r = spawnSync(process.execPath, [join(ROOT, "skills/n8n-migrate/scripts/start.mjs"), "serve", dir, "--setup"], { encoding: "utf8", env: { ...process.env, N8M_GATEWAY_TOKEN: given } });
+    const r = spawnSync(process.execPath, [join(ROOT, "skills/n8n-to-claude/scripts/start.mjs"), "serve", dir, "--setup"], { encoding: "utf8", env: { ...process.env, N8M_GATEWAY_TOKEN: given } });
     assert.equal(r.status, 0, r.stderr);
     assert.doesNotMatch(r.stdout, new RegExp(given));
     assert.match(r.stdout, /Bearer <the N8M_GATEWAY_TOKEN you set>/);

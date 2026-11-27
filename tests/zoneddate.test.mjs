@@ -9,8 +9,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { zonedDateClass } from "../skills/n8n-migrate/runtime/src/zoneddate.mjs";
-import { run } from "../skills/n8n-migrate/runtime/src/index.mjs";
+import { zonedDateClass } from "../skills/n8n-to-claude/runtime/src/zoneddate.mjs";
+import { run } from "../skills/n8n-to-claude/runtime/src/index.mjs";
 
 // Times around DST changes in both hemispheres, a leap day, year edges and plain days.
 const TIMES = ["2026-03-08T06:59:59.500Z", "2026-03-08T07:00:00Z", "2026-11-01T05:30:00Z", "2026-11-01T06:30:00Z", "2026-11-17T00:51:00Z", "2026-11-17T04:59:00Z", "2026-11-17T05:00:00Z", "2024-02-29T12:00:00Z", "2025-12-31T23:59:59.999Z", "2026-04-05T15:59:59Z", "2026-10-04T16:30:00Z", "1969-07-20T20:17:40Z"].map(Date.parse);

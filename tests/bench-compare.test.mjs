@@ -7,7 +7,7 @@ import { fromHttp, fromTool, reply, compare, modelWritten, parseMime, multipartJ
 import { pickRoute, routeKey, parseMultipart } from "../evals/n8n/mock-server.mjs";
 import { answerOf, runnerValue, jsonFromText, normalize, providerResponse, formatOf } from "../evals/bench/model-shim.mjs";
 import { pickConnector, sameModelInput, modelKeyFor, decodeFileParts } from "../evals/bench/claude-side.mjs";
-import { multipartBody } from "../skills/n8n-migrate/runtime/src/driver.mjs";
+import { multipartBody } from "../skills/n8n-to-claude/runtime/src/driver.mjs";
 
 const log = (method, url, body, extra = {}) => {
   const u = new URL(url);
@@ -354,8 +354,8 @@ test("P30: the chat reply carries its value type, so JSON text and an object wit
 });
 
 test("P30: through the task driver, an agent answer that reads as JSON stays text, as n8n's agent output", async () => {
-  const { command, paths } = await import("../skills/n8n-migrate/runtime/src/driver.mjs");
-  const core = await import("../skills/n8n-migrate/runtime/src/index.mjs");
+  const { command, paths } = await import("../skills/n8n-to-claude/runtime/src/driver.mjs");
+  const core = await import("../skills/n8n-to-claude/runtime/src/index.mjs");
   const { replyOf } = await import("../evals/bench/compare.mjs");
   const { mkdtempSync, writeFileSync, readFileSync, rmSync } = await import("node:fs");
   const { tmpdir } = await import("node:os");

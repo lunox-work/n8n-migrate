@@ -11,8 +11,8 @@
 // VERSION is analyze.mjs's `export const VERSION`, the version the converter stamps into
 // every folder it writes. The skill on main is self-contained (Node scripts, no install), so
 // check refuses an `npx` or `npm install` line in it, but for the scheduled-task prompt's
-// fallback to `npx n8n-migrate@__N8M_VERSION__`. The plugin's copy (pluginText) runs every script
-// as `npx n8n-migrate@VERSION <command>` instead: plugin-branch --push needs that version on npm.
+// fallback to `npx n8n-to-claude@__N8M_VERSION__`. The plugin's copy (pluginText) runs every script
+// as `npx n8n-to-claude@VERSION <command>` instead: plugin-branch --push needs that version on npm.
 //
 // check: `name` matches its folder (lowercase, digits, single hyphens, at most 64);
 // `description` 1 to 1024 characters without < or >, written as `description: >-` when it
@@ -42,7 +42,7 @@
 // its objects go to a scratch object store (the repository's objects as alternates), so a
 // dry run leaves nothing behind; --out <dir> writes the branch's files there to inspect.
 // --push writes the objects into the repository, fetches origin's branch as the parent, and
-// pushes, and refuses while npm does not serve n8n-migrate@VERSION (the plugin's skill runs it).
+// pushes, and refuses while npm does not serve n8n-to-claude@VERSION (the plugin's skill runs it).
 
 import { spawnSync } from "node:child_process";
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
@@ -52,10 +52,10 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SKILLS = join(ROOT, "skills");
-const NAME = "n8n-migrate";
+const NAME = "n8n-to-claude";
 const MANIFESTS = [".claude-plugin/plugin.json", ".claude-plugin/marketplace.json", "package.json"];
 // The npm package under the old name: it depends on this one and runs it, so it moves with VERSION.
-const ALIAS = "aliases/n8n-to-claude/package.json";
+const ALIAS = "aliases/n8n-migrate/package.json";
 const MAX_FILE = 5 * 1024 * 1024;
 const PLUGIN_BRANCH = "claude-plugin";
 const PLUGIN_FILES = [".claude-plugin/icon.png", "LICENSE"];
@@ -69,26 +69,26 @@ const PLUGIN_COMMANDS = ["analyze", "convert", "cutover", "draft", "migrate", "p
 
 /**
  * The plugin's text of a skill file: every `node <skill folder>/scripts/<command>.mjs` becomes
- * `npx n8n-migrate@<version> <command>` (start.mjs is the bare command), the line that says
+ * `npx n8n-to-claude@<version> <command>` (start.mjs is the bare command), the line that says
  * where the scripts are says npm instead, the compatibility names npm, and a Markdown link into
  * scripts/ or runtime/ becomes plain text, since the plugin ships neither.
  */
 export function pluginText(text, version) {
-  const npx = `npx n8n-migrate@${version}`;
+  const npx = `npx n8n-to-claude@${version}`;
   const folder = String.raw`(?:SKILL|<this skill's folder>|<that folder>)`;
   return text
     .replace(new RegExp(String.raw`node ${folder}/scripts/start\.mjs`, "g"), npx)
     .replace(new RegExp(String.raw`node ${folder}/scripts/([a-z][a-z-]*)\.mjs`, "g"), `${npx} $1`)
-    .replace(new RegExp(String.raw`\x60(${PLUGIN_COMMANDS.join("|")})\.mjs\b`, "g"), "\x60n8n-migrate $1")
-    .replace(/\[([^\]]+)\]\(\.\.\/(?:scripts|runtime)\/[^)]+\)/g, "$1 (in the n8n-migrate npm package)")
+    .replace(new RegExp(String.raw`\x60(${PLUGIN_COMMANDS.join("|")})\.mjs\b`, "g"), "\x60n8n-to-claude $1")
+    .replace(/\[([^\]]+)\]\(\.\.\/(?:scripts|runtime)\/[^)]+\)/g, "$1 (in the n8n-to-claude npm package)")
     .replace(" Find its folder (the one with SKILL.md and scripts/probe.mjs).", "")
     .replace(
       "Scripts (run from this skill's folder, called SKILL below; Node 20+, no install):",
-      `Commands (the n8n-migrate CLI from npm, pinned to this skill's version: \x60${npx} <command>\x60; Node 20+; the first run downloads the package from npm):`,
+      `Commands (the n8n-to-claude CLI from npm, pinned to this skill's version: \x60${npx} <command>\x60; Node 20+; the first run downloads the package from npm):`,
     )
     .replace(
       /^compatibility: >-\n(?: {2}.*\n)+/m,
-      `compatibility: >-\n  Node 20 or later and npm. Runs the n8n-migrate@${version} CLI from npm (npx),\n  which downloads it from registry.npmjs.org on first use. Works in Claude Code,\n  and in Cowork with Node.\n`,
+      `compatibility: >-\n  Node 20 or later and npm. Runs the n8n-to-claude@${version} CLI from npm (npx),\n  which downloads it from registry.npmjs.org on first use. Works in Claude Code,\n  and in Cowork with Node.\n`,
     );
 }
 
@@ -222,7 +222,7 @@ export function check(root = ROOT) {
         content.split("\n").forEach((l, i) => {
           // One exception: the scheduled-task prompt's fallback for a skill installed with the
           // plugin (no scripts folder), which runs this package at the skill's own version.
-          if (/\bnpx\s|\bnpm\s+(?:i|install|ci)\b/.test(l) && !/npx n8n-migrate@__N8M_VERSION__ /.test(l)) problems.push(`${rel}:${i + 1}: an npx or npm install line; the skill ships self-contained`);
+          if (/\bnpx\s|\bnpm\s+(?:i|install|ci)\b/.test(l) && !/npx n8n-to-claude@__N8M_VERSION__ /.test(l)) problems.push(`${rel}:${i + 1}: an npx or npm install line; the skill ships self-contained`);
         });
       }
       if (/https?:\/\/(?:[\w-]+\.)*github\.com\b/.test(content) && /credential|password|secret|api[ _-]?key/i.test(content)) {

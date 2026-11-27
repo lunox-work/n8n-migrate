@@ -36,7 +36,7 @@ export function loadCorpus(name, { seed = 1, count = 200 } = {}) {
   }
   if (name === "siblings") {
     const out = [];
-    for (const repo of readdirSync(PUBLIC).filter((d) => d.startsWith("n8n-") && d !== "n8n-migrate").sort()) {
+    for (const repo of readdirSync(PUBLIC).filter((d) => d.startsWith("n8n-") && d !== "n8n-to-claude").sort()) {
       const dir = join(PUBLIC, repo, "workflows");
       if (!existsSync(dir)) continue;
       for (const f of readdirSync(dir).filter((x) => x.endsWith(".json")).sort()) out.push({ label: `${repo.slice(4)}__${basename(f, ".json")}`, raw: JSON.parse(readFileSync(join(dir, f), "utf8")) });

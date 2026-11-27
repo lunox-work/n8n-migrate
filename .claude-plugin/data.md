@@ -1,5 +1,5 @@
 - **The plugin runs the CLI from npm:** the plugin's copy of the skill ships
-  no scripts; it runs each command as `npx n8n-migrate@<version> <command>`,
+  no scripts; it runs each command as `npx n8n-to-claude@<version> <command>`,
   which downloads that package from registry.npmjs.org on first use. Nothing
   of the person's goes with that download.
 - **Sent off the machine by the skill:** nothing of its own. The analyzer and
@@ -17,7 +17,7 @@
   from the environment.
 - **n8n:** the cutover steps call the person's n8n instance with that sign-in
   or that key; without either they print the steps to do by hand.
-- **GitHub:** `npx n8n-migrate`, on the person's go-ahead, pushes the converted
+- **GitHub:** `npx n8n-to-claude`, on the person's go-ahead, pushes the converted
   folders (redacted exports, never a key) to a new private repository on their
   own account when a workflow runs as a cloud task.
 - **`serve`:** runs converted folders on a computer the person controls as a

@@ -5,11 +5,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { analyze, unwrap } from "../skills/n8n-migrate/scripts/analyze.mjs";
+import { analyze, unwrap } from "../skills/n8n-to-claude/scripts/analyze.mjs";
 import { checkEligibility, callTarget, stratumOf, pythonRefusals, extractParams } from "../evals/bench/eligible.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const refs = (f) => JSON.parse(readFileSync(join(ROOT, "skills/n8n-migrate/references", f), "utf8"));
+const refs = (f) => JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references", f), "utf8"));
 const nodesRef = refs("nodes.json");
 const opts = { nodes: nodesRef, capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), now: Date.parse("2026-11-16T00:00:00Z") };
 const lists = JSON.parse(readFileSync(join(ROOT, "evals/bench/eligibility.json"), "utf8"));

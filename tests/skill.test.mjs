@@ -9,13 +9,13 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const SKILL = join(ROOT, "skills/n8n-migrate");
+const SKILL = join(ROOT, "skills/n8n-to-claude");
 
 test("SKILL.md: frontmatter, triggers, compact body, every reference it names exists", () => {
   const md = readFileSync(join(SKILL, "SKILL.md"), "utf8");
   const fm = /^---\n([\s\S]*?)\n---\n/.exec(md)?.[1];
   assert.ok(fm, "frontmatter");
-  for (const k of ["name: n8n-migrate", "description:", "license:", "compatibility:"]) assert.ok(fm.includes(k), k);
+  for (const k of ["name: n8n-to-claude", "description:", "license:", "compatibility:"]) assert.ok(fm.includes(k), k);
   const desc = fm.slice(fm.indexOf("description:"), fm.indexOf("license:")).replace(/\s+/g, " ");
   for (const phrase of ["move, migrate or port n8n workflows to Claude", "whether an n8n workflow can run on Claude", "pastes n8n workflow JSON"]) assert.ok(desc.includes(phrase), phrase);
   assert.ok(desc.length <= 1024, `description is ${desc.length} characters`);

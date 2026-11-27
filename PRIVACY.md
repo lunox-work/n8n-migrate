@@ -1,6 +1,6 @@
 # Privacy
 
-n8n-migrate is an agent skill with Node scripts that run on your machine, in
+n8n-to-claude is an agent skill with Node scripts that run on your machine, in
 your own Claude sessions and scheduled tasks. It needs no account of its own,
 runs no service and sends no telemetry. Nothing it handles reaches its author.
 
@@ -13,7 +13,7 @@ runs no service and sends no telemetry. Nothing it handles reaches its author.
 - **Signing in to n8n:** the sign-in's tokens are kept in memory for that run
   and never written, and the refresh token is revoked at the end. What is kept
   is n8n's registration of this client (its id and secret, the callback port)
-  in `~/.config/n8n-migrate/oauth-clients.json`, readable only by you. It
+  in `~/.config/n8n-to-claude/oauth-clients.json`, readable only by you. It
   grants nothing without your consent in the browser.
 - **What it writes:** one folder per workflow under the `--out` folder you
   choose: the definition, the redacted export, the report, the task prompt and
@@ -22,7 +22,7 @@ runs no service and sends no telemetry. Nothing it handles reaches its author.
   your own repository on a cloud task, or to the artifact's database when you
   publish the page. In a chat or Cowork, the page that lists your workflows
   and each workflow's own page are artifacts on your Claude account.
-- **GitHub:** `npx n8n-migrate` lists a plan after the report and, on your
+- **GitHub:** `npx n8n-to-claude` lists a plan after the report and, on your
   go-ahead, commits the converted folders. When a workflow runs as a cloud
   task and `gh` is signed in, it pushes them to a new private repository on
   your account, which the task clones. The folders hold the redacted exports
@@ -45,8 +45,8 @@ runs no service and sends no telemetry. Nothing it handles reaches its author.
   chat reaches it at the address you add as a connector. `--tunnel` passes
   that traffic through a temporary Cloudflare tunnel.
 - **Other requests:** the Claude plugin's copy of the skill runs each command
-  as `npx n8n-migrate@<version> <command>`, a download of this package from
-  registry.npmjs.org on first use, with nothing of yours in it. `npx n8n-migrate`
+  as `npx n8n-to-claude@<version> <command>`, a download of this package from
+  registry.npmjs.org on first use, with nothing of yours in it. `npx n8n-to-claude`
   offers to add the skill with `npx skills add`, a download from GitHub. The account check (`probe.mjs`)
   asks three public hosts whether they answer and sends nothing else.
 - **Convert-time drafts (optional):** with your go-ahead, `draft.mjs` sends a
@@ -57,6 +57,6 @@ runs no service and sends no telemetry. Nothing it handles reaches its author.
   your repository and artifact. Delete them to remove everything.
 
 Questions about this policy: open an issue at
-https://github.com/lunox-work/n8n-migrate/issues.
+https://github.com/lunox-work/n8n-to-claude/issues.
 
 Last updated 2026-11-20.

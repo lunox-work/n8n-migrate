@@ -43,7 +43,7 @@ const ROOT = join(HERE, "..", "..");
 export const PROTOCOL_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 
 export function schemaFile(connector) {
-  for (const p of [join(HERE, "connectors", `${connector}.json`), join(ROOT, "skills/n8n-migrate/references/connectors", `${connector}.json`)]) if (existsSync(p)) return p;
+  for (const p of [join(HERE, "connectors", `${connector}.json`), join(ROOT, "skills/n8n-to-claude/references/connectors", `${connector}.json`)]) if (existsSync(p)) return p;
   throw new Error(`no captured schemas for connector "${connector}"`);
 }
 
@@ -142,7 +142,7 @@ export function createServer({ connector, doc, fixtures = {}, log }) {
         protocolVersion: PROTOCOL_VERSIONS.includes(asked) ? asked : PROTOCOL_VERSIONS[0],
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: `n8m-mock-${connector}`, version: "0.1.0" },
-        instructions: `Mock ${connector} connector for n8n-migrate evals. No real account.`,
+        instructions: `Mock ${connector} connector for n8n-to-claude evals. No real account.`,
       });
     }
     if (method === "ping") return reply({});

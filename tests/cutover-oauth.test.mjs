@@ -10,10 +10,10 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { convertItems, writeFolder, loadReferences } from "../skills/n8n-migrate/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
-import { runStep } from "../skills/n8n-migrate/scripts/cutover.mjs";
-import { mcpN8nClient, CUTOVER_SCOPES } from "../skills/n8n-migrate/scripts/n8n-oauth.mjs";
+import { convertItems, writeFolder, loadReferences } from "../skills/n8n-to-claude/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
+import { runStep } from "../skills/n8n-to-claude/scripts/cutover.mjs";
+import { mcpN8nClient, CUTOVER_SCOPES } from "../skills/n8n-to-claude/scripts/n8n-oauth.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const refs = loadReferences();
@@ -122,7 +122,7 @@ test("over a sign-in, a poll trigger whose position only static data holds is re
   const n8n = await fakeMcp({ id: "poll01", name: "x", active: true, activeVersionId: "v1", nodes: [], connections: {} });
   try {
     // Gmail without its executions mapping stands in for Drive/Sheets: drop fromEmitted.
-    const api = await import("../skills/n8n-migrate/scripts/n8n-api.mjs");
+    const api = await import("../skills/n8n-to-claude/scripts/n8n-api.mjs");
     const spec = api.POLL_STATE["n8n-nodes-base.gmailTrigger"];
     const saved = spec.fromEmitted;
     delete spec.fromEmitted;

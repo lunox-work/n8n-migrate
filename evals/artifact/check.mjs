@@ -26,8 +26,8 @@ import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import assert from "node:assert/strict";
 import { toolHost, modelHost } from "../../tests/convert-mocks.mjs";
-import { run } from "../../skills/n8n-migrate/runtime/src/api.mjs";
-import { missedRuns, definitionSchedule } from "../../skills/n8n-migrate/runtime/src/schedule.mjs";
+import { run } from "../../skills/n8n-to-claude/runtime/src/api.mjs";
+import { missedRuns, definitionSchedule } from "../../skills/n8n-to-claude/runtime/src/schedule.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const args = process.argv.slice(2);
@@ -83,7 +83,7 @@ const SOURCES = {
   "poll-slack": join(OUT, "folders", "poll-slack.n8n.json"),
 };
 for (const [name, file] of Object.entries(SOURCES)) {
-  const res = JSON.parse(execFileSync("node", [join(ROOT, "skills/n8n-migrate/scripts/convert.mjs"), file, "--out", join(OUT, "folders", name)], { encoding: "utf8" }));
+  const res = JSON.parse(execFileSync("node", [join(ROOT, "skills/n8n-to-claude/scripts/convert.mjs"), file, "--out", join(OUT, "folders", name)], { encoding: "utf8" }));
   folders[name] = join(res.out, res.workflows[0].folder);
 }
 const load = (name) => ({

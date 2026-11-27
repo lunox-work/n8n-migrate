@@ -8,10 +8,10 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { isLight } from "../skills/n8n-migrate/scripts/convert.mjs";
+import { isLight } from "../skills/n8n-to-claude/scripts/convert.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const S = join(ROOT, "skills/n8n-migrate/scripts");
+const S = join(ROOT, "skills/n8n-to-claude/scripts");
 const FIX = join(ROOT, "tests/fixtures/convert");
 const node = (script, ...args) => spawnSync(process.execPath, ["--max-old-space-size=512", join(S, script), ...args], { encoding: "utf8" });
 const sizeOf = (dir) => readdirSync(dir, { withFileTypes: true, recursive: true }).filter((d) => d.isFile()).reduce((n, d) => n + statSync(join(d.parentPath ?? d.path, d.name)).size, 0);

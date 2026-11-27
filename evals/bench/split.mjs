@@ -237,7 +237,7 @@ async function writeFresh(corpusPath, out, redraw = null, round = FRESH_ROUND, o
 // round's walk candidates that the round's held-out does not hold and the experiment's rule
 // selects, in the experiment seed's shuffled order, then the round's held-out refill entries in
 // listing order. Verdicts are judged once, at `convertCommit`: the checkout's skill when it is
-// clean at HEAD (recorded), else `--skill <dir>` holding that commit's skills/n8n-migrate (git
+// clean at HEAD (recorded), else `--skill <dir>` holding that commit's skills/n8n-to-claude (git
 // archive). Stored verdicts are kept; only entries without one are judged. A short pool continues
 // the views walk (fetch.mjs extendWalk as "held", PROPOSALS P126). Writes splits.json
 // `experiments` (one entry per experiment, by name) and, after a continuation, corpus.json.
@@ -259,9 +259,9 @@ async function writeExperiment(corpusPath, out, name, { redraw = null, offline =
   const commit = prev?.convertCommit ?? head;
   let skill = skillDir;
   if (!skill) {
-    const dirty = git("status", "--porcelain", "--", "skills/n8n-migrate");
-    if (commit !== head || dirty) throw new Error(`verdicts must be judged at ${commit}: the checkout's skill is ${dirty ? "edited" : `at ${head}`}; pass --skill <dir> with \`git archive ${commit} skills/n8n-migrate | tar -x -C <dir>\` (then <dir>/skills/n8n-migrate)`);
-    skill = join(repo, "skills", "n8n-migrate");
+    const dirty = git("status", "--porcelain", "--", "skills/n8n-to-claude");
+    if (commit !== head || dirty) throw new Error(`verdicts must be judged at ${commit}: the checkout's skill is ${dirty ? "edited" : `at ${head}`}; pass --skill <dir> with \`git archive ${commit} skills/n8n-to-claude | tar -x -C <dir>\` (then <dir>/skills/n8n-to-claude)`);
+    skill = join(repo, "skills", "n8n-to-claude");
   }
   const dataDir = join(HERE, "data", "wf");
   const selected = new Set(prev?.pool?.selected ?? []);

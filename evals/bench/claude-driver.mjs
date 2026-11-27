@@ -54,7 +54,7 @@ export async function runClaudeDriver(folder, fx, { wf, recordings = [], started
   const work = join(repo, name);
   mkdirSync(repo, { recursive: true });
   cpSync(folder, work, { recursive: true, filter: (src) => !src.includes(`${folder}/.n8m`) && !src.includes(`${folder}/skill`) });
-  const { writeRootSettings } = await import(pathToFileURL(join(ROOT, "skills", "n8n-migrate", "scripts", "convert.mjs")).href);
+  const { writeRootSettings } = await import(pathToFileURL(join(ROOT, "skills", "n8n-to-claude", "scripts", "convert.mjs")).href);
   writeRootSettings(repo);
 
   // Mock connectors, fixtures in the mock server's format (replies in fixture order per tool;

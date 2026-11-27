@@ -24,14 +24,14 @@ import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { canonical, get } from "../fetch-survey.mjs";
-import { analyze, unwrap } from "../../skills/n8n-migrate/scripts/analyze.mjs";
+import { analyze, unwrap } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
 import { checkEligibility } from "./eligible.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
 const DATA = join(HERE, "data");
 const SURVEY_CACHE = join(ROOT, "evals", "survey", "data", "wf");
-const REFS = join(ROOT, "skills", "n8n-migrate", "references");
+const REFS = join(ROOT, "skills", "n8n-to-claude", "references");
 const API = "https://api.n8n.io/api/templates";
 const DELAY_MS = 1000; // at least 1 s between requests (350 ms for the Phase 5 and round-3 walks)
 const ROWS = 50;
@@ -346,7 +346,7 @@ async function main() {
     fetched: new Date().toLocaleDateString("sv"),
     listingTotal: total,
     hash: "sha256 of .workflow.workflow serialised with sorted keys (evals/fetch-survey.mjs canonical())",
-    analyzer: `skills/n8n-migrate/scripts/analyze.mjs, default answers, one template per run, --now ${NOW}`,
+    analyzer: `skills/n8n-to-claude/scripts/analyze.mjs, default answers, one template per run, --now ${NOW}`,
     rules: "evals/bench/EXCLUSIONS.md",
     quotas: QUOTAS,
     refusalsWanted: REFUSALS,
@@ -795,7 +795,7 @@ async function current() {
   };
   const counts = refreshCurrent(corpus.templates, analyzeEntry, skip);
   const { templates, current: _prev, ...rest } = corpus;
-  const doc = { ...rest, current: { analyzer: `skills/n8n-migrate/scripts/analyze.mjs of the checkout, default answers, one template per run, --now ${NOW}`, refreshed: new Date().toLocaleDateString("sv"), rule: "PROPOSALS P127: current* fields are today's analyzer verdict where it differs from the frozen draw-day outcome/target/wakeup; reports read them, eligibility and draws never do", counts }, templates };
+  const doc = { ...rest, current: { analyzer: `skills/n8n-to-claude/scripts/analyze.mjs of the checkout, default answers, one template per run, --now ${NOW}`, refreshed: new Date().toLocaleDateString("sv"), rule: "PROPOSALS P127: current* fields are today's analyzer verdict where it differs from the frozen draw-day outcome/target/wakeup; reports read them, eligibility and draws never do", counts }, templates };
   const text = JSON.stringify(doc, null, 2).replace(/\{\n\s+("rank": \d+,[^{}]*?)\n\s+\}/g, (_, body) => `{ ${body.replace(/\n\s+/g, " ")} }`);
   await writeFile(out, text + "\n");
   console.log(`current analyzer verdicts: ${counts.analyzed} analyzed, ${counts.differ} differ from their draw day, ${counts.skipped} skipped (current held-out), ${counts.missing} without a cached template`);

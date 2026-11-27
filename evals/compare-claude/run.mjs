@@ -22,11 +22,11 @@ import { join, dirname } from "node:path";
 import { tmpdir, homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawn, spawnSync } from "node:child_process";
-import { analyze, unwrap } from "../../skills/n8n-migrate/scripts/analyze.mjs";
+import { analyze, unwrap } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
-const REFS = join(ROOT, "skills/n8n-migrate/references");
+const REFS = join(ROOT, "skills/n8n-to-claude/references");
 const WF = join(ROOT, "evals/bench/data/wf");
 const SEED = 20261118;
 const PASSES = "585 1747 1900 1951 1953 1954 1957 1959 1963 1980 2006 2063 2085 2090 2139 2163 2197 2299 2384 2433 2473 2537 2552 2567 2572 2605 2612 2614 2648 2694 2695 2703 2729 2777 2799 2803 2813 2824 2859 2883 2956 3018 3085 3086 3102 3132 3904 4573 5035 13270".split(" ");

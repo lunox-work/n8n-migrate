@@ -18,7 +18,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DateTime } from "../../skills/n8n-migrate/runtime/vendor/luxon.mjs";
+import { DateTime } from "../../skills/n8n-to-claude/runtime/vendor/luxon.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 let TABLE = null;

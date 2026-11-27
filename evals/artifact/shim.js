@@ -1,7 +1,7 @@
 // Artifact runtime shim for local checks (evals/artifact/check.mjs). Not shipped.
 //
 // Implements, in the page, the call shapes of the artifact runtime contract 0.2.96 as written
-// down in skills/n8n-migrate/references/artifact-runtime.md: `window.claude.use(name)`
+// down in skills/n8n-to-claude/references/artifact-runtime.md: `window.claude.use(name)`
 // resolving frozen namespaces after a tick, `mcp` (callTool / listTools / server / watchTool /
 // invalidate / describeTool, CallToolResult with `payload`, rejections {code, message}),
 // `sample` (sample(input, opts) -> {text, truncated, modelTierApplied}, sample.json,

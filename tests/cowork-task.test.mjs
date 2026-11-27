@@ -11,10 +11,10 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { savedDocs, batchVersions } from "../skills/n8n-migrate/runtime/src/driver.mjs";
+import { savedDocs, batchVersions } from "../skills/n8n-to-claude/runtime/src/driver.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const SKILL = join(ROOT, "skills/n8n-migrate");
+const SKILL = join(ROOT, "skills/n8n-to-claude");
 const URL = "https://claude.ai/artifact/TestPage123";
 // Subject and subject side by side, as Gmail items carry them: the transport refuses that pair.
 const MAIL = {

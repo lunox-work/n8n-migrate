@@ -5,7 +5,7 @@ import { mkdtempSync, rmSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
-import { createStore } from "../skills/n8n-migrate/runtime/src/store.mjs";
+import { createStore } from "../skills/n8n-to-claude/runtime/src/store.mjs";
 
 test("N8M_STORE=file overrides a git store: no fetch, no push, records in .n8m/records", () => {
   const base = mkdtempSync(join(tmpdir(), "n8m-store-"));

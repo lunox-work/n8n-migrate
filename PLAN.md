@@ -1,6 +1,6 @@
 # Plan: migrate in one Cowork conversation
 
-Written 2026-11-19 at commit a983add. Status 2026-11-20: Phases 1, 2 (items 1 to 3) and 3 are built and committed, Phase 0 and Phase 1's finish line ran on the real account; what is left is under "Left" at the end. Design decisions stay in [docs/DESIGN.md](docs/DESIGN.md); this file is the work order, and it is not committed (the launch cleanup a983add took the working plan out of the repository). Script paths here are under `skills/n8n-migrate/`.
+Written 2026-11-19 at commit a983add. Status 2026-11-20: Phases 1, 2 (items 1 to 3) and 3 are built and committed, Phase 0 and Phase 1's finish line ran on the real account; what is left is under "Left" at the end. Design decisions stay in [docs/DESIGN.md](docs/DESIGN.md); this file is the work order, and it is not committed (the launch cleanup a983add took the working plan out of the repository). Script paths here are under `skills/n8n-to-claude/`.
 
 ## Goal
 
@@ -10,7 +10,7 @@ A person with n8n and a paid Claude plan, and no terminal, moves a workflow to C
 
 What the person does, in order:
 
-1. **Add the plugin.** Customize > Plugins > Discover > n8n-migrate > Add. Until the directory listing exists: "Add marketplace", `lunox-work/n8n-migrate`.
+1. **Add the plugin.** Customize > Plugins > Discover > n8n-to-claude > Add. Until the directory listing exists: "Add marketplace", `lunox-work/n8n-to-claude`.
 2. **Connect n8n.** In n8n: Settings > Instance-level MCP > Connect a client > Claude. Fallback: drop an export file into the conversation.
 3. **Say "migrate my n8n workflows".**
 4. **Read one page.** Three groups, one line of reason each: Ready to move, Needs one thing from you, Stays in n8n for now.
@@ -104,7 +104,7 @@ Finish line 2026-11-20: the first half is met (template 2722, see Phase 0's upda
 
 ## Phase 3: the Claude Code fallback for workflows that need a key
 
-After one approval, `npx n8n-migrate` goes on from the report: converts, creates the private repository and the scheduled task, and leaves only the key for the person to type. Today it stops at the report.
+After one approval, `npx n8n-to-claude` goes on from the report: converts, creates the private repository and the scheduled task, and leaves only the key for the person to type. Today it stops at the report.
 
 Done (58f9960), with one difference: the script converts, commits, creates the private GitHub repository and writes the key names for the person to fill, then opens Claude Code on the folder with the setup request, and Claude Code creates the scheduled task after its own go-ahead. The script does not create the task itself, because nothing we ship drives claude.ai. `gh` and `claude` are stand-ins in the tests; the real push and hand-over have not run.
 
@@ -127,8 +127,8 @@ Done (58f9960), with one difference: the script converts, commits, creates the p
 
 Needs the account's owner; nothing else can do these:
 
-1. **Say "push"** (or "rewrite first"). `main` is 0.3.0 and 47 commits ahead of GitHub (a983add); nothing is pushed. The reason it waits: unpushed commit c1c62a4 holds the id of the paused probe task on claude.ai (it is gone from the current file since 549b4b5, not from history: c1c62a4's diff adds the line and 549b4b5's diff shows it removed, so a rewrite has to cover both). It is the only such id: a scan of every line the 47 commits add found no token, key, email of a person, home path or other account id. The public repository has never carried an Anthropic-side account id. Pushing as it is publishes that id for good; it cannot be used without the task's own token. Rewriting first drops it and changes every hash from today that the docs and commit messages cite. Then, in order: `git push origin main`, `node scripts/skill.mjs plugin-branch --push`, `git tag v0.3.0 && git push origin v0.3.0` (the release workflow attaches n8n-migrate.zip, which the README's first step links to).
-2. **Publish 0.3.0 to npm** (passkey), after the push, from HEAD: seven fixes landed after the 0.3.0 version commit (6068a57) and nothing has been published as 0.3.0, so the number stays. Until then `npx n8n-migrate` is 0.2.0 and stops at the report, while the README describes it going on.
+1. **Say "push"** (or "rewrite first"). `main` is 0.3.0 and 47 commits ahead of GitHub (a983add); nothing is pushed. The reason it waits: unpushed commit c1c62a4 holds the id of the paused probe task on claude.ai (it is gone from the current file since 549b4b5, not from history: c1c62a4's diff adds the line and 549b4b5's diff shows it removed, so a rewrite has to cover both). It is the only such id: a scan of every line the 47 commits add found no token, key, email of a person, home path or other account id. The public repository has never carried an Anthropic-side account id. Pushing as it is publishes that id for good; it cannot be used without the task's own token. Rewriting first drops it and changes every hash from today that the docs and commit messages cite. Then, in order: `git push origin main`, `node scripts/skill.mjs plugin-branch --push`, `git tag v0.3.0 && git push origin v0.3.0` (the release workflow attaches n8n-to-claude.zip, which the README's first step links to).
+2. **Publish 0.3.0 to npm** (passkey), after the push, from HEAD: seven fixes landed after the 0.3.0 version commit (6068a57) and nothing has been published as 0.3.0, so the number stays. Until then `npx n8n-to-claude` is 0.2.0 and stops at the report, while the README describes it going on.
 3. **Connect Google Calendar** under Customize > Connectors. Then its tool schemas can be captured and Calendar steps moved off Google's API (Phase 2 item 1); "Suggest meeting slots using AI" is the top-100 workflow it unblocks.
 4. **Decide on the recording** (Phase 1's finish line, Phase 4 item 2): a screen recording of the flow shows the account's name, chat titles and real mail. Either record on a clean account, or keep the page picture as it is.
 5. **Submit the plugin to the Claude directory** (Phase 4 item 1): the form is filled from the owner's other Claude account and its terms are theirs to accept.
@@ -138,13 +138,13 @@ Needs the account's owner; nothing else can do these:
 Launch check 2026-11-20 (fdbc7a4 to 2021812, all on `main`, unpushed):
 
 - `node --test`: 695 of 695 on Node 24.21.0 and on Node 20.20.2; the lint, `skill.mjs check` and `build-runtime.mjs --check` pass; `claude plugin validate` passes on the repository and on a dry-run `claude-plugin` branch.
-- Fixed on the way: a fresh clone failed one test that reads a fetched template (it skips now); on Node 20 a PDF step failed (`Promise.withResolvers`), six bench tests failed (`Object.groupBy`) and a proxied request's error blamed the proxy's allowed domains; `npx n8n-migrate --version` was an unknown option and an export outside the current folder was printed as a chain of `../`; PRIVACY.md and the plugin's data note did not cover the sign-in, the GitHub repository, `serve` or the pages; PROOF.md said the skill zip does not upload as built.
-- Packaging: the npm tarball is 168 files, 2.5 MB, the skill plus LICENSE, NOTICE, PRIVACY and README; installed from the tarball in an empty folder, the report, `convert` and `serve --help` ran on a sample export. `dist-skills/n8n-migrate-0.3.0.zip` is built from 2021812. Versions agree in package.json, both plugin manifests and the skill.
-- Docs: every relative link, repository path, script and flag named in README, AGENTS, docs/, SKILL.md and its references exists. The release workflow builds `n8n-migrate.zip`, the file the README's first step links to (the v0.2.0 release already serves that name).
+- Fixed on the way: a fresh clone failed one test that reads a fetched template (it skips now); on Node 20 a PDF step failed (`Promise.withResolvers`), six bench tests failed (`Object.groupBy`) and a proxied request's error blamed the proxy's allowed domains; `npx n8n-to-claude --version` was an unknown option and an export outside the current folder was printed as a chain of `../`; PRIVACY.md and the plugin's data note did not cover the sign-in, the GitHub repository, `serve` or the pages; PROOF.md said the skill zip does not upload as built.
+- Packaging: the npm tarball is 168 files, 2.5 MB, the skill plus LICENSE, NOTICE, PRIVACY and README; installed from the tarball in an empty folder, the report, `convert` and `serve --help` ran on a sample export. `dist-skills/n8n-to-claude-0.3.0.zip` is built from 2021812. Versions agree in package.json, both plugin manifests and the skill.
+- Docs: every relative link, repository path, script and flag named in README, AGENTS, docs/, SKILL.md and its references exists. The release workflow builds `n8n-to-claude.zip`, the file the README's first step links to (the v0.2.0 release already serves that name).
 - Not checked here: anything that needs the account, a push or a paid model run.
 
 Not done, and why:
 
 - **The bench loop** (Phase 2 item 4) was not resumed. Where to start it: both dev templates blocked only by "document edits in place" (2872, 3025) use Google Docs `update` with one `insert` text action, so the first lever is a REST program for that operation as n8n 2.47.7 builds it (`POST docs.googleapis.com/v1/documents/<id>:batchUpdate`, body `{requests: [{insertText: {text, endOfSegmentLocation: {segmentId: ""}}}]}`, the reply reduced to `{documentId}` when Simplify is on), with a Google token as Sheets writes have. It also needs a rule for that write in `evals/bench/effects.json`, which is a comparer change for a person to approve. Among the 49 dev templates that stop at a blocked step, no single blocker covers more than two; vector stores block seven but never alone. Its three levers (document edits in place, vector stores, forms that wait for a person) are each a feature with its own fixtures, and a full dev pass is about 3.3 hours and 127 haiku runs on a machine shared with the live tests. A regression pass over the 29 dev templates that touch today's changes (tag `p20-reg`) found no change: all 29 reach the same gate as before, 26 pass, gate sum 245. The other 111 dev templates were not re-run.
-- **Run for real, not only against stand-ins:** the Telegram poll (needs a bot), `npx n8n-migrate` going on to a real GitHub repository and Claude Code, and the page's undo.
+- **Run for real, not only against stand-ins:** the Telegram poll (needs a bot), `npx n8n-to-claude` going on to a real GitHub repository and Claude Code, and the page's undo.
 - **Phase 0's three untried rows** (plugin hooks in a scheduled task, Add marketplace in a chat or Cowork, n8n's connector switching a workflow off) are in that section's second table. The last one needs an n8n instance with Instance-level MCP connected to Claude.

@@ -74,7 +74,7 @@ test("a next URL on another host is refused by the allowlist; the same page five
 });
 
 test("preflight names the step whose URL is built at run time: its host cannot be known before a run", async () => {
-  const { preflight } = await import("../skills/n8n-migrate/runtime/src/api.mjs");
+  const { preflight } = await import("../skills/n8n-to-claude/runtime/src/api.mjs");
   const paged = wf([start(), httpStep({ parameters: { parameters: [{ name: "page", value: "={{ $pageCount + 1 }}" }] } })], [["Start", "Search"]], { allow });
   assert.equal(preflight(paged).ok, true, "pagination runs");
   const anyHost = wf([start(), node("Get", "httpRequest", { url: "={{ $json.url }}" }, { v: 4.2 })], [["Start", "Get"]], { allow: { tools: [], sql: [], http: [{ method: "GET", host: "*", note: 'step "Get": URL built at run time' }] } });

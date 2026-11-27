@@ -1,7 +1,7 @@
 // Mock hosts for running converted definitions in-process. Not a test itself.
 //
 // The tool host checks every call against the tool's captured input schema
-// (skills/n8n-migrate/references/connectors) and answers with a canned output per tool.
+// (skills/n8n-to-claude/references/connectors) and answers with a canned output per tool.
 // The canned outputs are plausible readings of the tool descriptions, not captured
 // responses: the result adapters they exercise are marked `unverified` for that reason.
 // The model host answers deterministically.
@@ -14,7 +14,7 @@ import { connectorRefusal, limitErrors, pageResult } from "../evals/mocks/limits
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const schemas = {};
 for (const c of ["gmail", "google-drive", "slack", "notion"]) {
-  const doc = JSON.parse(readFileSync(join(ROOT, "skills/n8n-migrate/references/connectors", `${c}.json`), "utf8"));
+  const doc = JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references/connectors", `${c}.json`), "utf8"));
   for (const t of doc.tools) schemas[`${c}.${t.name}`] = t.inputSchema;
 }
 

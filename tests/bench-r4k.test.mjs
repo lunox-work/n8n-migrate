@@ -40,8 +40,8 @@ test("P108: the in-process host follows a redirect as executeHttp does, logging 
   const { mkdtempSync, writeFileSync, mkdirSync, copyFileSync, rmSync } = await import("node:fs");
   const { join } = await import("node:path");
   const { tmpdir } = await import("node:os");
-  const { convertItems, loadReferences } = await import("../skills/n8n-migrate/scripts/convert.mjs");
-  const { loadInput } = await import("../skills/n8n-migrate/scripts/analyze.mjs");
+  const { convertItems, loadReferences } = await import("../skills/n8n-to-claude/scripts/convert.mjs");
+  const { loadInput } = await import("../skills/n8n-to-claude/scripts/analyze.mjs");
   const { runInProcess } = await import("../evals/bench/claude-side.mjs");
   const wfOf = (options) => ({
     id: "p108", name: "P108", settings: { executionOrder: "v1" },
@@ -68,7 +68,7 @@ test("P108: the in-process host follows a redirect as executeHttp does, logging 
     const folder = join(dir, `folder-${Math.random().toString(36).slice(2)}`);
     mkdirSync(join(folder, "runtime"), { recursive: true });
     writeFileSync(join(folder, "definition.json"), JSON.stringify(def));
-    for (const f of ["runner-core.mjs", "luxon.mjs"]) copyFileSync(new URL(`../skills/n8n-migrate/runtime/dist/${f}`, import.meta.url), join(folder, "runtime", f));
+    for (const f of ["runner-core.mjs", "luxon.mjs"]) copyFileSync(new URL(`../skills/n8n-to-claude/runtime/dist/${f}`, import.meta.url), join(folder, "runtime", f));
     return runInProcess(folder, fx, { wf, recordings: [], mode: "replay", liveFallback: false, startedAt: fx.now, log: () => {} });
   };
   try {

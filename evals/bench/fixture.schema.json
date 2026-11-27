@@ -1,6 +1,6 @@
 {
   "$id": "fixture.schema.json",
-  "title": "n8n-migrate bench fixture",
+  "title": "n8n-to-claude bench fixture",
   "description": "What the outside world returns to one template in one variant. Contract: evals/bench/FIXTURES.md. Uses only the subset tests/schema-check.mjs validates; evals/bench/validate.mjs adds the cross-checks against the template.",
   "type": "object",
   "required": [

@@ -38,9 +38,9 @@ import { spawnSync } from "node:child_process";
 import assert from "node:assert/strict";
 import { up, down, rest, BASE, WORK, MODEL_SHIM_PORT, memoryFree, waitForMemory, docker, MOCK_NAME } from "../n8n/container.mjs";
 import { ensureLeaf } from "../bench/tls.mjs";
-import { convertItems, writeFolder, loadReferences } from "../../skills/n8n-migrate/scripts/convert.mjs";
-import { loadInput } from "../../skills/n8n-migrate/scripts/analyze.mjs";
-import { runStep } from "../../skills/n8n-migrate/scripts/cutover.mjs";
+import { convertItems, writeFolder, loadReferences } from "../../skills/n8n-to-claude/scripts/convert.mjs";
+import { loadInput } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
+import { runStep } from "../../skills/n8n-to-claude/scripts/cutover.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "../..");

@@ -1,0 +1,35 @@
+{
+  "name": "n8n-migrate",
+  "version": "0.3.1",
+  "description": "Renamed to n8n-to-claude: which of your n8n workflows can run on your Claude subscription. This package runs n8n-to-claude.",
+  "license": "MIT",
+  "author": "Charlie Angriawan (https://github.com/lunox-work)",
+  "homepage": "https://github.com/lunox-work/n8n-to-claude#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lunox-work/n8n-to-claude.git",
+    "directory": "aliases/n8n-migrate"
+  },
+  "bugs": "https://github.com/lunox-work/n8n-to-claude/issues",
+  "keywords": [
+    "n8n-to-claude",
+    "n8n",
+    "claude",
+    "claude-code",
+    "workflow-automation",
+    "migration"
+  ],
+  "type": "module",
+  "bin": {
+    "n8n-migrate": "bin/cli.mjs"
+  },
+  "files": [
+    "bin/"
+  ],
+  "dependencies": {
+    "n8n-to-claude": "^0.3.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

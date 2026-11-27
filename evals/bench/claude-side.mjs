@@ -27,7 +27,7 @@ import { checkSchema, schemaFile } from "../mocks/mcp-server.mjs";
 import { connectorDefault, connectorRefusal, countsAsSend, limitErrors, pageResult } from "../mocks/limits.mjs";
 import { answerOf, callsByIndex, formatOf, liveAnswer, normalize, normalizeRunnerRequest, pairRecorded, providerResponse, runnerValue } from "./model-shim.mjs";
 import { claudeP } from "./claude.mjs";
-import { redactSecrets } from "../../skills/n8n-migrate/scripts/analyze.mjs";
+import { redactSecrets } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
 import { modelConsumers, containerPath, N8N_HOME } from "./n8n-side.mjs";
 import { maskRunTime, fromTool, fromHttp, keyOf, table } from "./compare.mjs";
 import { CLAUDE_PG, claudeConnectionUrl, collectClaudeRun, dbPlan, ensureClaudeDatabase, seedClaudeRun } from "../n8n/databases.mjs";
@@ -42,7 +42,7 @@ const groupBy = (items, key) => {
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
-const SKILL = join(ROOT, "skills", "n8n-migrate");
+const SKILL = join(ROOT, "skills", "n8n-to-claude");
 const templatePath = (id) => join(HERE, "data", "wf", `${id}.json`);
 
 // The workflow folder convert wrote (the one with report.json), or null.
@@ -179,19 +179,19 @@ export async function convertSkill(id, out, { model = "sonnet", budgetUsd = 4, l
   const proj = join(mkdtempSync(join(tmpdir(), "n8m-bench-skill-")), "project");
   rmSync(out, { recursive: true, force: true });
   mkdirSync(join(proj, ".claude", "skills"), { recursive: true });
-  cpSync(SKILL, join(proj, ".claude", "skills", "n8n-migrate"), { recursive: true });
+  cpSync(SKILL, join(proj, ".claude", "skills", "n8n-to-claude"), { recursive: true });
   cpSync(templatePath(id), join(proj, "workflow.json"));
   const settings = {
     permissions: {
       defaultMode: "dontAsk",
-      allow: ["Skill(n8n-migrate)", "Bash(node *)", "Bash(ls *)", "Bash(cat *)", "Bash(mkdir *)", "Read", "Write", "Edit", "Glob", "Grep"],
+      allow: ["Skill(n8n-to-claude)", "Bash(node *)", "Bash(ls *)", "Bash(cat *)", "Bash(mkdir *)", "Read", "Write", "Edit", "Glob", "Grep"],
       deny: ["WebFetch", "WebSearch"],
     },
   };
   mkdirSync(out, { recursive: true });
   const settingsFile = join(out, "settings.json");
   writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
-  const prompt = "Use the n8n-migrate skill to migrate the n8n workflow in workflow.json (in this folder) to Claude. Write the migrated repository to the folder ./repo. Headless mode is on (N8M_HEADLESS=1): ask nothing and take the defaults. Finish with a short summary.\n\nThis sandbox allows Bash only for plain node, ls, cat and mkdir commands: run each script as its own command (node .claude/skills/n8n-migrate/scripts/<script> ...), with no cd, no variables, no && or ;.";
+  const prompt = "Use the n8n-to-claude skill to migrate the n8n workflow in workflow.json (in this folder) to Claude. Write the migrated repository to the folder ./repo. Headless mode is on (N8M_HEADLESS=1): ask nothing and take the defaults. Finish with a short summary.\n\nThis sandbox allows Bash only for plain node, ls, cat and mkdir commands: run each script as its own command (node .claude/skills/n8n-to-claude/scripts/<script> ...), with no cd, no variables, no && or ;.";
   const t0 = Date.now();
   let r;
   let error = null;

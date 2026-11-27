@@ -9,8 +9,8 @@ import { createHash } from "node:crypto";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { pull } from "../skills/n8n-migrate/scripts/pull.mjs";
-import { signIn, instanceBase, scopeFor, scopesForVersion, discover } from "../skills/n8n-migrate/scripts/n8n-oauth.mjs";
+import { pull } from "../skills/n8n-to-claude/scripts/pull.mjs";
+import { signIn, instanceBase, scopeFor, scopesForVersion, discover } from "../skills/n8n-to-claude/scripts/n8n-oauth.mjs";
 
 const NODES = [{ name: "Start", type: "n8n-nodes-base.manualTrigger", typeVersion: 1, parameters: {} }];
 

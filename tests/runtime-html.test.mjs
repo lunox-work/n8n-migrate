@@ -4,8 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { node, wf, run, out, start } from "./runtime-helpers.mjs";
-import { parseHtml, parseHtmlLoose, outerHtml, selectAll, parseSelector } from "../skills/n8n-migrate/runtime/src/htmldom.mjs";
-import { htmlToText } from "../skills/n8n-migrate/runtime/src/htmltext.mjs";
+import { parseHtml, parseHtmlLoose, outerHtml, selectAll, parseSelector } from "../skills/n8n-to-claude/runtime/src/htmldom.mjs";
+import { htmlToText } from "../skills/n8n-to-claude/runtime/src/htmltext.mjs";
 
 const chain = (...names) => names.slice(1).map((n, i) => [names[i], n]);
 const PAGE =

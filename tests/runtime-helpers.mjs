@@ -1,6 +1,6 @@
 // Helpers for the runtime tests: build small definitions and run them. Not a test itself.
 
-import { run as coreRun } from "../skills/n8n-migrate/runtime/src/api.mjs";
+import { run as coreRun } from "../skills/n8n-to-claude/runtime/src/api.mjs";
 
 export const CLOCK = { startedAt: "2026-11-14T03:00:00Z" };
 const BASE = "n8n-nodes-base.";

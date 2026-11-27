@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Generates skills/n8n-migrate/references/nodes.json: one entry per n8n node
+// Generates skills/n8n-to-claude/references/nodes.json: one entry per n8n node
 // type, built from the node packages' own descriptions, merged with the
 // hand-maintained classification in references/mappings.json.
 //
@@ -36,7 +36,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const REFS = join(ROOT, "skills", "n8n-migrate", "references");
+const REFS = join(ROOT, "skills", "n8n-to-claude", "references");
 
 // Vocabulary from PLAN.md. A mapping value outside these fails the run, so a
 // typo in mappings.json cannot pass as a classification.

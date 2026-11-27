@@ -43,7 +43,7 @@ const project = join(runDir, "project");
 mkdirSync(project, { recursive: true });
 
 // Convert, then install the skill folder the way a person would.
-const conv = JSON.parse(execFileSync(process.execPath, [join(ROOT, "skills/n8n-migrate/scripts/convert.mjs"), fixture, "--out", join(runDir, "converted")], { encoding: "utf8" }));
+const conv = JSON.parse(execFileSync(process.execPath, [join(ROOT, "skills/n8n-to-claude/scripts/convert.mjs"), fixture, "--out", join(runDir, "converted")], { encoding: "utf8" }));
 const folder = join(conv.out, conv.workflows[0].folder);
 const md = readFileSync(join(folder, "skill/SKILL.md"), "utf8");
 const name = /^name: (\S+)$/m.exec(md)[1];

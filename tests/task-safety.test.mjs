@@ -10,8 +10,8 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync, execFileSync } from "node:child_process";
-import { convertItems, writeFolder, loadReferences } from "../skills/n8n-migrate/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
+import { convertItems, writeFolder, loadReferences } from "../skills/n8n-to-claude/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
 import { CANNED } from "./convert-mocks.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -181,7 +181,7 @@ test("a failed run hands out the fixed-template alert before FAILED; missed runs
     assert.match(out, /^FAILED: run \S+ stopped at "Get unread mail": the tool answered with text/);
     assert.match(out, /An alert was sent\./);
     assert.equal(alerts(s).length, 1);
-    assert.equal(alerts(s)[0].args.message, `n8n-migrate: run ${readJson(join(folder, ".n8m/run.json")).runId} of "Morning mail digest" failed at step "Get unread mail" (NodeError). The run record has the details; nothing after that step ran.`);
+    assert.equal(alerts(s)[0].args.message, `n8n-to-claude: run ${readJson(join(folder, ".n8m/run.json")).runId} of "Morning mail digest" failed at step "Get unread mail" (NodeError). The run record has the details; nothing after that step ran.`);
     assert.doesNotMatch(JSON.stringify(s.sent), /C0GENERAL"/, "no call outside the definition");
     // Three days later: the daily 08:00 SGT schedule missed two runs.
     const s2 = session(folder);

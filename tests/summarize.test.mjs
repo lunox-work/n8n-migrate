@@ -3,13 +3,13 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatFString, jsonStrings, splitText, documentsOf, summarizeItem, DEFAULT_PROMPT } from "../skills/n8n-migrate/runtime/src/summarize.mjs";
+import { formatFString, jsonStrings, splitText, documentsOf, summarizeItem, DEFAULT_PROMPT } from "../skills/n8n-to-claude/runtime/src/summarize.mjs";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { convertItems, loadReferences } from "../skills/n8n-migrate/scripts/convert.mjs";
-import { loadInput } from "../skills/n8n-migrate/scripts/analyze.mjs";
-import { run } from "../skills/n8n-migrate/runtime/src/api.mjs";
+import { convertItems, loadReferences } from "../skills/n8n-to-claude/scripts/convert.mjs";
+import { loadInput } from "../skills/n8n-to-claude/scripts/analyze.mjs";
+import { run } from "../skills/n8n-to-claude/runtime/src/api.mjs";
 
 const refuse = (what) => Object.assign(new Error(`unsupported: ${what}`), { name: "UnsupportedNode" });
 

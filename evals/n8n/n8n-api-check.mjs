@@ -32,10 +32,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { up, rest, BASE } from "./container.mjs";
 import { runWorkflow, scheduleItem } from "./run-workflow.mjs";
-import { convertItems, loadReferences } from "../../skills/n8n-migrate/scripts/convert.mjs";
-import { unwrap } from "../../skills/n8n-migrate/scripts/analyze.mjs";
-import { run } from "../../skills/n8n-migrate/runtime/src/api.mjs";
-import { executeHttp } from "../../skills/n8n-migrate/runtime/src/driver.mjs";
+import { convertItems, loadReferences } from "../../skills/n8n-to-claude/scripts/convert.mjs";
+import { unwrap } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
+import { run } from "../../skills/n8n-to-claude/runtime/src/api.mjs";
+import { executeHttp } from "../../skills/n8n-to-claude/runtime/src/driver.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);

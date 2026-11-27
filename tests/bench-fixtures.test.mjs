@@ -302,9 +302,9 @@ test("top-ups: each round's pool, candidates and start page", async () => {
   assert.equal(walkPool({ r4: "eligible" }, TOP_UPS[5]), "fresh");
   assert.equal(walkPool({ r4: "ineligible" }, TOP_UPS[4]), "fresh-other");
   // r4Verdict: the round-4 rule on a workflow the analyzer has read.
-  const { analyze, unwrap } = await import("../skills/n8n-migrate/scripts/analyze.mjs");
+  const { analyze, unwrap } = await import("../skills/n8n-to-claude/scripts/analyze.mjs");
   const ROOT = join(BENCH, "..", "..");
-  const refs = (f) => JSON.parse(readFileSync(join(ROOT, "skills/n8n-migrate/references", f), "utf8"));
+  const refs = (f) => JSON.parse(readFileSync(join(ROOT, "skills/n8n-to-claude/references", f), "utf8"));
   const opts = { nodes: refs("nodes.json"), capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), now: Date.parse("2026-11-16T00:00:00Z") };
   const elig = { lists: JSON.parse(readFileSync(join(BENCH, "eligibility.json"), "utf8")), nodes: opts.nodes.nodes };
   const verdict = (wf) => r4Verdict(wf, analyze(unwrap({ workflow: { id: "t", name: "t", workflow: wf } }, "t"), opts).workflows[0], {}, elig);

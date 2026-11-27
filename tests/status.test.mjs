@@ -7,12 +7,12 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { applyStatus, showStatus } from "../skills/n8n-migrate/scripts/status.mjs";
-import { renderPlainHtml, readPlainPage } from "../skills/n8n-migrate/scripts/report-html.mjs";
+import { applyStatus, showStatus } from "../skills/n8n-to-claude/scripts/status.mjs";
+import { renderPlainHtml, readPlainPage } from "../skills/n8n-to-claude/scripts/report-html.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const STATUS = join(ROOT, "skills/n8n-migrate/scripts/status.mjs");
-const MIGRATE = join(ROOT, "skills/n8n-migrate/scripts/migrate.mjs");
+const STATUS = join(ROOT, "skills/n8n-to-claude/scripts/status.mjs");
+const MIGRATE = join(ROOT, "skills/n8n-to-claude/scripts/migrate.mjs");
 const PAGE = "https://claude.ai/artifact/AbC123_x-9";
 
 const item = (id, name, o = {}) => ({ id, name, group: "ready", runs: "scheduled-task", says: "Runs on Claude every day, with Gmail.", why: null, todo: [], fix: [], developer: false, apps: ["Gmail"], n8n: "on", ...o });

@@ -24,7 +24,7 @@
 // python-refused, chat-input-unfed), bench, feature, comparable, hand.
 
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { analyze, unwrap } from "../../skills/n8n-migrate/scripts/analyze.mjs";
+import { analyze, unwrap } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -412,7 +412,7 @@ export function checkEligibility({ wf, report, lists, nodes = {}, corpusEntry = 
 // Eligibility of corpus templates by id, from the git-ignored template cache (evals/bench/data/wf),
 // corpus.json and eligibility.json, with the analyzer's default answers and the fetch's --now.
 export function eligibilityOf(ids) {
-  const refs = (f) => JSON.parse(readFileSync(join(ROOT, "skills", "n8n-migrate", "references", f), "utf8"));
+  const refs = (f) => JSON.parse(readFileSync(join(ROOT, "skills", "n8n-to-claude", "references", f), "utf8"));
   const nodesRef = refs("nodes.json");
   const opts = { nodes: nodesRef, capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), now: Date.parse("2026-11-16T00:00:00Z") };
   const lists = JSON.parse(readFileSync(join(HERE, "eligibility.json"), "utf8"));

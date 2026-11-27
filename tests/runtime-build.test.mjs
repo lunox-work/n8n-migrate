@@ -11,7 +11,7 @@ import { buildRuntime, NODE_FILES } from "../scripts/build-runtime.mjs";
 import { wf, node, start, CLOCK } from "./runtime-helpers.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const RT = join(ROOT, "skills/n8n-migrate/runtime");
+const RT = join(ROOT, "skills/n8n-to-claude/runtime");
 const DIST = join(RT, "dist");
 
 test("runtime/dist is what scripts/build-runtime.mjs produces from runtime/src", () => {
@@ -23,7 +23,7 @@ test("runtime/dist is what scripts/build-runtime.mjs produces from runtime/src",
 // The Artifact host refuses a page with a raw U+FFFD (it reads as a character lost in an edit;
 // observed at the first real publish, 2026-11-17), so the page's sources write it as "\\uFFFD".
 test("the artifact page carries no raw U+FFFD", () => {
-  for (const f of [join(DIST, "artifact-runtime.js"), join(ROOT, "skills/n8n-migrate/references/artifact.html")]) {
+  for (const f of [join(DIST, "artifact-runtime.js"), join(ROOT, "skills/n8n-to-claude/references/artifact.html")]) {
     const text = readFileSync(f, "utf8");
     assert.equal(text.indexOf("\uFFFD"), -1, `${f} has a raw U+FFFD; write it as \\uFFFD in the source`);
   }

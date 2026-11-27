@@ -92,7 +92,7 @@ process.env.N8M_STORE = "file";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
-const SKILL = join(ROOT, "skills", "n8n-migrate");
+const SKILL = join(ROOT, "skills", "n8n-to-claude");
 const WORK = join(HERE, ".work");
 const RECORDINGS = join(HERE, "recordings");
 const RESULTS = join(ROOT, "evals", "results.jsonl");
@@ -896,7 +896,7 @@ async function main() {
   if ((L.data.args?.arm ?? "plain") !== args.arm) throw new Error(`tag ${args.tag} was run with --arm ${L.data.args?.arm ?? "plain"}; use another tag for --arm ${args.arm}`);
   L.templates = L.data.templates;
   const commit = git(["rev-parse", "--short", "HEAD"]);
-  const skillCommit = git(["log", "-1", "--format=%h", "--", "skills/n8n-migrate"]);
+  const skillCommit = git(["log", "-1", "--format=%h", "--", "skills/n8n-to-claude"]);
   const claudeBefore = claudeLedger();
   log(`tag ${args.tag}, ${args.ids.length} templates, commit ${commit} (skill ${skillCommit})`);
   let stopped = null;

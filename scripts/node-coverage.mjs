@@ -32,7 +32,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 function parseArgs(argv) {
-  const a = { inputs: [], nodes: join(ROOT, "skills", "n8n-migrate", "references", "nodes.json"), json: false, strict: false };
+  const a = { inputs: [], nodes: join(ROOT, "skills", "n8n-to-claude", "references", "nodes.json"), json: false, strict: false };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--nodes") a.nodes = resolve(argv[++i]);
     else if (argv[i] === "--json") a.json = true;

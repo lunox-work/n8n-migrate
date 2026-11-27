@@ -38,7 +38,7 @@ import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { rest, n8nCli, waitHealthy, WORK, BASE, NAME } from "./container.mjs";
-import { unwrap } from "../../skills/n8n-migrate/scripts/analyze.mjs";
+import { unwrap } from "../../skills/n8n-to-claude/scripts/analyze.mjs";
 
 // ---------- flatted (n8n's REST encoding of execution data) ----------
 

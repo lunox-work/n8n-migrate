@@ -172,7 +172,7 @@ async function main() {
   const work = join(repo, basename(folder));
   mkdirSync(runDir, { recursive: true });
   cpSync(folder, work, { recursive: true, filter: (src) => !src.includes(`${folder}/.n8m`) && !src.includes(`${folder}/skill`) });
-  const { writeRootSettings } = await import(pathToFileURL(join(ROOT, "skills/n8n-migrate/scripts/convert.mjs")).href);
+  const { writeRootSettings } = await import(pathToFileURL(join(ROOT, "skills/n8n-to-claude/scripts/convert.mjs")).href);
   writeRootSettings(repo);
 
   // Hooks on/off and the settings variant.

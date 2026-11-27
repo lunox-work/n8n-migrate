@@ -50,8 +50,8 @@ for (const f of readdirSync(join(ROOT, "evals", "mocks", "connectors"))) {
 
 let analyzer = null;
 async function analyzerReport(raw, id) {
-  analyzer ??= await import("../../skills/n8n-migrate/scripts/analyze.mjs");
-  const refs = (f) => JSON.parse(readFileSync(join(ROOT, "skills", "n8n-migrate", "references", f), "utf8"));
+  analyzer ??= await import("../../skills/n8n-to-claude/scripts/analyze.mjs");
+  const refs = (f) => JSON.parse(readFileSync(join(ROOT, "skills", "n8n-to-claude", "references", f), "utf8"));
   return analyzer.analyze(analyzer.unwrap(raw, String(id)), { nodes: refs("nodes.json"), capabilities: refs("capabilities.json"), hosts: refs("http-hosts.json"), now: Date.parse("2026-11-16T00:00:00Z") }).workflows[0];
 }
 
